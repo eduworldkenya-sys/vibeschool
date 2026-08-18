@@ -1,0 +1,89 @@
+name: Temporary Database Types Reconciliation
+
+on:
+  push:
+    branches:
+      - fix/shared-claim-code-10of10
+    paths:
+      - ".github/workflows/db-types-reconcile-temp.yml"
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    name: Reconcile types from rebuilt branch schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: fix/shared-claim-code-10of10
+          fetch-depth: 0
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Disable seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then
+            mv supabase/seed.sql /tmp/seed.sql.disabled
+          fi
+
+      - name: Start isolated Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+
+      - name: Rebuild full migration lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db reset --local --no-seed
+
+      - name: Generate canonical public schema types
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p db-types-artifact
+          supabase gen types typescript --local --schema public > db-types-artifact/database.types.generated.ts
+          test -s db-types-artifact/database.types.generated.ts
+          sha256sum db-types-artifact/database.types.generated.ts > db-types-artifact/database.types.generated.sha256
+          git rev-parse HEAD > db-types-artifact/source-head.txt
+
+      - name: Reconcile repository contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp db-types-artifact/database.types.generated.ts lib/database.types.ts
+          if git diff --quiet -- lib/database.types.ts; then
+            echo "database.types.ts already matches rebuilt branch schema"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/database.types.ts
+          git commit -m "chore: regenerate database types from branch schema"
+          git push origin HEAD:fix/shared-claim-code-10of10
+
+      - name: Upload generated contract
+        uses: actions/upload-artifact@v4
+        with:
+          name: branch-database-types-${{ github.run_id }}
+          path: db-types-artifact/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Stop isolated Supabase
+        if: always()
+        shell: bash
+        run: supabase stop --no-backup >/dev/null 2>&1 || true

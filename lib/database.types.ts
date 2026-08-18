@@ -7,36 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       academic_terms: {
@@ -81,879 +51,11 @@ export type Database = {
             foreignKeyName: "academic_terms_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_announcements: {
-        Row: {
-          audience: string
-          body: string
-          class_id: string | null
-          created_at: string
-          created_by: string | null
-          deleted_at: string | null
-          id: string
-          scheduled_at: string | null
-          school_id: string
-          sent: boolean
-          sent_at: string | null
-          title: string
-        }
-        Insert: {
-          audience: string
-          body: string
-          class_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string
-          scheduled_at?: string | null
-          school_id: string
-          sent?: boolean
-          sent_at?: string | null
-          title: string
-        }
-        Update: {
-          audience?: string
-          body?: string
-          class_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string
-          scheduled_at?: string | null
-          school_id?: string
-          sent?: boolean
-          sent_at?: string | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_announcements_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "admin_announcements_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_announcements_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_announcements_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_expenses: {
-        Row: {
-          amount: number
-          approved: boolean
-          approved_by: string | null
-          category: string
-          created_at: string
-          deleted_at: string | null
-          description: string
-          expense_date: string
-          id: string
-          project_id: string | null
-          receipt_ref: string | null
-          school_id: string
-          submitted_by: string | null
-          vendor: string | null
-        }
-        Insert: {
-          amount: number
-          approved?: boolean
-          approved_by?: string | null
-          category: string
-          created_at?: string
-          deleted_at?: string | null
-          description: string
-          expense_date?: string
-          id?: string
-          project_id?: string | null
-          receipt_ref?: string | null
-          school_id: string
-          submitted_by?: string | null
-          vendor?: string | null
-        }
-        Update: {
-          amount?: number
-          approved?: boolean
-          approved_by?: string | null
-          category?: string
-          created_at?: string
-          deleted_at?: string | null
-          description?: string
-          expense_date?: string
-          id?: string
-          project_id?: string | null
-          receipt_ref?: string | null
-          school_id?: string
-          submitted_by?: string | null
-          vendor?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_expenses_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_expenses_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_expenses_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "admin_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_expenses_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_summary"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "admin_expenses_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_expenses_submitted_by_fkey"
-            columns: ["submitted_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_expenses_submitted_by_fkey"
-            columns: ["submitted_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_meeting_actions: {
-        Row: {
-          action: string
-          assigned_to: string
-          created_at: string
-          due_date: string | null
-          id: string
-          meeting_id: string
-          school_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          action: string
-          assigned_to: string
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          meeting_id: string
-          school_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          action?: string
-          assigned_to?: string
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          meeting_id?: string
-          school_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_meeting_actions_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "admin_meetings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_meeting_actions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_meeting_attendees: {
-        Row: {
-          attended: boolean | null
-          created_at: string
-          id: string
-          meeting_id: string
-          name: string
-          profile_id: string | null
-          role: string | null
-          rsvp: string
-        }
-        Insert: {
-          attended?: boolean | null
-          created_at?: string
-          id?: string
-          meeting_id: string
-          name: string
-          profile_id?: string | null
-          role?: string | null
-          rsvp?: string
-        }
-        Update: {
-          attended?: boolean | null
-          created_at?: string
-          id?: string
-          meeting_id?: string
-          name?: string
-          profile_id?: string | null
-          role?: string | null
-          rsvp?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_meeting_attendees_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "admin_meetings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_meeting_attendees_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_meeting_attendees_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_meetings: {
-        Row: {
-          agenda: string | null
-          created_at: string
-          created_by: string | null
-          duration_mins: number | null
-          id: string
-          location: string | null
-          meeting_type: string
-          minutes: string | null
-          recurring: boolean
-          scheduled_at: string
-          school_id: string
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          agenda?: string | null
-          created_at?: string
-          created_by?: string | null
-          duration_mins?: number | null
-          id?: string
-          location?: string | null
-          meeting_type: string
-          minutes?: string | null
-          recurring?: boolean
-          scheduled_at: string
-          school_id: string
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          agenda?: string | null
-          created_at?: string
-          created_by?: string | null
-          duration_mins?: number | null
-          id?: string
-          location?: string | null
-          meeting_type?: string
-          minutes?: string | null
-          recurring?: boolean
-          scheduled_at?: string
-          school_id?: string
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_meetings_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_meetings_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_meetings_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_notices: {
-        Row: {
-          body: string
-          created_at: string
-          created_by: string | null
-          deleted_at: string | null
-          expires_at: string | null
-          id: string
-          pinned: boolean
-          school_id: string
-          title: string
-        }
-        Insert: {
-          body: string
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          expires_at?: string | null
-          id?: string
-          pinned?: boolean
-          school_id: string
-          title: string
-        }
-        Update: {
-          body?: string
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          expires_at?: string | null
-          id?: string
-          pinned?: boolean
-          school_id?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_notices_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_notices_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_notices_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_profiles: {
-        Row: {
-          created_at: string
-          profile_id: string
-          school_id: string
-          title: string | null
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          profile_id: string
-          school_id: string
-          title?: string | null
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          profile_id?: string
-          school_id?: string
-          title?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_profiles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_project_milestones: {
-        Row: {
-          completed: boolean
-          completed_at: string | null
-          created_at: string
-          due_date: string | null
-          id: string
-          notes: string | null
-          project_id: string
-          title: string
-        }
-        Insert: {
-          completed?: boolean
-          completed_at?: string | null
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          notes?: string | null
-          project_id: string
-          title: string
-        }
-        Update: {
-          completed?: boolean
-          completed_at?: string | null
-          created_at?: string
-          due_date?: string | null
-          id?: string
-          notes?: string | null
-          project_id?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_project_milestones_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "admin_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_project_milestones_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_summary"
-            referencedColumns: ["project_id"]
-          },
-        ]
-      }
-      admin_projects: {
-        Row: {
-          annual_budget_id: string | null
-          at_risk_ack: boolean
-          at_risk_ack_at: string | null
-          budget: number | null
-          budget_line_id: string | null
-          cancel_reason: string | null
-          cancelled_at: string | null
-          category: string | null
-          completed_at: string | null
-          created_at: string
-          created_by: string | null
-          deleted_at: string | null
-          description: string | null
-          end_date: string | null
-          id: string
-          lead: string | null
-          owner_id: string | null
-          project_type: string | null
-          report_notes: string | null
-          report_signed_at: string | null
-          report_signed_by: string | null
-          school_id: string
-          spent: number | null
-          start_date: string | null
-          status: string
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          annual_budget_id?: string | null
-          at_risk_ack?: boolean
-          at_risk_ack_at?: string | null
-          budget?: number | null
-          budget_line_id?: string | null
-          cancel_reason?: string | null
-          cancelled_at?: string | null
-          category?: string | null
-          completed_at?: string | null
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          end_date?: string | null
-          id?: string
-          lead?: string | null
-          owner_id?: string | null
-          project_type?: string | null
-          report_notes?: string | null
-          report_signed_at?: string | null
-          report_signed_by?: string | null
-          school_id: string
-          spent?: number | null
-          start_date?: string | null
-          status?: string
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          annual_budget_id?: string | null
-          at_risk_ack?: boolean
-          at_risk_ack_at?: string | null
-          budget?: number | null
-          budget_line_id?: string | null
-          cancel_reason?: string | null
-          cancelled_at?: string | null
-          category?: string | null
-          completed_at?: string | null
-          created_at?: string
-          created_by?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          end_date?: string | null
-          id?: string
-          lead?: string | null
-          owner_id?: string | null
-          project_type?: string | null
-          report_notes?: string | null
-          report_signed_at?: string | null
-          report_signed_by?: string | null
-          school_id?: string
-          spent?: number | null
-          start_date?: string | null
-          status?: string
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_projects_annual_budget_id_fkey"
-            columns: ["annual_budget_id"]
-            isOneToOne: false
-            referencedRelation: "finance_annual_budgets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_budget_line_id_fkey"
-            columns: ["budget_line_id"]
-            isOneToOne: false
-            referencedRelation: "finance_budgets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_report_signed_by_fkey"
-            columns: ["report_signed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_report_signed_by_fkey"
-            columns: ["report_signed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_staff_attendance: {
-        Row: {
-          clock_in: string | null
-          clock_out: string | null
-          created_at: string
-          date: string
-          id: string
-          notes: string | null
-          school_id: string
-          staff_id: string
-          status: string
-        }
-        Insert: {
-          clock_in?: string | null
-          clock_out?: string | null
-          created_at?: string
-          date?: string
-          id?: string
-          notes?: string | null
-          school_id: string
-          staff_id: string
-          status?: string
-        }
-        Update: {
-          clock_in?: string | null
-          clock_out?: string | null
-          created_at?: string
-          date?: string
-          id?: string
-          notes?: string | null
-          school_id?: string
-          staff_id?: string
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_staff_attendance_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_staff_attendance_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_staff_attendance_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_staff_leave: {
-        Row: {
-          created_at: string
-          days: number
-          end_date: string
-          id: string
-          leave_type: string
-          reason: string | null
-          review_note: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          school_id: string
-          staff_id: string
-          start_date: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          days: number
-          end_date: string
-          id?: string
-          leave_type: string
-          reason?: string | null
-          review_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          school_id: string
-          staff_id: string
-          start_date: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          days?: number
-          end_date?: string
-          id?: string
-          leave_type?: string
-          reason?: string | null
-          review_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          school_id?: string
-          staff_id?: string
-          start_date?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_staff_leave_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_staff_leave_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_staff_leave_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_staff_leave_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_staff_leave_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      admin_visitors: {
-        Row: {
-          created_at: string
-          flag_reason: string | null
-          flagged: boolean
-          full_name: string
-          id: string
-          id_number: string | null
-          phone: string | null
-          purpose: string
-          recorded_by: string | null
-          school_id: string
-          time_in: string
-          time_out: string | null
-          visiting_whom: string
-        }
-        Insert: {
-          created_at?: string
-          flag_reason?: string | null
-          flagged?: boolean
-          full_name: string
-          id?: string
-          id_number?: string | null
-          phone?: string | null
-          purpose: string
-          recorded_by?: string | null
-          school_id: string
-          time_in?: string
-          time_out?: string | null
-          visiting_whom: string
-        }
-        Update: {
-          created_at?: string
-          flag_reason?: string | null
-          flagged?: boolean
-          full_name?: string
-          id?: string
-          id_number?: string | null
-          phone?: string | null
-          purpose?: string
-          recorded_by?: string | null
-          school_id?: string
-          time_in?: string
-          time_out?: string | null
-          visiting_whom?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_visitors_recorded_by_fkey"
-            columns: ["recorded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_visitors_recorded_by_fkey"
-            columns: ["recorded_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_visitors_school_id_fkey"
+            foreignKeyName: "academic_terms_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
@@ -1060,6 +162,13 @@ export type Database = {
             foreignKeyName: "assessment_assignments_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_assignments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -1075,13 +184,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assessment_assignments_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -1204,10 +306,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "assessment_attempts_reviewed_by_fkey"
-            columns: ["reviewed_by"]
+            foreignKeyName: "assessment_attempts_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -1350,13 +452,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "assessment_definitions_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "assessment_definitions_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
@@ -1375,6 +470,13 @@ export type Database = {
             columns: ["lesson_plan_id"]
             isOneToOne: false
             referencedRelation: "lesson_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_definitions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -1403,13 +505,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assessment_definitions_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -1509,6 +604,13 @@ export type Database = {
             foreignKeyName: "assessment_gradebook_entries_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_gradebook_entries_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -1531,13 +633,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "assessment_gradebook_entries_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -1673,6 +768,13 @@ export type Database = {
             foreignKeyName: "assessment_interventions_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_interventions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -1749,6 +851,7 @@ export type Database = {
           prompt: string
           question_type: string
           section_id: string | null
+          source_block_id: string | null
           source_exam_question_id: string | null
           source_exercise_ref: Json | null
           source_homework_question_id: string | null
@@ -1780,6 +883,7 @@ export type Database = {
           prompt: string
           question_type: string
           section_id?: string | null
+          source_block_id?: string | null
           source_exam_question_id?: string | null
           source_exercise_ref?: Json | null
           source_homework_question_id?: string | null
@@ -1811,6 +915,7 @@ export type Database = {
           prompt?: string
           question_type?: string
           section_id?: string | null
+          source_block_id?: string | null
           source_exam_question_id?: string | null
           source_exercise_ref?: Json | null
           source_homework_question_id?: string | null
@@ -1835,6 +940,13 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "assessment_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_items_source_block_id_fkey"
+            columns: ["source_block_id"]
+            isOneToOne: false
+            referencedRelation: "content_blocks"
             referencedColumns: ["id"]
           },
           {
@@ -1926,6 +1038,13 @@ export type Database = {
             columns: ["response_id"]
             isOneToOne: false
             referencedRelation: "assessment_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_moderation_requests_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -2070,6 +1189,13 @@ export type Database = {
             foreignKeyName: "assessment_questions_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_questions_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -2187,13 +1313,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "assessment_responses_marked_by_fkey"
-            columns: ["marked_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
         ]
       }
       assessment_rubric_criteria: {
@@ -2280,6 +1399,13 @@ export type Database = {
             foreignKeyName: "assessment_rubrics_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_rubrics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -2350,7 +1476,59 @@ export type Database = {
             foreignKeyName: "assessment_score_events_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_score_events_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessment_scores: {
+        Row: {
+          assessment_id: string
+          created_at: string | null
+          id: string
+          remarks: string | null
+          rubric_level: string | null
+          score: number | null
+          student_id: string | null
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string | null
+          id?: string
+          remarks?: string | null
+          rubric_level?: string | null
+          score?: number | null
+          student_id?: string | null
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string | null
+          id?: string
+          remarks?: string | null
+          rubric_level?: string | null
+          score?: number | null
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_scores_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_scores_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -2395,6 +1573,107 @@ export type Database = {
             columns: ["assessment_id"]
             isOneToOne: false
             referencedRelation: "assessment_definitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessments: {
+        Row: {
+          class_id: string | null
+          created_at: string | null
+          homework_id: string | null
+          id: string
+          lesson_plan_id: string | null
+          school_id: string | null
+          status: string
+          subject_id: string | null
+          teacher_id: string | null
+          term: number | null
+          title: string
+          type: string
+          updated_at: string | null
+          week: number | null
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string | null
+          homework_id?: string | null
+          id?: string
+          lesson_plan_id?: string | null
+          school_id?: string | null
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string | null
+          term?: number | null
+          title: string
+          type?: string
+          updated_at?: string | null
+          week?: number | null
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string | null
+          homework_id?: string | null
+          id?: string
+          lesson_plan_id?: string | null
+          school_id?: string | null
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string | null
+          term?: number | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+          week?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_homework_id_fkey"
+            columns: ["homework_id"]
+            isOneToOne: false
+            referencedRelation: "homework"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_lesson_plan_id_fkey"
+            columns: ["lesson_plan_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessments_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2447,6 +1726,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "attendance_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "attendance_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
@@ -2468,13 +1761,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "attendance_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "attendance_teaching_occurrence_id_fkey"
             columns: ["teaching_occurrence_id"]
             isOneToOne: false
@@ -2490,98 +1776,73 @@ export type Database = {
           },
         ]
       }
-      audit_logs: {
+      billing_subscriptions: {
         Row: {
-          actor_id: string | null
-          actor_role: string | null
-          actor_snapshot: Json
+          amount: number
+          billing_interval: string
+          cancelled_at: string | null
           created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          ended_at: string | null
+          external_ref: string | null
           id: string
-          ip_address: unknown
-          ip_masked_at: string | null
-          new_data: Json | null
-          old_data: Json | null
-          operation: string
-          table_name: string
-          table_record_id: string
+          metadata: Json
+          plan_key: string
+          profile_id: string
+          source: string
+          started_at: string
+          status: string
+          updated_at: string
         }
         Insert: {
-          actor_id?: string | null
-          actor_role?: string | null
-          actor_snapshot: Json
+          amount: number
+          billing_interval: string
+          cancelled_at?: string | null
           created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          ended_at?: string | null
+          external_ref?: string | null
           id?: string
-          ip_address?: unknown
-          ip_masked_at?: string | null
-          new_data?: Json | null
-          old_data?: Json | null
-          operation: string
-          table_name: string
-          table_record_id: string
+          metadata?: Json
+          plan_key: string
+          profile_id: string
+          source?: string
+          started_at: string
+          status: string
+          updated_at?: string
         }
         Update: {
-          actor_id?: string | null
-          actor_role?: string | null
-          actor_snapshot?: Json
+          amount?: number
+          billing_interval?: string
+          cancelled_at?: string | null
           created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          ended_at?: string | null
+          external_ref?: string | null
           id?: string
-          ip_address?: unknown
-          ip_masked_at?: string | null
-          new_data?: Json | null
-          old_data?: Json | null
-          operation?: string
-          table_name?: string
-          table_record_id?: string
+          metadata?: Json
+          plan_key?: string
+          profile_id?: string
+          source?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "audit_logs_actor_id_fkey"
-            columns: ["actor_id"]
+            foreignKeyName: "billing_subscriptions_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "audit_logs_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
         ]
-      }
-      badges: {
-        Row: {
-          category: string | null
-          code: string
-          created_at: string | null
-          description: string | null
-          icon: string | null
-          id: string
-          level: number | null
-          name: string
-        }
-        Insert: {
-          category?: string | null
-          code: string
-          created_at?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          level?: number | null
-          name: string
-        }
-        Update: {
-          category?: string | null
-          code?: string
-          created_at?: string | null
-          description?: string | null
-          icon?: string | null
-          id?: string
-          level?: number | null
-          name?: string
-        }
-        Relationships: []
       }
       cbc_assessments: {
         Row: {
@@ -2592,7 +1853,6 @@ export type Database = {
           homework_id: string | null
           id: string
           lesson_plan_id: string | null
-          lesson_project_id: string | null
           notes: string | null
           performance: Database["public"]["Enums"]["cbc_performance_level"]
           school_id: string | null
@@ -2612,7 +1872,6 @@ export type Database = {
           homework_id?: string | null
           id?: string
           lesson_plan_id?: string | null
-          lesson_project_id?: string | null
           notes?: string | null
           performance: Database["public"]["Enums"]["cbc_performance_level"]
           school_id?: string | null
@@ -2632,7 +1891,6 @@ export type Database = {
           homework_id?: string | null
           id?: string
           lesson_plan_id?: string | null
-          lesson_project_id?: string | null
           notes?: string | null
           performance?: Database["public"]["Enums"]["cbc_performance_level"]
           school_id?: string | null
@@ -2645,6 +1903,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cbc_assessments_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cbc_assessments_homework_id_fkey"
             columns: ["homework_id"]
@@ -2660,10 +1925,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cbc_assessments_lesson_project_id_fkey"
-            columns: ["lesson_project_id"]
+            foreignKeyName: "cbc_assessments_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "lesson_projects"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -2671,13 +1936,6 @@ export type Database = {
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cbc_assessments_strand_id_fkey"
-            columns: ["strand_id"]
-            isOneToOne: false
-            referencedRelation: "cbc_strands"
             referencedColumns: ["id"]
           },
           {
@@ -2701,13 +1959,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "cbc_assessments_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
         ]
       }
       cbc_strands: {
@@ -2727,7 +1978,6 @@ export type Database = {
           subject_id: string
           suggested_experiences: string[] | null
           term: number | null
-          values: string[] | null
           week: number | null
         }
         Insert: {
@@ -2746,7 +1996,6 @@ export type Database = {
           subject_id: string
           suggested_experiences?: string[] | null
           term?: number | null
-          values?: string[] | null
           week?: number | null
         }
         Update: {
@@ -2765,7 +2014,6 @@ export type Database = {
           subject_id?: string
           suggested_experiences?: string[] | null
           term?: number | null
-          values?: string[] | null
           week?: number | null
         }
         Relationships: [
@@ -2839,875 +2087,6 @@ export type Database = {
           },
         ]
       }
-      child_audit_log: {
-        Row: {
-          action: string
-          actor_id: string | null
-          actor_role: string | null
-          created_at: string | null
-          id: string
-          new_value: Json | null
-          old_value: Json | null
-          record_id: string | null
-          student_id: string
-          table_name: string | null
-        }
-        Insert: {
-          action: string
-          actor_id?: string | null
-          actor_role?: string | null
-          created_at?: string | null
-          id?: string
-          new_value?: Json | null
-          old_value?: Json | null
-          record_id?: string | null
-          student_id: string
-          table_name?: string | null
-        }
-        Update: {
-          action?: string
-          actor_id?: string | null
-          actor_role?: string | null
-          created_at?: string | null
-          id?: string
-          new_value?: Json | null
-          old_value?: Json | null
-          record_id?: string | null
-          student_id?: string
-          table_name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_audit_log_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_autonomy_log: {
-        Row: {
-          created_at: string | null
-          from_level: number | null
-          id: string
-          parent_id: string
-          reason: string | null
-          student_id: string
-          to_level: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          from_level?: number | null
-          id?: string
-          parent_id: string
-          reason?: string | null
-          student_id: string
-          to_level?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          from_level?: number | null
-          id?: string
-          parent_id?: string
-          reason?: string | null
-          student_id?: string
-          to_level?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_autonomy_log_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_badges: {
-        Row: {
-          awarded_by: string | null
-          badge_id: string
-          created_at: string | null
-          earned_at: string | null
-          id: string
-          student_id: string
-        }
-        Insert: {
-          awarded_by?: string | null
-          badge_id: string
-          created_at?: string | null
-          earned_at?: string | null
-          id?: string
-          student_id: string
-        }
-        Update: {
-          awarded_by?: string | null
-          badge_id?: string
-          created_at?: string | null
-          earned_at?: string | null
-          id?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_badges_badge_id_fkey"
-            columns: ["badge_id"]
-            isOneToOne: false
-            referencedRelation: "badges"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "child_badges_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_books: {
-        Row: {
-          author: string | null
-          category: string | null
-          cover_url: string | null
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          notes: string | null
-          owner: string | null
-          pages: number | null
-          parent_id: string
-          rating: number | null
-          recorded_at: string | null
-          student_id: string
-          title: string
-          visibility: string | null
-        }
-        Insert: {
-          author?: string | null
-          category?: string | null
-          cover_url?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          notes?: string | null
-          owner?: string | null
-          pages?: number | null
-          parent_id: string
-          rating?: number | null
-          recorded_at?: string | null
-          student_id: string
-          title: string
-          visibility?: string | null
-        }
-        Update: {
-          author?: string | null
-          category?: string | null
-          cover_url?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          notes?: string | null
-          owner?: string | null
-          pages?: number | null
-          parent_id?: string
-          rating?: number | null
-          recorded_at?: string | null
-          student_id?: string
-          title?: string
-          visibility?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_books_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_change_requests: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          field: string
-          id: string
-          new_value: string
-          old_value: string | null
-          parent_id: string
-          reason: string | null
-          review_note: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string | null
-          student_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          field: string
-          id?: string
-          new_value: string
-          old_value?: string | null
-          parent_id: string
-          reason?: string | null
-          review_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string | null
-          student_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          field?: string
-          id?: string
-          new_value?: string
-          old_value?: string | null
-          parent_id?: string
-          reason?: string | null
-          review_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string | null
-          student_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_change_requests_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_events: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          deleted_at: string | null
-          description: string | null
-          id: string
-          is_recurring: boolean | null
-          location: string | null
-          outcome: string | null
-          owner: string | null
-          parent_id: string
-          recorded_at: string
-          recurrence: string | null
-          status: string | null
-          student_id: string
-          title: string
-          updated_at: string | null
-          visibility: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          is_recurring?: boolean | null
-          location?: string | null
-          outcome?: string | null
-          owner?: string | null
-          parent_id: string
-          recorded_at?: string
-          recurrence?: string | null
-          status?: string | null
-          student_id: string
-          title: string
-          updated_at?: string | null
-          visibility?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          is_recurring?: boolean | null
-          location?: string | null
-          outcome?: string | null
-          owner?: string | null
-          parent_id?: string
-          recorded_at?: string
-          recurrence?: string | null
-          status?: string | null
-          student_id?: string
-          title?: string
-          updated_at?: string | null
-          visibility?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_events_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_goal_milestones: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          done_at: string | null
-          goal_id: string
-          id: string
-          is_done: boolean | null
-          recorded_at: string | null
-          student_id: string
-          title: string
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          done_at?: string | null
-          goal_id: string
-          id?: string
-          is_done?: boolean | null
-          recorded_at?: string | null
-          student_id: string
-          title: string
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          done_at?: string | null
-          goal_id?: string
-          id?: string
-          is_done?: boolean | null
-          recorded_at?: string | null
-          student_id?: string
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_goal_milestones_goal_id_fkey"
-            columns: ["goal_id"]
-            isOneToOne: false
-            referencedRelation: "child_goals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "child_goal_milestones_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_goals: {
-        Row: {
-          category: string | null
-          completed_at: string | null
-          created_at: string | null
-          deleted_at: string | null
-          description: string | null
-          id: string
-          owner: string | null
-          parent_id: string
-          recorded_at: string | null
-          status: string | null
-          student_id: string
-          target_date: string | null
-          title: string
-          updated_at: string | null
-          visibility: string | null
-        }
-        Insert: {
-          category?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          owner?: string | null
-          parent_id: string
-          recorded_at?: string | null
-          status?: string | null
-          student_id: string
-          target_date?: string | null
-          title: string
-          updated_at?: string | null
-          visibility?: string | null
-        }
-        Update: {
-          category?: string | null
-          completed_at?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          owner?: string | null
-          parent_id?: string
-          recorded_at?: string | null
-          status?: string | null
-          student_id?: string
-          target_date?: string | null
-          title?: string
-          updated_at?: string | null
-          visibility?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_goals_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_growth: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          height_cm: number | null
-          id: string
-          notes: string | null
-          parent_id: string
-          recorded_at: string
-          student_id: string
-          weight_kg: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          height_cm?: number | null
-          id?: string
-          notes?: string | null
-          parent_id: string
-          recorded_at?: string
-          student_id: string
-          weight_kg?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          height_cm?: number | null
-          id?: string
-          notes?: string | null
-          parent_id?: string
-          recorded_at?: string
-          student_id?: string
-          weight_kg?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_growth_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_media: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          description: string | null
-          id: string
-          owner: string | null
-          parent_id: string
-          recorded_at: string | null
-          related_id: string | null
-          related_to: string | null
-          student_id: string
-          title: string | null
-          type: string
-          url: string
-          visibility: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          owner?: string | null
-          parent_id: string
-          recorded_at?: string | null
-          related_id?: string | null
-          related_to?: string | null
-          student_id: string
-          title?: string | null
-          type: string
-          url: string
-          visibility?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          owner?: string | null
-          parent_id?: string
-          recorded_at?: string | null
-          related_id?: string | null
-          related_to?: string | null
-          student_id?: string
-          title?: string | null
-          type?: string
-          url?: string
-          visibility?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_media_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_profiles: {
-        Row: {
-          allergies: string | null
-          bio: string | null
-          blood_group: string | null
-          created_at: string | null
-          deleted_at: string | null
-          emergency_contact_name: string | null
-          emergency_contact_phone: string | null
-          favourite_animal: string | null
-          favourite_book: string | null
-          favourite_color: string | null
-          favourite_food: string | null
-          favourite_sport: string | null
-          id: string
-          medical_notes: string | null
-          nickname: string | null
-          owner: string | null
-          parent_id: string
-          photo_url: string | null
-          special_needs: string | null
-          student_id: string
-          updated_at: string | null
-          visibility: string | null
-        }
-        Insert: {
-          allergies?: string | null
-          bio?: string | null
-          blood_group?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          emergency_contact_name?: string | null
-          emergency_contact_phone?: string | null
-          favourite_animal?: string | null
-          favourite_book?: string | null
-          favourite_color?: string | null
-          favourite_food?: string | null
-          favourite_sport?: string | null
-          id?: string
-          medical_notes?: string | null
-          nickname?: string | null
-          owner?: string | null
-          parent_id: string
-          photo_url?: string | null
-          special_needs?: string | null
-          student_id: string
-          updated_at?: string | null
-          visibility?: string | null
-        }
-        Update: {
-          allergies?: string | null
-          bio?: string | null
-          blood_group?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          emergency_contact_name?: string | null
-          emergency_contact_phone?: string | null
-          favourite_animal?: string | null
-          favourite_book?: string | null
-          favourite_color?: string | null
-          favourite_food?: string | null
-          favourite_sport?: string | null
-          id?: string
-          medical_notes?: string | null
-          nickname?: string | null
-          owner?: string | null
-          parent_id?: string
-          photo_url?: string | null
-          special_needs?: string | null
-          student_id?: string
-          updated_at?: string | null
-          visibility?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_profiles_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_share_links: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          expires_at: string | null
-          id: string
-          is_active: boolean | null
-          parent_id: string
-          related_id: string | null
-          scope: string
-          student_id: string
-          token: string
-          view_count: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          parent_id: string
-          related_id?: string | null
-          scope: string
-          student_id: string
-          token?: string
-          view_count?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          expires_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          parent_id?: string
-          related_id?: string | null
-          scope?: string
-          student_id?: string
-          token?: string
-          view_count?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_share_links_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_skill_evidence: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          media_url: string | null
-          notes: string | null
-          recorded_at: string | null
-          skill_id: string
-          student_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          media_url?: string | null
-          notes?: string | null
-          recorded_at?: string | null
-          skill_id: string
-          student_id: string
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          media_url?: string | null
-          notes?: string | null
-          recorded_at?: string | null
-          skill_id?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_skill_evidence_skill_id_fkey"
-            columns: ["skill_id"]
-            isOneToOne: false
-            referencedRelation: "child_skills"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "child_skill_evidence_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_skills: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          deleted_at: string | null
-          endorsed_at: string | null
-          endorsed_by: string | null
-          id: string
-          level: string | null
-          name: string
-          notes: string | null
-          owner: string | null
-          parent_id: string
-          recorded_at: string | null
-          student_id: string
-          updated_at: string | null
-          visibility: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          endorsed_at?: string | null
-          endorsed_by?: string | null
-          id?: string
-          level?: string | null
-          name: string
-          notes?: string | null
-          owner?: string | null
-          parent_id: string
-          recorded_at?: string | null
-          student_id: string
-          updated_at?: string | null
-          visibility?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          endorsed_at?: string | null
-          endorsed_by?: string | null
-          id?: string
-          level?: string | null
-          name?: string
-          notes?: string | null
-          owner?: string | null
-          parent_id?: string
-          recorded_at?: string | null
-          student_id?: string
-          updated_at?: string | null
-          visibility?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_skills_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_streaks: {
-        Row: {
-          created_at: string | null
-          current_count: number | null
-          id: string
-          last_recorded: string | null
-          longest_count: number | null
-          parent_id: string
-          student_id: string
-          type: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          current_count?: number | null
-          id?: string
-          last_recorded?: string | null
-          longest_count?: number | null
-          parent_id: string
-          student_id: string
-          type: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          current_count?: number | null
-          id?: string
-          last_recorded?: string | null
-          longest_count?: number | null
-          parent_id?: string
-          student_id?: string
-          type?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_streaks_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      child_vibe_id: {
-        Row: {
-          auth_user_id: string | null
-          autonomy_level: number | null
-          created_at: string | null
-          deleted_at: string | null
-          email: string | null
-          granted_at: string | null
-          id: string
-          parent_id: string
-          status: string | null
-          student_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          auth_user_id?: string | null
-          autonomy_level?: number | null
-          created_at?: string | null
-          deleted_at?: string | null
-          email?: string | null
-          granted_at?: string | null
-          id?: string
-          parent_id: string
-          status?: string | null
-          student_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          auth_user_id?: string | null
-          autonomy_level?: number | null
-          created_at?: string | null
-          deleted_at?: string | null
-          email?: string | null
-          granted_at?: string | null
-          id?: string
-          parent_id?: string
-          status?: string | null
-          student_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "child_vibe_id_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: true
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       class_group_members: {
         Row: {
           created_at: string | null
@@ -3751,7 +2130,6 @@ export type Database = {
           created_at: string | null
           id: string
           name: string
-          type: string
         }
         Insert: {
           class_id: string
@@ -3759,7 +2137,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           name: string
-          type?: string
         }
         Update: {
           class_id?: string
@@ -3767,7 +2144,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           name?: string
-          type?: string
         }
         Relationships: [
           {
@@ -3775,62 +2151,6 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      class_join_requests: {
-        Row: {
-          class_id: string
-          created_at: string
-          id: string
-          parent_id: string
-          status: string
-          student_id: string
-        }
-        Insert: {
-          class_id: string
-          created_at?: string
-          id?: string
-          parent_id: string
-          status?: string
-          student_id: string
-        }
-        Update: {
-          class_id?: string
-          created_at?: string
-          id?: string
-          parent_id?: string
-          status?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "class_join_requests_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_join_requests_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_join_requests_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "class_join_requests_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -3900,6 +2220,13 @@ export type Database = {
             foreignKeyName: "class_resource_library_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_resource_library_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -3945,7 +2272,21 @@ export type Database = {
             foreignKeyName: "classes_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4024,6 +2365,13 @@ export type Database = {
             foreignKeyName: "competency_evidence_ledger_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competency_evidence_ledger_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -4042,6 +2390,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contact_requests: {
+        Row: {
+          assigned_to: string | null
+          category: string
+          created_at: string
+          id: string
+          message: string
+          priority: string
+          requester_id: string
+          resolved_at: string | null
+          school_id: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          message: string
+          priority?: string
+          requester_id: string
+          resolved_at?: string | null
+          school_id?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          priority?: string
+          requester_id?: string
+          resolved_at?: string | null
+          school_id?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       content_assessment_blueprints: {
         Row: {
@@ -4098,6 +2491,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_assessment_blueprints_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -4171,6 +2571,85 @@ export type Database = {
             columns: ["scheme_resource_link_id"]
             isOneToOne: false
             referencedRelation: "scheme_lesson_resource_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_assets: {
+        Row: {
+          alt_text: string | null
+          asset_type: string
+          caption: string | null
+          chapter_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          license: string | null
+          metadata: Json
+          public_url: string | null
+          publication_id: string
+          status: string
+          storage_path: string | null
+          thumbnail_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          asset_type: string
+          caption?: string | null
+          chapter_id?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          license?: string | null
+          metadata?: Json
+          public_url?: string | null
+          publication_id: string
+          status?: string
+          storage_path?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          asset_type?: string
+          caption?: string | null
+          chapter_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          license?: string | null
+          metadata?: Json
+          public_url?: string | null
+          publication_id?: string
+          status?: string
+          storage_path?: string | null
+          thumbnail_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_assets_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_assets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_assets_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
             referencedColumns: ["id"]
           },
         ]
@@ -4293,6 +2772,7 @@ export type Database = {
       }
       content_blocks: {
         Row: {
+          asset_id: string | null
           block_type: string
           chapter_id: string
           created_at: string
@@ -4309,6 +2789,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          asset_id?: string | null
           block_type: string
           chapter_id: string
           created_at?: string
@@ -4325,6 +2806,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          asset_id?: string | null
           block_type?: string
           chapter_id?: string
           created_at?: string
@@ -4342,6 +2824,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "content_blocks_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "content_assets"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "content_blocks_chapter_id_fkey"
             columns: ["chapter_id"]
             isOneToOne: false
@@ -4353,6 +2842,136 @@ export type Database = {
             columns: ["publication_id"]
             isOneToOne: false
             referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_derivatives: {
+        Row: {
+          audience: string
+          body: Json
+          class_id: string | null
+          created_at: string
+          created_by: string
+          derivative_type: string
+          generator: string | null
+          id: string
+          model: string | null
+          quality: Json
+          school_id: string | null
+          source_block_id: string | null
+          source_chapter_id: string
+          source_outcome_id: string | null
+          source_publication_id: string
+          source_resource_id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string
+          body?: Json
+          class_id?: string | null
+          created_at?: string
+          created_by: string
+          derivative_type: string
+          generator?: string | null
+          id?: string
+          model?: string | null
+          quality?: Json
+          school_id?: string | null
+          source_block_id?: string | null
+          source_chapter_id: string
+          source_outcome_id?: string | null
+          source_publication_id: string
+          source_resource_id: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string
+          body?: Json
+          class_id?: string | null
+          created_at?: string
+          created_by?: string
+          derivative_type?: string
+          generator?: string | null
+          id?: string
+          model?: string | null
+          quality?: Json
+          school_id?: string | null
+          source_block_id?: string | null
+          source_chapter_id?: string
+          source_outcome_id?: string | null
+          source_publication_id?: string
+          source_resource_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_derivatives_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_derivatives_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_derivatives_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_derivatives_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_derivatives_source_block_id_fkey"
+            columns: ["source_block_id"]
+            isOneToOne: false
+            referencedRelation: "content_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_derivatives_source_chapter_id_fkey"
+            columns: ["source_chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_derivatives_source_outcome_id_fkey"
+            columns: ["source_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_derivatives_source_publication_id_fkey"
+            columns: ["source_publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_derivatives_source_resource_id_fkey"
+            columns: ["source_resource_id"]
+            isOneToOne: false
+            referencedRelation: "learning_resources"
             referencedColumns: ["id"]
           },
         ]
@@ -4383,6 +3002,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      content_engine_cycle_metrics: {
+        Row: {
+          created_at: string
+          dimensions: Json
+          id: string
+          metric_key: string
+          metric_value: number
+          run_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dimensions?: Json
+          id?: string
+          metric_key: string
+          metric_value?: number
+          run_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dimensions?: Json
+          id?: string
+          metric_key?: string
+          metric_value?: number
+          run_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_engine_cycle_metrics_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_engine_daily_metrics: {
         Row: {
@@ -4433,6 +3087,13 @@ export type Database = {
             foreignKeyName: "content_engine_daily_metrics_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_engine_daily_metrics_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -4441,6 +3102,77 @@ export type Database = {
             columns: ["subject_id"]
             isOneToOne: false
             referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_learning_events: {
+        Row: {
+          chapter_id: string | null
+          content_block_id: string | null
+          created_at: string
+          duration_ms: number | null
+          event_type: string
+          id: string
+          metadata: Json
+          occurred_at: string
+          outcome_id: string | null
+          publication_id: string
+          student_id: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          content_block_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          event_type: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          outcome_id?: string | null
+          publication_id: string
+          student_id: string
+        }
+        Update: {
+          chapter_id?: string | null
+          content_block_id?: string | null
+          created_at?: string
+          duration_ms?: number | null
+          event_type?: string
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          outcome_id?: string | null
+          publication_id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_learning_events_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_learning_events_content_block_id_fkey"
+            columns: ["content_block_id"]
+            isOneToOne: false
+            referencedRelation: "content_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_learning_events_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_learning_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
             referencedColumns: ["id"]
           },
         ]
@@ -4482,6 +3214,13 @@ export type Database = {
             foreignKeyName: "content_preferences_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_preferences_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -4497,13 +3236,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "content_preferences_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -4551,63 +3283,6 @@ export type Database = {
             columns: ["assignment_learner_id"]
             isOneToOne: false
             referencedRelation: "content_assignment_learners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      country_majority_ages: {
-        Row: {
-          country_code: string
-          created_at: string
-          majority_age: number
-          updated_at: string
-        }
-        Insert: {
-          country_code: string
-          created_at?: string
-          majority_age?: number
-          updated_at?: string
-        }
-        Update: {
-          country_code?: string
-          created_at?: string
-          majority_age?: number
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      course_enrollments: {
-        Row: {
-          course_id: string
-          enrolled_at: string
-          id: string
-          learner_id: string
-        }
-        Insert: {
-          course_id: string
-          enrolled_at?: string
-          id?: string
-          learner_id: string
-        }
-        Update: {
-          course_id?: string
-          enrolled_at?: string
-          id?: string
-          learner_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "course_enrollments_course_id_fkey"
-            columns: ["course_id"]
-            isOneToOne: false
-            referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "course_enrollments_learner_id_fkey"
-            columns: ["learner_id"]
-            isOneToOne: false
-            referencedRelation: "learner_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4728,7 +3403,6 @@ export type Database = {
       }
       curriculum_content: {
         Row: {
-          author_id: string | null
           created_at: string | null
           curriculum_id: string
           id: string
@@ -4738,12 +3412,10 @@ export type Database = {
           school_id: string | null
           source: string
           source_type: string
-          status: string
           updated_at: string | null
           version: number
         }
         Insert: {
-          author_id?: string | null
           created_at?: string | null
           curriculum_id: string
           id?: string
@@ -4753,12 +3425,10 @@ export type Database = {
           school_id?: string | null
           source?: string
           source_type?: string
-          status?: string
           updated_at?: string | null
           version?: number
         }
         Update: {
-          author_id?: string | null
           created_at?: string | null
           curriculum_id?: string
           id?: string
@@ -4768,25 +3438,10 @@ export type Database = {
           school_id?: string | null
           source?: string
           source_type?: string
-          status?: string
           updated_at?: string | null
           version?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "curriculum_content_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "curriculum_content_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "curriculum_content_curriculum_id_fkey"
             columns: ["curriculum_id"]
@@ -4798,7 +3453,770 @@ export type Database = {
             foreignKeyName: "curriculum_content_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_content_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_content_health_signals: {
+        Row: {
+          chapter_id: string | null
+          content_block_id: string | null
+          created_at: string
+          evidence: Json
+          evidence_count: number
+          first_detected_at: string
+          id: string
+          last_detected_at: string
+          outcome_id: string | null
+          publication_id: string | null
+          score: number
+          severity: string
+          signal_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          content_block_id?: string | null
+          created_at?: string
+          evidence?: Json
+          evidence_count?: number
+          first_detected_at?: string
+          id?: string
+          last_detected_at?: string
+          outcome_id?: string | null
+          publication_id?: string | null
+          score?: number
+          severity?: string
+          signal_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          chapter_id?: string | null
+          content_block_id?: string | null
+          created_at?: string
+          evidence?: Json
+          evidence_count?: number
+          first_detected_at?: string
+          id?: string
+          last_detected_at?: string
+          outcome_id?: string | null
+          publication_id?: string | null
+          score?: number
+          severity?: string
+          signal_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_content_health_signals_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_content_health_signals_content_block_id_fkey"
+            columns: ["content_block_id"]
+            isOneToOne: false
+            referencedRelation: "content_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_content_health_signals_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_content_health_signals_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_content_rights: {
+        Row: {
+          attribution_text: string | null
+          can_adapt: boolean
+          can_quote: boolean
+          can_reproduce_media: boolean
+          created_at: string
+          id: string
+          license_name: string | null
+          notes: string | null
+          proposal_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          rights_class: string
+          source_domain: string | null
+          source_url: string
+          updated_at: string
+        }
+        Insert: {
+          attribution_text?: string | null
+          can_adapt?: boolean
+          can_quote?: boolean
+          can_reproduce_media?: boolean
+          created_at?: string
+          id?: string
+          license_name?: string | null
+          notes?: string | null
+          proposal_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rights_class: string
+          source_domain?: string | null
+          source_url: string
+          updated_at?: string
+        }
+        Update: {
+          attribution_text?: string | null
+          can_adapt?: boolean
+          can_quote?: boolean
+          can_reproduce_media?: boolean
+          created_at?: string
+          id?: string
+          license_name?: string | null
+          notes?: string | null
+          proposal_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          rights_class?: string
+          source_domain?: string | null
+          source_url?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_content_rights_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_editorial_actions: {
+        Row: {
+          action_type: string
+          attempt_count: number
+          chapter_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          health_signal_id: string | null
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          output: Json
+          priority: number
+          proposal_id: string | null
+          publication_id: string | null
+          rationale: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          attempt_count?: number
+          chapter_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          health_signal_id?: string | null
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          output?: Json
+          priority?: number
+          proposal_id?: string | null
+          publication_id?: string | null
+          rationale: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          attempt_count?: number
+          chapter_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          health_signal_id?: string | null
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          max_attempts?: number
+          next_attempt_at?: string | null
+          output?: Json
+          priority?: number
+          proposal_id?: string | null
+          publication_id?: string | null
+          rationale?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_editorial_actions_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_editorial_actions_health_signal_id_fkey"
+            columns: ["health_signal_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_content_health_signals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_editorial_actions_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_editorial_actions_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_editorial_effectiveness: {
+        Row: {
+          applied_at: string | null
+          baseline: Json
+          baseline_started_at: string | null
+          chapter_id: string | null
+          created_at: string
+          effect_score: number | null
+          evaluated_at: string | null
+          evaluation_due_at: string | null
+          followup: Json
+          id: string
+          notes: string | null
+          outcome_id: string | null
+          proposal_id: string
+          publication_id: string | null
+          sample_size: number
+          updated_at: string
+          verdict: string
+        }
+        Insert: {
+          applied_at?: string | null
+          baseline?: Json
+          baseline_started_at?: string | null
+          chapter_id?: string | null
+          created_at?: string
+          effect_score?: number | null
+          evaluated_at?: string | null
+          evaluation_due_at?: string | null
+          followup?: Json
+          id?: string
+          notes?: string | null
+          outcome_id?: string | null
+          proposal_id: string
+          publication_id?: string | null
+          sample_size?: number
+          updated_at?: string
+          verdict?: string
+        }
+        Update: {
+          applied_at?: string | null
+          baseline?: Json
+          baseline_started_at?: string | null
+          chapter_id?: string | null
+          created_at?: string
+          effect_score?: number | null
+          evaluated_at?: string | null
+          evaluation_due_at?: string | null
+          followup?: Json
+          id?: string
+          notes?: string | null
+          outcome_id?: string | null
+          proposal_id?: string
+          publication_id?: string | null
+          sample_size?: number
+          updated_at?: string
+          verdict?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_editorial_effectiveness_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_editorial_effectiveness_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_editorial_effectiveness_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_proposals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_editorial_effectiveness_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_intelligence_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after_state: Json | null
+          before_state: Json | null
+          created_at: string
+          id: string
+          note: string | null
+          proposal_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          proposal_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after_state?: Json | null
+          before_state?: Json | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          proposal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_intelligence_audit_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_audit_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_intelligence_proposals: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          chapter_id: string | null
+          claim: string | null
+          confidence: number
+          created_at: string
+          current_content: string | null
+          curriculum_id: string | null
+          curriculum_relevance: string
+          derivative_impacts: Json
+          editorial_model: string | null
+          editorial_patch: Json | null
+          editorial_prepared_at: string | null
+          editorial_status: string
+          engine_run_id: string | null
+          generated_at: string
+          generated_by: string
+          id: string
+          outcome_id: string | null
+          patch: Json
+          proposal_type: string
+          proposed_content: string
+          publication_id: string | null
+          rationale: string
+          research_fingerprint: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string
+          updated_at: string
+          verification_status: string
+          volatility: string
+          watch_target_id: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          chapter_id?: string | null
+          claim?: string | null
+          confidence?: number
+          created_at?: string
+          current_content?: string | null
+          curriculum_id?: string | null
+          curriculum_relevance?: string
+          derivative_impacts?: Json
+          editorial_model?: string | null
+          editorial_patch?: Json | null
+          editorial_prepared_at?: string | null
+          editorial_status?: string
+          engine_run_id?: string | null
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          outcome_id?: string | null
+          patch?: Json
+          proposal_type: string
+          proposed_content: string
+          publication_id?: string | null
+          rationale: string
+          research_fingerprint?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          verification_status?: string
+          volatility?: string
+          watch_target_id?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          chapter_id?: string | null
+          claim?: string | null
+          confidence?: number
+          created_at?: string
+          current_content?: string | null
+          curriculum_id?: string | null
+          curriculum_relevance?: string
+          derivative_impacts?: Json
+          editorial_model?: string | null
+          editorial_patch?: Json | null
+          editorial_prepared_at?: string | null
+          editorial_status?: string
+          engine_run_id?: string | null
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          outcome_id?: string | null
+          patch?: Json
+          proposal_type?: string
+          proposed_content?: string
+          publication_id?: string | null
+          rationale?: string
+          research_fingerprint?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          verification_status?: string
+          volatility?: string
+          watch_target_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_intelligence_proposals_applied_by_fkey"
+            columns: ["applied_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_proposals_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_proposals_curriculum_id_fkey"
+            columns: ["curriculum_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_proposals_engine_run_id_fkey"
+            columns: ["engine_run_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_proposals_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_proposals_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_proposals_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_proposals_watch_target_id_fkey"
+            columns: ["watch_target_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_watch_targets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_intelligence_regeneration_jobs: {
+        Row: {
+          attempt_count: number
+          chapter_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          job_type: string
+          last_error: string | null
+          proposal_id: string
+          result: Json | null
+          started_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          chapter_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_type: string
+          last_error?: string | null
+          proposal_id: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          chapter_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_type?: string
+          last_error?: string | null
+          proposal_id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_intelligence_regeneration_jobs_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_regeneration_jobs_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_intelligence_runs: {
+        Row: {
+          completed_at: string | null
+          error: string | null
+          id: string
+          metadata: Json
+          model: string | null
+          proposals_created: number
+          search_requests: number
+          sources_found: number
+          started_at: string
+          started_by: string | null
+          status: string
+          summary: string | null
+          trigger_type: string
+          watch_target_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          metadata?: Json
+          model?: string | null
+          proposals_created?: number
+          search_requests?: number
+          sources_found?: number
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          summary?: string | null
+          trigger_type?: string
+          watch_target_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          metadata?: Json
+          model?: string | null
+          proposals_created?: number
+          search_requests?: number
+          sources_found?: number
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          summary?: string | null
+          trigger_type?: string
+          watch_target_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_intelligence_runs_started_by_fkey"
+            columns: ["started_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_runs_watch_target_id_fkey"
+            columns: ["watch_target_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_intelligence_watch_targets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      curriculum_intelligence_watch_targets: {
+        Row: {
+          cadence: string
+          chapter_id: string | null
+          created_at: string
+          created_by: string
+          enabled: boolean
+          grade: string | null
+          id: string
+          label: string
+          last_checked_at: string | null
+          next_check_at: string | null
+          preferred_domains: string[]
+          publication_id: string | null
+          query: string
+          scope_type: string
+          source_priority: Json
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          cadence?: string
+          chapter_id?: string | null
+          created_at?: string
+          created_by: string
+          enabled?: boolean
+          grade?: string | null
+          id?: string
+          label: string
+          last_checked_at?: string | null
+          next_check_at?: string | null
+          preferred_domains?: string[]
+          publication_id?: string | null
+          query: string
+          scope_type: string
+          source_priority?: Json
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cadence?: string
+          chapter_id?: string | null
+          created_at?: string
+          created_by?: string
+          enabled?: boolean
+          grade?: string | null
+          id?: string
+          label?: string
+          last_checked_at?: string | null
+          next_check_at?: string | null
+          preferred_domains?: string[]
+          publication_id?: string | null
+          query?: string
+          scope_type?: string
+          source_priority?: Json
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_intelligence_watch_targets_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_watch_targets_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_intelligence_watch_targets_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
             referencedColumns: ["id"]
           },
         ]
@@ -4875,6 +4293,42 @@ export type Database = {
           },
         ]
       }
+      curriculum_outcome_prerequisites: {
+        Row: {
+          created_at: string
+          minimum_mastery: number
+          outcome_id: string
+          prerequisite_outcome_id: string
+        }
+        Insert: {
+          created_at?: string
+          minimum_mastery?: number
+          outcome_id: string
+          prerequisite_outcome_id: string
+        }
+        Update: {
+          created_at?: string
+          minimum_mastery?: number
+          outcome_id?: string
+          prerequisite_outcome_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_outcome_prerequisites_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "curriculum_outcome_prerequisites_prerequisite_outcome_id_fkey"
+            columns: ["prerequisite_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exam_flags: {
         Row: {
           created_at: string
@@ -4918,58 +4372,79 @@ export type Database = {
       }
       exam_question_bank: {
         Row: {
+          calibration_sample_size: number
           correct_index: number
           created_at: string
           difficulty: Database["public"]["Enums"]["exam_difficulty"]
+          empirical_difficulty: number | null
           explanation: string
           form: Database["public"]["Enums"]["exam_form"]
           hint: string | null
           id: string
           options: Json
+          provenance_status: string
           question: string
           source: string
+          source_paper: string | null
+          source_ref: string | null
+          source_year: number | null
           status: string
           subject: Database["public"]["Enums"]["exam_subject"]
           teaching_note: string
           times_flagged: number
           times_served: number
           topic: string
+          verified_at: string | null
         }
         Insert: {
+          calibration_sample_size?: number
           correct_index: number
           created_at?: string
           difficulty: Database["public"]["Enums"]["exam_difficulty"]
+          empirical_difficulty?: number | null
           explanation: string
           form: Database["public"]["Enums"]["exam_form"]
           hint?: string | null
           id?: string
           options: Json
+          provenance_status?: string
           question: string
           source?: string
+          source_paper?: string | null
+          source_ref?: string | null
+          source_year?: number | null
           status?: string
           subject: Database["public"]["Enums"]["exam_subject"]
           teaching_note: string
           times_flagged?: number
           times_served?: number
           topic: string
+          verified_at?: string | null
         }
         Update: {
+          calibration_sample_size?: number
           correct_index?: number
           created_at?: string
           difficulty?: Database["public"]["Enums"]["exam_difficulty"]
+          empirical_difficulty?: number | null
           explanation?: string
           form?: Database["public"]["Enums"]["exam_form"]
           hint?: string | null
           id?: string
           options?: Json
+          provenance_status?: string
           question?: string
           source?: string
+          source_paper?: string | null
+          source_ref?: string | null
+          source_year?: number | null
           status?: string
           subject?: Database["public"]["Enums"]["exam_subject"]
           teaching_note?: string
           times_flagged?: number
           times_served?: number
           topic?: string
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -5016,98 +4491,6 @@ export type Database = {
             columns: ["session_id"]
             isOneToOne: false
             referencedRelation: "exam_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      exam_results: {
-        Row: {
-          class_id: string
-          created_at: string
-          exam_id: string
-          id: string
-          is_absent: boolean
-          marks: number
-          school_id: string
-          student_id: string
-          subject_id: string
-          teacher_id: string
-          updated_at: string
-        }
-        Insert: {
-          class_id: string
-          created_at?: string
-          exam_id: string
-          id?: string
-          is_absent?: boolean
-          marks: number
-          school_id: string
-          student_id: string
-          subject_id: string
-          teacher_id: string
-          updated_at?: string
-        }
-        Update: {
-          class_id?: string
-          created_at?: string
-          exam_id?: string
-          id?: string
-          is_absent?: boolean
-          marks?: number
-          school_id?: string
-          student_id?: string
-          subject_id?: string
-          teacher_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "exam_results_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exam_results_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "exams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exam_results_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exam_results_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exam_results_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exam_results_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exam_results_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -5190,45 +4573,6 @@ export type Database = {
         }
         Relationships: []
       }
-      exam_subject_config: {
-        Row: {
-          exam_id: string
-          id: string
-          max_marks: number
-          pass_mark: number
-          subject_id: string
-        }
-        Insert: {
-          exam_id: string
-          id?: string
-          max_marks?: number
-          pass_mark: number
-          subject_id: string
-        }
-        Update: {
-          exam_id?: string
-          id?: string
-          max_marks?: number
-          pass_mark?: number
-          subject_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "exam_subject_config_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "exams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exam_subject_config_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       exams: {
         Row: {
           academic_year: number
@@ -5275,10 +4619,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "exams_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "exams_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -5347,48 +4691,42 @@ export type Database = {
       exercises: {
         Row: {
           class_id: string | null
-          created_at: string
-          difficulty: string | null
-          homework_id: string | null
+          created_at: string | null
+          duration_minutes: number | null
           id: string
           instructions: string | null
           lesson_plan_id: string | null
-          max_score: number | null
           school_id: string | null
-          strand_id: string | null
+          status: string
+          subject_id: string | null
           teacher_id: string | null
-          title: string | null
-          updated_at: string
+          title: string
         }
         Insert: {
           class_id?: string | null
-          created_at?: string
-          difficulty?: string | null
-          homework_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
           id?: string
           instructions?: string | null
           lesson_plan_id?: string | null
-          max_score?: number | null
           school_id?: string | null
-          strand_id?: string | null
+          status?: string
+          subject_id?: string | null
           teacher_id?: string | null
-          title?: string | null
-          updated_at?: string
+          title: string
         }
         Update: {
           class_id?: string | null
-          created_at?: string
-          difficulty?: string | null
-          homework_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
           id?: string
           instructions?: string | null
           lesson_plan_id?: string | null
-          max_score?: number | null
           school_id?: string | null
-          strand_id?: string | null
+          status?: string
+          subject_id?: string | null
           teacher_id?: string | null
-          title?: string | null
-          updated_at?: string
+          title?: string
         }
         Relationships: [
           {
@@ -5396,13 +4734,6 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_homework_id_fkey"
-            columns: ["homework_id"]
-            isOneToOne: false
-            referencedRelation: "homework"
             referencedColumns: ["id"]
           },
           {
@@ -5416,14 +4747,21 @@ export type Database = {
             foreignKeyName: "exercises_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exercises_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "exercises_strand_id_fkey"
-            columns: ["strand_id"]
+            foreignKeyName: "exercises_subject_id_fkey"
+            columns: ["subject_id"]
             isOneToOne: false
-            referencedRelation: "strands"
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
           {
@@ -5431,2024 +4769,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "exercises_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      families: {
-        Row: {
-          created_at: string | null
-          created_by: string
-          deleted_at: string | null
-          id: string
-          name: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by: string
-          deleted_at?: string | null
-          id?: string
-          name?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string
-          deleted_at?: string | null
-          id?: string
-          name?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      family_members: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          family_id: string
-          id: string
-          parent_id: string
-          student_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          family_id: string
-          id?: string
-          parent_id: string
-          student_id: string
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          family_id?: string
-          id?: string
-          parent_id?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "family_members_family_id_fkey"
-            columns: ["family_id"]
-            isOneToOne: false
-            referencedRelation: "families"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "family_members_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_accounts: {
-        Row: {
-          code: string
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          is_active: boolean | null
-          is_system: boolean | null
-          name: string
-          school_id: string
-          type: string
-        }
-        Insert: {
-          code: string
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_system?: boolean | null
-          name: string
-          school_id: string
-          type: string
-        }
-        Update: {
-          code?: string
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_system?: boolean | null
-          name?: string
-          school_id?: string
-          type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_accounts_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_annual_budgets: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          closed_at: string | null
-          closed_by: string | null
-          created_at: string
-          created_by: string | null
-          financial_year: number
-          id: string
-          label: string
-          notes: string | null
-          school_id: string
-          status: string
-          submitted_at: string | null
-          total_expenditure: number
-          total_income: number
-          updated_at: string
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          closed_at?: string | null
-          closed_by?: string | null
-          created_at?: string
-          created_by?: string | null
-          financial_year: number
-          id?: string
-          label: string
-          notes?: string | null
-          school_id: string
-          status?: string
-          submitted_at?: string | null
-          total_expenditure?: number
-          total_income?: number
-          updated_at?: string
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          closed_at?: string | null
-          closed_by?: string | null
-          created_at?: string
-          created_by?: string | null
-          financial_year?: number
-          id?: string
-          label?: string
-          notes?: string | null
-          school_id?: string
-          status?: string
-          submitted_at?: string | null
-          total_expenditure?: number
-          total_income?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_annual_budgets_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_annual_budgets_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_annual_budgets_closed_by_fkey"
-            columns: ["closed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_annual_budgets_closed_by_fkey"
-            columns: ["closed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_annual_budgets_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_annual_budgets_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_annual_budgets_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_approvals: {
-        Row: {
-          approved_by: string | null
-          created_at: string | null
-          id: string
-          note: string | null
-          record_id: string
-          record_type: string
-          requested_by: string | null
-          school_id: string
-          status: string
-          updated_at: string | null
-        }
-        Insert: {
-          approved_by?: string | null
-          created_at?: string | null
-          id?: string
-          note?: string | null
-          record_id: string
-          record_type: string
-          requested_by?: string | null
-          school_id: string
-          status?: string
-          updated_at?: string | null
-        }
-        Update: {
-          approved_by?: string | null
-          created_at?: string | null
-          id?: string
-          note?: string | null
-          record_id?: string
-          record_type?: string
-          requested_by?: string | null
-          school_id?: string
-          status?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_approvals_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_approvals_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_approvals_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_approvals_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_approvals_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_bank_accounts: {
-        Row: {
-          account_number: string | null
-          created_at: string | null
-          current_balance: number | null
-          deleted_at: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          school_id: string
-          type: string
-          updated_at: string | null
-        }
-        Insert: {
-          account_number?: string | null
-          created_at?: string | null
-          current_balance?: number | null
-          deleted_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          school_id: string
-          type: string
-          updated_at?: string | null
-        }
-        Update: {
-          account_number?: string | null
-          created_at?: string | null
-          current_balance?: number | null
-          deleted_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          school_id?: string
-          type?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_bank_accounts_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_budgets: {
-        Row: {
-          account_id: string
-          amount: number
-          annual_budget_id: string | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          label: string | null
-          notes: string | null
-          school_id: string
-          term: string
-          updated_at: string | null
-          year: number
-        }
-        Insert: {
-          account_id: string
-          amount: number
-          annual_budget_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          label?: string | null
-          notes?: string | null
-          school_id: string
-          term: string
-          updated_at?: string | null
-          year: number
-        }
-        Update: {
-          account_id?: string
-          amount?: number
-          annual_budget_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          label?: string | null
-          notes?: string | null
-          school_id?: string
-          term?: string
-          updated_at?: string | null
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_budgets_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "finance_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_budgets_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "v_trial_balance"
-            referencedColumns: ["account_id"]
-          },
-          {
-            foreignKeyName: "finance_budgets_annual_budget_id_fkey"
-            columns: ["annual_budget_id"]
-            isOneToOne: false
-            referencedRelation: "finance_annual_budgets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_budgets_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_budgets_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_budgets_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_credit_notes: {
-        Row: {
-          amount: number
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          invoice_id: string
-          issued_by: string | null
-          reason: string
-          school_id: string
-          student_id: string
-          transaction_id: string | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          invoice_id: string
-          issued_by?: string | null
-          reason: string
-          school_id: string
-          student_id: string
-          transaction_id?: string | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          invoice_id?: string
-          issued_by?: string | null
-          reason?: string
-          school_id?: string
-          student_id?: string
-          transaction_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_credit_notes_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "finance_invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_credit_notes_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "v_invoice_aging"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_credit_notes_issued_by_fkey"
-            columns: ["issued_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_credit_notes_issued_by_fkey"
-            columns: ["issued_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_credit_notes_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_credit_notes_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_credit_notes_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "finance_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_expenses: {
-        Row: {
-          account_id: string | null
-          amount: number
-          approved_by: string | null
-          bank_account_id: string | null
-          created_at: string | null
-          created_by: string | null
-          deleted_at: string | null
-          description: string
-          expense_date: string
-          id: string
-          paid_via: string | null
-          receipt_url: string | null
-          school_id: string
-          transaction_id: string | null
-          vendor: string | null
-        }
-        Insert: {
-          account_id?: string | null
-          amount: number
-          approved_by?: string | null
-          bank_account_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          deleted_at?: string | null
-          description: string
-          expense_date?: string
-          id?: string
-          paid_via?: string | null
-          receipt_url?: string | null
-          school_id: string
-          transaction_id?: string | null
-          vendor?: string | null
-        }
-        Update: {
-          account_id?: string | null
-          amount?: number
-          approved_by?: string | null
-          bank_account_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          deleted_at?: string | null
-          description?: string
-          expense_date?: string
-          id?: string
-          paid_via?: string | null
-          receipt_url?: string | null
-          school_id?: string
-          transaction_id?: string | null
-          vendor?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_expenses_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "finance_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_expenses_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "v_trial_balance"
-            referencedColumns: ["account_id"]
-          },
-          {
-            foreignKeyName: "finance_expenses_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_expenses_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_expenses_bank_account_id_fkey"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "finance_bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_expenses_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_expenses_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_expenses_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_expenses_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "finance_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_fee_payments: {
-        Row: {
-          amount: number
-          created_at: string | null
-          currency: string | null
-          deleted_at: string | null
-          fee_structure_id: string | null
-          id: string
-          method: string | null
-          notes: string | null
-          parent_id: string
-          receipt_url: string | null
-          recorded_at: string | null
-          reference: string | null
-          school_id: string | null
-          student_id: string
-          term: string | null
-          year: number | null
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          fee_structure_id?: string | null
-          id?: string
-          method?: string | null
-          notes?: string | null
-          parent_id: string
-          receipt_url?: string | null
-          recorded_at?: string | null
-          reference?: string | null
-          school_id?: string | null
-          student_id: string
-          term?: string | null
-          year?: number | null
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          fee_structure_id?: string | null
-          id?: string
-          method?: string | null
-          notes?: string | null
-          parent_id?: string
-          receipt_url?: string | null
-          recorded_at?: string | null
-          reference?: string | null
-          school_id?: string | null
-          student_id?: string
-          term?: string | null
-          year?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_fee_payments_fee_structure_id_fkey"
-            columns: ["fee_structure_id"]
-            isOneToOne: false
-            referencedRelation: "finance_fee_structures"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_fee_payments_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_fee_payments_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_fee_structures: {
-        Row: {
-          amount: number
-          class_id: string | null
-          created_at: string | null
-          currency: string | null
-          deleted_at: string | null
-          id: string
-          label: string
-          school_id: string
-          term: string
-          updated_at: string | null
-          year: number
-        }
-        Insert: {
-          amount: number
-          class_id?: string | null
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          id?: string
-          label: string
-          school_id: string
-          term: string
-          updated_at?: string | null
-          year: number
-        }
-        Update: {
-          amount?: number
-          class_id?: string | null
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          id?: string
-          label?: string
-          school_id?: string
-          term?: string
-          updated_at?: string | null
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_fee_structures_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_fee_structures_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_invoice_lines: {
-        Row: {
-          account_id: string | null
-          amount: number
-          created_at: string | null
-          description: string
-          id: string
-          invoice_id: string
-        }
-        Insert: {
-          account_id?: string | null
-          amount: number
-          created_at?: string | null
-          description: string
-          id?: string
-          invoice_id: string
-        }
-        Update: {
-          account_id?: string | null
-          amount?: number
-          created_at?: string | null
-          description?: string
-          id?: string
-          invoice_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_invoice_lines_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "finance_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_invoice_lines_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "v_trial_balance"
-            referencedColumns: ["account_id"]
-          },
-          {
-            foreignKeyName: "finance_invoice_lines_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "finance_invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_invoice_lines_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "v_invoice_aging"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_invoices: {
-        Row: {
-          class_id: string | null
-          created_at: string | null
-          created_by: string | null
-          deleted_at: string | null
-          due_date: string | null
-          id: string
-          notes: string | null
-          paid_amount: number
-          school_id: string
-          status: string
-          student_id: string
-          term: string
-          total_amount: number
-          updated_at: string | null
-          year: number
-        }
-        Insert: {
-          class_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          deleted_at?: string | null
-          due_date?: string | null
-          id?: string
-          notes?: string | null
-          paid_amount?: number
-          school_id: string
-          status?: string
-          student_id: string
-          term: string
-          total_amount?: number
-          updated_at?: string | null
-          year: number
-        }
-        Update: {
-          class_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          deleted_at?: string | null
-          due_date?: string | null
-          id?: string
-          notes?: string | null
-          paid_amount?: number
-          school_id?: string
-          status?: string
-          student_id?: string
-          term?: string
-          total_amount?: number
-          updated_at?: string | null
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_invoices_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_invoices_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_invoices_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_invoices_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_invoices_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_mpesa_statements: {
-        Row: {
-          amount: number | null
-          created_at: string | null
-          id: string
-          matched_payment_id: string | null
-          raw_message: string | null
-          reference: string | null
-          school_id: string
-          sender_name: string | null
-          sender_phone: string | null
-          status: string
-          transaction_date: string | null
-        }
-        Insert: {
-          amount?: number | null
-          created_at?: string | null
-          id?: string
-          matched_payment_id?: string | null
-          raw_message?: string | null
-          reference?: string | null
-          school_id: string
-          sender_name?: string | null
-          sender_phone?: string | null
-          status?: string
-          transaction_date?: string | null
-        }
-        Update: {
-          amount?: number | null
-          created_at?: string | null
-          id?: string
-          matched_payment_id?: string | null
-          raw_message?: string | null
-          reference?: string | null
-          school_id?: string
-          sender_name?: string | null
-          sender_phone?: string | null
-          status?: string
-          transaction_date?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_mpesa_statements_matched_payment_id_fkey"
-            columns: ["matched_payment_id"]
-            isOneToOne: false
-            referencedRelation: "finance_payments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_mpesa_statements_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_payments: {
-        Row: {
-          amount: number
-          bank_account_id: string | null
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          invoice_id: string
-          method: string
-          notes: string | null
-          receipt_number: string | null
-          received_at: string | null
-          received_by: string | null
-          reference: string | null
-          school_id: string
-          student_id: string
-          transaction_id: string | null
-        }
-        Insert: {
-          amount: number
-          bank_account_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          invoice_id: string
-          method: string
-          notes?: string | null
-          receipt_number?: string | null
-          received_at?: string | null
-          received_by?: string | null
-          reference?: string | null
-          school_id: string
-          student_id: string
-          transaction_id?: string | null
-        }
-        Update: {
-          amount?: number
-          bank_account_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          invoice_id?: string
-          method?: string
-          notes?: string | null
-          receipt_number?: string | null
-          received_at?: string | null
-          received_by?: string | null
-          reference?: string | null
-          school_id?: string
-          student_id?: string
-          transaction_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_payments_bank_account_id_fkey"
-            columns: ["bank_account_id"]
-            isOneToOne: false
-            referencedRelation: "finance_bank_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payments_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "finance_invoices"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payments_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "v_invoice_aging"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payments_received_by_fkey"
-            columns: ["received_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payments_received_by_fkey"
-            columns: ["received_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payments_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payments_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payments_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "finance_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_payroll_lines: {
-        Row: {
-          created_at: string | null
-          deductions: number | null
-          gross: number
-          id: string
-          net: number
-          paid_via: string | null
-          reference: string | null
-          run_id: string
-          staff_id: string
-          transaction_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          deductions?: number | null
-          gross: number
-          id?: string
-          net: number
-          paid_via?: string | null
-          reference?: string | null
-          run_id: string
-          staff_id: string
-          transaction_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          deductions?: number | null
-          gross?: number
-          id?: string
-          net?: number
-          paid_via?: string | null
-          reference?: string | null
-          run_id?: string
-          staff_id?: string
-          transaction_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_payroll_lines_run_id_fkey"
-            columns: ["run_id"]
-            isOneToOne: false
-            referencedRelation: "finance_payroll_runs"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payroll_lines_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payroll_lines_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payroll_lines_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "finance_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_payroll_runs: {
-        Row: {
-          approved_by: string | null
-          created_at: string | null
-          created_by: string | null
-          id: string
-          month: number
-          paid_at: string | null
-          school_id: string
-          status: string
-          total: number | null
-          year: number
-        }
-        Insert: {
-          approved_by?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          month: number
-          paid_at?: string | null
-          school_id: string
-          status?: string
-          total?: number | null
-          year: number
-        }
-        Update: {
-          approved_by?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          id?: string
-          month?: number
-          paid_at?: string | null
-          school_id?: string
-          status?: string
-          total?: number | null
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_payroll_runs_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payroll_runs_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payroll_runs_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payroll_runs_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_payroll_runs_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_periods: {
-        Row: {
-          closed_at: string | null
-          closed_by: string | null
-          created_at: string | null
-          id: string
-          school_id: string
-          status: string
-          term: string
-          year: number
-        }
-        Insert: {
-          closed_at?: string | null
-          closed_by?: string | null
-          created_at?: string | null
-          id?: string
-          school_id: string
-          status?: string
-          term: string
-          year: number
-        }
-        Update: {
-          closed_at?: string | null
-          closed_by?: string | null
-          created_at?: string | null
-          id?: string
-          school_id?: string
-          status?: string
-          term?: string
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_periods_closed_by_fkey"
-            columns: ["closed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_periods_closed_by_fkey"
-            columns: ["closed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_periods_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_pocket_money: {
-        Row: {
-          amount: number
-          category: string | null
-          created_at: string | null
-          currency: string | null
-          deleted_at: string | null
-          description: string | null
-          id: string
-          parent_id: string
-          recorded_at: string | null
-          student_id: string
-          type: string
-        }
-        Insert: {
-          amount: number
-          category?: string | null
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          parent_id: string
-          recorded_at?: string | null
-          student_id: string
-          type: string
-        }
-        Update: {
-          amount?: number
-          category?: string | null
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          parent_id?: string
-          recorded_at?: string | null
-          student_id?: string
-          type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_pocket_money_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_reallocations: {
-        Row: {
-          amount: number
-          annual_budget_id: string
-          from_budget_line_id: string
-          id: string
-          reason: string
-          requested_at: string
-          requested_by: string
-          review_note: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          school_id: string
-          status: string
-          to_budget_line_id: string
-        }
-        Insert: {
-          amount: number
-          annual_budget_id: string
-          from_budget_line_id: string
-          id?: string
-          reason: string
-          requested_at?: string
-          requested_by: string
-          review_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          school_id: string
-          status?: string
-          to_budget_line_id: string
-        }
-        Update: {
-          amount?: number
-          annual_budget_id?: string
-          from_budget_line_id?: string
-          id?: string
-          reason?: string
-          requested_at?: string
-          requested_by?: string
-          review_note?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          school_id?: string
-          status?: string
-          to_budget_line_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_reallocations_annual_budget_id_fkey"
-            columns: ["annual_budget_id"]
-            isOneToOne: false
-            referencedRelation: "finance_annual_budgets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_reallocations_from_budget_line_id_fkey"
-            columns: ["from_budget_line_id"]
-            isOneToOne: false
-            referencedRelation: "finance_budgets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_reallocations_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_reallocations_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_reallocations_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_reallocations_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_reallocations_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_reallocations_to_budget_line_id_fkey"
-            columns: ["to_budget_line_id"]
-            isOneToOne: false
-            referencedRelation: "finance_budgets"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_receipt_sequences: {
-        Row: {
-          id: string
-          last_number: number
-          prefix: string
-          school_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          last_number?: number
-          prefix?: string
-          school_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          last_number?: number
-          prefix?: string
-          school_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_receipt_sequences_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: true
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_recurring_entries: {
-        Row: {
-          account_id: string
-          amount: number
-          created_at: string | null
-          created_by: string | null
-          description: string
-          frequency: string
-          id: string
-          is_active: boolean | null
-          last_posted: string | null
-          next_due_date: string
-          school_id: string
-        }
-        Insert: {
-          account_id: string
-          amount: number
-          created_at?: string | null
-          created_by?: string | null
-          description: string
-          frequency: string
-          id?: string
-          is_active?: boolean | null
-          last_posted?: string | null
-          next_due_date: string
-          school_id: string
-        }
-        Update: {
-          account_id?: string
-          amount?: number
-          created_at?: string | null
-          created_by?: string | null
-          description?: string
-          frequency?: string
-          id?: string
-          is_active?: boolean | null
-          last_posted?: string | null
-          next_due_date?: string
-          school_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_recurring_entries_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "finance_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_recurring_entries_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "v_trial_balance"
-            referencedColumns: ["account_id"]
-          },
-          {
-            foreignKeyName: "finance_recurring_entries_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_recurring_entries_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_recurring_entries_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_roles: {
-        Row: {
-          appointed_at: string
-          appointed_by: string
-          id: string
-          is_bursar: boolean
-          profile_id: string
-          revoke_reason: string | null
-          revoked_at: string | null
-          school_id: string
-        }
-        Insert: {
-          appointed_at?: string
-          appointed_by: string
-          id?: string
-          is_bursar?: boolean
-          profile_id: string
-          revoke_reason?: string | null
-          revoked_at?: string | null
-          school_id: string
-        }
-        Update: {
-          appointed_at?: string
-          appointed_by?: string
-          id?: string
-          is_bursar?: boolean
-          profile_id?: string
-          revoke_reason?: string | null
-          revoked_at?: string | null
-          school_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_roles_appointed_by_fkey"
-            columns: ["appointed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_roles_appointed_by_fkey"
-            columns: ["appointed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_roles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_roles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_roles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_savings_contributions: {
-        Row: {
-          amount: number
-          created_at: string | null
-          currency: string | null
-          deleted_at: string | null
-          goal_id: string
-          id: string
-          notes: string | null
-          parent_id: string
-          recorded_at: string | null
-          student_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          goal_id: string
-          id?: string
-          notes?: string | null
-          parent_id: string
-          recorded_at?: string | null
-          student_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          goal_id?: string
-          id?: string
-          notes?: string | null
-          parent_id?: string
-          recorded_at?: string | null
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_savings_contributions_goal_id_fkey"
-            columns: ["goal_id"]
-            isOneToOne: false
-            referencedRelation: "finance_savings_goals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_savings_contributions_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_savings_goals: {
-        Row: {
-          achieved_at: string | null
-          created_at: string | null
-          currency: string | null
-          deleted_at: string | null
-          description: string | null
-          id: string
-          parent_id: string
-          recorded_at: string | null
-          saved_amount: number | null
-          status: string | null
-          student_id: string
-          target_amount: number
-          target_date: string | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          achieved_at?: string | null
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          parent_id: string
-          recorded_at?: string | null
-          saved_amount?: number | null
-          status?: string | null
-          student_id: string
-          target_amount: number
-          target_date?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          achieved_at?: string | null
-          created_at?: string | null
-          currency?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          parent_id?: string
-          recorded_at?: string | null
-          saved_amount?: number | null
-          status?: string | null
-          student_id?: string
-          target_amount?: number
-          target_date?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_savings_goals_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_tax_rates: {
-        Row: {
-          applies_to: string
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          name: string
-          rate: number
-          school_id: string
-        }
-        Insert: {
-          applies_to: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          name: string
-          rate: number
-          school_id: string
-        }
-        Update: {
-          applies_to?: string
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          name?: string
-          rate?: number
-          school_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_tax_rates_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_transaction_lines: {
-        Row: {
-          account_id: string
-          created_at: string | null
-          credit: number | null
-          debit: number | null
-          id: string
-          note: string | null
-          transaction_id: string
-        }
-        Insert: {
-          account_id: string
-          created_at?: string | null
-          credit?: number | null
-          debit?: number | null
-          id?: string
-          note?: string | null
-          transaction_id: string
-        }
-        Update: {
-          account_id?: string
-          created_at?: string | null
-          credit?: number | null
-          debit?: number | null
-          id?: string
-          note?: string | null
-          transaction_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_transaction_lines_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "finance_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_transaction_lines_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "v_trial_balance"
-            referencedColumns: ["account_id"]
-          },
-          {
-            foreignKeyName: "finance_transaction_lines_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "finance_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_transaction_taxes: {
-        Row: {
-          base_amount: number
-          created_at: string | null
-          id: string
-          tax_amount: number
-          tax_rate_id: string
-          transaction_id: string
-        }
-        Insert: {
-          base_amount: number
-          created_at?: string | null
-          id?: string
-          tax_amount: number
-          tax_rate_id: string
-          transaction_id: string
-        }
-        Update: {
-          base_amount?: number
-          created_at?: string | null
-          id?: string
-          tax_amount?: number
-          tax_rate_id?: string
-          transaction_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_transaction_taxes_tax_rate_id_fkey"
-            columns: ["tax_rate_id"]
-            isOneToOne: false
-            referencedRelation: "finance_tax_rates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_transaction_taxes_transaction_id_fkey"
-            columns: ["transaction_id"]
-            isOneToOne: false
-            referencedRelation: "finance_transactions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      finance_transactions: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          date: string
-          description: string
-          id: string
-          reference: string | null
-          school_id: string
-          type: string
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          date?: string
-          description: string
-          id?: string
-          reference?: string | null
-          school_id: string
-          type: string
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          date?: string
-          description?: string
-          id?: string
-          reference?: string | null
-          school_id?: string
-          type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_transactions_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_transactions_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      flashcards: {
-        Row: {
-          back: string
-          created_at: string | null
-          front: string
-          grade: number | null
-          id: string
-          school_id: string | null
-          student_id: string | null
-          subject: string
-          updated_at: string | null
-        }
-        Insert: {
-          back: string
-          created_at?: string | null
-          front: string
-          grade?: number | null
-          id?: string
-          school_id?: string | null
-          student_id?: string | null
-          subject: string
-          updated_at?: string | null
-        }
-        Update: {
-          back?: string
-          created_at?: string | null
-          front?: string
-          grade?: number | null
-          id?: string
-          school_id?: string | null
-          student_id?: string | null
-          subject?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "flashcards_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "flashcards_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      formula_sheets: {
-        Row: {
-          content: string | null
-          created_at: string | null
-          grade: number | null
-          id: string
-          school_id: string | null
-          subject: string
-          updated_at: string | null
-        }
-        Insert: {
-          content?: string | null
-          created_at?: string | null
-          grade?: number | null
-          id?: string
-          school_id?: string | null
-          subject: string
-          updated_at?: string | null
-        }
-        Update: {
-          content?: string | null
-          created_at?: string | null
-          grade?: number | null
-          id?: string
-          school_id?: string | null
-          subject?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "formula_sheets_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
         ]
@@ -7533,51 +4853,6 @@ export type Database = {
           },
         ]
       }
-      funhub_claims: {
-        Row: {
-          claimed_at: string | null
-          collected_at: string | null
-          id: string
-          redemption_code: string
-          status: string
-          student_id: string
-          voucher_id: string
-        }
-        Insert: {
-          claimed_at?: string | null
-          collected_at?: string | null
-          id?: string
-          redemption_code?: string
-          status?: string
-          student_id: string
-          voucher_id: string
-        }
-        Update: {
-          claimed_at?: string | null
-          collected_at?: string | null
-          id?: string
-          redemption_code?: string
-          status?: string
-          student_id?: string
-          voucher_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "funhub_claims_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "funhub_claims_voucher_id_fkey"
-            columns: ["voucher_id"]
-            isOneToOne: false
-            referencedRelation: "funhub_vouchers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       funhub_exam_attempts: {
         Row: {
           answers: Json
@@ -7603,7 +4878,7 @@ export type Database = {
           status?: string | null
           student_id?: string | null
           time_taken?: number | null
-          total_marks?: number
+          total_marks: number
         }
         Update: {
           answers?: Json
@@ -7635,39 +4910,6 @@ export type Database = {
           },
         ]
       }
-      funhub_exam_questions: {
-        Row: {
-          exam_id: string
-          position: number
-          question_id: string
-        }
-        Insert: {
-          exam_id: string
-          position?: number
-          question_id: string
-        }
-        Update: {
-          exam_id?: string
-          position?: number
-          question_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "funhub_exam_questions_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "funhub_exams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "funhub_exam_questions_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "funhub_questions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       funhub_exams: {
         Row: {
           created_at: string | null
@@ -7676,6 +4918,7 @@ export type Database = {
           grade: number
           id: string
           parent_id: string | null
+          question_ids: Json
           status: string | null
           student_id: string | null
           subject: string
@@ -7689,11 +4932,12 @@ export type Database = {
           grade: number
           id?: string
           parent_id?: string | null
+          question_ids: Json
           status?: string | null
           student_id?: string | null
           subject: string
           title: string
-          total_marks?: number
+          total_marks: number
         }
         Update: {
           created_at?: string | null
@@ -7702,6 +4946,7 @@ export type Database = {
           grade?: number
           id?: string
           parent_id?: string | null
+          question_ids?: Json
           status?: string | null
           student_id?: string | null
           subject?: string
@@ -7714,13 +4959,6 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "funhub_exams_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -7817,6 +5055,13 @@ export type Database = {
             foreignKeyName: "funhub_leaderboard_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funhub_leaderboard_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -7887,13 +5132,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "funhub_questions_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -8028,48 +5266,6 @@ export type Database = {
         }
         Relationships: []
       }
-      funhub_vouchers: {
-        Row: {
-          category: string
-          claimed_count: number
-          created_at: string | null
-          deleted_at: string | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          sponsor_name: string
-          title: string
-          total_pool: number
-          xp_cost: number
-        }
-        Insert: {
-          category?: string
-          claimed_count?: number
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          sponsor_name: string
-          title: string
-          total_pool?: number
-          xp_cost: number
-        }
-        Update: {
-          category?: string
-          claimed_count?: number
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          sponsor_name?: string
-          title?: string
-          total_pool?: number
-          xp_cost?: number
-        }
-        Relationships: []
-      }
       funhub_xp: {
         Row: {
           id: string
@@ -8113,56 +5309,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      funhub_xp_ledger: {
-        Row: {
-          amount: number
-          created_at: string | null
-          id: string
-          reference_id: string | null
-          source: string
-          student_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          id?: string
-          reference_id?: string | null
-          source?: string
-          student_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          id?: string
-          reference_id?: string | null
-          source?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "funhub_xp_ledger_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      gender_types: {
-        Row: {
-          code: string
-          label: string
-        }
-        Insert: {
-          code: string
-          label: string
-        }
-        Update: {
-          code?: string
-          label?: string
-        }
-        Relationships: []
       }
       generated_assessment_items: {
         Row: {
@@ -8288,121 +5434,6 @@ export type Database = {
           },
         ]
       }
-      health_records: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          description: string | null
-          doctor_name: string | null
-          document_url: string | null
-          facility: string | null
-          follow_up: string | null
-          id: string
-          outcome: string | null
-          parent_id: string
-          recorded_at: string | null
-          student_id: string
-          title: string
-          type: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          doctor_name?: string | null
-          document_url?: string | null
-          facility?: string | null
-          follow_up?: string | null
-          id?: string
-          outcome?: string | null
-          parent_id: string
-          recorded_at?: string | null
-          student_id: string
-          title: string
-          type: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          doctor_name?: string | null
-          document_url?: string | null
-          facility?: string | null
-          follow_up?: string | null
-          id?: string
-          outcome?: string | null
-          parent_id?: string
-          recorded_at?: string | null
-          student_id?: string
-          title?: string
-          type?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "health_records_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      health_vaccinations: {
-        Row: {
-          administered_by: string | null
-          created_at: string | null
-          deleted_at: string | null
-          document_url: string | null
-          dose: string | null
-          facility: string | null
-          id: string
-          name: string
-          next_due: string | null
-          parent_id: string
-          recorded_at: string | null
-          student_id: string
-        }
-        Insert: {
-          administered_by?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          document_url?: string | null
-          dose?: string | null
-          facility?: string | null
-          id?: string
-          name: string
-          next_due?: string | null
-          parent_id: string
-          recorded_at?: string | null
-          student_id: string
-        }
-        Update: {
-          administered_by?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          document_url?: string | null
-          dose?: string | null
-          facility?: string | null
-          id?: string
-          name?: string
-          next_due?: string | null
-          parent_id?: string
-          recorded_at?: string | null
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "health_vaccinations_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       homework: {
         Row: {
           class_id: string | null
@@ -8415,7 +5446,6 @@ export type Database = {
           lesson_plan_id: string | null
           school_id: string
           subject: string | null
-          target_group_id: string | null
           teacher_id: string | null
           teaching_occurrence_id: string | null
           title: string
@@ -8432,7 +5462,6 @@ export type Database = {
           lesson_plan_id?: string | null
           school_id: string
           subject?: string | null
-          target_group_id?: string | null
           teacher_id?: string | null
           teaching_occurrence_id?: string | null
           title: string
@@ -8449,7 +5478,6 @@ export type Database = {
           lesson_plan_id?: string | null
           school_id?: string
           subject?: string | null
-          target_group_id?: string | null
           teacher_id?: string | null
           teaching_occurrence_id?: string | null
           title?: string
@@ -8481,14 +5509,14 @@ export type Database = {
             foreignKeyName: "homework_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "schools"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "homework_target_group_id_fkey"
-            columns: ["target_group_id"]
+            foreignKeyName: "homework_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "class_groups"
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
           {
@@ -8496,13 +5524,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "homework_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -8517,24 +5538,24 @@ export type Database = {
       homework_answers: {
         Row: {
           answer_text: string | null
-          created_at: string | null
+          created_at: string
           id: string
-          question_id: string | null
-          submission_id: string | null
+          question_id: string
+          submission_id: string
         }
         Insert: {
           answer_text?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          question_id?: string | null
-          submission_id?: string | null
+          question_id: string
+          submission_id: string
         }
         Update: {
           answer_text?: string | null
-          created_at?: string | null
+          created_at?: string
           id?: string
-          question_id?: string | null
-          submission_id?: string | null
+          question_id?: string
+          submission_id?: string
         }
         Relationships: [
           {
@@ -8615,25 +5636,37 @@ export type Database = {
       }
       homework_questions: {
         Row: {
-          homework_id: string | null
+          created_at: string
+          homework_id: string
           id: string
           model_answer: string | null
           order_num: number
           question: string
+          source_block_id: string | null
+          source_outcome_id: string | null
+          source_resource_id: string | null
         }
         Insert: {
-          homework_id?: string | null
+          created_at?: string
+          homework_id: string
           id?: string
           model_answer?: string | null
-          order_num?: number
+          order_num: number
           question: string
+          source_block_id?: string | null
+          source_outcome_id?: string | null
+          source_resource_id?: string | null
         }
         Update: {
-          homework_id?: string | null
+          created_at?: string
+          homework_id?: string
           id?: string
           model_answer?: string | null
           order_num?: number
           question?: string
+          source_block_id?: string | null
+          source_outcome_id?: string | null
+          source_resource_id?: string | null
         }
         Relationships: [
           {
@@ -8643,62 +5676,25 @@ export type Database = {
             referencedRelation: "homework"
             referencedColumns: ["id"]
           },
-        ]
-      }
-      homework_submission_reviews: {
-        Row: {
-          action: string
-          actor_id: string
-          created_at: string
-          feedback: string | null
-          id: string
-          mark: number | null
-          reason: string | null
-          revision_number: number
-          submission_id: string
-        }
-        Insert: {
-          action: string
-          actor_id: string
-          created_at?: string
-          feedback?: string | null
-          id?: string
-          mark?: number | null
-          reason?: string | null
-          revision_number: number
-          submission_id: string
-        }
-        Update: {
-          action?: string
-          actor_id?: string
-          created_at?: string
-          feedback?: string | null
-          id?: string
-          mark?: number | null
-          reason?: string | null
-          revision_number?: number
-          submission_id?: string
-        }
-        Relationships: [
           {
-            foreignKeyName: "homework_submission_reviews_actor_id_fkey"
-            columns: ["actor_id"]
+            foreignKeyName: "homework_questions_source_block_id_fkey"
+            columns: ["source_block_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "content_blocks"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "homework_submission_reviews_actor_id_fkey"
-            columns: ["actor_id"]
+            foreignKeyName: "homework_questions_source_outcome_id_fkey"
+            columns: ["source_outcome_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "curriculum_learning_outcomes"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "homework_submission_reviews_submission_id_fkey"
-            columns: ["submission_id"]
+            foreignKeyName: "homework_questions_source_resource_id_fkey"
+            columns: ["source_resource_id"]
             isOneToOne: false
-            referencedRelation: "homework_submissions"
+            referencedRelation: "learning_resources"
             referencedColumns: ["id"]
           },
         ]
@@ -8711,13 +5707,10 @@ export type Database = {
           homework_id: string | null
           id: string
           mark: number | null
-          model_answers_released_at: string | null
           photo_url: string | null
           received_at: string | null
           returned_at: string | null
           returned_reason: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
           revision_number: number
           status: string
           student_id: string | null
@@ -8731,13 +5724,10 @@ export type Database = {
           homework_id?: string | null
           id?: string
           mark?: number | null
-          model_answers_released_at?: string | null
           photo_url?: string | null
           received_at?: string | null
           returned_at?: string | null
           returned_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
           revision_number?: number
           status?: string
           student_id?: string | null
@@ -8751,13 +5741,10 @@ export type Database = {
           homework_id?: string | null
           id?: string
           mark?: number | null
-          model_answers_released_at?: string | null
           photo_url?: string | null
           received_at?: string | null
           returned_at?: string | null
           returned_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
           revision_number?: number
           status?: string
           student_id?: string | null
@@ -8773,20 +5760,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "homework_submissions_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "homework_submissions_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "homework_submissions_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -8794,6 +5767,5127 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      hq_automation_runs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          result: Json
+          run_type: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          result?: Json
+          run_type: string
+          started_at?: string
+          status: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          result?: Json
+          run_type?: string
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      hq_certification_results: {
+        Row: {
+          area: string
+          certification_version: string
+          checked_at: string
+          evidence: Json
+          id: string
+          question: string
+          question_no: number
+          result: string
+        }
+        Insert: {
+          area: string
+          certification_version: string
+          checked_at?: string
+          evidence?: Json
+          id?: string
+          question: string
+          question_no: number
+          result: string
+        }
+        Update: {
+          area?: string
+          certification_version?: string
+          checked_at?: string
+          evidence?: Json
+          id?: string
+          question?: string
+          question_no?: number
+          result?: string
+        }
+        Relationships: []
+      }
+      hq_company_snapshots: {
+        Row: {
+          captured_at: string
+          evidence: Json
+          id: string
+          metrics: Json
+          snapshot_date: string
+        }
+        Insert: {
+          captured_at?: string
+          evidence?: Json
+          id?: string
+          metrics?: Json
+          snapshot_date: string
+        }
+        Update: {
+          captured_at?: string
+          evidence?: Json
+          id?: string
+          metrics?: Json
+          snapshot_date?: string
+        }
+        Relationships: []
+      }
+      hq_content_domains: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          icon: string | null
+          key: string
+          name: string
+          sort_order: number
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          key: string
+          name: string
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          key?: string
+          name?: string
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hq_context_decision_snapshots: {
+        Row: {
+          actor_key: string
+          actor_type: string
+          context_version: string
+          created_at: string
+          decision_key: string
+          decision_type: string
+          facts: Json
+          id: string
+          outcome: Json | null
+          reason: string
+          rules_version: string
+          taken_at: string
+        }
+        Insert: {
+          actor_key: string
+          actor_type: string
+          context_version: string
+          created_at?: string
+          decision_key: string
+          decision_type: string
+          facts: Json
+          id?: string
+          outcome?: Json | null
+          reason: string
+          rules_version: string
+          taken_at?: string
+        }
+        Update: {
+          actor_key?: string
+          actor_type?: string
+          context_version?: string
+          created_at?: string
+          decision_key?: string
+          decision_type?: string
+          facts?: Json
+          id?: string
+          outcome?: Json | null
+          reason?: string
+          rules_version?: string
+          taken_at?: string
+        }
+        Relationships: []
+      }
+      hq_context_fact_definitions: {
+        Row: {
+          computation_kind: string
+          computation_ref: string
+          confidence_method: string
+          created_at: string
+          effective_at: string
+          fact_key: string
+          freshness_seconds: number
+          id: string
+          retired_at: string | null
+          source_id: string
+          unit: string | null
+          version: number
+        }
+        Insert: {
+          computation_kind: string
+          computation_ref: string
+          confidence_method: string
+          created_at?: string
+          effective_at?: string
+          fact_key: string
+          freshness_seconds: number
+          id?: string
+          retired_at?: string | null
+          source_id: string
+          unit?: string | null
+          version: number
+        }
+        Update: {
+          computation_kind?: string
+          computation_ref?: string
+          confidence_method?: string
+          created_at?: string
+          effective_at?: string
+          fact_key?: string
+          freshness_seconds?: number
+          id?: string
+          retired_at?: string | null
+          source_id?: string
+          unit?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_context_fact_definitions_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_context_facts_cache: {
+        Row: {
+          computed_at: string
+          confidence: number
+          confidence_evidence: Json
+          confidence_source: string
+          fact_definition_id: string
+          fact_key: string
+          freshness_expires_at: string
+          id: string
+          scope_id: string
+          value: Json
+        }
+        Insert: {
+          computed_at?: string
+          confidence: number
+          confidence_evidence?: Json
+          confidence_source: string
+          fact_definition_id: string
+          fact_key: string
+          freshness_expires_at: string
+          id?: string
+          scope_id: string
+          value: Json
+        }
+        Update: {
+          computed_at?: string
+          confidence?: number
+          confidence_evidence?: Json
+          confidence_source?: string
+          fact_definition_id?: string
+          fact_key?: string
+          freshness_expires_at?: string
+          id?: string
+          scope_id?: string
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_context_facts_cache_fact_definition_id_fkey"
+            columns: ["fact_definition_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_fact_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_context_facts_cache_scope_id_fkey"
+            columns: ["scope_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_scopes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_context_provenance: {
+        Row: {
+          computation_digest: string
+          created_at: string
+          fact_definition_id: string
+          fact_key: string
+          id: string
+          raw_refs: Json
+          snapshot_id: string
+          source_id: string
+        }
+        Insert: {
+          computation_digest: string
+          created_at?: string
+          fact_definition_id: string
+          fact_key: string
+          id?: string
+          raw_refs?: Json
+          snapshot_id: string
+          source_id: string
+        }
+        Update: {
+          computation_digest?: string
+          created_at?: string
+          fact_definition_id?: string
+          fact_key?: string
+          id?: string
+          raw_refs?: Json
+          snapshot_id?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_context_provenance_fact_definition_id_fkey"
+            columns: ["fact_definition_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_fact_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_context_provenance_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_decision_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_context_provenance_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_context_scopes: {
+        Row: {
+          allowed_fact_keys: string[]
+          created_at: string
+          denied_fact_keys: string[]
+          id: string
+          scope_owner_key: string | null
+          scope_type: string
+        }
+        Insert: {
+          allowed_fact_keys?: string[]
+          created_at?: string
+          denied_fact_keys?: string[]
+          id?: string
+          scope_owner_key?: string | null
+          scope_type: string
+        }
+        Update: {
+          allowed_fact_keys?: string[]
+          created_at?: string
+          denied_fact_keys?: string[]
+          id?: string
+          scope_owner_key?: string | null
+          scope_type?: string
+        }
+        Relationships: []
+      }
+      hq_context_sources: {
+        Row: {
+          active: boolean
+          connection_ref: string | null
+          created_at: string
+          id: string
+          name: string
+          owner: string
+          reliability_method: string
+          reliability_score: number | null
+          source_key: string
+          source_type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          connection_ref?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          owner: string
+          reliability_method: string
+          reliability_score?: number | null
+          source_key: string
+          source_type: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          connection_ref?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          owner?: string
+          reliability_method?: string
+          reliability_score?: number | null
+          source_key?: string
+          source_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hq_decision_audit: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          decision_id: string | null
+          details: Json
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          decision_id?: string | null
+          details?: Json
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          decision_id?: string | null
+          details?: Json
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_decision_audit_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "hq_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_decision_versions: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          decision_id: string
+          id: string
+          snapshot: Json
+          version: number
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          decision_id: string
+          id?: string
+          snapshot: Json
+          version: number
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          decision_id?: string
+          id?: string
+          snapshot?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_decision_versions_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "hq_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_decisions: {
+        Row: {
+          affected_products: string[]
+          approved_at: string | null
+          approved_by: string | null
+          category: string
+          code: string
+          created_at: string
+          created_by: string
+          decision_type: string
+          effective_at: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          reason: string | null
+          rollback_of_id: string | null
+          rule_key: string | null
+          rule_value: Json
+          status: string
+          supersedes_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_products?: string[]
+          approved_at?: string | null
+          approved_by?: string | null
+          category: string
+          code: string
+          created_at?: string
+          created_by: string
+          decision_type: string
+          effective_at?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          reason?: string | null
+          rollback_of_id?: string | null
+          rule_key?: string | null
+          rule_value?: Json
+          status?: string
+          supersedes_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_products?: string[]
+          approved_at?: string | null
+          approved_by?: string | null
+          category?: string
+          code?: string
+          created_at?: string
+          created_by?: string
+          decision_type?: string
+          effective_at?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          reason?: string | null
+          rollback_of_id?: string | null
+          rule_key?: string | null
+          rule_value?: Json
+          status?: string
+          supersedes_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_decisions_rollback_of_id_fkey"
+            columns: ["rollback_of_id"]
+            isOneToOne: false
+            referencedRelation: "hq_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_decisions_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "hq_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_departments: {
+        Row: {
+          active: boolean
+          created_at: string
+          icon: string | null
+          key: string
+          mandate: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          key: string
+          mandate: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          icon?: string | null
+          key?: string
+          mandate?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      hq_findings: {
+        Row: {
+          created_at: string
+          decision_required: boolean
+          department_key: string
+          evidence: Json
+          explanation: string
+          finding_type: string
+          fingerprint: string
+          first_detected_at: string
+          id: string
+          last_detected_at: string
+          recommended_action: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+          why_it_matters: string
+        }
+        Insert: {
+          created_at?: string
+          decision_required?: boolean
+          department_key: string
+          evidence?: Json
+          explanation: string
+          finding_type: string
+          fingerprint: string
+          first_detected_at?: string
+          id?: string
+          last_detected_at?: string
+          recommended_action?: string | null
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          title: string
+          updated_at?: string
+          why_it_matters: string
+        }
+        Update: {
+          created_at?: string
+          decision_required?: boolean
+          department_key?: string
+          evidence?: Json
+          explanation?: string
+          finding_type?: string
+          fingerprint?: string
+          first_detected_at?: string
+          id?: string
+          last_detected_at?: string
+          recommended_action?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          why_it_matters?: string
+        }
+        Relationships: []
+      }
+      hq_goals: {
+        Row: {
+          created_at: string
+          department_key: string
+          direction: string
+          ends_at: string | null
+          id: string
+          key: string
+          metric_key: string
+          period: string
+          starts_at: string
+          status: string
+          target: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_key: string
+          direction?: string
+          ends_at?: string | null
+          id?: string
+          key: string
+          metric_key: string
+          period?: string
+          starts_at?: string
+          status?: string
+          target: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_key?: string
+          direction?: string
+          ends_at?: string | null
+          id?: string
+          key?: string
+          metric_key?: string
+          period?: string
+          starts_at?: string
+          status?: string
+          target?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_goals_department_key_fkey"
+            columns: ["department_key"]
+            isOneToOne: false
+            referencedRelation: "hq_departments"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      hq_incidents: {
+        Row: {
+          acknowledged_at: string | null
+          detected_at: string
+          evidence: Json
+          fingerprint: string | null
+          id: string
+          incident_type: string
+          owner_department: string | null
+          recovery_evidence: Json
+          resolved_at: string | null
+          route: string | null
+          severity: string
+          status: string
+          summary: string
+          title: string
+          verification_status: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          detected_at?: string
+          evidence?: Json
+          fingerprint?: string | null
+          id?: string
+          incident_type: string
+          owner_department?: string | null
+          recovery_evidence?: Json
+          resolved_at?: string | null
+          route?: string | null
+          severity: string
+          status?: string
+          summary?: string
+          title: string
+          verification_status?: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          detected_at?: string
+          evidence?: Json
+          fingerprint?: string | null
+          id?: string
+          incident_type?: string
+          owner_department?: string | null
+          recovery_evidence?: Json
+          resolved_at?: string | null
+          route?: string | null
+          severity?: string
+          status?: string
+          summary?: string
+          title?: string
+          verification_status?: string
+        }
+        Relationships: []
+      }
+      hq_marketing_campaigns: {
+        Row: {
+          audience: string | null
+          budget: number | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          ends_at: string | null
+          id: string
+          name: string
+          notes: string | null
+          starts_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audience?: string | null
+          budget?: number | null
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          ends_at?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audience?: string | null
+          budget?: number | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          ends_at?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          starts_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hq_marketing_events: {
+        Row: {
+          campaign_id: string | null
+          event_type: string
+          id: number
+          metadata: Json
+          occurred_at: string
+          profile_id: string | null
+          source: string | null
+        }
+        Insert: {
+          campaign_id?: string | null
+          event_type: string
+          id?: never
+          metadata?: Json
+          occurred_at?: string
+          profile_id?: string | null
+          source?: string | null
+        }
+        Update: {
+          campaign_id?: string | null
+          event_type?: string
+          id?: never
+          metadata?: Json
+          occurred_at?: string
+          profile_id?: string | null
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_marketing_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "hq_marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_marketing_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_notifications: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          event_id: string | null
+          id: string
+          metadata: Json
+          read_at: string | null
+          resolved_at: string | null
+          route: string | null
+          severity: string
+          status: string
+          title: string
+        }
+        Insert: {
+          body?: string
+          category?: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          resolved_at?: string | null
+          route?: string | null
+          severity?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          metadata?: Json
+          read_at?: string | null
+          resolved_at?: string | null
+          route?: string | null
+          severity?: string
+          status?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "platform_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_policy_evaluations: {
+        Row: {
+          context: Json
+          created_at: string
+          fallback_used: boolean
+          id: number
+          policy_key: string
+          product_key: string
+          reason: string
+          source_decision_id: string | null
+          source_version: number | null
+          value: Json | null
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          fallback_used?: boolean
+          id?: never
+          policy_key: string
+          product_key: string
+          reason: string
+          source_decision_id?: string | null
+          source_version?: number | null
+          value?: Json | null
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          fallback_used?: boolean
+          id?: never
+          policy_key?: string
+          product_key?: string
+          reason?: string
+          source_decision_id?: string | null
+          source_version?: number | null
+          value?: Json | null
+        }
+        Relationships: []
+      }
+      hq_policy_registry: {
+        Row: {
+          active: boolean
+          allowed_products: string[]
+          allowed_values: Json | null
+          created_at: string
+          default_value: Json
+          description: string
+          domain: string
+          failure_mode: string
+          id: string
+          max_number: number | null
+          min_number: number | null
+          owner_department: string
+          policy_key: string
+          risk_level: string
+          updated_at: string
+          value_type: string
+        }
+        Insert: {
+          active?: boolean
+          allowed_products?: string[]
+          allowed_values?: Json | null
+          created_at?: string
+          default_value: Json
+          description: string
+          domain: string
+          failure_mode?: string
+          id?: string
+          max_number?: number | null
+          min_number?: number | null
+          owner_department: string
+          policy_key: string
+          risk_level?: string
+          updated_at?: string
+          value_type: string
+        }
+        Update: {
+          active?: boolean
+          allowed_products?: string[]
+          allowed_values?: Json | null
+          created_at?: string
+          default_value?: Json
+          description?: string
+          domain?: string
+          failure_mode?: string
+          id?: string
+          max_number?: number | null
+          min_number?: number | null
+          owner_department?: string
+          policy_key?: string
+          risk_level?: string
+          updated_at?: string
+          value_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_policy_registry_owner_department_fkey"
+            columns: ["owner_department"]
+            isOneToOne: false
+            referencedRelation: "hq_departments"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      hq_product_configs: {
+        Row: {
+          active: boolean
+          config_key: string
+          config_value: Json
+          effective_at: string
+          id: string
+          is_secret: boolean
+          product_key: string
+          source_decision_id: string | null
+          source_version: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          config_key: string
+          config_value: Json
+          effective_at?: string
+          id?: string
+          is_secret?: boolean
+          product_key: string
+          source_decision_id?: string | null
+          source_version?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          config_key?: string
+          config_value?: Json
+          effective_at?: string
+          id?: string
+          is_secret?: boolean
+          product_key?: string
+          source_decision_id?: string | null
+          source_version?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_product_configs_source_decision_id_fkey"
+            columns: ["source_decision_id"]
+            isOneToOne: false
+            referencedRelation: "hq_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_product_policy_state: {
+        Row: {
+          desired_value: Json
+          enforced_at: string | null
+          evaluated_at: string | null
+          id: string
+          last_error: string | null
+          observed_at: string | null
+          observed_value: Json | null
+          policy_key: string
+          product_key: string
+          received_at: string | null
+          received_value: Json | null
+          source_decision_id: string | null
+          source_version: number | null
+          state: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          desired_value: Json
+          enforced_at?: string | null
+          evaluated_at?: string | null
+          id?: string
+          last_error?: string | null
+          observed_at?: string | null
+          observed_value?: Json | null
+          policy_key: string
+          product_key: string
+          received_at?: string | null
+          received_value?: Json | null
+          source_decision_id?: string | null
+          source_version?: number | null
+          state?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          desired_value?: Json
+          enforced_at?: string | null
+          evaluated_at?: string | null
+          id?: string
+          last_error?: string | null
+          observed_at?: string | null
+          observed_value?: Json | null
+          policy_key?: string
+          product_key?: string
+          received_at?: string | null
+          received_value?: Json | null
+          source_decision_id?: string | null
+          source_version?: number | null
+          state?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_product_policy_state_policy_key_fkey"
+            columns: ["policy_key"]
+            isOneToOne: false
+            referencedRelation: "hq_policy_registry"
+            referencedColumns: ["policy_key"]
+          },
+          {
+            foreignKeyName: "hq_product_policy_state_source_decision_id_fkey"
+            columns: ["source_decision_id"]
+            isOneToOne: false
+            referencedRelation: "hq_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_propagation_targets: {
+        Row: {
+          applied_at: string | null
+          decision_id: string
+          error: string | null
+          expected_config_key: string | null
+          expected_value: Json | null
+          id: string
+          product_key: string
+          status: string
+          verified_at: string | null
+        }
+        Insert: {
+          applied_at?: string | null
+          decision_id: string
+          error?: string | null
+          expected_config_key?: string | null
+          expected_value?: Json | null
+          id?: string
+          product_key: string
+          status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          applied_at?: string | null
+          decision_id?: string
+          error?: string | null
+          expected_config_key?: string | null
+          expected_value?: Json | null
+          id?: string
+          product_key?: string
+          status?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_propagation_targets_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "hq_decisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_user_status_events: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_status: string | null
+          id: number
+          profile_id: string
+          reason: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: never
+          profile_id: string
+          reason?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: never
+          profile_id?: string
+          reason?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_user_status_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_work_item_links: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          id: string
+          label: string
+          link_type: string
+          metadata: Json
+          url: string
+          work_item_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          label: string
+          link_type: string
+          metadata?: Json
+          url: string
+          work_item_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          link_type?: string
+          metadata?: Json
+          url?: string
+          work_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_work_item_links_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_work_item_links_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "hq_work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_work_item_updates: {
+        Row: {
+          actor_id: string | null
+          body: string
+          created_at: string
+          id: string
+          metadata: Json
+          update_type: string
+          work_item_id: string
+          worker_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          update_type: string
+          work_item_id: string
+          worker_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          update_type?: string
+          work_item_id?: string
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_work_item_updates_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_work_item_updates_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "hq_work_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_work_item_updates_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_work_item_updates_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_work_items: {
+        Row: {
+          acted_at: string | null
+          action_taken: Json
+          approval_required: boolean
+          created_at: string
+          department_key: string
+          due_at: string | null
+          evidence: Json
+          id: string
+          owner_id: string | null
+          priority: string
+          resolved_at: string | null
+          route: string | null
+          source_id: string | null
+          source_type: string | null
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          verification_evidence: Json
+          verification_status: string
+          work_type: string
+        }
+        Insert: {
+          acted_at?: string | null
+          action_taken?: Json
+          approval_required?: boolean
+          created_at?: string
+          department_key: string
+          due_at?: string | null
+          evidence?: Json
+          id?: string
+          owner_id?: string | null
+          priority?: string
+          resolved_at?: string | null
+          route?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          verification_evidence?: Json
+          verification_status?: string
+          work_type: string
+        }
+        Update: {
+          acted_at?: string | null
+          action_taken?: Json
+          approval_required?: boolean
+          created_at?: string
+          department_key?: string
+          due_at?: string | null
+          evidence?: Json
+          id?: string
+          owner_id?: string | null
+          priority?: string
+          resolved_at?: string | null
+          route?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          verification_evidence?: Json
+          verification_status?: string
+          work_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_work_items_department_key_fkey"
+            columns: ["department_key"]
+            isOneToOne: false
+            referencedRelation: "hq_departments"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "hq_work_items_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_worker_activation_approvals: {
+        Row: {
+          approved_at: string
+          approved_by: string
+          consumed_at: string | null
+          worker_id: string
+        }
+        Insert: {
+          approved_at?: string
+          approved_by: string
+          consumed_at?: string | null
+          worker_id: string
+        }
+        Update: {
+          approved_at?: string
+          approved_by?: string
+          consumed_at?: string | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_worker_activation_approvals_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: true
+            referencedRelation: "hq_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_worker_certifications: {
+        Row: {
+          certified_at: string
+          evidence: Json
+          id: string
+          passed: boolean
+          scenario_key: string
+          worker_id: string
+        }
+        Insert: {
+          certified_at?: string
+          evidence?: Json
+          id?: string
+          passed: boolean
+          scenario_key: string
+          worker_id: string
+        }
+        Update: {
+          certified_at?: string
+          evidence?: Json
+          id?: string
+          passed?: boolean
+          scenario_key?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_worker_certifications_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_worker_kpis: {
+        Row: {
+          current_value: number | null
+          direction: string
+          id: string
+          label: string
+          measured_at: string | null
+          metric_key: string
+          target: number | null
+          unit: string | null
+          worker_id: string
+        }
+        Insert: {
+          current_value?: number | null
+          direction: string
+          id?: string
+          label: string
+          measured_at?: string | null
+          metric_key: string
+          target?: number | null
+          unit?: string | null
+          worker_id: string
+        }
+        Update: {
+          current_value?: number | null
+          direction?: string
+          id?: string
+          label?: string
+          measured_at?: string | null
+          metric_key?: string
+          target?: number | null
+          unit?: string | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_worker_kpis_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_worker_messages: {
+        Row: {
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          from_worker_id: string
+          id: string
+          message_type: string
+          payload: Json
+          priority: string
+          status: string
+          to_worker_id: string
+          work_item_id: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          from_worker_id: string
+          id?: string
+          message_type: string
+          payload?: Json
+          priority?: string
+          status?: string
+          to_worker_id: string
+          work_item_id?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          from_worker_id?: string
+          id?: string
+          message_type?: string
+          payload?: Json
+          priority?: string
+          status?: string
+          to_worker_id?: string
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_worker_messages_from_worker_id_fkey"
+            columns: ["from_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_worker_messages_to_worker_id_fkey"
+            columns: ["to_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_worker_messages_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "hq_work_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_worker_runs: {
+        Row: {
+          error: string | null
+          evidence: Json
+          execution_mode: string
+          finished_at: string | null
+          id: string
+          input: Json
+          output: Json
+          started_at: string
+          status: string
+          work_item_id: string | null
+          worker_id: string
+          workflow_key: string
+        }
+        Insert: {
+          error?: string | null
+          evidence?: Json
+          execution_mode: string
+          finished_at?: string | null
+          id?: string
+          input?: Json
+          output?: Json
+          started_at?: string
+          status: string
+          work_item_id?: string | null
+          worker_id: string
+          workflow_key: string
+        }
+        Update: {
+          error?: string | null
+          evidence?: Json
+          execution_mode?: string
+          finished_at?: string | null
+          id?: string
+          input?: Json
+          output?: Json
+          started_at?: string
+          status?: string
+          work_item_id?: string | null
+          worker_id?: string
+          workflow_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_worker_runs_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "hq_work_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_worker_runs_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_worker_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          definition: Json
+          description: string
+          key: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          definition?: Json
+          description?: string
+          key: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          definition?: Json
+          description?: string
+          key?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hq_workers: {
+        Row: {
+          created_at: string
+          definition: Json
+          department_key: string
+          execution_order: string[]
+          id: string
+          manager_worker_id: string | null
+          mission: string
+          paid_ai_allowed: boolean
+          status: string
+          template_key: string | null
+          title: string
+          updated_at: string
+          version: number
+          worker_key: string
+        }
+        Insert: {
+          created_at?: string
+          definition?: Json
+          department_key: string
+          execution_order?: string[]
+          id?: string
+          manager_worker_id?: string | null
+          mission: string
+          paid_ai_allowed?: boolean
+          status?: string
+          template_key?: string | null
+          title: string
+          updated_at?: string
+          version?: number
+          worker_key: string
+        }
+        Update: {
+          created_at?: string
+          definition?: Json
+          department_key?: string
+          execution_order?: string[]
+          id?: string
+          manager_worker_id?: string | null
+          mission?: string
+          paid_ai_allowed?: boolean
+          status?: string
+          template_key?: string | null
+          title?: string
+          updated_at?: string
+          version?: number
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workers_department_key_fkey"
+            columns: ["department_key"]
+            isOneToOne: false
+            referencedRelation: "hq_departments"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "hq_workers_manager_worker_id_fkey"
+            columns: ["manager_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workers_template_key_fkey"
+            columns: ["template_key"]
+            isOneToOne: false
+            referencedRelation: "hq_worker_templates"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      hq_workforce_assignments: {
+        Row: {
+          active: boolean
+          created_at: string
+          department_key: string
+          id: string
+          role_key: string
+          worker_key: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          department_key: string
+          id?: string
+          role_key: string
+          worker_key: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          department_key?: string
+          id?: string
+          role_key?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_assignments_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_roles"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_assignments_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_assignments_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_blueprints: {
+        Row: {
+          approval_boundaries: Json
+          approved_at: string | null
+          authority_ceiling: Json
+          blueprint_key: string
+          created_at: string
+          id: string
+          mission: string
+          required_capabilities: Json
+          required_skill_keys: Json
+          scope_ref: Json
+          scope_type: string
+          status: string
+          title: string
+          version: number
+        }
+        Insert: {
+          approval_boundaries?: Json
+          approved_at?: string | null
+          authority_ceiling?: Json
+          blueprint_key: string
+          created_at?: string
+          id?: string
+          mission: string
+          required_capabilities?: Json
+          required_skill_keys?: Json
+          scope_ref?: Json
+          scope_type?: string
+          status?: string
+          title: string
+          version: number
+        }
+        Update: {
+          approval_boundaries?: Json
+          approved_at?: string | null
+          authority_ceiling?: Json
+          blueprint_key?: string
+          created_at?: string
+          id?: string
+          mission?: string
+          required_capabilities?: Json
+          required_skill_keys?: Json
+          scope_ref?: Json
+          scope_type?: string
+          status?: string
+          title?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      hq_workforce_capability_grants: {
+        Row: {
+          capability_key: string
+          expires_at: string
+          granted_at: string
+          granted_by_contract_id: string
+          id: string
+          operation: string
+          resource_type: string
+          revocation_reason: string | null
+          revoked_at: string | null
+          scope_ref: Json
+          scope_type: string
+          status: string
+          worker_key: string
+        }
+        Insert: {
+          capability_key: string
+          expires_at: string
+          granted_at?: string
+          granted_by_contract_id: string
+          id?: string
+          operation: string
+          resource_type: string
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          scope_ref?: Json
+          scope_type?: string
+          status?: string
+          worker_key: string
+        }
+        Update: {
+          capability_key?: string
+          expires_at?: string
+          granted_at?: string
+          granted_by_contract_id?: string
+          id?: string
+          operation?: string
+          resource_type?: string
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          scope_ref?: Json
+          scope_type?: string
+          status?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_capability_grants_granted_by_contract_id_fkey"
+            columns: ["granted_by_contract_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_creation_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_capability_grants_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_capability_grants_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_certification_results: {
+        Row: {
+          certification_key: string
+          check_key: string
+          checked_at: string
+          evidence: Json
+          id: string
+          passed: boolean
+          subject_key: string
+          subject_type: string
+        }
+        Insert: {
+          certification_key: string
+          check_key: string
+          checked_at?: string
+          evidence?: Json
+          id?: string
+          passed: boolean
+          subject_key: string
+          subject_type: string
+        }
+        Update: {
+          certification_key?: string
+          check_key?: string
+          checked_at?: string
+          evidence?: Json
+          id?: string
+          passed?: boolean
+          subject_key?: string
+          subject_type?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_certifications: {
+        Row: {
+          certification_key: string
+          creation_contract_id: string
+          expires_at: string
+          id: string
+          issued_at: string
+          passed_shadow_runs: number
+          required_shadow_runs: number
+          revocation_reason: string | null
+          revoked_at: string | null
+          status: string
+          verifier_key: string
+          worker_key: string
+        }
+        Insert: {
+          certification_key: string
+          creation_contract_id: string
+          expires_at: string
+          id?: string
+          issued_at?: string
+          passed_shadow_runs: number
+          required_shadow_runs: number
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          status: string
+          verifier_key: string
+          worker_key: string
+        }
+        Update: {
+          certification_key?: string
+          creation_contract_id?: string
+          expires_at?: string
+          id?: string
+          issued_at?: string
+          passed_shadow_runs?: number
+          required_shadow_runs?: number
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          status?: string
+          verifier_key?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_certifications_creation_contract_id_fkey"
+            columns: ["creation_contract_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_creation_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_certifications_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_certifications_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_contract_clauses: {
+        Row: {
+          clause_key: string
+          clause_type: string
+          created_at: string
+          effective_at: string
+          id: string
+          rule: Json
+          scope_key: string | null
+          scope_type: string
+          status: string
+          version: number
+        }
+        Insert: {
+          clause_key: string
+          clause_type: string
+          created_at?: string
+          effective_at?: string
+          id?: string
+          rule: Json
+          scope_key?: string | null
+          scope_type: string
+          status?: string
+          version: number
+        }
+        Update: {
+          clause_key?: string
+          clause_type?: string
+          created_at?: string
+          effective_at?: string
+          id?: string
+          rule?: Json
+          scope_key?: string | null
+          scope_type?: string
+          status?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      hq_workforce_contracts: {
+        Row: {
+          contract_key: string
+          contract_type: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          issued_at: string
+          payload: Json
+          payload_hash: string | null
+          scope_ref: Json
+          scope_type: string
+          status: string
+          version: number
+        }
+        Insert: {
+          contract_key: string
+          contract_type: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          payload: Json
+          payload_hash?: string | null
+          scope_ref?: Json
+          scope_type?: string
+          status?: string
+          version: number
+        }
+        Update: {
+          contract_key?: string
+          contract_type?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          payload?: Json
+          payload_hash?: string | null
+          scope_ref?: Json
+          scope_type?: string
+          status?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      hq_workforce_correction_events: {
+        Row: {
+          context_hash: string
+          corrected_payload: Json | null
+          created_at: string
+          decision_id: string
+          decision_revision: number
+          event_key: string
+          event_type: string
+          id: string
+          lane_key: string | null
+          learning_candidate_id: string | null
+          proposed_payload: Json
+          provenance_bundle: Json
+          rejection_reason: string | null
+          run_id: string | null
+          snapshot_id: string | null
+          source_skill_id: string | null
+          source_skill_version: number | null
+          structural_diff: Json
+          worker_id: string | null
+        }
+        Insert: {
+          context_hash: string
+          corrected_payload?: Json | null
+          created_at?: string
+          decision_id: string
+          decision_revision: number
+          event_key: string
+          event_type: string
+          id?: string
+          lane_key?: string | null
+          learning_candidate_id?: string | null
+          proposed_payload?: Json
+          provenance_bundle?: Json
+          rejection_reason?: string | null
+          run_id?: string | null
+          snapshot_id?: string | null
+          source_skill_id?: string | null
+          source_skill_version?: number | null
+          structural_diff?: Json
+          worker_id?: string | null
+        }
+        Update: {
+          context_hash?: string
+          corrected_payload?: Json | null
+          created_at?: string
+          decision_id?: string
+          decision_revision?: number
+          event_key?: string
+          event_type?: string
+          id?: string
+          lane_key?: string | null
+          learning_candidate_id?: string | null
+          proposed_payload?: Json
+          provenance_bundle?: Json
+          rejection_reason?: string | null
+          run_id?: string | null
+          snapshot_id?: string | null
+          source_skill_id?: string | null
+          source_skill_version?: number | null
+          structural_diff?: Json
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_correction_events_learning_candidate_id_fkey"
+            columns: ["learning_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_learning_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_correction_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_correction_events_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_decision_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_correction_events_source_skill_id_fkey"
+            columns: ["source_skill_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_correction_events_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_correction_events_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_creation_contracts: {
+        Row: {
+          authority_ceiling: Json
+          blueprint_id: string
+          consumed_at: string | null
+          contract_key: string
+          demand_evidence_contract_id: string | null
+          expires_at: string | null
+          id: string
+          issued_at: string
+          scope_ref: Json
+          scope_type: string
+          status: string
+          worker_key: string
+        }
+        Insert: {
+          authority_ceiling?: Json
+          blueprint_id: string
+          consumed_at?: string | null
+          contract_key: string
+          demand_evidence_contract_id?: string | null
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          scope_ref?: Json
+          scope_type?: string
+          status?: string
+          worker_key: string
+        }
+        Update: {
+          authority_ceiling?: Json
+          blueprint_id?: string
+          consumed_at?: string | null
+          contract_key?: string
+          demand_evidence_contract_id?: string | null
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          scope_ref?: Json
+          scope_type?: string
+          status?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_creation_contract_demand_evidence_contract_id_fkey"
+            columns: ["demand_evidence_contract_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_creation_contracts_blueprint_id_fkey"
+            columns: ["blueprint_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_blueprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_creation_contracts_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_creation_contracts_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_dead_letters: {
+        Row: {
+          attempts: number
+          created_at: string
+          error_code: string
+          error_detail: string | null
+          id: string
+          payload_snapshot: Json
+          task_id: string
+          worker_key: string
+        }
+        Insert: {
+          attempts: number
+          created_at?: string
+          error_code: string
+          error_detail?: string | null
+          id?: string
+          payload_snapshot: Json
+          task_id: string
+          worker_key: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          error_code?: string
+          error_detail?: string | null
+          id?: string
+          payload_snapshot?: Json
+          task_id?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_dead_letters_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "hq_workforce_task_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_decisions: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_key: string
+          evidence_snapshot_id: string | null
+          id: string
+          job_key: string | null
+          lane_key: string | null
+          proposed_action: string
+          reason: string
+          revision: string | null
+          risk: string
+          run_id: string | null
+          status: string
+          worker_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_key: string
+          evidence_snapshot_id?: string | null
+          id?: string
+          job_key?: string | null
+          lane_key?: string | null
+          proposed_action: string
+          reason: string
+          revision?: string | null
+          risk: string
+          run_id?: string | null
+          status?: string
+          worker_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_key?: string
+          evidence_snapshot_id?: string | null
+          id?: string
+          job_key?: string | null
+          lane_key?: string | null
+          proposed_action?: string
+          reason?: string
+          revision?: string | null
+          risk?: string
+          run_id?: string | null
+          status?: string
+          worker_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_decisions_evidence_snapshot_id_fkey"
+            columns: ["evidence_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_decision_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_decisions_job_key_fkey"
+            columns: ["job_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_jobs"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_decisions_lane_key_fkey"
+            columns: ["lane_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_lanes"
+            referencedColumns: ["lane_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_decisions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_decisions_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_decisions_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_demand_evidence: {
+        Row: {
+          consumed_at: string | null
+          evidence_hash: string | null
+          evidence_key: string
+          gap_id: string
+          id: string
+          lane_key: string
+          metrics: Json
+          sealed_at: string
+          source_ref: string
+          source_type: string
+          status: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          evidence_hash?: string | null
+          evidence_key: string
+          gap_id: string
+          id?: string
+          lane_key: string
+          metrics: Json
+          sealed_at?: string
+          source_ref: string
+          source_type: string
+          status?: string
+        }
+        Update: {
+          consumed_at?: string | null
+          evidence_hash?: string | null
+          evidence_key?: string
+          gap_id?: string
+          id?: string
+          lane_key?: string
+          metrics?: Json
+          sealed_at?: string
+          source_ref?: string
+          source_type?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_demand_evidence_gap_id_fkey"
+            columns: ["gap_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_gap_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_demand_observations: {
+        Row: {
+          evidence: Json
+          id: number
+          observed_at: string
+          observed_bucket: string
+          oldest_age_seconds: number
+          open_backlog: number
+          policy_id: string
+          threshold_met: boolean
+          weighted_impact: number
+        }
+        Insert: {
+          evidence: Json
+          id?: never
+          observed_at?: string
+          observed_bucket: string
+          oldest_age_seconds: number
+          open_backlog: number
+          policy_id: string
+          threshold_met: boolean
+          weighted_impact: number
+        }
+        Update: {
+          evidence?: Json
+          id?: never
+          observed_at?: string
+          observed_bucket?: string
+          oldest_age_seconds?: number
+          open_backlog?: number
+          policy_id?: string
+          threshold_met?: boolean
+          weighted_impact?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_demand_observations_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_demand_sensor_policies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_demand_sensor_policies: {
+        Row: {
+          approved_at: string | null
+          consecutive_observations: number
+          cooldown_minutes: number
+          created_at: string
+          id: string
+          min_open_backlog: number
+          observation_window_minutes: number
+          oldest_age_minutes: number
+          policy_key: string
+          status: string
+          template_id: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          consecutive_observations?: number
+          cooldown_minutes?: number
+          created_at?: string
+          id?: string
+          min_open_backlog: number
+          observation_window_minutes?: number
+          oldest_age_minutes: number
+          policy_key: string
+          status?: string
+          template_id: string
+          version: number
+        }
+        Update: {
+          approved_at?: string | null
+          consecutive_observations?: number
+          cooldown_minutes?: number
+          created_at?: string
+          id?: string
+          min_open_backlog?: number
+          observation_window_minutes?: number
+          oldest_age_minutes?: number
+          policy_key?: string
+          status?: string
+          template_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_demand_sensor_policies_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_factory_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_engine_contract: {
+        Row: {
+          exclusions: Json
+          factory_enabled: boolean
+          factory_limit: number
+          heartbeat_enabled: boolean
+          heartbeat_limit: number
+          mission: string
+          responsibilities: Json
+          routine_paid_ai_required: boolean
+          runtime_anomaly_paused: boolean
+          runtime_autonomy_level: number
+          runtime_execution_enabled: boolean
+          runtime_max_concurrency: number
+          runtime_max_executions_per_minute: number
+          runtime_max_risk: number
+          shadow_anomaly_paused: boolean
+          shadow_enabled: boolean
+          shadow_global_stop: boolean
+          shadow_max_candidates_per_cycle: number
+          shadow_max_concurrency: number
+          shadow_max_cycles_per_hour: number
+          shadow_max_queue_depth: number
+          shadow_max_retries: number
+          shadow_scheduler_enabled: boolean
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          exclusions: Json
+          factory_enabled?: boolean
+          factory_limit?: number
+          heartbeat_enabled?: boolean
+          heartbeat_limit?: number
+          mission: string
+          responsibilities: Json
+          routine_paid_ai_required?: boolean
+          runtime_anomaly_paused?: boolean
+          runtime_autonomy_level?: number
+          runtime_execution_enabled?: boolean
+          runtime_max_concurrency?: number
+          runtime_max_executions_per_minute?: number
+          runtime_max_risk?: number
+          shadow_anomaly_paused?: boolean
+          shadow_enabled?: boolean
+          shadow_global_stop?: boolean
+          shadow_max_candidates_per_cycle?: number
+          shadow_max_concurrency?: number
+          shadow_max_cycles_per_hour?: number
+          shadow_max_queue_depth?: number
+          shadow_max_retries?: number
+          shadow_scheduler_enabled?: boolean
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          exclusions?: Json
+          factory_enabled?: boolean
+          factory_limit?: number
+          heartbeat_enabled?: boolean
+          heartbeat_limit?: number
+          mission?: string
+          responsibilities?: Json
+          routine_paid_ai_required?: boolean
+          runtime_anomaly_paused?: boolean
+          runtime_autonomy_level?: number
+          runtime_execution_enabled?: boolean
+          runtime_max_concurrency?: number
+          runtime_max_executions_per_minute?: number
+          runtime_max_risk?: number
+          shadow_anomaly_paused?: boolean
+          shadow_enabled?: boolean
+          shadow_global_stop?: boolean
+          shadow_max_candidates_per_cycle?: number
+          shadow_max_concurrency?: number
+          shadow_max_cycles_per_hour?: number
+          shadow_max_queue_depth?: number
+          shadow_max_retries?: number
+          shadow_scheduler_enabled?: boolean
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_evidence: {
+        Row: {
+          classification: string
+          content_hash: string | null
+          created_at: string
+          evidence_kind: string
+          id: string
+          jurisdiction_key: string | null
+          observed_at: string | null
+          payload: Json
+          source_ref: string | null
+          source_type: string
+          tenant_key: string | null
+          trace_id: string
+        }
+        Insert: {
+          classification?: string
+          content_hash?: string | null
+          created_at?: string
+          evidence_kind: string
+          id?: string
+          jurisdiction_key?: string | null
+          observed_at?: string | null
+          payload?: Json
+          source_ref?: string | null
+          source_type: string
+          tenant_key?: string | null
+          trace_id: string
+        }
+        Update: {
+          classification?: string
+          content_hash?: string | null
+          created_at?: string
+          evidence_kind?: string
+          id?: string
+          jurisdiction_key?: string | null
+          observed_at?: string | null
+          payload?: Json
+          source_ref?: string | null
+          source_type?: string
+          tenant_key?: string | null
+          trace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_evidence_trace_id_fkey"
+            columns: ["trace_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_shadow_traces"
+            referencedColumns: ["trace_id"]
+          },
+        ]
+      }
+      hq_workforce_evidence_policies: {
+        Row: {
+          active: boolean
+          allow_high_severity_override: boolean
+          created_at: string
+          id: string
+          min_events: number
+          policy_key: string
+          relevance_days: number
+        }
+        Insert: {
+          active?: boolean
+          allow_high_severity_override?: boolean
+          created_at?: string
+          id?: string
+          min_events?: number
+          policy_key: string
+          relevance_days?: number
+        }
+        Update: {
+          active?: boolean
+          allow_high_severity_override?: boolean
+          created_at?: string
+          id?: string
+          min_events?: number
+          policy_key?: string
+          relevance_days?: number
+        }
+        Relationships: []
+      }
+      hq_workforce_evidence_qualifications: {
+        Row: {
+          contradiction_count: number
+          eligible_count: number
+          evaluated_at: string
+          evidence_event_ids: string[]
+          high_severity_override: boolean
+          id: string
+          lane_key: string | null
+          qualification_key: string
+          qualification_signature: string
+          skill_key: string
+          status: string
+        }
+        Insert: {
+          contradiction_count?: number
+          eligible_count?: number
+          evaluated_at?: string
+          evidence_event_ids?: string[]
+          high_severity_override?: boolean
+          id?: string
+          lane_key?: string | null
+          qualification_key: string
+          qualification_signature: string
+          skill_key: string
+          status: string
+        }
+        Update: {
+          contradiction_count?: number
+          eligible_count?: number
+          evaluated_at?: string
+          evidence_event_ids?: string[]
+          high_severity_override?: boolean
+          id?: string
+          lane_key?: string | null
+          qualification_key?: string
+          qualification_signature?: string
+          skill_key?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_execution_budgets: {
+        Row: {
+          budget_key: string
+          consumed_amount: number
+          created_at: string
+          id: string
+          limit_amount: number
+          period_end: string
+          period_start: string
+          reserved_amount: number
+          status: string
+          unit: string
+          worker_key: string
+        }
+        Insert: {
+          budget_key: string
+          consumed_amount?: number
+          created_at?: string
+          id?: string
+          limit_amount: number
+          period_end: string
+          period_start: string
+          reserved_amount?: number
+          status?: string
+          unit: string
+          worker_key: string
+        }
+        Update: {
+          budget_key?: string
+          consumed_amount?: number
+          created_at?: string
+          id?: string
+          limit_amount?: number
+          period_end?: string
+          period_start?: string
+          reserved_amount?: number
+          status?: string
+          unit?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_execution_budgets_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_execution_budgets_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_factory_qualification_cases: {
+        Row: {
+          approved_at: string
+          case_key: string
+          expected_outcome: Json
+          id: string
+          input_snapshot: Json
+          status: string
+          template_id: string
+        }
+        Insert: {
+          approved_at?: string
+          case_key: string
+          expected_outcome: Json
+          id?: string
+          input_snapshot: Json
+          status?: string
+          template_id: string
+        }
+        Update: {
+          approved_at?: string
+          case_key?: string
+          expected_outcome?: Json
+          id?: string
+          input_snapshot?: Json
+          status?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_factory_qualification_cases_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_factory_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_factory_runs: {
+        Row: {
+          blueprint_id: string | null
+          completed_at: string | null
+          created_at: string
+          creation_contract_id: string | null
+          decision: string
+          demand_evidence_id: string
+          diagnosis_id: string
+          id: string
+          result: Json
+          run_key: string
+          tool_contract_id: string | null
+          worker_key: string | null
+        }
+        Insert: {
+          blueprint_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          creation_contract_id?: string | null
+          decision: string
+          demand_evidence_id: string
+          diagnosis_id: string
+          id?: string
+          result?: Json
+          run_key: string
+          tool_contract_id?: string | null
+          worker_key?: string | null
+        }
+        Update: {
+          blueprint_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          creation_contract_id?: string | null
+          decision?: string
+          demand_evidence_id?: string
+          diagnosis_id?: string
+          id?: string
+          result?: Json
+          run_key?: string
+          tool_contract_id?: string | null
+          worker_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_factory_runs_blueprint_id_fkey"
+            columns: ["blueprint_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_blueprints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_factory_runs_creation_contract_id_fkey"
+            columns: ["creation_contract_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_creation_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_factory_runs_demand_evidence_id_fkey"
+            columns: ["demand_evidence_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_demand_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_factory_runs_diagnosis_id_fkey"
+            columns: ["diagnosis_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_hr_diagnoses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_factory_runs_tool_contract_id_fkey"
+            columns: ["tool_contract_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_tool_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_factory_templates: {
+        Row: {
+          approved_at: string | null
+          capability_key: string
+          certification_days: number
+          created_at: string
+          id: string
+          lane_key: string
+          max_live_workers: number
+          mission: string
+          operation: string
+          resource_type: string
+          scope_ref: Json
+          scope_type: string
+          signal_type: string
+          status: string
+          template_key: string
+          title: string
+          tool_call_budget: number
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          capability_key: string
+          certification_days?: number
+          created_at?: string
+          id?: string
+          lane_key: string
+          max_live_workers?: number
+          mission: string
+          operation: string
+          resource_type: string
+          scope_ref?: Json
+          scope_type?: string
+          signal_type: string
+          status?: string
+          template_key: string
+          title: string
+          tool_call_budget?: number
+          version: number
+        }
+        Update: {
+          approved_at?: string | null
+          capability_key?: string
+          certification_days?: number
+          created_at?: string
+          id?: string
+          lane_key?: string
+          max_live_workers?: number
+          mission?: string
+          operation?: string
+          resource_type?: string
+          scope_ref?: Json
+          scope_type?: string
+          signal_type?: string
+          status?: string
+          template_key?: string
+          title?: string
+          tool_call_budget?: number
+          version?: number
+        }
+        Relationships: []
+      }
+      hq_workforce_gap_evaluations: {
+        Row: {
+          created_at: string
+          decision: string
+          diagnosis: string
+          evidence_snapshot_id: string | null
+          execution_method: string
+          gap_id: string
+          id: string
+          reason: string
+        }
+        Insert: {
+          created_at?: string
+          decision: string
+          diagnosis: string
+          evidence_snapshot_id?: string | null
+          execution_method?: string
+          gap_id: string
+          id?: string
+          reason: string
+        }
+        Update: {
+          created_at?: string
+          decision?: string
+          diagnosis?: string
+          evidence_snapshot_id?: string | null
+          execution_method?: string
+          gap_id?: string
+          id?: string
+          reason?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_gap_evaluations_evidence_snapshot_id_fkey"
+            columns: ["evidence_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_decision_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_gap_evaluations_gap_id_fkey"
+            columns: ["gap_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_gap_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_gap_signals: {
+        Row: {
+          detected_at: string
+          gap_key: string
+          id: string
+          lane_key: string | null
+          metrics_snapshot: Json
+          severity: string
+          signal_type: string
+          source_ref: string
+          source_type: string
+          status: string
+        }
+        Insert: {
+          detected_at?: string
+          gap_key: string
+          id?: string
+          lane_key?: string | null
+          metrics_snapshot?: Json
+          severity: string
+          signal_type: string
+          source_ref: string
+          source_type: string
+          status?: string
+        }
+        Update: {
+          detected_at?: string
+          gap_key?: string
+          id?: string
+          lane_key?: string | null
+          metrics_snapshot?: Json
+          severity?: string
+          signal_type?: string
+          source_ref?: string
+          source_type?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_handoffs: {
+        Row: {
+          accepted_at: string | null
+          completed_at: string | null
+          created_at: string
+          from_lane_key: string
+          from_worker_id: string | null
+          handoff_key: string
+          id: string
+          materialized_context: Json
+          payload: Json
+          reason: string
+          requested_fact_keys: string[]
+          status: string
+          to_lane_key: string
+          to_worker_id: string | null
+          violation_code: string | null
+          work_item_id: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          from_lane_key: string
+          from_worker_id?: string | null
+          handoff_key: string
+          id?: string
+          materialized_context?: Json
+          payload?: Json
+          reason: string
+          requested_fact_keys?: string[]
+          status: string
+          to_lane_key: string
+          to_worker_id?: string | null
+          violation_code?: string | null
+          work_item_id?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          from_lane_key?: string
+          from_worker_id?: string | null
+          handoff_key?: string
+          id?: string
+          materialized_context?: Json
+          payload?: Json
+          reason?: string
+          requested_fact_keys?: string[]
+          status?: string
+          to_lane_key?: string
+          to_worker_id?: string | null
+          violation_code?: string | null
+          work_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_handoffs_from_worker_id_fkey"
+            columns: ["from_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_handoffs_from_worker_id_fkey"
+            columns: ["from_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_handoffs_to_worker_id_fkey"
+            columns: ["to_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_handoffs_to_worker_id_fkey"
+            columns: ["to_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_heartbeat_runs: {
+        Row: {
+          completed_at: string | null
+          heartbeat_key: string
+          id: number
+          result: Json
+          started_at: string
+          tasks_failed: number
+          tasks_processed: number
+        }
+        Insert: {
+          completed_at?: string | null
+          heartbeat_key: string
+          id?: never
+          result?: Json
+          started_at?: string
+          tasks_failed?: number
+          tasks_processed?: number
+        }
+        Update: {
+          completed_at?: string | null
+          heartbeat_key?: string
+          id?: never
+          result?: Json
+          started_at?: string
+          tasks_failed?: number
+          tasks_processed?: number
+        }
+        Relationships: []
+      }
+      hq_workforce_hr_diagnoses: {
+        Row: {
+          decision: string
+          demand_temporary: boolean
+          deterministic_automation_sufficient: boolean
+          diagnosed_at: string
+          diagnosis_version: number
+          downstream_dependency_count: number
+          evidence: Json
+          existing_worker_available: boolean
+          existing_worker_has_skill: boolean
+          existing_worker_utilization: number | null
+          gap_id: string | null
+          human_judgment_required: boolean
+          id: string
+          policy_violations: number
+          reason: string
+          rebalance_capacity: boolean
+          rework_rate: number
+          verified_impact: number
+          work_necessary: boolean
+        }
+        Insert: {
+          decision: string
+          demand_temporary?: boolean
+          deterministic_automation_sufficient?: boolean
+          diagnosed_at?: string
+          diagnosis_version?: number
+          downstream_dependency_count?: number
+          evidence?: Json
+          existing_worker_available?: boolean
+          existing_worker_has_skill?: boolean
+          existing_worker_utilization?: number | null
+          gap_id?: string | null
+          human_judgment_required?: boolean
+          id?: string
+          policy_violations?: number
+          reason: string
+          rebalance_capacity?: boolean
+          rework_rate?: number
+          verified_impact?: number
+          work_necessary: boolean
+        }
+        Update: {
+          decision?: string
+          demand_temporary?: boolean
+          deterministic_automation_sufficient?: boolean
+          diagnosed_at?: string
+          diagnosis_version?: number
+          downstream_dependency_count?: number
+          evidence?: Json
+          existing_worker_available?: boolean
+          existing_worker_has_skill?: boolean
+          existing_worker_utilization?: number | null
+          gap_id?: string | null
+          human_judgment_required?: boolean
+          id?: string
+          policy_violations?: number
+          reason?: string
+          rebalance_capacity?: boolean
+          rework_rate?: number
+          verified_impact?: number
+          work_necessary?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_hr_diagnoses_gap_id_fkey"
+            columns: ["gap_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_gap_signals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_identities: {
+        Row: {
+          credential_ref: string | null
+          expires_at: string
+          id: string
+          identity_key: string
+          issued_at: string
+          revocation_reason: string | null
+          revoked_at: string | null
+          status: string
+          worker_key: string
+        }
+        Insert: {
+          credential_ref?: string | null
+          expires_at: string
+          id?: string
+          identity_key: string
+          issued_at?: string
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          status?: string
+          worker_key: string
+        }
+        Update: {
+          credential_ref?: string | null
+          expires_at?: string
+          id?: string
+          identity_key?: string
+          issued_at?: string
+          revocation_reason?: string | null
+          revoked_at?: string | null
+          status?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_identities_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_identities_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_jobs: {
+        Row: {
+          active: boolean
+          created_at: string
+          key: string
+          purpose: string
+          role_keys: Json
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          key: string
+          purpose: string
+          role_keys?: Json
+          title: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          key?: string
+          purpose?: string
+          role_keys?: Json
+          title?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_lanes: {
+        Row: {
+          active: boolean
+          created_at: string
+          department_key: string
+          event_types: string[]
+          lane_key: string
+          mission: string
+          owner_worker_id: string | null
+          schedule_keys: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          department_key: string
+          event_types?: string[]
+          lane_key: string
+          mission: string
+          owner_worker_id?: string | null
+          schedule_keys?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          department_key?: string
+          event_types?: string[]
+          lane_key?: string
+          mission?: string
+          owner_worker_id?: string | null
+          schedule_keys?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_lanes_owner_worker_id_fkey"
+            columns: ["owner_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_lanes_owner_worker_id_fkey"
+            columns: ["owner_worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_learning_candidates: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          confidence: number
+          confidence_source: string
+          created_at: string
+          evidence_refs: string[]
+          id: string
+          learning_type: string
+          scope_key: string | null
+          scope_type: string
+          statement: string
+          status: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence: number
+          confidence_source: string
+          created_at?: string
+          evidence_refs?: string[]
+          id?: string
+          learning_type: string
+          scope_key?: string | null
+          scope_type: string
+          statement: string
+          status?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          confidence?: number
+          confidence_source?: string
+          created_at?: string
+          evidence_refs?: string[]
+          id?: string
+          learning_type?: string
+          scope_key?: string | null
+          scope_type?: string
+          statement?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_lifecycle_events: {
+        Row: {
+          certification_id: string | null
+          creation_contract_id: string | null
+          from_state: string | null
+          id: number
+          occurred_at: string
+          reason: string
+          to_state: string
+          worker_key: string
+        }
+        Insert: {
+          certification_id?: string | null
+          creation_contract_id?: string | null
+          from_state?: string | null
+          id?: never
+          occurred_at?: string
+          reason: string
+          to_state: string
+          worker_key: string
+        }
+        Update: {
+          certification_id?: string | null
+          creation_contract_id?: string | null
+          from_state?: string | null
+          id?: never
+          occurred_at?: string
+          reason?: string
+          to_state?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_lifecycle_events_creation_contract_id_fkey"
+            columns: ["creation_contract_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_creation_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_lifecycle_events_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_lifecycle_events_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_model_invocations: {
+        Row: {
+          budget_id: string | null
+          completed_at: string | null
+          created_at: string
+          deterministic_attempted: boolean
+          deterministic_failure_evidence: Json
+          id: string
+          model_key: string
+          reason_code: string
+          status: string
+          task_id: string | null
+          token_budget: number
+          worker_key: string
+        }
+        Insert: {
+          budget_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deterministic_attempted: boolean
+          deterministic_failure_evidence?: Json
+          id?: string
+          model_key: string
+          reason_code: string
+          status: string
+          task_id?: string | null
+          token_budget: number
+          worker_key: string
+        }
+        Update: {
+          budget_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          deterministic_attempted?: boolean
+          deterministic_failure_evidence?: Json
+          id?: string
+          model_key?: string
+          reason_code?: string
+          status?: string
+          task_id?: string | null
+          token_budget?: number
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_model_invocations_budget_id_fkey"
+            columns: ["budget_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_execution_budgets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_model_invocations_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_task_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_model_invocations_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_model_invocations_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_monitoring_alerts: {
+        Row: {
+          alert_key: string
+          alert_type: string
+          created_at: string
+          details: Json
+          id: string
+          resolved_at: string | null
+          severity: string
+          status: string
+          subject_key: string
+          subject_type: string
+        }
+        Insert: {
+          alert_key: string
+          alert_type: string
+          created_at?: string
+          details?: Json
+          id?: string
+          resolved_at?: string | null
+          severity: string
+          status?: string
+          subject_key: string
+          subject_type: string
+        }
+        Update: {
+          alert_key?: string
+          alert_type?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          subject_key?: string
+          subject_type?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_outcome_verifications: {
+        Row: {
+          actual_outcome: Json
+          assignment_id: string | null
+          evidence: Json
+          execution_certified: boolean
+          expected_outcome: Json
+          id: string
+          outcome_verified: boolean
+          run_id: string | null
+          verification_method: string
+          verification_version: number
+          verified_at: string
+          verifier_kind: string
+          verifier_ref: string | null
+        }
+        Insert: {
+          actual_outcome: Json
+          assignment_id?: string | null
+          evidence?: Json
+          execution_certified?: boolean
+          expected_outcome: Json
+          id?: string
+          outcome_verified?: boolean
+          run_id?: string | null
+          verification_method: string
+          verification_version?: number
+          verified_at?: string
+          verifier_kind?: string
+          verifier_ref?: string | null
+        }
+        Update: {
+          actual_outcome?: Json
+          assignment_id?: string | null
+          evidence?: Json
+          execution_certified?: boolean
+          expected_outcome?: Json
+          id?: string
+          outcome_verified?: boolean
+          run_id?: string | null
+          verification_method?: string
+          verification_version?: number
+          verified_at?: string
+          verifier_kind?: string
+          verifier_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_outcome_verifications_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_outcome_verifications_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_positive_evidence: {
+        Row: {
+          approved_payload: Json
+          context_hash: string
+          created_at: string
+          decision_id: string
+          decision_revision: number
+          evidence_key: string
+          id: string
+          outcome_evidence: Json
+          outcome_status: string
+          run_id: string | null
+          skill_id: string | null
+          snapshot_id: string | null
+        }
+        Insert: {
+          approved_payload?: Json
+          context_hash: string
+          created_at?: string
+          decision_id: string
+          decision_revision: number
+          evidence_key: string
+          id?: string
+          outcome_evidence?: Json
+          outcome_status?: string
+          run_id?: string | null
+          skill_id?: string | null
+          snapshot_id?: string | null
+        }
+        Update: {
+          approved_payload?: Json
+          context_hash?: string
+          created_at?: string
+          decision_id?: string
+          decision_revision?: number
+          evidence_key?: string
+          id?: string
+          outcome_evidence?: Json
+          outcome_status?: string
+          run_id?: string | null
+          skill_id?: string | null
+          snapshot_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_positive_evidence_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_positive_evidence_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_positive_evidence_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_decision_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_probation_policies: {
+        Row: {
+          active: boolean
+          allowed_failures: number
+          id: string
+          min_confidence: number
+          min_verified_runs: number
+          policy_key: string
+          require_all_outcomes_verified: boolean
+        }
+        Insert: {
+          active?: boolean
+          allowed_failures?: number
+          id?: string
+          min_confidence?: number
+          min_verified_runs?: number
+          policy_key: string
+          require_all_outcomes_verified?: boolean
+        }
+        Update: {
+          active?: boolean
+          allowed_failures?: number
+          id?: string
+          min_confidence?: number
+          min_verified_runs?: number
+          policy_key?: string
+          require_all_outcomes_verified?: boolean
+        }
+        Relationships: []
+      }
+      hq_workforce_recovery_actions: {
+        Row: {
+          after_state: Json
+          before_state: Json
+          created_at: string
+          evidence: Json
+          executed_at: string | null
+          id: string
+          reason: string
+          recovery_type: string
+          run_id: string
+          status: string
+          verified_at: string | null
+        }
+        Insert: {
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          evidence?: Json
+          executed_at?: string | null
+          id?: string
+          reason: string
+          recovery_type: string
+          run_id: string
+          status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          after_state?: Json
+          before_state?: Json
+          created_at?: string
+          evidence?: Json
+          executed_at?: string | null
+          id?: string
+          reason?: string
+          recovery_type?: string
+          run_id?: string
+          status?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_recovery_actions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_replay_results: {
+        Row: {
+          created_at: string
+          evidence: Json
+          execution_match: boolean | null
+          historical_run_id: string | null
+          id: string
+          outcome_match: boolean | null
+          passed: boolean
+          promotion_id: string
+        }
+        Insert: {
+          created_at?: string
+          evidence?: Json
+          execution_match?: boolean | null
+          historical_run_id?: string | null
+          id?: string
+          outcome_match?: boolean | null
+          passed: boolean
+          promotion_id: string
+        }
+        Update: {
+          created_at?: string
+          evidence?: Json
+          execution_match?: boolean | null
+          historical_run_id?: string | null
+          id?: string
+          outcome_match?: boolean | null
+          passed?: boolean
+          promotion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_replay_results_historical_run_id_fkey"
+            columns: ["historical_run_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_replay_results_promotion_id_fkey"
+            columns: ["promotion_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_skill_promotions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_roles: {
+        Row: {
+          active: boolean
+          created_at: string
+          function_key: string
+          key: string
+          name: string
+          required_competencies: Json
+          responsibilities: Json
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          function_key: string
+          key: string
+          name: string
+          required_competencies?: Json
+          responsibilities?: Json
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          function_key?: string
+          key?: string
+          name?: string
+          required_competencies?: Json
+          responsibilities?: Json
+        }
+        Relationships: []
+      }
+      hq_workforce_runs: {
+        Row: {
+          authority_result: string
+          completed_at: string | null
+          created_at: string
+          execution_evidence: Json
+          id: string
+          lane_key: string
+          skill_id: string | null
+          started_at: string | null
+          status: string
+          trigger_type: string
+          work_item_id: string | null
+          worker_id: string
+        }
+        Insert: {
+          authority_result?: string
+          completed_at?: string | null
+          created_at?: string
+          execution_evidence?: Json
+          id?: string
+          lane_key: string
+          skill_id?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_type: string
+          work_item_id?: string | null
+          worker_id: string
+        }
+        Update: {
+          authority_result?: string
+          completed_at?: string | null
+          created_at?: string
+          execution_evidence?: Json
+          id?: string
+          lane_key?: string
+          skill_id?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_type?: string
+          work_item_id?: string | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_runs_lane_key_fkey"
+            columns: ["lane_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_lanes"
+            referencedColumns: ["lane_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_runs_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_runs_work_item_id_fkey"
+            columns: ["work_item_id"]
+            isOneToOne: false
+            referencedRelation: "hq_work_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_runs_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_runs_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_runtime_authorization_events: {
+        Row: {
+          autonomy_level: number
+          decision: string
+          id: number
+          occurred_at: string
+          reason_code: string
+          risk_class: number
+          scope_ref: Json
+          scope_type: string
+          skill_key: string
+          task_id: string | null
+          worker_key: string
+        }
+        Insert: {
+          autonomy_level: number
+          decision: string
+          id?: never
+          occurred_at?: string
+          reason_code: string
+          risk_class: number
+          scope_ref?: Json
+          scope_type: string
+          skill_key: string
+          task_id?: string | null
+          worker_key: string
+        }
+        Update: {
+          autonomy_level?: number
+          decision?: string
+          id?: never
+          occurred_at?: string
+          reason_code?: string
+          risk_class?: number
+          scope_ref?: Json
+          scope_type?: string
+          skill_key?: string
+          task_id?: string | null
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_runtime_authorization_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_task_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_runtime_policies: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          jurisdiction_key: string | null
+          max_autonomy_level: number
+          max_concurrency: number
+          max_executions_per_minute: number
+          max_risk_class: number
+          policy_key: string
+          reason: string
+          scope_key: string
+          scope_kind: string
+          status: string
+          tenant_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          jurisdiction_key?: string | null
+          max_autonomy_level?: number
+          max_concurrency?: number
+          max_executions_per_minute?: number
+          max_risk_class?: number
+          policy_key: string
+          reason: string
+          scope_key: string
+          scope_kind: string
+          status?: string
+          tenant_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          jurisdiction_key?: string | null
+          max_autonomy_level?: number
+          max_concurrency?: number
+          max_executions_per_minute?: number
+          max_risk_class?: number
+          policy_key?: string
+          reason?: string
+          scope_key?: string
+          scope_kind?: string
+          status?: string
+          tenant_key?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_security_events: {
+        Row: {
+          attack_vector: string
+          event_key: string
+          evidence: Json
+          id: string
+          lane_key: string | null
+          occurred_at: string
+          status: string
+          target_ref: string
+          violation_code: string | null
+          worker_key: string
+        }
+        Insert: {
+          attack_vector: string
+          event_key: string
+          evidence?: Json
+          id?: string
+          lane_key?: string | null
+          occurred_at?: string
+          status: string
+          target_ref: string
+          violation_code?: string | null
+          worker_key: string
+        }
+        Update: {
+          attack_vector?: string
+          event_key?: string
+          evidence?: Json
+          id?: string
+          lane_key?: string | null
+          occurred_at?: string
+          status?: string
+          target_ref?: string
+          violation_code?: string | null
+          worker_key?: string
+        }
+        Relationships: []
+      }
+      hq_workforce_shadow_anomalies: {
+        Row: {
+          action: string
+          anomaly_key: string
+          created_at: string
+          details: Json
+          id: string
+          resolved_at: string | null
+          severity: string
+          trace_id: string | null
+        }
+        Insert: {
+          action: string
+          anomaly_key: string
+          created_at?: string
+          details?: Json
+          id?: string
+          resolved_at?: string | null
+          severity: string
+          trace_id?: string | null
+        }
+        Update: {
+          action?: string
+          anomaly_key?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          resolved_at?: string | null
+          severity?: string
+          trace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_shadow_anomalies_trace_id_fkey"
+            columns: ["trace_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_shadow_traces"
+            referencedColumns: ["trace_id"]
+          },
+        ]
+      }
+      hq_workforce_shadow_candidates: {
+        Row: {
+          candidate_fingerprint: string
+          confidence: number | null
+          created_at: string
+          duplicate_of: string | null
+          id: string
+          lane_key: string
+          priority: number
+          reasoning_summary: string | null
+          scope_ref: Json
+          scope_type: string
+          skill_manifest_id: string | null
+          sla_due_at: string | null
+          source_work_item_id: string | null
+          status: string
+          trace_id: string | null
+          worker_key: string | null
+        }
+        Insert: {
+          candidate_fingerprint: string
+          confidence?: number | null
+          created_at?: string
+          duplicate_of?: string | null
+          id?: string
+          lane_key: string
+          priority: number
+          reasoning_summary?: string | null
+          scope_ref?: Json
+          scope_type?: string
+          skill_manifest_id?: string | null
+          sla_due_at?: string | null
+          source_work_item_id?: string | null
+          status?: string
+          trace_id?: string | null
+          worker_key?: string | null
+        }
+        Update: {
+          candidate_fingerprint?: string
+          confidence?: number | null
+          created_at?: string
+          duplicate_of?: string | null
+          id?: string
+          lane_key?: string
+          priority?: number
+          reasoning_summary?: string | null
+          scope_ref?: Json
+          scope_type?: string
+          skill_manifest_id?: string | null
+          sla_due_at?: string | null
+          source_work_item_id?: string | null
+          status?: string
+          trace_id?: string | null
+          worker_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_shadow_candidates_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_shadow_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_shadow_candidates_skill_manifest_id_fkey"
+            columns: ["skill_manifest_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_skill_manifests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_shadow_candidates_source_work_item_id_fkey"
+            columns: ["source_work_item_id"]
+            isOneToOne: false
+            referencedRelation: "hq_work_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_shadow_candidates_trace_id_fkey"
+            columns: ["trace_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_shadow_traces"
+            referencedColumns: ["trace_id"]
+          },
+        ]
+      }
+      hq_workforce_shadow_decisions: {
+        Row: {
+          authority_reason: string
+          created_at: string
+          decision_key: string
+          human_rationale: string | null
+          hypothetical_authority_result: string
+          id: string
+          proposed_action: Json
+          required_authority: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          state: string
+          trace_id: string
+          updated_at: string
+        }
+        Insert: {
+          authority_reason: string
+          created_at?: string
+          decision_key: string
+          human_rationale?: string | null
+          hypothetical_authority_result: string
+          id?: string
+          proposed_action: Json
+          required_authority?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          state?: string
+          trace_id: string
+          updated_at?: string
+        }
+        Update: {
+          authority_reason?: string
+          created_at?: string
+          decision_key?: string
+          human_rationale?: string | null
+          hypothetical_authority_result?: string
+          id?: string
+          proposed_action?: Json
+          required_authority?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          state?: string
+          trace_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_shadow_decisions_trace_id_fkey"
+            columns: ["trace_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_shadow_traces"
+            referencedColumns: ["trace_id"]
+          },
+        ]
+      }
+      hq_workforce_shadow_events: {
+        Row: {
+          event_kind: string
+          id: number
+          occurred_at: string
+          parent_event_id: number | null
+          payload: Json
+          sequence_no: number
+          trace_id: string
+        }
+        Insert: {
+          event_kind: string
+          id?: never
+          occurred_at?: string
+          parent_event_id?: number | null
+          payload?: Json
+          sequence_no: number
+          trace_id: string
+        }
+        Update: {
+          event_kind?: string
+          id?: never
+          occurred_at?: string
+          parent_event_id?: number | null
+          payload?: Json
+          sequence_no?: number
+          trace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_shadow_events_parent_event_id_fkey"
+            columns: ["parent_event_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_shadow_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_shadow_events_trace_id_fkey"
+            columns: ["trace_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_shadow_traces"
+            referencedColumns: ["trace_id"]
+          },
+        ]
+      }
+      hq_workforce_shadow_resource_usage: {
+        Row: {
+          amount: number
+          id: number
+          recorded_at: string
+          resource_kind: string
+          trace_id: string | null
+          unit: string
+          window_started_at: string
+          worker_key: string | null
+        }
+        Insert: {
+          amount?: number
+          id?: never
+          recorded_at?: string
+          resource_kind: string
+          trace_id?: string | null
+          unit?: string
+          window_started_at: string
+          worker_key?: string | null
+        }
+        Update: {
+          amount?: number
+          id?: never
+          recorded_at?: string
+          resource_kind?: string
+          trace_id?: string | null
+          unit?: string
+          window_started_at?: string
+          worker_key?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_shadow_resource_usage_trace_id_fkey"
+            columns: ["trace_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_shadow_traces"
+            referencedColumns: ["trace_id"]
+          },
+        ]
+      }
+      hq_workforce_shadow_runs: {
+        Row: {
+          executed_at: string
+          expected_outcome: Json
+          id: string
+          input_snapshot: Json
+          observed_outcome: Json
+          passed: boolean
+          side_effects_applied: boolean
+          tool_contract_id: string
+          verifier_key: string
+          worker_key: string
+        }
+        Insert: {
+          executed_at?: string
+          expected_outcome: Json
+          id?: string
+          input_snapshot: Json
+          observed_outcome: Json
+          passed: boolean
+          side_effects_applied?: boolean
+          tool_contract_id: string
+          verifier_key: string
+          worker_key: string
+        }
+        Update: {
+          executed_at?: string
+          expected_outcome?: Json
+          id?: string
+          input_snapshot?: Json
+          observed_outcome?: Json
+          passed?: boolean
+          side_effects_applied?: boolean
+          tool_contract_id?: string
+          verifier_key?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_shadow_runs_tool_contract_id_fkey"
+            columns: ["tool_contract_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_tool_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_shadow_runs_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_shadow_runs_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_shadow_traces: {
+        Row: {
+          completed_at: string | null
+          confidence: number | null
+          consequential_action_performed: boolean
+          created_at: string
+          cycle_key: string
+          id: string
+          lane_key: string | null
+          predicted_outcome: Json
+          scope_ref: Json
+          scope_type: string
+          skill_manifest_id: string | null
+          started_at: string
+          status: string
+          trace_id: string
+          worker_key: string
+        }
+        Insert: {
+          completed_at?: string | null
+          confidence?: number | null
+          consequential_action_performed?: boolean
+          created_at?: string
+          cycle_key: string
+          id?: string
+          lane_key?: string | null
+          predicted_outcome?: Json
+          scope_ref?: Json
+          scope_type: string
+          skill_manifest_id?: string | null
+          started_at?: string
+          status?: string
+          trace_id?: string
+          worker_key: string
+        }
+        Update: {
+          completed_at?: string | null
+          confidence?: number | null
+          consequential_action_performed?: boolean
+          created_at?: string
+          cycle_key?: string
+          id?: string
+          lane_key?: string | null
+          predicted_outcome?: Json
+          scope_ref?: Json
+          scope_type?: string
+          skill_manifest_id?: string | null
+          started_at?: string
+          status?: string
+          trace_id?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_shadow_traces_skill_manifest_id_fkey"
+            columns: ["skill_manifest_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_skill_manifests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_skill_manifests: {
+        Row: {
+          allowed_data_classes: string[]
+          allowed_scope_types: string[]
+          autonomy_required: number
+          certification_status: string
+          certified_at: string | null
+          compensation_strategy: string
+          created_at: string
+          escalation_contract: Json
+          expected_outcome: Json
+          expires_at: string | null
+          failure_handling: Json
+          id: string
+          immutable_version_key: string | null
+          input_contract: Json
+          max_attempts: number
+          max_records_affected: number
+          max_runtime_ms: number
+          owner_key: string
+          preconditions: Json
+          purpose: string | null
+          requires_human_approval: boolean
+          resource_contract: Json
+          retry_policy: Json
+          risk_class: number
+          shadow_capable: boolean
+          skill_key: string
+          tool_contract_id: string
+          verification_contract: Json
+          verification_required: boolean
+          version: number
+        }
+        Insert: {
+          allowed_data_classes?: string[]
+          allowed_scope_types?: string[]
+          autonomy_required: number
+          certification_status?: string
+          certified_at?: string | null
+          compensation_strategy?: string
+          created_at?: string
+          escalation_contract?: Json
+          expected_outcome?: Json
+          expires_at?: string | null
+          failure_handling?: Json
+          id?: string
+          immutable_version_key?: string | null
+          input_contract?: Json
+          max_attempts?: number
+          max_records_affected?: number
+          max_runtime_ms?: number
+          owner_key?: string
+          preconditions?: Json
+          purpose?: string | null
+          requires_human_approval?: boolean
+          resource_contract?: Json
+          retry_policy?: Json
+          risk_class: number
+          shadow_capable?: boolean
+          skill_key: string
+          tool_contract_id: string
+          verification_contract?: Json
+          verification_required?: boolean
+          version: number
+        }
+        Update: {
+          allowed_data_classes?: string[]
+          allowed_scope_types?: string[]
+          autonomy_required?: number
+          certification_status?: string
+          certified_at?: string | null
+          compensation_strategy?: string
+          created_at?: string
+          escalation_contract?: Json
+          expected_outcome?: Json
+          expires_at?: string | null
+          failure_handling?: Json
+          id?: string
+          immutable_version_key?: string | null
+          input_contract?: Json
+          max_attempts?: number
+          max_records_affected?: number
+          max_runtime_ms?: number
+          owner_key?: string
+          preconditions?: Json
+          purpose?: string | null
+          requires_human_approval?: boolean
+          resource_contract?: Json
+          retry_policy?: Json
+          risk_class?: number
+          shadow_capable?: boolean
+          skill_key?: string
+          tool_contract_id?: string
+          verification_contract?: Json
+          verification_required?: boolean
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_skill_manifests_tool_contract_id_fkey"
+            columns: ["tool_contract_id"]
+            isOneToOne: true
+            referencedRelation: "hq_workforce_tool_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_skill_promotions: {
+        Row: {
+          benchmark_evidence: Json
+          benchmark_passed: boolean | null
+          created_at: string
+          from_version: number
+          id: string
+          learning_candidate_id: string
+          probation_evidence: Json
+          promotion_key: string
+          proposed_skill_id: string | null
+          rollback_reason: string | null
+          skill_key: string
+          status: string
+          to_version: number
+          updated_at: string
+        }
+        Insert: {
+          benchmark_evidence?: Json
+          benchmark_passed?: boolean | null
+          created_at?: string
+          from_version: number
+          id?: string
+          learning_candidate_id: string
+          probation_evidence?: Json
+          promotion_key: string
+          proposed_skill_id?: string | null
+          rollback_reason?: string | null
+          skill_key: string
+          status: string
+          to_version: number
+          updated_at?: string
+        }
+        Update: {
+          benchmark_evidence?: Json
+          benchmark_passed?: boolean | null
+          created_at?: string
+          from_version?: number
+          id?: string
+          learning_candidate_id?: string
+          probation_evidence?: Json
+          promotion_key?: string
+          proposed_skill_id?: string | null
+          rollback_reason?: string | null
+          skill_key?: string
+          status?: string
+          to_version?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_skill_promotions_learning_candidate_id_fkey"
+            columns: ["learning_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_learning_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_skill_promotions_proposed_skill_id_fkey"
+            columns: ["proposed_skill_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_skills"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_skills: {
+        Row: {
+          created_at: string
+          execution_method: string
+          id: string
+          lane_key: string | null
+          procedure: Json
+          recovery: Json
+          required_competencies: string[]
+          required_context: string[]
+          skill_key: string
+          status: string
+          title: string
+          verification: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          execution_method?: string
+          id?: string
+          lane_key?: string | null
+          procedure?: Json
+          recovery?: Json
+          required_competencies?: string[]
+          required_context?: string[]
+          skill_key: string
+          status?: string
+          title: string
+          verification?: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          execution_method?: string
+          id?: string
+          lane_key?: string | null
+          procedure?: Json
+          recovery?: Json
+          required_competencies?: string[]
+          required_context?: string[]
+          skill_key?: string
+          status?: string
+          title?: string
+          verification?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_skills_lane_key_fkey"
+            columns: ["lane_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_lanes"
+            referencedColumns: ["lane_key"]
+          },
+        ]
+      }
+      hq_workforce_task_contracts: {
+        Row: {
+          attempt_count: number
+          budget_amount: number
+          budget_key: string
+          capability_key: string
+          completed_at: string | null
+          created_at: string
+          execution_evidence: Json
+          id: string
+          idempotency_key: string
+          last_error: string | null
+          lease_expires_at: string | null
+          max_attempts: number
+          next_attempt_at: string
+          operation: string
+          payload: Json
+          resource_type: string
+          schema_version: number
+          scope_ref: Json
+          scope_type: string
+          started_at: string | null
+          status: string
+          task_key: string
+          tool_contract_id: string
+          verification_status: string
+          worker_key: string
+        }
+        Insert: {
+          attempt_count?: number
+          budget_amount?: number
+          budget_key: string
+          capability_key: string
+          completed_at?: string | null
+          created_at?: string
+          execution_evidence?: Json
+          id?: string
+          idempotency_key: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          operation: string
+          payload?: Json
+          resource_type: string
+          schema_version?: number
+          scope_ref?: Json
+          scope_type: string
+          started_at?: string | null
+          status?: string
+          task_key: string
+          tool_contract_id: string
+          verification_status?: string
+          worker_key: string
+        }
+        Update: {
+          attempt_count?: number
+          budget_amount?: number
+          budget_key?: string
+          capability_key?: string
+          completed_at?: string | null
+          created_at?: string
+          execution_evidence?: Json
+          id?: string
+          idempotency_key?: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          max_attempts?: number
+          next_attempt_at?: string
+          operation?: string
+          payload?: Json
+          resource_type?: string
+          schema_version?: number
+          scope_ref?: Json
+          scope_type?: string
+          started_at?: string | null
+          status?: string
+          task_key?: string
+          tool_contract_id?: string
+          verification_status?: string
+          worker_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_task_contracts_tool_contract_id_fkey"
+            columns: ["tool_contract_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_tool_contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_task_contracts_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_task_contracts_worker_key_fkey"
+            columns: ["worker_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["worker_key"]
+          },
+        ]
+      }
+      hq_workforce_task_verifications: {
+        Row: {
+          expected_outcome: Json
+          id: string
+          observed_outcome: Json
+          passed: boolean
+          task_id: string
+          verified_at: string
+          verifier_key: string
+        }
+        Insert: {
+          expected_outcome: Json
+          id?: string
+          observed_outcome: Json
+          passed: boolean
+          task_id: string
+          verified_at?: string
+          verifier_key: string
+        }
+        Update: {
+          expected_outcome?: Json
+          id?: string
+          observed_outcome?: Json
+          passed?: boolean
+          task_id?: string
+          verified_at?: string
+          verifier_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_task_verifications_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "hq_workforce_task_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_tool_contracts: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          handler_key: string
+          id: string
+          operation: string
+          required_capability_key: string
+          resource_type: string
+          side_effect_class: string
+          status: string
+          title: string
+          tool_key: string
+          version: number
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          handler_key: string
+          id?: string
+          operation: string
+          required_capability_key: string
+          resource_type: string
+          side_effect_class: string
+          status?: string
+          title: string
+          tool_key: string
+          version: number
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          handler_key?: string
+          id?: string
+          operation?: string
+          required_capability_key?: string
+          resource_type?: string
+          side_effect_class?: string
+          status?: string
+          title?: string
+          tool_key?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      hq_workforce_worker_certifications: {
+        Row: {
+          certification_version: number
+          certified_at: string
+          checks: Json
+          evidence_snapshot_id: string | null
+          id: string
+          lane_key: string
+          passed: boolean
+          worker_id: string
+        }
+        Insert: {
+          certification_version?: number
+          certified_at?: string
+          checks: Json
+          evidence_snapshot_id?: string | null
+          id?: string
+          lane_key: string
+          passed: boolean
+          worker_id: string
+        }
+        Update: {
+          certification_version?: number
+          certified_at?: string
+          checks?: Json
+          evidence_snapshot_id?: string | null
+          id?: string
+          lane_key?: string
+          passed?: boolean
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_worker_certifications_evidence_snapshot_id_fkey"
+            columns: ["evidence_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "hq_context_decision_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_worker_certifications_lane_key_fkey"
+            columns: ["lane_key"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_lanes"
+            referencedColumns: ["lane_key"]
+          },
+          {
+            foreignKeyName: "hq_workforce_worker_certifications_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_worker_certifications_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_worker_skills: {
+        Row: {
+          assigned_at: string
+          certified_at: string | null
+          id: string
+          skill_id: string
+          status: string
+          worker_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          certified_at?: string | null
+          id?: string
+          skill_id: string
+          status?: string
+          worker_id: string
+        }
+        Update: {
+          assigned_at?: string
+          certified_at?: string | null
+          id?: string
+          skill_id?: string
+          status?: string
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_workforce_worker_skills_skill_id_fkey"
+            columns: ["skill_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_skills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_worker_skills_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_worker_performance"
+            referencedColumns: ["worker_id"]
+          },
+          {
+            foreignKeyName: "hq_workforce_worker_skills_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "hq_workforce_workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_workforce_workers: {
+        Row: {
+          approval_boundaries: Json
+          competencies: Json
+          created_at: string
+          department_key: string
+          id: string
+          job_key: string | null
+          kpis: Json
+          manager_worker_key: string | null
+          mission: string
+          paid_ai_allowed: boolean
+          permissions: Json
+          reasoning_mode: string
+          status: string
+          title: string
+          updated_at: string
+          worker_key: string
+          worker_kind: string
+        }
+        Insert: {
+          approval_boundaries?: Json
+          competencies?: Json
+          created_at?: string
+          department_key: string
+          id?: string
+          job_key?: string | null
+          kpis?: Json
+          manager_worker_key?: string | null
+          mission: string
+          paid_ai_allowed?: boolean
+          permissions?: Json
+          reasoning_mode?: string
+          status?: string
+          title: string
+          updated_at?: string
+          worker_key: string
+          worker_kind: string
+        }
+        Update: {
+          approval_boundaries?: Json
+          competencies?: Json
+          created_at?: string
+          department_key?: string
+          id?: string
+          job_key?: string | null
+          kpis?: Json
+          manager_worker_key?: string | null
+          mission?: string
+          paid_ai_allowed?: boolean
+          permissions?: Json
+          reasoning_mode?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          worker_key?: string
+          worker_kind?: string
+        }
+        Relationships: []
       }
       invitations: {
         Row: {
@@ -8841,10 +10935,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "invitations_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "invitations_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -8856,55 +10950,191 @@ export type Database = {
           },
         ]
       }
-      learner_outcomes: {
+      kcse_grade_threshold_profiles: {
         Row: {
-          assessed_at: string | null
-          curriculum_type: string | null
-          grade: string | null
+          created_at: string
+          exam_year: number
+          grade: string
           id: string
-          outcome_text: string | null
-          school_id: string | null
-          score: number | null
-          status: string | null
-          strand: string | null
-          student_id: string | null
-          subject_id: string | null
+          max_percentage: number
+          min_percentage: number
+          source_ref: string | null
+          source_type: string
+          subject: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
-          assessed_at?: string | null
-          curriculum_type?: string | null
-          grade?: string | null
+          created_at?: string
+          exam_year: number
+          grade: string
           id?: string
-          outcome_text?: string | null
-          school_id?: string | null
-          score?: number | null
-          status?: string | null
-          strand?: string | null
-          student_id?: string | null
-          subject_id?: string | null
+          max_percentage: number
+          min_percentage: number
+          source_ref?: string | null
+          source_type?: string
+          subject?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
-          assessed_at?: string | null
-          curriculum_type?: string | null
-          grade?: string | null
+          created_at?: string
+          exam_year?: number
+          grade?: string
           id?: string
-          outcome_text?: string | null
-          school_id?: string | null
-          score?: number | null
-          status?: string | null
-          strand?: string | null
-          student_id?: string | null
-          subject_id?: string | null
+          max_percentage?: number
+          min_percentage?: number
+          source_ref?: string | null
+          source_type?: string
+          subject?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "learner_outcomes_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      kcse_paper_blueprints: {
+        Row: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          paper_code: string
+          sections: Json
+          source_ref: string | null
+          source_type: string
+          subject: string
+          title: string
+          total_marks: number
+          updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_minutes: number
+          id?: string
+          paper_code: string
+          sections?: Json
+          source_ref?: string | null
+          source_type?: string
+          subject: string
+          title: string
+          total_marks: number
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          paper_code?: string
+          sections?: Json
+          source_ref?: string | null
+          source_type?: string
+          subject?: string
+          title?: string
+          total_marks?: number
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      kcse_revision_assets: {
+        Row: {
+          answer: string | null
+          asset_type: string
+          created_at: string
+          id: string
+          media_url: string | null
+          prompt: string
+          source_ref: string | null
+          source_type: string
+          subject: string
+          topic: string | null
+          updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          answer?: string | null
+          asset_type: string
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          prompt: string
+          source_ref?: string | null
+          source_type?: string
+          subject: string
+          topic?: string | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          answer?: string | null
+          asset_type?: string
+          created_at?: string
+          id?: string
+          media_url?: string | null
+          prompt?: string
+          source_ref?: string | null
+          source_type?: string
+          subject?: string
+          topic?: string | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      kcse_topic_dependencies: {
+        Row: {
+          created_at: string
+          id: string
+          prerequisite_topic: string
+          source_ref: string | null
+          source_type: string
+          subject: string
+          topic: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          prerequisite_topic: string
+          source_ref?: string | null
+          source_type?: string
+          subject: string
+          topic: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          prerequisite_topic?: string
+          source_ref?: string | null
+          source_type?: string
+          subject?: string
+          topic?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
       }
       learner_profiles: {
         Row: {
@@ -9084,13 +11314,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "learning_resources_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "learning_resources_curriculum_id_fkey"
             columns: ["curriculum_id"]
             isOneToOne: false
@@ -9102,6 +11325,13 @@ export type Database = {
             columns: ["publication_id"]
             isOneToOne: false
             referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_resources_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -9123,96 +11353,6 @@ export type Database = {
             columns: ["subject_id"]
             isOneToOne: false
             referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lesson_content: {
-        Row: {
-          content_type: string
-          created_at: string | null
-          due_date: string | null
-          generated_by: string | null
-          id: string
-          lesson_plan_id: string | null
-          marking_guide: string | null
-          question_count: number | null
-          scheme_id: string | null
-          school_id: string | null
-          student_copy: string | null
-          teacher_copy: string | null
-          teacher_id: string | null
-          total_marks: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          content_type: string
-          created_at?: string | null
-          due_date?: string | null
-          generated_by?: string | null
-          id?: string
-          lesson_plan_id?: string | null
-          marking_guide?: string | null
-          question_count?: number | null
-          scheme_id?: string | null
-          school_id?: string | null
-          student_copy?: string | null
-          teacher_copy?: string | null
-          teacher_id?: string | null
-          total_marks?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          content_type?: string
-          created_at?: string | null
-          due_date?: string | null
-          generated_by?: string | null
-          id?: string
-          lesson_plan_id?: string | null
-          marking_guide?: string | null
-          question_count?: number | null
-          scheme_id?: string | null
-          school_id?: string | null
-          student_copy?: string | null
-          teacher_copy?: string | null
-          teacher_id?: string | null
-          total_marks?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lesson_content_lesson_plan_id_fkey"
-            columns: ["lesson_plan_id"]
-            isOneToOne: false
-            referencedRelation: "lesson_plans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_content_scheme_id_fkey"
-            columns: ["scheme_id"]
-            isOneToOne: false
-            referencedRelation: "scheme_of_work"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_content_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_content_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_content_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -9310,13 +11450,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_evidence_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lesson_evidence_teaching_occurrence_id_fkey"
             columns: ["teaching_occurrence_id"]
             isOneToOne: false
@@ -9383,13 +11516,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_evidence_resource_usage_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lesson_evidence_resource_usage_teaching_occurrence_id_fkey"
             columns: ["teaching_occurrence_id"]
             isOneToOne: false
@@ -9441,13 +11567,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_interventions_strand_id_fkey"
-            columns: ["strand_id"]
-            isOneToOne: false
-            referencedRelation: "strands"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lesson_interventions_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
@@ -9459,13 +11578,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_interventions_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -9521,7 +11633,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "lesson_notes_class_id_fkey1"
+            foreignKeyName: "lesson_notes_class_id_fkey"
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
@@ -9535,14 +11647,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_notes_lesson_plan_id_fkey1"
+            foreignKeyName: "lesson_notes_lesson_plan_id_fkey"
             columns: ["lesson_plan_id"]
             isOneToOne: false
             referencedRelation: "lesson_plans"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_notes_school_id_fkey1"
+            foreignKeyName: "lesson_notes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_notes_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
@@ -9556,17 +11675,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_notes_teacher_id_fkey1"
+            foreignKeyName: "lesson_notes_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_notes_teacher_id_fkey1"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -9617,35 +11729,19 @@ export type Database = {
       }
       lesson_plans: {
         Row: {
-          activities: Json | null
           body: string | null
-          challenges: string | null
           class_id: string
-          competencies: string[] | null
           created_at: string
           curriculum_id: string | null
           day_of_week: number
-          duration_minutes: number | null
           generated_by: string
-          homework_id: string | null
-          homework_set: string | null
           id: string
-          notes: string | null
-          objectives: string | null
-          participation_score: number | null
           previous_lesson_plan_id: string | null
-          published_at: string | null
-          reflection: string | null
           scheme_id: string | null
           school_id: string | null
-          status: string
-          strand_id: string | null
-          student_copy: string | null
           subject_id: string
           taught_date: string
-          teacher_copy: string | null
           teacher_id: string
-          term: number | null
           timetable_slot_id: string
           title: string | null
           topic: string | null
@@ -9653,35 +11749,19 @@ export type Database = {
           week_start: string
         }
         Insert: {
-          activities?: Json | null
           body?: string | null
-          challenges?: string | null
           class_id: string
-          competencies?: string[] | null
           created_at?: string
           curriculum_id?: string | null
           day_of_week: number
-          duration_minutes?: number | null
           generated_by?: string
-          homework_id?: string | null
-          homework_set?: string | null
           id?: string
-          notes?: string | null
-          objectives?: string | null
-          participation_score?: number | null
           previous_lesson_plan_id?: string | null
-          published_at?: string | null
-          reflection?: string | null
           scheme_id?: string | null
           school_id?: string | null
-          status?: string
-          strand_id?: string | null
-          student_copy?: string | null
           subject_id: string
           taught_date: string
-          teacher_copy?: string | null
           teacher_id: string
-          term?: number | null
           timetable_slot_id: string
           title?: string | null
           topic?: string | null
@@ -9689,35 +11769,19 @@ export type Database = {
           week_start: string
         }
         Update: {
-          activities?: Json | null
           body?: string | null
-          challenges?: string | null
           class_id?: string
-          competencies?: string[] | null
           created_at?: string
           curriculum_id?: string | null
           day_of_week?: number
-          duration_minutes?: number | null
           generated_by?: string
-          homework_id?: string | null
-          homework_set?: string | null
           id?: string
-          notes?: string | null
-          objectives?: string | null
-          participation_score?: number | null
           previous_lesson_plan_id?: string | null
-          published_at?: string | null
-          reflection?: string | null
           scheme_id?: string | null
           school_id?: string | null
-          status?: string
-          strand_id?: string | null
-          student_copy?: string | null
           subject_id?: string
           taught_date?: string
-          teacher_copy?: string | null
           teacher_id?: string
-          term?: number | null
           timetable_slot_id?: string
           title?: string | null
           topic?: string | null
@@ -9730,13 +11794,6 @@ export type Database = {
             columns: ["curriculum_id"]
             isOneToOne: false
             referencedRelation: "curriculum"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_plans_homework_id_fkey"
-            columns: ["homework_id"]
-            isOneToOne: false
-            referencedRelation: "homework"
             referencedColumns: ["id"]
           },
           {
@@ -9757,14 +11814,14 @@ export type Database = {
             foreignKeyName: "lesson_plans_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "schools"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_plans_strand_id_fkey"
-            columns: ["strand_id"]
+            foreignKeyName: "lesson_plans_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "cbc_strands"
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
           {
@@ -9782,118 +11839,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_plans_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lesson_plans_timetable_slot_id_fkey"
             columns: ["timetable_slot_id"]
             isOneToOne: false
             referencedRelation: "timetable_slots"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lesson_projects: {
-        Row: {
-          class_id: string | null
-          created_at: string
-          description: string | null
-          due_date: string | null
-          exercise_id: string | null
-          id: string
-          lesson_plan_id: string | null
-          school_id: string | null
-          start_date: string | null
-          status: string | null
-          strand_id: string | null
-          teacher_id: string | null
-          title: string | null
-          updated_at: string
-        }
-        Insert: {
-          class_id?: string | null
-          created_at?: string
-          description?: string | null
-          due_date?: string | null
-          exercise_id?: string | null
-          id?: string
-          lesson_plan_id?: string | null
-          school_id?: string | null
-          start_date?: string | null
-          status?: string | null
-          strand_id?: string | null
-          teacher_id?: string | null
-          title?: string | null
-          updated_at?: string
-        }
-        Update: {
-          class_id?: string | null
-          created_at?: string
-          description?: string | null
-          due_date?: string | null
-          exercise_id?: string | null
-          id?: string
-          lesson_plan_id?: string | null
-          school_id?: string | null
-          start_date?: string | null
-          status?: string | null
-          strand_id?: string | null
-          teacher_id?: string | null
-          title?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lesson_projects_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_projects_exercise_id_fkey"
-            columns: ["exercise_id"]
-            isOneToOne: false
-            referencedRelation: "exercises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_projects_lesson_plan_id_fkey"
-            columns: ["lesson_plan_id"]
-            isOneToOne: false
-            referencedRelation: "lesson_plans"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_projects_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_projects_strand_id_fkey"
-            columns: ["strand_id"]
-            isOneToOne: false
-            referencedRelation: "strands"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_projects_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_projects_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -9907,13 +11856,11 @@ export type Database = {
           id: string
           lesson_id: string | null
           lesson_plan_id: string | null
-          next_lesson_plan_id: string | null
           next_steps: string | null
           school_id: string | null
           teacher_id: string
           teaching_occurrence_id: string | null
           updated_at: string
-          what_didnt: string | null
           what_worked: string | null
         }
         Insert: {
@@ -9924,13 +11871,11 @@ export type Database = {
           id?: string
           lesson_id?: string | null
           lesson_plan_id?: string | null
-          next_lesson_plan_id?: string | null
           next_steps?: string | null
           school_id?: string | null
           teacher_id: string
           teaching_occurrence_id?: string | null
           updated_at?: string
-          what_didnt?: string | null
           what_worked?: string | null
         }
         Update: {
@@ -9941,13 +11886,11 @@ export type Database = {
           id?: string
           lesson_id?: string | null
           lesson_plan_id?: string | null
-          next_lesson_plan_id?: string | null
           next_steps?: string | null
           school_id?: string | null
           teacher_id?: string
           teaching_occurrence_id?: string | null
           updated_at?: string
-          what_didnt?: string | null
           what_worked?: string | null
         }
         Relationships: [
@@ -9980,10 +11923,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_reflections_next_lesson_plan_id_fkey"
-            columns: ["next_lesson_plan_id"]
+            foreignKeyName: "lesson_reflections_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "lesson_plans"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -10001,605 +11944,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_reflections_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lesson_reflections_teaching_occurrence_id_fkey"
             columns: ["teaching_occurrence_id"]
             isOneToOne: false
             referencedRelation: "teaching_occurrences"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      library_books: {
-        Row: {
-          added_by: string | null
-          author: string | null
-          available_copies: number | null
-          class_level: string | null
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          isbn: string | null
-          school_id: string | null
-          subject: string | null
-          title: string
-          total_copies: number | null
-        }
-        Insert: {
-          added_by?: string | null
-          author?: string | null
-          available_copies?: number | null
-          class_level?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          isbn?: string | null
-          school_id?: string | null
-          subject?: string | null
-          title: string
-          total_copies?: number | null
-        }
-        Update: {
-          added_by?: string | null
-          author?: string | null
-          available_copies?: number | null
-          class_level?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          isbn?: string | null
-          school_id?: string | null
-          subject?: string | null
-          title?: string
-          total_copies?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "library_books_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_books_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_books_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      library_borrowings: {
-        Row: {
-          book_id: string | null
-          borrower_type: string | null
-          condition_in: string | null
-          condition_out: string | null
-          created_at: string | null
-          deleted_at: string | null
-          due_date: string
-          fine_amount: number | null
-          fine_paid: boolean | null
-          id: string
-          issued_at: string | null
-          issued_by: string | null
-          notes: string | null
-          returned_at: string | null
-          school_id: string | null
-          staff_id: string | null
-          student_id: string | null
-        }
-        Insert: {
-          book_id?: string | null
-          borrower_type?: string | null
-          condition_in?: string | null
-          condition_out?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          due_date: string
-          fine_amount?: number | null
-          fine_paid?: boolean | null
-          id?: string
-          issued_at?: string | null
-          issued_by?: string | null
-          notes?: string | null
-          returned_at?: string | null
-          school_id?: string | null
-          staff_id?: string | null
-          student_id?: string | null
-        }
-        Update: {
-          book_id?: string | null
-          borrower_type?: string | null
-          condition_in?: string | null
-          condition_out?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          due_date?: string
-          fine_amount?: number | null
-          fine_paid?: boolean | null
-          id?: string
-          issued_at?: string | null
-          issued_by?: string | null
-          notes?: string | null
-          returned_at?: string | null
-          school_id?: string | null
-          staff_id?: string | null
-          student_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "library_borrowings_book_id_fkey"
-            columns: ["book_id"]
-            isOneToOne: false
-            referencedRelation: "library_books"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_borrowings_issued_by_fkey"
-            columns: ["issued_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_borrowings_issued_by_fkey"
-            columns: ["issued_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_borrowings_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_borrowings_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_borrowings_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "library_borrowings_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      manual_students: {
-        Row: {
-          class_name: string | null
-          created_at: string | null
-          id: string
-          name: string
-          teacher_id: string
-        }
-        Insert: {
-          class_name?: string | null
-          created_at?: string | null
-          id?: string
-          name: string
-          teacher_id: string
-        }
-        Update: {
-          class_name?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string
-          teacher_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "manual_students_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "manual_students_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meeting_actions: {
-        Row: {
-          agenda_item_id: string | null
-          created_at: string | null
-          description: string | null
-          due_date: string | null
-          id: string
-          meeting_id: string | null
-          owner_id: string | null
-          priority: string | null
-          status: string | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          agenda_item_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          meeting_id?: string | null
-          owner_id?: string | null
-          priority?: string | null
-          status?: string | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          agenda_item_id?: string | null
-          created_at?: string | null
-          description?: string | null
-          due_date?: string | null
-          id?: string
-          meeting_id?: string | null
-          owner_id?: string | null
-          priority?: string | null
-          status?: string | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_actions_agenda_item_id_fkey"
-            columns: ["agenda_item_id"]
-            isOneToOne: false
-            referencedRelation: "meeting_agenda_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_actions_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_actions_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_actions_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meeting_agenda_items: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          duration_mins: number | null
-          id: string
-          meeting_id: string | null
-          notes: string | null
-          order_index: number | null
-          presenter_id: string | null
-          status: string | null
-          title: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          duration_mins?: number | null
-          id?: string
-          meeting_id?: string | null
-          notes?: string | null
-          order_index?: number | null
-          presenter_id?: string | null
-          status?: string | null
-          title: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          duration_mins?: number | null
-          id?: string
-          meeting_id?: string | null
-          notes?: string | null
-          order_index?: number | null
-          presenter_id?: string | null
-          status?: string | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_agenda_items_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_agenda_items_presenter_id_fkey"
-            columns: ["presenter_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_agenda_items_presenter_id_fkey"
-            columns: ["presenter_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meeting_attendees: {
-        Row: {
-          attended: boolean | null
-          created_at: string | null
-          id: string
-          is_mandatory: boolean | null
-          meeting_id: string | null
-          profile_id: string | null
-          role: string | null
-          rsvp: string | null
-        }
-        Insert: {
-          attended?: boolean | null
-          created_at?: string | null
-          id?: string
-          is_mandatory?: boolean | null
-          meeting_id?: string | null
-          profile_id?: string | null
-          role?: string | null
-          rsvp?: string | null
-        }
-        Update: {
-          attended?: boolean | null
-          created_at?: string | null
-          id?: string
-          is_mandatory?: boolean | null
-          meeting_id?: string | null
-          profile_id?: string | null
-          role?: string | null
-          rsvp?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_attendees_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_attendees_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_attendees_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meeting_minutes: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          content: string | null
-          created_at: string | null
-          drafted_by: string | null
-          id: string
-          meeting_id: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          content?: string | null
-          created_at?: string | null
-          drafted_by?: string | null
-          id?: string
-          meeting_id?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          content?: string | null
-          created_at?: string | null
-          drafted_by?: string | null
-          id?: string
-          meeting_id?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meeting_minutes_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_minutes_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_minutes_drafted_by_fkey"
-            columns: ["drafted_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_minutes_drafted_by_fkey"
-            columns: ["drafted_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meeting_minutes_meeting_id_fkey"
-            columns: ["meeting_id"]
-            isOneToOne: false
-            referencedRelation: "meetings"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      meetings: {
-        Row: {
-          chair_id: string | null
-          confidentiality: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          duration_mins: number | null
-          ended_at: string | null
-          id: string
-          meeting_link: string | null
-          meeting_type: string | null
-          scheduled_at: string
-          school_id: string | null
-          secretary_id: string | null
-          started_at: string | null
-          status: string | null
-          title: string
-          updated_at: string | null
-          venue: string | null
-        }
-        Insert: {
-          chair_id?: string | null
-          confidentiality?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          duration_mins?: number | null
-          ended_at?: string | null
-          id?: string
-          meeting_link?: string | null
-          meeting_type?: string | null
-          scheduled_at: string
-          school_id?: string | null
-          secretary_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          title: string
-          updated_at?: string | null
-          venue?: string | null
-        }
-        Update: {
-          chair_id?: string | null
-          confidentiality?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          duration_mins?: number | null
-          ended_at?: string | null
-          id?: string
-          meeting_link?: string | null
-          meeting_type?: string | null
-          scheduled_at?: string
-          school_id?: string | null
-          secretary_id?: string | null
-          started_at?: string | null
-          status?: string | null
-          title?: string
-          updated_at?: string | null
-          venue?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "meetings_chair_id_fkey"
-            columns: ["chair_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meetings_chair_id_fkey"
-            columns: ["chair_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meetings_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meetings_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meetings_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meetings_secretary_id_fkey"
-            columns: ["secretary_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "meetings_secretary_id_fkey"
-            columns: ["secretary_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -10638,67 +11986,6 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "courses"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notifications: {
-        Row: {
-          body: string
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          is_read: boolean | null
-          related_id: string | null
-          school_id: string | null
-          title: string
-          type: string
-          user_id: string
-        }
-        Insert: {
-          body: string
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          related_id?: string | null
-          school_id?: string | null
-          title: string
-          type: string
-          user_id: string
-        }
-        Update: {
-          body?: string
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          is_read?: boolean | null
-          related_id?: string | null
-          school_id?: string | null
-          title?: string
-          type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -10764,6 +12051,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_learning_summaries_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -10869,6 +12163,13 @@ export type Database = {
             foreignKeyName: "parent_messages_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_messages_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -10886,70 +12187,12 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "parent_messages_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      parent_profiles: {
-        Row: {
-          created_at: string
-          occupation: string | null
-          profile_id: string
-          relationship: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          occupation?: string | null
-          profile_id: string
-          relationship?: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          occupation?: string | null
-          profile_id?: string
-          relationship?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "parent_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parent_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parent_profiles_relationship_fkey"
-            columns: ["relationship"]
-            isOneToOne: false
-            referencedRelation: "relationship_types"
-            referencedColumns: ["code"]
-          },
         ]
       }
       parent_student_links: {
         Row: {
           access_level: string | null
-          can_add_goals: boolean | null
-          can_add_skills: boolean | null
-          can_edit_profile: boolean | null
           can_pickup: boolean
-          can_view_finance: boolean | null
-          can_view_medical: boolean | null
           created_at: string
           id: string
           is_primary: boolean
@@ -10962,12 +12205,7 @@ export type Database = {
         }
         Insert: {
           access_level?: string | null
-          can_add_goals?: boolean | null
-          can_add_skills?: boolean | null
-          can_edit_profile?: boolean | null
           can_pickup?: boolean
-          can_view_finance?: boolean | null
-          can_view_medical?: boolean | null
           created_at?: string
           id?: string
           is_primary?: boolean
@@ -10980,12 +12218,7 @@ export type Database = {
         }
         Update: {
           access_level?: string | null
-          can_add_goals?: boolean | null
-          can_add_skills?: boolean | null
-          can_edit_profile?: boolean | null
           can_pickup?: boolean
-          can_view_finance?: boolean | null
-          can_view_medical?: boolean | null
           created_at?: string
           id?: string
           is_primary?: boolean
@@ -11005,18 +12238,11 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "parent_student_links_parent_id_fkey"
-            columns: ["parent_id"]
+            foreignKeyName: "parent_student_links_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parent_student_links_relationship_fkey"
-            columns: ["relationship"]
-            isOneToOne: false
-            referencedRelation: "relationship_types"
-            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "parent_student_links_school_id_fkey"
@@ -11034,210 +12260,132 @@ export type Database = {
           },
         ]
       }
-      parent_students: {
+      plan_entitlements: {
         Row: {
           created_at: string
-          id: string
-          parent_id: string
-          student_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          parent_id: string
-          student_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          parent_id?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "parent_students_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parent_students_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parent_students_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      past_papers: {
-        Row: {
-          created_at: string | null
-          file_url: string | null
-          id: string
-          level: string
-          school_id: string | null
-          subject: string
-          title: string
-          updated_at: string | null
-          year: number
-        }
-        Insert: {
-          created_at?: string | null
-          file_url?: string | null
-          id?: string
-          level: string
-          school_id?: string | null
-          subject: string
-          title: string
-          updated_at?: string | null
-          year: number
-        }
-        Update: {
-          created_at?: string | null
-          file_url?: string | null
-          id?: string
-          level?: string
-          school_id?: string | null
-          subject?: string
-          title?: string
-          updated_at?: string | null
-          year?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "past_papers_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pending_actions: {
-        Row: {
-          action_type: Database["public"]["Enums"]["action_type"]
-          created_at: string
-          executed_at: string | null
-          expires_at: string
-          first_approved_at: string | null
-          first_approver_id: string | null
-          id: string
-          payload: Json
-          rejected_at: string | null
-          rejected_by: string | null
-          requester_id: string
-          school_id: string
-          second_approved_at: string | null
-          second_approver_id: string | null
-          status: Database["public"]["Enums"]["action_status"]
+          enabled: boolean
+          entitlement_key: string
+          limits: Json
+          plan_key: string
           updated_at: string
         }
         Insert: {
-          action_type: Database["public"]["Enums"]["action_type"]
           created_at?: string
-          executed_at?: string | null
-          expires_at?: string
-          first_approved_at?: string | null
-          first_approver_id?: string | null
-          id?: string
-          payload: Json
-          rejected_at?: string | null
-          rejected_by?: string | null
-          requester_id: string
-          school_id: string
-          second_approved_at?: string | null
-          second_approver_id?: string | null
-          status?: Database["public"]["Enums"]["action_status"]
+          enabled?: boolean
+          entitlement_key: string
+          limits?: Json
+          plan_key: string
           updated_at?: string
         }
         Update: {
-          action_type?: Database["public"]["Enums"]["action_type"]
           created_at?: string
-          executed_at?: string | null
-          expires_at?: string
-          first_approved_at?: string | null
-          first_approver_id?: string | null
+          enabled?: boolean
+          entitlement_key?: string
+          limits?: Json
+          plan_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_events: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          entity_id: string | null
+          entity_type: string
+          event_type: string
+          id: string
+          idempotency_key: string | null
+          metadata: Json
+          occurred_at: string
+          school_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          entity_id?: string | null
+          entity_type: string
+          event_type: string
           id?: string
-          payload?: Json
-          rejected_at?: string | null
-          rejected_by?: string | null
-          requester_id?: string
-          school_id?: string
-          second_approved_at?: string | null
-          second_approver_id?: string | null
-          status?: Database["public"]["Enums"]["action_status"]
+          idempotency_key?: string | null
+          metadata?: Json
+          occurred_at?: string
+          school_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          entity_id?: string | null
+          entity_type?: string
+          event_type?: string
+          id?: string
+          idempotency_key?: string | null
+          metadata?: Json
+          occurred_at?: string
+          school_id?: string | null
+        }
+        Relationships: []
+      }
+      platform_owners: {
+        Row: {
+          added_by: string
+          created_at: string
+          note: string | null
+          profile_id: string
+        }
+        Insert: {
+          added_by?: string
+          created_at?: string
+          note?: string | null
+          profile_id: string
+        }
+        Update: {
+          added_by?: string
+          created_at?: string
+          note?: string | null
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_owners_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_entitlements: {
+        Row: {
+          created_at: string
+          entitlement_key: string
+          granted_until: string | null
+          profile_id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entitlement_key: string
+          granted_until?: string | null
+          profile_id: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entitlement_key?: string
+          granted_until?: string | null
+          profile_id?: string
+          source?: string
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "pending_actions_first_approver_id_fkey"
-            columns: ["first_approver_id"]
+            foreignKeyName: "profile_entitlements_profile_id_fkey"
+            columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_actions_first_approver_id_fkey"
-            columns: ["first_approver_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_actions_rejected_by_fkey"
-            columns: ["rejected_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_actions_rejected_by_fkey"
-            columns: ["rejected_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_actions_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_actions_requester_id_fkey"
-            columns: ["requester_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_actions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_actions_second_approver_id_fkey"
-            columns: ["second_approver_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pending_actions_second_approver_id_fkey"
-            columns: ["second_approver_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -11247,91 +12395,59 @@ export type Database = {
           account_status: Database["public"]["Enums"]["account_status"]
           anonymized_at: string | null
           arrived_at: string | null
-          avatar_url: string | null
-          bio: string | null
           country_code: string | null
           created_at: string
           date_of_birth: string | null
           full_name: string
-          gender: string | null
           id: string
           is_anonymized: boolean
-          notification_prefs: Json | null
-          onboarded_chronicles: boolean | null
           parental_consent_at: string | null
           parental_consent_by: string | null
           phone: string | null
           role: string | null
           school_id: string | null
           updated_at: string
-          vc_id: string | null
         }
         Insert: {
           account_status?: Database["public"]["Enums"]["account_status"]
           anonymized_at?: string | null
           arrived_at?: string | null
-          avatar_url?: string | null
-          bio?: string | null
           country_code?: string | null
           created_at?: string
           date_of_birth?: string | null
           full_name: string
-          gender?: string | null
           id: string
           is_anonymized?: boolean
-          notification_prefs?: Json | null
-          onboarded_chronicles?: boolean | null
           parental_consent_at?: string | null
           parental_consent_by?: string | null
           phone?: string | null
           role?: string | null
           school_id?: string | null
           updated_at?: string
-          vc_id?: string | null
         }
         Update: {
           account_status?: Database["public"]["Enums"]["account_status"]
           anonymized_at?: string | null
           arrived_at?: string | null
-          avatar_url?: string | null
-          bio?: string | null
           country_code?: string | null
           created_at?: string
           date_of_birth?: string | null
           full_name?: string
-          gender?: string | null
           id?: string
           is_anonymized?: boolean
-          notification_prefs?: Json | null
-          onboarded_chronicles?: boolean | null
           parental_consent_at?: string | null
           parental_consent_by?: string | null
           phone?: string | null
           role?: string | null
           school_id?: string | null
           updated_at?: string
-          vc_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_country_code_fkey"
-            columns: ["country_code"]
+            foreignKeyName: "profiles_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "country_majority_ages"
-            referencedColumns: ["country_code"]
-          },
-          {
-            foreignKeyName: "profiles_parental_consent_by_fkey"
-            columns: ["parental_consent_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_parental_consent_by_fkey"
-            columns: ["parental_consent_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -11417,6 +12533,13 @@ export type Database = {
             foreignKeyName: "lesson_notes_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_notes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -11425,13 +12548,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lesson_notes_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -11439,158 +12555,6 @@ export type Database = {
             columns: ["teaching_occurrence_id"]
             isOneToOne: false
             referencedRelation: "teaching_occurrences"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      project_log: {
-        Row: {
-          actor_id: string | null
-          created_at: string
-          event_type: string
-          id: string
-          note: string | null
-          payload: Json | null
-          project_id: string
-          school_id: string
-        }
-        Insert: {
-          actor_id?: string | null
-          created_at?: string
-          event_type: string
-          id?: string
-          note?: string | null
-          payload?: Json | null
-          project_id: string
-          school_id: string
-        }
-        Update: {
-          actor_id?: string | null
-          created_at?: string
-          event_type?: string
-          id?: string
-          note?: string | null
-          payload?: Json | null
-          project_id?: string
-          school_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_log_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_log_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_log_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "admin_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_log_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_summary"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_log_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      project_members: {
-        Row: {
-          added_at: string
-          added_by: string | null
-          id: string
-          profile_id: string
-          project_id: string
-          removed_at: string | null
-          role: string
-          school_id: string
-        }
-        Insert: {
-          added_at?: string
-          added_by?: string | null
-          id?: string
-          profile_id: string
-          project_id: string
-          removed_at?: string | null
-          role: string
-          school_id: string
-        }
-        Update: {
-          added_at?: string
-          added_by?: string | null
-          id?: string
-          profile_id?: string
-          project_id?: string
-          removed_at?: string | null
-          role?: string
-          school_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_members_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_members_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_members_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_members_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_members_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "admin_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_members_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_summary"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_members_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
         ]
@@ -11645,123 +12609,6 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      project_transactions: {
-        Row: {
-          amount: number
-          confirmed_at: string | null
-          confirmed_by: string | null
-          created_at: string
-          description: string
-          id: string
-          logged_at: string
-          logged_by: string
-          milestone_id: string | null
-          project_id: string
-          receipt_ref: string | null
-          return_reason: string | null
-          school_id: string
-          status: string
-          task_ref: string | null
-          updated_at: string
-          vendor: string | null
-        }
-        Insert: {
-          amount: number
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string
-          description: string
-          id?: string
-          logged_at?: string
-          logged_by: string
-          milestone_id?: string | null
-          project_id: string
-          receipt_ref?: string | null
-          return_reason?: string | null
-          school_id: string
-          status?: string
-          task_ref?: string | null
-          updated_at?: string
-          vendor?: string | null
-        }
-        Update: {
-          amount?: number
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string
-          description?: string
-          id?: string
-          logged_at?: string
-          logged_by?: string
-          milestone_id?: string | null
-          project_id?: string
-          receipt_ref?: string | null
-          return_reason?: string | null
-          school_id?: string
-          status?: string
-          task_ref?: string | null
-          updated_at?: string
-          vendor?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_transactions_confirmed_by_fkey"
-            columns: ["confirmed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_confirmed_by_fkey"
-            columns: ["confirmed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_logged_by_fkey"
-            columns: ["logged_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_logged_by_fkey"
-            columns: ["logged_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_milestone_id_fkey"
-            columns: ["milestone_id"]
-            isOneToOne: false
-            referencedRelation: "admin_project_milestones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "admin_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_summary"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
         ]
@@ -11838,6 +12685,13 @@ export type Database = {
             foreignKeyName: "projects_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -11855,11 +12709,127 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      publication_curriculum_provenance: {
+        Row: {
+          alignment_status: string
+          created_at: string
+          created_by: string | null
+          curriculum_id: string | null
+          curriculum_version: string | null
+          evidence: Json
+          external_reference: string | null
+          external_review_status: string
+          framework: string
+          id: string
+          jurisdiction: string
+          publication_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_authority: string
+          source_reference: string
+          updated_at: string
+        }
+        Insert: {
+          alignment_status?: string
+          created_at?: string
+          created_by?: string | null
+          curriculum_id?: string | null
+          curriculum_version?: string | null
+          evidence?: Json
+          external_reference?: string | null
+          external_review_status?: string
+          framework?: string
+          id?: string
+          jurisdiction?: string
+          publication_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_authority: string
+          source_reference: string
+          updated_at?: string
+        }
+        Update: {
+          alignment_status?: string
+          created_at?: string
+          created_by?: string | null
+          curriculum_id?: string | null
+          curriculum_version?: string | null
+          evidence?: Json
+          external_reference?: string | null
+          external_review_status?: string
+          framework?: string
+          id?: string
+          jurisdiction?: string
+          publication_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_authority?: string
+          source_reference?: string
+          updated_at?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "projects_teacher_id_fkey"
-            columns: ["teacher_id"]
+            foreignKeyName: "publication_curriculum_provenance_curriculum_id_fkey"
+            columns: ["curriculum_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "curriculum"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publication_curriculum_provenance_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      publication_release_checks: {
+        Row: {
+          chapter_id: string | null
+          check_code: string
+          checked_at: string
+          details: Json
+          id: string
+          publication_id: string
+          score: number
+          status: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          check_code: string
+          checked_at?: string
+          details?: Json
+          id?: string
+          publication_id: string
+          score?: number
+          status: string
+        }
+        Update: {
+          chapter_id?: string | null
+          check_code?: string
+          checked_at?: string
+          details?: Json
+          id?: string
+          publication_id?: string
+          score?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "publication_release_checks_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "publication_release_checks_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
             referencedColumns: ["id"]
           },
         ]
@@ -11901,21 +12871,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      relationship_types: {
-        Row: {
-          code: string
-          label: string
-        }
-        Insert: {
-          code: string
-          label: string
-        }
-        Update: {
-          code?: string
-          label?: string
-        }
-        Relationships: []
       }
       report_card_audit_log: {
         Row: {
@@ -11960,6 +12915,13 @@ export type Database = {
             columns: ["report_card_id"]
             isOneToOne: false
             referencedRelation: "report_cards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_card_audit_log_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -12020,88 +12982,6 @@ export type Database = {
             columns: ["report_card_id"]
             isOneToOne: false
             referencedRelation: "report_cards"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      report_card_remarks: {
-        Row: {
-          class_id: string
-          class_teacher_id: string
-          conduct: string | null
-          created_at: string
-          exam_id: string
-          id: string
-          remarks: string | null
-          school_id: string
-          student_id: string
-          updated_at: string
-        }
-        Insert: {
-          class_id: string
-          class_teacher_id: string
-          conduct?: string | null
-          created_at?: string
-          exam_id: string
-          id?: string
-          remarks?: string | null
-          school_id: string
-          student_id: string
-          updated_at?: string
-        }
-        Update: {
-          class_id?: string
-          class_teacher_id?: string
-          conduct?: string | null
-          created_at?: string
-          exam_id?: string
-          id?: string
-          remarks?: string | null
-          school_id?: string
-          student_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "report_card_remarks_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_card_remarks_class_teacher_id_fkey"
-            columns: ["class_teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_card_remarks_class_teacher_id_fkey"
-            columns: ["class_teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_card_remarks_exam_id_fkey"
-            columns: ["exam_id"]
-            isOneToOne: false
-            referencedRelation: "exams"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_card_remarks_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "report_card_remarks_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -12293,6 +13173,13 @@ export type Database = {
             foreignKeyName: "report_cards_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_cards_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -12352,10 +13239,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "report_comparisons_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "report_comparisons_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -12419,10 +13306,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "report_schedules_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "report_schedules_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -12433,452 +13320,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      resource_assets: {
-        Row: {
-          added_by: string | null
-          category: string | null
-          condition: string | null
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          last_checked: string | null
-          location: string | null
-          name: string
-          quantity: number | null
-          school_id: string | null
-          serial_no: string | null
-        }
-        Insert: {
-          added_by?: string | null
-          category?: string | null
-          condition?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          last_checked?: string | null
-          location?: string | null
-          name: string
-          quantity?: number | null
-          school_id?: string | null
-          serial_no?: string | null
-        }
-        Update: {
-          added_by?: string | null
-          category?: string | null
-          condition?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          last_checked?: string | null
-          location?: string | null
-          name?: string
-          quantity?: number | null
-          school_id?: string | null
-          serial_no?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "resource_assets_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_assets_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_assets_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      resource_documents: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          deleted_at: string | null
-          file_size_kb: number | null
-          file_type: string | null
-          file_url: string | null
-          id: string
-          school_id: string | null
-          title: string
-          uploaded_by: string | null
-          visibility: string | null
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          file_size_kb?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string
-          school_id?: string | null
-          title: string
-          uploaded_by?: string | null
-          visibility?: string | null
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          file_size_kb?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string
-          school_id?: string | null
-          title?: string
-          uploaded_by?: string | null
-          visibility?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "resource_documents_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_documents_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_documents_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      resource_materials: {
-        Row: {
-          class_id: string | null
-          created_at: string | null
-          deleted_at: string | null
-          description: string | null
-          file_size_kb: number | null
-          file_type: string | null
-          file_url: string | null
-          id: string
-          school_id: string | null
-          subject: string | null
-          title: string
-          uploaded_by: string | null
-          visibility: string | null
-        }
-        Insert: {
-          class_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          file_size_kb?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string
-          school_id?: string | null
-          subject?: string | null
-          title: string
-          uploaded_by?: string | null
-          visibility?: string | null
-        }
-        Update: {
-          class_id?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          description?: string | null
-          file_size_kb?: number | null
-          file_type?: string | null
-          file_url?: string | null
-          id?: string
-          school_id?: string | null
-          subject?: string | null
-          title?: string
-          uploaded_by?: string | null
-          visibility?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "resource_materials_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_materials_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_materials_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_materials_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      resource_requests: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          fulfilled_at: string | null
-          id: string
-          item_id: string | null
-          item_name: string | null
-          quantity: number | null
-          reason: string | null
-          requested_by: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          school_id: string | null
-          status: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          fulfilled_at?: string | null
-          id?: string
-          item_id?: string | null
-          item_name?: string | null
-          quantity?: number | null
-          reason?: string | null
-          requested_by?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          school_id?: string | null
-          status?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          fulfilled_at?: string | null
-          id?: string
-          item_id?: string | null
-          item_name?: string | null
-          quantity?: number | null
-          reason?: string | null
-          requested_by?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          school_id?: string | null
-          status?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "resource_requests_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "store_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_requests_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_requests_requested_by_fkey"
-            columns: ["requested_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_requests_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_requests_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      resource_roles: {
-        Row: {
-          assigned_at: string | null
-          assigned_by: string | null
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          profile_id: string | null
-          role: string | null
-          school_id: string | null
-        }
-        Insert: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          profile_id?: string | null
-          role?: string | null
-          school_id?: string | null
-        }
-        Update: {
-          assigned_at?: string | null
-          assigned_by?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          profile_id?: string | null
-          role?: string | null
-          school_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "resource_roles_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_roles_assigned_by_fkey"
-            columns: ["assigned_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_roles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_roles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resource_roles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      resources: {
-        Row: {
-          class_id: string | null
-          content: string | null
-          created_at: string | null
-          description: string | null
-          external_url: string | null
-          id: string
-          is_school_wide: boolean | null
-          school_id: string | null
-          subject: string | null
-          teacher_id: string | null
-          title: string
-          type: string
-        }
-        Insert: {
-          class_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          description?: string | null
-          external_url?: string | null
-          id?: string
-          is_school_wide?: boolean | null
-          school_id?: string | null
-          subject?: string | null
-          teacher_id?: string | null
-          title: string
-          type?: string
-        }
-        Update: {
-          class_id?: string | null
-          content?: string | null
-          created_at?: string | null
-          description?: string | null
-          external_url?: string | null
-          id?: string
-          is_school_wide?: boolean | null
-          school_id?: string | null
-          subject?: string | null
-          teacher_id?: string | null
-          title?: string
-          type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "resources_class_id_fkey"
-            columns: ["class_id"]
-            isOneToOne: false
-            referencedRelation: "classes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "resources_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      schema_migrations: {
-        Row: {
-          applied_at: string
-          description: string
-          version: string
-        }
-        Insert: {
-          applied_at?: string
-          description: string
-          version: string
-        }
-        Update: {
-          applied_at?: string
-          description?: string
-          version?: string
-        }
-        Relationships: []
       }
       scheme_lesson_resource_links: {
         Row: {
@@ -12942,13 +13383,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "scheme_lesson_resource_links_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "scheme_lesson_resource_links_publication_id_fkey"
             columns: ["publication_id"]
             isOneToOne: false
@@ -12979,6 +13413,7 @@ export type Database = {
           content_status: string | null
           created_at: string | null
           curriculum_content_id: string | null
+          curriculum_content_lesson_index: number | null
           curriculum_id: string | null
           curriculum_type: string
           date: string | null
@@ -12997,7 +13432,7 @@ export type Database = {
           resources: string | null
           rollcall: string | null
           school_id: string
-          sequence_number: number
+          sequence_number: number | null
           source: string
           status: string | null
           strand: string | null
@@ -13018,6 +13453,7 @@ export type Database = {
           content_status?: string | null
           created_at?: string | null
           curriculum_content_id?: string | null
+          curriculum_content_lesson_index?: number | null
           curriculum_id?: string | null
           curriculum_type: string
           date?: string | null
@@ -13036,7 +13472,7 @@ export type Database = {
           resources?: string | null
           rollcall?: string | null
           school_id: string
-          sequence_number: number
+          sequence_number?: number | null
           source?: string
           status?: string | null
           strand?: string | null
@@ -13057,6 +13493,7 @@ export type Database = {
           content_status?: string | null
           created_at?: string | null
           curriculum_content_id?: string | null
+          curriculum_content_lesson_index?: number | null
           curriculum_id?: string | null
           curriculum_type?: string
           date?: string | null
@@ -13075,7 +13512,7 @@ export type Database = {
           resources?: string | null
           rollcall?: string | null
           school_id?: string
-          sequence_number?: number
+          sequence_number?: number | null
           source?: string
           status?: string | null
           strand?: string | null
@@ -13122,6 +13559,13 @@ export type Database = {
             foreignKeyName: "scheme_of_work_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheme_of_work_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -13146,11 +13590,397 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      school_admin_join_requests: {
+        Row: {
+          created_at: string
+          id: string
+          requester_id: string
+          requester_name: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          requester_id: string
+          requester_name: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          requester_id?: string
+          requester_name?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string
+          status?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "scheme_of_work_teacher_id_fkey"
-            columns: ["teacher_id"]
+            foreignKeyName: "school_admin_join_requests_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_admin_join_requests_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_aliases: {
+        Row: {
+          alias: string
+          alias_normalized: string
+          confidence: number | null
+          created_at: string
+          id: string
+          school_id: string
+          source: string
+          source_type: string | null
+          verified: boolean
+          verified_at: string | null
+        }
+        Insert: {
+          alias: string
+          alias_normalized: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          school_id: string
+          source?: string
+          source_type?: string | null
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Update: {
+          alias?: string
+          alias_normalized?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          school_id?: string
+          source?: string
+          source_type?: string | null
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_aliases_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_aliases_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_directory_ingest_batches: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          metadata: Json
+          published_at: string | null
+          record_count: number | null
+          source_name: string
+          source_observed_at: string | null
+          source_url: string | null
+          source_version: string | null
+          status: string
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          published_at?: string | null
+          record_count?: number | null
+          source_name: string
+          source_observed_at?: string | null
+          source_url?: string | null
+          source_version?: string | null
+          status?: string
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          published_at?: string | null
+          record_count?: number | null
+          source_name?: string
+          source_observed_at?: string | null
+          source_url?: string | null
+          source_version?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_directory_ingest_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_directory_sources: {
+        Row: {
+          confidence: number | null
+          metadata: Json
+          observed_at: string
+          observed_county: string | null
+          observed_lat: number | null
+          observed_lng: number | null
+          observed_name: string | null
+          observed_sub_county: string | null
+          school_id: string
+          source_name: string
+          source_ref: string
+          source_url: string | null
+        }
+        Insert: {
+          confidence?: number | null
+          metadata?: Json
+          observed_at?: string
+          observed_county?: string | null
+          observed_lat?: number | null
+          observed_lng?: number | null
+          observed_name?: string | null
+          observed_sub_county?: string | null
+          school_id: string
+          source_name: string
+          source_ref: string
+          source_url?: string | null
+        }
+        Update: {
+          confidence?: number | null
+          metadata?: Json
+          observed_at?: string
+          observed_county?: string | null
+          observed_lat?: number | null
+          observed_lng?: number | null
+          observed_name?: string | null
+          observed_sub_county?: string | null
+          school_id?: string
+          source_name?: string
+          source_ref?: string
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_directory_sources_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_directory_sources_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_discovery_requests: {
+        Row: {
+          alternative_name: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          county: string | null
+          created_at: string
+          id: string
+          level: string | null
+          name: string
+          notes: string | null
+          request_type: string
+          requested_by: string
+          resolved_at: string | null
+          school_code: string | null
+          status: string
+          sub_county: string | null
+          submitted_lat: number | null
+          submitted_lng: number | null
+          ward: string | null
+        }
+        Insert: {
+          alternative_name?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          county?: string | null
+          created_at?: string
+          id?: string
+          level?: string | null
+          name: string
+          notes?: string | null
+          request_type?: string
+          requested_by: string
+          resolved_at?: string | null
+          school_code?: string | null
+          status?: string
+          sub_county?: string | null
+          submitted_lat?: number | null
+          submitted_lng?: number | null
+          ward?: string | null
+        }
+        Update: {
+          alternative_name?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          county?: string | null
+          created_at?: string
+          id?: string
+          level?: string | null
+          name?: string
+          notes?: string | null
+          request_type?: string
+          requested_by?: string
+          resolved_at?: string | null
+          school_code?: string | null
+          status?: string
+          sub_county?: string | null
+          submitted_lat?: number | null
+          submitted_lng?: number | null
+          ward?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_discovery_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_identity_candidates: {
+        Row: {
+          canonical_school_id: string | null
+          confidence: number | null
+          created_at: string
+          directory_school_id: string | null
+          id: string
+          match_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          canonical_school_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          directory_school_id?: string | null
+          id?: string
+          match_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          canonical_school_id?: string | null
+          confidence?: number | null
+          created_at?: string
+          directory_school_id?: string | null
+          id?: string
+          match_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_identity_candidates_canonical_school_id_fkey"
+            columns: ["canonical_school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_identity_candidates_canonical_school_id_fkey"
+            columns: ["canonical_school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_identity_candidates_directory_school_id_fkey"
+            columns: ["directory_school_id"]
+            isOneToOne: false
+            referencedRelation: "schools_directory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_identity_candidates_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      school_levels: {
+        Row: {
+          created_at: string
+          level: string
+          school_id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          level: string
+          school_id: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          level?: string
+          school_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_levels_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_levels_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
         ]
@@ -13186,10 +14016,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "school_members_profile_id_fkey"
-            columns: ["profile_id"]
+            foreignKeyName: "school_members_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -13233,6 +14063,13 @@ export type Database = {
           start_time?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "school_periods_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "school_periods_school_id_fkey"
             columns: ["school_id"]
@@ -13303,6 +14140,13 @@ export type Database = {
             foreignKeyName: "school_resource_library_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_resource_library_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -13317,23 +14161,26 @@ export type Database = {
       }
       schools: {
         Row: {
+          accommodation_type: string | null
+          cluster: string | null
           country_code: string
           county: string | null
           created_at: string
           created_by: string | null
           deleted_at: string | null
-          established_year: number | null
+          directory_source: string | null
+          directory_source_ref: string | null
+          gender_type: string | null
           gps_lat: number | null
           gps_lng: number | null
           id: string
           knec_code: string | null
-          logo_url: string | null
-          motto: string | null
+          last_verified_at: string | null
+          location_precision: string | null
           name: string
           name_normalized: string | null
           nemis_code: string | null
-          phone: string | null
-          postal_address: string | null
+          ownership_type: string | null
           requires_dual_approval: boolean
           school_category: string | null
           school_type: string | null
@@ -13342,27 +14189,29 @@ export type Database = {
           subdomain: string
           timezone: string
           updated_at: string
-          vision: string | null
           ward: string | null
         }
         Insert: {
+          accommodation_type?: string | null
+          cluster?: string | null
           country_code: string
           county?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
-          established_year?: number | null
+          directory_source?: string | null
+          directory_source_ref?: string | null
+          gender_type?: string | null
           gps_lat?: number | null
           gps_lng?: number | null
           id?: string
           knec_code?: string | null
-          logo_url?: string | null
-          motto?: string | null
+          last_verified_at?: string | null
+          location_precision?: string | null
           name: string
           name_normalized?: string | null
           nemis_code?: string | null
-          phone?: string | null
-          postal_address?: string | null
+          ownership_type?: string | null
           requires_dual_approval?: boolean
           school_category?: string | null
           school_type?: string | null
@@ -13371,27 +14220,29 @@ export type Database = {
           subdomain: string
           timezone: string
           updated_at?: string
-          vision?: string | null
           ward?: string | null
         }
         Update: {
+          accommodation_type?: string | null
+          cluster?: string | null
           country_code?: string
           county?: string | null
           created_at?: string
           created_by?: string | null
           deleted_at?: string | null
-          established_year?: number | null
+          directory_source?: string | null
+          directory_source_ref?: string | null
+          gender_type?: string | null
           gps_lat?: number | null
           gps_lng?: number | null
           id?: string
           knec_code?: string | null
-          logo_url?: string | null
-          motto?: string | null
+          last_verified_at?: string | null
+          location_precision?: string | null
           name?: string
           name_normalized?: string | null
           nemis_code?: string | null
-          phone?: string | null
-          postal_address?: string | null
+          ownership_type?: string | null
           requires_dual_approval?: boolean
           school_category?: string | null
           school_type?: string | null
@@ -13400,29 +14251,14 @@ export type Database = {
           subdomain?: string
           timezone?: string
           updated_at?: string
-          vision?: string | null
           ward?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "schools_country_code_fkey"
-            columns: ["country_code"]
-            isOneToOne: false
-            referencedRelation: "country_majority_ages"
-            referencedColumns: ["country_code"]
-          },
           {
             foreignKeyName: "schools_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "schools_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -13466,516 +14302,41 @@ export type Database = {
         }
         Relationships: []
       }
-      staff: {
+      security_audit_events: {
         Row: {
-          category: string
-          contract_end: string | null
-          contract_start: string | null
-          created_at: string | null
-          date_joined: string | null
-          date_of_birth: string | null
-          deleted_at: string | null
-          department: string | null
-          designation: string | null
-          email: string | null
-          employment_type: string
-          full_name: string
-          gender: string | null
-          id: string
-          national_id: string | null
-          next_of_kin_name: string | null
-          next_of_kin_phone: string | null
-          next_of_kin_relation: string | null
-          phone: string | null
-          profile_id: string | null
-          salary_amount: number | null
-          salary_grade: string | null
-          school_id: string
-          staff_number: string | null
-          status: string
-          subject: string | null
-          tsc_number: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          category?: string
-          contract_end?: string | null
-          contract_start?: string | null
-          created_at?: string | null
-          date_joined?: string | null
-          date_of_birth?: string | null
-          deleted_at?: string | null
-          department?: string | null
-          designation?: string | null
-          email?: string | null
-          employment_type?: string
-          full_name: string
-          gender?: string | null
-          id?: string
-          national_id?: string | null
-          next_of_kin_name?: string | null
-          next_of_kin_phone?: string | null
-          next_of_kin_relation?: string | null
-          phone?: string | null
-          profile_id?: string | null
-          salary_amount?: number | null
-          salary_grade?: string | null
-          school_id: string
-          staff_number?: string | null
-          status?: string
-          subject?: string | null
-          tsc_number?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          category?: string
-          contract_end?: string | null
-          contract_start?: string | null
-          created_at?: string | null
-          date_joined?: string | null
-          date_of_birth?: string | null
-          deleted_at?: string | null
-          department?: string | null
-          designation?: string | null
-          email?: string | null
-          employment_type?: string
-          full_name?: string
-          gender?: string | null
-          id?: string
-          national_id?: string | null
-          next_of_kin_name?: string | null
-          next_of_kin_phone?: string | null
-          next_of_kin_relation?: string | null
-          phone?: string | null
-          profile_id?: string | null
-          salary_amount?: number | null
-          salary_grade?: string | null
-          school_id?: string
-          staff_number?: string | null
-          status?: string
-          subject?: string | null
-          tsc_number?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      staff_attendance: {
-        Row: {
-          created_at: string | null
-          date: string
-          id: string
-          notes: string | null
-          recorded_by: string | null
-          school_id: string
-          staff_id: string
-          status: string
-          time_in: string | null
-          time_out: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          date: string
-          id?: string
-          notes?: string | null
-          recorded_by?: string | null
-          school_id: string
-          staff_id: string
-          status?: string
-          time_in?: string | null
-          time_out?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          date?: string
-          id?: string
-          notes?: string | null
-          recorded_by?: string | null
-          school_id?: string
-          staff_id?: string
-          status?: string
-          time_in?: string | null
-          time_out?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_attendance_recorded_by_fkey"
-            columns: ["recorded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_attendance_recorded_by_fkey"
-            columns: ["recorded_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_attendance_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_attendance_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      staff_documents: {
-        Row: {
-          created_at: string | null
-          deleted_at: string | null
-          doc_type: string
-          expiry_date: string | null
-          id: string
-          school_id: string
-          staff_id: string
-          status: string
-          title: string
-          uploaded_at: string | null
-          url: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          deleted_at?: string | null
-          doc_type?: string
-          expiry_date?: string | null
-          id?: string
-          school_id: string
-          staff_id: string
-          status?: string
-          title: string
-          uploaded_at?: string | null
-          url?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          deleted_at?: string | null
-          doc_type?: string
-          expiry_date?: string | null
-          id?: string
-          school_id?: string
-          staff_id?: string
-          status?: string
-          title?: string
-          uploaded_at?: string | null
-          url?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_documents_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_documents_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      staff_leave: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          created_at: string | null
-          days_requested: number
-          deleted_at: string | null
-          end_date: string
-          id: string
-          leave_type: string
-          notes: string | null
-          reason: string | null
-          school_id: string
-          staff_id: string
-          start_date: string
-          status: string
-          updated_at: string | null
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          created_at?: string | null
-          days_requested?: number
-          deleted_at?: string | null
-          end_date: string
-          id?: string
-          leave_type?: string
-          notes?: string | null
-          reason?: string | null
-          school_id: string
-          staff_id: string
-          start_date: string
-          status?: string
-          updated_at?: string | null
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          created_at?: string | null
-          days_requested?: number
-          deleted_at?: string | null
-          end_date?: string
-          id?: string
-          leave_type?: string
-          notes?: string | null
-          reason?: string | null
-          school_id?: string
-          staff_id?: string
-          start_date?: string
-          status?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_leave_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_leave_approved_by_fkey"
-            columns: ["approved_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_leave_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_leave_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "staff"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      store_items: {
-        Row: {
-          added_by: string | null
-          category: string | null
-          created_at: string | null
-          deleted_at: string | null
-          id: string
-          low_stock_threshold: number | null
-          name: string
-          quantity: number | null
-          school_id: string | null
-          unit: string | null
-        }
-        Insert: {
-          added_by?: string | null
-          category?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          low_stock_threshold?: number | null
-          name: string
-          quantity?: number | null
-          school_id?: string | null
-          unit?: string | null
-        }
-        Update: {
-          added_by?: string | null
-          category?: string | null
-          created_at?: string | null
-          deleted_at?: string | null
-          id?: string
-          low_stock_threshold?: number | null
-          name?: string
-          quantity?: number | null
-          school_id?: string | null
-          unit?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "store_items_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_items_added_by_fkey"
-            columns: ["added_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_items_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      store_transactions: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          deleted_at: string | null
-          id: string
-          issued_to: string | null
-          item_id: string | null
-          notes: string | null
-          quantity: number
-          reference: string | null
-          school_id: string | null
-          type: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string
-          issued_to?: string | null
-          item_id?: string | null
-          notes?: string | null
-          quantity: number
-          reference?: string | null
-          school_id?: string | null
-          type?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          deleted_at?: string | null
-          id?: string
-          issued_to?: string | null
-          item_id?: string | null
-          notes?: string | null
-          quantity?: number
-          reference?: string | null
-          school_id?: string | null
-          type?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "store_transactions_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_transactions_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_transactions_issued_to_fkey"
-            columns: ["issued_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_transactions_issued_to_fkey"
-            columns: ["issued_to"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_transactions_item_id_fkey"
-            columns: ["item_id"]
-            isOneToOne: false
-            referencedRelation: "store_items"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "store_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      strands: {
-        Row: {
+          actor_id: string | null
           created_at: string
+          event_type: string
           id: string
-          name: string
-          school_id: string
-          subject_id: string
-          updated_at: string
+          metadata: Json
+          outcome: string
+          resource_id: string | null
+          resource_type: string | null
+          risk_score: number
         }
         Insert: {
+          actor_id?: string | null
           created_at?: string
+          event_type: string
           id?: string
-          name: string
-          school_id: string
-          subject_id: string
-          updated_at?: string
+          metadata?: Json
+          outcome?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          risk_score?: number
         }
         Update: {
+          actor_id?: string | null
           created_at?: string
+          event_type?: string
           id?: string
-          name?: string
-          school_id?: string
-          subject_id?: string
-          updated_at?: string
+          metadata?: Json
+          outcome?: string
+          resource_id?: string | null
+          resource_type?: string | null
+          risk_score?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "strands_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "strands_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       student_achievement_awards: {
         Row: {
@@ -14043,35 +14404,147 @@ export type Database = {
         }
         Relationships: []
       }
+      student_adaptive_learning_sessions: {
+        Row: {
+          chosen_pace: string
+          completed_at: string | null
+          created_at: string
+          evidence_count_after: number | null
+          evidence_count_before: number
+          focus_outcome_id: string | null
+          forgetting_risk_after: number | null
+          forgetting_risk_before: number | null
+          id: string
+          mastery_after: number | null
+          mastery_before: number | null
+          mode: string
+          plan: Json
+          planned_minutes: number
+          profile_id: string
+          reason: string
+          recommended_pace: string
+          reflection: string | null
+          started_at: string | null
+          status: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          chosen_pace: string
+          completed_at?: string | null
+          created_at?: string
+          evidence_count_after?: number | null
+          evidence_count_before?: number
+          focus_outcome_id?: string | null
+          forgetting_risk_after?: number | null
+          forgetting_risk_before?: number | null
+          id?: string
+          mastery_after?: number | null
+          mastery_before?: number | null
+          mode?: string
+          plan?: Json
+          planned_minutes: number
+          profile_id: string
+          reason: string
+          recommended_pace: string
+          reflection?: string | null
+          started_at?: string | null
+          status?: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          chosen_pace?: string
+          completed_at?: string | null
+          created_at?: string
+          evidence_count_after?: number | null
+          evidence_count_before?: number
+          focus_outcome_id?: string | null
+          forgetting_risk_after?: number | null
+          forgetting_risk_before?: number | null
+          id?: string
+          mastery_after?: number | null
+          mastery_before?: number | null
+          mode?: string
+          plan?: Json
+          planned_minutes?: number
+          profile_id?: string
+          reason?: string
+          recommended_pace?: string
+          reflection?: string | null
+          started_at?: string | null
+          status?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_adaptive_learning_sessions_focus_outcome_id_fkey"
+            columns: ["focus_outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_adaptive_learning_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_adaptive_learning_sessions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_claim_codes: {
         Row: {
           claimed: boolean
+          claimed_at: string | null
           claimed_by: string | null
           code: string
           created_at: string
           expires_at: string
           id: string
+          parent_claimed_at: string | null
+          parent_claimed_by: string | null
           role: string
+          student_claimed_at: string | null
+          student_claimed_by: string | null
           student_id: string
         }
         Insert: {
           claimed?: boolean
+          claimed_at?: string | null
           claimed_by?: string | null
           code: string
           created_at?: string
           expires_at?: string
           id?: string
+          parent_claimed_at?: string | null
+          parent_claimed_by?: string | null
           role?: string
+          student_claimed_at?: string | null
+          student_claimed_by?: string | null
           student_id: string
         }
         Update: {
           claimed?: boolean
+          claimed_at?: string | null
           claimed_by?: string | null
           code?: string
           created_at?: string
           expires_at?: string
           id?: string
+          parent_claimed_at?: string | null
+          parent_claimed_by?: string | null
           role?: string
+          student_claimed_at?: string | null
+          student_claimed_by?: string | null
           student_id?: string
         }
         Relationships: [
@@ -14118,6 +14591,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_classes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -14178,6 +14658,7 @@ export type Database = {
           daily_revision_minutes: number
           exam_date: string | null
           exam_name: string
+          kcse_candidate_opt_in: boolean
           student_id: string
           updated_at: string
         }
@@ -14187,6 +14668,7 @@ export type Database = {
           daily_revision_minutes?: number
           exam_date?: string | null
           exam_name?: string
+          kcse_candidate_opt_in?: boolean
           student_id: string
           updated_at?: string
         }
@@ -14196,10 +14678,84 @@ export type Database = {
           daily_revision_minutes?: number
           exam_date?: string | null
           exam_name?: string
+          kcse_candidate_opt_in?: boolean
           student_id?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      student_generated_practice_questions: {
+        Row: {
+          answered_at: string | null
+          correct_index: number
+          created_at: string
+          difficulty: string
+          explanation: string
+          generation_source: string
+          hints: Json
+          id: string
+          options: Json
+          outcome_id: string
+          prompt: string
+          status: string
+          student_id: string
+          subject_id: string | null
+        }
+        Insert: {
+          answered_at?: string | null
+          correct_index: number
+          created_at?: string
+          difficulty: string
+          explanation: string
+          generation_source?: string
+          hints?: Json
+          id?: string
+          options: Json
+          outcome_id: string
+          prompt: string
+          status?: string
+          student_id: string
+          subject_id?: string | null
+        }
+        Update: {
+          answered_at?: string | null
+          correct_index?: number
+          created_at?: string
+          difficulty?: string
+          explanation?: string
+          generation_source?: string
+          hints?: Json
+          id?: string
+          options?: Json
+          outcome_id?: string
+          prompt?: string
+          status?: string
+          student_id?: string
+          subject_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_generated_practice_questions_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_generated_practice_questions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_generated_practice_questions_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       student_home_state: {
         Row: {
@@ -14248,6 +14804,235 @@ export type Database = {
           },
         ]
       }
+      student_kcse_error_classifications: {
+        Row: {
+          classified_at: string
+          error_type: string
+          id: string
+          mistake_id: string
+          note: string | null
+          student_id: string
+        }
+        Insert: {
+          classified_at?: string
+          error_type: string
+          id?: string
+          mistake_id: string
+          note?: string | null
+          student_id: string
+        }
+        Update: {
+          classified_at?: string
+          error_type?: string
+          id?: string
+          mistake_id?: string
+          note?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_kcse_error_classifications_mistake_id_fkey"
+            columns: ["mistake_id"]
+            isOneToOne: false
+            referencedRelation: "student_mistake_notebook"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_kcse_mock_answers: {
+        Row: {
+          is_correct: boolean | null
+          max_score: number
+          question_id: string
+          response_ms: number | null
+          response_text: string | null
+          saved_at: string
+          score: number | null
+          selected_index: number | null
+          session_id: string
+        }
+        Insert: {
+          is_correct?: boolean | null
+          max_score?: number
+          question_id: string
+          response_ms?: number | null
+          response_text?: string | null
+          saved_at?: string
+          score?: number | null
+          selected_index?: number | null
+          session_id: string
+        }
+        Update: {
+          is_correct?: boolean | null
+          max_score?: number
+          question_id?: string
+          response_ms?: number | null
+          response_text?: string | null
+          saved_at?: string
+          score?: number | null
+          selected_index?: number | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_kcse_mock_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "exam_question_bank"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_kcse_mock_answers_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "student_kcse_mock_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_kcse_mock_sessions: {
+        Row: {
+          active_client_id: string | null
+          created_at: string
+          duration_minutes: number
+          expires_at: string
+          id: string
+          last_saved_at: string
+          max_score: number | null
+          paper_code: string
+          percentage: number | null
+          question_ids: string[]
+          score: number | null
+          started_at: string
+          status: string
+          student_id: string
+          subject: string
+          submitted_at: string | null
+          title: string
+          total_marks: number
+          updated_at: string
+        }
+        Insert: {
+          active_client_id?: string | null
+          created_at?: string
+          duration_minutes: number
+          expires_at: string
+          id?: string
+          last_saved_at?: string
+          max_score?: number | null
+          paper_code: string
+          percentage?: number | null
+          question_ids?: string[]
+          score?: number | null
+          started_at?: string
+          status?: string
+          student_id: string
+          subject: string
+          submitted_at?: string | null
+          title: string
+          total_marks: number
+          updated_at?: string
+        }
+        Update: {
+          active_client_id?: string | null
+          created_at?: string
+          duration_minutes?: number
+          expires_at?: string
+          id?: string
+          last_saved_at?: string
+          max_score?: number | null
+          paper_code?: string
+          percentage?: number | null
+          question_ids?: string[]
+          score?: number | null
+          started_at?: string
+          status?: string
+          student_id?: string
+          subject?: string
+          submitted_at?: string | null
+          title?: string
+          total_marks?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      student_kcse_retest_schedule: {
+        Row: {
+          created_at: string
+          due_date: string
+          id: string
+          interval_days: number
+          last_attempt_at: string | null
+          last_result: boolean | null
+          mastery_state: string
+          source_mistake_id: string | null
+          student_id: string
+          subject: string
+          successful_retests: number
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          id?: string
+          interval_days?: number
+          last_attempt_at?: string | null
+          last_result?: boolean | null
+          mastery_state?: string
+          source_mistake_id?: string | null
+          student_id: string
+          subject: string
+          successful_retests?: number
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          id?: string
+          interval_days?: number
+          last_attempt_at?: string | null
+          last_result?: boolean | null
+          mastery_state?: string
+          source_mistake_id?: string | null
+          student_id?: string
+          subject?: string
+          successful_retests?: number
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_kcse_retest_schedule_source_mistake_id_fkey"
+            columns: ["source_mistake_id"]
+            isOneToOne: false
+            referencedRelation: "student_mistake_notebook"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_kcse_subject_confidence: {
+        Row: {
+          confidence: number
+          student_id: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          confidence: number
+          student_id: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          student_id?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       student_learning_events: {
         Row: {
           event_type: string
@@ -14295,6 +15080,69 @@ export type Database = {
             columns: ["subject_id"]
             isOneToOne: false
             referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_learning_generated_assets: {
+        Row: {
+          asset_type: string
+          created_at: string
+          expires_at: string
+          generator: string
+          id: string
+          model: string | null
+          payload: Json
+          quality: Json
+          source_version: string
+          status: string
+          student_id: string
+          transformation_id: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          created_at?: string
+          expires_at?: string
+          generator: string
+          id?: string
+          model?: string | null
+          payload?: Json
+          quality?: Json
+          source_version: string
+          status?: string
+          student_id: string
+          transformation_id: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          created_at?: string
+          expires_at?: string
+          generator?: string
+          id?: string
+          model?: string | null
+          payload?: Json
+          quality?: Json
+          source_version?: string
+          status?: string
+          student_id?: string
+          transformation_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_learning_generated_assets_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_learning_generated_assets_transformation_id_fkey"
+            columns: ["transformation_id"]
+            isOneToOne: false
+            referencedRelation: "student_learning_transformations"
             referencedColumns: ["id"]
           },
         ]
@@ -14461,56 +15309,192 @@ export type Database = {
           },
         ]
       }
+      student_learning_transformation_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          student_id: string
+          transformation_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          student_id: string
+          transformation_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          student_id?: string
+          transformation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_learning_transformation_events_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_learning_transformation_events_transformation_id_fkey"
+            columns: ["transformation_id"]
+            isOneToOne: false
+            referencedRelation: "student_learning_transformations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_learning_transformations: {
+        Row: {
+          chapter_id: string | null
+          created_at: string
+          expires_at: string
+          generator: string
+          id: string
+          model: string | null
+          payload: Json
+          personalization_key: string
+          publication_id: string | null
+          quality: Json
+          representation: string
+          source_id: string
+          source_type: string
+          source_version: string
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          chapter_id?: string | null
+          created_at?: string
+          expires_at?: string
+          generator?: string
+          id?: string
+          model?: string | null
+          payload: Json
+          personalization_key: string
+          publication_id?: string | null
+          quality?: Json
+          representation: string
+          source_id: string
+          source_type?: string
+          source_version: string
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          chapter_id?: string | null
+          created_at?: string
+          expires_at?: string
+          generator?: string
+          id?: string
+          model?: string | null
+          payload?: Json
+          personalization_key?: string
+          publication_id?: string | null
+          quality?: Json
+          representation?: string
+          source_id?: string
+          source_type?: string
+          source_version?: string
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_learning_transformations_chapter_id_fkey"
+            columns: ["chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_learning_transformations_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_learning_transformations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_mistake_notebook: {
         Row: {
-          correct_index: number
-          exam_question_id: string
+          correct_index: number | null
+          exam_question_id: string | null
           explanation_snapshot: string | null
           first_missed_at: string
+          generated_question_id: string | null
           hint_snapshot: string | null
           id: string
           last_correct_at: string | null
           last_missed_at: string
+          outcome_id: string | null
           prompt_snapshot: string
           repeat_count: number
           resolved_at: string | null
           selected_index: number | null
+          source_block_id: string | null
+          source_chapter_id: string | null
+          source_publication_id: string | null
           status: string
           student_id: string
           subject: string
           topic: string
         }
         Insert: {
-          correct_index: number
-          exam_question_id: string
+          correct_index?: number | null
+          exam_question_id?: string | null
           explanation_snapshot?: string | null
           first_missed_at?: string
+          generated_question_id?: string | null
           hint_snapshot?: string | null
           id?: string
           last_correct_at?: string | null
           last_missed_at?: string
+          outcome_id?: string | null
           prompt_snapshot: string
           repeat_count?: number
           resolved_at?: string | null
           selected_index?: number | null
+          source_block_id?: string | null
+          source_chapter_id?: string | null
+          source_publication_id?: string | null
           status?: string
           student_id: string
           subject: string
           topic: string
         }
         Update: {
-          correct_index?: number
-          exam_question_id?: string
+          correct_index?: number | null
+          exam_question_id?: string | null
           explanation_snapshot?: string | null
           first_missed_at?: string
+          generated_question_id?: string | null
           hint_snapshot?: string | null
           id?: string
           last_correct_at?: string | null
           last_missed_at?: string
+          outcome_id?: string | null
           prompt_snapshot?: string
           repeat_count?: number
           resolved_at?: string | null
           selected_index?: number | null
+          source_block_id?: string | null
+          source_chapter_id?: string | null
+          source_publication_id?: string | null
           status?: string
           student_id?: string
           subject?: string
@@ -14525,17 +15509,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "student_mistake_notebook_student_id_fkey"
-            columns: ["student_id"]
+            foreignKeyName: "student_mistake_notebook_generated_question_id_fkey"
+            columns: ["generated_question_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "student_generated_practice_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_mistake_notebook_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_mistake_notebook_source_block_id_fkey"
+            columns: ["source_block_id"]
+            isOneToOne: false
+            referencedRelation: "content_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_mistake_notebook_source_chapter_id_fkey"
+            columns: ["source_chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_mistake_notebook_source_publication_id_fkey"
+            columns: ["source_publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "student_mistake_notebook_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -14596,10 +15608,14 @@ export type Database = {
           exam_question_id: string
           id: string
           is_correct: boolean
+          outcome_id: string | null
           response_ms: number | null
           selected_index: number | null
           session_id: string | null
           source: string
+          source_block_id: string | null
+          source_chapter_id: string | null
+          source_publication_id: string | null
           student_id: string
           subject: string
           topic: string
@@ -14611,10 +15627,14 @@ export type Database = {
           exam_question_id: string
           id?: string
           is_correct: boolean
+          outcome_id?: string | null
           response_ms?: number | null
           selected_index?: number | null
           session_id?: string | null
           source?: string
+          source_block_id?: string | null
+          source_chapter_id?: string | null
+          source_publication_id?: string | null
           student_id: string
           subject: string
           topic: string
@@ -14626,10 +15646,14 @@ export type Database = {
           exam_question_id?: string
           id?: string
           is_correct?: boolean
+          outcome_id?: string | null
           response_ms?: number | null
           selected_index?: number | null
           session_id?: string | null
           source?: string
+          source_block_id?: string | null
+          source_chapter_id?: string | null
+          source_publication_id?: string | null
           student_id?: string
           subject?: string
           topic?: string
@@ -14643,73 +15667,38 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "student_practice_attempts_student_id_fkey"
-            columns: ["student_id"]
+            foreignKeyName: "student_practice_attempts_outcome_id_fkey"
+            columns: ["outcome_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_practice_attempts_source_block_id_fkey"
+            columns: ["source_block_id"]
+            isOneToOne: false
+            referencedRelation: "content_blocks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_practice_attempts_source_chapter_id_fkey"
+            columns: ["source_chapter_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_practice_attempts_source_publication_id_fkey"
+            columns: ["source_publication_id"]
+            isOneToOne: false
+            referencedRelation: "vibe_publications"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "student_practice_attempts_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_profiles: {
-        Row: {
-          admission_no: string | null
-          created_at: string
-          gender: string | null
-          profile_id: string
-          school_id: string
-          updated_at: string
-        }
-        Insert: {
-          admission_no?: string | null
-          created_at?: string
-          gender?: string | null
-          profile_id: string
-          school_id: string
-          updated_at?: string
-        }
-        Update: {
-          admission_no?: string | null
-          created_at?: string
-          gender?: string | null
-          profile_id?: string
-          school_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_profiles_gender_fkey"
-            columns: ["gender"]
-            isOneToOne: false
-            referencedRelation: "gender_types"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "student_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "student_profiles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
         ]
@@ -14774,36 +15763,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "student_revision_plan_items_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_schools: {
-        Row: {
-          school_id: string
-          student_id: string
-        }
-        Insert: {
-          school_id: string
-          student_id: string
-        }
-        Update: {
-          school_id?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_schools_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
         ]
       }
       student_subject_progress: {
@@ -14851,6 +15810,71 @@ export type Database = {
           },
         ]
       }
+      student_task_execution_receipts: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_saved_at: string | null
+          launched_at: string | null
+          lifecycle: string
+          receipt: Json
+          released_at: string | null
+          returned_at: string | null
+          revision_number: number
+          source_id: string
+          source_type: string
+          student_id: string
+          submitted_at: string | null
+          task_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_saved_at?: string | null
+          launched_at?: string | null
+          lifecycle: string
+          receipt?: Json
+          released_at?: string | null
+          returned_at?: string | null
+          revision_number?: number
+          source_id: string
+          source_type: string
+          student_id: string
+          submitted_at?: string | null
+          task_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_saved_at?: string | null
+          launched_at?: string | null
+          lifecycle?: string
+          receipt?: Json
+          released_at?: string | null
+          returned_at?: string | null
+          revision_number?: number
+          source_id?: string
+          source_type?: string
+          student_id?: string
+          submitted_at?: string | null
+          task_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_task_execution_receipts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_topic_notes: {
         Row: {
           created_at: string
@@ -14887,11 +15911,502 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      student_twin_calibration_events: {
+        Row: {
+          absolute_error: number | null
+          actual_value: number | null
+          confidence_score: number
+          created_at: string
+          id: string
+          metadata: Json
+          outcome_id: string | null
+          predicted_at: string
+          predicted_value: number | null
+          prediction_type: string
+          resolved_at: string | null
+          source_id: string | null
+          source_type: string
+          student_id: string
+          subject_id: string | null
+        }
+        Insert: {
+          absolute_error?: number | null
+          actual_value?: number | null
+          confidence_score?: number
+          created_at?: string
+          id?: string
+          metadata?: Json
+          outcome_id?: string | null
+          predicted_at?: string
+          predicted_value?: number | null
+          prediction_type: string
+          resolved_at?: string | null
+          source_id?: string | null
+          source_type: string
+          student_id: string
+          subject_id?: string | null
+        }
+        Update: {
+          absolute_error?: number | null
+          actual_value?: number | null
+          confidence_score?: number
+          created_at?: string
+          id?: string
+          metadata?: Json
+          outcome_id?: string | null
+          predicted_at?: string
+          predicted_value?: number | null
+          prediction_type?: string
+          resolved_at?: string | null
+          source_id?: string | null
+          source_type?: string
+          student_id?: string
+          subject_id?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "student_topic_notes_student_id_fkey"
+            foreignKeyName: "student_twin_calibration_events_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_calibration_events_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_calibration_events_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_twin_escalations: {
+        Row: {
+          acknowledged_at: string | null
+          category: string
+          class_id: string | null
+          created_at: string
+          id: string
+          resolved_at: string | null
+          school_id: string | null
+          severity: string
+          source: string
+          status: string
+          student_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          category: string
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          resolved_at?: string | null
+          school_id?: string | null
+          severity: string
+          source?: string
+          status?: string
+          student_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          category?: string
+          class_id?: string | null
+          created_at?: string
+          id?: string
+          resolved_at?: string | null
+          school_id?: string | null
+          severity?: string
+          source?: string
+          status?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_twin_escalations_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_escalations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_escalations_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_escalations_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_twin_intervention_effects: {
+        Row: {
+          attempts: number
+          confidence: number
+          created_at: string
+          effectiveness_score: number
+          id: string
+          intervention_key: string
+          intervention_type: string
+          last_observed_at: string | null
+          mean_mastery_delta: number | null
+          mean_response_ms: number | null
+          metadata: Json
+          outcome_id: string | null
+          student_id: string
+          subject_id: string | null
+          successes: number
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          confidence?: number
+          created_at?: string
+          effectiveness_score?: number
+          id?: string
+          intervention_key: string
+          intervention_type: string
+          last_observed_at?: string | null
+          mean_mastery_delta?: number | null
+          mean_response_ms?: number | null
+          metadata?: Json
+          outcome_id?: string | null
+          student_id: string
+          subject_id?: string | null
+          successes?: number
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          confidence?: number
+          created_at?: string
+          effectiveness_score?: number
+          id?: string
+          intervention_key?: string
+          intervention_type?: string
+          last_observed_at?: string | null
+          mean_mastery_delta?: number | null
+          mean_response_ms?: number | null
+          metadata?: Json
+          outcome_id?: string | null
+          student_id?: string
+          subject_id?: string | null
+          successes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_twin_intervention_effects_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_intervention_effects_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_intervention_effects_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_twin_learning_exposures: {
+        Row: {
+          created_at: string
+          evidence_count_after: number | null
+          evidence_count_before: number
+          exposed_at: string
+          id: string
+          intervention_key: string
+          intervention_type: string
+          mastery_after: number | null
+          mastery_before: number | null
+          mastery_delta: number | null
+          metadata: Json
+          outcome_id: string | null
+          resolved_at: string | null
+          response_ms: number | null
+          source_id: string | null
+          source_type: string
+          student_id: string
+          successful: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          evidence_count_after?: number | null
+          evidence_count_before?: number
+          exposed_at?: string
+          id?: string
+          intervention_key: string
+          intervention_type: string
+          mastery_after?: number | null
+          mastery_before?: number | null
+          mastery_delta?: number | null
+          metadata?: Json
+          outcome_id?: string | null
+          resolved_at?: string | null
+          response_ms?: number | null
+          source_id?: string | null
+          source_type?: string
+          student_id: string
+          successful?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          evidence_count_after?: number | null
+          evidence_count_before?: number
+          exposed_at?: string
+          id?: string
+          intervention_key?: string
+          intervention_type?: string
+          mastery_after?: number | null
+          mastery_before?: number | null
+          mastery_delta?: number | null
+          metadata?: Json
+          outcome_id?: string | null
+          resolved_at?: string | null
+          response_ms?: number | null
+          source_id?: string | null
+          source_type?: string
+          student_id?: string
+          successful?: boolean | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_twin_learning_exposures_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_learning_exposures_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_twin_memory_claims: {
+        Row: {
+          claim_key: string
+          claim_text: string
+          confidence: number
+          created_at: string
+          evidence_count: number
+          expires_at: string | null
+          first_observed_at: string
+          id: string
+          importance: number
+          last_confirmed_at: string
+          learning_impact: number | null
+          memory_scope: string
+          memory_type: string
+          outcome_id: string | null
+          permanence: string
+          provenance: Json
+          relationship_refs: Json
+          source_summary: Json
+          status: string
+          student_id: string
+          subject_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          claim_key: string
+          claim_text: string
+          confidence?: number
+          created_at?: string
+          evidence_count?: number
+          expires_at?: string | null
+          first_observed_at?: string
+          id?: string
+          importance?: number
+          last_confirmed_at?: string
+          learning_impact?: number | null
+          memory_scope?: string
+          memory_type: string
+          outcome_id?: string | null
+          permanence?: string
+          provenance?: Json
+          relationship_refs?: Json
+          source_summary?: Json
+          status?: string
+          student_id: string
+          subject_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          claim_key?: string
+          claim_text?: string
+          confidence?: number
+          created_at?: string
+          evidence_count?: number
+          expires_at?: string | null
+          first_observed_at?: string
+          id?: string
+          importance?: number
+          last_confirmed_at?: string
+          learning_impact?: number | null
+          memory_scope?: string
+          memory_type?: string
+          outcome_id?: string | null
+          permanence?: string
+          provenance?: Json
+          relationship_refs?: Json
+          source_summary?: Json
+          status?: string
+          student_id?: string
+          subject_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_twin_memory_claims_outcome_id_fkey"
+            columns: ["outcome_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_learning_outcomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_memory_claims_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_twin_memory_claims_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_twin_private_items: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          item_type: string
+          profile_id: string
+          source: Json
+          status: string
+          subject: string | null
+          tags: string[]
+          title: string | null
+          topic: string | null
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          item_type: string
+          profile_id: string
+          source?: Json
+          status?: string
+          subject?: string | null
+          tags?: string[]
+          title?: string | null
+          topic?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          item_type?: string
+          profile_id?: string
+          source?: Json
+          status?: string
+          subject?: string | null
+          tags?: string[]
+          title?: string | null
+          topic?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_twin_private_items_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_twin_state_snapshots: {
+        Row: {
+          confidence_score: number
+          evidence_count: number
+          generated_at: string
+          state: Json
+          state_version: number
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number
+          evidence_count?: number
+          generated_at?: string
+          state?: Json
+          state_version?: number
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_score?: number
+          evidence_count?: number
+          generated_at?: string
+          state?: Json
+          state_version?: number
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_twin_state_snapshots_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -14910,6 +16425,7 @@ export type Database = {
           name: string
           parent_linked_at: string | null
           profile_id: string | null
+          self_use_enabled: boolean
         }
         Insert: {
           admission_number?: string | null
@@ -14924,6 +16440,7 @@ export type Database = {
           name: string
           parent_linked_at?: string | null
           profile_id?: string | null
+          self_use_enabled?: boolean
         }
         Update: {
           admission_number?: string | null
@@ -14938,6 +16455,7 @@ export type Database = {
           name?: string
           parent_linked_at?: string | null
           profile_id?: string | null
+          self_use_enabled?: boolean
         }
         Relationships: [
           {
@@ -14952,54 +16470,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "students_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      study_plans: {
-        Row: {
-          created_at: string | null
-          done: boolean | null
-          id: string
-          scheduled_date: string | null
-          student_id: string | null
-          subject: string | null
-          topic: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          done?: boolean | null
-          id?: string
-          scheduled_date?: string | null
-          student_id?: string | null
-          subject?: string | null
-          topic?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          done?: boolean | null
-          id?: string
-          scheduled_date?: string | null
-          student_id?: string | null
-          subject?: string | null
-          topic?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "study_plans_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -15065,6 +16535,13 @@ export type Database = {
             columns: ["global_subject_id"]
             isOneToOne: false
             referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subjects_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -15193,42 +16670,6 @@ export type Database = {
         }
         Relationships: []
       }
-      system_health_logs: {
-        Row: {
-          created_at: string
-          duration_ms: number | null
-          error_code: string | null
-          error_message: string | null
-          id: string
-          job_name: string
-          job_run_id: string
-          rows_affected: number | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          duration_ms?: number | null
-          error_code?: string | null
-          error_message?: string | null
-          id?: string
-          job_name: string
-          job_run_id: string
-          rows_affected?: number | null
-          status: string
-        }
-        Update: {
-          created_at?: string
-          duration_ms?: number | null
-          error_code?: string | null
-          error_message?: string | null
-          id?: string
-          job_name?: string
-          job_run_id?: string
-          rows_affected?: number | null
-          status?: string
-        }
-        Relationships: []
-      }
       teacher_classes: {
         Row: {
           class_id: string
@@ -15269,6 +16710,13 @@ export type Database = {
             foreignKeyName: "teacher_classes_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_classes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -15284,13 +16732,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teacher_classes_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -15340,97 +16781,6 @@ export type Database = {
         }
         Relationships: []
       }
-      teacher_profiles: {
-        Row: {
-          appraisal_notes: string | null
-          appraisal_score: number | null
-          created_at: string
-          date_of_birth: string | null
-          designation: string | null
-          documents: Json | null
-          employment_type: string | null
-          finance_ref: string | null
-          gender: string | null
-          leave_balance: number | null
-          nationality: string | null
-          professional_dev: Json | null
-          profile_id: string
-          qualifications: Json | null
-          school_id: string | null
-          subjects_taught: string[] | null
-          teaching_style: string | null
-          tsc_number: string | null
-          twin_notes: string | null
-          updated_at: string
-        }
-        Insert: {
-          appraisal_notes?: string | null
-          appraisal_score?: number | null
-          created_at?: string
-          date_of_birth?: string | null
-          designation?: string | null
-          documents?: Json | null
-          employment_type?: string | null
-          finance_ref?: string | null
-          gender?: string | null
-          leave_balance?: number | null
-          nationality?: string | null
-          professional_dev?: Json | null
-          profile_id: string
-          qualifications?: Json | null
-          school_id?: string | null
-          subjects_taught?: string[] | null
-          teaching_style?: string | null
-          tsc_number?: string | null
-          twin_notes?: string | null
-          updated_at?: string
-        }
-        Update: {
-          appraisal_notes?: string | null
-          appraisal_score?: number | null
-          created_at?: string
-          date_of_birth?: string | null
-          designation?: string | null
-          documents?: Json | null
-          employment_type?: string | null
-          finance_ref?: string | null
-          gender?: string | null
-          leave_balance?: number | null
-          nationality?: string | null
-          professional_dev?: Json | null
-          profile_id?: string
-          qualifications?: Json | null
-          school_id?: string | null
-          subjects_taught?: string[] | null
-          teaching_style?: string | null
-          tsc_number?: string | null
-          twin_notes?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "teacher_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teacher_profiles_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teacher_profiles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       teacher_resource_adoptions: {
         Row: {
           adopted_at: string
@@ -15477,42 +16827,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      teachers: {
-        Row: {
-          class: string
-          created_at: string | null
-          id: string
-          initials: string
-          name: string
-          phone: string | null
-          school: string
-          subject: string
-          user_id: string
-        }
-        Insert: {
-          class?: string
-          created_at?: string | null
-          id?: string
-          initials?: string
-          name?: string
-          phone?: string | null
-          school?: string
-          subject?: string
-          user_id: string
-        }
-        Update: {
-          class?: string
-          created_at?: string | null
-          id?: string
-          initials?: string
-          name?: string
-          phone?: string | null
-          school?: string
-          subject?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       teaching_occurrence_resource_usage: {
         Row: {
@@ -15587,6 +16901,13 @@ export type Database = {
             foreignKeyName: "teaching_occurrence_resource_usage_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teaching_occurrence_resource_usage_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -15602,13 +16923,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teaching_occurrence_resource_usage_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -15707,6 +17021,13 @@ export type Database = {
             foreignKeyName: "teaching_occurrences_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teaching_occurrences_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -15715,13 +17036,6 @@ export type Database = {
             columns: ["started_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teaching_occurrences_started_by_fkey"
-            columns: ["started_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -15736,13 +17050,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "teaching_occurrences_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -15831,13 +17138,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "teaching_resource_links_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "teaching_resource_links_exam_id_fkey"
             columns: ["exam_id"]
             isOneToOne: false
@@ -15916,6 +17216,13 @@ export type Database = {
           week_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "term_weeks_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "term_weeks_school_id_fkey"
             columns: ["school_id"]
@@ -16000,6 +17307,13 @@ export type Database = {
             foreignKeyName: "timetable_slots_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_slots_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -16015,13 +17329,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "timetable_slots_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -16056,6 +17363,13 @@ export type Database = {
             foreignKeyName: "timetable_snapshots_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timetable_snapshots_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -16064,13 +17378,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "timetable_snapshots_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -16212,6 +17519,13 @@ export type Database = {
             foreignKeyName: "tpad_appraisals_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tpad_appraisals_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -16220,13 +17534,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tpad_appraisals_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -16238,214 +17545,30 @@ export type Database = {
           },
         ]
       }
-      tpad_deadlines: {
-        Row: {
-          countersign_due: string
-          created_at: string | null
-          id: string
-          school_id: string
-          self_appraisal_due: string
-          term_id: string
-        }
-        Insert: {
-          countersign_due: string
-          created_at?: string | null
-          id?: string
-          school_id: string
-          self_appraisal_due: string
-          term_id: string
-        }
-        Update: {
-          countersign_due?: string
-          created_at?: string | null
-          id?: string
-          school_id?: string
-          self_appraisal_due?: string
-          term_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tpad_deadlines_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tpad_deadlines_term_id_fkey"
-            columns: ["term_id"]
-            isOneToOne: false
-            referencedRelation: "academic_terms"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tpad_evidence: {
-        Row: {
-          appraisal_id: string
-          created_at: string | null
-          description: string
-          id: string
-          source: string
-          source_id: string | null
-          standard: number
-          teacher_id: string
-        }
-        Insert: {
-          appraisal_id: string
-          created_at?: string | null
-          description: string
-          id?: string
-          source: string
-          source_id?: string | null
-          standard: number
-          teacher_id: string
-        }
-        Update: {
-          appraisal_id?: string
-          created_at?: string | null
-          description?: string
-          id?: string
-          source?: string
-          source_id?: string | null
-          standard?: number
-          teacher_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tpad_evidence_appraisal_id_fkey"
-            columns: ["appraisal_id"]
-            isOneToOne: false
-            referencedRelation: "tpad_appraisals"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tpad_evidence_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tpad_evidence_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      traditional_grades: {
-        Row: {
-          academic_year: number
-          assessment: string
-          class_id: string
-          created_at: string
-          id: string
-          marks: number
-          notes: string | null
-          out_of: number
-          school_id: string
-          student_id: string
-          subject_id: string
-          teacher_id: string
-          term: number
-          updated_at: string
-        }
-        Insert: {
-          academic_year: number
-          assessment: string
-          class_id: string
-          created_at?: string
-          id?: string
-          marks: number
-          notes?: string | null
-          out_of?: number
-          school_id: string
-          student_id: string
-          subject_id: string
-          teacher_id: string
-          term: number
-          updated_at?: string
-        }
-        Update: {
-          academic_year?: number
-          assessment?: string
-          class_id?: string
-          created_at?: string
-          id?: string
-          marks?: number
-          notes?: string | null
-          out_of?: number
-          school_id?: string
-          student_id?: string
-          subject_id?: string
-          teacher_id?: string
-          term?: number
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "traditional_grades_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "traditional_grades_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "traditional_grades_subject_id_fkey"
-            columns: ["subject_id"]
-            isOneToOne: false
-            referencedRelation: "subjects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "traditional_grades_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "traditional_grades_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       twin_memory: {
         Row: {
-          content: string | null
-          created_at: string | null
+          content: string
+          created_at: string
           id: string
-          subject: string | null
-          type: string | null
-          user_id: string | null
+          subject: string
+          type: string
+          user_id: string
         }
         Insert: {
-          content?: string | null
-          created_at?: string | null
+          content: string
+          created_at?: string
           id?: string
-          subject?: string | null
-          type?: string | null
-          user_id?: string | null
+          subject?: string
+          type: string
+          user_id: string
         }
         Update: {
-          content?: string | null
-          created_at?: string | null
+          content?: string
+          created_at?: string
           id?: string
-          subject?: string | null
-          type?: string | null
-          user_id?: string | null
+          subject?: string
+          type?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -16453,47 +17576,28 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "twin_memory_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
       }
       twin_profile: {
         Row: {
-          avg_session_m: number | null
-          content_pref: string | null
-          last_topic: string | null
-          read_time_pref: string | null
-          top_subjects: string[] | null
-          updated_at: string | null
+          last_topic: string
+          top_subjects: string[]
+          updated_at: string
           user_id: string
-          vibe_count: number | null
         }
         Insert: {
-          avg_session_m?: number | null
-          content_pref?: string | null
-          last_topic?: string | null
-          read_time_pref?: string | null
-          top_subjects?: string[] | null
-          updated_at?: string | null
+          last_topic?: string
+          top_subjects?: string[]
+          updated_at?: string
           user_id: string
-          vibe_count?: number | null
         }
         Update: {
-          avg_session_m?: number | null
-          content_pref?: string | null
-          last_topic?: string | null
-          read_time_pref?: string | null
-          top_subjects?: string[] | null
-          updated_at?: string | null
+          last_topic?: string
+          top_subjects?: string[]
+          updated_at?: string
           user_id?: string
-          vibe_count?: number | null
         }
         Relationships: [
           {
@@ -16501,223 +17605,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: true
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "twin_profile_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      twin_sessions: {
-        Row: {
-          created_at: string
-          duration_seconds: number
-          id: string
-          prompt: string | null
-          response: string | null
-          role: Database["public"]["Enums"]["member_role"]
-          school_id: string | null
-          target_id: string | null
-          target_table: string | null
-          task_type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          duration_seconds?: number
-          id?: string
-          prompt?: string | null
-          response?: string | null
-          role: Database["public"]["Enums"]["member_role"]
-          school_id?: string | null
-          target_id?: string | null
-          target_table?: string | null
-          task_type: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          duration_seconds?: number
-          id?: string
-          prompt?: string | null
-          response?: string | null
-          role?: Database["public"]["Enums"]["member_role"]
-          school_id?: string | null
-          target_id?: string | null
-          target_table?: string | null
-          task_type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "twin_sessions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "twin_sessions_task_type_fkey"
-            columns: ["task_type"]
-            isOneToOne: false
-            referencedRelation: "twin_task_types"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "twin_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "twin_sessions_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      twin_task_types: {
-        Row: {
-          code: string
-          label: string
-        }
-        Insert: {
-          code: string
-          label: string
-        }
-        Update: {
-          code?: string
-          label?: string
-        }
-        Relationships: []
-      }
-      vc_circular_recipients: {
-        Row: {
-          ack_at: string | null
-          circular_id: string | null
-          delivered_at: string | null
-          id: string
-          profile_id: string | null
-        }
-        Insert: {
-          ack_at?: string | null
-          circular_id?: string | null
-          delivered_at?: string | null
-          id?: string
-          profile_id?: string | null
-        }
-        Update: {
-          ack_at?: string | null
-          circular_id?: string | null
-          delivered_at?: string | null
-          id?: string
-          profile_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vc_circular_recipients_circular_id_fkey"
-            columns: ["circular_id"]
-            isOneToOne: false
-            referencedRelation: "vc_circulars"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vc_circular_recipients_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vc_circular_recipients_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vc_circulars: {
-        Row: {
-          ack_deadline: string | null
-          audience_type: string
-          body: string
-          created_at: string | null
-          id: string
-          recipient_profile_id: string | null
-          requires_ack: boolean | null
-          school_id: string | null
-          sent_at: string | null
-          sent_by: string | null
-          title: string
-        }
-        Insert: {
-          ack_deadline?: string | null
-          audience_type: string
-          body: string
-          created_at?: string | null
-          id?: string
-          recipient_profile_id?: string | null
-          requires_ack?: boolean | null
-          school_id?: string | null
-          sent_at?: string | null
-          sent_by?: string | null
-          title: string
-        }
-        Update: {
-          ack_deadline?: string | null
-          audience_type?: string
-          body?: string
-          created_at?: string | null
-          id?: string
-          recipient_profile_id?: string | null
-          requires_ack?: boolean | null
-          school_id?: string | null
-          sent_at?: string | null
-          sent_by?: string | null
-          title?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vc_circulars_recipient_profile_id_fkey"
-            columns: ["recipient_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vc_circulars_recipient_profile_id_fkey"
-            columns: ["recipient_profile_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vc_circulars_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vc_circulars_sent_by_fkey"
-            columns: ["sent_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vc_circulars_sent_by_fkey"
-            columns: ["sent_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -16755,6 +17642,13 @@ export type Database = {
             foreignKeyName: "vc_messages_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vc_messages_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -16763,13 +17657,6 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vc_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
           {
@@ -16818,10 +17705,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vc_participants_profile_id_fkey"
-            columns: ["profile_id"]
+            foreignKeyName: "vc_participants_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -16886,10 +17773,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vc_threads_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "vc_threads_school_id_fkey"
+            columns: ["school_id"]
             isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
+            referencedRelation: "school_directory_public"
             referencedColumns: ["id"]
           },
           {
@@ -16999,6 +17886,13 @@ export type Database = {
             foreignKeyName: "vibe_chapter_assignments_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_chapter_assignments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -17014,13 +17908,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_chapter_assignments_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -17131,13 +18018,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "vibe_chapters_verified_by_fkey"
-            columns: ["verified_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
         ]
       }
       vibe_credit_packages: {
@@ -17174,6 +18054,7 @@ export type Database = {
           created_at: string | null
           feature: string | null
           id: string
+          mpesa_amount_kes: number | null
           mpesa_ref: string | null
           notes: string | null
           school_id: string | null
@@ -17186,6 +18067,7 @@ export type Database = {
           created_at?: string | null
           feature?: string | null
           id?: string
+          mpesa_amount_kes?: number | null
           mpesa_ref?: string | null
           notes?: string | null
           school_id?: string | null
@@ -17198,6 +18080,7 @@ export type Database = {
           created_at?: string | null
           feature?: string | null
           id?: string
+          mpesa_amount_kes?: number | null
           mpesa_ref?: string | null
           notes?: string | null
           school_id?: string | null
@@ -17210,13 +18093,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_credit_transactions_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -17249,13 +18125,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: true
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_credits_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: true
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -17441,13 +18310,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "vibe_reading_progress_viewer_id_fkey"
-            columns: ["viewer_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
         ]
       }
       vibe_reading_sessions: {
@@ -17521,188 +18383,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "vibe_reading_sessions_viewer_id_fkey"
-            columns: ["viewer_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibe_saved_items: {
-        Row: {
-          chapter_id: string | null
-          created_at: string
-          id: string
-          publication_id: string
-          viewer_id: string
-        }
-        Insert: {
-          chapter_id?: string | null
-          created_at?: string
-          id?: string
-          publication_id: string
-          viewer_id: string
-        }
-        Update: {
-          chapter_id?: string | null
-          created_at?: string
-          id?: string
-          publication_id?: string
-          viewer_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibe_saved_items_chapter_id_fkey"
-            columns: ["chapter_id"]
-            isOneToOne: false
-            referencedRelation: "vibe_chapters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_saved_items_publication_id_fkey"
-            columns: ["publication_id"]
-            isOneToOne: false
-            referencedRelation: "vibe_publications"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_saved_items_viewer_id_fkey"
-            columns: ["viewer_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_saved_items_viewer_id_fkey"
-            columns: ["viewer_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibe_stories: {
-        Row: {
-          age_range: string
-          author_id: string
-          characters: Json | null
-          cover_image_url: string | null
-          created_at: string
-          description: string | null
-          earnings_ksh: number
-          id: string
-          language: string
-          page_count: number
-          published_at: string | null
-          status: string
-          tags: string[] | null
-          title: string
-          updated_at: string
-          vibe_count: number
-          view_count: number
-        }
-        Insert: {
-          age_range?: string
-          author_id: string
-          characters?: Json | null
-          cover_image_url?: string | null
-          created_at?: string
-          description?: string | null
-          earnings_ksh?: number
-          id?: string
-          language?: string
-          page_count?: number
-          published_at?: string | null
-          status?: string
-          tags?: string[] | null
-          title?: string
-          updated_at?: string
-          vibe_count?: number
-          view_count?: number
-        }
-        Update: {
-          age_range?: string
-          author_id?: string
-          characters?: Json | null
-          cover_image_url?: string | null
-          created_at?: string
-          description?: string | null
-          earnings_ksh?: number
-          id?: string
-          language?: string
-          page_count?: number
-          published_at?: string | null
-          status?: string
-          tags?: string[] | null
-          title?: string
-          updated_at?: string
-          vibe_count?: number
-          view_count?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibe_stories_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_stories_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibe_story_pages: {
-        Row: {
-          background_color: string
-          created_at: string
-          id: string
-          illustration_prompt: string | null
-          illustration_url: string | null
-          page_number: number
-          speech_bubbles: Json
-          story_id: string
-          text_blocks: Json
-          updated_at: string
-        }
-        Insert: {
-          background_color?: string
-          created_at?: string
-          id?: string
-          illustration_prompt?: string | null
-          illustration_url?: string | null
-          page_number: number
-          speech_bubbles?: Json
-          story_id: string
-          text_blocks?: Json
-          updated_at?: string
-        }
-        Update: {
-          background_color?: string
-          created_at?: string
-          id?: string
-          illustration_prompt?: string | null
-          illustration_url?: string | null
-          page_number?: number
-          speech_bubbles?: Json
-          story_id?: string
-          text_blocks?: Json
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibe_story_pages_story_id_fkey"
-            columns: ["story_id"]
-            isOneToOne: false
-            referencedRelation: "vibe_stories"
-            referencedColumns: ["id"]
-          },
         ]
       }
       vibe_workspace_items: {
@@ -17756,49 +18436,6 @@ export type Database = {
             columns: ["viewer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_workspace_items_viewer_id_fkey"
-            columns: ["viewer_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_completed: {
-        Row: {
-          completed_at: string | null
-          content_id: string | null
-          id: string
-          student_id: string | null
-        }
-        Insert: {
-          completed_at?: string | null
-          content_id?: string | null
-          id?: string
-          student_id?: string | null
-        }
-        Update: {
-          completed_at?: string | null
-          content_id?: string | null
-          id?: string
-          student_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_completed_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibelearn_completed_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
             referencedColumns: ["id"]
           },
         ]
@@ -17875,6 +18512,13 @@ export type Database = {
             foreignKeyName: "vibelearn_content_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibelearn_content_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -17893,13 +18537,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vibelearn_content_submitted_by_fkey"
-            columns: ["submitted_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "vibelearn_content_vibe_publication_id_fkey"
             columns: ["vibe_publication_id"]
             isOneToOne: false
@@ -17908,305 +18545,19 @@ export type Database = {
           },
         ]
       }
-      vibelearn_content_saves: {
-        Row: {
-          content_id: string
-          id: string
-          saved_at: string
-          student_id: string
-        }
-        Insert: {
-          content_id: string
-          id?: string
-          saved_at?: string
-          student_id: string
-        }
-        Update: {
-          content_id?: string
-          id?: string
-          saved_at?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_content_saves_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_content"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_content_views: {
-        Row: {
-          content_id: string
-          id: string
-          student_id: string | null
-          viewed_at: string
-        }
-        Insert: {
-          content_id: string
-          id?: string
-          student_id?: string | null
-          viewed_at?: string
-        }
-        Update: {
-          content_id?: string
-          id?: string
-          student_id?: string | null
-          viewed_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_content_views_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_content"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_history: {
-        Row: {
-          content_id: string | null
-          id: string
-          student_id: string | null
-          viewed_at: string | null
-        }
-        Insert: {
-          content_id?: string | null
-          id?: string
-          student_id?: string | null
-          viewed_at?: string | null
-        }
-        Update: {
-          content_id?: string | null
-          id?: string
-          student_id?: string | null
-          viewed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_history_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibelearn_history_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_points: {
-        Row: {
-          action: string
-          content_id: string | null
-          created_at: string | null
-          id: string
-          points: number
-          student_id: string | null
-        }
-        Insert: {
-          action: string
-          content_id?: string | null
-          created_at?: string | null
-          id?: string
-          points: number
-          student_id?: string | null
-        }
-        Update: {
-          action?: string
-          content_id?: string | null
-          created_at?: string | null
-          id?: string
-          points?: number
-          student_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_points_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibelearn_points_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_saved: {
-        Row: {
-          content_id: string | null
-          id: string
-          saved_at: string | null
-          student_id: string | null
-        }
-        Insert: {
-          content_id?: string | null
-          id?: string
-          saved_at?: string | null
-          student_id?: string | null
-        }
-        Update: {
-          content_id?: string | null
-          id?: string
-          saved_at?: string | null
-          student_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_saved_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibelearn_saved_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_searches: {
-        Row: {
-          id: string
-          query: string
-          results_count: number | null
-          searched_at: string | null
-          student_id: string | null
-        }
-        Insert: {
-          id?: string
-          query: string
-          results_count?: number | null
-          searched_at?: string | null
-          student_id?: string | null
-        }
-        Update: {
-          id?: string
-          query?: string
-          results_count?: number | null
-          searched_at?: string | null
-          student_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_searches_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibelearn_searches_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_streaks: {
-        Row: {
-          current_streak: number | null
-          last_active_date: string | null
-          longest_streak: number | null
-          student_id: string
-          updated_at: string | null
-        }
-        Insert: {
-          current_streak?: number | null
-          last_active_date?: string | null
-          longest_streak?: number | null
-          student_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          current_streak?: number | null
-          last_active_date?: string | null
-          longest_streak?: number | null
-          student_id?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_streaks_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: true
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_vibes: {
-        Row: {
-          content_id: string | null
-          created_at: string | null
-          id: string
-          user_id: string | null
-        }
-        Insert: {
-          content_id?: string | null
-          created_at?: string | null
-          id?: string
-          user_id?: string | null
-        }
-        Update: {
-          content_id?: string | null
-          created_at?: string | null
-          id?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_vibes_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibelearn_vibes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibelearn_vibes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
-      exam_bank_health: {
+      content_engine_operational_health: {
         Row: {
-          active_count: number | null
-          difficulty: Database["public"]["Enums"]["exam_difficulty"] | null
-          dismissed_count: number | null
-          form: Database["public"]["Enums"]["exam_form"] | null
-          last_added_at: string | null
-          subject: Database["public"]["Enums"]["exam_subject"] | null
-          topic: string | null
-          total_served: number | null
-          under_review_count: number | null
+          completed_runs: number | null
+          enabled_watch_targets: number | null
+          last_completed_run: string | null
+          learning_events: number | null
+          open_health_signals: number | null
+          open_proposals: number | null
+          pending_actions: number | null
+          pending_effectiveness_reviews: number | null
+          reading_sessions: number | null
         }
         Relationships: []
       }
@@ -18223,43 +18574,21 @@ export type Database = {
         }
         Relationships: []
       }
-      funhub_leaderboard_national: {
+      hq_workforce_worker_performance: {
         Row: {
-          display_name: string | null
-          level: number | null
-          rank: number | null
-          school_id: string | null
-          total_xp: number | null
-          weekly_xp: number | null
+          completed_runs: number | null
+          decision_required_runs: number | null
+          execution_certified_count: number | null
+          failed_runs: number | null
+          outcome_verification_rate: number | null
+          outcome_verified_count: number | null
+          status: string | null
+          title: string | null
+          total_runs: number | null
+          worker_id: string | null
+          worker_key: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      funhub_leaderboard_school: {
-        Row: {
-          display_name: string | null
-          level: number | null
-          school_id: string | null
-          school_rank: number | null
-          total_xp: number | null
-          weekly_xp: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       lesson_evidence_resource_lineage: {
         Row: {
@@ -18304,13 +18633,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "lesson_evidence_resource_usage_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "lesson_evidence_resource_usage_teaching_occurrence_id_fkey"
             columns: ["teaching_occurrence_id"]
             isOneToOne: false
@@ -18319,65 +18641,121 @@ export type Database = {
           },
         ]
       }
-      student_accessible_resources: {
+      parent_students: {
         Row: {
-          class_id: string | null
-          content: string | null
           created_at: string | null
-          description: string | null
-          external_url: string | null
           id: string | null
-          is_school_wide: boolean | null
+          is_primary: boolean | null
+          parent_id: string | null
+          relationship: string | null
           school_id: string | null
-          subject: string | null
-          teacher_id: string | null
-          title: string | null
-          type: string | null
+          student_id: string | null
+          updated_at: string | null
         }
         Insert: {
-          class_id?: string | null
-          content?: string | null
           created_at?: string | null
-          description?: string | null
-          external_url?: string | null
           id?: string | null
-          is_school_wide?: boolean | null
+          is_primary?: boolean | null
+          parent_id?: string | null
+          relationship?: string | null
           school_id?: string | null
-          subject?: string | null
-          teacher_id?: string | null
-          title?: string | null
-          type?: string | null
+          student_id?: string | null
+          updated_at?: string | null
         }
         Update: {
-          class_id?: string | null
-          content?: string | null
           created_at?: string | null
-          description?: string | null
-          external_url?: string | null
           id?: string | null
-          is_school_wide?: boolean | null
+          is_primary?: boolean | null
+          parent_id?: string | null
+          relationship?: string | null
           school_id?: string | null
-          subject?: string | null
-          teacher_id?: string | null
-          title?: string | null
-          type?: string | null
+          student_id?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "resources_class_id_fkey"
-            columns: ["class_id"]
+            foreignKeyName: "parent_student_links_parent_id_fkey"
+            columns: ["parent_id"]
             isOneToOne: false
-            referencedRelation: "classes"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "resources_school_id_fkey"
+            foreignKeyName: "parent_student_links_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_student_links_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "parent_student_links_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      school_directory_public: {
+        Row: {
+          accommodation_type: string | null
+          county: string | null
+          gender_type: string | null
+          gps_lat: number | null
+          gps_lng: number | null
+          id: string | null
+          knec_code: string | null
+          levels: string[] | null
+          name: string | null
+          nemis_code: string | null
+          ownership_type: string | null
+          school_category: string | null
+          school_type: string | null
+          sub_county: string | null
+          ward: string | null
+        }
+        Insert: {
+          accommodation_type?: string | null
+          county?: string | null
+          gender_type?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string | null
+          knec_code?: string | null
+          levels?: never
+          name?: string | null
+          nemis_code?: string | null
+          ownership_type?: string | null
+          school_category?: string | null
+          school_type?: string | null
+          sub_county?: string | null
+          ward?: string | null
+        }
+        Update: {
+          accommodation_type?: string | null
+          county?: string | null
+          gender_type?: string | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string | null
+          knec_code?: string | null
+          levels?: never
+          name?: string | null
+          nemis_code?: string | null
+          ownership_type?: string | null
+          school_category?: string | null
+          school_type?: string | null
+          sub_county?: string | null
+          ward?: string | null
+        }
+        Relationships: []
       }
       teacher_content_engine_summary: {
         Row: {
@@ -18402,6 +18780,13 @@ export type Database = {
             foreignKeyName: "vibe_chapter_assignments_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vibe_chapter_assignments_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -18410,13 +18795,6 @@ export type Database = {
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibe_chapter_assignments_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
             referencedColumns: ["id"]
           },
         ]
@@ -18452,6 +18830,13 @@ export type Database = {
             foreignKeyName: "teaching_occurrence_resource_usage_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teaching_occurrence_resource_usage_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -18469,271 +18854,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "teaching_occurrence_resource_usage_teacher_id_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_approvals_queue: {
-        Row: {
-          amount: number | null
-          confirmed_at: string | null
-          confirmed_by: string | null
-          confirmed_by_name: string | null
-          days_pending: number | null
-          description: string | null
-          logged_at: string | null
-          logged_by: string | null
-          logged_by_name: string | null
-          project_id: string | null
-          project_title: string | null
-          project_type: string | null
-          receipt_ref: string | null
-          return_reason: string | null
-          school_id: string | null
-          status: string | null
-          task_ref: string | null
-          transaction_id: string | null
-          vendor: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_transactions_confirmed_by_fkey"
-            columns: ["confirmed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_confirmed_by_fkey"
-            columns: ["confirmed_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_logged_by_fkey"
-            columns: ["logged_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_logged_by_fkey"
-            columns: ["logged_by"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "admin_projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_transactions_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "v_project_summary"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_transactions_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_budget_vs_actual: {
-        Row: {
-          account_code: string | null
-          account_id: string | null
-          account_name: string | null
-          account_type: string | null
-          actual_spent: number | null
-          available: number | null
-          budgeted: number | null
-          committed: number | null
-          pending_confirmation: number | null
-          school_id: string | null
-          term: string | null
-          year: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_budgets_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "finance_accounts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_budgets_account_id_fkey"
-            columns: ["account_id"]
-            isOneToOne: false
-            referencedRelation: "v_trial_balance"
-            referencedColumns: ["account_id"]
-          },
-          {
-            foreignKeyName: "finance_budgets_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_invoice_aging: {
-        Row: {
-          admission_number: string | null
-          aging_bucket: string | null
-          balance: number | null
-          created_at: string | null
-          days_overdue: number | null
-          due_date: string | null
-          id: string | null
-          paid_amount: number | null
-          school_id: string | null
-          status: string | null
-          student_id: string | null
-          student_name: string | null
-          term: string | null
-          total_amount: number | null
-          year: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_invoices_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "finance_invoices_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_project_summary: {
-        Row: {
-          at_risk_ack: boolean | null
-          budget_line_id: string | null
-          created_at: string | null
-          end_date: string | null
-          milestones_done: number | null
-          milestones_total: number | null
-          owner_id: string | null
-          owner_name: string | null
-          pending_confirmation: number | null
-          planned: number | null
-          project_id: string | null
-          project_type: string | null
-          remaining: number | null
-          school_id: string | null
-          spent: number | null
-          start_date: string | null
-          status: string | null
-          title: string | null
-          updated_at: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_projects_budget_line_id_fkey"
-            columns: ["budget_line_id"]
-            isOneToOne: false
-            referencedRelation: "finance_budgets"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_projects_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      v_trial_balance: {
-        Row: {
-          account_id: string | null
-          code: string | null
-          name: string | null
-          net_balance: number | null
-          school_id: string | null
-          total_credit: number | null
-          total_debit: number | null
-          type: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "finance_accounts_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vibelearn_leaderboard: {
-        Row: {
-          completions: number | null
-          full_name: string | null
-          id: string | null
-          total_points: number | null
-        }
-        Relationships: []
-      }
-      vibelearn_teacher_stats: {
-        Row: {
-          content_count: number | null
-          draft_count: number | null
-          live_count: number | null
-          teacher_id: string | null
-          teacher_rank: number | null
-          total_earnings_ksh: number | null
-          total_views: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vibelearn_content_submitted_by_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vibelearn_content_submitted_by_fkey"
-            columns: ["teacher_id"]
-            isOneToOne: false
-            referencedRelation: "vibelearn_leaderboard"
-            referencedColumns: ["id"]
-          },
         ]
       }
     }
@@ -18749,12 +18869,20 @@ export type Database = {
         }
         Returns: string
       }
+      admin_get_classroom_learning_health: {
+        Args: { p_school_id: string }
+        Returns: Json
+      }
       admin_reconcile_vibelearn_textbook_index: {
         Args: { p_publication_id: string }
         Returns: {
           content_id: string
           operation: string
         }[]
+      }
+      approve_school_admin_join_request: {
+        Args: { p_request_id: string; p_review_note?: string }
+        Returns: undefined
       }
       assign_chapter_to_class: {
         Args: { p_chapter_id: string; p_class_id: string; p_due_at?: string }
@@ -18768,8 +18896,6 @@ export type Database = {
         }
         Returns: Json
       }
-      bump_bank_served: { Args: { p_ids: string[] }; Returns: undefined }
-      calculate_grade_844: { Args: { marks: number }; Returns: string }
       can_viewer_read_chapter: {
         Args: { p_chapter_id: string; p_viewer_id: string }
         Returns: boolean
@@ -18805,6 +18931,14 @@ export type Database = {
         }
         Returns: string
       }
+      ce_assign_assessment_to_class: {
+        Args: {
+          p_assessment_id: string
+          p_closes_at?: string
+          p_time_limit_minutes?: number
+        }
+        Returns: Json
+      }
       ce_assign_resource_to_class: {
         Args: {
           p_assignment_type?: string
@@ -18827,6 +18961,36 @@ export type Database = {
         }
         Returns: string
       }
+      ce_create_generated_assessment_from_payload: {
+        Args: {
+          p_assessment_type: string
+          p_chapter_id: string
+          p_questions: Json
+          p_title: string
+        }
+        Returns: Json
+      }
+      ce_create_homework_from_payload: {
+        Args: {
+          p_chapter_id: string
+          p_class_id: string
+          p_due_date: string
+          p_instructions: string
+          p_questions: Json
+          p_title: string
+        }
+        Returns: Json
+      }
+      ce_create_project_from_payload: {
+        Args: {
+          p_chapter_id: string
+          p_class_id: string
+          p_description: string
+          p_due_date: string
+          p_title: string
+        }
+        Returns: Json
+      }
       ce_extract_block_plain_text: {
         Args: { p_payload: Json }
         Returns: string
@@ -18840,6 +19004,14 @@ export type Database = {
           severity: string
         }[]
       }
+      ce_get_teacher_derivation_context: {
+        Args: { p_chapter_id: string }
+        Returns: Json
+      }
+      ce_promote_generated_assessment: {
+        Args: { p_class_id: string; p_generated_assessment_id: string }
+        Returns: Json
+      }
       ce_publish_parent_learning_summary: {
         Args: { p_summary_id: string }
         Returns: undefined
@@ -18847,6 +19019,13 @@ export type Database = {
       ce_reconcile_chapter_content_blocks: {
         Args: { p_chapter_id: string }
         Returns: number
+      }
+      ce_reconcile_ebook_index_internal: {
+        Args: { p_publication_id: string }
+        Returns: {
+          content_id: string
+          operation: string
+        }[]
       }
       ce_reconcile_learning_resource_metadata: {
         Args: { p_resource_id: string }
@@ -18880,6 +19059,29 @@ export type Database = {
           p_visibility?: string
         }
         Returns: string
+      }
+      ce_run_publication_release_check: {
+        Args: { p_publication_id: string }
+        Returns: {
+          check_code: string
+          details: Json
+          score: number
+          status: string
+        }[]
+      }
+      ce_save_content_derivative: {
+        Args: {
+          p_audience?: string
+          p_body: Json
+          p_chapter_id: string
+          p_class_id?: string
+          p_derivative_type: string
+          p_generator?: string
+          p_model?: string
+          p_quality?: Json
+          p_title: string
+        }
+        Returns: Json
       }
       ce_submit_assignment_evidence: {
         Args: {
@@ -18932,6 +19134,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      connect_teacher_to_directory_school: {
+        Args: { p_directory_id: string; p_level?: string }
+        Returns: string
+      }
+      connect_teacher_to_school: {
+        Args: { p_level?: string; p_school_id: string }
+        Returns: string
+      }
       content_engine_integrity_audit: {
         Args: never
         Returns: {
@@ -18941,26 +19151,19 @@ export type Database = {
           severity: string
         }[]
       }
-      count_bank_questions: {
-        Args: {
-          p_difficulty: Database["public"]["Enums"]["exam_difficulty"]
-          p_form: Database["public"]["Enums"]["exam_form"]
-          p_subject: Database["public"]["Enums"]["exam_subject"]
-          p_topic: string
-        }
-        Returns: number
-      }
-      create_child_for_parent: {
-        Args: { p_class_id: string; p_dob: string; p_name: string }
-        Returns: string
-      }
       create_school_with_admin: {
         Args: {
           p_county?: string
           p_full_name: string
+          p_knec_code?: string
+          p_lat?: number
+          p_lng?: number
+          p_nemis_code?: string
           p_school_name: string
+          p_sub_county?: string
           p_subdomain: string
           p_user_id: string
+          p_ward?: string
         }
         Returns: string
       }
@@ -19012,11 +19215,11 @@ export type Database = {
         }
         Returns: Json
       }
-      dismiss_bank_question: { Args: { p_id: string }; Returns: undefined }
       duplicate_active_timetable: {
         Args: { p_effective_from: string }
         Returns: number
       }
+      enqueue_unresearched_proposals: { Args: never; Returns: number }
       expire_timetable_slot: {
         Args: { p_effective_until?: string; p_slot_id: string }
         Returns: {
@@ -19451,36 +19654,11 @@ export type Database = {
         Args: { p_resource_id: string }
         Returns: boolean
       }
-      fn_nightly_maintenance: { Args: never; Returns: undefined }
-      fn_sanitise_row: { Args: { p_row: Json }; Returns: Json }
-      fn_write_health_log: {
-        Args: {
-          p_duration_ms?: number
-          p_error_code?: string
-          p_error_msg?: string
-          p_job_name: string
-          p_rows?: number
-          p_run_id: string
-          p_status: string
-        }
+      fn_notify_signup_provisioning_failures: {
+        Args: never
         Returns: undefined
       }
-      funhub_claim_voucher: { Args: { p_voucher_id: string }; Returns: Json }
       funhub_get_student_id: { Args: never; Returns: string }
-      funhub_save_session: {
-        Args: {
-          p_correct: number
-          p_duration_secs?: number
-          p_game_slug: string
-          p_grade: number
-          p_score: number
-          p_streak_max?: number
-          p_subject: string
-          p_total: number
-          p_xp_earned: number
-        }
-        Returns: Json
-      }
       generate_daily_occurrences: {
         Args: { p_date?: string }
         Returns: {
@@ -19488,48 +19666,7 @@ export type Database = {
           marked_missed: number
         }[]
       }
-      generate_receipt_number: {
-        Args: { p_school_id: string }
-        Returns: string
-      }
       generate_term_weeks: { Args: { p_term_id: string }; Returns: undefined }
-      get_author_story_stats: {
-        Args: { target_author_id: string }
-        Returns: Json
-      }
-      get_bank_questions: {
-        Args: {
-          p_count: number
-          p_difficulty: Database["public"]["Enums"]["exam_difficulty"]
-          p_form: Database["public"]["Enums"]["exam_form"]
-          p_subject: Database["public"]["Enums"]["exam_subject"]
-          p_topic: string
-        }
-        Returns: {
-          correct_index: number
-          created_at: string
-          difficulty: Database["public"]["Enums"]["exam_difficulty"]
-          explanation: string
-          form: Database["public"]["Enums"]["exam_form"]
-          hint: string | null
-          id: string
-          options: Json
-          question: string
-          source: string
-          status: string
-          subject: Database["public"]["Enums"]["exam_subject"]
-          teaching_note: string
-          times_flagged: number
-          times_served: number
-          topic: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "exam_question_bank"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
       get_classroom_reading_assignment_learners: {
         Args: { assignment_id_input: string }
         Returns: Json
@@ -19551,7 +19688,6 @@ export type Database = {
           publication_title: string
         }[]
       }
-      get_my_classroom_reading_assignments: { Args: never; Returns: Json }
       get_my_library: {
         Args: never
         Returns: {
@@ -19563,8 +19699,8 @@ export type Database = {
           title: string
         }[]
       }
+      get_my_onboarding_state: { Args: never; Returns: Json }
       get_my_role: { Args: never; Returns: string }
-      get_my_school_ids: { Args: never; Returns: string[] }
       get_my_study_workspace_items: {
         Args: { p_item_type?: string }
         Returns: {
@@ -19604,9 +19740,12 @@ export type Database = {
           week: number
         }[]
       }
-      get_saved_publications: { Args: { limit_input?: number }; Returns: Json }
-      get_student_homework_feedback: {
-        Args: { p_homework_id: string }
+      get_public_vibetextbook_reader: {
+        Args: { publication_id_input: string }
+        Returns: Json
+      }
+      get_public_vibetextbook_reader_raw: {
+        Args: { publication_id_input: string }
         Returns: Json
       }
       get_teacher_active_weeks: {
@@ -19649,6 +19788,10 @@ export type Database = {
         Args: { publication_id_input: string }
         Returns: Json
       }
+      get_vibetextbook_reader_raw: {
+        Args: { publication_id_input: string }
+        Returns: Json
+      }
       get_week_type: {
         Args: { p_school_id: string; p_term_id: string; p_week_number: number }
         Returns: {
@@ -19656,10 +19799,1311 @@ export type Database = {
           week_type: string
         }[]
       }
-      increment_available_copies: {
-        Args: { book_id: string }
+      has_entitlement: { Args: { p_entitlement_key: string }; Returns: boolean }
+      hq_ack_policy: {
+        Args: {
+          p_policy_key: string
+          p_product_key: string
+          p_stage?: string
+          p_value: Json
+        }
         Returns: undefined
       }
+      hq_activate_due_decisions: { Args: never; Returns: number }
+      hq_activate_worker: {
+        Args: { p_worker_id: string }
+        Returns: {
+          created_at: string
+          definition: Json
+          department_key: string
+          execution_order: string[]
+          id: string
+          manager_worker_id: string | null
+          mission: string
+          paid_ai_allowed: boolean
+          status: string
+          template_key: string | null
+          title: string
+          updated_at: string
+          version: number
+          worker_key: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hq_workers"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_add_curriculum_outcome: {
+        Args: {
+          p_bloom_level?: string
+          p_curriculum_id: string
+          p_outcome_text: string
+        }
+        Returns: string
+      }
+      hq_apply_approved_chapter_revision: {
+        Args: { p_derivative_id: string; p_reason?: string }
+        Returns: Json
+      }
+      hq_apply_curriculum_intelligence_proposal: {
+        Args: { p_proposal_id: string }
+        Returns: {
+          applied_at: string | null
+          applied_by: string | null
+          chapter_id: string | null
+          claim: string | null
+          confidence: number
+          created_at: string
+          current_content: string | null
+          curriculum_id: string | null
+          curriculum_relevance: string
+          derivative_impacts: Json
+          editorial_model: string | null
+          editorial_patch: Json | null
+          editorial_prepared_at: string | null
+          editorial_status: string
+          engine_run_id: string | null
+          generated_at: string
+          generated_by: string
+          id: string
+          outcome_id: string | null
+          patch: Json
+          proposal_type: string
+          proposed_content: string
+          publication_id: string | null
+          rationale: string
+          research_fingerprint: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          title: string
+          updated_at: string
+          verification_status: string
+          volatility: string
+          watch_target_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "curriculum_intelligence_proposals"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_approve_decision: { Args: { p_id: string }; Returns: undefined }
+      hq_approve_work_item: { Args: { p_id: string }; Returns: undefined }
+      hq_approve_worker_activation: {
+        Args: { p_worker_id: string }
+        Returns: boolean
+      }
+      hq_assert_owner: { Args: never; Returns: undefined }
+      hq_assert_product_enabled: {
+        Args: { p_policy_key: string; p_product_key: string }
+        Returns: Json
+      }
+      hq_billing_overview: { Args: { p_limit?: number }; Returns: Json }
+      hq_cancel_decision: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      hq_certify_product_policy: {
+        Args: { p_expected: Json; p_policy_key: string; p_product_key: string }
+        Returns: Json
+      }
+      hq_claim_next_editorial_action: {
+        Args: { p_action_id?: string }
+        Returns: {
+          action_type: string
+          attempt_count: number
+          chapter_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          health_signal_id: string | null
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          output: Json
+          priority: number
+          proposal_id: string | null
+          publication_id: string | null
+          rationale: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "curriculum_editorial_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_claim_worker_message: {
+        Args: { p_worker_id: string }
+        Returns: {
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          from_worker_id: string
+          id: string
+          message_type: string
+          payload: Json
+          priority: string
+          status: string
+          to_worker_id: string
+          work_item_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hq_worker_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_complete_emergency_recovery: {
+        Args: {
+          p_decision_id: string
+          p_incident_id: string
+          p_reason?: string
+        }
+        Returns: Json
+      }
+      hq_context_capture_company_snapshot: {
+        Args: {
+          p_actor_key?: string
+          p_actor_type?: string
+          p_decision_key: string
+          p_decision_type: string
+          p_reason: string
+        }
+        Returns: string
+      }
+      hq_context_resolve: {
+        Args: { p_fact_keys?: string[]; p_scope_id: string }
+        Returns: {
+          computed_at: string
+          confidence: number
+          fact_definition_id: string
+          fact_key: string
+          freshness_expires_at: string
+          is_fresh: boolean
+          value: Json
+        }[]
+      }
+      hq_context_scope_allows: {
+        Args: { p_fact_key: string; p_scope_id: string }
+        Returns: boolean
+      }
+      hq_create_amendment: {
+        Args: {
+          p_effective_at?: string
+          p_old_id: string
+          p_reason?: string
+          p_rule_value?: Json
+          p_title?: string
+        }
+        Returns: string
+      }
+      hq_create_assessment_question: {
+        Args: {
+          p_bloom_level?: string
+          p_correct_answer?: string
+          p_curriculum_id: string
+          p_difficulty?: string
+          p_explanation?: string
+          p_marks?: number
+          p_question_text: string
+          p_question_type?: string
+        }
+        Returns: string
+      }
+      hq_create_decision: {
+        Args: {
+          p_affected_products: string[]
+          p_category: string
+          p_decision_type: string
+          p_effective_at?: string
+          p_reason: string
+          p_rule_key: string
+          p_rule_value: Json
+          p_title: string
+        }
+        Returns: string
+      }
+      hq_create_work_item: {
+        Args: {
+          p_approval_required?: boolean
+          p_department: string
+          p_due_at?: string
+          p_evidence?: Json
+          p_priority?: string
+          p_route?: string
+          p_summary?: string
+          p_title: string
+        }
+        Returns: string
+      }
+      hq_data_api_product_gate: { Args: never; Returns: undefined }
+      hq_decide_moderation_item: {
+        Args: {
+          p_decision: string
+          p_id: string
+          p_reason?: string
+          p_source: string
+        }
+        Returns: undefined
+      }
+      hq_effectiveness_decision: {
+        Args: { p_proposal_id: string }
+        Returns: Json
+      }
+      hq_emergency_control: {
+        Args: {
+          p_policy_key: string
+          p_product_key: string
+          p_reason: string
+          p_value: Json
+        }
+        Returns: Json
+      }
+      hq_emit_event: {
+        Args: {
+          p_actor_id: string
+          p_actor_role: string
+          p_entity_id: string
+          p_entity_type: string
+          p_event_type: string
+          p_metadata?: Json
+          p_school_id: string
+        }
+        Returns: string
+      }
+      hq_enqueue_curriculum_intelligence_regeneration: {
+        Args: { p_proposal_id: string }
+        Returns: number
+      }
+      hq_evaluate_editorial_effectiveness: {
+        Args: { p_proposal_id: string }
+        Returns: Json
+      }
+      hq_evaluate_policy: {
+        Args: { p_context?: Json; p_policy_key: string; p_product_key: string }
+        Returns: Json
+      }
+      hq_fail_editorial_action: {
+        Args: { p_action_id: string; p_error: string }
+        Returns: {
+          action_type: string
+          attempt_count: number
+          chapter_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          health_signal_id: string | null
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          output: Json
+          priority: number
+          proposal_id: string | null
+          publication_id: string | null
+          rationale: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "curriculum_editorial_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_generate_operational_alerts: { Args: never; Returns: number }
+      hq_get_control_health: { Args: never; Returns: Json }
+      hq_get_decision_detail: { Args: { p_id: string }; Returns: Json }
+      hq_get_goal_progress: { Args: never; Returns: Json }
+      hq_get_morning_brief: { Args: never; Returns: Json }
+      hq_get_org_summary: { Args: never; Returns: Json }
+      hq_get_product_config: {
+        Args: { p_config_key: string; p_product_key: string }
+        Returns: Json
+      }
+      hq_get_product_controls: { Args: never; Returns: Json }
+      hq_get_snapshot: { Args: never; Returns: Json }
+      hq_get_work_health: { Args: never; Returns: Json }
+      hq_list_academy_catalog: { Args: never; Returns: Json }
+      hq_list_assessment_bank: {
+        Args: { p_limit?: number }
+        Returns: {
+          bloom_level: string
+          curriculum_id: string
+          difficulty: string
+          id: string
+          learning_outcome_id: string
+          marks: number
+          question_text: string
+          question_type: string
+          review_status: string
+          status: string
+          updated_at: string
+          usage_count: number
+        }[]
+      }
+      hq_list_content_domains: {
+        Args: never
+        Returns: {
+          active: boolean
+          created_at: string
+          description: string | null
+          icon: string | null
+          key: string
+          name: string
+          sort_order: number
+          tags: string[]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "hq_content_domains"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      hq_list_curriculum_imports: {
+        Args: { p_limit?: number }
+        Returns: {
+          authority_name: string
+          created_at: string
+          created_by: string
+          curriculum_name: string
+          grade: string
+          id: string
+          source_ref: string
+          source_type: string
+          source_url: string
+          status: string
+          subject: string
+          updated_at: string
+          verified_at: string
+          verified_by: string
+          version_label: string
+        }[]
+      }
+      hq_list_curriculum_rows: {
+        Args: { p_limit?: number }
+        Returns: {
+          curriculum: string
+          grade: string
+          id: string
+          lesson_context: Json
+          periods: number
+          reference: string
+          strand: string
+          sub_strand: string
+          subject: string
+          term: number
+          topic: string
+          week: number
+        }[]
+      }
+      hq_list_decisions: {
+        Args: { p_limit?: number }
+        Returns: {
+          affected_products: string[]
+          approved_at: string | null
+          approved_by: string | null
+          category: string
+          code: string
+          created_at: string
+          created_by: string
+          decision_type: string
+          effective_at: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          reason: string | null
+          rollback_of_id: string | null
+          rule_key: string | null
+          rule_value: Json
+          status: string
+          supersedes_id: string | null
+          title: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "hq_decisions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      hq_list_departments: {
+        Args: never
+        Returns: {
+          critical_count: number
+          icon: string
+          key: string
+          mandate: string
+          name: string
+          open_count: number
+          waiting_approval_count: number
+        }[]
+      }
+      hq_list_funhub_vouchers: {
+        Args: { p_include_inactive?: boolean }
+        Returns: {
+          category: string
+          claimed_count: number
+          created_at: string
+          description: string
+          id: string
+          is_active: boolean
+          remaining: number
+          sponsor_name: string
+          title: string
+          total_pool: number
+          xp_cost: number
+        }[]
+      }
+      hq_list_moderation_queue: { Args: { p_limit?: number }; Returns: Json }
+      hq_list_notifications: {
+        Args: { p_limit?: number }
+        Returns: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          metadata: Json
+          route: string
+          severity: string
+          status: string
+          title: string
+        }[]
+      }
+      hq_list_publication_revisions: {
+        Args: { p_limit?: number }
+        Returns: {
+          created_at: string
+          created_by: string
+          id: string
+          publication_format: string
+          publication_id: string
+          publication_title: string
+          reason: string
+          revision_number: number
+        }[]
+      }
+      hq_list_school_identity_queue: {
+        Args: { p_limit?: number; p_status?: string }
+        Returns: Json
+      }
+      hq_list_work_items: {
+        Args: { p_department?: string; p_limit?: number }
+        Returns: {
+          acted_at: string | null
+          action_taken: Json
+          approval_required: boolean
+          created_at: string
+          department_key: string
+          due_at: string | null
+          evidence: Json
+          id: string
+          owner_id: string | null
+          priority: string
+          resolved_at: string | null
+          route: string | null
+          source_id: string | null
+          source_type: string | null
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          verification_evidence: Json
+          verification_status: string
+          work_type: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "hq_work_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      hq_lock_decision: { Args: { p_id: string }; Returns: undefined }
+      hq_mark_curriculum_watch_checked: {
+        Args: { p_checked_at?: string; p_watch_target_id: string }
+        Returns: undefined
+      }
+      hq_mark_decision_reviewed: { Args: { p_id: string }; Returns: undefined }
+      hq_mark_notification_read: { Args: { p_id: string }; Returns: boolean }
+      hq_marketing_overview: { Args: never; Returns: Json }
+      hq_metric_catalog: { Args: never; Returns: Json }
+      hq_next_decision_code: { Args: never; Returns: string }
+      hq_observe_policy: {
+        Args: { p_observed: Json; p_policy_key: string; p_product_key: string }
+        Returns: Json
+      }
+      hq_open_incident: {
+        Args: {
+          p_evidence?: Json
+          p_incident_type: string
+          p_route?: string
+          p_severity: string
+          p_summary: string
+          p_title: string
+        }
+        Returns: string
+      }
+      hq_promote_health_signal_to_action: {
+        Args: { p_signal_id: string }
+        Returns: {
+          action_type: string
+          attempt_count: number
+          chapter_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          health_signal_id: string | null
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          output: Json
+          priority: number
+          proposal_id: string | null
+          publication_id: string | null
+          rationale: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "curriculum_editorial_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_publish_policy_state: {
+        Args: { p_decision_id: string }
+        Returns: undefined
+      }
+      hq_refresh_content_health_signals: {
+        Args: { p_publication_id?: string }
+        Returns: Json
+      }
+      hq_refresh_teacher_workaround_signals: {
+        Args: { p_publication_id?: string }
+        Returns: Json
+      }
+      hq_register_curriculum_source: {
+        Args: {
+          p_authority_name: string
+          p_curriculum_name: string
+          p_grade: string
+          p_notes?: string
+          p_source_ref?: string
+          p_source_url?: string
+          p_subject: string
+          p_version_label?: string
+        }
+        Returns: string
+      }
+      hq_requeue_editorial_action: {
+        Args: { p_action_id: string }
+        Returns: {
+          action_type: string
+          attempt_count: number
+          chapter_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          health_signal_id: string | null
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          max_attempts: number
+          next_attempt_at: string | null
+          output: Json
+          priority: number
+          proposal_id: string | null
+          publication_id: string | null
+          rationale: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "curriculum_editorial_actions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_resolve_incident: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: undefined
+      }
+      hq_resolve_notification: { Args: { p_id: string }; Returns: boolean }
+      hq_resolve_school_discovery_request: {
+        Args: {
+          p_action: string
+          p_alias?: string
+          p_canonical_school_id?: string
+          p_note?: string
+          p_request_id: string
+          p_school_name?: string
+        }
+        Returns: string
+      }
+      hq_review_assessment_question: {
+        Args: { p_question_id: string; p_review_status: string }
+        Returns: undefined
+      }
+      hq_review_chapter_revision: {
+        Args: { p_approve: boolean; p_derivative_id: string; p_note?: string }
+        Returns: Json
+      }
+      hq_review_curriculum_import: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      hq_review_generated_assessment: {
+        Args: { p_approve: boolean; p_assessment_id: string; p_note?: string }
+        Returns: Json
+      }
+      hq_review_school_identity_candidate: {
+        Args: {
+          p_action: string
+          p_alias?: string
+          p_candidate_id: string
+          p_canonical_school_id?: string
+          p_note?: string
+        }
+        Returns: string
+      }
+      hq_review_teacher_guide: {
+        Args: { p_approve: boolean; p_derivative_id: string; p_note?: string }
+        Returns: Json
+      }
+      hq_review_vibelab_spec: {
+        Args: { p_approve: boolean; p_derivative_id: string; p_note?: string }
+        Returns: Json
+      }
+      hq_rollback_decision: {
+        Args: { p_id: string; p_reason?: string }
+        Returns: string
+      }
+      hq_route_work_items: { Args: never; Returns: number }
+      hq_run_company_intelligence: { Args: never; Returns: Json }
+      hq_run_publication_release_check: {
+        Args: { p_publication_id: string }
+        Returns: {
+          check_code: string
+          details: Json
+          score: number
+          status: string
+        }[]
+      }
+      hq_security_events: { Args: { p_limit?: number }; Returns: Json }
+      hq_set_product_policy: {
+        Args: {
+          p_policy_key: string
+          p_product_key: string
+          p_reason: string
+          p_value: Json
+        }
+        Returns: Json
+      }
+      hq_studio_overview: { Args: never; Returns: Json }
+      hq_sync_content_engine_work: {
+        Args: { p_publication_id?: string }
+        Returns: Json
+      }
+      hq_system_health: { Args: never; Returns: Json }
+      hq_update_curriculum_row: {
+        Args: {
+          p_common_mistakes?: string
+          p_id: string
+          p_periods?: number
+          p_reference?: string
+          p_teaching_tips?: string
+          p_topic?: string
+        }
+        Returns: undefined
+      }
+      hq_update_draft_decision: {
+        Args: {
+          p_affected_products: string[]
+          p_category: string
+          p_decision_type: string
+          p_effective_at?: string
+          p_id: string
+          p_reason: string
+          p_rule_key: string
+          p_rule_value: Json
+          p_title: string
+        }
+        Returns: undefined
+      }
+      hq_update_work_item: {
+        Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      hq_upsert_academy_course: {
+        Args: {
+          p_badge?: string
+          p_description?: string
+          p_domain?: string
+          p_duration_label?: string
+          p_id?: string
+          p_institution?: string
+          p_level?: string
+          p_slug?: string
+          p_status?: string
+          p_title?: string
+          p_weeks_count?: number
+        }
+        Returns: string
+      }
+      hq_upsert_academy_module: {
+        Args: {
+          p_course_id?: string
+          p_id?: string
+          p_sequence_number?: number
+          p_slug?: string
+          p_title?: string
+          p_weeks_label?: string
+        }
+        Returns: string
+      }
+      hq_upsert_academy_topic: {
+        Args: {
+          p_clinical_tip?: string
+          p_common_errors?: string
+          p_concept?: string
+          p_content_status?: string
+          p_id?: string
+          p_kenya_context?: string
+          p_module_id?: string
+          p_sequence_number?: number
+          p_slug?: string
+          p_subtitle?: string
+          p_title?: string
+          p_week_number?: number
+        }
+        Returns: string
+      }
+      hq_upsert_content_domain: {
+        Args: {
+          p_active?: boolean
+          p_description?: string
+          p_icon?: string
+          p_key: string
+          p_name: string
+          p_sort_order?: number
+          p_tags?: string[]
+        }
+        Returns: string
+      }
+      hq_upsert_funhub_voucher: {
+        Args: {
+          p_category?: string
+          p_description?: string
+          p_id?: string
+          p_is_active?: boolean
+          p_sponsor_name?: string
+          p_title?: string
+          p_total_pool?: number
+          p_xp_cost?: number
+        }
+        Returns: string
+      }
+      hq_user_directory: {
+        Args: {
+          p_limit?: number
+          p_role?: string
+          p_search?: string
+          p_status?: string
+        }
+        Returns: Json
+      }
+      hq_validate_policy_value: {
+        Args: { p_policy_key: string; p_product_key: string; p_value: Json }
+        Returns: undefined
+      }
+      hq_verify_decision_propagation: { Args: { p_id: string }; Returns: Json }
+      hq_workforce_assert_capability: {
+        Args: {
+          p_capability_key: string
+          p_operation: string
+          p_resource_type: string
+          p_worker_key: string
+        }
+        Returns: string
+      }
+      hq_workforce_assert_certification: {
+        Args: { p_worker_key: string }
+        Returns: string
+      }
+      hq_workforce_assert_identity: {
+        Args: { p_worker_key: string }
+        Returns: string
+      }
+      hq_workforce_assert_runtime_task_authorized: {
+        Args: { p_task_id: string }
+        Returns: Json
+      }
+      hq_workforce_authoritative_demand_metrics: {
+        Args: { p_gap_id: string; p_template_id: string }
+        Returns: Json
+      }
+      hq_workforce_authorize_fact: {
+        Args: { p_fact_key: string; p_worker_key: string }
+        Returns: {
+          scope_id: string
+          status: string
+          violation_code: string
+        }[]
+      }
+      hq_workforce_authorize_model_call: {
+        Args: {
+          p_failure_evidence: Json
+          p_model_key: string
+          p_reason_code: string
+          p_task_id: string
+          p_token_budget: number
+          p_worker_key: string
+        }
+        Returns: string
+      }
+      hq_workforce_authorize_skill_target: {
+        Args: {
+          p_skill_key: string
+          p_target_fact_key: string
+          p_worker_key: string
+        }
+        Returns: {
+          status: string
+          violation_code: string
+        }[]
+      }
+      hq_workforce_authorize_snapshot: {
+        Args: { p_snapshot_id: string; p_worker_key: string }
+        Returns: {
+          status: string
+          violation_code: string
+        }[]
+      }
+      hq_workforce_autonomous_factory_heartbeat: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      hq_workforce_autonomous_heartbeat: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      hq_workforce_bootstrap_reference_operations_worker: {
+        Args: { p_worker_key?: string }
+        Returns: Json
+      }
+      hq_workforce_build_decision_inbox: { Args: never; Returns: number }
+      hq_workforce_capture_founder_decision: {
+        Args: {
+          p_corrected?: Json
+          p_decision_id: string
+          p_event_type: string
+          p_proposed: Json
+          p_rejection_reason?: string
+          p_revision: number
+          p_run_id: string
+          p_snapshot_id: string
+        }
+        Returns: Json
+      }
+      hq_workforce_certify_probation_workers: { Args: never; Returns: number }
+      hq_workforce_consume_budget: {
+        Args: { p_amount: number; p_budget_id: string }
+        Returns: undefined
+      }
+      hq_workforce_context_health: {
+        Args: { p_fact_id: string; p_high_stakes?: boolean }
+        Returns: {
+          status: string
+          violation_code: string
+        }[]
+      }
+      hq_workforce_current_lifecycle_state: {
+        Args: { p_worker_key: string }
+        Returns: string
+      }
+      hq_workforce_decide: {
+        Args: { p_action: string; p_id: string; p_revision?: string }
+        Returns: Json
+      }
+      hq_workforce_detect_operations_tasks: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
+      hq_workforce_detect_reference_operations_tasks: {
+        Args: { p_limit?: number; p_worker_key?: string }
+        Returns: number
+      }
+      hq_workforce_diagnose_gap: { Args: { p_gap_id: string }; Returns: string }
+      hq_workforce_enqueue_unrouted_work: { Args: never; Returns: number }
+      hq_workforce_evaluate_candidate_gaps: { Args: never; Returns: number }
+      hq_workforce_execute_safe_queue: { Args: never; Returns: number }
+      hq_workforce_execute_shadow_tool: {
+        Args: { p_input: Json; p_tool_contract_id: string }
+        Returns: Json
+      }
+      hq_workforce_execute_task_queue: {
+        Args: { p_lease_seconds?: number; p_limit?: number }
+        Returns: number
+      }
+      hq_workforce_factory_create_shadow_worker: {
+        Args: {
+          p_capability_key: string
+          p_demand_evidence_id: string
+          p_diagnosis_id: string
+          p_mission: string
+          p_operation: string
+          p_resource_type: string
+          p_scope_ref?: Json
+          p_scope_type?: string
+          p_title: string
+          p_worker_key: string
+        }
+        Returns: Json
+      }
+      hq_workforce_factory_cycle: {
+        Args: {
+          p_capability_key?: string
+          p_gap_id: string
+          p_metrics: Json
+          p_mission: string
+          p_operation?: string
+          p_resource_type?: string
+          p_title: string
+          p_worker_key: string
+        }
+        Returns: Json
+      }
+      hq_workforce_factory_diagnose: {
+        Args: { p_demand_evidence_id: string }
+        Returns: string
+      }
+      hq_workforce_finalize_model_call: {
+        Args: { p_invocation_id: string; p_success: boolean }
+        Returns: string
+      }
+      hq_workforce_finalize_skill_probation: {
+        Args: {
+          p_evidence: Json
+          p_execution_passed: boolean
+          p_outcome_verified: boolean
+          p_promotion_id: string
+        }
+        Returns: string
+      }
+      hq_workforce_get_control_room_snapshot: {
+        Args: { p_recent_limit?: number }
+        Returns: Json
+      }
+      hq_workforce_issue_certification: {
+        Args: {
+          p_creation_contract_id: string
+          p_required?: number
+          p_valid_for?: string
+          p_verifier_key: string
+          p_worker_key: string
+        }
+        Returns: string
+      }
+      hq_workforce_lane_for_work: {
+        Args: {
+          p_department: string
+          p_source_type: string
+          p_work_type: string
+        }
+        Returns: string
+      }
+      hq_workforce_list_decisions: {
+        Args: { p_limit?: number; p_status?: string }
+        Returns: {
+          created_at: string
+          decision_key: string
+          evidence_snapshot_id: string
+          id: string
+          job_key: string
+          lane_key: string
+          proposed_action: string
+          reason: string
+          revision: string
+          risk: string
+          run_id: string
+          status: string
+          worker_key: string
+        }[]
+      }
+      hq_workforce_monitor_health: { Args: never; Returns: number }
+      hq_workforce_observe_demand_sensors: { Args: never; Returns: Json }
+      hq_workforce_owner_review_shadow_decision: {
+        Args: { p_decision_id: string; p_rationale?: string; p_state: string }
+        Returns: {
+          authority_reason: string
+          created_at: string
+          decision_key: string
+          human_rationale: string | null
+          hypothetical_authority_result: string
+          id: string
+          proposed_action: Json
+          required_authority: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          state: string
+          trace_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hq_workforce_shadow_decisions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_workforce_plan_recovery: {
+        Args: {
+          p_before?: Json
+          p_reason: string
+          p_run_id: string
+          p_type: string
+        }
+        Returns: string
+      }
+      hq_workforce_prepare_handoff: {
+        Args: {
+          p_from_lane: string
+          p_handoff_key: string
+          p_reason: string
+          p_requested_fact_keys: string[]
+          p_to_lane: string
+          p_work_item_id: string
+        }
+        Returns: string
+      }
+      hq_workforce_prepare_skill_promotion: {
+        Args: { p_candidate_id: string; p_skill_key: string }
+        Returns: string
+      }
+      hq_workforce_probation_state: {
+        Args: {
+          p_allowed_failures?: number
+          p_failures: number
+          p_lowest_confidence: number
+          p_min_confidence?: number
+          p_min_runs?: number
+          p_unverified_outcomes: number
+          p_verified_runs: number
+        }
+        Returns: string
+      }
+      hq_workforce_qualification_state: {
+        Args: {
+          p_count: number
+          p_has_contradiction: boolean
+          p_high_severity: boolean
+          p_min?: number
+          p_stale: boolean
+        }
+        Returns: string
+      }
+      hq_workforce_qualify_factory_workers: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
+      hq_workforce_quantified_diagnosis: {
+        Args: { p_gap_id: string; p_metrics: Json }
+        Returns: string
+      }
+      hq_workforce_record_positive_outcome: {
+        Args: { p_evidence: Json; p_evidence_id: string; p_status: string }
+        Returns: string
+      }
+      hq_workforce_record_shadow_run: {
+        Args: {
+          p_expected: Json
+          p_input: Json
+          p_observed: Json
+          p_tool_contract_id: string
+          p_verifier_key: string
+          p_worker_key: string
+        }
+        Returns: string
+      }
+      hq_workforce_record_skill_benchmark: {
+        Args: { p_evidence: Json; p_passed: boolean; p_promotion_id: string }
+        Returns: string
+      }
+      hq_workforce_release_budget: {
+        Args: { p_amount: number; p_budget_id: string }
+        Returns: undefined
+      }
+      hq_workforce_reserve_budget: {
+        Args: { p_amount: number; p_budget_key: string; p_worker_key: string }
+        Returns: string
+      }
+      hq_workforce_revoke_certification: {
+        Args: { p_reason: string; p_worker_key: string }
+        Returns: number
+      }
+      hq_workforce_revoke_identity: {
+        Args: { p_reason: string; p_worker_key: string }
+        Returns: number
+      }
+      hq_workforce_run_shadow_cycle: {
+        Args: { p_cycle_key: string; p_limit?: number }
+        Returns: Json
+      }
+      hq_workforce_scheduled_factory_heartbeat: { Args: never; Returns: Json }
+      hq_workforce_scheduled_heartbeat: { Args: never; Returns: Json }
+      hq_workforce_seal_demand_evidence: {
+        Args: { p_gap_id: string; p_metrics: Json }
+        Returns: string
+      }
+      hq_workforce_shadow_candidate_fingerprint: {
+        Args: {
+          p_work_item: Database["public"]["Tables"]["hq_work_items"]["Row"]
+        }
+        Returns: string
+      }
+      hq_workforce_shadow_evaluate_authority: {
+        Args: {
+          p_requested_autonomy: number
+          p_requested_risk: number
+          p_scope_ref: Json
+          p_scope_type: string
+          p_skill_manifest_id: string
+          p_trace_id: string
+        }
+        Returns: Json
+      }
+      hq_workforce_shadow_recommend_candidate: {
+        Args: { p_candidate_id: string }
+        Returns: Json
+      }
+      hq_workforce_shadow_review_decision: {
+        Args: { p_decision_id: string; p_rationale?: string; p_state: string }
+        Returns: {
+          authority_reason: string
+          created_at: string
+          decision_key: string
+          human_rationale: string | null
+          hypothetical_authority_result: string
+          id: string
+          proposed_action: Json
+          required_authority: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          state: string
+          trace_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "hq_workforce_shadow_decisions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      hq_workforce_skill_certifiable: {
+        Args: { p_skill_id: string }
+        Returns: boolean
+      }
+      hq_workforce_suspend_for_remediation: {
+        Args: {
+          p_creation_contract_id: string
+          p_reason: string
+          p_worker_key: string
+        }
+        Returns: string
+      }
+      hq_workforce_test_context_health: {
+        Args: {
+          p_fact_confidence: number
+          p_fresh: boolean
+          p_high_stakes?: boolean
+          p_malformed: boolean
+          p_source_active: boolean
+          p_source_reliability: number
+        }
+        Returns: {
+          status: string
+          violation_code: string
+        }[]
+      }
+      hq_workforce_tool_gateway_execute: {
+        Args: { p_task_id: string }
+        Returns: Json
+      }
+      hq_workforce_transition_worker: {
+        Args: {
+          p_creation_contract_id?: string
+          p_reason: string
+          p_to_state: string
+          p_worker_key: string
+        }
+        Returns: string
+      }
+      hq_workforce_verify_run: {
+        Args: {
+          p_actual: Json
+          p_evidence: Json
+          p_execution_certified: boolean
+          p_expected: Json
+          p_method: string
+          p_run_id: string
+          p_verifier_ref?: string
+        }
+        Returns: string
+      }
+      hq_workforce_verify_task: {
+        Args: { p_task_id: string; p_verifier_key: string }
+        Returns: string
+      }
+      hq_workroom_act: {
+        Args: { p_action: string; p_reason: string; p_work_item_id: string }
+        Returns: Json
+      }
+      hq_workroom_add_link: {
+        Args: {
+          p_label: string
+          p_link_type: string
+          p_metadata?: Json
+          p_url: string
+          p_work_item_id: string
+        }
+        Returns: string
+      }
+      hq_workroom_add_update: {
+        Args: {
+          p_body: string
+          p_metadata?: Json
+          p_update_type: string
+          p_work_item_id: string
+        }
+        Returns: string
+      }
+      hq_workroom_get_item: { Args: { p_id: string }; Returns: Json }
       increment_publication_reads: {
         Args: { pub_id: string; viewer_id?: string }
         Returns: undefined
@@ -19670,10 +21114,7 @@ export type Database = {
             Args: { content_id: string; viewer_id?: string }
             Returns: undefined
           }
-      is_bursar: { Args: { p_school_id: string }; Returns: boolean }
-      is_own_student_link: { Args: { p_student_id: string }; Returns: boolean }
-      is_parent_of_student: { Args: { p_student_id: string }; Returns: boolean }
-      is_project_member: { Args: { p_project_id: string }; Returns: boolean }
+      is_platform_owner: { Args: never; Returns: boolean }
       is_school_admin: { Args: { p_school_id: string }; Returns: boolean }
       join_school_as_admin: {
         Args: { p_full_name: string; p_school_id: string; p_user_id: string }
@@ -19734,6 +21175,22 @@ export type Database = {
         }
         Returns: string
       }
+      parent_get_classroom_learning_brief: { Args: never; Returns: Json }
+      parent_get_student_kcse_brief: {
+        Args: { p_student_id: string }
+        Returns: Json
+      }
+      parent_set_student_self_use: {
+        Args: { p_enabled: boolean; p_student_id: string }
+        Returns: boolean
+      }
+      publish_publication: {
+        Args: { p_publication_id: string }
+        Returns: {
+          operation: string
+          publication_id: string
+        }[]
+      }
       publish_textbook: {
         Args: { p_publication_id: string }
         Returns: {
@@ -19754,6 +21211,7 @@ export type Database = {
             }
             Returns: Json
           }
+      reader_sanitize_blocks: { Args: { p_blocks: Json }; Returns: Json }
       recommend_textbook_chapters_for_scheme_lesson: {
         Args: { p_limit?: number; p_scheme_lesson_id: string }
         Returns: Json
@@ -19764,6 +21222,18 @@ export type Database = {
           content_id: string
           operation: string
         }[]
+      }
+      record_content_learning_event: {
+        Args: {
+          p_chapter_id: string
+          p_content_block_id: string
+          p_duration_ms?: number
+          p_event_type: string
+          p_metadata?: Json
+          p_outcome_id: string
+          p_publication_id: string
+        }
+        Returns: string
       }
       record_reading_activity: {
         Args: {
@@ -19785,6 +21255,17 @@ export type Database = {
         }
         Returns: Json
       }
+      record_security_event: {
+        Args: {
+          p_event_type: string
+          p_metadata?: Json
+          p_outcome?: string
+          p_resource_id?: string
+          p_resource_type?: string
+          p_risk_score?: number
+        }
+        Returns: undefined
+      }
       redeem_parent_claim: {
         Args: { p_code: string; p_user_id: string }
         Returns: string
@@ -19797,7 +21278,7 @@ export type Database = {
         Args: { p_code: string; p_user_id: string }
         Returns: Json
       }
-      refresh_leaderboard: { Args: never; Returns: undefined }
+      refresh_reading_health_signals: { Args: never; Returns: number }
       register_learning_resource: {
         Args: { p_source_id: string; p_source_type: string }
         Returns: Json
@@ -19810,22 +21291,17 @@ export type Database = {
         Args: { p_publication_id: string }
         Returns: undefined
       }
-      reset_monthly_xp: { Args: never; Returns: undefined }
-      reset_weekly_xp: { Args: never; Returns: undefined }
       restore_timetable_snapshot: {
         Args: { p_effective_from: string; p_snapshot_id: string }
         Returns: number
       }
-      review_homework_submission: {
-        Args: {
-          p_action: string
-          p_feedback?: string
-          p_mark?: number
-          p_reason?: string
-          p_release_model_answers?: boolean
-          p_submission_id: string
-        }
-        Returns: Json
+      run_connected_content_engine: {
+        Args: { p_publication_id: string; p_trigger?: string }
+        Returns: string
+      }
+      run_content_intelligence_cycle: {
+        Args: { p_trigger?: string }
+        Returns: string
       }
       save_student_homework_draft: {
         Args: { p_answers?: Json; p_homework_id: string; p_photo_url?: string }
@@ -19880,7 +21356,51 @@ export type Database = {
           term: number
         }[]
       }
+      school_search_rate_guard: {
+        Args: { p_fingerprint?: string }
+        Returns: boolean
+      }
+      search_school_directory: {
+        Args: {
+          p_county?: string
+          p_lat?: number
+          p_level?: string
+          p_limit?: number
+          p_lng?: number
+          p_query?: string
+          p_sub_county?: string
+        }
+        Returns: {
+          accommodation_type: string
+          cluster: string
+          county: string
+          distance_km: number
+          gender_type: string
+          gps_lat: number
+          gps_lng: number
+          id: string
+          knec_code: string
+          levels: string[]
+          match_score: number
+          name: string
+          nemis_code: string
+          ownership_type: string
+          school_category: string
+          school_type: string
+          source: string
+          sub_county: string
+          ward: string
+        }[]
+      }
       seed_default_school_periods: { Args: never; Returns: number }
+      settle_mpesa_credit: {
+        Args: {
+          p_checkout_id: string
+          p_mpesa_ref: string
+          p_paid_amount_kes: number
+        }
+        Returns: Json
+      }
       snapshot_timetable: { Args: { p_label: string }; Returns: string }
       spend_credit: {
         Args: {
@@ -19921,19 +21441,218 @@ export type Database = {
         }
       }
       student_acknowledge_home_changes: { Args: never; Returns: Json }
+      student_answer_adaptive_practice_question: {
+        Args: {
+          p_question_id: string
+          p_response_ms?: number
+          p_selected_index: number
+        }
+        Returns: Json
+      }
+      student_apply_verified_completion: {
+        Args: {
+          p_occurred_at?: string
+          p_source_id: string
+          p_source_type: string
+          p_student_id: string
+          p_subject_id?: string
+        }
+        Returns: string
+      }
+      student_classify_kcse_mistake: {
+        Args: { p_error_type: string; p_mistake_id: string; p_note?: string }
+        Returns: Json
+      }
+      student_complete_adaptive_session: {
+        Args: { p_reflection?: string; p_session_id: string }
+        Returns: Json
+      }
+      student_create_kcse_mock: {
+        Args: { p_client_id?: string; p_paper_code: string; p_subject: string }
+        Returns: Json
+      }
+      student_create_twin_escalation: {
+        Args: { p_category: string; p_severity: string }
+        Returns: string
+      }
+      student_explain_twin_choice: {
+        Args: { p_outcome_id?: string }
+        Returns: Json
+      }
+      student_generate_adaptive_practice_question: {
+        Args: { p_outcome_id?: string }
+        Returns: Json
+      }
+      student_generate_adaptive_revision_plan_v1: {
+        Args: { p_days?: number; p_start_date?: string }
+        Returns: Json
+      }
+      student_generate_kcse_revision_plan: {
+        Args: { p_days?: number; p_start_date?: string }
+        Returns: Json
+      }
       student_generate_revision_plan: {
         Args: { p_days?: number; p_start_date?: string }
         Returns: Json
       }
+      student_get_adaptive_intervention: {
+        Args: { p_outcome_id: string }
+        Returns: Json
+      }
+      student_get_adaptive_learning_path: { Args: never; Returns: Json }
+      student_get_adaptive_project_coach: {
+        Args: { p_project_title?: string }
+        Returns: Json
+      }
+      student_get_adaptive_reading_coach: { Args: never; Returns: Json }
+      student_get_adaptive_reflection_coach: {
+        Args: { p_outcome_id?: string }
+        Returns: Json
+      }
+      student_get_adaptive_teaching_turn:
+        | { Args: { p_outcome_id: string; p_stage?: number }; Returns: Json }
+        | {
+            Args: {
+              p_learner_reply: string
+              p_outcome_id: string
+              p_stage: number
+            }
+            Returns: Json
+          }
+      student_get_adaptive_tutor_service_summary: { Args: never; Returns: Json }
+      student_get_cached_learning_source_transformation: {
+        Args: {
+          p_representation: string
+          p_source_id: string
+          p_source_type: string
+        }
+        Returns: Json
+      }
+      student_get_cached_learning_transformation: {
+        Args: { p_chapter_id: string; p_representation: string }
+        Returns: Json
+      }
+      student_get_evidence_learning_preferences: { Args: never; Returns: Json }
       student_get_exam_readiness_brief: { Args: never; Returns: Json }
+      student_get_grounded_chapter_practice: {
+        Args: {
+          p_chapter_id: string
+          p_limit?: number
+          p_publication_id: string
+        }
+        Returns: Json
+      }
       student_get_home_os_brief: { Args: never; Returns: Json }
+      student_get_kcse_adaptive_practice: {
+        Args: { p_limit?: number; p_subject?: string; p_topic?: string }
+        Returns: Json
+      }
+      student_get_kcse_candidate_os: { Args: never; Returns: Json }
+      student_get_kcse_mastery_map: { Args: never; Returns: Json }
+      student_get_kcse_mock: { Args: { p_session_id: string }; Returns: Json }
+      student_get_kcse_progress_history: { Args: never; Returns: Json }
+      student_get_kcse_recall_drill: {
+        Args: { p_asset_type?: string; p_limit?: number; p_subject?: string }
+        Returns: Json
+      }
+      student_get_kcse_report_card_evidence: { Args: never; Returns: Json }
+      student_get_kcse_verified_grade_projection: { Args: never; Returns: Json }
+      student_get_learning_companion_snapshot: { Args: never; Returns: Json }
+      student_get_learning_generated_assets: {
+        Args: { p_transformation_id: string }
+        Returns: Json
+      }
+      student_get_learning_source_context: {
+        Args: { p_source_id: string; p_source_type: string }
+        Returns: Json
+      }
+      student_get_learning_transform_context: {
+        Args: { p_chapter_id: string }
+        Returns: Json
+      }
+      student_get_multimodal_teaching_sequence: {
+        Args: { p_source_id: string; p_source_type: string }
+        Returns: Json
+      }
+      student_get_prerequisite_status: {
+        Args: { p_outcome_id: string }
+        Returns: Json
+      }
       student_get_revision_workspace: {
         Args: { p_subject?: string; p_topic?: string }
         Returns: Json
       }
+      student_get_teacher_sync_context: { Args: never; Returns: Json }
+      student_get_twin_brain: { Args: never; Returns: Json }
+      student_get_twin_brain_cached: { Args: never; Returns: Json }
+      student_get_twin_evidence: { Args: never; Returns: Json }
+      student_get_twin_learning: { Args: never; Returns: Json }
+      student_get_twin_mastery: { Args: never; Returns: Json }
+      student_get_twin_memory: { Args: never; Returns: Json }
+      student_get_twin_prediction: { Args: never; Returns: Json }
+      student_get_twin_priority: { Args: never; Returns: Json }
+      student_get_twin_school_context: { Args: never; Returns: Json }
+      student_get_twin_state: { Args: never; Returns: Json }
+      student_get_twin_state_internal: { Args: never; Returns: Json }
+      student_get_twin_tutor_context: { Args: never; Returns: Json }
+      student_get_twin_tutor_context_internal: { Args: never; Returns: Json }
       student_get_vibelearn_workstation: { Args: never; Returns: Json }
+      student_list_learning_transform_sources: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       student_list_my_tasks: { Args: never; Returns: Json }
       student_mark_home_opened: { Args: never; Returns: Json }
+      student_mastery_band: { Args: { p_score: number }; Returns: string }
+      student_plan_adaptive_session: {
+        Args: { p_mode?: string; p_pace_override?: string }
+        Returns: Json
+      }
+      student_recommend_learning_representation: {
+        Args: { p_source_id: string; p_source_type: string }
+        Returns: Json
+      }
+      student_record_adaptive_misconception: {
+        Args: {
+          p_correct_index: number
+          p_outcome_id: string
+          p_question_id: string
+          p_selected_index: number
+          p_subject_id: string
+        }
+        Returns: Json
+      }
+      student_record_grounded_practice_answer: {
+        Args: {
+          p_content_block_id: string
+          p_response_ms?: number
+          p_response_text: string
+          p_session_id?: string
+        }
+        Returns: Json
+      }
+      student_record_learning_transformation_event: {
+        Args: {
+          p_event_type: string
+          p_metadata?: Json
+          p_transformation_id: string
+        }
+        Returns: Json
+      }
+      student_record_twin_calibration: {
+        Args: {
+          p_actual_value: number
+          p_confidence_score: number
+          p_metadata?: Json
+          p_outcome_id?: string
+          p_predicted_value: number
+          p_prediction_type: string
+          p_source_id?: string
+          p_source_type?: string
+          p_subject_id?: string
+        }
+        Returns: Json
+      }
       student_record_verified_task_completion: {
         Args: {
           p_source_id: string
@@ -19953,13 +21672,89 @@ export type Database = {
       }
       student_refresh_motivation_summary: { Args: never; Returns: Json }
       student_refresh_personalized_path: { Args: never; Returns: Json }
+      student_refresh_twin_memory: { Args: never; Returns: Json }
       student_resolve_mistake: { Args: { p_mistake_id: string }; Returns: Json }
       student_resolve_task_launch: {
         Args: { p_task_id: string }
         Returns: Json
       }
+      student_resolve_vibelearn_assessment_source: {
+        Args: { p_chapter_id: string; p_publication_id: string }
+        Returns: Json
+      }
+      student_save_kcse_mock_answer: {
+        Args: {
+          p_client_id?: string
+          p_question_id: string
+          p_response_ms?: number
+          p_response_text?: string
+          p_selected_index: number
+          p_session_id: string
+        }
+        Returns: Json
+      }
       student_save_topic_note: {
         Args: { p_note_text: string; p_subject: string; p_topic: string }
+        Returns: Json
+      }
+      student_schedule_forgetting_revision: { Args: never; Returns: number }
+      student_search_kcse: { Args: { p_query: string }; Returns: Json }
+      student_start_adaptive_session: {
+        Args: { p_session_id: string }
+        Returns: Json
+      }
+      student_store_learning_source_transformation: {
+        Args: {
+          p_model?: string
+          p_payload: Json
+          p_personalization_key: string
+          p_quality?: Json
+          p_representation: string
+          p_source_id: string
+          p_source_type: string
+          p_source_version: string
+        }
+        Returns: Json
+      }
+      student_store_learning_transformation: {
+        Args: {
+          p_chapter_id: string
+          p_model?: string
+          p_payload: Json
+          p_personalization_key: string
+          p_quality?: Json
+          p_representation: string
+          p_source_version: string
+        }
+        Returns: Json
+      }
+      student_submit_kcse_mock: {
+        Args: { p_client_id?: string; p_session_id: string }
+        Returns: Json
+      }
+      student_sync_task_execution_receipt: {
+        Args: { p_task_id: string }
+        Returns: Json
+      }
+      student_twin_core_route: { Args: { p_input: string }; Returns: Json }
+      student_twin_save_private_item: {
+        Args: {
+          p_body: string
+          p_item_type: string
+          p_subject?: string
+          p_tags?: string[]
+          p_title?: string
+          p_topic?: string
+          p_visibility?: string
+        }
+        Returns: Json
+      }
+      student_twin_search_private_space: {
+        Args: { p_limit?: number; p_query?: string }
+        Returns: Json
+      }
+      student_twin_search_school_records: {
+        Args: { p_limit?: number; p_query?: string }
         Returns: Json
       }
       student_update_exam_readiness: {
@@ -19979,6 +21774,59 @@ export type Database = {
           p_weekly_study_minutes?: number
         }
         Returns: Json
+      }
+      student_update_kcse_profile:
+        | {
+            Args: {
+              p_confidence_check: number
+              p_daily_revision_minutes: number
+              p_exam_date: string
+              p_subject_confidence?: Json
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_confidence_check: number
+              p_daily_revision_minutes: number
+              p_exam_date: string
+              p_kcse_candidate_opt_in: boolean
+              p_subject_confidence: Json
+            }
+            Returns: Json
+          }
+      student_update_revision_item_status: {
+        Args: { p_item_id: string; p_status: string }
+        Returns: Json
+      }
+      student_upsert_learning_generated_asset: {
+        Args: {
+          p_asset_type: string
+          p_generator?: string
+          p_model?: string
+          p_payload: Json
+          p_quality?: Json
+          p_status?: string
+          p_transformation_id: string
+        }
+        Returns: Json
+      }
+      submit_school_discovery_request: {
+        Args: {
+          p_alternative_name?: string
+          p_contact_name?: string
+          p_contact_phone?: string
+          p_county?: string
+          p_lat?: number
+          p_level?: string
+          p_lng?: number
+          p_name: string
+          p_notes?: string
+          p_school_code?: string
+          p_sub_county?: string
+          p_ward?: string
+        }
+        Returns: string
       }
       submit_student_homework: {
         Args: { p_answers?: Json; p_homework_id: string; p_photo_url?: string }
@@ -20010,6 +21858,14 @@ export type Database = {
         }
         Returns: string
       }
+      teacher_generate_shared_claim_code: {
+        Args: { p_student_id: string }
+        Returns: Json
+      }
+      teacher_get_student_kcse_brief: {
+        Args: { p_student_id: string }
+        Returns: Json
+      }
       teacher_get_student_personalized_path: {
         Args: { p_student_id: string }
         Returns: Json
@@ -20028,21 +21884,65 @@ export type Database = {
         Args: { p_publication_id: string }
         Returns: Json
       }
-      toggle_saved_publication: {
-        Args: { publication_id_input: string }
+      twin_record_learning_representation_exposure: {
+        Args: {
+          p_metadata?: Json
+          p_outcome_id: string
+          p_representation: string
+          p_student_id: string
+          p_transformation_id: string
+        }
         Returns: Json
       }
+      twin_record_verified_calibration: {
+        Args: {
+          p_actual_value: number
+          p_confidence_score: number
+          p_metadata?: Json
+          p_outcome_id?: string
+          p_predicted_value: number
+          p_prediction_type: string
+          p_source_id?: string
+          p_source_type?: string
+          p_student_id: string
+          p_subject_id?: string
+        }
+        Returns: string
+      }
+      twin_record_verified_practice_effect: {
+        Args: {
+          p_intervention_key: string
+          p_intervention_type: string
+          p_metadata?: Json
+          p_outcome_id: string
+          p_profile_id: string
+          p_response_ms?: number
+          p_success: boolean
+        }
+        Returns: undefined
+      }
+      twin_resolve_learning_exposures: {
+        Args: { p_outcome_id?: string; p_student_id: string }
+        Returns: number
+      }
+      twin_resolve_learning_representation_outcome: {
+        Args: { p_context?: Json; p_student_id: string }
+        Returns: string
+      }
       unlink_learning_resource: { Args: { p_link_id: string }; Returns: Json }
+      unpublish_publication: {
+        Args: { p_publication_id: string }
+        Returns: {
+          operation: string
+          publication_id: string
+        }[]
+      }
       unpublish_textbook: {
         Args: { p_publication_id: string }
         Returns: {
           content_id: string
           operation: string
         }[]
-      }
-      update_chapter_assignment_due_at: {
-        Args: { p_assignment_id: string; p_due_at: string }
-        Returns: Json
       }
       update_exam_streak: { Args: { p_user_id: string }; Returns: undefined }
       update_timetable_slot: {
@@ -20129,21 +22029,6 @@ export type Database = {
     }
     Enums: {
       account_status: "active" | "restricted" | "suspended" | "anonymized"
-      action_status:
-        | "pending"
-        | "approved"
-        | "rejected"
-        | "cancelled"
-        | "expired"
-        | "executed"
-      action_type:
-        | "enroll_student"
-        | "remove_student"
-        | "add_teacher"
-        | "remove_teacher"
-        | "close_school"
-        | "suspend_school"
-        | "transfer_ownership"
       attendance_status: "present" | "excused" | "absent"
       cbc_performance_level:
         | "exceeds_expectation"
@@ -20290,29 +22175,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       account_status: ["active", "restricted", "suspended", "anonymized"],
-      action_status: [
-        "pending",
-        "approved",
-        "rejected",
-        "cancelled",
-        "expired",
-        "executed",
-      ],
-      action_type: [
-        "enroll_student",
-        "remove_student",
-        "add_teacher",
-        "remove_teacher",
-        "close_school",
-        "suspend_school",
-        "transfer_ownership",
-      ],
       attendance_status: ["present", "excused", "absent"],
       cbc_performance_level: [
         "exceeds_expectation",
@@ -20339,3 +22204,4 @@ export const Constants = {
     },
   },
 } as const
+

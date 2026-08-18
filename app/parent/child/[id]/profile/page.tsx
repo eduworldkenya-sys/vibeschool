@@ -25,6 +25,7 @@ interface StudentRecord {
   date_of_birth: string | null;
   gender: string | null;
   autonomy_level: number | null;
+  self_use_enabled: boolean | null;
 }
 
 interface FamilyProfile {
@@ -72,6 +73,11 @@ function formatDate(value: string | null) {
     : "—";
 }
 
+function requiresParentOptIn(className: string) {
+  const match = className.match(/(?:grade|class)\s*(\d+)/i);
+  return !match || Number(match[1]) < 6;
+}
+
 export default function ParentChildProfilePage() {
   const params = useParams();
   const router = useRouter();
@@ -115,7 +121,7 @@ export default function ParentChildProfilePage() {
 
       const { data: student, error: studentError } = await supabase
         .from("students")
-        .select("id,name,profile_id,class_id,admission_number,date_of_birth,gender,autonomy_level")
+        .select("*")
         .eq("id", studentId)
         .single();
 
@@ -166,7 +172,7 @@ export default function ParentChildProfilePage() {
       setFavouriteBook(familyProfile?.favourite_book ?? "");
 
       setData({
-        student: student as StudentRecord,
+        student: student as unknown as StudentRecord,
         className,
         schoolName,
         avatarUrl: avatarUrl || familyProfile?.photo_url || "",
@@ -182,6 +188,21 @@ export default function ParentChildProfilePage() {
   }, [router, studentId]);
 
   useEffect(() => { void load(); }, [load]);
+
+  async function setStudentSelfUse(enabled: boolean) {
+    if (!data) return;
+    setError("");
+    setNotice("");
+    const previous = data.student.self_use_enabled === true;
+    setData(current => current ? { ...current, student: { ...current.student, self_use_enabled: enabled } } : current);
+    const { error: rpcError } = await supabase.rpc("parent_set_student_self_use", { p_student_id: data.student.id, p_enabled: enabled });
+    if (rpcError) {
+      setData(current => current ? { ...current, student: { ...current.student, self_use_enabled: previous } } : current);
+      setError("We could not update student access. Please try again.");
+      return;
+    }
+    setNotice(enabled ? `${data.student.name} can now use their own account.` : `${data.student.name} will need your permission to use their own account.`);
+  }
 
   async function saveFamilyNotes() {
     if (!data || !parentId || !data.canEditFamilyProfile) return;
@@ -217,6 +238,7 @@ export default function ParentChildProfilePage() {
     if (!data || !parentId) return;
     const next = window.prompt(`Enter the correct ${field}:`, currentValue);
     if (!next?.trim() || next.trim() === currentValue) return;
+
     const reason = window.prompt("Reason for this correction (optional):", "") ?? "";
 
     const { error: requestError } = await supabase.from("child_change_requests").insert({
@@ -276,6 +298,14 @@ export default function ParentChildProfilePage() {
     {notice && <div style={{ marginBottom: 10, borderRadius: 12, border: "1px solid #a7f3d0", background: C.accentSoft, color: "#047857", padding: 11, fontSize: 11 }}>{notice}</div>}
 
     <div style={{ display: "grid", gap: 12 }}>
+      {requiresParentOptIn(data.className) && <Card>
+        <Heading title="Student account access" sub={s.self_use_enabled ? `${s.name} has permission to use their own account.` : `${s.name} needs your permission before using their own account.`} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+          <div style={{ minWidth: 0 }}><strong style={{ display: "block", fontSize: 12, color: C.text }}>{s.self_use_enabled ? "Self-use enabled" : "Parent permission required"}</strong><p style={{ margin: "4px 0 0", fontSize: 10, lineHeight: 1.45, color: C.muted }}>You can change this anytime. VibeSchool checks your permission when the learner claims their account.</p></div>
+          <button type="button" role="switch" aria-checked={s.self_use_enabled === true} aria-label={`${s.self_use_enabled ? "Disable" : "Enable"} independent student access for ${s.name}`} onClick={() => void setStudentSelfUse(!(s.self_use_enabled === true))} style={{ width: 52, height: 30, flexShrink: 0, borderRadius: 99, border: "none", padding: 3, background: s.self_use_enabled ? C.accent : "#d1d5db", cursor: "pointer" }}><span style={{ display: "block", width: 24, height: 24, borderRadius: "50%", background: "#fff", transform: s.self_use_enabled ? "translateX(22px)" : "translateX(0)", transition: "transform .15s ease", boxShadow: "0 1px 3px rgba(0,0,0,.18)" }} /></button>
+        </div>
+      </Card>}
+
       <Card>
         <Heading title="School identity" sub="These facts come from the canonical learner record. Corrections go through review instead of changing only the parent view." />
         {[

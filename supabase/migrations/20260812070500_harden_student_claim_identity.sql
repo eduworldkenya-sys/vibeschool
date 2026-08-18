@@ -1,5 +1,11 @@
 begin;
 
+-- Historical production schema contains claimed_at, but the replayable baseline
+-- predates that column. Establish the column before any function references it
+-- so blank-database rebuilds and upgraded databases converge on one shape.
+alter table public.student_claim_codes
+  add column if not exists claimed_at timestamptz;
+
 create or replace function public.redeem_student_claim(
   p_code text,
   p_user_id uuid default null

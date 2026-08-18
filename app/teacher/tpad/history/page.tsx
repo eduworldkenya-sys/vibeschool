@@ -75,6 +75,7 @@ export default function HistoryPage() {
           .select(`
             id, status,
             standard_1_self, standard_2_self, standard_3_self, standard_4_self,
+            standard_5_self, standard_6_self, standard_7_self, standard_8_self,
             standard_1_head, standard_2_head, standard_3_head, standard_4_head,
             final_score, submitted_at,
             term:academic_terms(name, term, academic_year)
@@ -88,7 +89,12 @@ export default function HistoryPage() {
           return
         }
 
-        setHistory((data ?? []) as HistoryEntry[])
+        const normalized = (data ?? []).map(row => ({
+          ...row,
+          term: Array.isArray(row.term) ? row.term[0] ?? null : row.term,
+        })) as unknown as HistoryEntry[]
+
+        setHistory(normalized)
       } catch {
         setError('Unexpected error. Please refresh.')
       } finally {

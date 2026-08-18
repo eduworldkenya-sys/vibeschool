@@ -1,74 +1,61 @@
 "use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-
-const dark = '#1e1b4b'
-const accent = '#10b981'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function LinkChildPage() {
-  const router = useRouter()
-  const [claimCode, setClaimCode] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const router = useRouter();
+  const [claimCode, setClaimCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   async function handleLink() {
-    setError(''); setSuccess('')
-    if (!claimCode.trim()) { setError('Enter a claim code.'); return }
-    setLoading(true)
+    setError(""); setSuccess("");
+    if (claimCode.length !== 6) { setError("Enter the 6-character code from your child's teacher."); return; }
+    setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); router.push('/'); return }
-      const { data: result, error: rpcErr } = await supabase.rpc('redeem_parent_claim', {
-        p_code: claimCode.trim().toUpperCase(), p_user_id: user.id,
-      })
-      setLoading(false)
-      if (rpcErr) { setError('Something went wrong. Please try again.'); return }
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push("/"); return; }
+      const { data: result, error: rpcErr } = await supabase.rpc("redeem_parent_claim", { p_code: claimCode, p_user_id: user.id });
+      if (rpcErr) { setError("We couldn't connect your child. Please try again."); return; }
       switch (result) {
-        case 'success':
-          setSuccess('Child linked successfully!')
-          setTimeout(() => router.push('/parent'), 1500)
-          break
-        case 'not_found': setError('Invalid claim code. Check the code and try again.'); break
-        case 'already_claimed': setError('This claim code has already been used.'); break
-        case 'student_not_found': setError('Student record not found. Contact the school.'); break
-        default: setError('Something went wrong. Please try again.')
+        case "success": setSuccess("Child connected. Opening your family dashboard…"); setTimeout(() => router.push("/parent"), 1000); break;
+        case "not_found": setError("That code isn't valid. Check it with the teacher and try again."); break;
+        case "already_claimed": setError("A parent account is already connected with this code. Ask the teacher for a new code if you need to connect another parent account."); break;
+        case "expired": setError("That claim code has expired. Ask the teacher to generate a new shared code."); break;
+        case "student_not_found": setError("We couldn't find the learner record. Please contact the school."); break;
+        default: setError("We couldn't complete the connection. Please try again.");
       }
-    } catch {
-      setLoading(false)
-      setError('Network error. Please check your connection and try again.')
-    }
+    } catch { setError("We couldn't reach VibeSchool. Check your connection and try again."); }
+    finally { setLoading(false); }
   }
 
+  const ready = claimCode.length === 6;
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 420, background: '#fff', borderRadius: 20, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🔗</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: dark }}>Link Your Child</div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Ask your child's class teacher for the 6-character claim code.</div>
-        </div>
-        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#1e40af', marginBottom: 8 }}>📌 How to connect</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[
-              { icon: '👩‍🏫', title: 'Ask the teacher', body: 'Your child’s class teacher has the shared claim code. They can share it with you securely.' },
-              { icon: '🔢', title: 'Enter the 6-character code', body: 'The same code can be used by the parent and the student. One person claiming it does not consume it for the other.' },
-              { icon: '🔐', title: 'Keep the code private', body: 'Only share the code with the people who should connect to this learner.' },
-            ].map(g => <div key={g.title} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}><span style={{ fontSize: 16, flexShrink: 0 }}>{g.icon}</span><div><div style={{ fontSize: 12, fontWeight: 700, color: '#1e40af' }}>{g.title}</div><div style={{ fontSize: 11, color: '#1d4ed8', lineHeight: 1.5, marginTop: 2 }}>{g.body}</div></div></div>)}
+    <main style={{ minHeight: "100vh", background: "linear-gradient(180deg,#f7faf9 0%,#eef2f7 100%)", display: "grid", placeItems: "center", padding: 20 }}>
+      <section style={{ width: "100%", maxWidth: 460, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 24, padding: 24, boxShadow: "0 14px 45px rgba(15,23,42,.08)" }}>
+        <div style={{ width: 52, height: 52, borderRadius: 16, display: "grid", placeItems: "center", background: "#ecfdf5", fontSize: 25, marginBottom: 16 }}>👨‍👩‍👧</div>
+        <div style={{ fontSize: 10, letterSpacing: 1.2, fontWeight: 850, color: "#059669", textTransform: "uppercase" }}>Family connection</div>
+        <h1 style={{ margin: "5px 0 7px", fontSize: 25, lineHeight: 1.15, color: "#111827" }}>Connect your child</h1>
+        <p style={{ margin: 0, color: "#6b7280", fontSize: 12, lineHeight: 1.55 }}>Use the shared 6-character code from your child's teacher. You and your child can use the same code independently.</p>
+        <div style={{ marginTop: 18, borderRadius: 16, border: "1px solid #d1fae5", background: "#f0fdf4", padding: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 850, color: "#065f46", marginBottom: 9 }}>How it works</div>
+          <div style={{ display: "grid", gap: 9 }}>
+            {["Get the shared code from the class teacher.", "Enter it below to connect your child to your parent account.", "Keep the code private and share it only with the child's parent or learner."].map((text, i) => <div key={text} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}><span style={{ width: 20, height: 20, borderRadius: "50%", background: "#d1fae5", color: "#047857", display: "grid", placeItems: "center", fontSize: 9, fontWeight: 900, flexShrink: 0 }}>{i + 1}</span><span style={{ color: "#065f46", fontSize: 10, lineHeight: 1.45 }}>{text}</span></div>)}
           </div>
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Claim Code</label>
-          <input type="text" value={claimCode} onChange={e => setClaimCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} onKeyDown={e => { if (e.key === 'Enter' && claimCode.length === 6) handleLink() }} placeholder="e.g. A1B2C3" maxLength={6} disabled={loading} style={{ width: '100%', padding: '14px', borderRadius: 12, border: '1.5px solid #e5e7eb', fontSize: 20, fontWeight: 800, letterSpacing: 4, textAlign: 'center', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
+        <div style={{ marginTop: 16 }}>
+          <label htmlFor="parent-claim-code" style={{ display: "block", fontSize: 10, fontWeight: 800, color: "#6b7280", letterSpacing: 1, textTransform: "uppercase", marginBottom: 7 }}>Claim code</label>
+          <input id="parent-claim-code" autoFocus inputMode="text" autoComplete="one-time-code" type="text" value={claimCode} onChange={e => setClaimCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} onKeyDown={e => { if (e.key === "Enter" && ready) void handleLink(); }} placeholder="A1B2C3" maxLength={6} disabled={loading} style={{ width: "100%", boxSizing: "border-box", padding: "15px 12px", borderRadius: 13, border: `1.5px solid ${error ? "#fca5a5" : "#d1d5db"}`, background: "#fff", fontSize: 24, fontWeight: 900, letterSpacing: 6, textAlign: "center", fontFamily: "ui-monospace,SFMono-Regular,Menlo,monospace", outline: "none" }} />
+          <div style={{ marginTop: 7, display: "flex", justifyContent: "space-between", fontSize: 9, color: "#9ca3af" }}><span>Letters and numbers only</span><span>{claimCode.length}/6</span></div>
         </div>
-        {error && <div role="alert" style={{ color: '#991b1b', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: 12, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{error}</div>}
-        {success && <p role="status" style={{ color: '#047857', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: 12, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{success}</p>}
-        <button onClick={handleLink} disabled={loading || claimCode.length < 6} style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', background: claimCode.length < 6 ? '#e5e7eb' : accent, color: claimCode.length < 6 ? '#9ca3af' : '#fff', fontWeight: 700, fontSize: 15, cursor: claimCode.length < 6 ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{loading ? 'Linking…' : 'Link Child'}</button>
-        <button onClick={() => router.push('/parent')} style={{ width: '100%', marginTop: 10, padding: '12px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Skip for now</button>
-      </div>
-    </div>
-  )
+        {error && <div role="alert" style={{ marginTop: 12, borderRadius: 13, border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, fontSize: 11, lineHeight: 1.5, fontWeight: 650 }}>{error}</div>}
+        {success && <div role="status" style={{ marginTop: 12, borderRadius: 13, border: "1px solid #a7f3d0", background: "#ecfdf5", color: "#047857", padding: 12, fontSize: 11, lineHeight: 1.5, fontWeight: 750 }}>{success}</div>}
+        <button type="button" onClick={() => void handleLink()} disabled={!ready || loading} style={{ width: "100%", marginTop: 12, minHeight: 48, borderRadius: 13, border: "none", background: !ready || loading ? "#d1d5db" : "#10b981", color: "#fff", fontWeight: 850, fontSize: 13, cursor: !ready || loading ? "not-allowed" : "pointer", fontFamily: "inherit" }}>{loading ? "Connecting…" : "Connect my child"}</button>
+        <button type="button" onClick={() => router.push("/parent")} style={{ width: "100%", marginTop: 8, minHeight: 42, borderRadius: 12, border: "1px solid #e5e7eb", background: "#fff", color: "#6b7280", fontWeight: 750, fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}>I'll do this later</button>
+      </section>
+    </main>
+  );
 }
