@@ -1,5 +1,6 @@
 -- VibeSchool Task 6: Parent claim codes establish a family relationship only.
--- They must not silently grant pickup authority or fabricate a primary guardian.
+-- They must not silently grant pickup authority, fabricate a primary guardian,
+-- or destroy an existing professional/student account role.
 -- authorization-test: public.redeem_parent_claim
 -- authorization-test: public.parent_student_links
 
@@ -94,8 +95,8 @@ begin
     on conflict (school_id, profile_id) do nothing;
 
     update public.profiles
-    set school_id = v_school_id,
-        role = case when role is null or role = 'teacher' then 'parent' else role end,
+    set school_id = coalesce(school_id, v_school_id),
+        role = case when role is null then 'parent' else role end,
         updated_at = now()
     where id = p_user_id;
   end if;
@@ -114,6 +115,6 @@ revoke all on function public.redeem_parent_claim(text,uuid) from public, anon;
 grant execute on function public.redeem_parent_claim(text,uuid) to authenticated, service_role;
 
 comment on function public.redeem_parent_claim(text,uuid) is
-  'Redeems a one-time parent-role claim code for the authenticated account. Establishes/reactivates only the parent-student relationship; pickup/primary-guardian authority remains separately verified.';
+  'Redeems a one-time parent-role claim code for the authenticated account. Establishes/reactivates only the parent-student relationship; pickup/primary-guardian authority remains separately verified and existing account roles are preserved.';
 
 commit;
