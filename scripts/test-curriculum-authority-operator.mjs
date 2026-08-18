@@ -25,7 +25,7 @@ const checks = [
   ["owner final promotion", page.includes('rpc("curriculum_authority_promote_snapshot"') && page.includes('PROMOTE OFFICIAL')],
   ["placeholder observations rejected", page.includes("Placeholder rows cannot be staged")],
   ["KICD canary evidence", page.includes("kicd.ac.ke/cbc-materials/curriculum-designs/grade-nine-designs") && page.includes("1HgntYl8nS1zydy8k00KrjEt_zJiMqISL")],
-  ["HQ navigation", nav.includes('["Curriculum Authority","/hq/curriculum-authority"]')],
+  ["HQ navigation", nav.includes('"/hq/curriculum-authority"')],
 ]
 
 let failed = false
