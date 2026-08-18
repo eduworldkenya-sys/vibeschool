@@ -43,6 +43,13 @@ function formatTime(value: string) {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
 }
 
+function matchesView(item: HQNotification, view: View) {
+  if (view === "all") return true
+  if (view === "active") return item.status !== "resolved"
+  if (view === "resolved") return item.status === "resolved"
+  return item.status !== "resolved" && item.notification_class === view
+}
+
 export default function HQNotificationsPage() {
   const router = useRouter()
   const [items, setItems] = useState<HQNotification[]>([])
@@ -82,12 +89,7 @@ export default function HQNotificationsPage() {
   const visible = useMemo(() => {
     const normalized = query.trim().toLowerCase()
     return items.filter((item) => {
-      const statusMatch =
-        view === "all" ||
-        (view === "active" && item.status !== "resolved") ||
-        (view === "resolved" && item.status === "resolved") ||
-        (view !== "active" && view !== "all" && view !== "resolved" && item.notification_class === view && item.status !== "resolved")
-      if (!statusMatch) return false
+      if (!matchesView(item, view)) return false
       if (!normalized) return true
       return `${item.title} ${item.body} ${item.category} ${item.source_type ?? ""}`.toLowerCase().includes(normalized)
     })
