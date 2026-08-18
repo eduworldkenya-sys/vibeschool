@@ -98,12 +98,12 @@ create table if not exists worker_engine_legacy_archive.lineage_manifest (
 );
 alter table worker_engine_legacy_archive.lineage_manifest enable row level security;
 revoke all on table worker_engine_legacy_archive.lineage_manifest from public, anon, authenticated, service_role;
--- access: service-only worker_engine_legacy_archive.lineage_manifest
+-- access: owner-only worker_engine_legacy_archive.lineage_manifest
 -- authorization-test: worker_engine_legacy_archive.lineage_manifest public/anon/authenticated/service_role denied; migration owner only
 """
 require(
     errors_for(private_schema) == [],
-    "schema-qualified private table with explicit deny contract must pass",
+    "schema-qualified owner-only table with explicit deny contract must pass",
 )
 
 private_missing_rls = private_schema.replace(
