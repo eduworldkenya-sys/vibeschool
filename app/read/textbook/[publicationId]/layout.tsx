@@ -5,6 +5,7 @@ import { ReaderStudyViewControls } from "@/components/read/ReaderStudyViewContro
 import { ReadingAnalyticsTracker } from "@/components/read/ReadingAnalyticsTracker";
 import { ReaderAssessmentLauncher } from "@/components/read/ReaderAssessmentLauncher";
 import { ReaderLearningLauncher } from "@/components/read/ReaderLearningLauncher";
+import { ReaderPurchaseBar } from "@/components/read/ReaderPurchaseBar";
 import { TeacherContentDeriveLauncher } from "@/components/read/TeacherContentDeriveLauncher";
 import { TeacherMaterialLauncher } from "@/components/read/TeacherMaterialLauncher";
 import { getSupabaseServerClient } from "@/lib/supabaseServer";
@@ -138,6 +139,7 @@ export default async function TextbookReaderLayout({
         {children}
       </div>
       <StudyCapturePanel publicationId={params.publicationId} />
+      <ReaderPurchaseBar publicationId={params.publicationId} />
       <ReaderLearningLauncher />
       <ReaderAssessmentLauncher />
       <TeacherMaterialLauncher />
