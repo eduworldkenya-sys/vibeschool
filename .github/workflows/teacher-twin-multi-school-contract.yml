@@ -1,0 +1,52 @@
+name: Teacher Twin Multi-School Contract
+
+on:
+  push:
+    branches:
+      - main
+      - 'agent/**'
+      - 'twin/**'
+    paths:
+      - 'components/twin/TwinRoleSwitcher.tsx'
+      - 'lib/teacher/twin.ts'
+      - 'supabase/migrations/20260807150121_teacher_twin_authoritative_brain.sql'
+      - 'supabase/migrations/20260807150508_teacher_twin_student_signal_bridge.sql'
+      - 'supabase/migrations/20260807151514_teacher_twin_operational_context_completion.sql'
+      - 'supabase/migrations/20260807152114_teacher_twin_context_integrity_fix.sql'
+      - 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+      - 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
+      - 'scripts/test-teacher-twin-multi-school-scope.mjs'
+      - '.github/workflows/teacher-twin-multi-school-contract.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'components/twin/TwinRoleSwitcher.tsx'
+      - 'lib/teacher/twin.ts'
+      - 'supabase/migrations/20260807150121_teacher_twin_authoritative_brain.sql'
+      - 'supabase/migrations/20260807150508_teacher_twin_student_signal_bridge.sql'
+      - 'supabase/migrations/20260807151514_teacher_twin_operational_context_completion.sql'
+      - 'supabase/migrations/20260807152114_teacher_twin_context_integrity_fix.sql'
+      - 'supabase/migrations/20260818050300_teacher_twin_multi_school_scope.sql'
+      - 'supabase/migrations/20260818050400_teacher_twin_active_school_preference.sql'
+      - 'scripts/test-teacher-twin-multi-school-scope.mjs'
+      - '.github/workflows/teacher-twin-multi-school-contract.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: teacher-twin-multi-school-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Teacher Twin school-scope invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Certify Teacher Twin multi-school authority
+        run: node scripts/test-teacher-twin-multi-school-scope.mjs

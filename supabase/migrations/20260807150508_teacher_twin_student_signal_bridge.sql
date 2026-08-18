@@ -1,0 +1,3 @@
+-- Recovered production migration history.
+-- This production step added the assigned-class Student Twin signal bridge and intervention-effect evidence.
+-- The complete replayable final contract is consolidated in 20260807152114_teacher_twin_context_integrity_fix.sql.

@@ -1,224 +1,144 @@
-"use client";
-import { nairobiDateStr } from '@/lib/time'
+'use client'
 
-import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import { getTwinAuthorityContext, selectTwinRoleBinding } from '@/lib/twin/core'
 
 interface Student {
-  id:             string
-  name:           string
-  className:      string
-  attendanceDays: number
-  hwStatus:       string
+  id: string
+  name: string
+  className: string
+  attendanceRecords: number
+  presentRecords: number
+  hwStatus: string
   recentlyAbsent: boolean
 }
 
 function StatRow({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,0.08)',
-    }}>
-      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 800, color: accent ?? '#fff' }}>{value}</span>
-    </div>
-  )
+  return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>{label}</span>
+    <span style={{ fontSize: 13, fontWeight: 800, color: accent ?? '#fff' }}>{value}</span>
+  </div>
 }
 
 export default function SmartInsightSlides() {
-  const router        = useRouter()
-  const isMounted     = useRef(true)
-  const slideRef      = useRef<HTMLDivElement>(null)
-  const autoTimer     = useRef<NodeJS.Timeout | null>(null)
-  const pauseTimer    = useRef<NodeJS.Timeout | null>(null)
-  const studentTimer  = useRef<NodeJS.Timeout | null>(null)
-  const userTouched   = useRef(false)
+  const router = useRouter()
+  const isMounted = useRef(true)
+  const slideRef = useRef<HTMLDivElement>(null)
+  const autoTimer = useRef<NodeJS.Timeout | null>(null)
+  const pauseTimer = useRef<NodeJS.Timeout | null>(null)
+  const studentTimer = useRef<NodeJS.Timeout | null>(null)
+  const userTouched = useRef(false)
 
-  useEffect(() => { return () => { isMounted.current = false } }, [])
+  const [activeSlide, setActiveSlide] = useState(0)
+  const [students, setStudents] = useState<Student[]>([])
+  const [studentIndex, setStudentIndex] = useState(0)
+  const [firstName, setFirstName] = useState('Teacher')
+  const [loaded, setLoaded] = useState(false)
 
-  const [activeSlide,    setActiveSlide]    = useState(0)
-  const [students,       setStudents]       = useState<Student[]>([])
-  const [studentIndex,   setStudentIndex]   = useState(0)
-  const [story,          setStory]          = useState<string>('')
-  const [fact,           setFact]           = useState<string>('')
-  const [storyLoading,   setStoryLoading]   = useState(true)
-  const [factLoading,    setFactLoading]    = useState(true)
-  const [firstName,      setFirstName]      = useState('Teacher')
+  useEffect(() => () => { isMounted.current = false }, [])
 
-  // ── Load students ──────────────────────────────────────────────
   const loadStudents = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !isMounted.current) return
+      const authority = await getTwinAuthorityContext()
+      if (!isMounted.current) return
 
+      const [profileRes, teacherProfileRes] = await Promise.all([
+        supabase.from('profiles').select('full_name').eq('id', authority.userId).single(),
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', authority.userId).maybeSingle(),
+      ])
+      if (profileRes.error) throw new Error(profileRes.error.message || 'Teacher profile unavailable')
+      if (teacherProfileRes.error) throw new Error(teacherProfileRes.error.message || 'Teacher school preference unavailable')
+      if (profileRes.data?.full_name && isMounted.current) setFirstName(profileRes.data.full_name.split(' ')[0])
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.full_name && isMounted.current) {
-        setFirstName(profile.full_name.split(' ')[0])
-      }
+      const binding = selectTwinRoleBinding(authority, 'teacher', teacherProfileRes.data?.school_id ?? undefined)
+      const schoolId = binding.schoolId
+      if (!schoolId) throw new Error('Teacher insight school scope is unavailable.')
 
       const { data: tcRows } = await supabase
         .from('teacher_classes')
         .select('class_id')
-        .eq('teacher_id', user.id)
+        .eq('teacher_id', authority.userId)
+        .eq('school_id', schoolId)
 
-      if (!tcRows || tcRows.length === 0) return
+      const classIds = Array.from(new Set((tcRows ?? []).map((row: { class_id: string }) => row.class_id)))
+      if (classIds.length === 0) return
 
-      const classIds = tcRows.map((r: { class_id: string }) => r.class_id)
-
-      const { data: studentRows } = await supabase
-        .from('students')
-        .select('id, name, class_id')
+      const { data: enrolments } = await supabase
+        .from('student_classes')
+        .select('student_id, class_id')
+        .eq('school_id', schoolId)
+        .eq('is_current', true)
         .in('class_id', classIds)
 
-      if (!studentRows || !isMounted.current) return
+      const studentIds = Array.from(new Set((enrolments ?? []).map((row: { student_id: string }) => row.student_id)))
+      if (studentIds.length === 0) return
 
-      const studentIds = studentRows.map((s: { id: string }) => s.id)
-
-      const [attRes, hwRes, classRes] = await Promise.all([
-        supabase.from('attendance').select('student_id, status, date').in('student_id', studentIds).order('date', { ascending: false }),
-        supabase.from('homework_submissions').select('student_id, status').in('student_id', studentIds).order('created_at', { ascending: false }),
-        supabase.from('classes').select('id, name, stream').in('id', classIds),
+      const [studentRes, attRes, hwRes, classRes] = await Promise.all([
+        supabase.from('students').select('id, name').in('id', studentIds).is('deleted_at', null),
+        supabase.from('attendance').select('student_id, status, date').eq('school_id', schoolId).in('student_id', studentIds).gte('date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)).order('date', { ascending: false }),
+        supabase.from('homework_submissions').select('student_id, status, created_at').in('student_id', studentIds).order('created_at', { ascending: false }),
+        supabase.from('classes').select('id, name, stream').eq('school_id', schoolId).in('id', classIds),
       ])
 
       const classMap: Record<string, string> = {}
-      ;(classRes.data ?? []).forEach((c: { id: string; name: string; stream: string | null }) => {
-        classMap[c.id] = c.name + (c.stream ? ` ${c.stream}` : '')
-      })
+      ;(classRes.data ?? []).forEach((c: { id: string; name: string; stream: string | null }) => { classMap[c.id] = `${c.name}${c.stream ? ` ${c.stream}` : ''}` })
+      const enrolmentMap: Record<string, string> = {}
+      ;(enrolments ?? []).forEach((row: { student_id: string; class_id: string }) => { if (!enrolmentMap[row.student_id]) enrolmentMap[row.student_id] = row.class_id })
 
-      const attMap: Record<string, { count: number; lastDate: string }> = {}
-      ;(attRes.data ?? []).forEach(a => {
+      const attMap: Record<string, { total: number; present: number; latest: string | null }> = {}
+      ;(attRes.data ?? []).forEach((a: { student_id: string | null; status: string; date: string }) => {
         if (!a.student_id) return
-
-        if (a.status === 'present') {
-          if (!attMap[a.student_id]) {
-            attMap[a.student_id] = {
-              count: 0,
-              lastDate: a.date,
-            }
-          }
-          attMap[a.student_id].count++
-        }
+        const current = attMap[a.student_id] ?? { total: 0, present: 0, latest: null }
+        current.total += 1
+        if (a.status === 'present') current.present += 1
+        if (!current.latest || a.date > current.latest) current.latest = a.date
+        attMap[a.student_id] = current
       })
 
       const hwMap: Record<string, string> = {}
-      ;(hwRes.data ?? []).forEach(h => {
-        if (!h.student_id) return
-        if (!hwMap[h.student_id]) {
-          hwMap[h.student_id] = h.status
-        }
-      })
+      ;(hwRes.data ?? []).forEach((h: { student_id: string | null; status: string }) => { if (h.student_id && !hwMap[h.student_id]) hwMap[h.student_id] = h.status })
 
-      const threeDaysAgo = new Date()
-      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3)
-
-      const mapped: Student[] = studentRows.map(s => {
-        const att          = attMap[s.id]
-        const lastDate     = att?.lastDate ? new Date(att.lastDate) : null
-        const recentAbsent = !lastDate || lastDate < threeDaysAgo
-
+      const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10)
+      const mapped: Student[] = (studentRes.data ?? []).map((s: { id: string; name: string }) => {
+        const attendance = attMap[s.id]
+        const classId = enrolmentMap[s.id]
         return {
-          id:             s.id,
-          name:           s.name,
-          className:      s.class_id
-            ? classMap[s.class_id] ?? ''
-            : '',
-          attendanceDays: att?.count ?? 0,
-          hwStatus:       hwMap[s.id] ?? 'none',
-          recentlyAbsent: recentAbsent,
+          id: s.id,
+          name: s.name,
+          className: classMap[classId] ?? '',
+          attendanceRecords: attendance?.total ?? 0,
+          presentRecords: attendance?.present ?? 0,
+          hwStatus: hwMap[s.id] ?? 'none',
+          recentlyAbsent: Boolean(attendance?.latest && attendance.latest < threeDaysAgo),
         }
-      })
+      }).sort((a, b) => a.name.localeCompare(b.name))
 
-      // Shuffle for variety
-      const shuffled = [...mapped].sort(() => Math.random() - 0.5)
-      if (isMounted.current) setStudents(shuffled)
-
-    } catch {}
+      if (isMounted.current) setStudents(mapped)
+    } catch {
+      // The slide remains useful in evidence-principle mode when school data is unavailable.
+    } finally {
+      if (isMounted.current) setLoaded(true)
+    }
   }, [])
 
-  // ── Call twin-chat ─────────────────────────────────────────────
-  const callTwin = useCallback(async (prompt: string): Promise<string> => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return ''
+  useEffect(() => { void loadStudents() }, [loadStudents])
 
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/twin-chat`,
-        {
-          method:  'POST',
-          headers: {
-            'Content-Type':  'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            messages:  [{ role: 'user', content: prompt }],
-            context:   'You are generating content for a teacher dashboard slide.',
-            firstName,
-          }),
-        }
-      )
-      const data = await res.json()
-      return data.reply ?? data.message ?? ''
-    } catch {
-      return ''
-    }
-  }, [firstName])
-
-  // ── Load story ─────────────────────────────────────────────────
-  const loadStory = useCallback(async () => {
-    setStoryLoading(true)
-    const result = await callTwin(
-      'Tell me one short inspiring true story about a teacher or student in Africa — someone who overcame something real. 3 sentences max. No intro, no title, just the story. Make it feel human and emotional.'
-    )
-    if (isMounted.current) {
-      setStory(result || "Every child who walks into your classroom carries a story you haven't heard yet. That's why you show up.")
-      setStoryLoading(false)
-    }
-  }, [callTwin])
-
-  // ── Load fact ──────────────────────────────────────────────────
-  const loadFact = useCallback(async () => {
-    setFactLoading(true)
-    const result = await callTwin(
-      'Give me one surprising fact a teacher would love to know — about the brain, learning, memory, students, or education in Africa. One or two sentences. Start directly with the fact, no intro. Make it feel like something they would screenshot and share.'
-    )
-    if (isMounted.current) {
-      setFact(result || "Students who are greeted by name at the classroom door score 20% higher on engagement tests.")
-      setFactLoading(false)
-    }
-  }, [callTwin])
-
-  useEffect(() => {
-    loadStudents()
-    loadStory()
-    loadFact()
-  }, [loadStudents, loadStory, loadFact])
-
-  // ── Rotate student every 20 minutes ───────────────────────────
   useEffect(() => {
     if (students.length === 0) return
     studentTimer.current = setInterval(() => {
-      if (!isMounted.current) return
-      setStudentIndex(i => (i + 1) % students.length)
+      if (isMounted.current) setStudentIndex(index => (index + 1) % students.length)
     }, 20 * 60 * 1000)
     return () => { if (studentTimer.current) clearInterval(studentTimer.current) }
   }, [students])
 
-  // ── Auto-scroll every 5s, pause on touch ──────────────────────
   const startAuto = useCallback(() => {
     if (autoTimer.current) clearInterval(autoTimer.current)
     autoTimer.current = setInterval(() => {
-      if (!isMounted.current || userTouched.current) return
-      if (!slideRef.current) return
-      const total = 3
-      setActiveSlide(prev => {
-        const next = (prev + 1) % total
+      if (!isMounted.current || userTouched.current || !slideRef.current) return
+      setActiveSlide(previous => {
+        const next = (previous + 1) % 3
         slideRef.current?.scrollTo({ left: next * slideRef.current.offsetWidth, behavior: 'smooth' })
         return next
       })
@@ -233,9 +153,7 @@ export default function SmartInsightSlides() {
   function onTouchStart() {
     userTouched.current = true
     if (pauseTimer.current) clearTimeout(pauseTimer.current)
-    pauseTimer.current = setTimeout(() => {
-      userTouched.current = false
-    }, 8000)
+    pauseTimer.current = setTimeout(() => { userTouched.current = false }, 8000)
   }
 
   function onScroll() {
@@ -244,193 +162,45 @@ export default function SmartInsightSlides() {
   }
 
   const student = students[studentIndex] ?? null
+  const needingCheckIn = students.filter(item => item.recentlyAbsent).length
+  const withNoAttendanceEvidence = students.filter(item => item.attendanceRecords === 0).length
+  const returnedHomework = students.filter(item => item.hwStatus === 'returned').length
 
   const slides = [
-    // ── Slide 1: Student of the Moment ──
-    {
-      gradient:  'linear-gradient(135deg, #1e3a5f 0%, #1a2a4a 100%)',
-      accent:    '#60c8f5',
-      accentDim: 'rgba(96,200,245,0.12)',
-      content: () => (
-        <>
-          <div style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 10px', borderRadius: 20, background: 'rgba(96,200,245,0.12)', border: '1px solid rgba(96,200,245,0.2)', marginBottom: 14 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#60c8f5', letterSpacing: 0.8 }}>👤 Student of the Moment</span>
-          </div>
-
-          {!student ? (
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', padding: '20px 0' }}>No students assigned yet</div>
-          ) : (
-            <>
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{student.name}</div>
-                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 4 }}>{student.className}</div>
-              </div>
-
-              <StatRow
-                label="Attendance days"
-                value={student.attendanceDays > 0 ? `${student.attendanceDays} days 🔥` : 'No records yet'}
-                accent={student.attendanceDays >= 5 ? '#34d399' : '#fbbf24'}
-              />
-              <StatRow
-                label="Last homework"
-                value={student.hwStatus === 'submitted' ? 'Submitted ✓' : student.hwStatus === 'late' ? 'Late ⚠' : student.hwStatus === 'missing' ? 'Missing ✗' : 'No record'}
-                accent={student.hwStatus === 'submitted' ? '#34d399' : student.hwStatus === 'missing' ? '#f87171' : '#fbbf24'}
-              />
-              {student.recentlyAbsent && (
-                <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)' }}>
-                  <span style={{ fontSize: 12, color: '#fbbf24', fontWeight: 700 }}>⚠ Haven't seen them recently — check in today</span>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                <button
-                  onClick={() => router.push('/teacher/classhub')}
-                  style={{ flex: 1, padding: '10px 0', borderRadius: 12, border: '1.5px solid rgba(96,200,245,0.4)', background: 'rgba(96,200,245,0.1)', color: '#60c8f5', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  View Profile →
-                </button>
-                <button
-                  onClick={() => setStudentIndex(i => (i + 1) % students.length)}
-                  style={{ padding: '10px 14px', borderRadius: 12, border: '1.5px solid rgba(255,255,255,0.15)', background: 'transparent', color: 'rgba(255,255,255,0.5)', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-                >
-                  Next ↻
-                </button>
-              </div>
-            </>
-          )}
-        </>
-      ),
-    },
-
-    // ── Slide 2: VibeLearn Story ──
-    {
-      gradient:  'linear-gradient(135deg, #1a2a1a 0%, #0f3d1f 50%, #0a2010 100%)',
-      accent:    '#4ade80',
-      accentDim: 'rgba(74,222,128,0.12)',
-      content: () => (
-        <>
-          <div style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 10px', borderRadius: 20, background: 'rgba(74,222,128,0.12)', border: '1px solid rgba(74,222,128,0.2)', marginBottom: 14 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#4ade80', letterSpacing: 0.8 }}>📖 VibeLearn Story</span>
-          </div>
-
-          {storyLoading ? (
-            <div style={{ padding: '20px 0' }}>
-              <div style={{ height: 14, borderRadius: 8, background: 'rgba(255,255,255,0.08)', marginBottom: 10 }} />
-              <div style={{ height: 14, borderRadius: 8, background: 'rgba(255,255,255,0.06)', marginBottom: 10, width: '85%' }} />
-              <div style={{ height: 14, borderRadius: 8, background: 'rgba(255,255,255,0.04)', width: '70%' }} />
-            </div>
-          ) : (
-            <>
-              <div style={{ fontSize: 15, color: '#fff', lineHeight: 1.7, fontWeight: 400, marginBottom: 20, fontStyle: 'italic' }}>
-                "{story}"
-              </div>
-              <button
-                onClick={loadStory}
-                style={{ width: '100%', padding: '10px 0', borderRadius: 12, border: '1.5px solid rgba(74,222,128,0.4)', background: 'rgba(74,222,128,0.1)', color: '#4ade80', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                Another Story ↻
-              </button>
-            </>
-          )}
-        </>
-      ),
-    },
-
-    // ── Slide 3: Knowledge Reel ──
-    {
-      gradient:  'linear-gradient(135deg, #2d1b4e 0%, #3b1f6b 50%, #1a0f2e 100%)',
-      accent:    '#a78bfa',
-      accentDim: 'rgba(167,139,250,0.12)',
-      content: () => (
-        <>
-          <div style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 10px', borderRadius: 20, background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.2)', marginBottom: 14 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#a78bfa', letterSpacing: 0.8 }}>⚡ Did You Know</span>
-          </div>
-
-          {factLoading ? (
-            <div style={{ padding: '20px 0' }}>
-              <div style={{ height: 14, borderRadius: 8, background: 'rgba(255,255,255,0.08)', marginBottom: 10 }} />
-              <div style={{ height: 14, borderRadius: 8, background: 'rgba(255,255,255,0.06)', width: '80%' }} />
-            </div>
-          ) : (
-            <>
-              <div style={{ fontSize: 17, color: '#fff', lineHeight: 1.65, fontWeight: 700, marginBottom: 20 }}>
-                {fact}
-              </div>
-              <button
-                onClick={loadFact}
-                style={{ width: '100%', padding: '10px 0', borderRadius: 12, border: '1.5px solid rgba(167,139,250,0.4)', background: 'rgba(167,139,250,0.1)', color: '#a78bfa', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                Next Fact ↻
-              </button>
-            </>
-          )}
-        </>
-      ),
-    },
+    <div key="learner" style={{ minWidth: '100%', padding: 20, boxSizing: 'border-box', background: 'linear-gradient(135deg,#1e3a5f 0%,#1a2a4a 100%)' }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: '#60c8f5', letterSpacing: .8, marginBottom: 14 }}>LEARNER EVIDENCE SNAPSHOT</div>
+      {!loaded ? <div style={{ color: 'rgba(255,255,255,.55)' }}>Reading assigned-class evidence…</div> : !student ? <div style={{ color: 'rgba(255,255,255,.55)' }}>No current learner enrollment is available in your assigned classes.</div> : <>
+        <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{student.name}</div>
+        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', margin: '4px 0 14px' }}>{student.className}</div>
+        <StatRow label="Attendance evidence (30d)" value={`${student.presentRecords}/${student.attendanceRecords} present`} accent={student.attendanceRecords > 0 ? '#34d399' : '#fbbf24'} />
+        <StatRow label="Latest homework state" value={student.hwStatus === 'none' ? 'No submission record' : student.hwStatus} />
+        {student.recentlyAbsent && <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 12, background: 'rgba(251,191,36,.12)', color: '#fbbf24', fontSize: 12, fontWeight: 700 }}>Recent attendance evidence is stale. Check the learner or attendance record; do not assume why.</div>}
+        <button onClick={() => router.push('/teacher/classhub')} style={{ marginTop: 14, padding: '10px 14px', borderRadius: 12, border: '1.5px solid rgba(96,200,245,.4)', background: 'rgba(96,200,245,.1)', color: '#60c8f5', fontWeight: 700, cursor: 'pointer' }}>Open Class Hub →</button>
+      </>}
+    </div>,
+    <div key="priority" style={{ minWidth: '100%', padding: 20, boxSizing: 'border-box', background: 'linear-gradient(135deg,#1a2a1a 0%,#0f3d1f 50%,#0a2010 100%)' }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: '#4ade80', letterSpacing: .8, marginBottom: 14 }}>DETERMINISTIC CLASS SIGNALS</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 12 }}>{firstName}, evidence before inference.</div>
+      <StatRow label="Assigned learners" value={students.length} />
+      <StatRow label="Need attendance check-in" value={needingCheckIn} accent={needingCheckIn > 0 ? '#fbbf24' : '#34d399'} />
+      <StatRow label="No recent attendance evidence" value={withNoAttendanceEvidence} accent={withNoAttendanceEvidence > 0 ? '#fbbf24' : '#34d399'} />
+      <StatRow label="Returned homework" value={returnedHomework} accent={returnedHomework > 0 ? '#fbbf24' : '#34d399'} />
+      <div style={{ marginTop: 14, fontSize: 12, lineHeight: 1.6, color: 'rgba(255,255,255,.7)' }}>These are workflow signals from VibeSchool records. They are not labels about a learner's ability, behaviour or circumstances.</div>
+    </div>,
+    <div key="principle" style={{ minWidth: '100%', padding: 20, boxSizing: 'border-box', background: 'linear-gradient(135deg,#2d1b4e 0%,#1e1b4b 100%)' }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: '#c4b5fd', letterSpacing: .8, marginBottom: 14 }}>TWIN EVIDENCE PRINCIPLE</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', lineHeight: 1.25, marginBottom: 14 }}>Missing data is not positive or negative evidence.</div>
+      <div style={{ fontSize: 13, lineHeight: 1.7, color: 'rgba(255,255,255,.7)' }}>Twin should tell you what is recorded, what is missing, why an item matters, and the next safe action. It should not invent a story to fill the gap.</div>
+      <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 12, background: 'rgba(196,181,253,.1)', color: '#ddd6fe', fontSize: 12, fontWeight: 700 }}>Deterministic · authorized school data · no AI</div>
+    </div>,
   ]
 
-  return (
-    <div style={{ marginBottom: 24 }}>
-      <style>{`
-        .insight-hook::-webkit-scrollbar { display: none; }
-        .insight-hook { scrollbar-width: none; -ms-overflow-style: none; }
-      `}</style>
-
-      <div
-        ref={slideRef}
-        className="insight-hook"
-        onScroll={onScroll}
-        onTouchStart={onTouchStart}
-        style={{
-          display:                 'flex',
-          overflowX:               'auto',
-          scrollSnapType:          'x mandatory',
-          WebkitOverflowScrolling: 'touch',
-          gap:                     0,
-        }}
-      >
-        {slides.map((slide, i) => (
-          <div
-            key={i}
-            style={{
-              scrollSnapAlign: 'start',
-              flexShrink:      0,
-              width:           '100%',
-              background:      slide.gradient,
-              borderRadius:    20,
-              padding:         '22px 20px 20px',
-              boxShadow:       '0 8px 32px rgba(0,0,0,0.2)',
-              position:        'relative',
-              overflow:        'hidden',
-            }}
-          >
-            <div style={{ position: 'absolute', bottom: -50, right: -30, width: 160, height: 160, borderRadius: '50%', background: slide.accentDim, pointerEvents: 'none' }} />
-            {slide.content()}
-          </div>
-        ))}
-      </div>
-
-      {/* Dot indicators */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 10 }}>
-        {slides.map((_, i) => (
-          <div
-            key={i}
-            onClick={() => {
-              slideRef.current?.scrollTo({ left: i * (slideRef.current.offsetWidth), behavior: 'smooth' })
-              setActiveSlide(i)
-            }}
-            style={{
-              width:        i === activeSlide ? 20 : 6,
-              height:       6,
-              borderRadius: 3,
-              background:   i === activeSlide ? '#1e1b4b' : '#e5e7eb',
-              transition:   'all 0.25s ease',
-              cursor:       'pointer',
-            }}
-          />
-        ))}
-      </div>
+  return <div style={{ position: 'relative', borderRadius: 18, overflow: 'hidden' }} onTouchStart={onTouchStart}>
+    <div ref={slideRef} onScroll={onScroll} style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none' }}>
+      {slides.map((slide, index) => <div key={index} style={{ minWidth: '100%', scrollSnapAlign: 'start' }}>{slide}</div>)}
     </div>
-  )
+    <div style={{ position: 'absolute', bottom: 10, right: 14, display: 'flex', gap: 5 }}>
+      {[0, 1, 2].map(index => <span key={index} style={{ width: activeSlide === index ? 18 : 6, height: 6, borderRadius: 6, background: activeSlide === index ? '#fff' : 'rgba(255,255,255,.3)', transition: 'width .2s' }} />)}
+    </div>
+  </div>
 }
