@@ -1,223 +1,153 @@
 "use client";
+
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
-interface Student {
-  id: string
-  name: string
-  admission_number: string | null
-  class_id: string | null
-  profile_id: string | null
-}
+type Context = {
+  teacher_id: string;
+  school_id: string | null;
+  state: "ready" | "needs_school" | "needs_class";
+  schools: Array<{ id: string; name: string; active: boolean }>;
+  classes: Array<{ class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string }>;
+};
 
-interface ClassGroup {
-  id: string
-  name: string
-  stream: string | null
-  students: Student[]
-}
-
-function IcoSearch({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-    </svg>
-  )
-}
-
-function IcoChevRight({ size = 14 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
-  )
-}
-
-function Bone({ w = '100%', h = 14, r = 8 }: { w?: string | number; h?: number; r?: number }) {
-  return (
-    <div style={{
-      width: w, height: h, borderRadius: r, flexShrink: 0,
-      background: 'linear-gradient(90deg,#f5f0eb 25%,#ece7e1 50%,#f5f0eb 75%)',
-      backgroundSize: '200% 100%', animation: 'shimmer 1.5s ease-in-out infinite',
-    }} />
-  )
-}
+type Student = { id: string; name: string; admission_number: string | null; profile_id: string | null };
+type ClassGroup = { id: string; name: string; stream: string | null; subjects: string[]; students: Student[] };
 
 export default function StudentsPage() {
-  const router = useRouter()
-  const [groups,  setGroups]  = useState<ClassGroup[]>([])
-  const [loading, setLoading] = useState(true)
-  const [query,   setQuery]   = useState('')
+  const router = useRouter();
+  const [context, setContext] = useState<Context | null>(null);
+  const [groups, setGroups] = useState<ClassGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
-  useEffect(() => { load() }, [])
+  const loadContext = useCallback(async (requestedSchoolId?: string | null) => {
+    const { data, error: contextError } = await supabase.rpc("teacher_get_operating_context", {
+      p_requested_school_id: requestedSchoolId ?? undefined,
+    });
+    if (contextError) throw contextError;
+    return data as unknown as Context;
+  }, []);
 
-  async function load() {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/'); return }
+  const loadGroups = useCallback(async (ctx: Context) => {
+    if (!ctx.school_id || ctx.classes.length === 0) {
+      setGroups([]);
+      return;
+    }
+    const classMap = new Map<string, { name: string; stream: string | null; subjects: Set<string> }>();
+    for (const assignment of ctx.classes) {
+      const current = classMap.get(assignment.class_id) ?? { name: assignment.class_name, stream: assignment.stream, subjects: new Set<string>() };
+      current.subjects.add(assignment.subject_name);
+      classMap.set(assignment.class_id, current);
+    }
+    const classIds = Array.from(classMap.keys());
+    const { data, error: rosterError } = await supabase
+      .from("student_classes")
+      .select("class_id,student_id,students(id,name,admission_number,profile_id,deleted_at)")
+      .eq("school_id", ctx.school_id)
+      .eq("is_current", true)
+      .in("class_id", classIds);
+    if (rosterError) throw rosterError;
 
-    const uid = user.id
+    const grouped = new Map<string, Student[]>();
+    for (const row of data ?? []) {
+      const student = (row as any).students;
+      if (!student || student.deleted_at) continue;
+      const list = grouped.get(row.class_id) ?? [];
+      if (!list.some((item) => item.id === student.id)) {
+        list.push({ id: student.id, name: student.name, admission_number: student.admission_number ?? null, profile_id: student.profile_id ?? null });
+      }
+      grouped.set(row.class_id, list);
+    }
 
-    const { data: tcData } = await supabase
-      .from('teacher_classes')
-      .select('class_id')
-      .eq('teacher_id', uid)
-      .eq('is_class_teacher', true)
+    setGroups(classIds.map((classId) => {
+      const cls = classMap.get(classId)!;
+      return {
+        id: classId,
+        name: cls.name,
+        stream: cls.stream,
+        subjects: Array.from(cls.subjects).sort(),
+        students: (grouped.get(classId) ?? []).sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    }));
+  }, []);
 
-    const classIds = (tcData ?? []).map((r: any) => r.class_id).filter(Boolean)
-    if (classIds.length === 0) { setLoading(false); return }
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) {
+        router.replace("/login");
+        return;
+      }
+      const ctx = await loadContext();
+      setContext(ctx);
+      await loadGroups(ctx);
+    } catch (loadError) {
+      console.error("[TeacherStudents] load", loadError);
+      setError("Learners could not be loaded. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [loadContext, loadGroups, router]);
 
-    const [classRes, studentRes] = await Promise.all([
-      supabase.from('classes').select('id, name, stream').in('id', classIds),
-      supabase.from('students')
-        .select('id, name, admission_number, class_id, profile_id')
-        .in('class_id', classIds)
-        .order('name', { ascending: true }),
-    ])
+  useEffect(() => { void load(); }, [load]);
 
-    const students: Student[] = studentRes.data ?? []
-    const classes: { id: string; name: string; stream: string | null }[] = classRes.data ?? []
-
-    const grouped: ClassGroup[] = classes.map(cls => ({
-      id:       cls.id,
-      name:     cls.name,
-      stream:   cls.stream,
-      students: students.filter(s => s.class_id === cls.id),
-    }))
-
-    setGroups(grouped)
-    setLoading(false)
+  async function changeSchool(schoolId: string) {
+    if (!schoolId || schoolId === context?.school_id) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const { error: setError } = await supabase.rpc("teacher_set_active_school", { p_school_id: schoolId });
+      if (setError) throw setError;
+      const next = await loadContext(schoolId);
+      setContext(next);
+      await loadGroups(next);
+    } catch (schoolError) {
+      console.error("[TeacherStudents] school", schoolError);
+      setError("That school could not be selected.");
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const q = query.toLowerCase().trim()
-
-  const filtered: ClassGroup[] = groups
-    .map(g => ({
-      ...g,
-      students: q
-        ? g.students.filter(s =>
-            s.name.toLowerCase().includes(q) ||
-            (s.admission_number ?? '').toLowerCase().includes(q)
-          )
-        : g.students,
-    }))
-    .filter(g => g.students.length > 0)
-
-  const totalStudents = groups.reduce((a, g) => a + g.students.length, 0)
+  const normalized = query.trim().toLowerCase();
+  const filtered = useMemo(() => groups.map((group) => ({
+    ...group,
+    students: normalized ? group.students.filter((student) => student.name.toLowerCase().includes(normalized) || (student.admission_number ?? "").toLowerCase().includes(normalized)) : group.students,
+  })).filter((group) => group.students.length > 0), [groups, normalized]);
+  const total = groups.reduce((sum, group) => sum + group.students.length, 0);
+  const activeSchool = context?.schools.find((school) => school.id === context.school_id)?.name ?? "No active school";
 
   return (
-    <div style={{ paddingBottom: 32, animation: 'pageIn 0.28s ease' }}>
-      <style>{`
-        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-        @keyframes pageIn  { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes fadeUp  { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
-        .student-row:active { background: #f5f0eb !important; }
-      `}</style>
+    <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
+      <section style={{ background: "linear-gradient(135deg,#312e81,#4f46e5)", borderRadius: 20, padding: 18, color: "#fff", marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>Learners</div>
+        <h1 style={{ margin: "4px 0", fontSize: 23 }}>Students & progress</h1>
+        <div style={{ fontSize: 12, opacity: .78 }}>{loading ? "Loading current enrollment…" : `${total} current learners across ${groups.length} assigned classes · ${activeSchool}`}</div>
+        {context && context.schools.length > 1 && <select aria-label="Active school" value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={{ marginTop: 12, width: "100%", minHeight: 44, border: 0, borderRadius: 12, padding: "0 12px", background: "#fff", color: "#111827", fontWeight: 800 }}>{context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select>}
+      </section>
 
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>Students</div>
-        {!loading && (
-          <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 3 }}>
-            {totalStudents} student{totalStudents !== 1 ? 's' : ''} across {groups.length} class{groups.length !== 1 ? 'es' : ''}
-          </div>
-        )}
-      </div>
+      {error && <div role="alert" style={{ borderRadius: 14, background: "#fef2f2", color: "#991b1b", padding: 13, marginBottom: 12, fontSize: 13 }}>{error} <button type="button" onClick={() => void load()} style={{ border: 0, background: "transparent", color: "#991b1b", fontWeight: 900, textDecoration: "underline" }}>Retry</button></div>}
 
-      <div style={{ position: 'relative', marginBottom: 16 }}>
-        <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', display: 'flex' }}>
-          <IcoSearch size={16} />
-        </div>
-        <input
-          type="text"
-          placeholder="Search by name or admission number"
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          style={{
-            width: '100%', padding: '12px 14px 12px 40px', borderRadius: 14,
-            border: '1px solid #f0ece6', background: '#fff', fontSize: 14,
-            color: '#111827', fontFamily: 'inherit', outline: 'none',
-            boxSizing: 'border-box',
-          }}
-        />
-      </div>
+      <input aria-label="Search learners" type="search" placeholder="Search by name or admission number" value={query} onChange={(event) => setQuery(event.target.value)} style={{ width: "100%", minHeight: 47, border: "1px solid #d1d5db", borderRadius: 13, padding: "0 13px", background: "#fff", fontSize: 14, marginBottom: 12, boxSizing: "border-box" }} />
 
-      {loading && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {[1, 2].map(i => (
-            <div key={i} style={{ background: '#fff', borderRadius: 20, border: '1px solid #f0ece6', padding: 18 }}>
-              <Bone w={120} h={11} r={6} />
-              <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[1, 2, 3].map(j => <Bone key={j} h={44} r={12} />)}
-              </div>
-            </div>
-          ))}
-        </div>
+      {loading ? <div aria-label="Loading learners" style={{ display: "grid", gap: 9 }}>{[1,2,3].map((item) => <div key={item} style={{ height: 110, borderRadius: 17, background: "#e5e7eb" }} />)}</div> : context?.state === "needs_school" ? (
+        <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center" }}><h2 style={{ margin: 0, fontSize: 17 }}>Connect a school first</h2><p style={{ color: "#6b7280", fontSize: 13 }}>Learner access is granted through your school and class assignments.</p><button type="button" onClick={() => router.push("/teacher/onboarding/school")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Connect school</button></section>
+      ) : context?.state === "needs_class" ? (
+        <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center" }}><h2 style={{ margin: 0, fontSize: 17 }}>No class assignments yet</h2><p style={{ color: "#6b7280", fontSize: 13 }}>Once a class is assigned, its current learners will appear here automatically.</p><button type="button" onClick={() => router.push("/teacher/onboarding/class")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Set up class</button></section>
+      ) : groups.length === 0 ? (
+        <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center", color: "#6b7280", fontSize: 13 }}>No current learners are enrolled in your assigned classes.</section>
+      ) : filtered.length === 0 ? (
+        <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center", color: "#6b7280", fontSize: 13 }}>No current learners match “{query}”.</section>
+      ) : (
+        <div style={{ display: "grid", gap: 12 }}>{filtered.map((group) => <section key={group.id} style={{ background: "#fff", borderRadius: 18, overflow: "hidden", border: "1px solid #e5e7eb", boxShadow: "0 1px 5px rgba(0,0,0,.04)" }}><div style={{ padding: "11px 13px", background: "#f8fafc", borderBottom: "1px solid #e5e7eb" }}><div style={{ fontSize: 12, fontWeight: 900, color: "#111827" }}>{group.name}{group.stream ? ` ${group.stream}` : ""}</div><div style={{ marginTop: 3, fontSize: 10, color: "#6b7280" }}>{group.subjects.join(" · ")} · {group.students.length} current learners</div></div>{group.students.map((student, index) => <button key={student.id} type="button" onClick={() => router.push(`/teacher/classhub/${group.id}/student/${student.id}`)} style={{ width: "100%", minHeight: 60, display: "flex", alignItems: "center", gap: 11, textAlign: "left", border: 0, borderBottom: index < group.students.length - 1 ? "1px solid #f3f4f6" : 0, background: "#fff", padding: "10px 13px" }}><div style={{ width: 37, height: 37, borderRadius: 99, display: "grid", placeItems: "center", flexShrink: 0, background: student.profile_id ? "#ecfdf5" : "#f3f4f6", color: student.profile_id ? "#065f46" : "#6b7280", fontWeight: 900 }}>{student.name.charAt(0).toUpperCase()}</div><div style={{ minWidth: 0, flex: 1 }}><div style={{ fontSize: 13, fontWeight: 900, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{student.name}</div><div style={{ marginTop: 2, fontSize: 10, color: "#9ca3af" }}>{student.admission_number ? `Adm · ${student.admission_number}` : "No admission number"}</div></div>{!student.profile_id && <span style={{ fontSize: 9, fontWeight: 800, color: "#0369a1", background: "#f0f9ff", borderRadius: 99, padding: "4px 8px" }}>Unclaimed</span>}<span aria-hidden="true" style={{ color: "#9ca3af", fontSize: 20 }}>›</span></button>)}</section>)}</div>
       )}
-
-      {!loading && groups.length === 0 && (
-        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #f0ece6', padding: '32px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500 }}>No classes assigned yet</div>
-        </div>
-      )}
-
-      {!loading && groups.length > 0 && filtered.length === 0 && (
-        <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #f0ece6', padding: '32px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500 }}>No students match "{query}"</div>
-        </div>
-      )}
-
-      {!loading && filtered.map((group, gi) => (
-        <div key={group.id} style={{ marginBottom: 14, animation: `fadeUp 0.3s ease ${gi * 60}ms both` }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: '#9ca3af', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 8, paddingLeft: 2 }}>
-            {group.name}{group.stream ? ` · ${group.stream}` : ''} · {group.students.length} student{group.students.length !== 1 ? 's' : ''}
-          </div>
-          <div style={{ background: '#fff', borderRadius: 20, border: '1px solid #f0ece6', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            {group.students.map((student, si) => (
-              <div
-                key={student.id}
-                className="student-row"
-                onClick={() => router.push(`/teacher/classhub/${group.id}/student/${student.id}`)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '13px 16px',
-                  borderBottom: si < group.students.length - 1 ? '1px solid #f5f0eb' : 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <div style={{
-                  width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-                  background: student.profile_id ? '#d1fae5' : '#f3f4f6',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 800,
-                  color: student.profile_id ? '#065f46' : '#6b7280',
-                }}>
-                  {student.name.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {student.name}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>
-                    {student.admission_number ? `Adm · ${student.admission_number}` : 'No admission number'}
-                  </div>
-                </div>
-                {!student.profile_id && (
-                  <span style={{
-                    fontSize: 9, fontWeight: 700, padding: '3px 8px', borderRadius: 20,
-                    background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd',
-                    flexShrink: 0,
-                  }}>
-                    Unclaimed
-                  </span>
-                )}
-                <IcoChevRight size={14} />
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
-  )
+  );
 }
