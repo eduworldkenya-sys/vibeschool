@@ -1,0 +1,29 @@
+name: Content Factory Throughput Contract
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260818114500_content_factory_throughput_closure.sql'
+      - 'scripts/sql/content_factory_throughput_verify.sql'
+      - 'docs/CONTENT_FACTORY_HANDOVER.md'
+      - '.github/workflows/content-factory-throughput-contract.yml'
+  workflow_dispatch:
+
+jobs:
+  disposable-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start disposable Supabase
+        run: supabase start
+      - name: Verify Content Factory contracts
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/content_factory_throughput_verify.sql
+      - name: Stop disposable Supabase
+        if: always()
+        run: supabase stop --no-backup
