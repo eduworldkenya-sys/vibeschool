@@ -8,7 +8,6 @@ const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY") ?? ""
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*"
 
 const CREDIT_COST = 1
-const FREE_CREDITS = 3
 
 const CORS = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -73,74 +72,6 @@ function unwrapPlanPayload(payload: unknown): unknown {
   return record.plan ?? payload
 }
 
-async function getOrCreateWallet(db: ReturnType<typeof createClient>, teacherId: string) {
-  let { data: wallet } = await db
-    .from("vibe_credits")
-    .select("balance,total_spent")
-    .eq("teacher_id", teacherId)
-    .maybeSingle()
-
-  if (wallet) return wallet
-
-  const { data: created, error } = await db
-    .from("vibe_credits")
-    .insert({
-      teacher_id: teacherId,
-      balance: FREE_CREDITS,
-      total_earned: FREE_CREDITS,
-      total_spent: 0,
-    })
-    .select("balance,total_spent")
-    .single()
-
-  if (!error && created) {
-    await db.from("vibe_credit_transactions").insert({
-      teacher_id: teacherId,
-      type: "gift",
-      feature: "signup_bonus",
-      amount: FREE_CREDITS,
-      balance_after: FREE_CREDITS,
-      notes: "Free credits on first AI use",
-    })
-    return created
-  }
-
-  const { data: raced } = await db
-    .from("vibe_credits")
-    .select("balance,total_spent")
-    .eq("teacher_id", teacherId)
-    .maybeSingle()
-
-  return raced
-}
-
-async function spendCredit(db: ReturnType<typeof createClient>, teacherId: string, wallet: { balance: number; total_spent?: number | null }) {
-  const newBalance = wallet.balance - CREDIT_COST
-  const newTotalSpent = (wallet.total_spent ?? 0) + CREDIT_COST
-
-  const { error } = await db
-    .from("vibe_credits")
-    .update({ balance: newBalance, total_spent: newTotalSpent, updated_at: new Date().toISOString() })
-    .eq("teacher_id", teacherId)
-    .eq("balance", wallet.balance)
-
-  if (error) {
-    console.error("[generate-canonical-lesson-plan] credit deduction failed", error)
-    return null
-  }
-
-  await db.from("vibe_credit_transactions").insert({
-    teacher_id: teacherId,
-    type: "spend",
-    feature: "canonical_lesson_plan_gap",
-    amount: -CREDIT_COST,
-    balance_after: newBalance,
-    notes: "Generated first canonical candidate for curriculum gap",
-  })
-
-  return newBalance
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405)
@@ -154,6 +85,8 @@ serve(async (req) => {
   if (authError || !user) return json({ error: "unauthorized" }, 401)
 
   let claimId: string | null = null
+  let creditReserved = false
+  let reservedBalance: number | null = null
 
   try {
     const body = await req.json()
@@ -170,8 +103,8 @@ serve(async (req) => {
 
     const key = familyKey({ curriculumId, subjectId, grade, subStrandId, languageCode })
 
-    // This RPC is the single-flight economic gate. No wallet check, web search,
-    // or model call is allowed before it returns `claimed`.
+    // This RPC is the single-flight economic gate. No wallet reservation, web
+    // search, or model call is allowed before it returns `claimed`.
     const { data: claimResult, error: claimError } = await db.rpc("cla_claim_learning_resource_gap", {
       p_family_key: key,
       p_title: `${subjectName}: ${topicTitle} lesson plan`,
@@ -221,8 +154,18 @@ serve(async (req) => {
 
     claimId = gate.claim_id
 
-    const wallet = await getOrCreateWallet(db, user.id)
-    if (!wallet || wallet.balance < CREDIT_COST) {
+    // Reserve the credit atomically against this exact claim before Tavily or
+    // Groq can incur cost. Different simultaneous gaps therefore cannot both
+    // spend a balance that only has one credit remaining.
+    const { data: reservationResult, error: reservationError } = await db.rpc(
+      "cla_reserve_learning_resource_credit",
+      { p_claim_id: claimId, p_amount: CREDIT_COST },
+    )
+
+    if (reservationError) throw reservationError
+
+    const reservation = (reservationResult ?? {}) as Record<string, unknown>
+    if (reservation.success !== true) {
       await db.rpc("cla_fail_learning_resource_claim", {
         p_claim_id: claimId,
         p_reason: "insufficient_credits",
@@ -230,11 +173,14 @@ serve(async (req) => {
       claimId = null
       return json({
         error: "insufficient_credits",
-        balance: wallet?.balance ?? 0,
+        balance: Number(reservation.balance ?? 0),
         required: CREDIT_COST,
         message: "You have no Vibe Credits. Buy credits to generate this new curriculum asset.",
       }, 402)
     }
+
+    creditReserved = true
+    reservedBalance = Number(reservation.balance ?? 0)
 
     let researchContext = ""
     if (TAVILY_API_KEY) {
@@ -337,12 +283,11 @@ serve(async (req) => {
     })
 
     if (candidateError) throw candidateError
+
+    // Candidate deposit completes the claim, which commits the reservation.
     claimId = null
+    creditReserved = false
 
-    const newBalance = await spendCredit(db, user.id, wallet)
-
-    // Candidate content is returned only to the requesting authenticated teacher
-    // for immediate contextual use. It is not globally reusable until certified.
     return json({
       status: "candidate",
       plan,
@@ -350,11 +295,20 @@ serve(async (req) => {
       resourceVersionId: candidate?.resource_version_id ?? null,
       version: candidate?.version ?? null,
       certificationRequired: true,
-      credits: { used: CREDIT_COST, balance: newBalance },
+      credits: { used: CREDIT_COST, balance: reservedBalance },
     })
   } catch (error) {
     console.error("[generate-canonical-lesson-plan] failed", error)
     if (claimId) {
+      if (creditReserved) {
+        const { error: refundError } = await db.rpc("cla_refund_learning_resource_credit", {
+          p_claim_id: claimId,
+          p_reason: error instanceof Error ? error.message : "generation_failed",
+        })
+        if (refundError) {
+          console.error("[generate-canonical-lesson-plan] credit refund failed", refundError)
+        }
+      }
       await db.rpc("cla_fail_learning_resource_claim", {
         p_claim_id: claimId,
         p_reason: error instanceof Error ? error.message : "generation_failed",
