@@ -24,6 +24,7 @@ def forbid(text: str, needle: str, label: str) -> None:
 def main() -> int:
     layout = read("app/read/textbook/[publicationId]/layout.tsx")
     page = read("app/read/textbook/[publicationId]/page.tsx")
+    accessibility = read("components/read/ReaderAccessibilityStyles.tsx")
     shell = read("components/read/ReaderExcellenceShell.tsx")
     continuity = read("components/read/ReaderContinuityCoordinator.tsx")
     listen = read("components/read/ReaderListenContinuity.tsx")
@@ -36,6 +37,7 @@ def main() -> int:
     glossary_migration = read("supabase/migrations/20260818075500_reader_governed_bilingual_glossary.sql")
 
     for value in [
+        "<ReaderAccessibilityStyles />",
         "<ReaderExcellenceShell />",
         "<ReaderListenContinuity publicationId={params.publicationId} />",
         "<ReaderContinuityCoordinator />",
@@ -45,6 +47,16 @@ def main() -> int:
         "<ReaderModeController />",
     ]:
         require(layout, value, "reader layout")
+
+    for value in [
+        "min-height: 44px",
+        ":focus-visible",
+        "outline: 3px solid var(--reader-accent",
+        "@media (max-width: 380px)",
+        "@media (prefers-reduced-motion: reduce)",
+        "animation-duration: 0.01ms",
+    ]:
+        require(accessibility, value, "reader accessibility baseline")
 
     for value in [
         "Paper",
