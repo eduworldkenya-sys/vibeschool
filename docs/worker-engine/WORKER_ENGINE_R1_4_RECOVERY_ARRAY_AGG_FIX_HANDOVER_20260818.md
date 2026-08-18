@@ -46,6 +46,32 @@ The migration:
 7. deliberately does not replace those newer function bodies with the collided `15130100` implementation;
 8. reasserts the runtime safety state after repair.
 
+## Security-gate diagnosis
+
+Exact-head certification on `ceb9205dd83bfa281b4304d644fc04b68c85a668` passed the dedicated production-recovery rehearsal, Worker Engine acceptance, clean rebuild, promotion planner, repository extractor, TypeScript/production build, CI production build, and auth/onboarding gates. The only failing gate was `Supabase Migration Security Contract`.
+
+The failure was diagnostic rather than evidence of an open privilege boundary. The validator requires every newly created table to contain an `authorization-test` declaration whose text begins with the exact qualified table identifier. The migration already contained the intended authorization statement, but it was written as:
+
+`-- authorization-test: public/anon/authenticated denied; service_role read-only.`
+
+That text documents the intended roles but does not name `public.hq_workforce_execution_compensations`, so the contract parser correctly failed closed.
+
+The underlying SQL authorization contract is already substantive and restrictive:
+
+- row level security is enabled on `public.hq_workforce_execution_compensations`;
+- all privileges are revoked from `public`, `anon`, `authenticated`, and `service_role`;
+- only `SELECT` is granted back to `service_role`;
+- the immutable trigger prevents update/delete mutation of compensation evidence;
+- the guard function is not directly executable by public application roles.
+
+A read-only production probe also reconfirmed the expected pre-repair state: the compensation table and the two authoritative recovery columns are still absent, while the later exact-state capture and compensation RPC exist. The Worker Engine remained `false|false|false|0|0|false|false|true` for heartbeat, Factory, runtime, autonomy, risk, Shadow, Shadow scheduler, and global stop respectively.
+
+The repair therefore changes only the declaration syntax to the repository contract form:
+
+`-- authorization-test: public.hq_workforce_execution_compensations denies public/anon/authenticated direct access and service_role is read-only.`
+
+No grant, RLS, policy, function authority, runtime state, production data, or recovery semantics are weakened to satisfy CI.
+
 ## Collision-aware staging
 
 `worker-engine-build-ledger-aligned-stage.py` now supports explicit identity placeholders. The R1.4 recovery builder declares `20260815130100` as a known shared-version/non-equivalent identity and stages an inert production-history placeholder for that timestamp rather than copying repository SQL into the ledger-aligned view.
@@ -83,4 +109,4 @@ No Shadow Trial or canary may start until production recovery completes and live
 
 ## Next sequence
 
-Exact-head certification → make repair PR ready → merge once → protected production recovery → verify Supabase compensation foundation and ledger → Shadow Trial → bounded canary → Content Factory remediation.
+Reconcile latest main → exact-head certification → make repair PR ready → merge once → protected production recovery → verify Supabase compensation foundation and ledger → Shadow Trial → bounded canary → Content Factory remediation.
