@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function ParentConnectChildAliasPage() {
-  redirect('/parent/connect')
+  redirect('/parent/link-child')
 }
