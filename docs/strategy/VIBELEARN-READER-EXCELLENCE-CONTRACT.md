@@ -146,7 +146,8 @@ The safe current behavior is:
 - The earlier Learning Product commerce semantic check itself passed; its missing verifier was branch drift and was resolved by reconciling current main rather than weakening the workflow.
 - Production Supabase has remained read-only during this reader phase.
 - Vercel must remain untriggered until the branch is fully certified and intentionally promoted.
-- Current exact-head work after this log adds constrained-network progress queuing; re-run exact-head TypeScript/build, auth, migration-security, clean-rebuild, PWA/public-browser and commerce gates before promotion.
+- Wave 10 now queues provisional same-user reading progress during connectivity loss and replays it through canonical server authority after reconnect.
+- Current exact-head certification must pass TypeScript/build, auth, migration-security, clean-rebuild, PWA/public-browser and commerce gates before promotion.
 
 ## Promotion boundary
 
