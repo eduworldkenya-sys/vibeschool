@@ -21,9 +21,20 @@ requireText(authority.includes("binding.scopeType !== 'school'"), 'Admin authori
 for (const path of [
   'app/admin/page.tsx',
   'app/admin/students/page.tsx',
+  'app/admin/students/[id]/page.tsx',
   'app/admin/attendance/page.tsx',
   'app/admin/academics/page.tsx',
+  'app/admin/academics/gradebook/page.tsx',
+  'app/admin/communication/page.tsx',
+  'app/admin/reports/page.tsx',
+  'app/admin/teachers/page.tsx',
+  'app/admin/timetable/page.tsx',
+  'app/admin/notifications/page.tsx',
+  'app/admin/profile/page.tsx',
   'app/admin/settings/classes/page.tsx',
+  'app/admin/settings/subjects/page.tsx',
+  'app/admin/settings/term/page.tsx',
+  'app/admin/settings/school/page.tsx',
 ]) {
   const source = read(path)
   requireText(source.includes('getAdminSchoolAuthority'), `${path} resolves canonical Admin school authority`)
@@ -42,6 +53,12 @@ requireText(students.includes('.eq("is_current", true)'), 'Admin learner roster 
 requireText(!students.includes('.from("students").select("id, class_id")'), 'Admin learner roster does not use legacy students.class_id')
 requireText(students.includes('admin_add_student'), 'Admin learner creation uses guarded RPC')
 
+const studentDetail = read('app/admin/students/[id]/page.tsx')
+requireText(studentDetail.includes('.from("student_classes")') && studentDetail.includes('.eq("is_current", true)'), 'Learner detail proves current school enrollment before revealing learner data')
+requireText(studentDetail.includes('admin_generate_parent_claim'), 'Guardian linking uses a verified claim flow')
+requireText(studentDetail.includes('admin_revoke_parent_relationship'), 'Guardian access is revocable without deleting relationship history')
+requireText(!studentDetail.includes('finance_payments') && !studentDetail.includes('finance_invoices'), 'Learner identity/parent page does not introduce unrelated direct finance mutation')
+
 const attendance = read('app/admin/attendance/page.tsx')
 requireText(attendance.includes('.from("student_classes")'), 'Attendance expected roster uses canonical enrollment')
 requireText(attendance.includes('.from("attendance")'), 'Attendance oversight reads teacher-recorded attendance')
@@ -53,9 +70,54 @@ for (const token of ['scheme_of_work', 'teaching_occurrences', 'assessment_defin
 }
 requireText(!academics.includes('traditional_grades') && !academics.includes('cbc_assessments'), 'Academic oversight does not split reporting across legacy grade stores')
 
+const gradebook = read('app/admin/academics/gradebook/page.tsx')
+for (const token of ['student_classes', 'exams', 'exam_subject_config', 'exam_results']) {
+  requireText(gradebook.includes(token), `Gradebook reconciles canonical ${token}`)
+}
+requireText(!gradebook.includes('traditional_grades') && !gradebook.includes('cbc_assessments'), 'Gradebook no longer reads legacy parallel result stores')
+requireText(!gradebook.includes('.eq("class_id", cid)') || gradebook.includes('student_classes'), 'Gradebook roster is not derived from legacy students.class_id')
+
 const classes = read('app/admin/settings/classes/page.tsx')
 requireText(classes.includes('student_classes') && classes.includes('teacher_classes') && classes.includes('timetable_slots'), 'Class deletion checks live and historical operational dependencies')
 requireText(classes.includes('Historical school records are preserved'), 'Used classes cannot be hard-deleted from Admin UI')
+
+const subjects = read('app/admin/settings/subjects/page.tsx')
+requireText(subjects.includes('teacher_classes') && subjects.includes('timetable_slots') && subjects.includes('exam_results'), 'Subject deletion checks teaching, scheduling and result history')
+
+const terms = read('app/admin/settings/term/page.tsx')
+requireText(terms.includes('admin_upsert_academic_term') && terms.includes('admin_activate_academic_term'), 'Term setup uses atomic backend authority')
+requireText(!terms.includes('status: "inactive"'), 'Term setup does not use invalid inactive status')
+
+const school = read('app/admin/settings/school/page.tsx')
+requireText(school.includes('admin_update_school_profile'), 'School profile writes use guarded backend authority')
+requireText(!school.includes('p_knec_code') && !school.includes('p_nemis_code'), 'Operational school profile cannot rewrite official canonical identity codes')
+
+const teachers = read('app/admin/teachers/page.tsx')
+requireText(teachers.includes('school_members') && teachers.includes('teacher_classes'), 'Teacher management uses canonical membership and assignments')
+requireText(!teachers.includes('.from("profiles").insert'), 'Admin teacher management does not create parallel teacher identities')
+
+const timetable = read('app/admin/timetable/page.tsx')
+requireText(timetable.includes('timetable_slots') && timetable.includes('effective_from') && timetable.includes('effective_until'), 'Timetable oversight reads current effective canonical schedule')
+
+const communications = read('app/admin/communication/page.tsx')
+requireText(communications.includes('admin_search_school_community'), 'Conversation recipient discovery is server-authoritative and school-bound')
+requireText(communications.includes('admin_send_school_circular'), 'Circular fanout is server-authoritative and school-bound')
+requireText(!communications.includes('.from("profiles").select("id, full_name, role")'), 'Communication compose does not scrape arbitrary profile recipients')
+
+const reports = read('app/admin/reports/page.tsx')
+for (const token of ['student_classes', 'attendance', 'teaching_occurrences', 'exam_results']) {
+  requireText(reports.includes(token), `Pilot reports reconcile canonical ${token}`)
+}
+requireText(!reports.includes('134') && !reports.includes('Data Tables'), 'Reports hub contains no fake platform metrics')
+
+const settings = read('app/admin/settings/page.tsx')
+requireText(settings.includes('Personal account') && settings.includes('School settings') && settings.includes('HQ / platform controls'), 'Settings visibly separates personal, school and platform authority domains')
+
+const notifications = read('app/admin/notifications/page.tsx')
+for (const token of ['academic_terms', 'student_classes', 'attendance', 'parent_student_links', 'timetable_slots']) {
+  requireText(notifications.includes(token), `Operational alerts derive ${token} school state`)
+}
+requireText(notifications.includes('href:'), 'Every computed Admin alert has an actionable destination')
 
 const commMigration = read('supabase/migrations/20260819020500_school_admin_cross_school_communication_hardening.sql')
 requireText(commMigration.includes('is_school_community_profile'), 'Communication hardening validates school community recipients')
@@ -63,9 +125,32 @@ requireText(commMigration.includes('is_school_admin(school_id)'), 'Notification 
 requireText(commMigration.includes('vc_circular_recipients.profile_id'), 'Circular recipient insert validates target profile')
 requireText(commMigration.includes('vc_participants.profile_id'), 'Thread participant mutation validates target profile')
 
+const commAuthorityMigration = read('supabase/migrations/20260819024000_school_admin_communications_authority.sql')
+requireText(commAuthorityMigration.includes('admin_search_school_community') && commAuthorityMigration.includes('admin_send_school_circular'), 'Communication authority RPCs are repository-defined')
+requireText(commAuthorityMigration.includes('is_school_admin(p_school_id)'), 'Communication RPCs fail closed outside administered school')
+
 const structureMigration = read('supabase/migrations/20260819022500_school_admin_academic_structure_integrity.sql')
 requireText(structureMigration.includes('alter column school_id set not null'), 'Operational classes require canonical school identity')
 requireText(structureMigration.includes('uq_classes_school_normalized_name_stream'), 'Repeated class setup cannot create normalized duplicate class/stream identities')
+
+const teacherMigration = read('supabase/migrations/20260819031000_school_admin_teacher_assignment_integrity.sql')
+requireText(teacherMigration.includes('uq_teacher_classes_school_teacher_class_subject'), 'Duplicate teacher/class/subject assignments are database-blocked')
+
+const subjectMigration = read('supabase/migrations/20260819032000_school_admin_subject_integrity.sql')
+requireText(subjectMigration.includes('uq_subjects_school_normalized_name'), 'Duplicate normalized school subject identities are database-blocked')
+
+const termMigration = read('supabase/migrations/20260819025500_school_admin_term_authority.sql')
+requireText(termMigration.includes("'upcoming'") && termMigration.includes("status = 'completed'") && termMigration.includes("status = 'active'"), 'Term authority uses valid production statuses')
+requireText(termMigration.includes('pg_advisory_xact_lock'), 'Term activation is serialized per school')
+
+const parentMigration = read('supabase/migrations/20260819033500_school_admin_parent_relationship_authority.sql')
+requireText(parentMigration.includes('student_not_currently_enrolled_in_school'), 'Parent claims/revocation require current same-school enrollment')
+requireText(parentMigration.includes("role = 'parent'"), 'Admin issues guardian claims rather than arbitrary parent links')
+requireText(parentMigration.includes("access_level = 'none'"), 'Parent revocation preserves historical relationship row')
+
+const schoolMigration = read('supabase/migrations/20260819035000_school_admin_school_profile_authority.sql')
+requireText(schoolMigration.includes('admin_update_school_profile') && schoolMigration.includes('is_school_admin(p_school_id)'), 'School profile mutation is backend-authorized by canonical membership')
+requireText(!schoolMigration.includes('knec_code =') && !schoolMigration.includes('nemis_code ='), 'School profile RPC cannot rewrite protected official identity')
 
 if (process.exitCode) {
   console.error('\nSchool Admin Task 7 contract FAILED')
