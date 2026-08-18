@@ -163,8 +163,8 @@ export function HQStyles() {
       @media(max-width:720px){
         .hq-nav-inner{padding:7px 10px;gap:8px}
         .hq-brand span:last-child{display:none}
-        .hq-nav-alerts button{min-width:38px;padding:0 8px;font-size:0}
-        .hq-nav-alerts button::before{content:"!";font-size:12px;font-weight:950}
+        .hq-nav-alerts > button{min-width:38px;padding:0 8px;font-size:0}
+        .hq-nav-alerts > button::before{content:"!";font-size:12px;font-weight:950}
         .hq-container{padding:16px 12px 64px}
         .hq-page-header{display:block}
         .hq-page-actions{margin-top:12px;justify-content:flex-start}
