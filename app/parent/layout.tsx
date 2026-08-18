@@ -1,30 +1,27 @@
-
 "use client";
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { ParentNavTab } from "@/lib/types";
+import { UserContext } from "@/lib/parent-context";
 import OfflineBar from "@/components/teacher/OfflineBar";
 import VibeLearnShellWrapper from "@/components/student/VibeLearnShellWrapper";
 import TwinRoleSwitcher from "@/components/twin/TwinRoleSwitcher";
 import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core";
 
-interface UserCtx { fullName: string; initials: string }
-const UserContext = createContext<UserCtx>({ fullName: "", initials: "" });
-const useUser = () => useContext(UserContext);
-
 const NAV_TABS: ParentNavTab[] = [
-  { id: "home",      label: "Home",      icon: "🏠", href: "/parent"            },
-  { id: "learn",     label: "Learn",     icon: "📚", href: "/parent/learn"      },
-  { id: "vibelearn", label: "VibeLearn", icon: "🎓", href: "/parent/vibe-learn" },
-  { id: "funhub",    label: "FunHub",    icon: "🎮", href: "/parent/funhub"     },
-  { id: "students",  label: "Students",  icon: "🎒", href: "/parent/students"   },
+  { id: "home",      label: "Home",     icon: "🏠", href: "/parent"          },
+  { id: "connect",   label: "Inbox",    icon: "🔔", href: "/parent/inbox"    },
+  { id: "vibelearn", label: "VibeLearn",icon: "🎓", href: "/parent/vibe-learn" },
+  { id: "learn",     label: "Learn",    icon: "📚", href: "/parent/learn"    },
+  { id: "students",  label: "Children", icon: "🎒", href: "/parent/students" },
 ];
 
 const PRIMARY_HREFS = NAV_TABS.map(t => t.href);
 
 function tabIdFromPath(path: string): ParentNavTab["id"] {
   if (path === "/parent" || path === "/parent/") return "home";
+  if (path.startsWith('/parent/messages') || path.startsWith('/parent/connect')) return 'connect';
   const match = NAV_TABS.find(t => t.href !== "/parent" && path.startsWith(t.href));
   return (match?.id ?? "home") as ParentNavTab["id"];
 }
@@ -75,7 +72,8 @@ function BottomNav({ activeId, onVibeLearnOpen }: { activeId: ParentNavTab["id"]
 function TopBar({ initials }: { initials: string }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isPrimaryTab = PRIMARY_HREFS.includes(pathname.replace(/\/$/, "")) || pathname === "/parent";
+  const normalizedPath = pathname.replace(/\/$/, "");
+  const isPrimaryTab = PRIMARY_HREFS.includes(normalizedPath) || pathname === "/parent";
   return (
     <div style={{
       background: "#1e1b4b", color: "#fff", padding: "0 12px 0 20px", minHeight: 56,
@@ -94,7 +92,7 @@ function TopBar({ initials }: { initials: string }) {
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
         <TwinRoleSwitcher currentRole="parent" />
-        <div onClick={() => router.push("/parent/connect")} aria-label="Open parent messages" style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer" }}>💬</div>
+        <div onClick={() => router.push("/parent/messages")} aria-label="Open parent conversations" style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer" }}>💬</div>
         <div onClick={() => router.push("/parent/profile")} aria-label="Open parent profile" style={{ width: 34, height: 34, borderRadius: "50%", background: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer" }}>{initials || "…"}</div>
       </div>
     </div>
