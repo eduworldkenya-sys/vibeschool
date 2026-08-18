@@ -5,7 +5,7 @@ import re
 import shutil
 from pathlib import Path
 
-EXPECTED = ['20260818050000', '20260818050100']
+EXPECTED = ['20260818050300', '20260818050400']
 MIGRATION_RE = re.compile(r'^(\d{8,14})_.+\.sql$')
 
 
