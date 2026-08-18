@@ -1,0 +1,54 @@
+name: Authoritative Curriculum Source Pipeline Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*curriculum_authority_source_pipeline*'
+      - 'scripts/sql/curriculum_authority_source_pipeline_verify.sql'
+      - 'docs/CURRICULUM_AUTHORITY_HANDOVER_20260818.md'
+      - '.github/workflows/curriculum-authority-source-pipeline-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  database-contract:
+    name: Disposable-local curriculum authority certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Verify Docker
+        run: docker info
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+      - name: Disable seed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
+      - name: Start disposable Supabase
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+      - name: Rebuild full migration chain
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db reset --local --no-seed
+      - name: Certify authoritative curriculum source pipeline
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' \
+            -f scripts/sql/curriculum_authority_source_pipeline_verify.sql
+      - name: Destroy disposable Supabase
+        if: always()
+        shell: bash
+        run: supabase stop --no-backup > /dev/null 2>&1 || true
