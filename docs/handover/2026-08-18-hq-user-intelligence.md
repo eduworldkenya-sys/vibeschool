@@ -56,3 +56,4 @@ The repository contains event kernels, but VibeSchool does not yet have certifie
 - Apply repository migrations only after exact-head security, isolated rebuild and TypeScript/production-build gates pass.
 - Because the new frontend depends on additive RPCs, commission and verify those RPCs in production immediately before the final merge. This prevents the application from deploying against a missing database contract.
 - Use the final merge as the application promotion point; do not make additional deployment-triggering code commits afterward unless a verified defect requires it.
+- No direct Vercel action is part of this work; normal deployment may occur only through the repository's existing main-branch integration after final merge.
