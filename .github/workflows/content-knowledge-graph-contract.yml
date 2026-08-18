@@ -7,6 +7,7 @@ on:
     paths:
       - 'supabase/migrations/*content_knowledge_graph*'
       - 'scripts/sql/content_knowledge_graph_verify.sql'
+      - 'scripts/sql/content_knowledge_graph_identity_verify.sql'
       - '.github/workflows/content-knowledge-graph-contract.yml'
 
 concurrency:
@@ -50,6 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/content_knowledge_graph_verify.sql
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/content_knowledge_graph_identity_verify.sql
       - name: Destroy disposable Supabase
         if: always()
         shell: bash
