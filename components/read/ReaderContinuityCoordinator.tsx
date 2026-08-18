@@ -16,11 +16,64 @@ type ActiveReader = {
   blockId: string | null;
 };
 
+type PendingProgress = ActiveReader & {
+  viewerId: string;
+  queuedAt: number;
+};
+
 const READING_WPM = 210;
+const PENDING_PROGRESS_KEY = "vibeschool.reader.pending-progress.v1";
+const MAX_PENDING_PROGRESS = 40;
 
 function clampProgress(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function readPendingProgress(): PendingProgress[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const value = JSON.parse(window.localStorage.getItem(PENDING_PROGRESS_KEY) || "[]") as unknown;
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is PendingProgress => Boolean(
+      item && typeof item === "object" &&
+      typeof (item as PendingProgress).viewerId === "string" &&
+      typeof (item as PendingProgress).publicationId === "string" &&
+      typeof (item as PendingProgress).chapterId === "string" &&
+      Number.isFinite((item as PendingProgress).progressPercent) &&
+      ((item as PendingProgress).blockId === null || typeof (item as PendingProgress).blockId === "string")
+    )).slice(-MAX_PENDING_PROGRESS);
+  } catch {
+    return [];
+  }
+}
+
+function writePendingProgress(items: PendingProgress[]) {
+  try {
+    if (items.length === 0) window.localStorage.removeItem(PENDING_PROGRESS_KEY);
+    else window.localStorage.setItem(PENDING_PROGRESS_KEY, JSON.stringify(items.slice(-MAX_PENDING_PROGRESS)));
+  } catch {
+    // Progress resilience is best-effort when browser storage is unavailable.
+  }
+}
+
+function queuePendingProgress(snapshot: ActiveReader, viewerId: string) {
+  const pending = readPendingProgress();
+  const existingIndex = pending.findIndex((item) =>
+    item.viewerId === viewerId && item.publicationId === snapshot.publicationId && item.chapterId === snapshot.chapterId
+  );
+  const next: PendingProgress = { ...snapshot, viewerId, queuedAt: Date.now() };
+  if (existingIndex >= 0) {
+    const existing = pending[existingIndex];
+    pending[existingIndex] = {
+      ...next,
+      progressPercent: Math.max(existing.progressPercent, next.progressPercent),
+      blockId: next.blockId || existing.blockId,
+    };
+  } else {
+    pending.push(next);
+  }
+  writePendingProgress(pending);
 }
 
 function findCurrentBlock(readingLine: number): string | null {
@@ -93,6 +146,7 @@ export function ReaderContinuityCoordinator() {
 
   const activeRef = useRef<ActiveReader | null>(null);
   const authenticatedRef = useRef(false);
+  const viewerIdRef = useRef<string | null>(null);
   const lastPersistedRef = useRef<{
     chapterId: string;
     progressPercent: number;
@@ -105,20 +159,77 @@ export function ReaderContinuityCoordinator() {
   const [progressPercent, setProgressPercent] = useState(0);
   const [minutesLeft, setMinutesLeft] = useState<number | null>(null);
   const [resumed, setResumed] = useState(false);
+  const [online, setOnline] = useState(true);
+  const [pendingSync, setPendingSync] = useState(false);
 
   useEffect(() => {
+    setOnline(navigator.onLine);
     let disposed = false;
     void supabase.auth.getUser().then(({ data }) => {
-      if (!disposed) authenticatedRef.current = Boolean(data.user);
+      if (disposed) return;
+      authenticatedRef.current = Boolean(data.user);
+      viewerIdRef.current = data.user?.id ?? null;
+      if (data.user) setPendingSync(readPendingProgress().some((item) => item.viewerId === data.user?.id));
+    });
+    const { data: authSubscription } = supabase.auth.onAuthStateChange((event, session) => {
+      authenticatedRef.current = Boolean(session?.user);
+      viewerIdRef.current = session?.user?.id ?? null;
+      if (event === "SIGNED_OUT") {
+        writePendingProgress([]);
+        setPendingSync(false);
+      }
     });
     return () => {
       disposed = true;
+      authSubscription.subscription.unsubscribe();
     };
   }, [supabase]);
 
   useEffect(() => {
+    async function writeSnapshot(snapshot: ActiveReader) {
+      const { data, error } = await supabase.rpc("record_reading_progress", {
+        publication_id_input: snapshot.publicationId,
+        chapter_id_input: snapshot.chapterId,
+        progress_percent_input: snapshot.progressPercent,
+        position_input: {
+          block_id: snapshot.blockId,
+          scroll_percent: snapshot.progressPercent,
+          source: "reader_continuity_v2",
+        },
+        reset_input: false,
+      });
+      return { data: data as { ok?: boolean; reason?: string | null } | null, error };
+    }
+
+    async function flushPending() {
+      if (!navigator.onLine) return;
+      const viewerId = viewerIdRef.current;
+      if (!viewerId) return;
+      const pending = readPendingProgress();
+      if (pending.length === 0) {
+        setPendingSync(false);
+        return;
+      }
+
+      const keep: PendingProgress[] = pending.filter((item) => item.viewerId !== viewerId);
+      for (const item of pending.filter((candidate) => candidate.viewerId === viewerId)) {
+        const { data, error } = await writeSnapshot(item);
+        if (error) {
+          keep.push(item);
+          continue;
+        }
+        if (!data?.ok && data?.reason !== "not_entitled" && data?.reason !== "chapter_not_found") {
+          keep.push(item);
+        }
+      }
+      writePendingProgress(keep);
+      setPendingSync(keep.some((item) => item.viewerId === viewerId));
+    }
+
     async function persist(snapshot: ActiveReader, force = false) {
       if (!authenticatedRef.current) return;
+      const viewerId = viewerIdRef.current;
+      if (!viewerId) return;
 
       const last = lastPersistedRef.current;
       if (
@@ -130,22 +241,21 @@ export function ReaderContinuityCoordinator() {
         return;
       }
 
-      const { data, error } = await supabase.rpc("record_reading_progress", {
-        publication_id_input: snapshot.publicationId,
-        chapter_id_input: snapshot.chapterId,
-        progress_percent_input: snapshot.progressPercent,
-        position_input: {
-          block_id: snapshot.blockId,
-          scroll_percent: snapshot.progressPercent,
-          source: "reader_continuity_v1",
-        },
-        reset_input: false,
-      });
+      if (!navigator.onLine) {
+        queuePendingProgress(snapshot, viewerId);
+        setPendingSync(true);
+        return;
+      }
 
-      const result = data as { ok?: boolean; reason?: string | null } | null;
-      if (error || !result?.ok) {
+      const { data: result, error } = await writeSnapshot(snapshot);
+      if (error) {
+        queuePendingProgress(snapshot, viewerId);
+        setPendingSync(true);
+        return;
+      }
+      if (!result?.ok) {
         if (result?.reason !== "completion_evidence_required") {
-          console.warn("Reading progress was not recorded:", error ?? result);
+          console.warn("Reading progress was not recorded:", result);
         }
         return;
       }
@@ -159,7 +269,7 @@ export function ReaderContinuityCoordinator() {
 
     async function restore(snapshot: ActiveReader) {
       setResumed(false);
-      if (!authenticatedRef.current) return;
+      if (!authenticatedRef.current || !navigator.onLine) return;
 
       const { data: authData } = await supabase.auth.getUser();
       if (!authData.user) return;
@@ -287,10 +397,27 @@ export function ReaderContinuityCoordinator() {
       if (current) void persist(current, true);
     }
 
+    function onOnline() {
+      setOnline(true);
+      void flushPending();
+    }
+
+    function onOffline() {
+      setOnline(false);
+      const current = activeRef.current;
+      if (current && viewerIdRef.current) {
+        queuePendingProgress(current, viewerIdRef.current);
+        setPendingSync(true);
+      }
+    }
+
     window.addEventListener("vibe:reader-chapter", onChapter);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
     document.addEventListener("visibilitychange", onVisibility);
+    if (navigator.onLine) void flushPending();
 
     return () => {
       if (writeTimerRef.current) clearTimeout(writeTimerRef.current);
@@ -299,6 +426,8 @@ export function ReaderContinuityCoordinator() {
       window.removeEventListener("vibe:reader-chapter", onChapter);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [supabase]);
@@ -349,6 +478,13 @@ export function ReaderContinuityCoordinator() {
           font-size: 11px;
           color: var(--reader-muted, #625d55);
         }
+        .reader-continuity-network {
+          color: var(--reader-accent, #466400) !important;
+          font-weight: 800;
+        }
+        .reader-continuity-network[data-offline="true"] {
+          color: #9b5d00 !important;
+        }
         .reader-continuity-ui button {
           border: 1px solid var(--reader-border, rgba(0,0,0,.12));
           background: var(--reader-surface, #fffaf0);
@@ -389,6 +525,11 @@ export function ReaderContinuityCoordinator() {
           {minutesLeft !== null && minutesLeft > 0 ? ` · about ${minutesLeft} min left` : ""}
           {resumed ? " · resumed" : ""}
         </span>
+        {!online || pendingSync ? (
+          <span className="reader-continuity-network" data-offline={!online ? "true" : "false"} role="status">
+            {!online ? "Offline · progress will sync when connected" : "Connected · syncing saved progress"}
+          </span>
+        ) : null}
       </div>
       <button
         type="button"
