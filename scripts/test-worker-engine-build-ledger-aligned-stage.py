@@ -65,9 +65,34 @@ def test_success() -> None:
         assert manifest["authorized_repairs"] == []
         assert manifest["production_mutation"] is False
         assert manifest["production_only_placeholders"] == ["20260731000000"]
+        assert manifest["identity_collision_placeholders"] == []
         placeholder = stage / "supabase" / "migrations" / "20260731000000_production_history_placeholder.sql"
         assert placeholder.is_file()
         assert "Never executed" in placeholder.read_text(encoding="utf-8")
+
+
+def test_shared_version_identity_override_uses_placeholder() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        migrations, config = make_fixture(root)
+        pending = sorted(APPROVED)[-1]
+        collision = "20260801000000"
+        report = good_report()
+        report["local_only"] = [{"version": v} for v in sorted(APPROVED)] + [{"version": "20260802000000"}]
+        old = module.VERSION_PLACEHOLDER_OVERRIDES
+        module.VERSION_PLACEHOLDER_OVERRIDES = {collision: "remote identity differs; forward repair=fixture"}
+        try:
+            stage = root / "stage"
+            manifest = module.build_stage(report, migrations, config, stage)
+        finally:
+            module.VERSION_PLACEHOLDER_OVERRIDES = old
+        original = stage / "supabase" / "migrations" / f"{collision}_parity_fixture.sql"
+        placeholder = stage / "supabase" / "migrations" / f"{collision}_production_history_placeholder.sql"
+        assert not original.exists()
+        assert placeholder.is_file()
+        assert "remote identity differs" in placeholder.read_text(encoding="utf-8")
+        assert manifest["identity_collision_placeholders"] == [{"version": collision, "reason": "remote identity differs; forward repair=fixture"}]
+        assert pending in manifest["expected_worker_engine_versions"]
 
 
 def test_incremental_promotion_only_stages_pending_approved() -> None:
@@ -76,10 +101,7 @@ def test_incremental_promotion_only_stages_pending_approved() -> None:
         migrations, config = make_fixture(root)
         pending = "20260814094000"
         report = good_report()
-        report["local_only"] = [
-            {"version": pending},
-            {"version": "20260802000000"},
-        ]
+        report["local_only"] = [{"version": pending}, {"version": "20260802000000"}]
         report["parity_versions"] = ["20260801000000", *sorted(APPROVED - {pending})]
         manifest = module.build_stage(report, migrations, config, root / "stage")
         assert manifest["expected_worker_engine_versions"] == [pending]
@@ -116,6 +138,18 @@ def test_overlap_blocks() -> None:
         expect_failure(report, migrations, config, root, "version classes overlap")
 
 
+def test_identity_override_must_exist_remotely() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        migrations, config = make_fixture(root)
+        old = module.VERSION_PLACEHOLDER_OVERRIDES
+        module.VERSION_PLACEHOLDER_OVERRIDES = {"20260802000000": "invalid because repository-only"}
+        try:
+            expect_failure(good_report(), migrations, config, root, "identity placeholder is not present in production ledger")
+        finally:
+            module.VERSION_PLACEHOLDER_OVERRIDES = old
+
+
 def test_repair_authority_blocks() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -149,10 +183,12 @@ def test_duplicate_count_blocks() -> None:
 
 def main() -> None:
     test_success()
+    test_shared_version_identity_override_uses_placeholder()
     test_incremental_promotion_only_stages_pending_approved()
     test_missing_approved_blocks()
     test_no_pending_approved_blocks()
     test_overlap_blocks()
+    test_identity_override_must_exist_remotely()
     test_repair_authority_blocks()
     test_duplicate_count_blocks()
     print("Worker Engine ledger-aligned staging regression suite PASSED")

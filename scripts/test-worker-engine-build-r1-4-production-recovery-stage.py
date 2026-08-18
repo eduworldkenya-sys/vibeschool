@@ -17,9 +17,9 @@ def main() -> None:
         root = Path(tmp)
         mig = root / 'migrations'
         mig.mkdir()
-        required = r.REQUIRED_FOUNDATIONS | r.REQUIRED_CLOSURE | {r.PARITY_BRIDGE}
+        required = r.REQUIRED_FOUNDATIONS | r.REQUIRED_CLOSURE | {r.PARITY_BRIDGE, r.COMPENSATION_COLLISION_VERSION}
         extra = {
-            '20260815124000','20260815125000','20260815130100','20260815130200',
+            '20260815124000','20260815125000','20260815130200',
             '20260815131500','20260815132500','20260815133500','20260815141000',
             '20260818112100','20260818112200','20260818112300','20260818112400',
             '20260818112500','20260818112600','20260818112700','20260818112800',
@@ -34,12 +34,18 @@ def main() -> None:
         found = r.discover_recovery_versions(mig)
         assert expected == found
         assert r.START_VERSION == '20260815090500'
-        assert '20260815090500' in found
-        assert '20260815092500' in found
+        assert r.END_VERSION == '20260818113000'
+        assert r.COMPENSATION_COLLISION_VERSION == '20260815130100'
+        assert r.COMPENSATION_REPAIR_VERSION == '20260818111950'
+        assert r.COMPENSATION_REPAIR_VERSION in found
         assert '20260818084507' not in found and '20260815210000' not in found
 
         r.configure_scope(mig)
         assert r.module.APPROVED_WORKER_ENGINE_VERSIONS == expected
+        assert set(r.module.VERSION_PLACEHOLDER_OVERRIDES) == {r.COMPENSATION_COLLISION_VERSION}
+        reason = r.module.VERSION_PLACEHOLDER_OVERRIDES[r.COMPENSATION_COLLISION_VERSION]
+        assert 'create_open_schools_kenya_kibera_batch1' in reason
+        assert r.COMPENSATION_REPAIR_VERSION in reason
 
     print('Worker Engine R1.4 production recovery staging contract PASSED')
 

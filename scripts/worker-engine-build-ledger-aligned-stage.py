@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """Build a CI-only Supabase migration view for Worker Engine promotion dry-runs.
 
-The staged timestamp set is exactly:
-    production migration history + pending approved Worker Engine promotion migrations.
+The staged timestamp set is exactly production history plus pending approved Worker
+Engine promotion migrations. Repository-only migrations outside the approved set are
+omitted. Production-only versions receive inert placeholders.
 
-Repository-only migrations outside the approved set are omitted. Production-only
-versions receive inert placeholder files so Supabase CLI sees their timestamps as
-already represented locally. This tool never connects to a database and never
-modifies repository migrations.
+A caller may also set VERSION_PLACEHOLDER_OVERRIDES for a version known to exist on
+both sides with different semantic identity. Such a version is staged as an inert
+historical placeholder, never as the repository SQL. This prevents version equality
+from being mistaken for migration equivalence.
 """
 
 from __future__ import annotations
@@ -29,15 +30,17 @@ APPROVED_WORKER_ENGINE_VERSIONS = {
     "20260812213000", "20260812214500", "20260812215500",
     "20260812221000", "20260812222000", "20260812223000",
     "20260813023028", "20260814094000",
-    # WE-R1.3 Governed Shadow Operations — repository-certified on PR #141.
     "20260814111500", "20260814152000", "20260814153500",
     "20260814155000", "20260814160000", "20260814162000",
-    # WE-R1.3X objective-first legacy reconciliation — repository-certified on PR #150.
     "20260815080000", "20260815090000", "20260815091000",
     "20260815092000", "20260815093000", "20260815094000",
     "20260815095000", "20260815110000", "20260815111000",
     "20260815120000", "20260815130000", "20260815133000",
 }
+
+# Callers may override known shared-version/non-equivalent identities. The value is a
+# human-readable provenance reason included in the manifest and placeholder comment.
+VERSION_PLACEHOLDER_OVERRIDES: dict[str, str] = {}
 
 
 class StageFailure(Exception):
@@ -97,6 +100,14 @@ def build_stage(report: dict, migrations_dir: Path, config_path: Path, stage_dir
     if parity & remote_only or parity & local_only or remote_only & local_only:
         raise StageFailure("TBL-013 version classes overlap")
 
+    overrides = dict(VERSION_PLACEHOLDER_OVERRIDES)
+    invalid_override = sorted(v for v in overrides if not re.fullmatch(r"\d{8,14}", v))
+    if invalid_override:
+        raise StageFailure(f"invalid identity-placeholder versions: {invalid_override}")
+    non_remote_override = sorted(set(overrides) - (parity | remote_only))
+    if non_remote_override:
+        raise StageFailure("identity placeholder is not present in production ledger: " + ",".join(non_remote_override))
+
     approved = APPROVED_WORKER_ENGINE_VERSIONS
     known = parity | local_only | remote_only
     missing_approved = sorted(approved - known)
@@ -125,18 +136,20 @@ def build_stage(report: dict, migrations_dir: Path, config_path: Path, stage_dir
         version = match.group(1)
         if version in staged_versions:
             raise StageFailure(f"duplicate local migration version: {version}")
-        if version in unrelated_local_only:
+        if version in unrelated_local_only or version in overrides:
             continue
         shutil.copy2(source, stage_migrations / source.name)
         staged_versions.add(version)
 
-    for version in sorted(remote_only):
+    for version in sorted(remote_only | set(overrides)):
         if version in staged_versions:
-            raise StageFailure(f"remote-only version unexpectedly staged: {version}")
+            raise StageFailure(f"historical placeholder version unexpectedly staged: {version}")
+        reason = overrides.get(version, "production-only history")
         placeholder = stage_migrations / f"{version}_production_history_placeholder.sql"
         placeholder.write_text(
             "-- CI-only ledger-alignment placeholder for an already-applied production migration.\n"
-            "-- Never executed; version exists in production history.\n",
+            "-- Never executed; version exists in production history.\n"
+            f"-- provenance: {reason}\n",
             encoding="utf-8",
         )
         staged_versions.add(version)
@@ -154,6 +167,10 @@ def build_stage(report: dict, migrations_dir: Path, config_path: Path, stage_dir
         "expected_worker_engine_versions": sorted(pending),
         "excluded_unrelated_repository_only": unrelated_local_only,
         "production_only_placeholders": sorted(remote_only),
+        "identity_collision_placeholders": [
+            {"version": version, "reason": overrides[version]}
+            for version in sorted(overrides)
+        ],
         "parity_versions": sorted(parity),
         "staged_version_count": len(staged_versions),
         "remote_version_count": len(remote_versions),
@@ -178,6 +195,7 @@ def main() -> int:
         print("pending approved migrations:", len(manifest["expected_worker_engine_versions"]))
         print("excluded unrelated repository-only:", len(manifest["excluded_unrelated_repository_only"]))
         print("production-only placeholders:", len(manifest["production_only_placeholders"]))
+        print("identity collision placeholders:", len(manifest["identity_collision_placeholders"]))
         print("staged versions:", manifest["staged_version_count"])
         return 0
     except (StageFailure, json.JSONDecodeError) as exc:
