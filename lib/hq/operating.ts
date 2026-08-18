@@ -31,7 +31,45 @@ export type HQNotification = {
   source_type: string | null
   source_id: string | null
   metadata: Record<string, unknown>
+  owner_department: string | null
+  due_at: string | null
+  escalation_level: number
+  escalated_at: string | null
+  work_item_id: string | null
+  feedback: "useful" | "noise" | null
+  feedback_at: string | null
   created_at: string
+}
+export type HQFounderBrief = {
+  generated_at: string
+  headline: {
+    new_users_today: number
+    new_users_yesterday: number
+    active_critical: number
+    action_required: number
+    overdue: number
+    opportunities: number
+    open_incidents: number
+    payment_failures_24h: number
+  }
+  priorities: Array<{
+    id: string
+    class: HQNotificationClass
+    category: string
+    title: string
+    body: string
+    route: string | null
+    due_at: string | null
+    owner_department: string | null
+    work_item_id: string | null
+  }>
+  opportunities: Array<{
+    id: string
+    title: string
+    body: string
+    route: string | null
+    metadata: Record<string, unknown>
+  }>
 }
 export type HQDecision = { id:string; code:string; title:string; category:string; decision_type:string; status:"draft"|"reviewed"|"approved"|"locked"|"active"|"superseded"|"rolled_back"|"cancelled"; rule_key:string|null; rule_value:unknown; reason:string|null; affected_products:string[]; effective_at:string|null; approved_at:string|null; locked_at:string|null; supersedes_id:string|null; rollback_of_id:string|null; created_at:string; updated_at:string }
 export type HQDecisionDetail = { decision:HQDecision; versions:Array<Record<string,unknown>>; targets:Array<{id:string;product_key:string;expected_config_key:string|null;expected_value:unknown;status:string;applied_at:string|null;verified_at:string|null;error:string|null}>; audit:Array<{id:string;action:string;actor_id:string|null;details:Record<string,unknown>;created_at:string}> }
@@ -49,9 +87,12 @@ export type HQMorningBrief = { generated_at:string; headline:{new_users_today:nu
 export async function loadHQSnapshot(): Promise<HQSnapshot> { const {data,error}=await sb.rpc("hq_get_snapshot"); if(error) throw error; return data as HQSnapshot }
 export async function loadHQExecutiveAnalytics(): Promise<HQExecutiveAnalytics> { const {data,error}=await sb.rpc("hq_get_executive_analytics"); if(error) throw error; return data as HQExecutiveAnalytics }
 export async function loadHQNotifications(limit=100): Promise<HQNotification[]> { const {data,error}=await sb.rpc("hq_list_notifications",{p_limit:limit}); if(error) throw error; return (data??[]) as HQNotification[] }
+export async function loadHQFounderBrief(): Promise<HQFounderBrief> { const {data,error}=await sb.rpc("hq_get_founder_brief"); if(error) throw error; return data as HQFounderBrief }
 export async function markHQNotificationRead(id:string){ const {error}=await sb.rpc("hq_mark_notification_read",{p_id:id}); if(error) throw error }
 export async function acknowledgeHQNotification(id:string){ const {error}=await sb.rpc("hq_acknowledge_notification",{p_id:id}); if(error) throw error }
 export async function resolveHQNotification(id:string){ const {error}=await sb.rpc("hq_resolve_notification",{p_id:id}); if(error) throw error }
+export async function setHQNotificationFeedback(id:string,feedback:"useful"|"noise"){ const {error}=await sb.rpc("hq_set_notification_feedback",{p_id:id,p_feedback:feedback}); if(error) throw error }
+export async function openHQNotificationWorkroom(id:string): Promise<string|null>{ const {data,error}=await sb.rpc("hq_open_notification_workroom",{p_id:id}); if(error) throw error; return (data as string|null) }
 export async function runHQRules(){ const {data,error}=await sb.rpc("hq_generate_operational_alerts"); if(error) throw error; return Number(data??0) }
 export async function listHQDecisions(limit=100): Promise<HQDecision[]> { const {data,error}=await sb.rpc("hq_list_decisions",{p_limit:limit}); if(error) throw error; return (data??[]) as HQDecision[] }
 export async function getHQDecisionDetail(id:string): Promise<HQDecisionDetail> { const {data,error}=await sb.rpc("hq_get_decision_detail",{p_id:id}); if(error) throw error; return data as HQDecisionDetail }
