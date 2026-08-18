@@ -219,7 +219,7 @@ begin
        and new.payload = old.payload
        and new.content_sha256 = old.content_sha256
        and new.provenance = old.provenance
-       and new.rights_status = old.rightights_status
+       and new.rights_status = old.rights_status
        and new.certification_policy_version is not distinct from old.certification_policy_version
        and new.certification_evidence = old.certification_evidence
        and new.created_by is not distinct from old.created_by
