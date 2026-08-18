@@ -9,6 +9,8 @@ CLAIM = ROOT / "supabase/migrations/20260819021700_parent_claim_authority_closur
 CANONICAL_CREATION = ROOT / "supabase/migrations/20260819021800_parent_canonical_student_creation_closure.sql"
 NOTIFICATION_NAV = ROOT / "supabase/migrations/20260819021900_parent_notification_navigation_closure.sql"
 LEARN = ROOT / "app/parent/learn/page.tsx"
+CHILD_HUB = ROOT / "app/parent/child/[id]/page.tsx"
+CHILD_HOMEWORK = ROOT / "app/parent/child/[id]/homework/page.tsx"
 LINK = ROOT / "app/parent/link-child/page.tsx"
 CONNECT_ALIAS = ROOT / "app/parent/connect-child/page.tsx"
 CREATE_CHILD = ROOT / "app/parent/create-child/page.tsx"
@@ -36,6 +38,8 @@ claim = read(CLAIM)
 canonical_creation = read(CANONICAL_CREATION)
 notification_nav = read(NOTIFICATION_NAV)
 learn = read(LEARN)
+child_hub = read(CHILD_HUB)
+child_homework = read(CHILD_HOMEWORK)
 link = read(LINK)
 connect_alias = read(CONNECT_ALIAS)
 create_child = read(CREATE_CHILD)
@@ -92,6 +96,17 @@ require(learn, '.eq("status", "published")', "published progress filter")
 require(learn, "No cached child data has been shown", "fail-closed network copy")
 forbid(learn, "cache.current", "cross-child result cache")
 forbid(learn, "new Map<string, CachedData>", "legacy cross-child cache")
+
+# The canonical child hub must have real core actions rather than pilot dead ends.
+require(child_hub, "`/parent/child/${child.id}/homework`", "child-scoped homework navigation")
+require(child_hub, "`/parent/child/${child.id}/messages`", "child-scoped communication navigation")
+require(child_hub, "`/parent/assessments?studentId=${child.id}`", "child-scoped released-results navigation")
+forbid(child_hub, "Homework coming soon", "dead homework action")
+forbid(child_hub, "Send Encouragement", "non-functional encouragement action")
+require(child_homework, '.from("students")', "homework deep-link RLS authority gate")
+require(child_homework, '.from("homework")', "homework teacher-assignment source")
+require(child_homework, '.from("homework_submissions")', "homework learner-status source")
+require(child_homework, "No cached data from another learner has been shown", "homework fail-closed network state")
 
 # Empty-state linking action must enter the verified claim flow, never a generic
 # communications page or a guessed student-id route.
