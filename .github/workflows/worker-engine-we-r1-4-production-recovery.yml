@@ -1,0 +1,178 @@
+name: Worker Engine WE-R1.4 Production Recovery
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/worker-engine-we-r1-4-production-recovery.yml"
+      - "scripts/worker-engine-build-r1-4-production-recovery-stage.py"
+      - "scripts/test-worker-engine-build-r1-4-production-recovery-stage.py"
+      - "docs/worker-engine/WORKER_ENGINE_R1_4_PRODUCTION_RECOVERY_HANDOVER_20260818.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/worker-engine-we-r1-4-production-recovery.yml"
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type APPLY_WORKER_ENGINE_WE_R1_4_RECOVERY
+        required: true
+        type: string
+
+permissions:
+  contents: read
+concurrency:
+  group: worker-engine-we-r1-4-production-recovery
+  cancel-in-progress: false
+
+jobs:
+  certify-partial-production-lineage:
+    name: Certify real partial-production recovery lineage
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - name: Verify recovery staging contract
+        run: |
+          set -euo pipefail
+          python3 scripts/test-worker-engine-build-r1-4-production-recovery-stage.py
+          python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
+          python3 scripts/test-worker-engine-assert-dry-run-plan.py
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+      - name: Start disposable database
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
+          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed --version 20260815090000
+      - name: Reproduce observed production drift and apply existing bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 <<'SQL'
+          do $$ declare r record; begin
+            for r in select c.conname from pg_constraint c join pg_class t on t.oid=c.conrelid join pg_namespace n on n.oid=t.relnamespace where n.nspname='public' and t.relname='hq_workforce_objectives' and c.contype='c' and pg_get_constraintdef(c.oid) ilike '%desired_outcome%'
+            loop execute format('alter table public.hq_workforce_objectives drop constraint %I',r.conname); end loop;
+          end $$;
+          alter table public.hq_workforce_objectives add column trace_id uuid;
+          alter table public.hq_workforce_objectives alter column desired_outcome type jsonb using jsonb_build_object('text',desired_outcome);
+          SQL
+          PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260818111900_worker_engine_we_r1_3x_production_reconciliation_bridge.sql
+      - name: Late-backfill every missing repository Worker Engine migration in canonical order
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          mapfile -t files < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort | awk -F/ '{n=$NF; split(n,a,"_"); v=a[1]; l=tolower(n); if (v>="20260815091000" && v<="20260818113000" && index(l,"worker_engine") && v!="20260818111900") print $0}')
+          test "${#files[@]}" -ge 20
+          for f in "${files[@]}"; do echo "=== recovery $f ==="; PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f "$f"; done
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capability_authority_grants') is not null")" = t
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")" = 0
+          STATE="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
+          test "$STATE" = 'false|false|false|0|0|false|false|true'
+      - name: Run production-closure adversarial suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_4_production_closure.sql
+      - name: Destroy disposable database
+        if: always()
+        run: supabase stop --no-backup >/dev/null 2>&1 || true
+
+  apply:
+    name: Protected production recovery
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs: certify-partial-production-lineage
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production-migration-repair
+    env:
+      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+    steps:
+      - name: Require main and explicit manual token when dispatched
+        shell: bash
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/main
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then test "$CONFIRMATION" = APPLY_WORKER_ENGINE_WE_R1_4_RECOVERY; fi
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Initialize evidence
+        run: |
+          mkdir -p .worker-engine-r1-4-recovery
+          printf 'sha=%s\nproject=%s\nruntime_activation=false\nautonomy_activation=false\n' '${{ github.sha }}' "$EXPECTED_PROJECT_REF" > .worker-engine-r1-4-recovery/context.txt
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+      - name: Link and capture live ledger
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          test "$(cat supabase/.temp/project-ref)" = "$EXPECTED_PROJECT_REF"
+          supabase migration list --linked 2>&1 | tee .worker-engine-r1-4-recovery/ledger-before.txt
+          grep -Fq '20260818111900' .worker-engine-r1-4-recovery/ledger-before.txt
+      - name: Build exact ledger-aligned recovery stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/tbl013-live-ledger-audit.py --migrations-dir supabase/migrations --ledger .worker-engine-r1-4-recovery/ledger-before.txt --report .worker-engine-r1-4-recovery/audit.json --plan .worker-engine-r1-4-recovery/plan.md --project-ref "$EXPECTED_PROJECT_REF"
+          python3 scripts/worker-engine-build-r1-4-production-recovery-stage.py --report .worker-engine-r1-4-recovery/audit.json --migrations-dir supabase/migrations --config supabase/config.toml --stage-dir .worker-engine-r1-4-recovery-stage --manifest .worker-engine-r1-4-recovery/manifest.json --expected-versions .worker-engine-r1-4-recovery/pending.txt
+          test -s .worker-engine-r1-4-recovery/pending.txt
+          ! grep -Fxq '20260818111900' .worker-engine-r1-4-recovery/pending.txt
+          grep -Fxq '20260815091000' .worker-engine-r1-4-recovery/pending.txt
+          grep -Fxq '20260818112000' .worker-engine-r1-4-recovery/pending.txt
+          grep -Fxq '20260818113000' .worker-engine-r1-4-recovery/pending.txt
+      - name: Link stage and prove exact dry-run
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd .worker-engine-r1-4-recovery-stage
+          supabase link --project-ref "$EXPECTED_PROJECT_REF"
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.worker-engine-r1-4-recovery/dry-run.txt
+          cd ..
+          python3 scripts/worker-engine-assert-dry-run-plan.py --expected .worker-engine-r1-4-recovery/pending.txt --dry-run-output .worker-engine-r1-4-recovery/dry-run.txt --report .worker-engine-r1-4-recovery/preflight.txt
+          grep -Fq 'status=PASSED' .worker-engine-r1-4-recovery/preflight.txt
+      - name: Apply certified recovery only
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -o pipefail
+          cd .worker-engine-r1-4-recovery-stage
+          supabase db push --linked --include-all 2>&1 | tee ../.worker-engine-r1-4-recovery/apply.txt
+      - name: Verify ledger and zero pending recovery
+        shell: bash
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          set -euo pipefail
+          supabase migration list --linked 2>&1 | tee .worker-engine-r1-4-recovery/ledger-after.txt
+          while read -r v; do grep -Fq "$v" .worker-engine-r1-4-recovery/ledger-after.txt; done < .worker-engine-r1-4-recovery/pending.txt
+          cd .worker-engine-r1-4-recovery-stage
+          supabase db push --linked --dry-run --include-all 2>&1 | tee ../.worker-engine-r1-4-recovery/postflight.txt
+          cd ..
+          while read -r v; do ! grep -Fq "$v" .worker-engine-r1-4-recovery/postflight.txt; done < .worker-engine-r1-4-recovery/pending.txt
+          sha256sum .worker-engine-r1-4-recovery/* > .worker-engine-r1-4-recovery/evidence.sha256
+      - name: Upload immutable recovery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: worker-engine-r1-4-production-recovery-${{ github.run_id }}
+          path: .worker-engine-r1-4-recovery/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 90
