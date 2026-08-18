@@ -89,7 +89,7 @@ try {
   }
 
   await page.getByRole('heading', { name: 'You have seen the logic. Choose how you want to enter VibeSchool.', exact: true }).waitFor({ state: 'visible' })
-  for (const conversionLabel of ['Create account or sign in','Plan a school pilot','Explore product status']) {
+  for (const conversionLabel of ['Create an account','Plan a school pilot','Explore product status']) {
     if (!(await page.getByRole('link', { name: new RegExp(conversionLabel) }).count())) fail(`conversion path missing: ${conversionLabel}`)
   }
 
