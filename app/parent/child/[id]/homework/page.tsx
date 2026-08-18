@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -38,6 +38,7 @@ export default function ParentChildHomeworkPage() {
   const params = useParams()
   const router = useRouter()
   const childId = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : ""
+  const requestVersion = useRef(0)
 
   const [childName, setChildName] = useState("")
   const [items, setItems] = useState<HomeworkItem[]>([])
@@ -46,11 +47,28 @@ export default function ParentChildHomeworkPage() {
   const [unauthorized, setUnauthorized] = useState(false)
 
   const load = useCallback(async () => {
-    if (!childId) return
-    setLoading(true)
+    const version = ++requestVersion.current
+
+    // Fail closed immediately when child context changes. Never leave a sibling's
+    // name, homework, error, or authorization state on screen while new requests run.
+    setChildName("")
+    setItems([])
+    setUnauthorized(false)
     setError(null)
+    setLoading(true)
+
+    if (!childId) {
+      if (version === requestVersion.current) {
+        setUnauthorized(true)
+        setLoading(false)
+      }
+      return
+    }
+
+    const isStale = () => version !== requestVersion.current
 
     const { data: authData, error: authError } = await supabase.auth.getUser()
+    if (isStale()) return
     if (authError || !authData.user) {
       router.replace("/login")
       return
@@ -63,6 +81,7 @@ export default function ParentChildHomeworkPage() {
       .eq("id", childId)
       .maybeSingle()
 
+    if (isStale()) return
     if (studentError) {
       setError("Homework could not be loaded safely. Check your connection and try again.")
       setLoading(false)
@@ -77,7 +96,6 @@ export default function ParentChildHomeworkPage() {
 
     setChildName(student.name)
     if (!student.class_id) {
-      setItems([])
       setLoading(false)
       return
     }
@@ -94,8 +112,8 @@ export default function ParentChildHomeworkPage() {
         .eq("student_id", childId),
     ])
 
+    if (isStale()) return
     if (homeworkRes.error || submissionsRes.error) {
-      setItems([])
       setError("Homework is temporarily unavailable. No cached data from another learner has been shown.")
       setLoading(false)
       return
@@ -106,7 +124,7 @@ export default function ParentChildHomeworkPage() {
       if (submission.homework_id) byHomework.set(submission.homework_id, submission)
     }
 
-    setItems((homeworkRes.data ?? []).map(row => {
+    const nextItems = (homeworkRes.data ?? []).map(row => {
       const submission = byHomework.get(row.id)
       return {
         ...row,
@@ -114,12 +132,18 @@ export default function ParentChildHomeworkPage() {
         mark: submission?.mark ?? null,
         feedback: submission?.feedback ?? null,
       }
-    }))
+    })
+
+    if (isStale()) return
+    setItems(nextItems)
     setLoading(false)
   }, [childId, router])
 
   useEffect(() => {
     void load()
+    return () => {
+      requestVersion.current += 1
+    }
   }, [load])
 
   if (loading) {
