@@ -42,7 +42,8 @@ requireText(contextMigration.includes('teacher_active_school_preferences'), 'tea
 requireText(contextMigration.includes('teacher_get_operating_context'), 'teacher modules share one operating-context resolver')
 requireText(contextMigration.includes("sm.role::text = 'teacher'"), 'operating context verifies teacher membership')
 requireText(contextMigration.includes('teacher_classes'), 'operating context derives assignments from canonical teacher_classes')
-requireText(contextMigration.includes('pol_teacher_profiles_update'), 'legacy teacher profile school pointer is membership-checked')
+requireText(!contextMigration.includes('teacher_profiles'), 'teacher operating context has no production-only teacher_profiles rebuild dependency')
+requireText(contextMigration.includes('-- authorization-test: public.teacher_active_school_preferences'), 'active-school preference declares its authorization-test contract')
 
 const homework = read('app/teacher/homework/page.tsx')
 requireText(homework.includes('.from("student_classes")'), 'homework overview counts current enrollment through student_classes')
