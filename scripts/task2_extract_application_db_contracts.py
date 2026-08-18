@@ -14,7 +14,8 @@ import json
 import re
 from pathlib import Path
 
-SCAN_ROOTS = ("app", "components", "hooks", "lib")
+# Next.js application/server code plus deployed Supabase Edge Functions.
+SCAN_ROOTS = ("app", "components", "hooks", "lib", "supabase/functions")
 EXTENSIONS = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"}
 FROM_RE = re.compile(r"(?<!\.storage)\.from\(\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\1\s*\)")
 RPC_RE = re.compile(r"\.rpc\(\s*(['\"])([A-Za-z_][A-Za-z0-9_]*)\1(?:\s*[,\)])")
