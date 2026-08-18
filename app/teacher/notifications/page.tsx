@@ -18,35 +18,15 @@ type NotificationRow = {
   created_at: string;
 };
 
-function destinationFor(row: NotificationRow): string {
-  const id = row.related_id ? encodeURIComponent(row.related_id) : null;
-  switch ((row.type ?? "").toLowerCase()) {
-    case "homework_submission":
-    case "submission":
-    case "homework":
-      return id ? `/teacher/homework/${id}` : "/teacher/homework";
-    case "assessment":
-    case "assessment_action":
-    case "results":
-      return id ? `/teacher/assessment/${id}` : "/teacher/assessment";
-    case "timetable":
-    case "timetable_change":
-      return "/teacher/timetable";
-    case "student":
-    case "student_progress":
-      return id ? `/teacher/students/${id}` : "/teacher/students";
-    case "message":
-    case "parent_message":
-    case "teacher_message":
-      return "/teacher/vibeconnect";
-    case "school_announcement":
-    case "announcement":
-    case "admin_request":
-      return "/teacher/pulse";
-    default:
-      return "/teacher/pulse";
-  }
-}
+const KNOWN_TYPES = new Set([
+  "fee_payment",
+  "fee_reminder",
+  "attendance",
+  "announcement",
+  "leave",
+  "general",
+  "homework_submitted",
+]);
 
 function relativeTime(value: string): string {
   const timestamp = new Date(value).getTime();
@@ -56,8 +36,35 @@ function relativeTime(value: string): string {
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
+
+async function resolveDestination(row: NotificationRow): Promise<string> {
+  const type = (row.type ?? "general").toLowerCase();
+
+  if (type === "homework_submitted" && row.related_id) {
+    const { data, error } = await supabase
+      .from("homework")
+      .select("id,class_id,teacher_id")
+      .eq("id", row.related_id)
+      .maybeSingle();
+    if (!error && data?.id && data.class_id) {
+      return `/teacher/classhub/${encodeURIComponent(data.class_id)}/homework/${encodeURIComponent(data.id)}`;
+    }
+    return "/teacher/homework";
+  }
+
+  if (type === "attendance") return "/teacher/attendance";
+  if (type === "announcement" || type === "general") return "/teacher/pulse";
+
+  // Fee and leave notifications can be produced for school staff but do not
+  // yet have a teacher-owned dedicated destination. Keep them inside Today
+  // rather than guessing an admin URL or accepting an arbitrary stored URL.
+  if (type === "fee_payment" || type === "fee_reminder" || type === "leave") {
+    return "/teacher/pulse";
+  }
+
+  return "/teacher/pulse";
 }
 
 export default function TeacherNotificationsPage() {
@@ -100,7 +107,9 @@ export default function TeacherNotificationsPage() {
   async function openNotification(row: NotificationRow) {
     if (savingId) return;
     setSavingId(row.id);
+    setError(null);
     try {
+      const destination = await resolveDestination(row);
       if (!row.is_read) {
         const { error: updateError } = await supabase
           .from("notifications")
@@ -110,7 +119,7 @@ export default function TeacherNotificationsPage() {
         if (updateError) throw updateError;
         setRows((current) => current.map((item) => item.id === row.id ? { ...item, is_read: true } : item));
       }
-      router.push(destinationFor(row));
+      router.push(destination);
     } catch (openError) {
       console.error("[TeacherNotifications] open", openError);
       setError("That notification could not be opened. Please try again.");
@@ -165,24 +174,27 @@ export default function TeacherNotificationsPage() {
       ) : rows.length === 0 ? (
         <div style={{ background: "#fff", borderRadius: 18, padding: "34px 20px", textAlign: "center", boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
           <div style={{ fontSize: 18, fontWeight: 900, color: "#111827" }}>No notifications yet</div>
-          <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.5, color: "#6b7280" }}>School announcements, learner submissions, timetable changes and actions that need your attention will appear here.</div>
+          <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.5, color: "#6b7280" }}>School announcements, learner submissions and actions that need your attention will appear here.</div>
           <button type="button" onClick={() => router.push("/teacher/pulse")} style={{ marginTop: 16, minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Back to Today</button>
         </div>
       ) : (
         <div style={{ display: "grid", gap: 9 }}>
-          {rows.map((row) => (
-            <button key={row.id} type="button" disabled={savingId !== null} onClick={() => void openNotification(row)} style={{ width: "100%", textAlign: "left", border: row.is_read ? "1px solid #e5e7eb" : "1px solid #a7f3d0", borderRadius: 16, background: row.is_read ? "#fff" : "#f0fdf4", padding: 14, minHeight: 78, opacity: savingId === row.id ? 0.65 : 1 }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                <span aria-hidden="true" style={{ marginTop: 6, width: 8, height: 8, borderRadius: 99, background: row.is_read ? "#d1d5db" : "#10b981", flexShrink: 0 }} />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: row.is_read ? 750 : 900, color: "#111827" }}>{row.title}</div>
-                  {row.body && <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280", lineHeight: 1.45 }}>{row.body}</div>}
-                  <div style={{ marginTop: 7, fontSize: 10, fontWeight: 800, color: "#9ca3af" }}>{relativeTime(row.created_at)}</div>
+          {rows.map((row) => {
+            const known = KNOWN_TYPES.has((row.type ?? "general").toLowerCase());
+            return (
+              <button key={row.id} type="button" disabled={savingId !== null} onClick={() => void openNotification(row)} style={{ width: "100%", textAlign: "left", border: row.is_read ? "1px solid #e5e7eb" : "1px solid #a7f3d0", borderRadius: 16, background: row.is_read ? "#fff" : "#f0fdf4", padding: 14, minHeight: 78, opacity: savingId === row.id ? 0.65 : 1 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                  <span aria-hidden="true" style={{ marginTop: 6, width: 8, height: 8, borderRadius: 99, background: row.is_read ? "#d1d5db" : "#10b981", flexShrink: 0 }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: row.is_read ? 750 : 900, color: "#111827" }}>{row.title}</div>
+                    {row.body && <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280", lineHeight: 1.45 }}>{row.body}</div>}
+                    <div style={{ marginTop: 7, fontSize: 10, fontWeight: 800, color: known ? "#9ca3af" : "#b45309" }}>{relativeTime(row.created_at)}{known ? "" : " · General destination"}</div>
+                  </div>
+                  <span aria-hidden="true" style={{ color: "#9ca3af", fontSize: 20 }}>›</span>
                 </div>
-                <span aria-hidden="true" style={{ color: "#9ca3af", fontSize: 20 }}>›</span>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
