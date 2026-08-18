@@ -1,0 +1,21 @@
+name: Student One Full Journey
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/test-student-one-full-journey.mjs'
+      - '.github/workflows/student-one-full-journey.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-journey-contract:
+    name: Adult authority and identity health
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Student = 1 full journey contract
+        run: node scripts/test-student-one-full-journey.mjs
