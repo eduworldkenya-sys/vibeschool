@@ -1,0 +1,40 @@
+name: Portal UX Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/globals.css'
+      - 'app/teacher/**'
+      - 'app/admin/**'
+      - 'components/teacher/**'
+      - 'components/admin/**'
+      - 'components/shared/PortalState.tsx'
+      - 'scripts/test-portal-ux-contract.mjs'
+      - '.github/workflows/portal-ux-contract.yml'
+  push:
+    branches:
+      - 'agent/teacher-admin-ux-audit-**'
+    paths:
+      - 'app/globals.css'
+      - 'app/teacher/**'
+      - 'app/admin/**'
+      - 'components/teacher/**'
+      - 'components/admin/**'
+      - 'components/shared/PortalState.tsx'
+      - 'scripts/test-portal-ux-contract.mjs'
+      - '.github/workflows/portal-ux-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Teacher + Admin UX contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce portal UX contract
+        run: node scripts/test-portal-ux-contract.mjs

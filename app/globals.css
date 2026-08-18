@@ -20,6 +20,24 @@ html, body {
   color: #ffffff;
 }
 
+/* Keyboard users must always be able to see where they are. Keep the ring
+   outside the control so page-local colors and borders remain intact. */
+:where(a, button, input, select, textarea, summary, [role="button"], [tabindex]):focus-visible {
+  outline: 3px solid #22c55e;
+  outline-offset: 3px;
+}
+
+/* Avoid motion becoming a usability barrier while preserving instant state changes. */
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* The uploaded master logo has an opaque white artboard. On dark authentication
    surfaces use the transparent lockup instead, without changing social/PWA assets. */
 a[aria-label="VibeSchool home"]:has(> img[src="/icons/vibeschool-logo.png"]) {
