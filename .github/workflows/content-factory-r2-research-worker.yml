@@ -3,6 +3,7 @@ name: Content Factory R2 Research Worker
 on:
   pull_request:
     paths:
+      - 'supabase/migrations/20260818130900_curriculum_research_queue_repository_parity.sql'
       - 'supabase/migrations/20260818131000_content_factory_r2_research_worker_bridge.sql'
       - 'supabase/migrations/20260818131100_content_factory_r2_research_evidence_trust_hardening.sql'
       - 'supabase/functions/content-research-worker/**'
