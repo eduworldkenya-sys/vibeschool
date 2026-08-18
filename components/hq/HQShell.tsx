@@ -34,7 +34,7 @@ const links = [
   ["Studio", "/hq/studio"],
   ["Publishing", "/hq/content"],
   ["Content Engine", "/hq/curriculum-intelligence/engine"],
-  ["Curriculum Authority", "/hq/curriculum-authority"],
+  ["Curriculum Authority","/hq/curriculum-authority"],
   ["Analytics", "/hq/analytics"],
 ] as const
 
