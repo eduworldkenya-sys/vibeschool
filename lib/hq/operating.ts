@@ -13,7 +13,26 @@ export type HQSnapshot = {
   incidents: { open: number }
 }
 
-export type HQNotification = { id:string; category:string; severity:"info"|"success"|"warning"|"critical"; title:string; body:string; route:string|null; status:"unread"|"read"|"resolved"; metadata:Record<string,unknown>; created_at:string }
+export type HQNotificationClass = "digest" | "important" | "action_required" | "critical"
+export type HQNotification = {
+  id: string
+  category: string
+  severity: "info" | "success" | "warning" | "critical"
+  notification_class: HQNotificationClass
+  title: string
+  body: string
+  route: string | null
+  action_label: string | null
+  status: "unread" | "read" | "resolved"
+  occurrence_count: number
+  first_seen_at: string
+  last_seen_at: string
+  acknowledged_at: string | null
+  source_type: string | null
+  source_id: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+}
 export type HQDecision = { id:string; code:string; title:string; category:string; decision_type:string; status:"draft"|"reviewed"|"approved"|"locked"|"active"|"superseded"|"rolled_back"|"cancelled"; rule_key:string|null; rule_value:unknown; reason:string|null; affected_products:string[]; effective_at:string|null; approved_at:string|null; locked_at:string|null; supersedes_id:string|null; rollback_of_id:string|null; created_at:string; updated_at:string }
 export type HQDecisionDetail = { decision:HQDecision; versions:Array<Record<string,unknown>>; targets:Array<{id:string;product_key:string;expected_config_key:string|null;expected_value:unknown;status:string;applied_at:string|null;verified_at:string|null;error:string|null}>; audit:Array<{id:string;action:string;actor_id:string|null;details:Record<string,unknown>;created_at:string}> }
 export type HQExecutiveAnalytics = { generated_at:string; daily:Array<{date:string;signups:number;lesson_plans:number;homework:number;submissions:number}>; roles:Array<{role:string;count:number}>; schools:Array<{status:string;count:number}>; finance:{payments_30d:number;expenses_30d:number;publication_earnings:number}; communications:{parent_messages_30d:number;vc_messages_30d:number}; content:{publication_reads:number}; operations:{open_incidents:number;marking_backlog:number} }
@@ -29,8 +48,9 @@ export type HQMorningBrief = { generated_at:string; headline:{new_users_today:nu
 
 export async function loadHQSnapshot(): Promise<HQSnapshot> { const {data,error}=await sb.rpc("hq_get_snapshot"); if(error) throw error; return data as HQSnapshot }
 export async function loadHQExecutiveAnalytics(): Promise<HQExecutiveAnalytics> { const {data,error}=await sb.rpc("hq_get_executive_analytics"); if(error) throw error; return data as HQExecutiveAnalytics }
-export async function loadHQNotifications(limit=60): Promise<HQNotification[]> { const {data,error}=await sb.rpc("hq_list_notifications",{p_limit:limit}); if(error) throw error; return (data??[]) as HQNotification[] }
+export async function loadHQNotifications(limit=100): Promise<HQNotification[]> { const {data,error}=await sb.rpc("hq_list_notifications",{p_limit:limit}); if(error) throw error; return (data??[]) as HQNotification[] }
 export async function markHQNotificationRead(id:string){ const {error}=await sb.rpc("hq_mark_notification_read",{p_id:id}); if(error) throw error }
+export async function acknowledgeHQNotification(id:string){ const {error}=await sb.rpc("hq_acknowledge_notification",{p_id:id}); if(error) throw error }
 export async function resolveHQNotification(id:string){ const {error}=await sb.rpc("hq_resolve_notification",{p_id:id}); if(error) throw error }
 export async function runHQRules(){ const {data,error}=await sb.rpc("hq_generate_operational_alerts"); if(error) throw error; return Number(data??0) }
 export async function listHQDecisions(limit=100): Promise<HQDecision[]> { const {data,error}=await sb.rpc("hq_list_decisions",{p_limit:limit}); if(error) throw error; return (data??[]) as HQDecision[] }
