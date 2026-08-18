@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getTwinAuthorityContext, selectTwinRoleBinding } from '@/lib/twin/core'
 
 interface Student {
   id: string
@@ -40,21 +41,25 @@ export default function SmartInsightSlides() {
 
   const loadStudents = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || !isMounted.current) return
+      const authority = await getTwinAuthorityContext()
+      if (!isMounted.current) return
 
-      const [profileRes, membershipRes] = await Promise.all([
-        supabase.from('profiles').select('full_name').eq('id', user.id).single(),
-        supabase.from('school_members').select('school_id').eq('profile_id', user.id).eq('role', 'teacher').limit(1).maybeSingle(),
+      const [profileRes, teacherProfileRes] = await Promise.all([
+        supabase.from('profiles').select('full_name').eq('id', authority.userId).single(),
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', authority.userId).maybeSingle(),
       ])
+      if (profileRes.error) throw new Error(profileRes.error.message || 'Teacher profile unavailable')
+      if (teacherProfileRes.error) throw new Error(teacherProfileRes.error.message || 'Teacher school preference unavailable')
       if (profileRes.data?.full_name && isMounted.current) setFirstName(profileRes.data.full_name.split(' ')[0])
-      const schoolId = membershipRes.data?.school_id
-      if (!schoolId) return
+
+      const binding = selectTwinRoleBinding(authority, 'teacher', teacherProfileRes.data?.school_id ?? undefined)
+      const schoolId = binding.schoolId
+      if (!schoolId) throw new Error('Teacher insight school scope is unavailable.')
 
       const { data: tcRows } = await supabase
         .from('teacher_classes')
         .select('class_id')
-        .eq('teacher_id', user.id)
+        .eq('teacher_id', authority.userId)
         .eq('school_id', schoolId)
 
       const classIds = Array.from(new Set((tcRows ?? []).map((row: { class_id: string }) => row.class_id)))
