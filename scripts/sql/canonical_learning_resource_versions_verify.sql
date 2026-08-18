@@ -73,10 +73,10 @@ begin
   end if;
 
   insert into public.learning_resources(source_type,title,status,visibility,owner_type,canonical_key,asset_kind,purpose,identity_key_version,language_code)
-  values ('teacher_note','CLA verification root A','active','public','platform','cla:test:r3.2:root-a','lesson_plan','teach',1,'en') returning id into v_root_a;
+  values ('platform_generated','CLA verification root A','active','public','platform','cla:test:r3.2:root-a','lesson_plan','teach',1,'en') returning id into v_root_a;
 
   insert into public.learning_resources(source_type,title,status,visibility,owner_type,canonical_key,asset_kind,purpose,identity_key_version,language_code)
-  values ('teacher_note','CLA verification root B','active','public','platform','cla:test:r3.2:root-b','lesson_plan','teach',1,'en') returning id into v_root_b;
+  values ('platform_generated','CLA verification root B','active','public','platform','cla:test:r3.2:root-b','lesson_plan','teach',1,'en') returning id into v_root_b;
 
   insert into public.learning_resource_versions(resource_id,version,lifecycle_status,payload,content_sha256,provenance,rights_status,certification_policy_version,certification_evidence,verified_at,certified_at)
   values (v_root_a,1,'certified','{"body":"version one"}'::jsonb,repeat('a',64),'{"origin":"test"}'::jsonb,'cleared','test-policy-v1','{"semantic":"passed","rights":"passed"}'::jsonb,now(),now())
