@@ -6,8 +6,11 @@ const viewports = [{width:360,height:800},{width:390,height:844},{width:768,heig
 const failures=[]
 const internalLinks=new Set()
 const fail = msg => failures.push(msg)
+const launchOptions = process.env.PLAYWRIGHT_BROWSER_CHANNEL
+  ? { headless: true, channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL }
+  : { headless: true }
 
-const browser = await chromium.launch({headless:true})
+const browser = await chromium.launch(launchOptions)
 try {
   for (const viewport of viewports) {
     const context = await browser.newContext({ viewport })
