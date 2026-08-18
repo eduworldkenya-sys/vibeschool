@@ -25,12 +25,23 @@ assert.match(base,/get_my_auth_journey_state/i)
 for (const wrapper of ['get_my_onboarding_state','get_my_auth_access_state','get_my_role']) assert.match(base,new RegExp(`create or replace function public\\.${wrapper}\\([\\s\\S]*?get_my_auth_journey_state`,'i'))
 
 // Profile authority is denied at the grant layer, not only by downstream routing.
+// Historical profile shapes are not identical, so the migration must intersect a
+// fixed presentation-field allowlist with columns that actually exist at rebuild time.
 assert.match(profileGrants,/revoke all on table public\.profiles from anon/i)
 assert.match(profileGrants,/revoke update on table public\.profiles from authenticated/i)
-assert.match(profileGrants,/grant update\s*\([\s\S]*full_name[\s\S]*notification_prefs[\s\S]*\) on table public\.profiles to authenticated/i)
-for (const field of ['role','school_id','account_status','is_anonymized']) {
-  const grantBody = profileGrants.match(/grant update\s*\(([\s\S]*?)\) on table public\.profiles to authenticated/i)?.[1] ?? ''
-  assert.ok(!new RegExp(`\\b${field}\\b`,'i').test(grantBody), `authority field ${field} must not be client-updatable`)
+assert.match(profileGrants,/pg_catalog\.pg_attribute/i)
+assert.match(profileGrants,/a\.attrelid = 'public\.profiles'::regclass/i)
+assert.match(profileGrants,/a\.attname = any \(array\[/i)
+assert.match(profileGrants,/execute format\('grant update \(%s\) on table public\.profiles to authenticated'/i)
+assert.match(profileGrants,/profiles_editable_column_allowlist_resolved_empty/i)
+
+const allowlist = profileGrants.match(/a\.attname = any \(array\[([\s\S]*?)\]::text\[\]\)/i)?.[1] ?? ''
+assert.ok(allowlist, 'profile editable allowlist must be explicit')
+for (const field of ['full_name','phone','avatar_url','bio','updated_at']) {
+  assert.match(allowlist, new RegExp(`['\"]${field}['\"]`, 'i'), `missing editable field ${field}`)
+}
+for (const field of ['role','school_id','account_status','is_anonymized','created_by','deleted_at']) {
+  assert.ok(!new RegExp(`['\"]${field}['\"]`, 'i').test(allowlist), `authority field ${field} must not be client-updatable`)
 }
 
 // Role claim is one-time, self-service allowlisted, identity-bound and non-admin.
