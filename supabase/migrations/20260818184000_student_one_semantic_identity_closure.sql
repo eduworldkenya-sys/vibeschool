@@ -114,26 +114,49 @@ create policy vibelearn_searches_viewer_owner on public.vibelearn_searches for a
 using(viewer_id=(select auth.uid())) with check(viewer_id=(select auth.uid()));
 
 -- ---------------------------------------------------------------------------
--- 3. Empty legacy learner tables: make their student_id semantics canonical.
+-- 3. Production-pretracked legacy learner tables: restore clean-rebuild lineage,
+-- then make their student_id semantics canonical.
 -- ---------------------------------------------------------------------------
-alter table public.vibelearn_content_saves drop constraint if exists vibelearn_content_saves_student_id_fkey;
-alter table public.vibelearn_content_saves add constraint vibelearn_content_saves_student_id_fkey
-  foreign key(student_id) references public.students(id) on delete cascade;
+create table if not exists public.vibelearn_content_saves (
+  id uuid primary key default gen_random_uuid(),
+  content_id uuid not null references public.vibelearn_content(id) on delete cascade,
+  student_id uuid not null references public.students(id) on delete cascade,
+  saved_at timestamptz not null default now(),
+  unique(content_id,student_id)
+);
+create index if not exists idx_vcs_content on public.vibelearn_content_saves(content_id);
+alter table public.vibelearn_content_saves enable row level security;
 revoke all privileges on table public.vibelearn_content_saves from anon,authenticated;
 grant select,insert,update,delete on table public.vibelearn_content_saves to authenticated;
 grant all privileges on table public.vibelearn_content_saves to service_role;
+
+alter table public.vibelearn_content_saves drop constraint if exists vibelearn_content_saves_student_id_fkey;
+alter table public.vibelearn_content_saves add constraint vibelearn_content_saves_student_id_fkey
+  foreign key(student_id) references public.students(id) on delete cascade;
 drop policy if exists "students manage their saves" on public.vibelearn_content_saves;
 drop policy if exists "teacher reads own content saves" on public.vibelearn_content_saves;
+drop policy if exists vibelearn_content_saves_student_owner on public.vibelearn_content_saves;
+drop policy if exists vibelearn_content_saves_teacher_read on public.vibelearn_content_saves;
 create policy vibelearn_content_saves_student_owner on public.vibelearn_content_saves for all to authenticated
 using(exists(select 1 from public.students s where s.id=vibelearn_content_saves.student_id and s.profile_id=(select auth.uid()) and s.deleted_at is null))
 with check(exists(select 1 from public.students s where s.id=vibelearn_content_saves.student_id and s.profile_id=(select auth.uid()) and s.deleted_at is null));
 create policy vibelearn_content_saves_teacher_read on public.vibelearn_content_saves for select to authenticated
 using(exists(select 1 from public.vibelearn_content c where c.id=vibelearn_content_saves.content_id and c.submitted_by=(select auth.uid())));
 
+-- access: service-only public.student_schools
+create table if not exists public.student_schools (
+  student_id uuid not null references public.students(id) on delete cascade,
+  school_id uuid not null references public.schools(id) on delete cascade,
+  primary key(student_id,school_id)
+);
+alter table public.student_schools enable row level security;
+revoke all privileges on table public.student_schools from anon,authenticated;
+grant all privileges on table public.student_schools to service_role;
 alter table public.student_schools drop constraint if exists student_schools_student_id_fkey;
 alter table public.student_schools add constraint student_schools_student_id_fkey
   foreign key(student_id) references public.students(id) on delete cascade;
--- Preserve its existing locked/read-nothing posture. Do not activate a legacy path.
+drop policy if exists student_schools_locked on public.student_schools;
+create policy student_schools_locked on public.student_schools for select to authenticated using(false);
 
 -- ---------------------------------------------------------------------------
 -- Fail-closed semantic certification.
