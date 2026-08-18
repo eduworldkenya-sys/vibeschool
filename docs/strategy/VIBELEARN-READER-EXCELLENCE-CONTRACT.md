@@ -193,7 +193,7 @@ The first controlled comparison should use the same canonical sample passages ac
 - Wave 12 certifies the existing purchase/payment/entitlement/reader bridge in both production truth and repository contracts.
 - Wave 13 records Azure Speech as the preferred Kenya TTS pilot candidate without activating or spending on it.
 - Dedicated `Reader Excellence Contract` workflow is green and guards entitlement-safe offline behavior, annotations, glossary truth, search compatibility, listening continuity, accessibility and commerce return-path invariants.
-- PR body synchronization is the next documentation action; no technical work depends on it.
+- PR body synchronization is documentation-only and follows this handover state.
 - Current exact-head certification still requires all generic long-running gates to settle green before promotion.
 
 ## Promotion boundary
