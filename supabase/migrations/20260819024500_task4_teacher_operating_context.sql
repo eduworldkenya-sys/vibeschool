@@ -12,52 +12,16 @@ revoke all on table public.teacher_active_school_preferences from public, anon, 
 grant select on table public.teacher_active_school_preferences to authenticated;
 grant all on table public.teacher_active_school_preferences to service_role;
 
+-- authorization-test: public.teacher_active_school_preferences
+-- authenticated teachers may read only their own preference row; writes are
+-- available only through teacher_set_active_school(), which verifies current
+-- teacher membership before persisting a school choice.
 drop policy if exists teacher_active_school_preferences_read_own on public.teacher_active_school_preferences;
 create policy teacher_active_school_preferences_read_own
 on public.teacher_active_school_preferences
 for select
 to authenticated
 using (teacher_id = (select auth.uid()));
-
--- teacher_profiles.school_id remains a compatibility pointer for older teacher
--- surfaces. It is not authority. A teacher may only persist a school in which
--- they hold teacher membership.
-drop policy if exists pol_teacher_profiles_insert on public.teacher_profiles;
-create policy pol_teacher_profiles_insert
-on public.teacher_profiles
-for insert
-to authenticated
-with check (
-  profile_id = (select auth.uid())
-  and (
-    school_id is null
-    or exists (
-      select 1 from public.school_members sm
-      where sm.profile_id = (select auth.uid())
-        and sm.school_id = teacher_profiles.school_id
-        and sm.role::text = 'teacher'
-    )
-  )
-);
-
-drop policy if exists pol_teacher_profiles_update on public.teacher_profiles;
-create policy pol_teacher_profiles_update
-on public.teacher_profiles
-for update
-to authenticated
-using (profile_id = (select auth.uid()))
-with check (
-  profile_id = (select auth.uid())
-  and (
-    school_id is null
-    or exists (
-      select 1 from public.school_members sm
-      where sm.profile_id = (select auth.uid())
-        and sm.school_id = teacher_profiles.school_id
-        and sm.role::text = 'teacher'
-    )
-  )
-);
 
 create or replace function public.teacher_set_active_school(p_school_id uuid)
 returns jsonb
@@ -74,6 +38,7 @@ begin
   if p_school_id is null then
     raise exception 'teacher_school_scope_required';
   end if;
+
   if not exists (
     select 1
     from public.school_members sm
@@ -87,16 +52,14 @@ begin
   insert into public.teacher_active_school_preferences(teacher_id, school_id, updated_at)
   values (v_uid, p_school_id, clock_timestamp())
   on conflict (teacher_id)
-  do update set school_id = excluded.school_id, updated_at = excluded.updated_at;
+  do update set
+    school_id = excluded.school_id,
+    updated_at = excluded.updated_at;
 
-  -- Compatibility only: keep old teacher layout/profile readers aligned with
-  -- the canonical preference. The membership check above is the authority.
-  insert into public.teacher_profiles(profile_id, school_id)
-  values (v_uid, p_school_id)
-  on conflict (profile_id)
-  do update set school_id = excluded.school_id, updated_at = clock_timestamp();
-
-  return jsonb_build_object('teacher_id', v_uid, 'school_id', p_school_id);
+  return jsonb_build_object(
+    'teacher_id', v_uid,
+    'school_id', p_school_id
+  );
 end;
 $$;
 
@@ -139,7 +102,8 @@ begin
 
   if p_requested_school_id is not null then
     if not exists (
-      select 1 from public.school_members sm
+      select 1
+      from public.school_members sm
       where sm.profile_id = v_uid
         and sm.school_id = p_requested_school_id
         and sm.role::text = 'teacher'
@@ -156,18 +120,6 @@ begin
      and sm.school_id = pref.school_id
      and sm.role::text = 'teacher'
     where pref.teacher_id = v_uid;
-
-    if v_school_id is null then
-      -- Preserve an already-authorized compatibility choice if one exists.
-      select tp.school_id
-        into v_school_id
-      from public.teacher_profiles tp
-      join public.school_members sm
-        on sm.profile_id = v_uid
-       and sm.school_id = tp.school_id
-       and sm.role::text = 'teacher'
-      where tp.profile_id = v_uid;
-    end if;
 
     if v_school_id is null then
       select sm.school_id
@@ -222,6 +174,7 @@ begin
    and c.school_id = tc.school_id
   join public.subjects subj
     on subj.id = tc.subject_id
+   and subj.school_id = tc.school_id
   where tc.teacher_id = v_uid
     and tc.school_id = v_school_id;
 
@@ -248,11 +201,17 @@ begin
     'schools', v_schools,
     'classes', v_classes,
     'active_term', v_term,
-    'state', case when jsonb_array_length(v_classes) = 0 then 'needs_class' else 'ready' end
+    'state', case
+      when jsonb_array_length(v_classes) = 0 then 'needs_class'
+      else 'ready'
+    end
   );
 end;
 $$;
 
+-- Keep the existing Twin school switch surface aligned with the same
+-- membership-checked active-school persistence without depending on optional
+-- profile-extension tables that are not part of the clean rebuild chain.
 create or replace function public.teacher_set_active_twin_school(p_school_id uuid)
 returns jsonb
 language sql
