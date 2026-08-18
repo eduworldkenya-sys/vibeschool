@@ -28,6 +28,7 @@ def main() -> int:
     purchase_bar = read("components/read/ReaderPurchaseBar.tsx")
     accessibility = read("components/read/ReaderAccessibilityStyles.tsx")
     shell = read("components/read/ReaderExcellenceShell.tsx")
+    calm = read("components/read/ReaderCalmSurface.tsx")
     continuity = read("components/read/ReaderContinuityCoordinator.tsx")
     listen = read("components/read/ReaderListenContinuity.tsx")
     study = read("components/read/ReaderStudyInteractions.tsx")
@@ -43,6 +44,7 @@ def main() -> int:
     for value in [
         "<ReaderAccessibilityStyles />",
         "<ReaderExcellenceShell />",
+        "<ReaderCalmSurface />",
         "<ReaderListenContinuity publicationId={params.publicationId} />",
         "<ReaderContinuityCoordinator />",
         "<ReaderStudyInteractions />",
@@ -52,6 +54,28 @@ def main() -> int:
         "<ReaderPurchaseBar publicationId={params.publicationId} />",
     ]:
         require(layout, value, "reader layout")
+
+    # Calm Read must keep the canonical systems underneath while removing their
+    # competing persistent chrome. Contents, modes and teacher tools are
+    # progressive-disclosure surfaces rather than parallel reader authorities.
+    for value in [
+        "reader-calm-active",
+        'data-reader-contents="true"',
+        "#vibetextbook-reading-content main > :not(#reader-active-unit)",
+        "#vibetextbook-reading-content main > section:not(#reader-active-unit)",
+        ".reader-mode-switcher",
+        ".reader-excellence-bar > button:last-child",
+        'aria-label="Assign this unit to a class"',
+        'aria-label="Bookmark chapter"',
+        "Contents",
+        "Read · calm reading",
+        "Study · notes and highlights",
+        "Revise · practice and self-test",
+        'window.addEventListener("vibe:reader-chapter", onChapter)',
+        'window.removeEventListener("vibe:reader-chapter", onChapter)',
+    ]:
+        require(calm, value, "calm reader progressive disclosure")
+    forbid(calm, "Content first · tools when needed", "calm reader learner chrome")
 
     for value in [
         "min-height: 44px",

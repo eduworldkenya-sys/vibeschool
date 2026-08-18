@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { StudyCapturePanel } from "@/components/read/StudyCapturePanel";
 import { ReadingAnalyticsTracker } from "@/components/read/ReadingAnalyticsTracker";
 import { ReaderAccessibilityStyles } from "@/components/read/ReaderAccessibilityStyles";
+import { ReaderCalmSurface } from "@/components/read/ReaderCalmSurface";
 import { ReaderExcellenceShell } from "@/components/read/ReaderExcellenceShell";
 import { ReaderListenContinuity } from "@/components/read/ReaderListenContinuity";
 import { ReaderContinuityCoordinator } from "@/components/read/ReaderContinuityCoordinator";
@@ -89,6 +90,7 @@ export default async function TextbookReaderLayout({ children, params }: { child
       <ReaderAccessibilityStyles />
       <ReadingAnalyticsTracker />
       <ReaderExcellenceShell />
+      <ReaderCalmSurface />
       <ReaderListenContinuity publicationId={params.publicationId} />
       <ReaderModeController />
       <div id="vibetextbook-reading-content" tabIndex={-1}>
