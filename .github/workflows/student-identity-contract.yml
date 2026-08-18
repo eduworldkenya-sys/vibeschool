@@ -1,0 +1,33 @@
+name: Student Identity Contract
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260818132500_canonical_student_academic_identity.sql'
+      - 'scripts/test-student-identity-contract.mjs'
+      - 'docs/security/STUDENT_IDENTITY_CONSOLIDATION_20260818.md'
+      - '.github/workflows/student-identity-contract.yml'
+  push:
+    branches:
+      - main
+      - 'fix/student-identity-**'
+    paths:
+      - 'supabase/migrations/20260818132500_canonical_student_academic_identity.sql'
+      - 'scripts/test-student-identity-contract.mjs'
+      - 'docs/security/STUDENT_IDENTITY_CONSOLIDATION_20260818.md'
+      - '.github/workflows/student-identity-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Canonical student academic identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce student identity contract
+        run: node scripts/test-student-identity-contract.mjs

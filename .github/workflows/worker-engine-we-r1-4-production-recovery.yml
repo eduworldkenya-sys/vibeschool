@@ -7,6 +7,7 @@ on:
       - ".github/workflows/worker-engine-we-r1-4-production-recovery.yml"
       - "scripts/worker-engine-build-r1-4-production-recovery-stage.py"
       - "scripts/test-worker-engine-build-r1-4-production-recovery-stage.py"
+      - "scripts/worker-engine-r1-4-reconcile-legacy-capability-edge.sql"
       - "docs/worker-engine/WORKER_ENGINE_R1_4_PRODUCTION_RECOVERY_HANDOVER_20260818.md"
   push:
     branches: [main]
@@ -63,8 +64,40 @@ jobs:
           end $$;
           alter table public.hq_workforce_objectives add column trace_id uuid;
           alter table public.hq_workforce_objectives alter column desired_outcome type jsonb using jsonb_build_object('text',desired_outcome);
+
+          -- Exact second production drift discovered by protected recovery run #7:
+          -- a zero-row legacy skill-manifest edge table already owns the relation
+          -- name later assigned to the canonical capability graph.
+          drop table if exists public.hq_workforce_capability_edges cascade;
+          create table public.hq_workforce_capability_edges (
+            id uuid primary key default gen_random_uuid(),
+            from_skill_manifest_id uuid not null references public.hq_workforce_skill_manifests(id) on delete restrict,
+            to_skill_manifest_id uuid not null references public.hq_workforce_skill_manifests(id) on delete restrict,
+            relation_type text not null check (relation_type in ('requires','enables','alternative_to','verifies','compensates','consults','hands_off_to')),
+            input_mapping jsonb not null default '{}'::jsonb,
+            output_mapping jsonb not null default '{}'::jsonb,
+            condition_contract jsonb not null default '{}'::jsonb,
+            priority integer not null default 100 check (priority >= 0),
+            enabled boolean not null default false,
+            created_at timestamptz not null default clock_timestamp(),
+            updated_at timestamptz not null default clock_timestamp(),
+            check (from_skill_manifest_id <> to_skill_manifest_id),
+            unique(from_skill_manifest_id,to_skill_manifest_id,relation_type)
+          );
+          create index hq_workforce_capability_edges_from_idx on public.hq_workforce_capability_edges(from_skill_manifest_id,enabled,priority);
+          create index hq_workforce_capability_edges_to_idx on public.hq_workforce_capability_edges(to_skill_manifest_id,enabled,priority);
+          alter table public.hq_workforce_capability_edges enable row level security;
+          revoke all on table public.hq_workforce_capability_edges from public,anon,authenticated;
           SQL
           PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260818111900_worker_engine_we_r1_3x_production_reconciliation_bridge.sql
+      - name: Reconcile exact legacy relation collision
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f scripts/worker-engine-r1-4-reconcile-legacy-capability-edge.sql
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capability_edges') is null")" = t
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_skill_capability_edges_legacy') is not null")" = t
       - name: Late-backfill every missing repository Worker Engine migration in canonical order
         shell: bash
         run: |
@@ -73,6 +106,9 @@ jobs:
           mapfile -t files < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort | awk -F/ '{n=$NF; split(n,a,"_"); v=a[1]; l=tolower(n); if (v>="20260815091000" && v<="20260818113000" && index(l,"worker_engine") && v!="20260818111900") print $0}')
           test "${#files[@]}" -ge 20
           for f in "${files[@]}"; do echo "=== recovery $f ==="; PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f "$f"; done
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capabilities') is not null")" = t
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capability_edges') is not null")" = t
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_skill_capability_edges_legacy') is not null")" = t
           test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capability_authority_grants') is not null")" = t
           test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")" = 0
           STATE="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
@@ -135,6 +171,7 @@ jobs:
           grep -Fxq '20260815091000' .worker-engine-r1-4-recovery/pending.txt
           grep -Fxq '20260818112000' .worker-engine-r1-4-recovery/pending.txt
           grep -Fxq '20260818113000' .worker-engine-r1-4-recovery/pending.txt
+          grep -Fq 'WE-R1.4 protected recovery prerequisite' .worker-engine-r1-4-recovery-stage/supabase/migrations/20260815091000_worker_engine_we_r1_3x_capability_competency_graph.sql
       - name: Link stage and prove exact dry-run
         shell: bash
         env:
