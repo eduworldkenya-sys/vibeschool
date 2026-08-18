@@ -332,6 +332,12 @@ serve(async (req) => {
     });
     if (attachError || !attached?.success) {
       console.error("[learning-product-stk-push] accepted STK could not be attached", { attemptId: attempt.id, checkoutRequestId, attachError, attached });
+      await admin.from("commerce_payment_attempts").update({
+        state: "reconciliation_required",
+        processing_error: "accepted_stk_tracking_failure",
+        provider_response: stk,
+        updated_at: new Date().toISOString(),
+      }).eq("id", attempt.id).eq("state", "submitting");
       await admin.from("learning_product_orders").update({ status: "reconciliation_required", updated_at: new Date().toISOString() }).eq("id", order.id).eq("status", "pending_payment");
       await admin.from("learning_product_order_events").insert({ order_id: order.id, event_type: "payment_reconciliation_required", details: { reason: "accepted_stk_tracking_failure", attempt_id: attempt.id, checkout_request_id: checkoutRequestId } });
       return json({ success: false, order_id: order.id, attempt_id: attempt.id, state: "reconciliation_required", error: "M-Pesa accepted the request but VibeSchool could not safely finalize tracking. Do not retry; reconciliation is required." }, 503, headers);
