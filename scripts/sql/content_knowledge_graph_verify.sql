@@ -41,7 +41,8 @@ begin
   end loop;
 end $$;
 
--- Public projections are allowlisted RPCs; raw normalization/write helpers are not.
+-- Public concept discovery is allowlisted; rich misconception/correction context
+-- and learner-specific recommendations require authentication.
 do $$
 declare
   v_signature text;
@@ -71,8 +72,9 @@ begin
      or not has_function_privilege('authenticated','public.curriculum_search_concepts(text,uuid,integer)','EXECUTE') then
     raise exception 'knowledge graph contract: concept search projection unavailable';
   end if;
-  if not has_function_privilege('anon','public.curriculum_get_outcome_semantic_context(uuid)','EXECUTE') then
-    raise exception 'knowledge graph contract: outcome semantic projection unavailable';
+  if has_function_privilege('anon','public.curriculum_get_outcome_semantic_context(uuid)','EXECUTE')
+     or not has_function_privilege('authenticated','public.curriculum_get_outcome_semantic_context(uuid)','EXECUTE') then
+    raise exception 'knowledge graph contract: rich semantic context boundary incorrect';
   end if;
   if has_function_privilege('anon','public.student_get_learning_product_recommendations(integer)','EXECUTE')
      or not has_function_privilege('authenticated','public.student_get_learning_product_recommendations(integer)','EXECUTE') then
@@ -213,8 +215,9 @@ begin
      or v_fn not like '%evidence_count > 0%'
      or v_fn not like '%rights_status = ''cleared''%'
      or v_fn not like '%pricing_model = ''one_time''%'
-     or v_fn not like '%recorded_outcome_weakness%' then
-    raise exception 'knowledge graph contract: recommendation is not fully evidence/commerce gated';
+     or v_fn not like '%recorded_outcome_weakness%'
+     or v_fn not like '%ambiguous_learner_identity%' then
+    raise exception 'knowledge graph contract: recommendation is not fully evidence/identity/commerce gated';
   end if;
 
   select pg_get_functiondef('public.curriculum_search_concepts(text,uuid,integer)'::regprocedure) into v_search;
