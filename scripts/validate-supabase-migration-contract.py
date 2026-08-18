@@ -14,9 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATIONS = ROOT / "supabase" / "migrations"
 BASELINE = "20260810071000"
 
-# Capture both optional schema and relation. The previous expression only understood
-# `public.` and therefore misclassified `private_schema.table_name` as a table named
-# `private_schema`. Security validation must understand the SQL identifier, not guess.
+# Capture both optional schema and relation. Security validation must understand
+# the full SQL identifier rather than treating a non-public schema as a table name.
 CREATE_TABLE = re.compile(
     r"create\s+table\s+(?:if\s+not\s+exists\s+)?"
     r"(?:(?P<schema>[a-z_][a-z0-9_]*)\.)?"
@@ -30,13 +29,7 @@ def normalized(sql: str) -> str:
 
 
 def sql_code_only(raw: str) -> str:
-    """Remove SQL comments before structural statement discovery.
-
-    Access/authorization declarations are intentionally matched against the
-    original raw text below. This only prevents prose such as
-    "CREATE TABLE IF NOT EXISTS" inside comments from being misclassified as
-    an actual table declaration.
-    """
+    """Remove SQL comments before structural statement discovery."""
     without_block_comments = re.sub(r"/\*.*?\*/", " ", raw, flags=re.DOTALL)
     return re.sub(r"--[^\n]*", " ", without_block_comments)
 
@@ -47,8 +40,6 @@ def validate(path: Path) -> list[str]:
     sql = normalized(code)
     errors: list[str] = []
 
-    # Keep privilege matching inside one SQL statement. A service_role-only
-    # GRANT ALL followed by a later authenticated grant must not be conflated.
     if re.search(
         r"grant\s+all(?:\s+privileges)?\b[^;]*\bto\s+(?:anon|authenticated)\b",
         sql,
@@ -68,7 +59,6 @@ def validate(path: Path) -> list[str]:
             display = f"{schema}.{table}"
             qualified = rf"{re.escape(schema)}\.{re.escape(table)}"
         else:
-            # Unqualified project migrations historically resolve to public.
             display = table
             qualified = rf"(?:public\.)?{re.escape(table)}"
 
@@ -80,8 +70,8 @@ def validate(path: Path) -> list[str]:
             rf"(?:grant|revoke)\s+[^;]*\bon\s+(?:table\s+)?[^;]*\b{qualified}\b",
             sql,
         )
-        service_only = re.search(
-            rf"--\s*access:\s*service-only\s+{qualified}\b",
+        restricted_access = re.search(
+            rf"--\s*access:\s*(?:service-only|owner-only)\s+{qualified}\b",
             raw,
             re.IGNORECASE,
         )
@@ -99,8 +89,8 @@ def validate(path: Path) -> list[str]:
             errors.append(f"{display}: missing ENABLE ROW LEVEL SECURITY")
         if not has_privilege_contract:
             errors.append(f"{display}: missing explicit GRANT/REVOKE contract")
-        if not (has_policy or service_only):
-            errors.append(f"{display}: missing policy or service-only declaration")
+        if not (has_policy or restricted_access):
+            errors.append(f"{display}: missing policy or restricted-access declaration")
         if not auth_test:
             errors.append(f"{display}: missing authorization-test declaration")
 
