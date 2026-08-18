@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { StudyCapturePanel } from "@/components/read/StudyCapturePanel";
 import { ReaderStudyViewControls } from "@/components/read/ReaderStudyViewControls";
 import { ReadingAnalyticsTracker } from "@/components/read/ReadingAnalyticsTracker";
+import { ReaderExcellenceShell } from "@/components/read/ReaderExcellenceShell";
 import { ReaderAssessmentLauncher } from "@/components/read/ReaderAssessmentLauncher";
 import { ReaderLearningLauncher } from "@/components/read/ReaderLearningLauncher";
 import { ReaderPurchaseBar } from "@/components/read/ReaderPurchaseBar";
@@ -135,6 +136,7 @@ export default async function TextbookReaderLayout({
       ) : null}
       <ReaderStudyViewControls />
       <ReadingAnalyticsTracker />
+      <ReaderExcellenceShell />
       <div id="vibetextbook-reading-content" tabIndex={-1}>
         {children}
       </div>
