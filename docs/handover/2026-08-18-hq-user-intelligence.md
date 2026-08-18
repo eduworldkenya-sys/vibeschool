@@ -54,5 +54,5 @@ The repository contains event kernels, but VibeSchool does not yet have certifie
 ## Deployment discipline
 - Production Supabase was inspected read-only during design.
 - Apply repository migrations only after exact-head security, isolated rebuild and TypeScript/production-build gates pass.
-- Merge once certification is green, then reconcile/apply production Supabase and verify the owner RPCs.
-- Avoid additional Vercel-triggering commits after certification; use the final merge as the application promotion point.
+- Because the new frontend depends on additive RPCs, commission and verify those RPCs in production immediately before the final merge. This prevents the application from deploying against a missing database contract.
+- Use the final merge as the application promotion point; do not make additional deployment-triggering code commits afterward unless a verified defect requires it.
