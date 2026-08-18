@@ -29,6 +29,16 @@ assert.doesNotMatch(callback,/\.from\('teacher_classes'\)/)
 assert.doesNotMatch(callback,/\.from\('parent_student_links'\)/)
 assert.match(callback,/if \(onboardingError\)[\s\S]*onboarding_resolution_failed/)
 
+// Canonical resolver reasons survive callback classification; only true role-unclaimed
+// accounts can enter self-service role claiming.
+assert.match(callback,/reasonCode: typeof data\.reason_code === 'string'/)
+assert.match(callback,/PROFILE_MISSING[\s\S]*profile_missing/)
+assert.match(callback,/ADMIN_MEMBERSHIP_MISSING[\s\S]*admin_membership_missing/)
+assert.match(callback,/AMBIGUOUS_LEARNER_IDENTITY[\s\S]*identity_conflict/)
+assert.match(callback,/ACCOUNT_NOT_ACTIVE/)
+assert.match(callback,/access\.reasonCode !== 'ROLE_UNCLAIMED'/)
+assert.match(callback,/authority_resolution_failed/)
+
 // Protected deep links remain role protected even when query/hash components are present.
 assert.match(routing,/pathnameOnly/)
 assert.match(routing,/indexOf\('\?'\)/)
@@ -43,6 +53,7 @@ assert.match(recovery,/Change account/)
 assert.match(recovery,/VibeSchool Home/)
 assert.match(recovery,/aria-busy/)
 assert.match(recovery,/role="alert"/)
+assert.match(recovery,/CSSProperties/)
 assert.match(errorPage,/onboarding_resolution_failed/)
 assert.match(errorPage,/admin_membership_missing/)
 assert.match(errorPage,/identity_conflict/)
