@@ -5,9 +5,12 @@ on:
   pull_request:
     paths:
       - "supabase/migrations/*worker_engine_we_r1_4*.sql"
+      - "supabase/migrations/*worker_engine_we_r1_3x_production_reconciliation*.sql"
       - "supabase/tests/worker_engine_we_r1_4*.sql"
+      - "supabase/tests/worker_engine_we_r1_3x_*.sql"
       - ".github/workflows/worker-engine-we-r1-4-acceptance.yml"
       - "docs/WORKER_ENGINE_WE_R1_4*.md"
+      - "docs/worker-engine/**"
 
 concurrency:
   group: worker-engine-we-r1-4-${{ github.ref }}
@@ -26,6 +29,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact-head checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED="${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}"
+          ACTUAL="$(git rev-parse HEAD)"
+          test "$ACTUAL" = "$EXPECTED" || { echo "exact-head mismatch: expected=$EXPECTED actual=$ACTUAL" >&2; exit 1; }
+          echo "Certified head: $ACTUAL"
 
       - name: Verify no production credentials or activation mechanism
         shell: bash
@@ -59,6 +71,51 @@ jobs:
 
       - name: Start disposable local Supabase
         run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+
+      - name: Reproduce partial X1/X2 production boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db reset --local --no-seed --version 20260815090000
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare r record;
+          begin
+            for r in
+              select c.conname
+                from pg_constraint c
+                join pg_class t on t.oid=c.conrelid
+                join pg_namespace n on n.oid=t.relnamespace
+               where n.nspname='public'
+                 and t.relname='hq_workforce_objectives'
+                 and c.contype='c'
+                 and pg_get_constraintdef(c.oid) ilike '%desired_outcome%'
+            loop
+              execute format('alter table public.hq_workforce_objectives drop constraint %I',r.conname);
+            end loop;
+          end $$;
+          alter table public.hq_workforce_objectives add column trace_id uuid;
+          alter table public.hq_workforce_objectives
+            alter column desired_outcome type jsonb
+            using jsonb_build_object('text', desired_outcome);
+          SQL
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='trace_id')")" = "t"
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select data_type from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='desired_outcome'")" = "jsonb"
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_memory_records') is not null")" = "t"
+
+      - name: Certify partial X1/X2 reconciliation bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260818111900_worker_engine_we_r1_3x_production_reconciliation_bridge.sql
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select exists(select 1 from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='trace_id')")" = "f"
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select data_type from information_schema.columns where table_schema='public' and table_name='hq_workforce_objectives' and column_name='desired_outcome'")" = "text"
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('worker_engine_legacy_archive.hq_workforce_objectives') is not null")" = "t"
+          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_objective_context') is not null")" = "t"
+          STATE="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
+          test "$STATE" = "false|false|false|0|0|false|false|true"
 
       - name: Rebuild full migration chain
         run: supabase db reset --local --no-seed
