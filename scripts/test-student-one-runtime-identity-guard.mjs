@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
 
-const path = 'supabase/migrations/20260818190000_student_one_runtime_identity_guard.sql'
-const sql = fs.readFileSync(path, 'utf8').toLowerCase().replace(/\s+/g, ' ')
+const basePath = 'supabase/migrations/20260818190000_student_one_runtime_identity_guard.sql'
+const perfPath = 'supabase/migrations/20260818191500_student_one_health_catalog_performance.sql'
+const sql = fs.readFileSync(basePath, 'utf8').toLowerCase().replace(/\s+/g, ' ')
+const perf = fs.readFileSync(perfPath, 'utf8').toLowerCase().replace(/\s+/g, ' ')
 
 const required = [
   'create unique index if not exists students_one_active_profile_uidx',
@@ -18,8 +20,6 @@ const required = [
   "if current_user not in ('postgres','service_role')",
   'revoke all on function public.run_student_identity_health_check() from public, anon, authenticated',
   'grant execute on function public.run_student_identity_health_check() to service_role',
-  "c.column_name = 'student_id'",
-  "f.foreign_schema = 'public' and f.foreign_table = 'students' and f.foreign_column = 'id'",
   "when v_wrong_fk > 0 or v_missing_fk > 0 or v_duplicates > 0 or v_role_mismatch > 0 then 'blocked'",
   "when v_profile_without_learner > 0 then 'attention'"
 ]
@@ -30,13 +30,35 @@ for (const needle of required) {
   }
 }
 
+const performanceRequired = [
+  'create or replace function public.run_student_identity_health_check()',
+  'from pg_catalog.pg_class c',
+  'join pg_catalog.pg_namespace n',
+  'join pg_catalog.pg_attribute a',
+  'from pg_catalog.pg_constraint con',
+  "con.confrelid = 'public.students'::regclass",
+  "'catalog_scan','pg_catalog'",
+  'revoke all on function public.run_student_identity_health_check() from public, anon, authenticated',
+  'grant execute on function public.run_student_identity_health_check() to service_role'
+]
+
+for (const needle of performanceRequired) {
+  if (!perf.includes(needle)) {
+    throw new Error(`Student=1 health catalog performance contract missing: ${needle}`)
+  }
+}
+
+if (perf.includes('information_schema.')) {
+  throw new Error('Student=1 health instrumentation must not regress to information_schema catalog expansion')
+}
+
 const forbidden = [
   'return s.id from public.students s where s.profile_id = (select auth.uid()) order by',
   'limit 1; $function$'
 ]
 
 for (const needle of forbidden) {
-  if (sql.includes(needle)) {
+  if (sql.includes(needle) || perf.includes(needle)) {
     throw new Error(`Student=1 resolver reintroduced silent first-row selection: ${needle}`)
   }
 }
