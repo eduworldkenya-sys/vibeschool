@@ -85,20 +85,46 @@ begin
   end if;
 end $$;
 
+-- Build rollback-only canonical fixtures so this verifier is independent of
+-- seed files and production data population.
+create temporary table kg_verify_fixture(
+  canonical_subject_id uuid not null,
+  curriculum_id uuid not null,
+  noncanonical_subject_id uuid not null
+) on commit drop;
+
+do $$
+declare
+  v_subject uuid;
+  v_curriculum uuid;
+  v_noncanonical uuid;
+begin
+  insert into public.subjects(name,school_id,global_subject_id)
+  values('KG Verifier Canonical Subject',null,null)
+  returning id into v_subject;
+
+  insert into public.curriculum(
+    curriculum,grade,subject,term,week,strand,sub_strand,topic,global_subject_id
+  ) values(
+    'CBE','Verifier Grade','KG Verifier Canonical Subject',1,1,
+    'Verifier Strand','Verifier Sub-strand','Verifier Topic',v_subject
+  ) returning id into v_curriculum;
+
+  insert into public.subjects(name,school_id,global_subject_id)
+  values('KG Verifier Noncanonical Subject',null,null)
+  returning id into v_noncanonical;
+
+  insert into kg_verify_fixture(canonical_subject_id,curriculum_id,noncanonical_subject_id)
+  values(v_subject,v_curriculum,v_noncanonical);
+end $$;
+
 -- Semantic knowledge may not become active without explicit provenance and
 -- verification. No migration may manufacture semantic truth as a side effect.
 do $$
 declare
   v_subject uuid;
 begin
-  select s.id into v_subject
-  from public.subjects s
-  where s.school_id is null
-    and exists(select 1 from public.curriculum c where c.global_subject_id=s.id)
-  order by s.id
-  limit 1;
-
-  if v_subject is null then raise exception 'knowledge graph contract: no canonical curriculum subject available'; end if;
+  select canonical_subject_id into v_subject from kg_verify_fixture;
 
   begin
     insert into public.curriculum_concepts(
@@ -118,23 +144,21 @@ begin
   end if;
 end $$;
 
--- Canonical subject identity is enforced: semantic concepts cannot attach to a
--- school-local subject row.
+-- A global subject that is not part of canonical curriculum cannot become a
+-- curriculum concept. This also covers the stronger school-local exclusion.
 do $$
 declare
-  v_school_subject uuid;
+  v_noncanonical uuid;
 begin
-  select id into v_school_subject from public.subjects where school_id is not null limit 1;
-  if v_school_subject is not null then
-    begin
-      insert into public.curriculum_concepts(subject_id,concept_key,title)
-      values(v_school_subject,'verify.school-local','Invalid school-local concept');
-      raise exception 'knowledge graph contract: school-local subject accepted';
-    exception when others then
-      if sqlerrm = 'knowledge graph contract: school-local subject accepted' then raise; end if;
-      if sqlerrm <> 'concept_requires_canonical_curriculum_subject' then raise; end if;
-    end;
-  end if;
+  select noncanonical_subject_id into v_noncanonical from kg_verify_fixture;
+  begin
+    insert into public.curriculum_concepts(subject_id,concept_key,title)
+    values(v_noncanonical,'verify.noncanonical','Invalid noncanonical concept');
+    raise exception 'knowledge graph contract: noncanonical subject accepted';
+  exception when others then
+    if sqlerrm = 'knowledge graph contract: noncanonical subject accepted' then raise; end if;
+    if sqlerrm <> 'concept_requires_canonical_curriculum_subject' then raise; end if;
+  end;
 end $$;
 
 -- Concept prerequisite cycles are rejected dynamically.
@@ -145,12 +169,7 @@ declare
   v_b uuid;
   v_c uuid;
 begin
-  select s.id into v_subject
-  from public.subjects s
-  where s.school_id is null
-    and exists(select 1 from public.curriculum c where c.global_subject_id=s.id)
-  order by s.id
-  limit 1;
+  select canonical_subject_id into v_subject from kg_verify_fixture;
 
   insert into public.curriculum_concepts(subject_id,concept_key,title)
     values(v_subject,'verify.cycle-a','Cycle A') returning id into v_a;
@@ -177,16 +196,19 @@ end $$;
 -- The pre-existing outcome prerequisite table is hardened rather than forked.
 do $$
 declare
+  v_curriculum uuid;
   v_o1 uuid;
   v_o2 uuid;
   v_o3 uuid;
 begin
-  insert into public.curriculum_learning_outcomes(outcome_text,outcome_code,status)
-    values('Verifier outcome A','VERIFY-CYCLE-A','draft') returning id into v_o1;
-  insert into public.curriculum_learning_outcomes(outcome_text,outcome_code,status)
-    values('Verifier outcome B','VERIFY-CYCLE-B','draft') returning id into v_o2;
-  insert into public.curriculum_learning_outcomes(outcome_text,outcome_code,status)
-    values('Verifier outcome C','VERIFY-CYCLE-C','draft') returning id into v_o3;
+  select curriculum_id into v_curriculum from kg_verify_fixture;
+
+  insert into public.curriculum_learning_outcomes(curriculum_id,outcome_text,outcome_code,status)
+    values(v_curriculum,'Verifier outcome A','VERIFY-CYCLE-A','draft') returning id into v_o1;
+  insert into public.curriculum_learning_outcomes(curriculum_id,outcome_text,outcome_code,status)
+    values(v_curriculum,'Verifier outcome B','VERIFY-CYCLE-B','draft') returning id into v_o2;
+  insert into public.curriculum_learning_outcomes(curriculum_id,outcome_text,outcome_code,status)
+    values(v_curriculum,'Verifier outcome C','VERIFY-CYCLE-C','draft') returning id into v_o3;
 
   insert into public.curriculum_outcome_prerequisites(outcome_id,prerequisite_outcome_id)
     values(v_o1,v_o2);
