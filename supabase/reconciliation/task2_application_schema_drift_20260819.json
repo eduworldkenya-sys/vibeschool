@@ -24,33 +24,18 @@
       "increment_story_likes","increment_story_views","increment_vibe_count"
     ]
   },
-  "first_ledger_mentions": {
-    "20260623163024_profiles_and_rbac": ["admin_profiles","audit_logs","parent_profiles","teacher_profiles"],
-    "20260623191112_student_teacher_functions": ["review_homework_submission"],
-    "20260623194849_m_identity_tables_add_rpcs_20260623": ["submit_contact_request"],
-    "20260623200419_reward_program_prerequisite_tables": ["child_profiles"],
-    "20260624000915_extend_students": ["manual_students"],
-    "20260624083309_parent_create_child_rpc": ["create_child_for_parent"],
-    "20260625000100_staff_hr_complete_module": ["admin_staff_attendance","admin_staff_leave","admin_visitors","staff","staff_attendance","staff_leave"],
-    "20260625000858_storage_resource_assets": ["resource_assets"],
-    "20260625132951_finance_module_full": ["v_budget_vs_actual","v_invoice_aging"],
-    "20260625220956_admin_meetings_tables": ["meeting_actions","meeting_agenda_items","meeting_attendees","meeting_minutes"],
-    "20260626075743_admin_os_complete": ["admin_project_milestones","admin_projects","project_members","project_transactions","v_project_summary"],
-    "20260626105301_exam_builder_core": ["bump_bank_served","count_bank_questions","dismiss_bank_question","get_bank_questions"],
-    "20260626113934_add_school_id_to_twin_sessions": ["twin_sessions"],
-    "20260626133153_add_school_columns": ["library_books","library_borrowings","store_items","store_transactions"],
-    "20260628220000_founder_control_plane_core": ["hq_check_owner_access"],
-    "20260802105000_exq_005d_extend_assessment_economy": ["learner_outcomes"],
-    "20260803151400_vbl048_classroom_reading_assignments": ["get_my_classroom_reading_assignments","update_chapter_assignment_due_at"],
-    "20260804110000_exq008f_report_card_remarks": ["report_card_remarks"],
-    "20260804132000_vbl047_learning_event_production_wiring": ["vibelearn_vibes"],
-    "20260808173000_tbl005a_content_learning_events": ["lesson_content"],
-    "20260808222000_pathways_education_knowledge_versioning": ["publication_revisions"],
-    "20260809173000_hq_signal_center_r3": ["hq_support_cases","hq_support_messages"]
+  "verified_ledger_provenance": {
+    "admin_profiles": {
+      "earliest_direct_production_ledger_mention_found": "20260809040150_fix_role_membership_verification_null_school",
+      "evidence_kind": "later trigger-function hardening reference, not object creation",
+      "creation_migration_preserved_in_ledger": false
+    }
   },
+  "provenance_status": "INCOMPLETE_BY_DESIGN",
   "notes": [
-    "A first-ledger mention is provenance evidence, not proof that the migration originally created the object.",
-    "Many production-only objects have no CREATE statement preserved in production migration history; recovery therefore requires current catalog metadata plus application/security contracts.",
+    "The production-only versus absent-in-both object classification is based on direct read-only pg_catalog / pg_proc existence checks and remains authoritative for this snapshot.",
+    "An earlier inferred first-ledger-mention mapping was removed after direct version/name queries proved that those inferred historical labels were not actual production ledger rows. Do not use inferred migration names as recovery authority.",
+    "Many production-only objects appear to predate or bypass the currently preserved migration ledger. Recovery therefore requires current catalog metadata plus application/security contracts, with provenance recorded explicitly.",
     "The four VibeVoice relations and three story/vibe increment RPCs are application-contract gaps rather than repository-production migration drift because they exist in neither inspected production nor clean reconstruction.",
     "Shared Task 1 auth/onboarding contracts are intentionally excluded from recovery while its foundation PR remains unmerged; exact-current-main reconciliation must happen after that foundation lands."
   ]
