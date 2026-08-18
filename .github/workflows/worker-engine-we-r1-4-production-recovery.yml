@@ -1,18 +1,21 @@
-# Operational retrigger: 2026-08-18 controlled R1.4 production recovery
 name: Worker Engine WE-R1.4 Production Recovery
 
 on:
   pull_request:
     paths:
       - ".github/workflows/worker-engine-we-r1-4-production-recovery.yml"
+      - "supabase/migrations/20260815090500_worker_engine_we_r1_3x_historical_lineage_convergence.sql"
+      - "supabase/migrations/20260815092500_worker_engine_we_r1_3x_historical_lineage_data_bridge.sql"
+      - "scripts/sql/worker_engine_r13x_legacy_production_fixture.sql"
       - "scripts/worker-engine-build-r1-4-production-recovery-stage.py"
       - "scripts/test-worker-engine-build-r1-4-production-recovery-stage.py"
-      - "scripts/worker-engine-r1-4-reconcile-legacy-capability-edge.sql"
       - "docs/worker-engine/WORKER_ENGINE_R1_4_PRODUCTION_RECOVERY_HANDOVER_20260818.md"
   push:
     branches: [main]
     paths:
       - ".github/workflows/worker-engine-we-r1-4-production-recovery.yml"
+      - "supabase/migrations/20260815090500_worker_engine_we_r1_3x_historical_lineage_convergence.sql"
+      - "supabase/migrations/20260815092500_worker_engine_we_r1_3x_historical_lineage_data_bridge.sql"
   workflow_dispatch:
     inputs:
       confirmation:
@@ -28,7 +31,7 @@ concurrency:
 
 jobs:
   certify-partial-production-lineage:
-    name: Certify real partial-production recovery lineage
+    name: Certify complete historical production lineage
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -41,18 +44,16 @@ jobs:
           python3 scripts/test-worker-engine-build-r1-4-production-recovery-stage.py
           python3 scripts/test-worker-engine-build-ledger-aligned-stage.py
           python3 scripts/test-worker-engine-assert-dry-run-plan.py
-      - name: Set up Supabase CLI
-        uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v1
         with:
           version: 2.114.0
       - name: Start disposable database
-        shell: bash
         run: |
           set -euo pipefail
           if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
           supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
           supabase db reset --local --no-seed --version 20260815090000
-      - name: Reproduce observed production drift and apply existing bridge
+      - name: Reproduce complete observed production lineage
         shell: bash
         run: |
           set -euo pipefail
@@ -64,60 +65,43 @@ jobs:
           end $$;
           alter table public.hq_workforce_objectives add column trace_id uuid;
           alter table public.hq_workforce_objectives alter column desired_outcome type jsonb using jsonb_build_object('text',desired_outcome);
-
-          -- Exact second production drift discovered by protected recovery run #7:
-          -- a zero-row legacy skill-manifest edge table already owns the relation
-          -- name later assigned to the canonical capability graph.
-          drop table if exists public.hq_workforce_capability_edges cascade;
-          create table public.hq_workforce_capability_edges (
-            id uuid primary key default gen_random_uuid(),
-            from_skill_manifest_id uuid not null references public.hq_workforce_skill_manifests(id) on delete restrict,
-            to_skill_manifest_id uuid not null references public.hq_workforce_skill_manifests(id) on delete restrict,
-            relation_type text not null check (relation_type in ('requires','enables','alternative_to','verifies','compensates','consults','hands_off_to')),
-            input_mapping jsonb not null default '{}'::jsonb,
-            output_mapping jsonb not null default '{}'::jsonb,
-            condition_contract jsonb not null default '{}'::jsonb,
-            priority integer not null default 100 check (priority >= 0),
-            enabled boolean not null default false,
-            created_at timestamptz not null default clock_timestamp(),
-            updated_at timestamptz not null default clock_timestamp(),
-            check (from_skill_manifest_id <> to_skill_manifest_id),
-            unique(from_skill_manifest_id,to_skill_manifest_id,relation_type)
-          );
-          create index hq_workforce_capability_edges_from_idx on public.hq_workforce_capability_edges(from_skill_manifest_id,enabled,priority);
-          create index hq_workforce_capability_edges_to_idx on public.hq_workforce_capability_edges(to_skill_manifest_id,enabled,priority);
-          alter table public.hq_workforce_capability_edges enable row level security;
-          revoke all on table public.hq_workforce_capability_edges from public,anon,authenticated;
           SQL
+          PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f scripts/sql/worker_engine_r13x_legacy_production_fixture.sql
           PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f supabase/migrations/20260818111900_worker_engine_we_r1_3x_production_reconciliation_bridge.sql
-      - name: Reconcile exact legacy relation collision
+      - name: Late-backfill canonical Worker Engine lineage
         shell: bash
         run: |
           set -euo pipefail
           PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
-          PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f scripts/worker-engine-r1-4-reconcile-legacy-capability-edge.sql
-          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capability_edges') is null")" = t
-          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_skill_capability_edges_legacy') is not null")" = t
-      - name: Late-backfill every missing repository Worker Engine migration in canonical order
-        shell: bash
-        run: |
-          set -euo pipefail
-          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
-          mapfile -t files < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort | awk -F/ '{n=$NF; split(n,a,"_"); v=a[1]; l=tolower(n); if (v>="20260815091000" && v<="20260818113000" && index(l,"worker_engine") && v!="20260818111900") print $0}')
+          mapfile -t files < <(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | sort | awk -F/ '{n=$NF; split(n,a,"_"); v=a[1]; l=tolower(n); if (v>="20260815090500" && v<="20260818113000" && index(l,"worker_engine") && v!="20260818111900") print $0}')
           test "${#files[@]}" -ge 20
           for f in "${files[@]}"; do echo "=== recovery $f ==="; PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f "$f"; done
-          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capabilities') is not null")" = t
-          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capability_edges') is not null")" = t
-          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_skill_capability_edges_legacy') is not null")" = t
-          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select to_regclass('public.hq_workforce_capability_authority_grants') is not null")" = t
-          test "$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")" = 0
-          STATE="$(PGPASSWORD=postgres psql "$PSQL" -Atqc "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
-          test "$STATE" = 'false|false|false|0|0|false|false|true'
-      - name: Run production-closure adversarial suite
+      - name: Certify convergence postconditions
         shell: bash
         run: |
           set -euo pipefail
-          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_4_production_closure.sql
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          q(){ PGPASSWORD=postgres psql "$PSQL" -Atqc "$1"; }
+          test "$(q "select to_regclass('public.hq_workforce_capabilities') is not null")" = t
+          test "$(q "select to_regclass('public.hq_workforce_capability_edges') is not null")" = t
+          test "$(q "select to_regclass('public.hq_workforce_resources') is not null")" = t
+          test "$(q "select to_regclass('public.hq_workforce_worker_competencies') is not null")" = t
+          test "$(q "select to_regclass('worker_engine_legacy_archive.hq_workforce_resources') is not null")" = t
+          test "$(q "select to_regclass('worker_engine_legacy_archive.hq_workforce_worker_competencies') is not null")" = t
+          test "$(q "select to_regclass('worker_engine_legacy_archive.hq_workforce_competency_capabilities') is not null")" = t
+          test "$(q "select to_regclass('worker_engine_legacy_archive.hq_workforce_skill_resources') is not null")" = t
+          test "$(q "select count(*) from worker_engine_legacy_archive.hq_workforce_resources")" = 2
+          test "$(q "select count(*) from public.hq_workforce_resources where resource_key in ('vibeschool.internal.work_items','vibeschool.worker.engine.evidence')")" = 2
+          test "$(q "select count(*) from worker_engine_legacy_archive.hq_workforce_worker_competencies")" = 1
+          test "$(q "select count(*) from public.hq_workforce_worker_competencies where competency_key='fixture.legacy.competency'")" = 1
+          test "$(q "select count(*) from worker_engine_legacy_archive.r13x_lineage_manifest where object_kind='table'")" -ge 12
+          test "$(q "select to_regprocedure('public.hq_workforce_discover_shadow_resources(text,text,text,integer)') is null")" = t
+          test "$(q "select to_regprocedure('worker_engine_legacy_archive.hq_workforce_discover_shadow_resources(text,text,text,integer)') is not null")" = t
+          test "$(q "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")" = 0
+          STATE="$(q "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
+          test "$STATE" = 'false|false|false|0|0|false|false|true'
+      - name: Run production-closure adversarial suite
+        run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_4_production_closure.sql
       - name: Destroy disposable database
         if: always()
         run: supabase stop --no-backup >/dev/null 2>&1 || true
@@ -133,7 +117,6 @@ jobs:
       EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
     steps:
       - name: Require main and explicit manual token when dispatched
-        shell: bash
         env:
           CONFIRMATION: ${{ inputs.confirmation }}
         run: |
@@ -146,12 +129,11 @@ jobs:
       - name: Initialize evidence
         run: |
           mkdir -p .worker-engine-r1-4-recovery
-          printf 'sha=%s\nproject=%s\nruntime_activation=false\nautonomy_activation=false\n' '${{ github.sha }}' "$EXPECTED_PROJECT_REF" > .worker-engine-r1-4-recovery/context.txt
+          printf 'sha=%s\nproject=%s\nruntime_activation=false\nautonomy_activation=false\nlineage_convergence=true\n' '${{ github.sha }}' "$EXPECTED_PROJECT_REF" > .worker-engine-r1-4-recovery/context.txt
       - uses: supabase/setup-cli@v1
         with:
           version: 2.114.0
       - name: Link and capture live ledger
-        shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -161,19 +143,19 @@ jobs:
           supabase migration list --linked 2>&1 | tee .worker-engine-r1-4-recovery/ledger-before.txt
           grep -Fq '20260818111900' .worker-engine-r1-4-recovery/ledger-before.txt
       - name: Build exact ledger-aligned recovery stage
-        shell: bash
         run: |
           set -euo pipefail
           python3 scripts/tbl013-live-ledger-audit.py --migrations-dir supabase/migrations --ledger .worker-engine-r1-4-recovery/ledger-before.txt --report .worker-engine-r1-4-recovery/audit.json --plan .worker-engine-r1-4-recovery/plan.md --project-ref "$EXPECTED_PROJECT_REF"
           python3 scripts/worker-engine-build-r1-4-production-recovery-stage.py --report .worker-engine-r1-4-recovery/audit.json --migrations-dir supabase/migrations --config supabase/config.toml --stage-dir .worker-engine-r1-4-recovery-stage --manifest .worker-engine-r1-4-recovery/manifest.json --expected-versions .worker-engine-r1-4-recovery/pending.txt
           test -s .worker-engine-r1-4-recovery/pending.txt
           ! grep -Fxq '20260818111900' .worker-engine-r1-4-recovery/pending.txt
+          grep -Fxq '20260815090500' .worker-engine-r1-4-recovery/pending.txt
           grep -Fxq '20260815091000' .worker-engine-r1-4-recovery/pending.txt
+          grep -Fxq '20260815092000' .worker-engine-r1-4-recovery/pending.txt
+          grep -Fxq '20260815092500' .worker-engine-r1-4-recovery/pending.txt
           grep -Fxq '20260818112000' .worker-engine-r1-4-recovery/pending.txt
           grep -Fxq '20260818113000' .worker-engine-r1-4-recovery/pending.txt
-          grep -Fq 'WE-R1.4 protected recovery prerequisite' .worker-engine-r1-4-recovery-stage/supabase/migrations/20260815091000_worker_engine_we_r1_3x_capability_competency_graph.sql
       - name: Link stage and prove exact dry-run
-        shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -185,7 +167,6 @@ jobs:
           python3 scripts/worker-engine-assert-dry-run-plan.py --expected .worker-engine-r1-4-recovery/pending.txt --dry-run-output .worker-engine-r1-4-recovery/dry-run.txt --report .worker-engine-r1-4-recovery/preflight.txt
           grep -Fq 'status=PASSED' .worker-engine-r1-4-recovery/preflight.txt
       - name: Apply certified recovery only
-        shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -193,7 +174,6 @@ jobs:
           cd .worker-engine-r1-4-recovery-stage
           supabase db push --linked --include-all 2>&1 | tee ../.worker-engine-r1-4-recovery/apply.txt
       - name: Verify ledger and zero pending recovery
-        shell: bash
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |

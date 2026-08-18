@@ -92,6 +92,32 @@ grant select, insert, update, delete on table public.internal_jobs to service_ro
 """
 require(errors_for(service_only) == [], "declared service-only table must pass")
 
+private_schema = """
+create table if not exists worker_engine_legacy_archive.lineage_manifest (
+  object_name text primary key
+);
+alter table worker_engine_legacy_archive.lineage_manifest enable row level security;
+revoke all on table worker_engine_legacy_archive.lineage_manifest from public, anon, authenticated, service_role;
+-- access: owner-only worker_engine_legacy_archive.lineage_manifest
+-- authorization-test: worker_engine_legacy_archive.lineage_manifest public/anon/authenticated/service_role denied; migration owner only
+"""
+require(
+    errors_for(private_schema) == [],
+    "schema-qualified owner-only table with explicit deny contract must pass",
+)
+
+private_missing_rls = private_schema.replace(
+    "alter table worker_engine_legacy_archive.lineage_manifest enable row level security;",
+    "",
+)
+require(
+    any(
+        "worker_engine_legacy_archive.lineage_manifest: missing ENABLE ROW LEVEL SECURITY" in error
+        for error in errors_for(private_missing_rls)
+    ),
+    "schema-qualified table must be validated by full identity",
+)
+
 statement_boundary = """
 grant all privileges on table public.internal_jobs to service_role;
 grant select on table public.secure_items to authenticated;
