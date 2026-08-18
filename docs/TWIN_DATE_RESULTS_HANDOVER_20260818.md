@@ -34,7 +34,7 @@ The negative answer deliberately does **not** claim the teacher has not marked, 
 
 `lib/student/twinCore.ts` checks the small date/results deterministic skill router before the wider Student Twin router. Unmatched questions continue into the existing router unchanged.
 
-If the forward migration is missing in an environment, the helper failure does not outage the existing Twin; the client falls through to the existing router. Production promotion must still apply the migration before this feature is considered live.
+If the forward migration is missing in an environment, the helper failure does not outage the existing Twin; the client falls through to the existing router.
 
 ## Security and 98/2 constitution
 
@@ -62,6 +62,22 @@ If the forward migration is missing in an environment, the helper failure does n
 
 The contract is wired into `.github/workflows/deterministic-twin-contract.yml` for branch and PR validation.
 
-## Deployment boundary
+## Production promotion evidence
 
-No Vercel deployment should be triggered from this branch. No Supabase production migration should be applied until the exact final branch head is fully certified. Promote the migration and application intentionally only after certification, then merge once.
+The certified function SQL was promoted to production Supabase project `yauqsxggtuxuykcbrtzf` after the first exact-head gate set was green.
+
+Production recorded migration:
+
+- `20260818084507_student_twin_date_results_skills`
+
+Repository migration filename is aligned to that exact ledger version:
+
+- `supabase/migrations/20260818084507_student_twin_date_results_skills.sql`
+
+Post-promotion verification confirmed:
+
+- `student_twin_date_results_route(p_input text)` exists;
+- `authenticated` has EXECUTE;
+- `anon` does not have EXECUTE.
+
+No Vercel deployment was triggered from the feature branch. Because ledger-parity file renaming and this handover update changed the branch head after production promotion without changing function SQL, the final branch head must be re-certified before merge.
