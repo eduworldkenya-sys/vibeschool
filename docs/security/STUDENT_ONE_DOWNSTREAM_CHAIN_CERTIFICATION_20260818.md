@@ -42,9 +42,40 @@ RLS is enabled on all inspected downstream tables.
 
 Strong boundaries already exist in several places: attendance inserts verify teacher assignment, current class membership and a live canonical `students.id`; exercise/project submission student writes resolve account identity through `students.profile_id` while storing canonical `students.id`; exam result teacher writes verify class, subject, student-class and exam authority.
 
-The principal remaining hardening gap is policy-role hygiene. Several legacy policies are still declared to `{public}` instead of `authenticated`, including policies on CBC assessments, homework submissions, lesson evidence/interventions and some project/exercise parent/teacher paths. Their predicates commonly call `auth.uid()` and therefore do not automatically grant useful anonymous access, but `PUBLIC` is the wrong durable authorization contract and increases audit ambiguity. These policies must be narrowed deliberately rather than relying on a null `auth.uid()` side effect.
+Two defects were confirmed:
 
-A second gap is certification coverage: some empty downstream tables have no production evidence proving attempted writes cannot reintroduce a profile/account UUID. CI must therefore enforce FK targets, canonical write predicates/resolvers and forbidden direct `auth.uid()`-as-`student_id` patterns.
+1. Several downstream policies still targeted Postgres `PUBLIC` rather than the intended `authenticated` role.
+2. `cbc_assessments` insert authorization only checked `teacher_id = auth.uid()`. It did not prove teacher assignment, school/class/subject authority, or current canonical learner membership.
+
+The CBC defect is consequential: the FK prevents a nonexistent learner ID, but without teacher/class authorization a signed-in teacher could attempt to write assessment state for a canonical learner outside the teacher's actual classroom authority.
+
+## Implemented repository hardening
+
+Migration: `20260818141500_student_one_downstream_authorization_hardening.sql`
+
+The migration:
+
+- replaces the identified legacy `PUBLIC` policies with explicit `TO authenticated` policies;
+- hardens CBC assessment inserts with teacher-class-subject-school authority plus current `student_classes` membership and a live `students.id`;
+- keeps student homework writes account-scoped through `students.profile_id` while storing canonical `students.id`;
+- adds school-aware class membership to homework self-service validation;
+- makes lesson evidence/intervention teacher policies explicitly authenticated and school-aware;
+- hardens project marking/submission teacher authority with `teacher_classes` and current `student_classes` joins;
+- respects parent `access_level <> none` on downstream parent reads;
+- narrows legacy parent-link policies to authenticated callers;
+- contains fail-closed migration postconditions preventing a hardened boundary from remaining `PUBLIC` and verifying the CBC authority predicate.
+
+Regression contract: `scripts/test-student-one-downstream-contract.mjs`
+
+CI workflow: `.github/workflows/student-one-downstream-contract.yml`
+
+The CI contract rejects:
+
+- a downstream migration that recreates `TO public` policies;
+- direct durable learner `student_id = auth.uid()` semantics;
+- loss of canonical `students.profile_id -> students.id` self-service resolution;
+- loss of teacher/student class authority from the CBC write boundary;
+- removal of parent-link access-level checks.
 
 ## Required certification gates
 
@@ -67,5 +98,8 @@ This work remains isolated from Vercel. No Vercel action is required for databas
 Branch: `cert/student-one-downstream-chain-20260818`
 
 Baseline: complete.
+Repository hardening: implemented.
+Regression CI: implemented.
+Production application/postflight: pending exact-head certification.
 
-Current decision: **NOT YET PILOT-CERTIFIED** for the full Student = 1 product journey. Existing rows are canonical, but downstream policy-role hygiene and regression certification still need closure before the chain can be declared safe for new real-user activity.
+Current decision: **NOT YET PILOT-CERTIFIED** for the full Student = 1 product journey. Existing rows are canonical and the first downstream authorization repair is implemented, but the exact branch must pass CI and the canonical migration must then be applied and postflight-certified in production before this boundary is closed.
