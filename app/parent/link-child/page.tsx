@@ -1,11 +1,8 @@
-"use client";
+"use client"
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-
-const dark = '#1e1b4b'
-const accent = '#10b981'
 
 export default function LinkChildPage() {
   const router = useRouter()
@@ -15,60 +12,140 @@ export default function LinkChildPage() {
   const [success, setSuccess] = useState('')
 
   async function handleLink() {
-    setError(''); setSuccess('')
-    if (!claimCode.trim()) { setError('Enter a claim code.'); return }
+    if (loading) return
+    setError('')
+    setSuccess('')
+
+    const code = claimCode.trim().toUpperCase()
+    if (code.length !== 6) {
+      setError('Enter the 6-character parent claim code supplied by the school.')
+      return
+    }
+
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setLoading(false); router.push('/'); return }
-      const { data: result, error: rpcErr } = await supabase.rpc('redeem_parent_claim', {
-        p_code: claimCode.trim().toUpperCase(), p_user_id: user.id,
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        router.replace('/login')
+        return
+      }
+
+      const { data: result, error: rpcError } = await supabase.rpc('redeem_parent_claim', {
+        p_code: code,
+        p_user_id: user.id,
       })
-      setLoading(false)
-      if (rpcErr) { setError('Something went wrong. Please try again.'); return }
+
+      if (rpcError) {
+        setError('We could not verify this relationship right now. Try again. If the problem continues, contact the school.')
+        return
+      }
+
       switch (result) {
         case 'success':
-          setSuccess('Child linked successfully!')
-          setTimeout(() => router.push('/parent'), 1500)
-          break
-        case 'not_found': setError('Invalid claim code. Check the code and try again.'); break
-        case 'already_claimed': setError('This claim code has already been used.'); break
-        case 'student_not_found': setError('Student record not found. Contact the school.'); break
-        default: setError('Something went wrong. Please try again.')
+          setSuccess('Child linked. Your verified family view is ready.')
+          router.replace('/parent')
+          return
+        case 'already_linked':
+          setSuccess('This child is already linked to your account. Your family view is ready.')
+          router.replace('/parent')
+          return
+        case 'not_found':
+          setError('That parent claim code is not valid. Check the code or ask the school for a new parent code.')
+          return
+        case 'already_claimed':
+          setError('That parent claim code has already been used. Ask the school for a new code if you still need access.')
+          return
+        case 'expired':
+          setError('That parent claim code has expired. Ask the school for a new code.')
+          return
+        case 'student_not_found':
+          setError('The code cannot be linked to an active learner record. Contact the school.')
+          return
+        default:
+          setError('The relationship could not be verified. Contact the school if the code should still be valid.')
       }
     } catch {
+      setError('Your connection was interrupted. No relationship was changed. Check your connection and try again.')
+    } finally {
       setLoading(false)
-      setError('Network error. Please check your connection and try again.')
     }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 420, background: '#fff', borderRadius: 20, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🔗</div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: dark }}>Link Your Child</div>
-          <div style={{ fontSize: 13, color: '#6b7280', marginTop: 6 }}>Ask your child's class teacher for the 6-character claim code.</div>
+    <main className="mx-auto flex min-h-screen max-w-lg items-center bg-slate-50 px-4 py-8">
+      <section className="w-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Verified family access</p>
+        <h1 className="mt-2 text-2xl font-bold text-slate-950">Link your child</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-600">
+          Use a one-time <strong>parent claim code</strong> issued by the school for this learner. You never need to enter or guess a student ID.
+        </p>
+
+        <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+          <p className="font-semibold">What this code proves</p>
+          <p className="mt-1">
+            A valid code establishes the parent-to-learner relationship for this account. It does not automatically grant pickup authority, make you the primary guardian, or reveal other learners.
+          </p>
         </div>
-        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 14, padding: '14px 16px', marginBottom: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#1e40af', marginBottom: 8 }}>📌 How to connect</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[
-              { icon: '👩‍🏫', title: 'Ask the teacher', body: 'Your child’s class teacher has the shared claim code. They can share it with you securely.' },
-              { icon: '🔢', title: 'Enter the 6-character code', body: 'The same code can be used by the parent and the student. One person claiming it does not consume it for the other.' },
-              { icon: '🔐', title: 'Keep the code private', body: 'Only share the code with the people who should connect to this learner.' },
-            ].map(g => <div key={g.title} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}><span style={{ fontSize: 16, flexShrink: 0 }}>{g.icon}</span><div><div style={{ fontSize: 12, fontWeight: 700, color: '#1e40af' }}>{g.title}</div><div style={{ fontSize: 11, color: '#1d4ed8', lineHeight: 1.5, marginTop: 2 }}>{g.body}</div></div></div>)}
+
+        <div className="mt-6">
+          <label htmlFor="parent-claim-code" className="block text-sm font-semibold text-slate-800">
+            Parent claim code
+          </label>
+          <input
+            id="parent-claim-code"
+            type="text"
+            value={claimCode}
+            onChange={event => setClaimCode(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+            onKeyDown={event => {
+              if (event.key === 'Enter' && claimCode.length === 6) void handleLink()
+            }}
+            placeholder="A1B2C3"
+            maxLength={6}
+            autoCapitalize="characters"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
+            disabled={loading}
+            aria-describedby="claim-help"
+            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-4 text-center font-mono text-xl font-bold tracking-[0.35em] text-slate-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100"
+          />
+          <p id="claim-help" className="mt-2 text-xs leading-5 text-slate-500">
+            Codes are one-time, role-specific and may expire. Keep the code private.
+          </p>
+        </div>
+
+        {error && (
+          <div role="alert" className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-900">
+            {error}
           </div>
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Claim Code</label>
-          <input type="text" value={claimCode} onChange={e => setClaimCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} onKeyDown={e => { if (e.key === 'Enter' && claimCode.length === 6) handleLink() }} placeholder="e.g. A1B2C3" maxLength={6} disabled={loading} style={{ width: '100%', padding: '14px', borderRadius: 12, border: '1.5px solid #e5e7eb', fontSize: 20, fontWeight: 800, letterSpacing: 4, textAlign: 'center', fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }} />
-        </div>
-        {error && <div role="alert" style={{ color: '#991b1b', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: 12, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{error}</div>}
-        {success && <p role="status" style={{ color: '#047857', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: 12, fontSize: 13, fontWeight: 600, marginBottom: 12 }}>{success}</p>}
-        <button onClick={handleLink} disabled={loading || claimCode.length < 6} style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', background: claimCode.length < 6 ? '#e5e7eb' : accent, color: claimCode.length < 6 ? '#9ca3af' : '#fff', fontWeight: 700, fontSize: 15, cursor: claimCode.length < 6 ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{loading ? 'Linking…' : 'Link Child'}</button>
-        <button onClick={() => router.push('/parent')} style={{ width: '100%', marginTop: 10, padding: '12px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>Skip for now</button>
-      </div>
-    </div>
+        )}
+        {success && (
+          <div role="status" className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">
+            {success}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => void handleLink()}
+          disabled={loading || claimCode.length !== 6}
+          className="mt-6 w-full rounded-2xl bg-slate-950 px-4 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+        >
+          {loading ? 'Verifying relationship…' : 'Verify and link child'}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.push('/parent')}
+          className="mt-2 w-full rounded-2xl px-4 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+        >
+          Back to Parent Home
+        </button>
+
+        <p className="mt-5 text-center text-xs leading-5 text-slate-500">
+          Do not use another family&apos;s code. If the school linked the wrong learner, stop and contact the school rather than trying other codes.
+        </p>
+      </section>
+    </main>
   )
 }
