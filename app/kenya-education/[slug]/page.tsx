@@ -9,8 +9,8 @@ export function generateStaticParams(){ return listKnowledgeArticles().map(artic
 
 export function generateMetadata({params}:{params:{slug:string}}):Metadata{
   const article=getKnowledgeArticle(params.slug)
-  if(!article) return { title:'Kenya Education Guide | VibeSchool' }
-  return { alternates:{canonical:`/kenya-education/${article.slug}`}, title:`${article.title} | VibeSchool`, description:article.description }
+  if(!article) return { title:'Kenya Education Guide' }
+  return { alternates:{canonical:`/kenya-education/${article.slug}`}, title:article.title, description:article.description }
 }
 
 const labels={fact:'Official-source fact',guidance:'Practical guidance',boundary:'Important boundary'} as const
