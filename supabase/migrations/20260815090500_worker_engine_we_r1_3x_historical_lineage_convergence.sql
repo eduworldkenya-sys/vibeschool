@@ -12,6 +12,8 @@
 -- and records an immutable convergence manifest. Unknown shapes fail closed.
 --
 -- NON-ACTIVATING: runtime, heartbeat, Factory, Shadow and autonomous execution remain OFF.
+-- access: service-only worker_engine_legacy_archive.r13x_lineage_manifest
+-- authorization-test: worker_engine_legacy_archive.r13x_lineage_manifest public/anon/authenticated/service_role denied; migration owner only
 
 create schema if not exists worker_engine_legacy_archive;
 revoke all on schema worker_engine_legacy_archive from public, anon, authenticated, service_role;
@@ -26,6 +28,7 @@ create table if not exists worker_engine_legacy_archive.r13x_lineage_manifest (
   reason text not null,
   captured_at timestamptz not null default clock_timestamp()
 );
+alter table worker_engine_legacy_archive.r13x_lineage_manifest enable row level security;
 revoke all on table worker_engine_legacy_archive.r13x_lineage_manifest from public, anon, authenticated, service_role;
 
 do $guard$
