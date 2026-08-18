@@ -187,7 +187,7 @@ export default function ParentHomePage() {
           const school = (schools ?? []).find(row => row.id === cls?.school_id)
           const link = validLinks.find(row => row.student_id === student.id)
           const attRows = (attendanceRes.data ?? []).filter(row => row.student_id === student.id)
-          const presentRows = attRows.filter(row => row.status === 'present' || row.status === 'late')
+          const presentRows = attRows.filter(row => row.status === 'present')
           const attendancePct = attRows.length > 0 ? Math.round((presentRows.length / attRows.length) * 100) : null
           const todayRow = attRows.find(row => row.date === today)
           const classHomework = (homeworkRes.data ?? []).filter(row => row.class_id === student.class_id)
@@ -235,7 +235,7 @@ export default function ParentHomePage() {
             nextActions.push({ id: `homework-${child.id}`, childId: child.id, childName: child.name, type: 'warning', title: `${child.overdueHomework} overdue ${child.overdueHomework === 1 ? 'task' : 'tasks'}`, detail: 'These class tasks have no non-draft submission recorded yet.', href: `/parent/child/${child.id}` })
           }
           if (child.recentTeacherMessages > 0) {
-            nextActions.push({ id: `messages-${child.id}`, childId: child.id, childName: child.name, type: 'info', title: `${child.recentTeacherMessages} recent teacher ${child.recentTeacherMessages === 1 ? 'update' : 'updates'}`, detail: 'Teacher-to-parent updates were sent during the last seven days.', href: `/parent/messages?studentId=${child.id}` })
+            nextActions.push({ id: `messages-${child.id}`, childId: child.id, childName: child.name, type: 'info', title: `${child.recentTeacherMessages} recent teacher ${child.recentTeacherMessages === 1 ? 'update' : 'updates'}`, detail: 'Teacher-to-parent updates were sent during the last seven days.', href: `/parent/child/${child.id}/messages` })
           }
           if (child.canViewFinance && child.feeExpected !== null && child.feePaid !== null && child.feeExpected > child.feePaid) {
             const balance = child.feeExpected - child.feePaid
@@ -307,7 +307,7 @@ export default function ParentHomePage() {
             <h1 style={{ fontSize: 21, lineHeight: 1.2, margin: '5px 0 4px' }}>{greeting()}, {firstName}</h1>
             <p style={{ margin: 0, color: '#cbd5e1', fontSize: 12 }}>{new Date().toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', weekday: 'long', day: 'numeric', month: 'long' })} · {children.length} {children.length === 1 ? 'child' : 'children'} connected</p>
           </div>
-          <button onClick={() => router.push('/parent/messages')} aria-label="Open family inbox" style={{ border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.09)', color: '#fff', borderRadius: 12, padding: '9px 11px', cursor: 'pointer', fontWeight: 800, fontFamily: 'inherit', fontSize: 12 }}>Inbox {familyPulse.recentMessages > 0 ? `· ${familyPulse.recentMessages}` : ''}</button>
+          <button onClick={() => router.push('/parent/inbox')} aria-label="Open family inbox" style={{ border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.09)', color: '#fff', borderRadius: 12, padding: '9px 11px', cursor: 'pointer', fontWeight: 800, fontFamily: 'inherit', fontSize: 12 }}>Inbox {familyPulse.recentMessages > 0 ? `· ${familyPulse.recentMessages}` : ''}</button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginTop: 16 }}>
@@ -364,7 +364,7 @@ export default function ParentHomePage() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginTop: 10 }}>
-              <QuickButton label="Message teacher" onClick={() => router.push(`/parent/messages?studentId=${child.id}`)} />
+              <QuickButton label="Message teacher" onClick={() => router.push(`/parent/child/${child.id}/messages`)} />
               <QuickButton label="Assessments" onClick={() => router.push(`/parent/assessments?studentId=${child.id}`)} />
               <QuickButton label={`Report cards${child.publishedReports > 0 ? ` · ${child.publishedReports}` : ''}`} onClick={() => router.push(`/parent/report-cards?studentId=${child.id}`)} />
               <QuickButton label="Child details" onClick={() => router.push(`/parent/child/${child.id}`)} />
@@ -377,7 +377,7 @@ export default function ParentHomePage() {
         <div style={eyebrow}>Family channels</div>
         <h2 style={{ margin: '4px 0 12px', fontSize: 17 }}>Everything important has a home</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-          <Channel title="Teacher & school inbox" detail="Messages and notices" onClick={() => router.push('/parent/messages')} />
+          <Channel title="Teacher & school messages" detail="Conversations and notices" onClick={() => router.push('/parent/messages')} />
           <Channel title="Learning progress" detail="Released assessments" onClick={() => router.push('/parent/assessments')} />
           <Channel title="Official reports" detail="Published report cards" onClick={() => router.push('/parent/report-cards')} />
           <Channel title="Children" detail="Profiles and records" onClick={() => router.push('/parent/students')} />
