@@ -3,6 +3,8 @@
 -- but the historical CREATE TABLE was never captured in the Git migration lineage.
 -- This migration is intentionally idempotent: clean rebuilds create the canonical contract;
 -- production preserves its existing rows and converges privileges without destructive DDL.
+-- access: service-only public.content_engine_orchestration_runs
+-- authorization-test: public.content_engine_orchestration_runs
 
 create table if not exists public.content_engine_orchestration_runs (
   id uuid primary key default gen_random_uuid(),
