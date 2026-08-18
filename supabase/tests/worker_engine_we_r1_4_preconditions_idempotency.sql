@@ -53,16 +53,19 @@ begin
 end $$;
 
 -- Gateway composition must preserve the R1.4.3 reservation/precondition implementation even
--- after later authority wrappers are layered in front of the canonical gateway.
+-- after later authority/breaker wrappers are layered in front of the canonical gateway.
+-- Trace the actual public gateway-family call rather than assuming wrappers use RETURN directly:
+-- R1.4.16 intentionally calls an inner gateway through an assignment before returning its result.
 do $$
 declare
   d text;
   next_name text := 'hq_workforce_consequential_execution_gateway';
+  next_match text[];
   depth integer := 0;
 begin
   loop
     depth := depth + 1;
-    if depth > 12 then raise exception 'gateway composition depth exceeded'; end if;
+    if depth > 16 then raise exception 'gateway composition depth exceeded'; end if;
 
     select lower(pg_get_functiondef(p.oid)) into d
       from pg_proc p
@@ -80,7 +83,11 @@ begin
       exit;
     end if;
 
-    select (regexp_match(d,'return\s+public\.([a-z0-9_]+)\s*\(p_task_id\)'))[1] into next_name;
+    select regexp_match(
+      d,
+      'public\.(hq_workforce_consequential_execution_gateway[a-z0-9_]*)\s*\(p_task_id\)'
+    ) into next_match;
+    next_name := next_match[1];
     if next_name is null then raise exception 'gateway idempotency reservation missing'; end if;
   end loop;
 end $$;
