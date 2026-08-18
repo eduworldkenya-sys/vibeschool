@@ -12,6 +12,25 @@ declare
   v_autonomy smallint;
   v_risk smallint;
 begin
+  -- The pre-existing production evidence relation is now reproducible from repository truth.
+  if to_regclass('public.curriculum_intelligence_sources') is null then
+    raise exception 'curriculum intelligence source repository parity missing';
+  end if;
+  if has_table_privilege('anon','public.curriculum_intelligence_sources','SELECT')
+     or has_table_privilege('anon','public.curriculum_intelligence_sources','INSERT')
+     or has_table_privilege('authenticated','public.curriculum_intelligence_sources','INSERT')
+     or has_table_privilege('authenticated','public.curriculum_intelligence_sources','UPDATE')
+     or has_table_privilege('authenticated','public.curriculum_intelligence_sources','DELETE')
+     or not has_table_privilege('authenticated','public.curriculum_intelligence_sources','SELECT') then
+    raise exception 'curriculum intelligence source owner-read/service-write boundary incorrect';
+  end if;
+  select count(*) into v_count
+    from pg_policies
+   where schemaname='public' and tablename='curriculum_intelligence_sources'
+     and policyname='hq_owner_sources_select'
+     and cmd='SELECT';
+  if v_count<>1 then raise exception 'curriculum intelligence source owner RLS missing'; end if;
+
   -- Domain queue is bridged, not replaced.
   select count(*) into v_count
     from information_schema.columns
