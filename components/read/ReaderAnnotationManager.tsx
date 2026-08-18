@@ -181,7 +181,9 @@ export function ReaderAnnotationManager() {
       clearFallbackOverlays();
       const ranges = items.filter((item) => item.item_type === "highlight").map(anchoredRange).filter((range): range is Range => Boolean(range));
       cssApi.highlights.set("vibe-reader-highlights", new Highlight(...ranges));
-      return () => cssApi.highlights?.delete("vibe-reader-highlights");
+      return () => {
+        cssApi.highlights?.delete("vibe-reader-highlights");
+      };
     }
 
     const refreshFallback = () => renderFallbackOverlays(items);
