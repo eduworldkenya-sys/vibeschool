@@ -19,6 +19,46 @@ for select
 to authenticated
 using (teacher_id = (select auth.uid()));
 
+-- teacher_profiles.school_id remains a compatibility pointer for older teacher
+-- surfaces. It is not authority. A teacher may only persist a school in which
+-- they hold teacher membership.
+drop policy if exists pol_teacher_profiles_insert on public.teacher_profiles;
+create policy pol_teacher_profiles_insert
+on public.teacher_profiles
+for insert
+to authenticated
+with check (
+  profile_id = (select auth.uid())
+  and (
+    school_id is null
+    or exists (
+      select 1 from public.school_members sm
+      where sm.profile_id = (select auth.uid())
+        and sm.school_id = teacher_profiles.school_id
+        and sm.role::text = 'teacher'
+    )
+  )
+);
+
+drop policy if exists pol_teacher_profiles_update on public.teacher_profiles;
+create policy pol_teacher_profiles_update
+on public.teacher_profiles
+for update
+to authenticated
+using (profile_id = (select auth.uid()))
+with check (
+  profile_id = (select auth.uid())
+  and (
+    school_id is null
+    or exists (
+      select 1 from public.school_members sm
+      where sm.profile_id = (select auth.uid())
+        and sm.school_id = teacher_profiles.school_id
+        and sm.role::text = 'teacher'
+    )
+  )
+);
+
 create or replace function public.teacher_set_active_school(p_school_id uuid)
 returns jsonb
 language plpgsql
@@ -48,6 +88,13 @@ begin
   values (v_uid, p_school_id, clock_timestamp())
   on conflict (teacher_id)
   do update set school_id = excluded.school_id, updated_at = excluded.updated_at;
+
+  -- Compatibility only: keep old teacher layout/profile readers aligned with
+  -- the canonical preference. The membership check above is the authority.
+  insert into public.teacher_profiles(profile_id, school_id)
+  values (v_uid, p_school_id)
+  on conflict (profile_id)
+  do update set school_id = excluded.school_id, updated_at = clock_timestamp();
 
   return jsonb_build_object('teacher_id', v_uid, 'school_id', p_school_id);
 end;
@@ -109,6 +156,18 @@ begin
      and sm.school_id = pref.school_id
      and sm.role::text = 'teacher'
     where pref.teacher_id = v_uid;
+
+    if v_school_id is null then
+      -- Preserve an already-authorized compatibility choice if one exists.
+      select tp.school_id
+        into v_school_id
+      from public.teacher_profiles tp
+      join public.school_members sm
+        on sm.profile_id = v_uid
+       and sm.school_id = tp.school_id
+       and sm.role::text = 'teacher'
+      where tp.profile_id = v_uid;
+    end if;
 
     if v_school_id is null then
       select sm.school_id
@@ -194,8 +253,6 @@ begin
 end;
 $$;
 
--- Keep the legacy Twin selector callable, but make its persistence authority
--- the canonical Task 4 preference instead of teacher_profiles.school_id.
 create or replace function public.teacher_set_active_twin_school(p_school_id uuid)
 returns jsonb
 language sql
