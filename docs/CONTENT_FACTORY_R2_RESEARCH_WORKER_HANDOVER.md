@@ -43,6 +43,18 @@ The previous `finalize_research_job` used source count, primary-source count, au
 
 Live production inspection found three source records with `supports_claim=true`, `contradicts_claim=false`, and `verification_method=NULL`. These historical rows are preserved for auditability but R2.1 explicitly refuses to treat them as certified supporting evidence.
 
+### 4. Production contained hidden research schema not reproducible from repository truth
+
+Disposable certification exposed two pre-existing repository-history holes: `curriculum_research_jobs` and `curriculum_intelligence_sources` existed in production and were referenced by tracked migrations/application code, but their base relation definitions were absent from a clean repository rebuild. R2.1 restored those production-derived contracts as explicit, idempotent repository-parity migrations before adding Worker Engine integration.
+
+The source relation was also tightened to preserve the legitimate authenticated platform-owner read path while removing unnecessary authenticated writes; machine writes remain service-role only.
+
+### 5. R2 initially narrowed a Worker Engine handler allowlist incorrectly
+
+The original L2 Worker Engine contract admitted `work_item.triage_and_own`, while R1.4 later widened the certified structural vocabulary to include the bounded `work_item.prioritize` canary. The first R2 bridge revision attempted to rebuild that constraint with only triage + research, causing a clean rebuild failure because the valid priority contract already existed.
+
+The repaired bridge preserves both certified existing handlers and adds exactly `content.research.external`. Runtime execution still requires the exact approved R2 tool contract and full R1.4 consequential authorization chain, so this repair widens compatibility without weakening authority.
+
 ## R2.1 implementation
 
 ### Migration `20260818131000_content_factory_r2_research_worker_bridge.sql`
@@ -111,6 +123,26 @@ The contract checks:
 - R2.1 installation leaves Worker Engine runtime/autonomy/risk and active capability authority fail-closed.
 - The Edge Function remains deterministic/no-model and cannot silently grow direct Groq/OpenAI/Anthropic calls.
 
+### Exact reconciled certification — 2026-08-18
+
+R2 was reconciled onto current `main` at `8565f8b104ef26d6cc23849cb75aea05ac0f3fdf` using the merge tree `9272a15b4cc40ed7050ed47247d04117e0c92ef5`. The branch was 0 commits behind `main` at certification.
+
+All relevant checks passed on that reconciled code head before this handover-only commit:
+
+- Content Factory R2 Research Worker — PASS
+- TBL-011 Isolated Clean Rebuild — PASS
+- Supabase Migration Security Contract — PASS
+- TBL-012 M(repo) extractor — PASS
+- TypeScript and Production Build Gate — PASS
+- CI Production Build Contract — PASS
+- Auth & Onboarding Hardening — PASS
+- Auth Gateway Contract — PASS
+- Authoritative Curriculum Source Pipeline Contract — PASS
+- Authoritative Curriculum Hierarchy Binding Contract — PASS
+- Worker Engine WE-R1.4 Production Recovery disposable certification — PASS
+
+The dedicated R2 test proved both database contracts and the deterministic/no-model executor. TBL-011 rebuilt the full tracked migration history, verified the migration ledger, final timetable/RLS state, Worker Engine authority plane, and rebuilt-production target comparison.
+
 ## Activation boundary
 
 R2.1 is **installation-ready, not activation-authorized**.
@@ -127,6 +159,8 @@ Before activation:
 
 No R2 migration should turn on Worker Engine runtime or create active autonomous authority.
 
+Latest read-only production verification during certification still showed Worker Engine recovery stopping at `20260818111900`; `hq_workforce_capability_authority_grants` was not yet present. Curriculum authority source/hierarchy migrations were present. Therefore production R2 promotion remains blocked even though repository R2.1 is certified.
+
 ## Known deliberate limitation
 
 R2.1 gathers and packages candidate evidence, but does not itself certify semantic claim support. This is intentional. A source discovery system that auto-labels its own search snippets as proof creates false confidence.
@@ -140,5 +174,7 @@ Next worker-stage work should add the certified semantic verifier/evidence packe
 - `83480cd8cc53c4f1800218fa3597d3c47cc31e08` — evidence trust hardening
 - `1cdef450014a64354e527b840b039aee0b37c6e1` — SQL contract
 - `75d6bd1dbbc0493906154fc90a9ae21ebbc23914` — R2.1 CI contract workflow
+- `edb91bff4714cf3280df18eb272dcc7db3012cbf` — preserve certified Worker Engine handler allowlist while adding research handler
+- `9272a15b4cc40ed7050ed47247d04117e0c92ef5` — reconcile R2 onto current main for exact-head certification
 
-Subsequent certification/fix commits should be appended before R2.1 is declared complete.
+This handover records repository certification only. Production promotion/activation remains a separately governed operation.
