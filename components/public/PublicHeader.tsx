@@ -8,6 +8,7 @@ type PublicHeaderProps = { product?: string }
 
 const navItems = [
   ['/product', 'Product'],
+  ['/sandbox', 'Live Sandbox'],
   ['/global', 'Learn'],
   ['/pathways', 'Pathways'],
   ['/institutions', 'Schools'],

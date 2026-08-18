@@ -1,9 +1,9 @@
-const CACHE_NAME = 'vibeschool-v6'
+const CACHE_NAME = 'vibeschool-v7'
 const STATIC_ROUTES = ['/offline.html']
 
 // Only cache surfaces that are safe for every visitor. Authenticated pages,
 // APIs, Pathways data responses and private Supabase traffic remain network-owned.
-const SAFE_PUBLIC_ROUTES = ['/', '/about', '/contact', '/careers', '/institutions', '/trust', '/legal']
+const SAFE_PUBLIC_ROUTES = ['/', '/about', '/contact', '/careers', '/institutions', '/sandbox', '/trust', '/legal']
 const SAFE_PUBLIC_PATHS = new Set(SAFE_PUBLIC_ROUTES)
 
 self.addEventListener('install', (event) => {

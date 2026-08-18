@@ -5,7 +5,7 @@ import sys
 
 ROOT=Path(__file__).resolve().parents[1]
 errors=[]
-roots=['app/page.tsx','app/about','app/contact','app/careers','app/institutions','app/trust','app/legal','app/pathways','app/learn/careers','components/public']
+roots=['app/page.tsx','app/sandbox','app/about','app/contact','app/careers','app/institutions','app/trust','app/legal','app/pathways','app/learn/careers','components/public']
 files=[]
 for root in roots:
     path=ROOT/root

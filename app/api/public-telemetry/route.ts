@@ -7,9 +7,10 @@ const ALLOWED_EVENTS = new Set([
   'public_readiness_complete_early','public_readiness_complete_fragmented','public_readiness_complete_developing',
   'public_readiness_complete_connected','public_role_learner','public_role_teacher','public_role_family','public_role_school',
   'public_connected_explorer_interaction','public_capability_status_view',
+  'public_sandbox_open','public_sandbox_progress','public_sandbox_role','public_sandbox_complete',
 ])
 
-const PUBLIC_PATH = /^\/(?:$|product(?:\/|$)|teachers(?:\/|$)|learners(?:\/|$)|families(?:\/|$)|about(?:\/|$)|contact(?:\/|$)|careers(?:\/|$)|institutions(?:\/|$)|trust(?:\/|$)|legal(?:\/|$)|pathways(?:\/|$)|learn\/careers(?:\/|$)|global(?:\/|$))/
+const PUBLIC_PATH = /^\/(?:$|product(?:\/|$)|sandbox(?:\/|$)|teachers(?:\/|$)|learners(?:\/|$)|families(?:\/|$)|about(?:\/|$)|contact(?:\/|$)|careers(?:\/|$)|institutions(?:\/|$)|trust(?:\/|$)|legal(?:\/|$)|pathways(?:\/|$)|learn\/careers(?:\/|$)|global(?:\/|$))/
 const MAX_BODY_BYTES = 1024
 
 export async function POST(request: Request) {

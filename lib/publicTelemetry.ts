@@ -22,6 +22,10 @@ export type PublicEventName =
   | 'public_role_school'
   | 'public_connected_explorer_interaction'
   | 'public_capability_status_view'
+  | 'public_sandbox_open'
+  | 'public_sandbox_progress'
+  | 'public_sandbox_role'
+  | 'public_sandbox_complete'
 
 export function trackPublicEvent(event: PublicEventName, path?: string) {
   if (typeof window === 'undefined') return
