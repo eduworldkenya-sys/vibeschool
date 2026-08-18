@@ -51,6 +51,11 @@ export function ReaderCalmSurface() {
       setContentsOpen(false);
     }
 
+    function onChapter() {
+      syncActiveReader();
+      setContentsOpen(false);
+    }
+
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       setContentsOpen(false);
@@ -58,11 +63,13 @@ export function ReaderCalmSurface() {
     }
 
     window.addEventListener("vibe:reader-mode", onMode);
+    window.addEventListener("vibe:reader-chapter", onChapter);
     window.addEventListener("keydown", onKeyDown);
 
     return () => {
       observer.disconnect();
       window.removeEventListener("vibe:reader-mode", onMode);
+      window.removeEventListener("vibe:reader-chapter", onChapter);
       window.removeEventListener("keydown", onKeyDown);
       shell.classList.remove("reader-calm-active");
       delete shell.dataset.readerContents;
