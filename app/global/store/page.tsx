@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -126,7 +127,7 @@ export default function LearningProductStorePage() {
   </main>
 }
 
-function chip(active:boolean): React.CSSProperties { return { flexShrink:0,borderRadius:999,border:`1px solid ${active?ACCENT:BORDER}`,background:active?'rgba(204,255,0,.1)':SURFACE,color:active?ACCENT:TEXT,padding:'9px 13px',fontWeight:800,cursor:'pointer' } }
-const tag: React.CSSProperties = { fontSize:10,fontWeight:850,letterSpacing:'.06em',textTransform:'uppercase',color:ACCENT,background:'rgba(204,255,0,.08)',border:'1px solid rgba(204,255,0,.16)',borderRadius:999,padding:'5px 8px' }
-const primaryButton: React.CSSProperties = { minHeight:44,border:0,borderRadius:11,background:ACCENT,color:'#090D16',fontWeight:950,cursor:'pointer',padding:'0 12px' }
-const secondaryButton: React.CSSProperties = { minHeight:44,borderRadius:11,border:`1px solid ${BORDER}`,background:SURFACE,color:TEXT,fontWeight:850,cursor:'pointer',padding:'0 12px' }
+function chip(active:boolean): CSSProperties { return { flexShrink:0,borderRadius:999,border:`1px solid ${active?ACCENT:BORDER}`,background:active?'rgba(204,255,0,.1)':SURFACE,color:active?ACCENT:TEXT,padding:'9px 13px',fontWeight:800,cursor:'pointer' } }
+const tag: CSSProperties = { fontSize:10,fontWeight:850,letterSpacing:'.06em',textTransform:'uppercase',color:ACCENT,background:'rgba(204,255,0,.08)',border:'1px solid rgba(204,255,0,.16)',borderRadius:999,padding:'5px 8px' }
+const primaryButton: CSSProperties = { minHeight:44,border:0,borderRadius:11,background:ACCENT,color:'#090D16',fontWeight:950,cursor:'pointer',padding:'0 12px' }
+const secondaryButton: CSSProperties = { minHeight:44,borderRadius:11,border:`1px solid ${BORDER}`,background:SURFACE,color:TEXT,fontWeight:850,cursor:'pointer',padding:'0 12px' }
