@@ -10,9 +10,12 @@ on:
       - 'supabase/migrations/2026081714*.sql'
       - 'supabase/migrations/2026081715*.sql'
       - 'supabase/migrations/2026081716*.sql'
+      - 'supabase/migrations/20260818001345*.sql'
+      - 'supabase/migrations/20260818002145*.sql'
       - 'supabase/migrations/20260818013000*.sql'
       - 'scripts/sql/pilot_authority_chain_verify.sql'
       - 'scripts/sql/pilot_authority_bypass_verify.sql'
+      - 'scripts/sql/pilot_class_teacher_reconciliation_verify.sql'
       - 'scripts/sql/recovered_cross_tenant_security_verify.sql'
       - 'scripts/sql/tbl011_clean_rebuild_verify.sql'
       - 'scripts/validate-tbl011-clean-rebuild.py'
@@ -59,6 +62,11 @@ jobs:
         run: |
           set -euo pipefail
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/pilot_authority_chain_verify.sql
+      - name: Certify canonical class-teacher reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/pilot_class_teacher_reconciliation_verify.sql
       - name: Certify pilot authorization bypass closure
         shell: bash
         run: |

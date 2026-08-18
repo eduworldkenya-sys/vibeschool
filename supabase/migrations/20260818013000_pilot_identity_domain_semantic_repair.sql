@@ -154,10 +154,10 @@ grant all privileges on table public.vibelearn_searches to service_role;
 
 -- ---------------------------------------------------------------------------
 -- Class join requests: remove anonymous grants and normalize every actor policy
--- to authenticated. The teacher policy retains the legacy class.teacher_id
--- compatibility boundary, but now additionally requires authoritative school
--- membership. A future certified backfill can replace it with
--- teacher_classes.is_class_teacher without locking existing classes out.
+-- to authenticated. This migration originally retained the legacy
+-- classes.teacher_id compatibility boundary; because the production-generated
+-- canonical reconciliation version sorts before this file, the final policy is
+-- reasserted below after all original semantic-repair statements.
 -- ---------------------------------------------------------------------------
 alter table public.class_join_requests enable row level security;
 revoke all privileges on table public.class_join_requests from anon, authenticated;
@@ -321,3 +321,84 @@ begin
     raise exception 'broad exam_results member-read bypass remains';
   end if;
 end $$;
+
+-- ---------------------------------------------------------------------------
+-- Replay-order closure for 20260818001345.
+--
+-- Production applied the generated reconciliation migration after this version
+-- even though its generated numeric version sorts earlier. Reassert the final
+-- canonical-first teacher policy here so a blank lexical replay and production
+-- converge on exactly the same authority semantics.
+-- ---------------------------------------------------------------------------
+drop policy if exists join_requests_teacher on public.class_join_requests;
+create policy join_requests_teacher
+on public.class_join_requests
+for all to authenticated
+using (
+  exists (
+    select 1
+    from public.classes c
+    where c.id = class_join_requests.class_id
+      and exists (
+        select 1
+        from public.school_members sm
+        where sm.school_id = c.school_id
+          and sm.profile_id = (select auth.uid())
+          and sm.role = 'teacher'
+      )
+      and (
+        exists (
+          select 1
+          from public.teacher_classes tc
+          where tc.school_id = c.school_id
+            and tc.class_id = c.id
+            and tc.teacher_id = (select auth.uid())
+            and tc.is_class_teacher = true
+        )
+        or (
+          c.teacher_id = (select auth.uid())
+          and not exists (
+            select 1
+            from public.teacher_classes canonical
+            where canonical.school_id = c.school_id
+              and canonical.class_id = c.id
+              and canonical.is_class_teacher = true
+          )
+        )
+      )
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.classes c
+    where c.id = class_join_requests.class_id
+      and exists (
+        select 1
+        from public.school_members sm
+        where sm.school_id = c.school_id
+          and sm.profile_id = (select auth.uid())
+          and sm.role = 'teacher'
+      )
+      and (
+        exists (
+          select 1
+          from public.teacher_classes tc
+          where tc.school_id = c.school_id
+            and tc.class_id = c.id
+            and tc.teacher_id = (select auth.uid())
+            and tc.is_class_teacher = true
+        )
+        or (
+          c.teacher_id = (select auth.uid())
+          and not exists (
+            select 1
+            from public.teacher_classes canonical
+            where canonical.school_id = c.school_id
+              and canonical.class_id = c.id
+              and canonical.is_class_teacher = true
+          )
+        )
+      )
+  )
+);
