@@ -59,4 +59,4 @@ The repository contains event kernels, but VibeSchool does not yet have certifie
 - No direct Vercel action is part of this work; normal deployment may occur only through the repository's existing main-branch integration after final merge.
 
 ## Finalization
-This file is the final handover state for PR #271. No further documentation-only commits should be made before certification; any later change must correspond to a verified defect.
+This is the final handover state for PR #271. Any later change must correspond to a verified defect.
