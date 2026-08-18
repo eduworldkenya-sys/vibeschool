@@ -45,6 +45,8 @@ grant execute on function public.current_student_id() to authenticated, service_
 
 -- 3. Permanent production instrumentation. Service-only: this is operational identity telemetry,
 -- not learner-facing product data.
+-- access: service-only public.student_identity_health_runs
+-- authorization-test: public.student_identity_health_runs
 create table if not exists public.student_identity_health_runs (
   id uuid primary key default gen_random_uuid(),
   checked_at timestamptz not null default now(),
