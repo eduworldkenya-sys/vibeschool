@@ -1,0 +1,42 @@
+name: Task 3 Student Identity Integrity
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**student**'
+      - 'scripts/test-task3-student-identity-integrity.mjs'
+      - '.github/workflows/task3-student-identity-integrity.yml'
+      - 'app/student/**'
+      - 'app/teacher/**'
+      - 'app/parent/**'
+      - 'app/admin/**'
+  push:
+    branches:
+      - main
+      - 'agent/task3-student-identity-integrity'
+    paths:
+      - 'supabase/migrations/**student**'
+      - 'scripts/test-task3-student-identity-integrity.mjs'
+      - '.github/workflows/task3-student-identity-integrity.yml'
+      - 'app/student/**'
+      - 'app/teacher/**'
+      - 'app/parent/**'
+      - 'app/admin/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity-contract:
+    name: Canonical learner provisioning and boundaries
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enforce Task 3 canonical identity invariants
+        run: node scripts/test-task3-student-identity-integrity.mjs
