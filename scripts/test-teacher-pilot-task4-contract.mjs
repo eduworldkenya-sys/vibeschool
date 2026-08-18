@@ -42,11 +42,32 @@ requireText(contextMigration.includes('teacher_active_school_preferences'), 'tea
 requireText(contextMigration.includes('teacher_get_operating_context'), 'teacher modules share one operating-context resolver')
 requireText(contextMigration.includes("sm.role::text = 'teacher'"), 'operating context verifies teacher membership')
 requireText(contextMigration.includes('teacher_classes'), 'operating context derives assignments from canonical teacher_classes')
+requireText(contextMigration.includes('pol_teacher_profiles_update'), 'legacy teacher profile school pointer is membership-checked')
 
 const homework = read('app/teacher/homework/page.tsx')
 requireText(homework.includes('.from("student_classes")'), 'homework overview counts current enrollment through student_classes')
 requireText(homework.includes('teacher_get_operating_context'), 'homework overview uses canonical active-school context')
 requireText(!homework.includes('.from("students").select("id, class_id")'), 'homework overview no longer counts legacy students.class_id')
+
+const students = read('app/teacher/students/page.tsx')
+requireText(students.includes('.from("student_classes")'), 'teacher learner roster comes from canonical student_classes')
+requireText(students.includes('.eq("is_current", true)'), 'teacher learner roster only includes current enrollment')
+requireText(students.includes('teacher_get_operating_context'), 'teacher learner roster uses canonical active-school context')
+requireText(!students.includes(".eq('is_class_teacher', true)") && !students.includes('.eq("is_class_teacher", true)'), 'subject teachers are not excluded from authorized learner roster')
+
+const profile = read('app/teacher/profile/page.tsx')
+requireText(profile.includes('teacher_get_operating_context'), 'teacher profile uses canonical operating context for school/classes/subjects')
+for (const staleField of ['first_name', 'last_name', 'job_title', 'department', 'teaching_philosophy', 'classroom_management', 'assessment_approach', 'professional_development']) {
+  requireText(!profile.includes(staleField), `teacher profile does not query nonexistent production field ${staleField}`)
+}
+requireText(profile.includes('designation') && profile.includes('teaching_style'), 'teacher profile uses production professional fields')
+
+const progress = read('app/teacher/progress/page.tsx')
+requireText(progress.includes('saveTeachingProgressRecord'), 'lesson progress writes through guarded occurrence RPC')
+requireText(progress.includes('teaching_occurrence_id'), 'lesson progress is anchored to teaching occurrence identity')
+requireText(progress.includes('.not("teaching_occurrence_id", "is", null)'), 'teacher progress history excludes disconnected legacy records')
+requireText(!progress.includes('.from("progress_records").insert') && !progress.includes(".from('progress_records').insert"), 'teacher progress cannot create disconnected records client-side')
+requireText(progress.includes('teacher_get_operating_context'), 'teacher progress history is scoped by canonical active school')
 
 const lessonFlow = read('components/teacher/LessonFlowCard.tsx')
 for (const token of ['attendance', 'homework', 'assessment', 'Evidence', 'Reflection', 'Progress']) {
