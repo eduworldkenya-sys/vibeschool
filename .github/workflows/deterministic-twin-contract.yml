@@ -24,8 +24,10 @@ on:
       - 'app/admin/page.tsx'
       - 'app/admin/layout.tsx'
       - 'app/hq/layout.tsx'
+      - 'supabase/migrations/20260818082800_student_twin_date_results_skills.sql'
       - 'scripts/test-deterministic-twin-contract.mjs'
       - 'scripts/test-twin-portal-authority.mjs'
+      - 'scripts/test-student-twin-date-results-contract.mjs'
       - 'docs/TWIN_CONSTITUTION_V1.md'
       - 'vercel.json'
       - '.github/workflows/deterministic-twin-contract.yml'
@@ -50,8 +52,10 @@ on:
       - 'app/admin/page.tsx'
       - 'app/admin/layout.tsx'
       - 'app/hq/layout.tsx'
+      - 'supabase/migrations/20260818082800_student_twin_date_results_skills.sql'
       - 'scripts/test-deterministic-twin-contract.mjs'
       - 'scripts/test-twin-portal-authority.mjs'
+      - 'scripts/test-student-twin-date-results-contract.mjs'
       - 'docs/TWIN_CONSTITUTION_V1.md'
       - 'vercel.json'
       - '.github/workflows/deterministic-twin-contract.yml'
@@ -76,3 +80,5 @@ jobs:
         run: node scripts/test-deterministic-twin-contract.mjs
       - name: Enforce portal authority boundaries
         run: node scripts/test-twin-portal-authority.mjs
+      - name: Enforce Student Twin date + released-results skills
+        run: node scripts/test-student-twin-date-results-contract.mjs
