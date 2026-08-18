@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.4";
 
 function requiredEnv(name: string): string {
   const value = Deno.env.get(name)?.trim();
@@ -98,9 +98,32 @@ serve(async (req) => {
       p_idempotency_key: idempotencyKey,
       p_beneficiary_student_id: beneficiaryStudentId,
     });
-    if (orderError || !orderResult?.success || !orderResult?.order_id) {
-      throw orderError ?? new Error("Unable to create the learning product order.");
+    if (orderError) throw orderError;
+
+    if (orderResult?.already_entitled === true) {
+      return json({
+        success: true,
+        state: "settled",
+        fulfilled: true,
+        already_entitled: true,
+        product_id: orderResult.product_id,
+        customer_message: "This learner already has access to this Learning Product. No payment was started.",
+      }, 200, headers);
     }
+
+    if (!orderResult?.success) {
+      const reconciliation = orderResult?.error === "payment_reconciliation_required";
+      return json({
+        success: false,
+        order_id: orderResult?.order_id ?? null,
+        state: reconciliation ? "reconciliation_required" : (orderResult?.status ?? "failed"),
+        error: reconciliation
+          ? "A previous payment for this learner has an uncertain provider state. Do not pay again until it is reconciled."
+          : (orderResult?.error ?? "Unable to create the learning product order."),
+      }, reconciliation ? 409 : 400, headers);
+    }
+
+    if (!orderResult.order_id) throw new Error("Order creation returned no durable order reference.");
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { data: order, error: readOrderError } = await admin
