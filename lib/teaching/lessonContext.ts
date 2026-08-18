@@ -26,6 +26,11 @@ export interface LoadLessonContextInput {
  * Loads the exact teacher → school → class → subject → learner context for one
  * lesson. The teaching assignment is the school authority; neither a stale
  * profile school pointer nor students.class_id may decide lesson identity.
+ *
+ * Opening a valid lesson also activates that exact authorized school through
+ * the guarded context RPC. This keeps older teacher consumers that still read
+ * legacy school pointers aligned with the canonical assignment during the
+ * transition to teacher_get_operating_context.
  */
 export async function loadLessonContext({
   userId,
@@ -63,6 +68,12 @@ export async function loadLessonContext({
   if (classResult.data.school_id !== schoolId) {
     throw new Error('lesson_context_class_school_mismatch')
   }
+
+  const { error: activateError } = await supabase.rpc(
+    'teacher_set_active_school',
+    { p_school_id: schoolId },
+  )
+  if (activateError) throw activateError
 
   const [schoolResult, enrollmentResult, previousResult] = await Promise.all([
     supabase
