@@ -11,7 +11,7 @@ export const HQ_THEME = {
 
 const desktopLinks = [
   ["Command", "/hq"], ["Live", "/hq/intelligence"], ["Users", "/hq/users"], ["Schools", "/hq/schools"], ["Learning", "/hq/analytics"],
-  ["Content", "/hq/curriculum-intelligence/engine"], ["Revenue", "/hq/billing"], ["Workforce", "/hq/workforce"], ["Security", "/hq/security"],
+  ["Content", "/hq/curriculum-intelligence/engine"], ["Revenue", "/hq/billing"], ["Workforce", "/hq/workforce"], ["Commissioning", "/hq/workforce/readiness"], ["Security", "/hq/security"],
   ["Decisions", "/hq/decisions"], ["Studio", "/hq/studio"], ["Publishing", "/hq/content"], ["Authority", "/hq/curriculum-authority"],
 ] as const
 
