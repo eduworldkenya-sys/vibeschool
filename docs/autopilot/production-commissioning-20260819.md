@@ -23,7 +23,9 @@ Read-only inspection of Supabase project `yauqsxggtuxuykcbrtzf` during current-m
 - execution budgets: 18
 - execution intents: 0
 - execution verifications: 0
-- task verifications: 2
+- task verifications: 0
+- outcome verifications: 2
+- verifier assignments: 0
 - execution breakers: 0
 - tripped breakers: 0
 - dead letters: 1
@@ -44,11 +46,13 @@ The four commissioning schema changes already exist in production under these ca
 
 This replaces stale branch-only timestamps that collided with current-main migrations and prevents accidental re-execution of already-applied commissioning schema.
 
+## Historical evidence classification
+
+The two records previously reported as task verifications are actually `hq_workforce_outcome_verifications`. The canonical `hq_workforce_task_verifications` table remains empty, as do execution verifications and verifier assignments. The existing dead letter is historical Content Factory Gate-2 evidence for worker `content-factory-r2-canary-01`, error `CONTENT_SEMANTIC_VERIFY_FAILED`, created 2026-08-18 21:08:52 UTC; it is retained as evidence and is not deleted or rewritten.
+
 ## Safety interpretation
 
 Production remains fail-closed. The canonical Founder/constitution read model, owner-governed runtime setter, owner breaker reset, execution-ledger write closure, and durable shadow-lineage trigger are present. `service_role` cannot execute runtime activation, cannot invoke the legacy breaker reset, and cannot directly update execution budgets or dead letters.
-
-The two task-verification rows are treated as historical evidence requiring classification; they are not execution-verification records and do not establish production Autopilot activation. Execution intents and execution verifications remain zero.
 
 ## Owner gates preserved
 
