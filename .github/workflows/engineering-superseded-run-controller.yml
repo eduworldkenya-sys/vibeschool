@@ -1,0 +1,68 @@
+name: Engineering Superseded Run Controller
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: engineering-superseded-controller-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write
+
+jobs:
+  cancel-obsolete-disposable-runs:
+    name: Cancel obsolete disposable PR runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Cancel only superseded non-record runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pr = context.payload.pull_request;
+            const currentHead = pr.head.sha;
+            const branch = pr.head.ref;
+
+            // Never cancel evidence classes where interrupted execution could hide
+            // a security/integrity finding or destroy a certification-of-record.
+            const preserve = /(security|authorization|privacy|rls|grant|migration|reconstruction|drift|audit|production\s+promotion|promotion|certification[- ]of[- ]record)/i;
+            const statuses = ['queued', 'in_progress'];
+            let cancelled = 0;
+            let preserved = 0;
+
+            for (const status of statuses) {
+              const runs = await github.paginate(github.rest.actions.listWorkflowRunsForRepo, {
+                owner,
+                repo,
+                branch,
+                event: 'pull_request',
+                status,
+                per_page: 100
+              });
+
+              for (const run of runs) {
+                if (run.head_sha === currentHead) continue;
+                if (preserve.test(run.name || '')) {
+                  preserved += 1;
+                  core.info(`preserve superseded evidence run ${run.id}: ${run.name} @ ${run.head_sha}`);
+                  continue;
+                }
+                try {
+                  await github.rest.actions.cancelWorkflowRun({owner, repo, run_id: run.id});
+                  cancelled += 1;
+                  core.info(`cancelled superseded run ${run.id}: ${run.name} @ ${run.head_sha}`);
+                } catch (error) {
+                  // A run may finish between listing and cancellation. Treat 409 as benign race.
+                  if (error.status !== 409) throw error;
+                  core.info(`run ${run.id} completed before cancellation`);
+                }
+              }
+            }
+
+            core.notice(`Superseded run convergence: cancelled=${cancelled}, preserved_evidence=${preserved}, exact_head=${currentHead}`);

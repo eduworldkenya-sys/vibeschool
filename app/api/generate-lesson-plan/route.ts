@@ -1,30 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-import {
-  parseGeneratedLessonPlan,
-} from '@/lib/teaching/lessonPlanCodec'
+import { parseGeneratedLessonPlan } from '@/lib/teaching/lessonPlanCodec'
 
 function getAdminSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
   if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error(
-      'Supabase server credentials are not configured'
-    )
+    throw new Error('Supabase server credentials are not configured')
   }
 
-  return createClient(
-    supabaseUrl,
-    serviceRoleKey,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    }
-  )
+  return createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 const CREDIT_COST = 1
@@ -34,9 +23,8 @@ export async function POST(req: NextRequest) {
   try {
     const supabaseAdmin = getAdminSupabase()
 
-    // 1. Auth — get teacher from bearer token
     const authHeader = req.headers.get('authorization') ?? ''
-    const token = authHeader.replace('Bearer ', '')
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : ''
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
@@ -44,7 +32,26 @@ export async function POST(req: NextRequest) {
 
     const teacherId = user.id
 
-    // 2. Get or create credit wallet
+    // This endpoint uses service-role writes. Verify current teacher authority
+    // before creating wallets, spending credits, or calling the model.
+    const [{ data: profile }, { data: teacherAssignment }] = await Promise.all([
+      supabaseAdmin
+        .from('profiles')
+        .select('role')
+        .eq('id', teacherId)
+        .maybeSingle(),
+      supabaseAdmin
+        .from('teacher_classes')
+        .select('id')
+        .eq('teacher_id', teacherId)
+        .limit(1)
+        .maybeSingle(),
+    ])
+
+    if (profile?.role !== 'teacher' || !teacherAssignment) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     let { data: wallet } = await supabaseAdmin
       .from('vibe_credits')
       .select('balance, total_earned, total_spent')
@@ -52,123 +59,104 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     if (!wallet) {
-      // First time — create wallet with free credits
       const { data: newWallet } = await supabaseAdmin
         .from('vibe_credits')
         .insert({
-          teacher_id:   teacherId,
-          balance:      FREE_CREDITS,
+          teacher_id: teacherId,
+          balance: FREE_CREDITS,
           total_earned: FREE_CREDITS,
-          total_spent:  0,
+          total_spent: 0,
         })
         .select('balance, total_earned, total_spent')
         .single()
       wallet = newWallet
 
-      // Log the free credit grant
       await supabaseAdmin.from('vibe_credit_transactions').insert({
-        teacher_id:    teacherId,
-        type:          'gift',
-        feature:       'signup_bonus',
-        amount:        FREE_CREDITS,
+        teacher_id: teacherId,
+        type: 'gift',
+        feature: 'signup_bonus',
+        amount: FREE_CREDITS,
         balance_after: FREE_CREDITS,
-        notes:         'Free credits on first AI use',
+        notes: 'Free credits on first AI use',
       })
     }
 
-    // 3. Check balance
     if (!wallet || wallet.balance < CREDIT_COST) {
       return NextResponse.json({
-        error:        'insufficient_credits',
-        balance:      wallet?.balance ?? 0,
-        required:     CREDIT_COST,
-        message:      'You have no Vibe Credits. Buy credits to generate lesson plans.',
+        error: 'insufficient_credits',
+        balance: wallet?.balance ?? 0,
+        required: CREDIT_COST,
+        message: 'You have no Vibe Credits. Buy credits to generate lesson plans.',
       }, { status: 402 })
     }
 
-    // 4. Parse request
     const { prompt } = await req.json()
     if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 })
 
-    // 5. Call Anthropic
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         process.env.ANTHROPIC_API_KEY ?? '',
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY ?? '',
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model:      'claude-sonnet-4-6',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2000,
-        messages:   [{ role: 'user', content: prompt }],
+        messages: [{ role: 'user', content: prompt }],
       }),
     })
 
     const anthropicData = await anthropicRes.json()
     if (!anthropicRes.ok) {
       return NextResponse.json({
-        error: anthropicData.error?.message ?? 'AI generation failed'
+        error: anthropicData.error?.message ?? 'AI generation failed',
       }, { status: 500 })
     }
 
-    // 6. Parse plan — only deduct credits after successful generation
-    const text  = anthropicData.content
+    const text = anthropicData.content
       ?.map((b: { type: string; text?: string }) => b.text ?? '')
       .join('') ?? ''
-    const clean = text
-      .replace(/```json|```/g, '')
-      .trim()
+    const clean = text.replace(/```json|```/g, '').trim()
 
     const parsed: unknown = JSON.parse(clean)
     const plan = parseGeneratedLessonPlan(parsed)
 
     if (!plan) {
-      return NextResponse.json(
-        {
-          error: 'invalid_lesson_plan_contract',
-          message:
-            'The generator returned an invalid lesson-plan format.',
-        },
-        { status: 502 },
-      )
+      return NextResponse.json({
+        error: 'invalid_lesson_plan_contract',
+        message: 'The generator returned an invalid lesson-plan format.',
+      }, { status: 502 })
     }
 
-    // 7. Deduct credit atomically
-    const newBalance     = wallet.balance - CREDIT_COST
-    const newTotalSpent  = wallet.total_spent + CREDIT_COST
+    const newBalance = wallet.balance - CREDIT_COST
+    const newTotalSpent = wallet.total_spent + CREDIT_COST
 
     await supabaseAdmin
       .from('vibe_credits')
       .update({
-        balance:      newBalance,
-        total_spent:  newTotalSpent,
-        updated_at:   new Date().toISOString(),
+        balance: newBalance,
+        total_spent: newTotalSpent,
+        updated_at: new Date().toISOString(),
       })
       .eq('teacher_id', teacherId)
 
     await supabaseAdmin.from('vibe_credit_transactions').insert({
-      teacher_id:    teacherId,
-      type:          'spend',
-      feature:       'lesson_plan',
-      amount:        -CREDIT_COST,
+      teacher_id: teacherId,
+      type: 'spend',
+      feature: 'lesson_plan',
+      amount: -CREDIT_COST,
       balance_after: newBalance,
-      notes:         `Generated lesson plan`,
+      notes: 'Generated lesson plan',
     })
 
-    // 8. Return plan + updated balance
     return NextResponse.json({
       plan,
-      credits: {
-        used:      CREDIT_COST,
-        balance:   newBalance,
-        was:       wallet.balance,
-      }
+      credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance },
     })
-
   } catch (e: unknown) {
     return NextResponse.json({
-      error: e instanceof Error ? e.message : 'Unknown error'
+      error: e instanceof Error ? e.message : 'Unknown error',
     }, { status: 500 })
   }
 }

@@ -17,6 +17,10 @@ on:
       - 'scripts/test-ci-production-build-contract.mjs'
   workflow_dispatch:
 
+concurrency:
+  group: ci-production-build-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 

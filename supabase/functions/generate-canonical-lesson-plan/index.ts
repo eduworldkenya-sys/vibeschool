@@ -61,8 +61,17 @@ serve(async (req) => {
   const { data: { user }, error: authError } = await db.auth.getUser(token)
   if (authError || !user) return json({ error: "unauthorized" }, 401)
 
-  // Recover bounded stale reservations before admitting new generation work.
-  // Failed-claim trigger returns any stranded credit exactly once.
+  // This endpoint bypasses RLS through the service role. Authorize the actor
+  // before global recovery, credit claims, model spend, or resource writes.
+  const [{ data: profile }, { data: teacherAssignment }] = await Promise.all([
+    db.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+    db.from("teacher_classes").select("id").eq("teacher_id", user.id).limit(1).maybeSingle(),
+  ])
+  if (profile?.role !== "teacher" || !teacherAssignment) {
+    return json({ error: "forbidden" }, 403)
+  }
+
+  // Recover bounded stale reservations only after caller authorization.
   const { error: recoveryError } = await db.rpc("cla_recover_expired_learning_resource_claims", { p_limit: 100 })
   if (recoveryError) {
     console.error("[generate-canonical-lesson-plan] stale claim recovery failed", recoveryError)
@@ -139,8 +148,6 @@ serve(async (req) => {
       }
     }
 
-    // Reusable candidate prompt: deliberately excludes teacher name, school,
-    // class/stream, learner count, previous lessons, deadlines and teacher focus.
     const prompt = [
       "You are producing a reusable Kenyan curriculum lesson-plan candidate.",
       "The output must be context-free and reusable across unrelated teachers and schools.",

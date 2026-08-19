@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "lifecycle": ["DEVELOPING", "BRANCH GREEN", "RECONCILE REQUIRED", "RECONCILING", "INTEGRATION GREEN", "MERGE ELIGIBLE", "MERGED"],
+  "exception_states": ["BLOCKED", "SUPERSEDED", "SECURITY RED", "PRODUCTION HOLD"],
+  "failure_reasons": ["STALE_MAIN", "STALE_HEAD", "SEMANTIC_COLLISION", "MIGRATION_COLLISION", "DB_RECONSTRUCTION_FAILURE", "AUTH_CONTRACT_CHANGED", "RLS_SECURITY_RED", "GENERATED_TYPES_DRIFT", "BUILD_FAILURE", "WORKFLOW_SECURITY_RED", "PRODUCTION_DRIFT", "UPSTREAM_INVALIDATION"],
+  "impact_domains": ["DATABASE", "GENERATED_TYPES", "RLS_GRANTS", "AUTH", "IDENTITY", "SCHOOL_IDENTITY", "STORAGE", "RPC", "EDGE_FUNCTIONS", "SHARED_PROVIDERS_ROUTES", "NOTIFICATIONS", "ASSESSMENTS", "WORKER_AUTOPILOT_AUTHORITY", "TELEMETRY", "HQ_SHARED_SURFACES", "PRODUCTION_CONFIGURATION", "CI"],
+  "exclusive_domains": ["DATABASE", "GENERATED_TYPES", "RLS_GRANTS", "AUTH", "IDENTITY", "SCHOOL_IDENTITY", "WORKER_AUTOPILOT_AUTHORITY", "PRODUCTION_CONFIGURATION", "CI"],
+  "production_mode": "READ_ONLY",
+  "rules": {
+    "exact_current_main_required": true,
+    "exact_head_evidence_required": true,
+    "migration_versions_globally_unique": true,
+    "affected_downstream_invalidated_on_main_advance": true,
+    "unaffected_certification_may_be_retained": true,
+    "security_coverage_may_not_be_reduced": true,
+    "superseded_ci_is_not_promotion_evidence": true,
+    "concurrent_exclusive_domain_promotion_forbidden": true
+  }
+}
