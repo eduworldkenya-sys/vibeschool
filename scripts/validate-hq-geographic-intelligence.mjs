@@ -39,7 +39,8 @@ for(const [fn,source] of Object.entries(functionSources)){
 }
 
 if(!levelSemantics.includes('public.school_levels')) throw new Error('School level intelligence must consume canonical school_levels')
-if(/p_school_level[\s\S]{0,500}school_type/i.test(levelSemantics)) throw new Error('School level filter may not use institution ownership/type semantics')
+if(!/v_level[\s\S]{0,900}exists\s*\(select 1 from public\.school_levels sl where sl\.school_id=s\.id and upper\(sl\.level\)=v_level\)/i.test(levelSemantics)) throw new Error('School level filter must be enforced through canonical school_levels')
+if(/v_level[\s\S]{0,900}(?:s\.school_type|s\.school_category)\s*=/i.test(levelSemantics)) throw new Error('School level filter may not compare institution type/category as level')
 if(!levelSemantics.includes('institution_type')) throw new Error('Institution type must remain distinct from school level')
 if(!levelSemantics.includes('school_aliases')) throw new Error('School search must consume canonical aliases')
 if(!levelSemantics.includes('limit v_limit')) throw new Error('School explorer payload must be bounded')
