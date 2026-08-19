@@ -1,116 +1,113 @@
-# VibeSchool Autopilot — Canonical Architecture Reconstruction
+# VibeSchool Autopilot — Canonical Architecture Reconstruction & Certification
 
 Date: 2026-08-19
-Branch baseline: `8fff836a89cc3ebb9499cde77d654667be553e8a`
-State: ARCHITECTURE FROZEN
+Branch base/current main at certification: `8fff836a89cc3ebb9499cde77d654667be553e8a`
+State: INTEGRATION GREEN / READY FOR PROMOTION
 
-## Decision
+## Canonical architecture
 
-VibeSchool Autopilot is not a replacement Worker Engine and not a second HQ. It is the governance/orchestration contract over the existing Worker Engine execution subsystem, HQ Founder surface, Content Factory, Curriculum Intelligence and evidence systems.
+VibeSchool Autopilot is the governance/orchestration contract over the existing Worker Engine execution subsystem, HQ Founder surface, Content Factory, Curriculum Intelligence and evidence systems. It is not a replacement Worker Engine or second HQ.
 
-Canonical loop:
+`Objective/Intent -> Approved Plan -> Work -> Constitution/Policy -> Authority -> Budget -> Execution Intent/Lease -> Execution -> Artifact/Evidence -> Independent Verification -> Outcome -> Finding/Decision/Dead Letter/Learning -> HQ`
 
-`Objective/Intent -> Approved Plan -> Plan Step/Work -> Constitution/Policy -> Capability Authority -> Budget -> Lease/Execution Intent -> Execution -> Artifact/Evidence -> Independent Verification -> Outcome -> Finding/Decision/Dead Letter/Learning -> HQ`
+No broad parallel `autopilot_*` schema is permitted unless reconstruction proves a primitive genuinely absent.
 
-No broad parallel `autopilot_*` schema is permitted unless reconstruction proves a primitive is genuinely absent.
-
-## Eight contracts and canonical owners
+## Eight contracts
 
 | Contract | Canonical owner |
 |---|---|
-| Intent | `hq_workforce_objectives` plus objective events/context |
-| Work | `hq_workforce_plans`, `hq_workforce_plan_steps`, dependencies and task contracts |
-| Authority | capability authority grants intersected with runtime policy, certified capability/skill, resource scope and owner-approved plan hash |
-| Budget | `hq_workforce_execution_budgets` plus runtime rate/concurrency ceilings |
-| Execution | task contract + execution intent + canonical consequential gateway + immutable execution evidence |
-| Artifact | existing HQ artifact/version/provenance/approval system and vertical immutable artifact ledgers |
-| Verification | verifier assignments + execution verifications + task/outcome verification evidence |
-| Outcome | execution outcomes/escalations mapped to findings, decisions, dead letters, incidents and learning evidence |
+| Intent | workforce objectives/events/context |
+| Work | plans, steps, dependencies, task contracts |
+| Authority | capability-authority grants intersected with policy, certified capability/skill, resource scope and approved plan hash |
+| Budget | execution budgets plus rate/concurrency ceilings |
+| Execution | task contract, execution intent, consequential gateway and immutable evidence |
+| Artifact | HQ artifact/version/provenance plus vertical immutable ledgers |
+| Verification | verifier assignments, execution/task/outcome verification |
+| Outcome | execution outcomes mapped to findings, decisions, dead letters, incidents and learning |
 
 ## Constitution
 
-The Constitution is machine-enforced by intersection, not by a markdown manifesto. Effective authority is the minimum permitted by:
+Effective authority is the minimum allowed by owner-controlled engine/global-stop state, runtime policy, certified capability/skill/tool contract, authority-grant lifecycle, immutable approved plan hash, resource scope, autonomy/risk ceilings, execution budget/rate/concurrency limits, breaker state, idempotency/preconditions, verification and compensation requirements.
 
-1. owner-controlled engine contract/global stop;
-2. enabled runtime policies;
-3. certified capability version;
-4. certified skill/tool contract;
-5. capability-authority grant lifecycle;
-6. approved immutable plan hash;
-7. resource/scope constraints;
-8. autonomy/risk ceilings;
-9. execution budget/rate/concurrency ceilings;
-10. breaker state;
-11. required idempotency/preconditions;
-12. required independent verification and compensation.
-
-`service_role` is transport, not Founder authority. A worker cannot certify/activate its own grant, modify owner policy, approve an objective, release Global Stop or expand its own autonomy.
+`service_role` is transport, not Founder authority. Workers cannot activate their own grant, modify owner policy, approve objectives, release Global Stop or expand autonomy.
 
 ## Primitive classification
 
-| Primitive | Classification | Future responsibility |
-|---|---|---|
-| Worker Engine | KEEP + EXTEND | canonical execution/workforce subsystem |
-| HQ | KEEP + EXTEND | Founder operating/read-model surface |
-| objectives/events/context | KEEP | intent/objective truth |
-| plans/steps/dependencies | KEEP | planning/work graph |
-| task contracts | KEEP + EXTEND | executable work envelope |
-| capabilities/skills/resources | KEEP | machine capability ontology |
-| capability authority grants | KEEP + EXTEND | bounded executable authority |
-| runtime policies/engine contract | KEEP + EXTEND | Constitution inputs/global stop |
-| execution budgets | KEEP | budget/rate/blast-radius envelope |
-| execution intents | KEEP + EXTEND | idempotent consequential-intent evidence |
-| task runs | KEEP | attempt/lease execution state |
-| execution verifications | KEEP + EXTEND | immutable independent execution proof |
-| verifier assignments | KEEP | separation-of-duty binding |
-| execution outcomes/escalations | KEEP + EXTEND | deterministic outcome routing |
-| compensation | KEEP | reversible recovery evidence |
-| breakers/events | KEEP | circuit-breaker truth/history |
-| dead letters | KEEP | exhausted/terminal recovery lane |
-| HQ findings | KEEP | exception intelligence |
-| HQ decisions | KEEP + EXTEND | Founder-authority decisions |
-| HQ artifacts/version/provenance | KEEP + EXTEND | generic immutable output/provenance |
-| Content R2 research/verifier/authoring | KEEP | first vertical adapter/proof |
-| broad duplicate `autopilot_*` tables | RETIRE/DO NOT CREATE | would create competing architecture |
+KEEP/EXTEND: Worker Engine, HQ, objectives, plans/steps/dependencies, task contracts, capabilities/skills/resources, authority grants, runtime policies/engine contract, budgets, execution intents/runs/verifications, verifier assignments, outcomes, compensation, breakers, dead letters, findings, decisions, artifacts/provenance and Content R2 research/verifier/authoring.
+
+RETIRE/DO NOT CREATE: duplicate broad `autopilot_workers`, `autopilot_runs`, `autopilot_authority_grants`, `autopilot_execution_intents` or competing ledgers.
 
 ## Organizational identities
 
-Human-facing names are aliases only. They never participate in authorization predicates.
+Presentation-only aliases are defined in `lib/autopilot/organization.ts` with no authorization data:
 
-Provisional organizational presentation:
+- Laban — Cofounder / Chief Operating Intelligence
+- Travis — Content Leadership
+- David — Operations
+- Mykphyl — Intelligence / Planning
+- Luca — QA / Verification
+- Damian — Platform / Reliability
+- Nina — Research / Evidence
+- Michael — Security / Reconciliation
+- Phyllys — School Success / Institutional Operations
 
-- Laban — Cofounder / Chief Operating Intelligence; planning/orchestration and Founder-decision preparation, never root.
-- Travis — Content leadership.
-- David — Operations.
-- Mykphyl — Intelligence and planning.
-- Luca — QA and independent verification.
-- Damian — Platform and reliability.
-- Nina — Research and evidence.
-- Michael — Security and reconciliation.
-- Phyllys — School success and institutional operations.
+Authorization remains machine-contract-derived. Renaming an alias cannot change permissions.
 
-Authorization remains `worker_id/worker_key + capability/version + resource scope + risk/autonomy + policy version + authority grant + evidence`. Renaming an alias cannot change permissions.
-
-## Laban invariant
-
-Laban may observe, plan, decompose, coordinate, diagnose, recommend retry and prepare decisions. Laban may not approve its own objective, issue/activate its own authority, modify the Constitution, bypass budgets, self-verify high-risk work, release Global Stop, publish protected content, authorize payment or perform unapproved production repair.
+Laban may observe, plan, decompose, coordinate, diagnose, recommend retries and prepare Founder decisions. Laban may not approve its own objective, issue/activate its own authority, modify Constitution, bypass budgets, self-verify high-risk work, release Global Stop, publish protected content, authorize payment or perform unapproved production repair.
 
 ## Content proof
 
-The Content Factory already supplies a strong vertical proof: research evidence -> semantic verification -> source-grounded authoring -> immutable draft -> explicit HQ owner acceptance -> existing prepared editorial patch -> separate proposal approval/apply. The authoring worker cannot research independently, verify itself, approve/apply/publish its output, or bypass Worker Engine model authorization.
+Content Factory supplies the first vertical: trusted research evidence -> semantic verification -> source-grounded authoring -> immutable draft -> explicit HQ owner acceptance -> prepared editorial patch -> separate proposal approval/apply. Authoring cannot independently research, self-verify, approve/apply/publish or bypass Worker Engine model authorization.
 
-Therefore Content must be adapted through the generic contracts rather than copied into the kernel.
+## HQ Autopilot read model
 
-## Production reconstruction snapshot
+`20260819162500_autopilot_canonical_founder_read_model.sql` adds owner-only, read-only projections:
 
-Read-only production reconstruction on 2026-08-19 observed: 9 workforce identities, 9 objectives, 9 plans, 27 plan steps, 27 capability-authority grants, 18 execution budgets, 17 task contracts, 18 workforce runs, 421 HQ automation runs, 1 dead letter, 1 HQ finding, 0 HQ decisions, 0 HQ artifacts, 0 execution intents, 0 execution verifications and 0 task verifications.
+- `hq_autopilot_constitution_snapshot()` — Constitution/runtime/authority/breaker truth.
+- `hq_autopilot_founder_brief()` — completion, independent verification, retries, dead letters, findings and decisions without treating completion as verification.
 
-The zero verification/intents counts are historical/live usage evidence, not proof the repository lacks the schema. Repository truth already contains execution-intent, verifier-assignment, verification, outcome, compensation and forensic contracts. The convergence requirement is to make those contracts canonical and prevent any future consequential execution path from bypassing them.
+Both deny `public`, `anon` and `service_role`; authenticated callers must pass `hq_assert_owner()`.
 
-## Safety state
+## Production reconstruction
 
-This Autopilot line is NON-ACTIVATING. Production Supabase remains read-only for this task. Repository promotion must not enable runtime, heartbeat, Factory, Shadow, autonomy, risk, capability authority, publication, external communication, M-Pesa or production mutation.
+Read-only production observed: 9 identities, 9 objectives, 9 plans, 27 plan steps, 27 authority grants, 18 budgets, 17 task contracts, 18 workforce runs, 421 HQ automation runs, 1 dead letter, 1 finding, 0 decisions, 0 HQ artifacts, 0 execution intents, 0 execution verifications and 0 task verifications.
 
-## Collision policy
+The zero intent/verification counts are live usage evidence, not missing repository primitives. Future consequential execution must traverse the existing canonical intent/verification contracts.
 
-Upstream shared-foundation work owns domain truth. Autopilot owns only the generic orchestration contract. Shared concepts receive compatibility tests; duplicate architectures are forbidden. Before promotion this branch must reconcile against exact-current `main` and re-run the full affected contract set.
+## Failure/recovery certification
+
+The permanent Autopilot suite composes Worker Engine production closure covering replay/idempotency, plan binding, authority, budget/rate/concurrency, breaker/global stop, independent verification, compensation, dead letters and forensic evidence. It additionally rejects duplicate control-plane schemas, verifies Founder-only read models, owner-governed authority/runtime, verifier closure, Content publication separation and non-activation.
+
+## Exact implementation-head evidence
+
+Implementation head `2354e7e4cf240c786b18af2e94770c4fffc65e45` passed:
+
+- Autopilot Canonical Control Plane
+- canonical Autopilot SQL contract
+- Worker Engine production closure rerun
+- organizational TypeScript typecheck
+- explicit non-activation assertion
+- Supabase Migration Security Contract
+- TBL-011 Isolated Clean Rebuild
+- TBL-012 M(repo) extractor
+- TypeScript and Production Build Gate
+- CI Production Build Contract
+- Auth & Onboarding Hardening
+- Task 2 Database Reconstruction Integrity
+- Teacher Pilot Task 4
+- Student Core Journey Pilot
+- Student One Full Journey
+- Student One Legacy Identity Recovery
+- Parent Core Journey Contract
+
+This final documentation-only update changes no executable behavior; repository gates must still be green on its resulting SHA before merge.
+
+## Exact-main reconciliation
+
+At certification, `main` remained exactly `8fff836a89cc3ebb9499cde77d654667be553e8a`, the branch base. No intervening upstream commits existed to reconcile. Re-check immediately before merge.
+
+## Safety / commissioning handover
+
+Repository merge is NON-ACTIVATING. Production Supabase remained read-only. No production migration, RLS/grant, Edge Function, data repair, publication, communication, payment, runtime/autonomy, authority grant or Global Stop change was performed.
+
+Expected post-merge state: architecture active in code; governance contracts present; production autonomy unchanged/off; Global Stop preserved; unbounded worker authority none; Founder authority preserved; Content ready only for a separately authorized controlled commissioning phase.
