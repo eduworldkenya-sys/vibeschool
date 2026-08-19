@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "states": [
+    "DEVELOPING",
+    "BRANCH GREEN",
+    "RECONCILE REQUIRED",
+    "RECONCILING",
+    "INTEGRATION GREEN",
+    "SECURITY GREEN",
+    "MERGE READY",
+    "MERGED FOUNDATION",
+    "BLOCKED FOUNDATION",
+    "BLOCKED SECURITY",
+    "BLOCKED DATA INTEGRITY",
+    "BLOCKED PRODUCTION DRIFT",
+    "SUPERSEDED",
+    "ABANDONED"
+  ],
+  "foundation_promotion_order": ["T2", "T1", "T3", "T8", "T4", "T5", "T6", "T7"],
+  "security_domains": ["AUTHORIZATION", "AUTH", "IDENTITY", "DATABASE", "WORKER", "PAYMENTS"],
+  "shared_domains": ["AUTH", "DATABASE", "AUTHORIZATION", "IDENTITY", "CI"],
+  "domains": {
+    "AUTH": ["src/app/auth/", "app/auth/", "src/lib/auth", "lib/auth", "middleware", "oauth", "password", "onboarding"],
+    "DATABASE": ["supabase/migrations/", "supabase/schema", "database.types", "types/database"],
+    "AUTHORIZATION": ["rls", "grant", "revoke", "security_definer", "storage", "authorization", "policy"],
+    "IDENTITY": ["profile", "student", "teacher", "parent", "school_identity", "membership", "claim"],
+    "HQ": ["src/app/hq/", "app/hq/", "hq_", "founder"],
+    "WORKER": ["worker", "autopilot", "workforce"],
+    "TELEMETRY": ["telemetry", "analytics", "observability", "metric", "event"],
+    "PAYMENTS": ["mpesa", "payment", "daraja", "wallet", "finance"],
+    "CI": [".github/workflows/", ".github/actions/", ".github/control-plane/", "engineering_control_plane", "ci/"]
+  }
+}

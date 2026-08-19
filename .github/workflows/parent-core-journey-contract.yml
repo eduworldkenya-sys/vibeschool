@@ -2,8 +2,25 @@ name: Parent Core Journey Contract
 
 on:
   pull_request:
+    paths:
+      - 'app/parent/**'
+      - 'components/parent/**'
+      - 'lib/**parent**'
+      - 'scripts/validate-parent-*.py'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'middleware.ts'
+      - 'src/middleware.ts'
+      - 'app/auth/**'
+      - 'lib/auth/**'
+      - 'types/database*'
+      - 'database.types*'
   push:
     branches: [main]
+
+concurrency:
+  group: parent-core-journey-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
