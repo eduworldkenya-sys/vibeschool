@@ -10,7 +10,7 @@ Task 15 must remain unmerged until all shared foundations ahead of it have merge
 
 ## Starting state
 
-- Starting `main`: `77051a4011d7712a275f76af41efed382f017398`.
+- Starting/current `main`: `77051a4011d7712a275f76af41efed382f017398`.
 - Existing HQ surface: `app/hq/workforce/page.tsx` with Overview, Workers, Jobs, Shadow Runs, Decisions, Skills, Authority, Evidence, Failures and Resources.
 - Existing owner read RPC: `hq_workforce_get_control_room_snapshot(integer)`.
 - Existing owner review RPC: `hq_workforce_owner_review_shadow_decision(uuid,text,text)`.
@@ -18,7 +18,7 @@ Task 15 must remain unmerged until all shared foundations ahead of it have merge
 
 ## Production read-only baseline — 2026-08-19
 
-Production project was inspected with SELECT/catalog/advisor reads only.
+Production was inspected using SELECT/catalog/advisor reads only.
 
 Observed authoritative state:
 
@@ -32,16 +32,17 @@ Observed authoritative state:
 - Global Stop: ACTIVE
 - active global runtime policy: 0
 - active R1.4 capability authority: 0
+- active legacy/foundational worker capability grants: 0
 - tripped global execution breaker rows: 0
 - active workers: 10
 - open operational work items: 48
 - open owner shadow decisions: 1
 
-The owner runtime/control functions are present in production, including `hq_workforce_owner_set_runtime`, `hq_workforce_owner_put_runtime_policy`, and `hq_workforce_owner_transition_capability_authority`.
+Production contains three currently certified L1/R1 content capability packages (`content.authoring.source_grounded`, `content.evidence.semantic_verify`, `content.research.execute`) with certified skills and approved tool contracts. However, zero active foundational worker capability grants means no worker is currently eligible for consequential autonomous authority. Task 15 deliberately surfaces that commissioning gap instead of manufacturing authority.
 
 ### Production drift discovered
 
-Repository function `hq_workforce_owner_set_runtime` currently references `hq_workforce_capability_authority_grants.effective_from`, but production has no `effective_from` column. Production uses lifecycle timestamps including `issued_at`, `certified_at`, `activated_at` and `expires_at`.
+Repository function `hq_workforce_owner_set_runtime` references `hq_workforce_capability_authority_grants.effective_from`, but production has no `effective_from` column. Production uses lifecycle timestamps including `issued_at`, `certified_at`, `activated_at` and `expires_at`.
 
 This is a shared Worker Engine / migration-integrity dependency. Task 15 does not mutate production to repair it and does not weaken activation checks around it. Final activation simulation is blocked until the canonical upstream function is reconciled.
 
@@ -63,6 +64,7 @@ Control Room presents:
 - open decisions
 - breaker count
 - heartbeat/factory/anomaly state
+- authority-readiness prerequisites
 - explicit global operating envelope
 - temporary authority detail and lifecycle actions
 - circuit-breaker history/state and bounded recovery
@@ -74,9 +76,42 @@ Detailed tabs remain: Workers, Jobs, Shadow Runs, Decisions, Skills, Authority, 
 
 If Task 15 operational RPCs are not commissioned in the target environment, the UI fails into a visible read-only mode rather than presenting fake controls.
 
+### Authority readiness and temporary draft creation
+
+Added owner-gated `hq_workforce_owner_authority_catalog(integer)`. It exposes only packages that already satisfy foundational Worker Engine prerequisites:
+
+- active worker lifecycle
+- active canonical worker identity
+- worker certification
+- certified capability version
+- certified, unexpired implementing skill
+- approved matching tool contract
+- active, unexpired foundational `hq_workforce_capability_grants` authority
+- scope allowed by the certified skill
+- active execution budget
+- no overlapping nonterminal R1.4 authority grant
+
+The Control Room shows counts for certified packages, active identities, foundational grants, active budgets and eligible packages. When prerequisites are absent it explicitly explains the missing commissioning boundary.
+
+Added owner-gated `hq_workforce_owner_issue_authority_draft(...)`. The browser supplies only bounded operating limits and an audit reason. The server derives worker/capability/skill/tool/scope, required autonomy/risk, verification, compensation, preconditions and maximum effective expiry from canonical backend truth, then calls the existing service-only `hq_workforce_issue_capability_authority_draft(...)` constructor.
+
+The bridge can create **DRAFT only**. It cannot create worker identity, certification, foundational capability authority, budgets, runtime policy or active R1.4 authority. It requires runtime OFF and rejects overlapping nonterminal authority.
+
+A contract review caught and fixed a verification-shape mismatch before certification: the canonical R1.4 constructor requires a JSON object for `verification_contract`; the Task 15 bridge now supplies an object carrying the certified capability verification contract, skill verification requirement and tool binding.
+
+Owner lifecycle remains:
+
+- eligible certified package -> Create temporary authority draft
+- Draft -> Certify
+- Certified -> Activate
+- Active -> Suspend
+- Draft/Certified/Active/Suspended -> Revoke
+
+Authority activation is rejected server-side while Global Stop is active, including direct RPC manipulation.
+
 ### Safety envelope
 
-The owner can configure the actual global runtime policy ceilings from HQ while runtime is OFF:
+The owner can configure actual global runtime policy ceilings from HQ while runtime is OFF:
 
 - policy enabled/disabled state
 - maximum autonomy
@@ -89,120 +124,45 @@ The owner can configure the actual global runtime policy ceilings from HQ while 
 
 ### Start Controlled Operations
 
-The UI is not a raw ON switch.
+The UI is not a raw ON switch. Activation review shows Runtime OFF -> ON, current -> proposed autonomy/risk, active temporary authority and global policy ceilings.
 
-Activation review shows:
-
-- Runtime OFF -> ON
-- current -> proposed autonomy
-- current -> proposed maximum risk
-- active temporary authority count
-- global policy ceilings
-
-The backend wrapper requires:
-
-- `hq_assert_owner()`
-- authenticated owner identity
-- current expected engine `updated_at` stale-state token
-- Global Stop released
-- existing canonical runtime activation invariants
-- explicit audit reason
-
-Activation never creates capability authority automatically.
-
-### Temporary authority
-
-Existing governed capability-authority grants are understandable in HQ by capability/version, worker scope, operation/resource, autonomy/risk, lifecycle state and expiry.
-
-The owner can perform governed lifecycle transitions without direct table writes:
-
-- Draft -> Certify
-- Certified -> Activate
-- Active -> Suspend
-- Draft/Certified/Active/Suspended -> Revoke
-
-Authority activation is rejected server-side while Global Stop is active, even if a caller manipulates the frontend or invokes the RPC directly.
-
-Initial authority-draft authoring remains owned by the existing certified capability/skill/tool pipeline (`hq_workforce_issue_capability_authority_draft`) rather than letting the browser invent execution contracts. This must be re-evaluated after Worker Engine commissioning PR #279 lands; the final owner journey must not require routine SQL.
+The backend requires `hq_assert_owner()`, authenticated owner identity, a current engine `updated_at` stale-state token, Global Stop released, existing canonical runtime activation invariants and explicit audit reason. Activation never creates capability authority automatically.
 
 ### Stop Operations
 
-Normal Stop is distinct from Global Stop.
-
-Normal Stop:
-
-- invokes canonical owner runtime shutdown when needed
-- produces OFF / L0 / R0
-- suspends every currently active R1.4 capability-authority grant
-- performs authority cleanup even if runtime was already OFF
-- records owner control evidence
-- is idempotent only when both runtime posture and authority cleanup are already satisfied
+Normal Stop is distinct from Global Stop. It invokes canonical shutdown when needed, produces OFF/L0/R0, suspends all active R1.4 authority, performs authority cleanup even if runtime was already OFF, records owner evidence and is idempotent only when both runtime posture and authority cleanup are already satisfied.
 
 ### Global Stop
 
-Emergency Global Stop:
+Emergency Global Stop forces runtime OFF/L0/R0, disables heartbeat/factory/shadow scheduling, activates Global Stop, trips deterministic breaker reason `owner_global_stop`, suspends active R1.4 authority, preserves evidence and records owner action evidence.
 
-- forces runtime OFF / L0 / R0
-- disables heartbeat and factory
-- disables shadow execution/scheduler
-- sets Global Stop active
-- trips deterministic global breaker reason `owner_global_stop`
-- suspends active R1.4 capability authority
-- preserves evidence
-- records owner action evidence
+Releasing Global Stop resets only tripped global breakers with reason `owner_global_stop`, leaves unrelated anomaly/budget/operator breakers intact, leaves runtime OFF/L0/R0 and heartbeat/factory OFF, and never reactivates authority or workers.
 
-Releasing Global Stop:
-
-- resets only tripped global breakers with reason `owner_global_stop`
-- does **not** clear unrelated anomaly/budget/operator breakers
-- leaves runtime OFF / L0 / R0
-- leaves heartbeat/factory OFF
-- does not reactivate authority
-- does not start workers automatically
-
-Non-global breaker reset requires owner authorization and runtime OFF. Global breaker recovery is routed through Global Stop semantics to avoid bypassing emergency containment.
+Non-global breaker reset requires owner authorization and runtime OFF. Global breaker recovery is routed through Global Stop semantics.
 
 ### Owner audit ledger
 
-Added `hq_workforce_owner_control_events` with RLS enabled and direct public/anon/authenticated access revoked. Owner-facing reads occur through the owner-gated snapshot; service transport receives SELECT only.
-
-Recorded state includes actor, previous state, requested state, result state, outcome, reason and timestamp.
+Added `hq_workforce_owner_control_events` with RLS enabled and direct public/anon/authenticated access revoked. Service transport receives SELECT only; owner-facing reads occur through an owner-gated RPC. Evidence includes actor, previous/requested/result state, outcome, reason and timestamp.
 
 ## Security posture
 
-New consequential RPCs are `SECURITY DEFINER` with fixed `search_path`, call `hq_assert_owner()`, require authenticated owner identity and are denied to `public`, `anon` and `service_role`; authenticated callers can reach the RPC boundary but canonical owner authorization remains authoritative.
+New owner RPCs are `SECURITY DEFINER` with fixed `search_path`, call `hq_assert_owner()`, require authenticated owner identity where consequential, and are denied to `public`, `anon` and `service_role`; authenticated callers can reach the RPC boundary but canonical owner authorization remains authoritative.
 
-No direct owner-control table mutation permission is granted to ordinary authenticated users.
+No direct owner-control table mutation permission is granted to ordinary authenticated users. Task 15 migrations are non-activating and do not issue active authority during installation.
 
-Task 15 migrations are non-activating and do not issue authority during installation.
+Production Supabase security advisors still report broader pre-existing warnings such as mutable search paths/permissive policy debt. Those are shared-foundation work, especially Task 2/Task 8; Task 15 does not claim they are resolved.
 
 ## Regression protection
 
-Added:
+Added/strengthened:
 
 - `scripts/verify-task15-control-room.mjs`
 - `.github/workflows/task15-control-room-contract.yml`
 - `supabase/tests/task15_hq_workforce_control_room.sql`
 
-The contracts cover:
+Contracts cover owner gating, privileged-function posture, direct audit-table DML denial, fixed `search_path`, stale-state protection, deliberate confirmation, non-activating policy adjustment, authority-readiness prerequisites, canonical draft construction, runtime-off draft authoring, overlapping authority denial, Stop/Global Stop separation, Stop cleanup from an already-OFF runtime, Global Stop authority neutralization, Global Stop release isolation from unrelated breakers, direct authority activation denial during Global Stop, breaker recovery semantics, audit evidence, safe read-only fallback and held-lane OFF/L0/R0.
 
-- owner gate presence and privileged-function posture
-- direct audit-table DML denial
-- fixed `search_path`
-- stale-state protection
-- deliberate confirmation contract
-- non-activating global-policy adjustment
-- Stop/Global Stop separation
-- Stop cleanup from an already-OFF runtime
-- Global Stop authority neutralization
-- Global Stop release isolation from unrelated breakers
-- direct authority activation denial during Global Stop
-- breaker recovery runtime-off semantics
-- audit evidence
-- safe missing-RPC/read-only fallback
-- held-lane OFF/L0/R0 invariant
-
-A full role/JWT behavior matrix and dynamic failure injection remain required in the disposable exact-candidate database after shared identity/security foundations settle.
+A full role/JWT behavior matrix and dynamic A–J failure injection remain required in the disposable exact candidate after shared identity/security foundations settle.
 
 ## Dependency tracking
 
@@ -211,14 +171,16 @@ A full role/JWT behavior matrix and dynamic failure injection remain required in
 | Task 2 database migration integrity / PR #282 | OPEN / HOLD | Must reconcile clean reconstruction and repository↔production Worker Engine drift. |
 | Task 8 authorization/privacy / PR #288 | OPEN / HOLD | Must re-run owner/non-owner RPC abuse matrix after canonical auth changes. |
 | Task 12 telemetry / PR #289 | OPEN / HOLD | Health/failure UI must consume the final shared observability contract. |
-| Worker Engine commissioning repair / PR #279 | OPEN / HOLD | Must reconcile owner-runtime migration lineage and `effective_from` drift; also re-evaluate authority-draft owner workflow. |
+| Worker Engine commissioning repair / PR #279 | OPEN / HOLD | Must reconcile owner-runtime migration lineage and `effective_from` drift; foundational worker authority remains uncommissioned in production. |
 | Task 14 incident controls | concurrent dependency | Failure/containment integration must be rechecked when shared incident contracts land. |
 
 ## CI / deployment evidence
 
-GitHub Actions for the current branch have been triggered, including Task 15 Control Room Contract, Migration Security, clean rebuild, Worker Engine acceptance, TypeScript and production-build gates. Their results must be recorded only after they complete on the exact current branch head.
+Earlier non-cancelled branch evidence included a successful production build. The first Migration Security run failed only because the new restricted audit table lacked repository-required `access:` / `authorization-test:` declarations; those declarations were added.
 
-A repository integration automatically triggered a **Netlify deploy-preview** for the branch and GitHub reported it successful. This was not intentionally requested as part of Task 15 and is not production certification. No Vercel deployment was intentionally triggered. The preview behavior is an environment-policy concern to reconcile with the standing preview-disable rule.
+The current branch head after authority-readiness wiring is `9b2e708371ec01cc79956f83b9ebe3571baff642`. GitHub Actions had not yet attached completed runs to that exact head at the latest check, so old green evidence is not being promoted to exact-head certification.
+
+A repository integration automatically triggered Netlify deploy previews. This was not intentionally requested as part of Task 15 and is not production certification. No Vercel deployment was intentionally triggered. Preview behavior remains an environment-policy concern against the standing preview-disable rule.
 
 ## Required final certification after shared foundations merge
 
@@ -226,18 +188,19 @@ A repository integration automatically triggered a **Netlify deploy-preview** fo
 2. Reconcile/rebase this branch.
 3. Inspect every Worker Engine/HQ migration and RPC changed upstream.
 4. Reinspect production read-only.
-5. Resolve repository↔production authority-timestamp drift through the owning shared foundation; do not patch production ad hoc from Task 15.
-6. Run isolated clean reconstruction including every Task 15 migration.
-7. Run Migration Security and Supabase security advisors against the isolated candidate.
-8. Prove anonymous, student, parent, teacher, school-admin and non-owner authenticated callers cannot execute Task 15 consequential RPCs.
-9. Prove frontend/direct-RPC parameter manipulation and stale `updated_at` requests fail closed.
-10. Simulate duplicate Start, duplicate Stop, expired authority, over-risk request, exhausted budget, open breaker, Global Stop active, worker failure, Stop during active work and network-loss retry behavior in disposable infrastructure.
-11. Prove authority issued -> active -> expired -> consequential operation denied.
-12. Run Worker Engine governance, incident-control and telemetry contract gates.
-13. Run TypeScript, lint and production build on the exact candidate.
-14. Test Control Room, decision inspection, activation review, Stop and Global Stop at phone widths.
-15. Keep production OFF / L0 / R0 / Global Stop ACTIVE unless a separately approved operational-autonomy decision authorizes otherwise.
-16. Only after every shared dependency and exact-head gate is green may Task 15 merge and receive its intended final application deployment.
+5. Resolve repository↔production authority-timestamp drift through the owning shared foundation.
+6. Re-evaluate production foundational worker identity/capability/budget commissioning; Task 15 must not synthesize missing prerequisites.
+7. Run isolated clean reconstruction including every Task 15 migration.
+8. Run Migration Security and Supabase security advisors against the isolated candidate.
+9. Prove anonymous, student, parent, teacher, school-admin and non-owner authenticated callers cannot execute Task 15 consequential RPCs.
+10. Prove frontend/direct-RPC parameter manipulation and stale `updated_at` requests fail closed.
+11. Simulate duplicate Start, duplicate Stop, expired authority, over-risk request, exhausted budget, open breaker, Global Stop active, worker failure, Stop during active work and network-loss retry behavior in disposable infrastructure.
+12. Prove authority draft -> certify -> activate -> expire -> consequential operation denied.
+13. Run Worker Engine governance, incident-control and telemetry contract gates.
+14. Run TypeScript, lint and production build on the exact candidate.
+15. Test Control Room, authority readiness, decisions, activation review, Stop and Global Stop at phone widths.
+16. Keep production OFF/L0/R0/Global Stop ACTIVE unless a separately approved operational-autonomy decision authorizes otherwise.
+17. Only after every shared dependency and exact-head gate is green may Task 15 merge and receive its intended final application deployment.
 
 ## Production safety record
 
