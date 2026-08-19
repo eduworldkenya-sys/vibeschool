@@ -3,6 +3,7 @@ import fs from "node:fs"
 
 const read = path => fs.readFileSync(path, "utf8")
 const today = read("app/hq/page.tsx")
+const people = read("app/hq/users/page.tsx")
 const shell = read("components/hq/HQShell.tsx")
 const layout = read("app/hq/layout.tsx")
 const middleware = read("middleware.ts")
@@ -10,17 +11,7 @@ const ownerReport = read("supabase/migrations/20260819221000_hq_operating_system
 const workforceRpc = read("supabase/migrations/20260814155000_worker_engine_we_r1_3_control_room_rpc.sql")
 
 const canonicalNav = [
-  ['"Today"','"/hq"'],
-  ['"Operations"','"/hq/intelligence"'],
-  ['"Decisions"','"/hq/decisions"'],
-  ['"Alerts"','"/hq/notifications"'],
-  ['"Schools"','"/hq/schools"'],
-  ['"People"','"/hq/users"'],
-  ['"Product & Learning"','"/hq/analytics"'],
-  ['"Growth"','"/hq/marketing"'],
-  ['"Finance"','"/hq/billing"'],
-  ['"Workforce"','"/hq/workforce"'],
-  ['"Security & Controls"','"/hq/security"'],
+  ['"Today"','"/hq"'],['"Operations"','"/hq/intelligence"'],['"Decisions"','"/hq/decisions"'],['"Alerts"','"/hq/notifications"'],['"Schools"','"/hq/schools"'],['"People"','"/hq/users"'],['"Product & Learning"','"/hq/analytics"'],['"Growth"','"/hq/marketing"'],['"Finance"','"/hq/billing"'],['"Workforce"','"/hq/workforce"'],['"Security & Controls"','"/hq/security"'],
 ]
 
 const checks = [
@@ -43,6 +34,11 @@ const checks = [
   ["Today avoids prior hard-coded subject mastery fallbacks", !today.includes("??85") && !today.includes("??78") && !today.includes("??72") && !today.includes("??68") && !today.includes("??64")],
   ["Today labels learning activity as activity, not effectiveness", today.includes("Activity, not effectiveness")],
   ["Today never equates payment initiation with revenue", today.includes("Never STK initiation")],
+  ["People loads overview evidence independently", people.includes("Promise.allSettled") && people.includes("hq_user_intelligence_overview") && people.includes("hq_founder_value_intelligence")],
+  ["People does not initialize business metrics to plausible zero objects", !people.includes("const emptyUsers") && !people.includes("const emptyValue")],
+  ["People is aggregate-first and targeted-search second", people.includes("Broad account PII is not loaded by default") && people.includes("q.length<2") && people.includes('p_limit:50')],
+  ["People does not fetch the account directory during initial overview load", !people.match(/loadOverview[\s\S]{0,700}hq_user_directory/)],
+  ["People renders failed evidence as Unknown", people.includes('state.status==="live"') && people.includes('"Unknown"')],
   ["HQ layout verifies owner authority before rendering protected client surfaces", layout.includes('hq_check_owner_access') && layout.includes('allowed')],
   ["HQ browser auth remains isolated from ordinary app auth", read("lib/hq/supabase.ts").includes('storageKey: "vibeschool-hq-auth"')],
   ["HQ routes remain private/no-store at middleware boundary", middleware.includes("pathname.startsWith('/hq')") && middleware.includes("private, no-store")],
