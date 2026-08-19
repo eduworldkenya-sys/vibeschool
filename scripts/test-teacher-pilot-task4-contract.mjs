@@ -17,7 +17,8 @@ function routeExists(href) {
   const pathname = href.split('?')[0]
   if (!pathname.startsWith('/teacher')) return true
   const relative = pathname.replace(/^\//, '')
-  return fs.existsSync(`${relative}/page.tsx`) || fs.existsSync(relative)
+  const appRelative = `app/${relative}`
+  return fs.existsSync(`${appRelative}/page.tsx`) || fs.existsSync(appRelative)
 }
 
 const teacherRoot = read('app/teacher/page.tsx')
