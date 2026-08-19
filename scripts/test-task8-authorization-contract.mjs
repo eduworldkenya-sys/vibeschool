@@ -9,6 +9,7 @@ const boundaryMigration = read('supabase/migrations/20260819030000_task8_authori
 const leastPrivilegeMigration = read('supabase/migrations/20260819031500_task8_private_surface_least_privilege.sql')
 const authenticatedPrivilegeMigration = read('supabase/migrations/20260819033000_task8_authenticated_privilege_minimization.sql')
 const twinHelperMigration = read('supabase/migrations/20260819034500_task8_twin_privileged_helper_boundary.sql')
+const defaultPrivilegeMigration = read('supabase/migrations/20260819040000_task8_public_default_privilege_hardening.sql')
 const resetPin = read('app/api/reset-student-pin/route.ts')
 const createStudent = read('app/api/create-student-account/route.ts')
 const generateLesson = read('app/api/generate-lesson-plan/route.ts')
@@ -31,6 +32,13 @@ mustContain(authenticatedPrivilegeMigration, 'revoke truncate, trigger, referenc
 mustContain(authenticatedPrivilegeMigration, 'public.is_school_admin(school_id)', 'notification admin insert must be school-scoped')
 mustContain(authenticatedPrivilegeMigration, 'sc.school_id = notifications.school_id', 'notification learner recipient must be tenant-bound')
 mustContain(authenticatedPrivilegeMigration, "coalesce(psl.access_level,'full') <> 'none'", 'notification parent recipient must require active relationship')
+
+mustContain(defaultPrivilegeMigration, 'alter default privileges for role postgres in schema public', 'postgres public defaults must be hardened')
+mustContain(defaultPrivilegeMigration, 'alter default privileges for role supabase_admin in schema public', 'supabase_admin public defaults must be hardened')
+mustContain(defaultPrivilegeMigration, 'revoke truncate, references, trigger, maintain on tables from anon, authenticated', 'future public tables must not grant structural authority to clients')
+mustContain(defaultPrivilegeMigration, 'revoke update on sequences from anon, authenticated', 'future public sequences must not grant UPDATE by default')
+mustContain(defaultPrivilegeMigration, 'revoke execute on functions from public, anon, authenticated', 'future public functions must require explicit EXECUTE grants')
+mustContain(defaultPrivilegeMigration, "n.nspname = 'public'", 'existing structural-privilege cleanup must be constrained to public')
 
 for (const helper of [
   'twin_record_learning_representation_exposure',
