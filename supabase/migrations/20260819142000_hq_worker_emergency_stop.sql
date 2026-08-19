@@ -1,4 +1,9 @@
 -- Owner emergency stop: one-way safety mutation only. This migration does not invoke it.
+-- access: owner-only public.hq_workforce_owner_control_events
+-- authorization-test: public.hq_workforce_owner_control_events
+-- Direct table access is intentionally denied to browser roles and service_role.
+-- The SECURITY DEFINER emergency-stop RPC is the only application write path and
+-- performs server-side hq_assert_owner() before mutating runtime state or audit evidence.
 create table if not exists public.hq_workforce_owner_control_events(
   id uuid primary key default gen_random_uuid(),
   event_key text not null unique,
@@ -10,8 +15,8 @@ create table if not exists public.hq_workforce_owner_control_events(
   created_at timestamptz not null default clock_timestamp()
 );
 alter table public.hq_workforce_owner_control_events enable row level security;
+alter table public.hq_workforce_owner_control_events force row level security;
 revoke all on table public.hq_workforce_owner_control_events from public,anon,authenticated,service_role;
-grant select on table public.hq_workforce_owner_control_events to service_role;
 
 create or replace function public.hq_workforce_owner_emergency_stop(p_reason text)
 returns jsonb
@@ -71,3 +76,28 @@ end $$;
 revoke all on function public.hq_workforce_owner_emergency_stop(text) from public,anon,service_role;
 grant execute on function public.hq_workforce_owner_emergency_stop(text) to authenticated;
 comment on function public.hq_workforce_owner_emergency_stop(text) is 'Owner-only auditable one-way emergency stop. Can only disable runtime/shadow/factory/heartbeat and establish Global Stop.';
+
+-- Executable reconstruction guard backing the authorization-test declaration.
+-- Fail the migration if any direct client/service privilege is accidentally introduced.
+do $$
+begin
+  if has_table_privilege('anon','public.hq_workforce_owner_control_events','SELECT')
+     or has_table_privilege('anon','public.hq_workforce_owner_control_events','INSERT')
+     or has_table_privilege('anon','public.hq_workforce_owner_control_events','UPDATE')
+     or has_table_privilege('anon','public.hq_workforce_owner_control_events','DELETE')
+     or has_table_privilege('authenticated','public.hq_workforce_owner_control_events','SELECT')
+     or has_table_privilege('authenticated','public.hq_workforce_owner_control_events','INSERT')
+     or has_table_privilege('authenticated','public.hq_workforce_owner_control_events','UPDATE')
+     or has_table_privilege('authenticated','public.hq_workforce_owner_control_events','DELETE')
+     or has_table_privilege('service_role','public.hq_workforce_owner_control_events','SELECT')
+     or has_table_privilege('service_role','public.hq_workforce_owner_control_events','INSERT')
+     or has_table_privilege('service_role','public.hq_workforce_owner_control_events','UPDATE')
+     or has_table_privilege('service_role','public.hq_workforce_owner_control_events','DELETE') then
+    raise exception 'hq_workforce_owner_control_events direct access contract violated';
+  end if;
+  if has_function_privilege('anon','public.hq_workforce_owner_emergency_stop(text)','EXECUTE')
+     or has_function_privilege('service_role','public.hq_workforce_owner_emergency_stop(text)','EXECUTE')
+     or not has_function_privilege('authenticated','public.hq_workforce_owner_emergency_stop(text)','EXECUTE') then
+    raise exception 'hq_workforce_owner_emergency_stop execute contract violated';
+  end if;
+end $$;
