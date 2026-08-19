@@ -1,0 +1,79 @@
+name: HQ Geographic Intelligence Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/hq/geography/**'
+      - 'supabase/migrations/*hq_*.sql'
+      - 'supabase/tests/hq_national_intelligence_contract.sql'
+      - 'scripts/validate-hq-geographic-intelligence.mjs'
+      - '.github/workflows/hq-geographic-intelligence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/hq/geography/**'
+      - 'supabase/migrations/*hq_*.sql'
+      - 'supabase/tests/hq_national_intelligence_contract.sql'
+      - 'scripts/validate-hq-geographic-intelligence.mjs'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hq-geographic-intelligence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  geographic-contract:
+    name: Static architecture contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bounded geography architecture
+        run: node scripts/validate-hq-geographic-intelligence.mjs
+
+  clean-database-contract:
+    name: Clean database / security / semantics
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+      - name: Disable seed for schema-only reconstruction
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then
+            mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled
+          fi
+      - name: Start disposable Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+      - name: Reconstruct repository database
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db reset --local --no-seed
+      - name: Execute National Intelligence contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql \
+            'postgresql://postgres@127.0.0.1:54322/postgres' \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/hq_national_intelligence_contract.sql
+      - name: Stop disposable Supabase
+        if: always()
+        run: supabase stop --no-backup >/dev/null 2>&1 || true
