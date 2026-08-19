@@ -76,7 +76,7 @@ export default function AdminSubjectsSettingsPage() {
       ])
       const firstError = [assignments.error, timetable.error, schemes.error, lessons.error, assessments.error, results.error].find(Boolean)
       if (firstError) throw firstError
-      const evidence = [assignments.count, timetable.count, schemes.count, lessons.count, assessments.count, results.count].reduce((sum, count) => sum + (count ?? 0), 0)
+      const evidence = [assignments.count, timetable.count, schemes.count, lessons.count, assessments.count, results.count].reduce<number>((sum, count) => sum + (count ?? 0), 0)
       if (evidence > 0) throw new Error("This subject is already used by teaching, timetable or assessment records and cannot be deleted.")
       const { error: deleteError } = await supabase.from("subjects").delete().eq("id", row.id).eq("school_id", schoolId)
       if (deleteError) throw deleteError

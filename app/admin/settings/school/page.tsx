@@ -54,11 +54,11 @@ export default function AdminSchoolSettingsPage() {
       setSchoolId(authority.schoolId)
       const { data, error: queryError } = await supabase
         .from("schools")
-        .select("name,subdomain,motto,vision,knec_code,nemis_code,moe_registration_no,tsc_code,county,sub_county,ward,phone,postal_address,school_type,school_category,established_year,directory_source,last_verified_at")
+        .select("*")
         .eq("id", authority.schoolId)
         .single()
       if (queryError) throw queryError
-      const row = data as SchoolRow
+      const row: SchoolRow = data
       setSchool(row)
       setForm({
         name: row.name,

@@ -13,6 +13,12 @@ type CommunityPerson = {
   relationship: string
 }
 
+type ProfileSummary = {
+  id: string
+  full_name: string | null
+  role: string | null
+}
+
 type ThreadRow = {
   id: string
   subject: string | null
@@ -160,11 +166,21 @@ export default function AdminCommunicationPage() {
         .map(row => row.profile_id)
         .filter((id): id is string => Boolean(id && id !== uid))
     ))
-    const profileRes = otherIds.length
-      ? await supabase.from("profiles").select("id,full_name,role").in("id", otherIds)
-      : { data: [], error: null }
-    if (profileRes.error) throw profileRes.error
-    const profiles = new Map((profileRes.data ?? []).map(row => [row.id, row]))
+    const profiles = new Map<string, ProfileSummary>()
+    if (otherIds.length > 0) {
+      const profileRes = await supabase
+        .from("profiles")
+        .select("id,full_name,role")
+        .in("id", otherIds)
+      if (profileRes.error) throw profileRes.error
+      for (const row of profileRes.data ?? []) {
+        profiles.set(row.id, {
+          id: row.id,
+          full_name: row.full_name,
+          role: row.role,
+        })
+      }
+    }
 
     setThreads(((threadRes.data ?? []) as ThreadRow[]).map(thread => {
       const participant = (allParticipantsRes.data ?? []).find(row => row.thread_id === thread.id && row.profile_id && row.profile_id !== uid)

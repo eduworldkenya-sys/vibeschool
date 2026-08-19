@@ -153,7 +153,7 @@ export default function AdminClassesSettingsPage() {
       ])
       const firstError = [students.error, teachers.error, timetable.error, lessons.error, attendance.error, assessments.error].find(Boolean)
       if (firstError) throw firstError
-      const evidence = [students.count, teachers.count, timetable.count, lessons.count, attendance.count, assessments.count].reduce((sum, value) => sum + (value ?? 0), 0)
+      const evidence = [students.count, teachers.count, timetable.count, lessons.count, attendance.count, assessments.count].reduce<number>((sum, value) => sum + (value ?? 0), 0)
       if (evidence > 0) {
         throw new Error("This class has enrollment, teaching or assessment history and cannot be deleted. Historical school records are preserved.")
       }
