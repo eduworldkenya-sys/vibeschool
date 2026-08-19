@@ -10,6 +10,7 @@ const leastPrivilegeMigration = read('supabase/migrations/20260819031500_task8_p
 const authenticatedPrivilegeMigration = read('supabase/migrations/20260819033000_task8_authenticated_privilege_minimization.sql')
 const twinHelperMigration = read('supabase/migrations/20260819034500_task8_twin_privileged_helper_boundary.sql')
 const defaultPrivilegeMigration = read('supabase/migrations/20260819040000_task8_public_default_privilege_hardening.sql')
+const storagePolicyCleanupMigration = read('supabase/migrations/20260819041500_task8_storage_permissive_policy_cleanup.sql')
 const resetPin = read('app/api/reset-student-pin/route.ts')
 const createStudent = read('app/api/create-student-account/route.ts')
 const generateLesson = read('app/api/generate-lesson-plan/route.ts')
@@ -39,6 +40,9 @@ mustContain(defaultPrivilegeMigration, 'revoke truncate, references, trigger, ma
 mustContain(defaultPrivilegeMigration, 'revoke update on sequences from anon, authenticated', 'future public sequences must not grant UPDATE by default')
 mustContain(defaultPrivilegeMigration, 'revoke execute on functions from public, anon, authenticated', 'future public functions must require explicit EXECUTE grants')
 mustContain(defaultPrivilegeMigration, "n.nspname = 'public'", 'existing structural-privilege cleanup must be constrained to public')
+
+mustContain(storagePolicyCleanupMigration, 'drop policy if exists homework_photos_school_staff_select on storage.objects', 'legacy same-school homework photo read policy must be removed')
+mustContain(storagePolicyCleanupMigration, 'drop policy if exists homework_photos_staff_read on storage.objects', 'legacy homework photo staff policy variants must remain removed')
 
 for (const helper of [
   'twin_record_learning_representation_exposure',
