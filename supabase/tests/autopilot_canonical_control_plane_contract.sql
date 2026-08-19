@@ -3,15 +3,11 @@ begin;
 do $$
 begin
   if to_regclass('public.autopilot_workers') is not null or to_regclass('public.autopilot_runs') is not null
-     or to_regclass('public.autopilot_authority_grants') is not null or to_regclass('public.autopilot_execution_intents') is not null then
-    raise exception 'duplicate_autopilot_control_plane_detected';
-  end if;
-  if to_regclass('public.hq_workforce_objectives') is null or to_regclass('public.hq_workforce_plans') is null
-     or to_regclass('public.hq_workforce_plan_steps') is null or to_regclass('public.hq_workforce_capability_authority_grants') is null
-     or to_regclass('public.hq_workforce_execution_budgets') is null or to_regclass('public.hq_workforce_execution_intents') is null
-     or to_regclass('public.hq_workforce_execution_verifications') is null or to_regclass('public.hq_workforce_execution_outcomes') is null then
-    raise exception 'canonical_autopilot_primitive_missing';
-  end if;
+     or to_regclass('public.autopilot_authority_grants') is not null or to_regclass('public.autopilot_execution_intents') is not null then raise exception 'duplicate_autopilot_control_plane_detected'; end if;
+  if to_regclass('public.hq_workforce_objectives') is null or to_regclass('public.hq_workforce_plans') is null or to_regclass('public.hq_workforce_plan_steps') is null
+     or to_regclass('public.hq_workforce_capability_authority_grants') is null or to_regclass('public.hq_workforce_execution_budgets') is null
+     or to_regclass('public.hq_workforce_execution_intents') is null or to_regclass('public.hq_workforce_execution_verifications') is null
+     or to_regclass('public.hq_workforce_execution_outcomes') is null then raise exception 'canonical_autopilot_primitive_missing'; end if;
 end $$;
 
 do $$
@@ -37,12 +33,9 @@ begin
 end $$;
 
 do $$
-declare d text;
 begin
   if to_regprocedure('public.hq_workforce_consequential_execution_gateway(uuid)') is null
-     or to_regprocedure('public.hq_workforce_consequential_execution_gateway_r14_pre_approval_binding(uuid)') is null then raise exception 'canonical_gateway_missing'; end if;
-  select lower(pg_get_functiondef('public.hq_workforce_consequential_execution_gateway(uuid)'::regprocedure)) into d;
-  if position('hq_workforce_assert_approved_plan_binding' in d)=0 or position('hq_workforce_consequential_execution_gateway_r14_pre_approval_binding' in d)=0 then raise exception 'canonical_gateway_approval_binding_missing'; end if;
+     or to_regprocedure('public.hq_workforce_assert_approved_plan_binding(uuid)') is null then raise exception 'canonical_gateway_or_approval_binding_missing'; end if;
   if to_regprocedure('public.hq_workforce_reserve_execution_intent(uuid,uuid,jsonb,jsonb,jsonb)') is null then raise exception 'execution_intent_gateway_missing'; end if;
   if to_regprocedure('public.hq_workforce_assign_independent_verifier(uuid,uuid)') is null then raise exception 'independent_verifier_assignment_missing'; end if;
   if has_function_privilege('service_role','public.hq_workforce_verify_consequential_execution_r14_unbound_internal(uuid,text)','EXECUTE') then raise exception 'unbound_self_verification_bypass_exposed'; end if;
