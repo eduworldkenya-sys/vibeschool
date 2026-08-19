@@ -40,16 +40,14 @@ for (const field of [
   'full_name','first_name','last_name','phone','date_of_birth','gender','country_code',
   'county','sub_county','address','emergency_contact_name','emergency_contact_phone',
   'emergency_contact_relation','notification_prefs','avatar_url','bio','onboarded_chronicles'
-]) {
-  assert.match(allowlist, new RegExp(`['\"]${field}['\"]`, 'i'), `missing editable field ${field}`)
-}
+]) assert.match(allowlist, new RegExp(`['\"]${field}['\"]`, 'i'), `missing editable field ${field}`)
 for (const field of ['role','school_id','account_status','is_anonymized','created_by','deleted_at','updated_at']) {
   assert.ok(!new RegExp(`['\"]${field}['\"]`, 'i').test(allowlist), `authority/provenance field ${field} must not be client-updatable`)
 }
 
-// The current canonical profiles schema uses full_name. Historical rebuilds can
-// contain split-name columns, so the migration allowlist remains intersection-safe,
-// but the live Teacher Profile must not depend on obsolete first_name/last_name.
+// Production and current main use profiles.full_name as the canonical teacher name.
+// Historical rebuilds may contain split-name columns, so the grant migration remains
+// intersection-safe, while current UI must not depend on those legacy columns.
 const teacherProfileUpdate = teacherProfile.match(/from\(["']profiles["']\)\.update\(\{([\s\S]*?)\}\)\.eq\(["']id["']/i)?.[1] ?? ''
 assert.ok(teacherProfileUpdate, 'teacher profile update contract not found')
 for (const field of ['full_name','phone','date_of_birth','gender']) {
@@ -88,10 +86,10 @@ assert.match(routing,/indexOf\('#'\)/)
 assert.match(middleware,/roleCanVisit/)
 assert.match(middleware,/authError\('onboarding_invalid'\)/)
 assert.match(recovery,/Try Again/)
-assert.match(recovery,/\/auth\/logout/)
+assert.match(recovery,/fetch\(['\"]\/auth\/logout['\"][\s\S]*method:\s*['\"]POST['\"]/i)
 assert.match(recovery,/Change account/)
 assert.match(recovery,/VibeSchool Home/)
-assert.match(logout,/signOut/)
+assert.match(logout,/signOut\(\{\s*scope:\s*['\"]local['\"]\s*\}\)/i)
 assert.match(errorPage,/RecoveryActions/)
 
 console.log('Task 1 auth state-machine contract: PASS')
