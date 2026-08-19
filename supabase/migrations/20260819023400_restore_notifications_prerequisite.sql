@@ -1,6 +1,7 @@
 -- Task 5 prerequisite: restore the notifications relation that exists in
 -- production but was missing from the repository migration chain.
 -- This is reconstruction-only on the branch; production is not mutated here.
+-- authorization-test: public.notifications
 
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
