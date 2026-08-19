@@ -11,10 +11,12 @@ on:
       - 'components/admin/**'
       - 'components/shared/PortalState.tsx'
       - 'scripts/test-portal-ux-contract.mjs'
+      - 'scripts/test-admin-ux-contract.mjs'
       - '.github/workflows/portal-ux-contract.yml'
   push:
     branches:
       - 'agent/teacher-admin-ux-audit-**'
+      - 'task24/admin-ux-final-pilot-certification-**'
     paths:
       - 'app/globals.css'
       - 'app/teacher/**'
@@ -23,6 +25,7 @@ on:
       - 'components/admin/**'
       - 'components/shared/PortalState.tsx'
       - 'scripts/test-portal-ux-contract.mjs'
+      - 'scripts/test-admin-ux-contract.mjs'
       - '.github/workflows/portal-ux-contract.yml'
   workflow_dispatch:
 
@@ -38,3 +41,5 @@ jobs:
       - uses: actions/checkout@v4
       - name: Enforce portal UX contract
         run: node scripts/test-portal-ux-contract.mjs
+      - name: Enforce Task 24 Admin UX contract
+        run: node scripts/test-admin-ux-contract.mjs
