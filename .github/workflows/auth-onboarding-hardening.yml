@@ -13,6 +13,7 @@ on:
       - 'supabase/migrations/**'
       - 'scripts/test-auth-onboarding-contract.mjs'
       - 'scripts/test-auth-task1-state-machine.mjs'
+      - 'scripts/test-auth-task1-teacher-directory-authority.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.github/actions/production-build-contract/**'
@@ -36,6 +37,7 @@ jobs:
           prebuild_command: |
             node scripts/test-auth-onboarding-contract.mjs
             node scripts/test-auth-task1-state-machine.mjs
+            node scripts/test-auth-task1-teacher-directory-authority.mjs
             npm run typecheck
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
