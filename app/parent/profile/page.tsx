@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 interface LinkedChildRow {
   studentId: string;
   name: string;
-  relationship: string | null;
   receivesAlerts: boolean;
 }
 
@@ -44,7 +43,7 @@ export default function ParentProfilePage() {
 
       const [{ data: account, error: accountError }, { data: links, error: linksError }] = await Promise.all([
         supabase.from("profiles").select("id, full_name, country_code").eq("id", user.id).single(),
-        supabase.from("parent_student_links").select("student_id, relationship, receives_alerts, students(id, name)").eq("parent_id", user.id),
+        supabase.from("parent_student_links").select("student_id, receives_alerts, students(id, name)").eq("parent_id", user.id),
       ]);
       if (accountError) throw accountError;
       if (linksError) throw linksError;
@@ -59,7 +58,6 @@ export default function ParentProfilePage() {
       setChildren((links ?? []).flatMap((link: any) => link.students ? [{
         studentId: link.students.id ?? link.student_id,
         name: link.students.name ?? "Learner",
-        relationship: link.relationship ?? null,
         receivesAlerts: link.receives_alerts !== false,
       }] : []));
     } catch (error) {
@@ -132,14 +130,14 @@ export default function ParentProfilePage() {
 
       <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 18, marginBottom: 14 }}>
         <h2 style={{ margin: "0 0 4px", fontSize: 17 }}>Linked children</h2>
-        <p style={{ margin: "0 0 14px", color: C.muted, fontSize: 12, lineHeight: 1.5 }}>Child access is controlled by the verified school relationship. You cannot gain access by entering a learner name.</p>
+        <p style={{ margin: "0 0 14px", color: C.muted, fontSize: 12, lineHeight: 1.5 }}>Child access is controlled by a verified school relationship. Knowing a learner&apos;s name is not enough to gain access.</p>
         {!loading && children.length === 0 && <div style={{ padding: "12px 0", color: C.muted, fontSize: 13 }}>No verified child is linked to this account.</div>}
         {children.map(child => (
           <button key={child.studentId} type="button" onClick={() => router.push(`/parent/child/${child.studentId}`)} style={{ width: "100%", minHeight: 58, display: "flex", alignItems: "center", gap: 10, textAlign: "left", border: `1px solid ${C.border}`, background: C.bg, borderRadius: 12, padding: "10px 12px", marginBottom: 8, cursor: "pointer" }}>
             <span aria-hidden="true" style={{ width: 34, height: 34, borderRadius: "50%", background: C.dark, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800 }}>{initials(child.name)}</span>
             <span style={{ flex: 1 }}>
               <strong style={{ display: "block", fontSize: 14 }}>{child.name}</strong>
-              <span style={{ display: "block", color: C.muted, fontSize: 11, marginTop: 2 }}>{child.relationship ? `Relationship: ${child.relationship}` : "Verified family relationship"} · {child.receivesAlerts ? "Important updates on" : "Alerts limited"}</span>
+              <span style={{ display: "block", color: C.muted, fontSize: 11, marginTop: 2 }}>Verified family relationship · {child.receivesAlerts ? "Important updates on" : "Alerts limited"}</span>
             </span>
             <span aria-hidden="true" style={{ color: C.muted, fontSize: 20 }}>›</span>
           </button>
@@ -154,7 +152,7 @@ export default function ParentProfilePage() {
 
       <section style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 18, padding: 18, marginBottom: 14 }}>
         <h2 style={{ margin: "0 0 6px", fontSize: 17 }}>Help & account safety</h2>
-        <p style={{ margin: "0 0 12px", color: C.muted, fontSize: 12, lineHeight: 1.55 }}>If a child is missing, wrongly linked, or access has changed, do not share screenshots containing learner information. Use the support route so VibeSchool can capture safe diagnostic context.</p>
+        <p style={{ margin: "0 0 12px", color: C.muted, fontSize: 12, lineHeight: 1.55 }}>If a child is missing, wrongly linked, or access has changed, do not share screenshots containing learner information. Use Report a Problem so VibeSchool can capture safe diagnostic context.</p>
         <button type="button" onClick={() => router.push("/parent/support")} style={{ width: "100%", minHeight: 44, borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", color: C.dark, fontWeight: 800, cursor: "pointer" }}>Report a problem</button>
       </section>
 
