@@ -3,10 +3,6 @@ name: CI Production Build Contract
 on:
   pull_request:
     branches: [main]
-    paths:
-      - '.github/actions/production-build-contract/**'
-      - '.github/workflows/**'
-      - 'scripts/test-ci-production-build-contract.mjs'
   push:
     branches:
       - main
