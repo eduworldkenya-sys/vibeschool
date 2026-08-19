@@ -6,7 +6,9 @@ on:
       - 'app/hq/**'
       - 'components/hq/**'
       - 'lib/hq/**'
+      - 'supabase/migrations/**'
       - 'scripts/test-hq-control-room-ui.mjs'
+      - 'scripts/test-hq-founder-os-control-plane.mjs'
       - '.github/workflows/hq-control-room-certification.yml'
   workflow_dispatch:
 
@@ -23,6 +25,8 @@ jobs:
       - run: npm ci
       - name: HQ UI truth contract
         run: node scripts/test-hq-control-room-ui.mjs
+      - name: Founder OS control-plane contract
+        run: node scripts/test-hq-founder-os-control-plane.mjs
       - name: TypeScript
         run: npm run typecheck
       - name: Lint
