@@ -4,13 +4,20 @@ begin;
 -- at execution time. SECURITY DEFINER functions cannot rely on caller RLS.
 
 -- Legacy generic Parent conversation creation is superseded by the canonical
--- child-scoped parent_start_child_thread RPC. Keep the old function installed
--- for migration compatibility but remove every client/runtime execute path.
-revoke all on function public.parent_start_conversation(uuid,uuid,text)
-  from public, anon, authenticated, service_role;
-
-comment on function public.parent_start_conversation(uuid,uuid,text) is
-  'Disabled legacy generic Parent conversation entrypoint. Use parent_start_child_thread so every family conversation is child-scoped and relationship-authorized.';
+-- child-scoped parent_start_child_thread RPC. Production may still contain the
+-- legacy function while a clean zero-to-current reconstruction may not. Harden
+-- it only when present so repository reconstruction remains deterministic.
+do $legacy_parent_start_conversation$
+begin
+  if to_regprocedure('public.parent_start_conversation(uuid,uuid,text)') is not null then
+    execute 'revoke all on function public.parent_start_conversation(uuid,uuid,text) from public, anon, authenticated, service_role';
+    execute $sql$
+      comment on function public.parent_start_conversation(uuid,uuid,text) is
+        'Disabled legacy generic Parent conversation entrypoint. Use parent_start_child_thread so every family conversation is child-scoped and relationship-authorized.'
+    $sql$;
+  end if;
+end;
+$legacy_parent_start_conversation$;
 
 -- Rebuild the canonical child-scoped conversation entrypoint around the current
 -- canonical enrollment instead of students.class_id, and require an active
