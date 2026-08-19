@@ -1,71 +1,65 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+
+import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { ParentNavTab } from "@/lib/types";
 import { UserContext } from "@/lib/parent-context";
 import OfflineBar from "@/components/teacher/OfflineBar";
-import VibeLearnShellWrapper from "@/components/student/VibeLearnShellWrapper";
 import TwinRoleSwitcher from "@/components/twin/TwinRoleSwitcher";
 import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core";
 
 const NAV_TABS: ParentNavTab[] = [
-  { id: "home",      label: "Home",     icon: "🏠", href: "/parent"          },
-  { id: "connect",   label: "Inbox",    icon: "🔔", href: "/parent/inbox"    },
-  { id: "vibelearn", label: "VibeLearn",icon: "🎓", href: "/parent/vibe-learn" },
-  { id: "learn",     label: "Learn",    icon: "📚", href: "/parent/learn"    },
-  { id: "students",  label: "Children", icon: "🎒", href: "/parent/students" },
+  { id: "home", label: "Home", icon: "⌂", href: "/parent" },
+  { id: "students", label: "Children", icon: "●", href: "/parent/students" },
+  { id: "learn", label: "Schoolwork", icon: "▤", href: "/parent/learn" },
+  { id: "vibelearn", label: "Progress", icon: "↗", href: "/parent/assessments" },
+  { id: "connect", label: "Messages", icon: "✉", href: "/parent/inbox" },
 ];
 
-const PRIMARY_HREFS = NAV_TABS.map(t => t.href);
+const PRIMARY_HREFS = NAV_TABS.map(tab => tab.href);
 
 function tabIdFromPath(path: string): ParentNavTab["id"] {
   if (path === "/parent" || path === "/parent/") return "home";
-  if (path.startsWith('/parent/messages') || path.startsWith('/parent/connect')) return 'connect';
-  const match = NAV_TABS.find(t => t.href !== "/parent" && path.startsWith(t.href));
-  return (match?.id ?? "home") as ParentNavTab["id"];
+  if (path.startsWith("/parent/inbox") || path.startsWith("/parent/messages") || path.startsWith("/parent/connect")) return "connect";
+  if (path.startsWith("/parent/assessments") || path.includes("/results") || path.includes("/progress") || path.includes("/report")) return "vibelearn";
+  if (path.startsWith("/parent/homework") || path.includes("/homework") || path.startsWith("/parent/learn") || path.startsWith("/parent/exercises")) return "learn";
+  if (path.startsWith("/parent/students") || path.startsWith("/parent/child")) return "students";
+  return "home";
 }
 
-function BottomNav({ activeId, onVibeLearnOpen }: { activeId: ParentNavTab["id"]; onVibeLearnOpen: () => void; }) {
+function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
   const router = useRouter();
   return (
-    <div style={{
+    <nav aria-label="Parent primary navigation" style={{
       position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 700,
       background: "#fff", borderTop: "1px solid #e5e7eb",
-      display: "flex", height: 64, boxShadow: "0 -2px 12px rgba(0,0,0,0.06)", alignItems: "flex-end",
+      display: "flex", minHeight: 66, paddingBottom: "env(safe-area-inset-bottom)",
+      boxShadow: "0 -2px 12px rgba(0,0,0,0.06)",
     }}>
-      {NAV_TABS.map(t => {
-        const isActive = t.id === activeId;
-        const isCenter = t.id === "vibelearn";
-        if (isCenter) {
-          return (
-            <button key={t.id} onClick={onVibeLearnOpen} aria-label="Open VibeLearn" style={{
-              flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end",
-              border: "none", background: "none", cursor: "pointer", padding: "0 0 6px", position: "relative", height: "100%",
-            }}>
-              <div style={{
-                position: "absolute", bottom: 20, width: 54, height: 54, borderRadius: "50%",
-                background: isActive ? "linear-gradient(135deg, #059669 0%, #10b981 100%)" : "linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: isActive ? "0 4px 18px rgba(16,185,129,0.55)" : "0 4px 18px rgba(30,27,75,0.35)",
-                border: "3px solid #fff", fontSize: 22, transition: "all 0.2s ease",
-              }}>{t.icon}</div>
-              <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 600, color: isActive ? "#10b981" : "#6b7280", lineHeight: 1, zIndex: 1 }}>{t.label}</span>
-            </button>
-          );
-        }
+      {NAV_TABS.map(tab => {
+        const isActive = tab.id === activeId;
         return (
-          <button key={t.id} onClick={() => router.push(t.href)} aria-label={t.label} style={{
-            flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
-            border: "none", background: "none", cursor: "pointer", padding: "8px 0", color: isActive ? "#10b981" : "#6b7280", position: "relative",
-          }}>
-            <span style={{ fontSize: 20, lineHeight: 1 }}>{t.icon}</span>
-            <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 600 }}>{t.label}</span>
-            {isActive && <div style={{ position: "absolute", top: 0, width: 28, height: 2.5, background: "#10b981", borderRadius: "0 0 3px 3px" }} />}
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => router.push(tab.href)}
+            aria-label={tab.label}
+            aria-current={isActive ? "page" : undefined}
+            style={{
+              flex: 1, minWidth: 0, minHeight: 58, display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center", gap: 4, border: "none",
+              background: "transparent", cursor: "pointer", padding: "8px 2px",
+              color: isActive ? "#047857" : "#64748b", position: "relative", fontFamily: "inherit",
+            }}
+          >
+            <span aria-hidden="true" style={{ fontSize: 18, lineHeight: 1 }}>{tab.icon}</span>
+            <span style={{ fontSize: 10, fontWeight: isActive ? 800 : 650, whiteSpace: "nowrap" }}>{tab.label}</span>
+            {isActive && <span aria-hidden="true" style={{ position: "absolute", top: 0, width: 30, height: 3, background: "#059669", borderRadius: "0 0 4px 4px" }} />}
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 }
 
@@ -74,28 +68,44 @@ function TopBar({ initials }: { initials: string }) {
   const pathname = usePathname();
   const normalizedPath = pathname.replace(/\/$/, "");
   const isPrimaryTab = PRIMARY_HREFS.includes(normalizedPath) || pathname === "/parent";
+
   return (
-    <div style={{
-      background: "#1e1b4b", color: "#fff", padding: "0 12px 0 20px", minHeight: 56,
+    <header style={{
+      background: "#1e1b4b", color: "#fff", padding: "0 12px", minHeight: 58,
       display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
       position: "sticky", top: 0, zIndex: 600, boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-        {!isPrimaryTab && <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 24, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 300 }}>&#8249;</div>}
-        <div onClick={() => router.push("/parent")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", minWidth: 0 }}>
-          <div style={{ width: 30, height: 30, borderRadius: 9, background: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff", flexShrink: 0 }}>V</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>Parent Portal</div>
-          </div>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        {!isPrimaryTab && (
+          <button type="button" onClick={() => router.back()} aria-label="Go back" style={{
+            width: 44, height: 44, border: "none", background: "transparent", color: "#fff",
+            cursor: "pointer", fontSize: 28, lineHeight: 1, fontFamily: "inherit",
+          }}>‹</button>
+        )}
+        <button type="button" onClick={() => router.push("/parent")} aria-label="Go to Parent Home" style={{
+          border: "none", background: "transparent", color: "inherit", display: "flex",
+          alignItems: "center", gap: 10, cursor: "pointer", minWidth: 0, textAlign: "left", fontFamily: "inherit",
+        }}>
+          <span aria-hidden="true" style={{ width: 30, height: 30, borderRadius: 9, background: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, flexShrink: 0 }}>V</span>
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</span>
+            <span style={{ display: "block", fontSize: 10, color: "rgba(255,255,255,0.68)", marginTop: -1 }}>Family view</span>
+          </span>
+        </button>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
         <TwinRoleSwitcher currentRole="parent" />
-        <div onClick={() => router.push("/parent/messages")} aria-label="Open parent conversations" style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, cursor: "pointer" }}>💬</div>
-        <div onClick={() => router.push("/parent/profile")} aria-label="Open parent profile" style={{ width: 34, height: 34, borderRadius: "50%", background: "#10b981", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer" }}>{initials || "…"}</div>
+        <button type="button" onClick={() => router.push("/parent/inbox")} aria-label="Open messages" style={{
+          width: 44, height: 44, borderRadius: "50%", background: "rgba(255,255,255,0.1)",
+          border: "1px solid rgba(255,255,255,0.2)", color: "#fff", cursor: "pointer", fontSize: 18,
+        }}>✉</button>
+        <button type="button" onClick={() => router.push("/parent/profile")} aria-label="Open parent profile" style={{
+          width: 44, height: 44, borderRadius: "50%", background: "#10b981", border: "none",
+          display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800,
+          color: "#fff", cursor: "pointer", fontFamily: "inherit",
+        }}>{initials || "…"}</button>
       </div>
-    </div>
+    </header>
   );
 }
 
@@ -105,7 +115,6 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   const activeId = tabIdFromPath(pathname);
   const [fullName, setFullName] = useState("");
   const [initials, setInitials] = useState("");
-  const [vibeLearnOpen, setVibeLearnOpen] = useState(false);
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
@@ -113,16 +122,12 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
       try {
         const authority = await getTwinAuthorityContext();
         requireTwinRole(authority, "parent");
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", authority.userId)
-          .single();
+        const { data, error } = await supabase.from("profiles").select("full_name").eq("id", authority.userId).single();
         if (error || !data) { router.replace("/"); return; }
         const name = data.full_name ?? "";
         setFullName(name);
         const parts = name.trim().split(" ").filter(Boolean);
-        setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
+        setInitials(parts.slice(0, 2).map((word: string) => word[0].toUpperCase()).join(""));
         setAuthReady(true);
       } catch {
         router.replace("/");
@@ -133,8 +138,8 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
   if (!authReady) {
     return (
-      <div style={{ minHeight: "100vh", background: "#f0f2f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ width: "36px", height: "36px", border: "3px solid #e5e7eb", borderTop: "3px solid #10b981", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+      <div role="status" aria-label="Loading Parent Portal" style={{ minHeight: "100vh", background: "#f0f2f5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div aria-hidden="true" style={{ width: 36, height: 36, border: "3px solid #e5e7eb", borderTop: "3px solid #10b981", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     );
@@ -143,17 +148,17 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   return (
     <UserContext.Provider value={{ fullName, initials }}>
       <style>{`
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f0f2f5; }
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; background: #f0f2f5; }
+        button:focus-visible, a:focus-visible { outline: 3px solid #34d399; outline-offset: 2px; }
         @keyframes slideIn { from{ opacity:0; transform:translateY(10px) } to{ opacity:1; transform:translateY(0) } }
         @keyframes fadeIn  { from{ opacity:0 } to{ opacity:1 } }
         @keyframes shimmer { 0%{ background-position:200% 0 } 100%{ background-position:-200% 0 } }
       `}</style>
       <TopBar initials={initials} />
       <OfflineBar />
-      <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 160px", background: "#f0f2f5", color: "#111827" }}>{children}</main>
-      <BottomNav activeId={activeId} onVibeLearnOpen={() => setVibeLearnOpen(true)} />
-      <VibeLearnShellWrapper isOpen={vibeLearnOpen} onClose={() => setVibeLearnOpen(false)} />
+      <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 96px", background: "#f0f2f5", color: "#111827" }}>{children}</main>
+      <BottomNav activeId={activeId} />
     </UserContext.Provider>
   );
 }
