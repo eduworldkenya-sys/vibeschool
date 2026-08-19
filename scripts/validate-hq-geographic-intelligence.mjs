@@ -6,6 +6,7 @@ const explorerPath='supabase/migrations/20260819172500_hq_school_explorer_read_m
 const levelSemanticsPath='supabase/migrations/20260819173500_hq_school_level_semantics.sql'
 const school360SemanticsPath='supabase/migrations/20260819174500_hq_school_360_level_semantics.sql'
 const regionIntegrityPath='supabase/migrations/20260819175500_hq_region_aggregate_integrity.sql'
+const growthTolerancePath='supabase/migrations/20260819180500_hq_growth_measurement_dependency_tolerance.sql'
 const sqlContractPath='supabase/tests/hq_national_intelligence_contract.sql'
 const pagePath='app/hq/geography/page.tsx'
 const foundation=fs.readFileSync(foundationPath,'utf8')
@@ -14,8 +15,9 @@ const explorer=fs.readFileSync(explorerPath,'utf8')
 const levelSemantics=fs.readFileSync(levelSemanticsPath,'utf8')
 const school360Semantics=fs.readFileSync(school360SemanticsPath,'utf8')
 const regionIntegrity=fs.readFileSync(regionIntegrityPath,'utf8')
+const growthTolerance=fs.readFileSync(growthTolerancePath,'utf8')
 const sqlContract=fs.readFileSync(sqlContractPath,'utf8')
-const migration=`${foundation}\n${readModels}\n${explorer}\n${levelSemantics}\n${school360Semantics}\n${regionIntegrity}`
+const migration=`${foundation}\n${readModels}\n${explorer}\n${levelSemantics}\n${school360Semantics}\n${regionIntegrity}\n${growthTolerance}`
 const page=fs.readFileSync(pagePath,'utf8')
 
 const required=[
@@ -32,7 +34,7 @@ if(!regionIntegrity.includes('count(distinct pe.school_id)')) throw new Error('A
 if(!regionIntegrity.includes('s.deleted_at is null')) throw new Error('Regional totals must exclude soft-deleted schools')
 if(/count\(sg\.school_id\)/i.test(regionIntegrity)) throw new Error('Regional totals may not count geography rows directly')
 
-const functionSources={hq_geography_region_breakdown:regionIntegrity,hq_school_360:school360Semantics,hq_growth_intelligence:readModels,hq_geographic_opportunities:readModels,hq_school_explorer_list:levelSemantics}
+const functionSources={hq_geography_region_breakdown:regionIntegrity,hq_school_360:school360Semantics,hq_growth_intelligence:growthTolerance,hq_geographic_opportunities:readModels,hq_school_explorer_list:levelSemantics}
 for(const [fn,source] of Object.entries(functionSources)){
   const marker=`create or replace function public.${fn}`
   const start=source.indexOf(marker)
@@ -44,6 +46,11 @@ for(const [fn,source] of Object.entries(functionSources)){
   if(!body.includes('public.is_platform_owner()')) throw new Error(`${fn} must assert canonical HQ owner`)
   if(!body.includes('revoke all on function')||!body.includes('from public,anon')) throw new Error(`${fn} must revoke PUBLIC/anon execution`)
 }
+
+if(!growthTolerance.includes("to_regclass('public.product_measurement_state')")) throw new Error('Growth intelligence must tolerate missing upstream Measurement Kernel')
+if(!growthTolerance.includes("'upstream_contract_unavailable'")) throw new Error('Missing Measurement Kernel must remain explicitly unavailable')
+if(!growthTolerance.includes("'retention_state','not_calculated_here'")) throw new Error('Growth intelligence must not fabricate retention')
+if(!growthTolerance.includes("'returning_users','active in both selected window")) throw new Error('Returning-user semantics must be explicit and distinct from retention')
 
 if(!levelSemantics.includes('public.school_levels')) throw new Error('School level intelligence must consume canonical school_levels')
 if(!/v_level[\s\S]{0,900}exists\s*\(select 1 from public\.school_levels sl where sl\.school_id=s\.id and upper\(sl\.level\)=v_level\)/i.test(levelSemantics)) throw new Error('School level filter must be enforced through canonical school_levels')
