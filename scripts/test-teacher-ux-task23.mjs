@@ -27,6 +27,9 @@ expect("app/teacher/help/report/page.tsx", /submit_contact_request/, "Problem re
 expect("app/teacher/help/report/page.tsx", /Safe app context/, "Problem reports must attach safe investigation context.");
 expect("app/teacher/help/report/page.tsx", /Do not include passwords, PINs, one-time codes or payment credentials/, "Problem reporting must warn teachers not to submit secrets.");
 expect("app/teacher/help/report/page.tsx", /disabled=\{busy\}/, "Problem reporting must prevent duplicate submission while sending.");
+expect("app/teacher/teach-today/page.tsx", /href:\s*"\/teacher\/academics"/, "Plan & Teach must link curriculum/academic work to the real Teacher Academics route.");
+expect("app/teacher/teach-today/page.tsx", /minHeight:\s*44/, "Plan & Teach recovery and refresh actions must be phone-sized.");
+if (/href:\s*"\/teacher\/curriculum"/.test(read("app/teacher/teach-today/page.tsx"))) failures.push("app/teacher/teach-today/page.tsx: dead Teacher curriculum destination must not be exposed.");
 
 if (failures.length) {
   console.error("Teacher UX Task 23 contract: FAIL");
