@@ -1,0 +1,127 @@
+name: Engineering Founder Status
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * *'
+
+concurrency:
+  group: engineering-founder-status
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+  checks: read
+
+jobs:
+  snapshot:
+    name: Founder engineering status snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Build deterministic active-PR status view
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const policy = JSON.parse(fs.readFileSync('.github/control-plane/policy.json', 'utf8'));
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const domainsFor = (paths) => {
+              const out = new Set();
+              for (const path of paths.map(x => x.toLowerCase())) {
+                for (const [domain, needles] of Object.entries(policy.domains)) {
+                  if (needles.some(n => path.includes(n.toLowerCase()))) out.add(domain);
+                }
+              }
+              return [...out].sort();
+            };
+
+            const taskFrom = (title) => {
+              const m = title.match(/\bTask\s*(\d+)\b/i);
+              return m ? `T${m[1]}` : null;
+            };
+
+            const declaredDeps = (body) => {
+              const m = (body || '').match(/^- Upstream dependencies:\s*`?([^\n`]+)`?/mi);
+              return m ? m[1].trim() : null;
+            };
+
+            const prs = await github.paginate(github.rest.pulls.list, {owner, repo, state: 'open', base: 'main', per_page: 100});
+            const rows = [];
+            for (const pr of prs) {
+              const files = await github.paginate(github.rest.pulls.listFiles, {owner, repo, pull_number: pr.number, per_page: 100});
+              const domains = domainsFor(files.map(f => f.filename));
+              const labels = (pr.labels || []).map(l => typeof l === 'string' ? l : l.name).filter(Boolean);
+              const checks = await github.rest.checks.listForRef({owner, repo, ref: pr.head.sha, per_page: 100});
+              const checkRuns = checks.data.check_runs || [];
+              const failed = checkRuns.filter(c => ['failure','cancelled','timed_out','action_required'].includes(c.conclusion));
+              const pending = checkRuns.filter(c => !c.conclusion || c.status !== 'completed');
+              const task = taskFrom(pr.title);
+              let inferredFoundation = [];
+              if (task && policy.foundation_promotion_order.includes(task)) {
+                inferredFoundation = policy.foundation_promotion_order.slice(0, policy.foundation_promotion_order.indexOf(task));
+              }
+              let state = 'DEVELOPING';
+              if (labels.includes('state:blocked-security')) state = 'BLOCKED SECURITY';
+              else if (labels.includes('state:reconcile-required')) state = 'RECONCILE REQUIRED';
+              else if (labels.includes('state:merge-ready')) state = 'MERGE READY';
+              else if (!pr.draft && failed.length === 0 && pending.length === 0 && checkRuns.length) state = 'BRANCH GREEN';
+
+              const productionMutation = ((pr.body || '').match(/^- Production mutation status:\s*`?([^\n`]+)`?/mi) || [])[1] || 'UNDECLARED';
+              rows.push({
+                pr: pr.number,
+                task,
+                title: pr.title,
+                branch: pr.head.ref,
+                head_sha: pr.head.sha,
+                base_sha: pr.base.sha,
+                state,
+                declared_dependencies: declaredDeps(pr.body),
+                inferred_foundation_predecessors: inferredFoundation,
+                domains,
+                production_mutation_status: productionMutation.trim(),
+                ci: {total: checkRuns.length, failed: failed.map(x => x.name), pending: pending.map(x => x.name)},
+                blocking_reason: failed.length ? `Failed checks: ${failed.map(x => x.name).join(', ')}` : (state.startsWith('BLOCKED') ? state : null),
+                next_machine_action: state === 'RECONCILE REQUIRED' ? 'Reconcile against exact-current main and re-certify' : failed.length ? 'Classify and repair failed checks' : pr.draft ? 'Continue branch certification' : 'Evaluate integration/security freshness',
+                founder_input_required: false
+              });
+            }
+
+            const snapshot = {
+              generated_at: new Date().toISOString(),
+              policy_version: policy.version,
+              main_sha: context.sha,
+              active_pr_count: rows.length,
+              prs: rows
+            };
+            fs.mkdirSync('.engineering-control-plane', {recursive: true});
+            fs.writeFileSync('.engineering-control-plane/founder-status.json', JSON.stringify(snapshot, null, 2) + '\n');
+
+            const md = [
+              '# VibeSchool Engineering Founder Status',
+              '',
+              `Main: \`${context.sha}\``,
+              `Active PRs: ${rows.length}`,
+              '',
+              '| PR | State | Domains | CI | Production | Next machine action |',
+              '|---:|---|---|---|---|---|',
+              ...rows.map(r => `| #${r.pr} | ${r.state} | ${r.domains.join(', ') || 'NONE'} | ${r.ci.failed.length ? `RED (${r.ci.failed.length})` : r.ci.pending.length ? `RUNNING (${r.ci.pending.length})` : 'GREEN/NO-RECORD'} | ${r.production_mutation_status} | ${r.next_machine_action} |`)
+            ].join('\n');
+            fs.writeFileSync('.engineering-control-plane/founder-status.md', md + '\n');
+            await core.summary.addRaw(md).write();
+
+      - name: Upload founder status evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-founder-status-${{ github.run_id }}
+          path: .engineering-control-plane/
+          if-no-files-found: error
+          retention-days: 30
