@@ -58,8 +58,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Learner has no current school/class assignment' }, { status: 409 })
     }
 
-    const schoolIds = [...new Set(currentClasses.map((row) => row.school_id).filter(Boolean))]
-    const classIds = [...new Set(currentClasses.map((row) => row.class_id).filter(Boolean))]
+    const schoolIds = Array.from(new Set(currentClasses.map((row) => row.school_id).filter(Boolean)))
+    const classIds = Array.from(new Set(currentClasses.map((row) => row.class_id).filter(Boolean)))
 
     const [{ data: teacherAssignments }, { data: adminMemberships }] = await Promise.all([
       adminSupabase
