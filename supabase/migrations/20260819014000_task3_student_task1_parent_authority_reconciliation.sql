@@ -3,12 +3,19 @@ begin;
 -- Task 3 reconciliation with the canonical Task 1 verified-relationship boundary.
 -- Earlier Task 3 work made direct parent child creation retry-safe, but Task 1
 -- production attack testing established that ordinary Parents must not be able to
--- manufacture canonical learners or parent relationships at all. Preserve the
--- historical signature only as a fail-closed compatibility tombstone.
-create or replace function public.create_child_for_parent(
-  p_name text,
-  p_dob date,
-  p_class_id uuid
+-- manufacture canonical learners or parent relationships at all.
+--
+-- PostgreSQL preserves input parameter names across CREATE OR REPLACE. The earlier
+-- Task 3 implementation used p_name/p_dob while the canonical Task 1 compatibility
+-- tombstone uses p_child_name/p_date_of_birth. There are no database dependants on
+-- this RPC, so replace the obsolete callable atomically with the canonical deny
+-- signature instead of leaving reconstruction sensitive to historical arg names.
+drop function if exists public.create_child_for_parent(text,date,uuid);
+
+create function public.create_child_for_parent(
+  p_child_name text,
+  p_date_of_birth date,
+  p_class_id uuid default null
 )
 returns uuid
 language plpgsql
