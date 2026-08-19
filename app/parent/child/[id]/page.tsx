@@ -18,15 +18,20 @@ type AttendanceRow = {
 }
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10)
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
 }
 
 function statusCopy(status: string) {
   if (status === "present") return "Present"
   if (status === "absent") return "Absent"
   if (status === "late") return "Late"
-  if (status === "excused") return "Excused"
-  return "Recorded"
+  if (status === "excused") return "Excused absence"
+  return "Attendance recorded"
 }
 
 export default function ParentChildPage() {
@@ -37,6 +42,7 @@ export default function ParentChildPage() {
   const [child, setChild] = useState<ChildDetail | null>(null)
   const [todayAttendance, setTodayAttendance] = useState<AttendanceRow[]>([])
   const [termAttendancePct, setTermAttendancePct] = useState<number | null>(null)
+  const [termCountedRecords, setTermCountedRecords] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -112,12 +118,16 @@ export default function ParentChildPage() {
     }
 
     const termRows = termRes.data ?? []
-    const attended = termRows.filter(row => row.status === "present" || row.status === "late").length
-    const pct = termRows.length > 0 ? Math.round((attended / termRows.length) * 100) : null
+    // Only records that answer the attendance-rate question belong in the
+    // denominator. Excused/non-applicable records must not become absences.
+    const countedRows = termRows.filter(row => row.status === "present" || row.status === "late" || row.status === "absent")
+    const attended = countedRows.filter(row => row.status === "present" || row.status === "late").length
+    const pct = countedRows.length > 0 ? Math.round((attended / countedRows.length) * 100) : null
 
     setChild({ id: student.id, name: student.name, className, schoolName })
     setTodayAttendance((todayRes.data ?? []) as AttendanceRow[])
     setTermAttendancePct(pct)
+    setTermCountedRecords(countedRows.length)
     setLoading(false)
   }, [childId, router])
 
@@ -127,7 +137,7 @@ export default function ParentChildPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto min-h-screen max-w-xl bg-slate-50 p-4">
+      <main className="mx-auto min-h-screen max-w-xl bg-slate-50 p-4" aria-busy="true">
         <div className="h-36 animate-pulse rounded-3xl bg-slate-200" />
         <div className="mt-4 h-40 animate-pulse rounded-2xl bg-slate-200" />
       </main>
@@ -142,7 +152,7 @@ export default function ParentChildPage() {
           <p className="mt-2 text-sm leading-6 text-slate-600">
             This learner is not linked to your current parent account, or the relationship is no longer active.
           </p>
-          <button onClick={() => router.replace("/parent")} className="mt-5 w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
+          <button onClick={() => router.replace("/parent")} className="mt-5 min-h-11 w-full rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white">
             Return to Parent Home
           </button>
         </section>
@@ -166,7 +176,8 @@ export default function ParentChildPage() {
 
       {error && (
         <div role="alert" className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">
-          {error}
+          <p>{error}</p>
+          <button onClick={() => void load()} className="mt-3 min-h-11 rounded-xl border border-amber-300 bg-white px-4 py-2 font-semibold text-amber-950">Try again</button>
         </div>
       )}
 
@@ -198,7 +209,7 @@ export default function ParentChildPage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Today’s attendance</p>
             {todayAttendance.length === 0 ? (
-              <p className="mt-2 text-sm leading-6 text-slate-600">No attendance has been recorded yet today.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">No attendance has been recorded yet today. This does not mean {firstName} was absent.</p>
             ) : (
               <div className="mt-2 space-y-2">
                 {todayAttendance.map(row => (
@@ -209,9 +220,14 @@ export default function ParentChildPage() {
           </div>
           <div className="rounded-2xl bg-slate-100 px-4 py-3 text-center">
             <p className="text-xl font-bold">{termAttendancePct === null ? "—" : `${termAttendancePct}%`}</p>
-            <p className="mt-1 text-[11px] font-semibold text-slate-500">Term attendance</p>
+            <p className="mt-1 text-[11px] font-semibold text-slate-500">Recorded attendance</p>
           </div>
         </div>
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          {termCountedRecords === 0
+            ? "No present/late/absent records are available for an attendance rate yet. Excused or non-applicable records are not treated as absence."
+            : `Based on ${termCountedRecords} present, late or absent ${termCountedRecords === 1 ? "record" : "records"}. Excused records are not counted as absence.`}
+        </p>
       </section>
 
       <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
