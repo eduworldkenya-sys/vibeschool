@@ -2,6 +2,7 @@ name: Task 18 HQ Company OS
 
 on:
   pull_request:
+    branches: [main]
     paths:
       - "app/hq/**"
       - "components/hq/**"
@@ -16,29 +17,18 @@ permissions:
   contents: read
 
 jobs:
-  company-os-contract:
+  certify:
+    name: HQ Company OS exact-head certification
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Task 18 contract + canonical production build
+        uses: ./.github/actions/production-build-contract
         with:
-          node-version: 22
-      - name: Task 18 HQ contract
-        run: node scripts/task18-hq-company-os-contract.mjs
-
-  typecheck-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - name: TypeScript
-        run: npx tsc --noEmit
-      - name: Production build
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-        run: npm run build
+          prebuild_command: |
+            node scripts/task18-hq-company-os-contract.mjs
+            npm run typecheck
+            npm run lint
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
