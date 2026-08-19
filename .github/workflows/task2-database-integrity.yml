@@ -111,9 +111,8 @@ jobs:
             > .task2-artifacts/local-migration-ledger.txt
 
       # Capture application truth and generated schema truth immediately after the
-      # deterministic rebuild. These are diagnostic evidence as well as final gates;
-      # a later policy/RPC assertion must not prevent us from obtaining the canonical
-      # clean-schema types needed to repair that assertion or a stale checked-in type file.
+      # deterministic rebuild. Later contract failures must not suppress diagnostic
+      # evidence needed to repair repository/application drift.
       - name: Inventory literal application database contracts
         shell: bash
         run: python3 scripts/task2_extract_application_db_contracts.py
@@ -125,7 +124,51 @@ jobs:
           supabase gen types typescript --local > .task2-artifacts/database.types.generated.ts
           test -s .task2-artifacts/database.types.generated.ts
 
+      - name: Verify application relations and RPCs exist in reconstruction
+        id: app_contract
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres@127.0.0.1:54322/postgres'
+          missing_relations=.task2-artifacts/application-contracts/missing-relations.txt
+          missing_rpcs=.task2-artifacts/application-contracts/missing-rpcs.txt
+          : > "$missing_relations"
+          : > "$missing_rpcs"
+          while IFS= read -r relation; do
+            [ -n "$relation" ] || continue
+            exists="$(PGPASSWORD=postgres psql "$DB" -Atqc "select to_regclass('public.${relation}') is not null")"
+            if [ "$exists" != "t" ]; then
+              echo "$relation" | tee -a "$missing_relations" >&2
+            fi
+          done < .task2-artifacts/application-contracts/relations.txt
+          while IFS= read -r rpc; do
+            [ -n "$rpc" ] || continue
+            exists="$(PGPASSWORD=postgres psql "$DB" -Atqc "select exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='${rpc}')")"
+            if [ "$exists" != "t" ]; then
+              echo "$rpc" | tee -a "$missing_rpcs" >&2
+            fi
+          done < .task2-artifacts/application-contracts/rpcs.txt
+          relation_count="$(wc -l < "$missing_relations" | tr -d ' ')"
+          rpc_count="$(wc -l < "$missing_rpcs" | tr -d ' ')"
+          printf 'missing_relations=%s\nmissing_rpcs=%s\n' "$relation_count" "$rpc_count" \
+            | tee .task2-artifacts/application-contracts/missing-summary.txt
+          test "$relation_count" -eq 0
+          test "$rpc_count" -eq 0
+
+      - name: Run local failure injection
+        id: failure_injection
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' \
+            -f scripts/sql/task2_database_failure_injection.sql \
+            2>&1 | tee .task2-artifacts/failure-injection.log
+
       - name: Verify broad reconstructed database contract
+        id: broad_contract
+        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
@@ -134,44 +177,14 @@ jobs:
             2>&1 | tee .task2-artifacts/database-contract.log
 
       - name: Verify rerunnable read-only certification
+        id: broad_contract_rerun
+        continue-on-error: true
         shell: bash
         run: |
           set -o pipefail
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' \
             -f scripts/sql/task2_database_integrity_verify.sql \
             2>&1 | tee .task2-artifacts/database-contract-rerun.log
-
-      - name: Run local failure injection
-        shell: bash
-        run: |
-          set -o pipefail
-          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' \
-            -f scripts/sql/task2_database_failure_injection.sql \
-            2>&1 | tee .task2-artifacts/failure-injection.log
-
-      - name: Verify application relations and RPCs exist in reconstruction
-        shell: bash
-        run: |
-          set -euo pipefail
-          DB='postgresql://postgres@127.0.0.1:54322/postgres'
-          missing=0
-          while IFS= read -r relation; do
-            [ -n "$relation" ] || continue
-            exists="$(PGPASSWORD=postgres psql "$DB" -Atqc "select to_regclass('public.${relation}') is not null")"
-            if [ "$exists" != "t" ]; then
-              echo "Missing application relation: public.${relation}" >&2
-              missing=1
-            fi
-          done < .task2-artifacts/application-contracts/relations.txt
-          while IFS= read -r rpc; do
-            [ -n "$rpc" ] || continue
-            exists="$(PGPASSWORD=postgres psql "$DB" -Atqc "select exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='${rpc}')")"
-            if [ "$exists" != "t" ]; then
-              echo "Missing application RPC: public.${rpc}" >&2
-              missing=1
-            fi
-          done < .task2-artifacts/application-contracts/rpcs.txt
-          test "$missing" -eq 0
 
       - name: Capture schema/security evidence
         if: always()
@@ -204,7 +217,28 @@ jobs:
           else
             printf 'database unavailable during always() evidence capture\n' > .task2-artifacts/schema-evidence-unavailable.txt
           fi
-          find .task2-artifacts -type f -print0 | sort -z | xargs -0 sha256sum > .task2-artifacts/evidence.sha256
+          rm -f .task2-artifacts/evidence.sha256
+          find .task2-artifacts -type f ! -name 'evidence.sha256' -print0 \
+            | sort -z | xargs -0 sha256sum > .task2-artifacts/evidence.sha256
+
+      - name: Enforce all Task 2 reconstruction contracts
+        if: always()
+        shell: bash
+        env:
+          APP_CONTRACT_OUTCOME: ${{ steps.app_contract.outcome }}
+          FAILURE_INJECTION_OUTCOME: ${{ steps.failure_injection.outcome }}
+          BROAD_CONTRACT_OUTCOME: ${{ steps.broad_contract.outcome }}
+          BROAD_CONTRACT_RERUN_OUTCOME: ${{ steps.broad_contract_rerun.outcome }}
+        run: |
+          set -euo pipefail
+          printf 'application_contract=%s\nfailure_injection=%s\nbroad_contract=%s\nbroad_contract_rerun=%s\n' \
+            "$APP_CONTRACT_OUTCOME" "$FAILURE_INJECTION_OUTCOME" \
+            "$BROAD_CONTRACT_OUTCOME" "$BROAD_CONTRACT_RERUN_OUTCOME" \
+            | tee .task2-artifacts/final-gate-outcomes.txt
+          test "$APP_CONTRACT_OUTCOME" = success
+          test "$FAILURE_INJECTION_OUTCOME" = success
+          test "$BROAD_CONTRACT_OUTCOME" = success
+          test "$BROAD_CONTRACT_RERUN_OUTCOME" = success
 
       - name: Upload reconstruction evidence
         if: always()
