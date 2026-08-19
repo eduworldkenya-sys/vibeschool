@@ -3,6 +3,7 @@ import fs from 'node:fs'
 const migration = fs.readFileSync('supabase/migrations/20260819010000_task3_student_identity_provisioning_integrity.sql', 'utf8')
 const boundary = fs.readFileSync('supabase/migrations/20260819011000_task3_student_teacher_boundary_semantic_closure.sql', 'utf8')
 const recovery = fs.readFileSync('supabase/migrations/20260819013000_task3_historical_unenrolled_student_reconciliation.sql', 'utf8')
+const task1Reconciliation = fs.readFileSync('supabase/migrations/20260819014000_task3_student_task1_parent_authority_reconciliation.sql', 'utf8')
 
 function expect(text, pattern, message) {
   if (!pattern.test(text)) throw new Error(message)
@@ -27,12 +28,15 @@ expect(migration,/admission_identifier_required_for_retry_safe_provisioning/i,'t
 expect(migration,/admission_identifier_conflict/i,'reused admission identifiers must fail closed')
 expect(migration,/create or replace function public\.admin_add_student[\s\S]*pg_advisory_xact_lock/i,'admin provisioning must serialize retries')
 expect(migration,/admin_add_student[\s\S]*student_provisioning_receipts/i,'admin provisioning must persist retry receipt')
-expect(migration,/create or replace function public\.create_child_for_parent[\s\S]*pg_advisory_xact_lock/i,'parent child provisioning must serialize retries')
-expect(migration,/parent_create_child[\s\S]*student_provisioning_receipts/i,'parent provisioning must persist retry receipt')
-expect(migration,/insert into public\.students\(name,date_of_birth,class_id,created_by\)[\s\S]*values\(trim\(p_name\),p_dob,null,v_user_id\)/i,'pending parent class selection must not become current student class state')
-reject(migration,/create_child_for_parent[\s\S]{0,3500}insert into public\.student_classes/i,'parent creation must not self-enroll before teacher approval')
 expect(migration,/revoke all privileges on table public\.student_provisioning_receipts from public, anon, authenticated/i,'provisioning receipts must be service-only')
 expect(migration,/revoke all privileges on table public\.student_external_identifier_conflicts from public, anon, authenticated/i,'identifier conflict evidence must be service-only')
+
+// Task 1 is authoritative for Parent identity establishment. Task 3 may retain
+// historical parent_create_child receipts as evidence, but the final schema must
+// make the legacy direct child-creation RPC fail closed and non-executable.
+expect(task1Reconciliation,/create or replace function public\.create_child_for_parent[\s\S]*verified_parent_child_relationship_required/i,'direct parent canonical learner creation must fail closed after Task 1 reconciliation')
+expect(task1Reconciliation,/revoke all on function public\.create_child_for_parent\(text,date,uuid\)[\s\S]*public, anon, authenticated, service_role/i,'legacy parent child creation RPC must not be executable by client or service roles')
+reject(task1Reconciliation,/grant execute on function public\.create_child_for_parent/i,'Task 3 must not re-grant direct parent learner creation after Task 1')
 
 expect(boundary,/create or replace function public\.is_live_teacher_class[\s\S]*join public\.school_members sm[\s\S]*sm\.role='teacher'/i,'live teacher class helper must prove school membership')
 expect(boundary,/create or replace function public\.is_live_teacher_subject[\s\S]*join public\.school_members sm[\s\S]*sm\.role='teacher'/i,'live teacher subject helper must prove school membership')
