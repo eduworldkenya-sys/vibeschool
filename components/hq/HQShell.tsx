@@ -11,15 +11,41 @@ export const HQ_THEME = {
 
 type NavItem = readonly [string,string,string]
 type NavGroup = {label:string;items:readonly NavItem[]}
+
+// Task 18 canonical owner information architecture. Existing strong surfaces are retained,
+// but each appears once in the primary navigation under the owner job it actually serves.
 const navGroups: readonly NavGroup[] = [
-  {label:"Executive",items:[["Overview","/hq","⌂"],["Live Operations","/hq/intelligence","◈"],["Analytics","/hq/analytics","⌁"],["Alerts & Insights","/hq/notifications","◉"]]},
-  {label:"Manage",items:[["Schools","/hq/schools","⌂"],["Users & Growth","/hq/users","◎"],["Teachers","/hq/workforce","♙"],["Learning Intelligence","/hq/analytics","▥"],["Content Factory","/hq/curriculum-intelligence/engine","▣"]]},
-  {label:"Operations",items:[["Finance & Payments","/hq/billing","$"],["Platform Health","/hq/security","◇"],["Worker Engine","/hq/workforce","⚙"],["Decisions","/hq/decisions","✓"],["Curriculum Authority","/hq/curriculum-authority","A"]]},
-  {label:"More",items:[["Publishing","/hq/content","▤"],["Studio","/hq/studio","✦"],["Settings","/hq/security","⚙"]]},
+  {label:"Operate",items:[
+    ["Today","/hq","⌂"],
+    ["Operations","/hq/intelligence","◈"],
+    ["Decisions","/hq/decisions","✓"],
+    ["Alerts","/hq/notifications","!"],
+  ]},
+  {label:"Company",items:[
+    ["Schools","/hq/schools","▦"],
+    ["People","/hq/users","◎"],
+    ["Product & Learning","/hq/analytics","⌁"],
+    ["Growth","/hq/marketing","↗"],
+    ["Finance","/hq/billing","$"],
+  ]},
+  {label:"Platform",items:[
+    ["Workforce","/hq/workforce","⚙"],
+    ["Content","/hq/content","▤"],
+    ["Curriculum","/hq/curriculum-authority","A"],
+    ["Security & Controls","/hq/security","◇"],
+  ]},
+  {label:"Build",items:[
+    ["Content Studio","/hq/studio","✦"],
+    ["Content Intelligence","/hq/curriculum-intelligence","▣"],
+  ]},
 ]
 
 const mobileLinks: readonly NavItem[] = [
-  ["Home","/hq","⌂"], ["Insights","/hq/analytics","⌁"], ["Live","/hq/intelligence","⌁"], ["Alerts","/hq/notifications","!"], ["More","/hq/decisions","≡"],
+  ["Today","/hq","⌂"],
+  ["Operate","/hq/intelligence","◈"],
+  ["Decide","/hq/decisions","✓"],
+  ["Workforce","/hq/workforce","⚙"],
+  ["Alerts","/hq/notifications","!"],
 ]
 
 function isActive(pathname:string,href:string){return href==="/hq"?pathname===href:pathname===href||pathname.startsWith(`${href}/`)}
@@ -28,12 +54,12 @@ export function HQNavigation(){
   const pathname=usePathname()
   return <>
     <aside className="hq-sidebar" aria-label="HQ owner navigation">
-      <Link href="/hq" className="hq-side-brand" aria-label="VibeSchool HQ home"><span className="hq-side-logo">V</span><span><strong>VibeSchool HQ</strong><small>Command Center</small></span></Link>
+      <Link href="/hq" className="hq-side-brand" aria-label="VibeSchool HQ Today"><span className="hq-side-logo">V</span><span><strong>VibeSchool HQ</strong><small>Company Operating System</small></span></Link>
       <div className="hq-side-scroll">{navGroups.map(group=><section key={group.label} className="hq-side-group"><div className="hq-side-group-label">{group.label}</div>{group.items.map(([label,href,icon])=>{const active=isActive(pathname,href);return <Link key={`${label}-${href}`} href={href} className={`hq-side-link${active?" is-active":""}`} aria-current={active?"page":undefined}><span className="hq-side-icon" aria-hidden>{icon}</span><span>{label}</span></Link>})}</section>)}</div>
       <div className="hq-side-owner"><span className="hq-owner-avatar">F</span><span><strong>Founder</strong><small>System Owner</small></span><span className="hq-owner-chevron">⌄</span></div>
     </aside>
 
-    <header className="hq-mobile-topbar"><Link href="/hq" className="hq-mobile-brand"><span className="hq-side-logo">V</span><strong>VibeSchool HQ</strong><i>Live</i></Link><HQNotificationCenter /></header>
+    <header className="hq-mobile-topbar"><Link href="/hq" className="hq-mobile-brand"><span className="hq-side-logo">V</span><strong>VibeSchool HQ</strong><i>Owner</i></Link><HQNotificationCenter /></header>
     <nav className="hq-bottom-nav" aria-label="HQ mobile navigation">{mobileLinks.map(([label,href,icon])=>{const active=isActive(pathname,href);return <Link key={label} href={href} aria-current={active?"page":undefined} className={`hq-bottom-link${active?" is-active":""}`}><span className="hq-bottom-icon" aria-hidden>{icon}</span><span>{label}</span></Link>})}</nav>
   </>
 }
