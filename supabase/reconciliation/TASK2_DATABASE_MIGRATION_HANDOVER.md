@@ -1,171 +1,134 @@
 # VibeSchool Task 2 — Database Migration & Clean-Build Integrity Handover
 
-Status: IN PROGRESS / SHARED-FOUNDATION HOLD
+Status: 🟣 RECONCILING
 
-## Starting state
+## Integration position
 
-- Baseline `main`: `77051a4011d7712a275f76af41efed382f017398`
-- Working branch: `agent/task2-database-migration-integrity`
-- Draft PR: `#282`
-- Production Supabase project: `yauqsxggtuxuykcbrtzf`
-- Production PostgreSQL: 17
-- Production migration ledger at Task 2 start: 914 applied versions
-- Production ledger first version: `20260520000000`
-- Production ledger latest version at start: `20260818213841_measurement_kernel_founder_command`
-- Repository migration count at first exact-branch rebuild: 659
-- Repository first migration: `20260520000000_timetable_foundation_baseline.sql`
-- Repository last migration at first rebuild: `20260819221000_hq_operating_system_v2.sql`
-- Duplicate repository migration versions at first rebuild: 0
-- First zero-to-current clean rebuild run: GitHub Actions `32194186349`
-- First rebuild migration application: PASS — 659/659 repository migrations applied and local ledger count matched exactly
-- First broad reconstructed-contract result: FAIL — missing `public.notifications`
-- Production writes performed during discovery: none
+- Promotion order: **T2 → T1 → T3 → T8 → T4 → T5 → T6 → T7**.
+- Task 2 is the first shared-foundation promotion candidate. Task 1 is downstream and must not be imported into the Task 2 release contract.
+- Baseline/current `main` observed during this reconciliation: `77051a4011d7712a275f76af41efed382f017398`.
+- Working branch: `agent/task2-database-migration-integrity`.
+- Draft PR: `#282`.
+- Current candidate head after ownership/type-scope repair: `60bdca6287bb68a1408f2cbfdf94ed1a12ed2850`.
+- Production Supabase project: `yauqsxggtuxuykcbrtzf`.
+- No production mutation, production migration, RLS/grant mutation, Edge deployment, data repair, feature activation, or intentional deployment was performed during this reconciliation.
 
-## Shared-foundation hold
+## Task 2 release boundary
 
-The user explicitly froze production and merge actions until the shared foundation ahead of Task 2 has merged to `main`.
+Task 2 certifies deterministic reconstruction and security of the shared database foundation. It does **not** certify every literal database contract referenced by all parallel/downstream VibeSchool work.
 
-Until that dependency is on `main`:
+The permanent Task 2 gate therefore records two different sets:
 
-- continue implementation and testing only on `agent/task2-database-migration-integrity`
-- do not merge PR #282
-- do not mutate production Supabase
-- do not apply production migrations
-- do not modify production RLS or grants
-- do not deploy Edge Functions
-- do not repair production data
-- do not intentionally trigger Vercel
+1. **Task-2-owned foundation contracts** — hard release blockers.
+2. **Full application literal contracts** — drift evidence that must be handed to the owning downstream task when outside the Task 2 boundary.
 
-Before final certification: fetch current `main`, reconcile every shared dependency change, inspect production again read-only, repeat dependency analysis, rebuild from zero, rerun security/application contracts and production build, then perform only explicitly permitted production-safe reconciliation.
+This prevents a downstream feature or Task 1 RPC from being fabricated into Task 2 merely to make a broad scanner green.
 
-Current shared dependency observed during Task 2: PR #281, Task 1 Authentication & Onboarding, which contains canonical repository representations of auth changes already observed in production. Task 2 must not duplicate or pre-empt that foundation while it remains unmerged.
+### Task-2-owned shared RPCs
 
-## Known historical targets under explicit verification
+- `get_my_role`
+- `get_my_onboarding_state`
+- `get_my_auth_access_state`
+- `current_student_id`
 
-| Object | Production observation | Task 2 treatment |
-|---|---|---|
-| `public.class_join_requests` | Exists and is used by parent/teacher application flows | Prove creation order, canonical FKs, RLS and policies from zero |
-| `public.exam_results` | Exists | Prove creation order, canonical student identity, constraints, RLS and current contract from zero |
-| `public.assessments` | Absent in current production catalog, but reconstructed by the repository chain | Classify as repository-only legacy drift; do not hide it with a false clean-build failure or destructive DROP; require modern assessment replacement contracts |
-| `public.notifications` | Exists in production with 1 live row and is directly read/updated by student app | Recover as forward canonical migration without deleting or rewriting production data |
+`get_my_auth_journey_state` is explicitly **Task 1 owned** and is excluded from the Task 2 reconstruction gate. Clean-reconstruction-generated database types independently confirm the four Task 2 primitives above are present while the Task 1 composite RPC is absent.
 
-## Defect log
+## Reconstruction state
 
-### T2-D001 — Reconciliation artifact is stale
+Latest completed pre-repair evidence:
 
-- Severity: P1 migration-integrity
-- Area: repository ↔ production migration history
-- Evidence: `supabase/reconciliation/migration_classification.md` records a July snapshot of 60 local / 72 live migrations, while production had 914 ledger entries at Task 2 start.
-- Root cause: static historical reconciliation was being treated too close to current truth.
-- Repair: permanent Task 2 reconstruction gate now derives current repository inventory, rejects duplicate versions, rebuilds from blank local Supabase, compares repository migration count to reconstructed ledger and captures fresh evidence.
+- Repository migration files: **662**.
+- Clean local rebuild: **662/662 applied**.
+- Duplicate repository migration versions: **0**.
+- Failure injection: **PASS**.
+- Generated database types from the reconstructed database: **PASS** and non-empty.
+- Full literal application inventory: **222 relations / 190 RPCs**.
+- Earlier broad literal scan: **86 relations / 21 RPCs** absent from clean reconstruction. These are retained as drift evidence and are no longer automatically treated as Task-2-owned defects.
 
-### T2-D002 — Application database typing bypass masked stale generated contracts
-
-- Severity: P1 migration-integrity/application-contract
-- Area: `lib/supabase.ts`, `lib/database.types.ts`
-- Evidence: browser Supabase client had been widened so `.from(relation: string)` / `.rpc(fn: string)` accepted arbitrary strings and returned permissive types.
-- Root cause: generated database types lagged rapid schema evolution, so typing was weakened instead of regenerated from canonical schema.
-- Repair: permissive client compatibility cast removed. Strong `SupabaseClient<Database>` typing is restored. This correctly exposed the stale generated type file; clean-rebuild-generated types are now the required repair source.
-
-### T2-D003 — `public.notifications` is a hidden production-only application prerequisite
-
-- Severity: P0 pilot/database reconstruction
-- Evidence: first blank rebuild successfully applied all 659 repository migrations but `public.notifications` was absent. Student notifications code directly reads/updates it; production contains the relation and 1 live row.
-- Root cause: production acquired the relation outside the replayable repository chain.
-- Repair: `20260819222000_task2_notifications_reconstruction.sql` creates/validates the contract, reconstructs RLS/policies, removes anonymous table privilege and preserves existing data. Production application is frozen pending shared-foundation merge.
-- Preservation fingerprint captured before any future reconciliation: row count `1`; ordered ID-set MD5 `c62bc53c148e1511d1a869724cb5b560`.
-
-### T2-D004 — Broad anonymous table grants on private learner relations
-
-- Severity: P1 security/migration integrity
-- Evidence: production read-only audit found broad `anon` table privileges on critical private learner relations including `students`, `student_classes`, `attendance`, `homework_submissions`, `assessment_attempts` and `assessment_responses`. Production RLS remains enabled on all public tables, but these grants are broader than the intended authenticated/identity-scoped boundary.
-- Repair: `20260819223000_task2_private_table_anon_revoke.sql` is a forward, data-neutral repository repair. It has passed migration-security validation. Production grant mutation is frozen pending the shared foundation.
-
-### T2-D005 — Clean-rebuild verifier incorrectly required legacy `public.assessments` to be absent
-
-- Severity: P1 certification logic
-- Evidence: Task 2 run `32195478191` applied all **661/661** repository migrations and matched the local ledger, then failed only because `task2_database_integrity_verify.sql` raised on reconstructed `public.assessments`.
-- Root cause: verifier encoded production absence as a repository reconstruction requirement before drift classification was complete.
-- Repair: verifier now accepts the repository’s historical `assessments` reconstruction as explicit repository-only legacy drift while still requiring `assessment_definitions`, `assessment_assignments`, `assessment_attempts`, `assessment_items` and `assessment_responses`. No destructive schema repair is authorized by this classification.
-
-### T2-D006 — Generated `lib/database.types.ts` is materially stale
-
-- Severity: P1 application/database contract
-- Evidence: after removing the permissive Supabase client cast, TypeScript and Auth/Onboarding build gates exposed missing relations/RPCs across auth, Pathways, curriculum intelligence, support, finance, parent events, commerce and learner contracts. The Auth & Onboarding authority test itself passed before TypeScript failed.
-- Root cause: generated database types do not represent the current replayable repository schema.
-- Repair strategy: allow the Task 2 blank reconstruction workflow to reach `supabase gen types typescript --local`, capture the generated clean-schema contract, reconcile `lib/database.types.ts` from that authoritative output, then rerun TypeScript/build and all affected application gates. Do not hand-maintain a partial RPC/table union.
-
-## Production integrity observations — read-only
-
-- Public tables: 553; public tables without RLS: 0.
-- Public unvalidated foreign keys: 0.
-- Exam-result ↔ class school mismatches checked: 0.
-- Teacher-class ↔ class school mismatches: 0.
-- Timetable-slot ↔ class school mismatches: 0.
-- Duplicate active student-profile group found: none.
-- Public SECURITY DEFINER functions without an explicit search_path: 0.
-- Anonymous-executable HQ SECURITY DEFINER functions: 0.
-- Catalog-wide `student_id` FK audit found canonical `students(id)` targets across current student-domain relations.
-- Production migration ledger advanced concurrently during Task 2 from 914 to 919 versions; the newly observed auth mutations have canonical forward representations in shared Task 1 PR #281 and must be reconciled after that foundation merges.
-
-## Drift log
-
-### DRIFT-001 — Notifications relation
-
-- Classification: Dangerous.
-- Repository at first rebuild: absent.
-- Production: present, RLS enabled, live data present.
-- Application: direct student dependency.
-- Resolution: forward reconstruction migration added to Task 2 branch; production reconciliation frozen.
-
-### LEGACY-001 — `public.assessments`
-
-- Classification: Repository-only legacy drift.
-- Production: absent at latest allowed read-only inspection.
-- Repository clean reconstruction: present.
-- Current direct application `.from("assessments")` search: none found.
-- Replacement: modern assessment engine relations are mandatory in the reconstruction verifier.
-- Resolution: preserve and classify until exact-current-main comparison proves whether a forward retirement migration is necessary and safe. Do not edit historical migrations or drop it merely to imitate production.
-
-### DRIFT-002 — Production auth ledger ahead of main
-
-- Classification: Concurrent shared-foundation drift.
-- Production: five additional auth-related migration ledger entries appeared during Task 2.
-- Main: unchanged at the time of observation.
-- Shared repository representation: PR #281 contains forward canonical auth migrations corresponding to those production changes.
-- Resolution: wait for shared foundation to merge, synchronize Task 2 with that `main`, then rerun all affected reconstruction and application gates.
+The current exact-head run must supersede these pre-repair numbers before promotion.
 
 ## Repairs introduced
 
-- `scripts/sql/task2_database_integrity_verify.sql` — broad read-only reconstruction contract for critical relations, historical targets, RLS, FKs, auth/identity RPCs, SECURITY DEFINER search paths, grants and validated FKs.
-- `.github/workflows/task2-database-integrity.yml` — permanent disposable zero-to-current rebuild gate with filename/version validation, exact ledger count, failure injection, application/Edge Function contract inventory, clean-schema type generation and evidence capture.
-- `scripts/task2_extract_application_db_contracts.py` — inventories literal application and Supabase Edge Function `.from()` / `.rpc()` dependencies for reconstruction verification.
-- `supabase/migrations/20260819222000_task2_notifications_reconstruction.sql` — forward recovery of production-only notifications contract with data-preserving reconciliation.
-- `supabase/migrations/20260819223000_task2_private_table_anon_revoke.sql` — explicit anonymous-grant hardening for critical private learner relations.
-- `lib/supabase.ts` — permissive generated-type bypass removed; canonical `Database` typing restored.
+### T2-D001 — Stale reconciliation evidence
 
-## Certification ledger
+A permanent exact-head workflow now inventories repository migrations, rejects invalid/duplicate versions, rebuilds a disposable Supabase database from zero, verifies local migration-ledger equality, generates database types, performs failure injection, runs reconstruction/security contracts, and uploads evidence.
 
-| Gate | Evidence / head | Result | Notes |
-|---|---|---|---|
-| Repository inventory | initial + `32195478191` | PASS | latest completed reconstruction inventory: 661 migrations, 661 distinct versions |
-| Zero-to-current migration application | `32195478191` | PASS | 661/661 migrations applied from completely empty local Supabase; ledger expected=661 actual=661 |
-| Broad reconstruction contract | `32195478191` | FAIL → verifier repaired | only failure was incorrect `assessments` absence assertion; rerun required |
-| TBL-011 isolated clean rebuild | Task 2 head before verifier repair | PASS | independent blank rebuild gate green |
-| Supabase Migration Security Contract | Task 2 head before verifier repair | PASS | notifications + anon-revoke repairs accepted |
-| Student One Full Journey | Task 2 head before verifier repair | PASS | |
-| Student One Legacy Identity Recovery | Task 2 head before verifier repair | PASS | |
-| TBL-012 repository extractor | Task 2 head before verifier repair | PASS | |
-| CI Production Build Contract | Task 2 head before verifier repair | PASS | existing compatibility path; strict typed gate still fails |
-| Auth/onboarding authority contract | run `32195478178` | PASS before TypeScript | workflow failed later only due stale DB types |
-| Strong TypeScript / production build | run `32195478169` | FAIL | stale `lib/database.types.ts` now exposed; repair pending clean generated types |
-| Generated/application types | current | FAIL → repair | must be regenerated from blank reconstruction |
-| Application relation/RPC inventory vs clean DB | pending next Task 2 rerun | pending | previous run stopped before scanner due verifier error |
-| Failure injection | pending next Task 2 rerun | pending | previous run stopped before this stage |
-| Exact-current-main reconciliation | blocked by shared foundation | pending | Task 1 PR #281 not yet merged at last check |
-| Production-safe reconciliation | frozen | pending | no production mutation allowed before shared foundation |
-| Final production health | frozen | pending | final read-only + permitted reconciliation verification after foundation |
+### T2-D002 — Production-only `notifications` dependency
+
+`20260819222000_task2_notifications_reconstruction.sql` recovers `public.notifications` into replayable repository truth with explicit shape validation, RLS, scoped policies and grants while preserving existing production data when eventually applied through the governed migration process.
+
+### T2-D003 — Anonymous grants on private relations
+
+`20260819223000_task2_private_table_anon_revoke.sql` codifies removal of anonymous privileges from private learner/user relations. The migration-security workflow accepts the repair. Production remains untouched by this branch-level certification.
+
+### T2-D004 — Identity/profile reconstruction gaps
+
+`20260819224000_task2_identity_profile_reconstruction.sql` recovers role-profile/audit/catalogue contracts needed by repository reconstruction, with FK/role verification, RLS and explicit grants.
+
+### T2-D005 — Incorrect Task 1 dependency in Task 2 verifier
+
+The Task 2 verifier previously required `get_my_auth_journey_state`. That created an inverted dependency: T2 could not pass until T1 existed even though the approved integration order requires T2 first. The verifier now requires only the shared auth/identity primitives owned by T2.
+
+### T2-D006 — Full-app literal scan incorrectly acted as Task 2 ownership
+
+`scripts/task2_extract_application_db_contracts.py` now emits both the complete diagnostic inventory and explicit Task-2-required relation/RPC lists. `.github/workflows/task2-database-integrity.yml` blocks on the owned subset and preserves the complete missing inventory as `DRIFT_REQUIRES_OWNER_RECONCILIATION` evidence.
+
+### T2-D007 — Strict client typing change expanded Task 2 into downstream feature repair
+
+Task 2 had removed the compatibility layer in `lib/supabase.ts`, causing unrelated parallel features to fail TypeScript because their schema contracts are not yet reconciled into one generated type truth. That change was outside the migration-foundation boundary and was reverted to current-main behavior. Task 2 still generates and validates clean-reconstruction database types as independent evidence; restoring the existing application compatibility client does not weaken the reconstruction/security gate.
+
+## Read-only production checkpoint — 2026-08-19
+
+Latest read-only inspection during this reconciliation:
+
+- Production migration ledger: **923** applied entries at inspection time.
+- Public tables: **553**.
+- Public tables without RLS: **0**.
+- Unvalidated public foreign keys: **0**.
+- Public `SECURITY DEFINER` functions without explicit `search_path`: **0**.
+- Anonymous-executable HQ `SECURITY DEFINER` functions: **0**.
+
+The production ledger advanced concurrently during Task 2 work. This is recorded as drift evidence; no assumption is made that an earlier 914/919 snapshot remains current.
+
+## Known drift classifications
+
+- `public.assessments`: repository-only legacy reconstruction; modern assessment-engine relations remain mandatory. Do not destructively drop it merely to mimic production.
+- Production-only / downstream application objects: retain in the full literal drift artifact and reconcile with their owning tasks after the Task 2 foundation merges.
+- Objects absent from both production and clean reconstruction are application-contract gaps, not migration-history facts; they must be repaired by their owning tasks unless promoted into the shared foundation through an explicit dependency decision.
+
+## Current exact-head gate
+
+Candidate: `60bdca6287bb68a1408f2cbfdf94ed1a12ed2850`.
+
+Already green on this head at the latest checkpoint:
+
+- Supabase Migration Security Contract
+- CI Production Build Contract
+- Student One Full Journey
+- Student One Legacy Identity Recovery
+
+Still running/pending at the latest checkpoint:
+
+- Task 2 Database Reconstruction Integrity
+- TBL-011 Isolated Clean Rebuild
+- TBL-012 M(repo) extractor
+- Auth & Onboarding Hardening
+- TypeScript and Production Build Gate
+
+Do not promote based on partial green evidence. The exact candidate head must finish all applicable workflows successfully.
 
 ## Merge condition
 
-PR #282 remains draft and unmerged. Do not merge until the shared foundation is on current `main`, Task 2 is synchronized with it, production is re-inspected, every affected gate is rerun at the exact candidate commit, and the full Definition of Done is green with zero unresolved P0 and P1 migration-integrity defects.
+PR #282 may move to **🟢 INTEGRATION GREEN** and merge only when all of the following are true at one exact head:
+
+1. Current `main` has not advanced, or the Task 2 branch has been reconciled onto the new current `main`.
+2. Clean zero-to-current repository reconstruction passes.
+3. Task-2-owned relation/RPC reconstruction passes.
+4. Failure injection and broad security/reconstruction verifier pass, including rerun/idempotent certification.
+5. Migration-security, auth/authorization regressions, student journey, TypeScript, lint/build and production-build gates pass.
+6. Generated DB-type evidence is successfully produced from the clean reconstruction.
+7. Full application drift is preserved/classified rather than hidden.
+8. Final read-only production drift/security comparison is current.
+9. No unresolved P0/P1 defect remains inside the Task 2 ownership boundary.
+
+After merge, mark **T1, T3, T8, T4, T5, T6 and T7 = 🟠 RECONCILE REQUIRED** and begin Task 1 reconciliation against the new `main`.
