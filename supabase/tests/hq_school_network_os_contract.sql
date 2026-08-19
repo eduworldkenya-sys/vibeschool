@@ -10,7 +10,9 @@ begin
     'public.hq_school_network_trend(integer)',
     'public.hq_school_network_county_detail(text,integer)',
     'public.hq_school_network_school_360(uuid,integer)',
-    'public.hq_school_network_school_learning(uuid,integer)'
+    'public.hq_school_network_school_learning(uuid,integer)',
+    'public.hq_school_network_explorer(text,text,text,integer,integer,integer)',
+    'public.hq_school_network_attention(text,integer,integer)'
   ] loop
     if to_regprocedure(sig) is null then raise exception 'missing HQ School Network RPC %',sig; end if;
     foreach r in array array['public','anon'] loop
@@ -79,6 +81,20 @@ begin
   if position('join connected c on c.school_id=pe.school_id' in d)=0 then raise exception 'trend activity not restricted to connected schools'; end if;
   if position('count(distinct pe.actor_id)' in d)=0 then raise exception 'trend active user de-duplication missing'; end if;
   if position('min(sm.joined_at)' in d)=0 then raise exception 'connected school first-connection semantics missing'; end if;
+end $$;
+
+do $$
+declare d text; n text;
+begin
+  d:=pg_get_functiondef('public.hq_school_network_explorer(text,text,text,integer,integer,integer)'::regprocedure);
+  n:=lower(regexp_replace(d,'\s+','','g'));
+  if position('v_limitinteger:=greatest(1,least(coalesce(p_limit,50),100))' in n)=0 then raise exception 'Explorer pagination bound missing'; end if;
+  if position('full_name' in d)>0 or position('phone' in d)>0 or position('date_of_birth' in d)>0 then raise exception 'Explorer exposes profile PII'; end if;
+  if position('v_state=''active''andconnectedandactive' in n)=0 then raise exception 'Explorer active state must require connected state'; end if;
+
+  d:=pg_get_functiondef('public.hq_school_network_attention(text,integer,integer)'::regprocedure);
+  if position('v_county' in d)=0 then raise exception 'attention must support geographic scope'; end if;
+  if position('array_remove' in d)=0 then raise exception 'attention evidence reasons missing'; end if;
 end $$;
 
 rollback;
