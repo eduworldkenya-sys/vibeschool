@@ -15,7 +15,6 @@ join (values
   ('content.authoring.source_grounded', 1, 'content.quality', 0.40::numeric, 0.90::numeric)
 ) as v(capability_key, version, competency_key, weight, minimum_proficiency)
   on c.capability_key=v.capability_key and c.version=v.version
-where c.lifecycle_status='certified'
 on conflict(capability_id,competency_key) do update set
   required=excluded.required,
   weight=excluded.weight,
