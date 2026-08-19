@@ -13,9 +13,27 @@ declare
   v_uid uuid := auth.uid();
 begin
   -- Service/database maintenance has no end-user uid and remains governed by its
-  -- own role/grants. Admin writes to another teacher remain subject to RLS.
-  if v_uid is null or new.profile_id is distinct from v_uid then
+  -- own role/grants.
+  if v_uid is null then
     return new;
+  end if;
+
+  if tg_op = 'INSERT' then
+    -- Inserts for another teacher remain governed by RLS/admin authority. An
+    -- ordinary self-service insert is handled below.
+    if new.profile_id is distinct from v_uid then
+      return new;
+    end if;
+  else
+    -- Admin writes to another teacher remain subject to RLS. If the caller owns
+    -- the existing row, however, its identity key can never be reassigned.
+    if old.profile_id is distinct from v_uid then
+      return new;
+    end if;
+    if new.profile_id is distinct from old.profile_id then
+      raise exception 'teacher_profile_identity_reassignment_denied'
+        using errcode = '42501';
+    end if;
   end if;
 
   -- A historical teacher_profiles row is not itself proof that the caller is a
