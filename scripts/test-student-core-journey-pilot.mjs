@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
 
-const contextMigrationPath = 'supabase/migrations/20260819020500_student_core_journey_pilot_context.sql'
-const homeworkMigrationPath = 'supabase/migrations/20260819021500_student_homework_retry_integrity.sql'
-const exerciseMigrationPath = 'supabase/migrations/20260819022000_student_exercise_submission_integrity.sql'
-const releaseMigrationPath = 'supabase/migrations/20260819022500_student_pilot_content_release_reconciliation.sql'
-const resumeMigrationPath = 'supabase/migrations/20260819022700_student_vibelearn_resume_grade_scope.sql'
-const assessmentMigrationPath = 'supabase/migrations/20260819023000_assessment_item_grounding_rpc_reconciliation.sql'
-const notificationPrerequisitePath = 'supabase/migrations/20260819023400_restore_notifications_prerequisite.sql'
-const notificationMigrationPath = 'supabase/migrations/20260819023500_student_actionable_notification_events.sql'
+const contextMigrationPath = 'supabase/migrations/20260819235940_student_core_journey_pilot_context.sql'
+const homeworkMigrationPath = 'supabase/migrations/20260819235950_student_homework_retry_integrity.sql'
+const exerciseMigrationPath = 'supabase/migrations/20260819235960_student_exercise_submission_integrity.sql'
+const releaseMigrationPath = 'supabase/migrations/20260819235970_student_pilot_content_release_reconciliation.sql'
+const resumeMigrationPath = 'supabase/migrations/20260819235980_student_vibelearn_resume_grade_scope.sql'
+const assessmentMigrationPath = 'supabase/migrations/20260819235990_assessment_item_grounding_rpc_reconciliation.sql'
+const notificationFoundationPath = 'supabase/migrations/20260819222000_task2_notifications_reconstruction.sql'
+const notificationMigrationPath = 'supabase/migrations/20260820000010_student_actionable_notification_events.sql'
+const notificationAuthorityPath = 'supabase/migrations/20260820000020_task5_notifications_school_authority_reconcile.sql'
 const contextPath = 'lib/student-context.tsx'
 const layoutPath = 'app/student/layout.tsx'
 const vibeLearnLayoutPath = 'app/student/vibelearn/layout.tsx'
@@ -23,8 +24,9 @@ const exerciseMigration = normalize(fs.readFileSync(exerciseMigrationPath, 'utf8
 const releaseMigration = normalize(fs.readFileSync(releaseMigrationPath, 'utf8'))
 const resumeMigration = normalize(fs.readFileSync(resumeMigrationPath, 'utf8'))
 const assessmentMigration = normalize(fs.readFileSync(assessmentMigrationPath, 'utf8'))
-const notificationPrerequisite = normalize(fs.readFileSync(notificationPrerequisitePath, 'utf8'))
+const notificationFoundation = normalize(fs.readFileSync(notificationFoundationPath, 'utf8'))
 const notificationMigration = normalize(fs.readFileSync(notificationMigrationPath, 'utf8'))
+const notificationAuthority = normalize(fs.readFileSync(notificationAuthorityPath, 'utf8'))
 const normalized = normalize(migration)
 const context = fs.readFileSync(contextPath, 'utf8')
 const layout = fs.readFileSync(layoutPath, 'utf8')
@@ -87,13 +89,13 @@ requireText(assessmentMigration, "p_source_exercise_ref ? 'source_block_id'", 'a
 requireText(assessmentMigration, 'source_resource_id,source_exercise_ref,source_block_id,question_type,prompt', 'assessment source-block persistence')
 requireText(assessmentMigration, "raise exception 'source_block_not_found'", 'invalid assessment grounding rejection')
 
-requireText(notificationPrerequisite, 'create table if not exists public.notifications', 'reproducible notifications prerequisite')
-requireText(notificationPrerequisite, 'alter table public.notifications enable row level security', 'notification RLS reconstruction')
-requireText(notificationPrerequisite, 'using (user_id = auth.uid())', 'notification owner read boundary')
-requireText(notificationPrerequisite, 'with check (user_id = auth.uid())', 'notification owner update boundary')
-requireText(notificationPrerequisite, 'revoke all on table public.notifications from public, anon', 'notification anonymous table denial')
-requireText(notificationPrerequisite, "'homework_assigned'::text", 'notification prerequisite task-event vocabulary')
-requireText(notificationPrerequisite, "'assessment_result'::text", 'notification prerequisite result vocabulary')
+// Task 2 owns notifications reconstruction. Task 5 consumes that foundation and only
+// widens learner event vocabulary / producers plus school-bound insert authority.
+requireText(notificationFoundation, 'create table if not exists public.notifications', 'Task 2 notifications reconstruction foundation')
+requireText(notificationFoundation, 'alter table public.notifications enable row level security', 'Task 2 notification RLS foundation')
+requireText(notificationFoundation, 'using (user_id = auth.uid())', 'notification owner read boundary')
+requireText(notificationFoundation, 'with check (user_id = auth.uid())', 'notification owner update boundary')
+requireText(notificationFoundation, 'revoke all on table public.notifications from anon', 'notification anonymous table denial')
 
 requireText(notificationMigration, 'alter table public.notifications drop constraint if exists notifications_type_check', 'production notification vocabulary transition')
 requireText(notificationMigration, 'notifications_active_event_uniq', 'notification deduplication index')
@@ -102,6 +104,8 @@ requireText(notificationMigration, "'assessment_available'", 'assessment availab
 requireText(notificationMigration, "'homework_feedback'", 'homework feedback notification')
 requireText(notificationMigration, "'assessment_result'", 'assessment result notification')
 requireText(notificationMigration, 'is_read=false', 'notification re-open on meaningful update')
+requireText(notificationAuthority, 'drop policy if exists notifications_admin_insert on public.notifications', 'notification admin policy reconciliation')
+requireText(notificationAuthority, 'sm.school_id = notifications.school_id', 'school-bound notification admin authority')
 
 requireText(context, 'retry:    () => void', 'student identity retry contract')
 requireText(context, 'const [retryNonce, setRetryNonce] = useState(0)', 'student identity retry state')
@@ -115,4 +119,4 @@ requireText(notifications, '.select("id, title, body, type, related_id, is_read,
 requireText(notifications, 'router.push(notificationTarget(n))', 'actionable student notification navigation')
 requireText(notifications, 'Check my tasks', 'notification empty-state next action')
 
-console.log('PASS: Task 5 student pilot contract covers learner-day semantics, grade-safe VibeLearn, release reconciliation, grounded assessments, homework/exercise retry integrity, reproducible authoritative notifications, navigation, and recoverable identity loading')
+console.log('PASS: Task 5 student pilot contract covers learner-day semantics, grade-safe VibeLearn, release reconciliation, grounded assessments, homework/exercise retry integrity, Task 2-backed authoritative notifications, school-bound notification authority, navigation, and recoverable identity loading')
