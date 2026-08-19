@@ -6,6 +6,7 @@ on:
       - ".github/workflows/autopilot-canonical-control-plane.yml"
       - "supabase/migrations/20260819162500_autopilot_canonical_founder_read_model.sql"
       - "supabase/migrations/20260819173000_autopilot_commissioning_authority_clock_and_founder_read_model.sql"
+      - "supabase/migrations/20260819173500_autopilot_commissioning_owner_breaker_reset.sql"
       - "supabase/tests/autopilot_canonical_control_plane_contract.sql"
       - "supabase/tests/autopilot_production_commissioning_contract.sql"
       - "docs/AUTOPILOT_ARCHITECTURE_RECONSTRUCTION_20260819.md"
@@ -55,6 +56,7 @@ jobs:
           test "$(q "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")" = 0
           STATE="$(q "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
           test "$STATE" = 'false|false|false|0|0|false|false|true'
+          test "$(q "select has_function_privilege('service_role','public.hq_workforce_reset_execution_breaker(uuid,text,text,jsonb)','EXECUTE')")" = 'f'
       - name: Destroy disposable Supabase
         if: always()
         run: supabase stop --no-backup >/dev/null 2>&1 || true
