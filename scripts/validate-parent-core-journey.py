@@ -5,8 +5,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 PRIVACY = ROOT / "supabase/migrations/20260819021500_parent_core_journey_privacy_closure.sql"
 COMMUNICATION = ROOT / "supabase/migrations/20260819021600_parent_communication_revocation_closure.sql"
-CLAIM = ROOT / "supabase/migrations/20260819021700_parent_claim_authority_closure.sql"
-CANONICAL_CREATION = ROOT / "supabase/migrations/20260819021800_parent_canonical_student_creation_closure.sql"
+POST_TASK1_CLAIM = ROOT / "supabase/migrations/20260819235910_parent_claim_least_authority_post_task1.sql"
+CANONICAL_CREATION = ROOT / "supabase/migrations/20260819235850_auth_legacy_parent_child_creation_tombstone.sql"
 NOTIFICATION_NAV = ROOT / "supabase/migrations/20260819021900_parent_notification_navigation_closure.sql"
 LEARN = ROOT / "app/parent/learn/page.tsx"
 ASSESSMENTS = ROOT / "app/parent/assessments/page.tsx"
@@ -35,7 +35,7 @@ def forbid(text: str, needle: str, label: str) -> None:
 
 privacy = read(PRIVACY)
 communication = read(COMMUNICATION)
-claim = read(CLAIM)
+claim = read(POST_TASK1_CLAIM)
 canonical_creation = read(CANONICAL_CREATION)
 notification_nav = read(NOTIFICATION_NAV)
 learn = read(LEARN)
@@ -63,23 +63,26 @@ require(communication, "private.vc_child_scope_authorized", "VibeConnect child-s
 require(communication, "active parent relationship required", "thread creation revocation guard")
 require(communication, 'drop policy if exists "thread members can insert messages"', "message-send reauthorization")
 
-# A school-issued parent claim proves relationship only; it must not fabricate
-# pickup or primary-guardian authority, mutate an existing account role, or trust
-# a browser-supplied identity that differs from auth.uid().
+# Task 1 now owns role-transition safety. Task 6 must run after it and narrow the
+# family relationship grant to least authority without weakening Task 1.
+require(claim, "v_role is distinct from 'parent'", "established Parent identity requirement")
+require(claim, "role in ('parent', 'shared')", "student-only claim rejection")
+require(claim, "v_code_row.parent_claimed_at is not null", "one-time Parent claim")
 require(claim, "auth.uid() <> p_user_id", "claim authenticated-account binding")
-require(claim, "and role = 'parent'", "role-specific parent claim")
-require(claim, "if v_code_row.claimed then return 'already_claimed'", "one-time claim")
 require(claim, "false,\n      false,\n      true,\n      'full'", "no primary/pickup authority grant")
-require(claim, "role = case when role is null then 'parent' else role end", "existing account role preservation")
-require(claim, "return case when v_existing_link_id is null then 'success' else 'already_linked' end", "duplicate relationship recovery")
+require(claim, "return case when v_existing_link_id is null then 'success' else 'already_linked' end", "idempotent relationship recovery")
+require(claim, "revoke all on function public.redeem_parent_claim(text,uuid)", "claim execute minimisation")
+require(claim, "from public, anon, service_role", "service-role direct claim revocation")
+require(claim, "grant execute on function public.redeem_parent_claim(text,uuid) to authenticated", "authenticated Parent claim boundary")
 require(link, "one-time", "truthful claim-code copy")
 require(link, "does not automatically grant pickup authority", "minimum-authority explanation")
 forbid(link, "same code can be used by the parent and the student", "false reusable-code promise")
 
-# Parents may link verified canonical learners; they may not manufacture a new
-# students row from only a name/date of birth.
-require(canonical_creation, "revoke all on function public.create_child_for_parent(text,date,uuid) from public, anon, authenticated", "canonical learner self-creation revocation")
-require(canonical_creation, "grant execute on function public.create_child_for_parent(text,date,uuid) to service_role", "service-only legacy recovery boundary")
+# Canonical learner creation is owned by Task 1's fail-closed compatibility
+# tombstone. Task 6 must never reopen it for service_role or browsers.
+require(canonical_creation, "verified_parent_child_relationship_required", "canonical learner creation tombstone")
+require(canonical_creation, "from public, anon, authenticated, service_role", "all-role learner creation revocation")
+forbid(canonical_creation, "grant execute on function public.create_child_for_parent", "legacy learner creation regrant")
 require(create_child, "redirect('/parent/link-child')", "retired self-create route")
 forbid(create_child, "create_child_for_parent", "browser canonical learner creation")
 
@@ -127,8 +130,7 @@ require(child_homework, "setChildName(\"\")", "homework child-name clearing")
 require(child_homework, "setItems([])", "homework sibling-data clearing")
 require(child_homework, "requestVersion.current += 1", "homework unmount invalidation")
 
-# Empty-state linking action must enter the verified claim flow, never a generic
-# communications page or a guessed student-id route.
+# Empty-state linking action must enter the verified claim flow.
 require(connect_alias, "redirect('/parent/link-child')", "verified child-link compatibility route")
 
 print("Parent Core Journey Contract: PASS")
