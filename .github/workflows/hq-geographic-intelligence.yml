@@ -4,16 +4,20 @@ on:
   pull_request:
     paths:
       - 'app/hq/geography/**'
+      - 'app/hq/schools/**'
       - 'supabase/migrations/*hq_*.sql'
       - 'supabase/tests/hq_national_intelligence_contract.sql'
+      - 'supabase/tests/hq_school_network_os_contract.sql'
       - 'scripts/validate-hq-geographic-intelligence.mjs'
       - '.github/workflows/hq-geographic-intelligence.yml'
   push:
     branches: [main]
     paths:
       - 'app/hq/geography/**'
+      - 'app/hq/schools/**'
       - 'supabase/migrations/*hq_*.sql'
       - 'supabase/tests/hq_national_intelligence_contract.sql'
+      - 'supabase/tests/hq_school_network_os_contract.sql'
       - 'scripts/validate-hq-geographic-intelligence.mjs'
 
 permissions:
@@ -74,6 +78,14 @@ jobs:
             'postgresql://postgres@127.0.0.1:54322/postgres' \
             -v ON_ERROR_STOP=1 \
             -f supabase/tests/hq_national_intelligence_contract.sql
+      - name: Execute School Network OS contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql \
+            'postgresql://postgres@127.0.0.1:54322/postgres' \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/hq_school_network_os_contract.sql
       - name: Stop disposable Supabase
         if: always()
         run: supabase stop --no-backup >/dev/null 2>&1 || true
