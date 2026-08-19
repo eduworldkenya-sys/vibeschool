@@ -1,6 +1,6 @@
 -- Task 7: School Admin cross-school communication hardening.
--- Repository-first. Do not apply to production until the exact candidate passes
--- migration/security/build/Admin journey gates.
+-- Repository-first and clean-rebuild safe. Notification policy hardening is
+-- conditional because notifications is reconstructed later in the canonical chain.
 
 create or replace function public.is_school_community_profile(
   p_school_id uuid,
@@ -17,16 +17,14 @@ as $$
     and p_school_id is not null
     and p_profile_id is not null
     and exists (
-      select 1
-      from public.schools school
+      select 1 from public.schools school
       where school.id = p_school_id
         and school.deleted_at is null
         and school.status = 'active'
     )
     and (
       exists (
-        select 1
-        from public.school_members member
+        select 1 from public.school_members member
         where member.school_id = p_school_id
           and member.profile_id = p_profile_id
       )
@@ -61,17 +59,27 @@ revoke all on function public.is_school_community_profile(uuid, uuid) from publi
 grant execute on function public.is_school_community_profile(uuid, uuid) to authenticated;
 grant execute on function public.is_school_community_profile(uuid, uuid) to service_role;
 
--- Generic notifications must be both school-bound and recipient-bound.
-drop policy if exists notifications_admin_insert on public.notifications;
-create policy notifications_admin_insert
-on public.notifications
-for insert
-to authenticated
-with check (
-  school_id is not null
-  and public.is_school_admin(school_id)
-  and public.is_school_community_profile(school_id, user_id)
-);
+-- The legacy repository can reconstruct public.notifications after this migration.
+-- Harden it here when present; the later canonical notification reconstruction must
+-- independently install equivalent school/recipient-bound policy semantics.
+do $task7_notifications$
+begin
+  if to_regclass('public.notifications') is not null then
+    execute 'drop policy if exists notifications_admin_insert on public.notifications';
+    execute $policy$
+      create policy notifications_admin_insert
+      on public.notifications
+      for insert
+      to authenticated
+      with check (
+        school_id is not null
+        and public.is_school_admin(school_id)
+        and public.is_school_community_profile(school_id, user_id)
+      )
+    $policy$;
+  end if;
+end
+$task7_notifications$;
 
 -- Circular recipient rows inherit the circular school, but the target profile must
 -- also belong to that same school community.
@@ -86,33 +94,24 @@ with check (
     from public.vc_circulars circular
     where circular.id = vc_circular_recipients.circular_id
       and public.is_school_admin(circular.school_id)
-      and public.is_school_community_profile(
-        circular.school_id,
-        vc_circular_recipients.profile_id
-      )
+      and public.is_school_community_profile(circular.school_id, vc_circular_recipients.profile_id)
   )
 );
 
 -- Admins may manage participants only when both the thread and the target
--- participant resolve to the same authorized school. This prevents a direct
--- UUID insert/update from silently adding a School B identity into School A.
+-- participant resolve to the same authorized school.
 drop policy if exists vc_participants_admin on public.vc_participants;
 create policy vc_participants_admin
 on public.vc_participants
 for all
 to authenticated
-using (
-  (select private.vc_user_is_thread_admin(vc_participants.thread_id))
-)
+using ((select private.vc_user_is_thread_admin(vc_participants.thread_id)))
 with check (
   (select private.vc_user_is_thread_admin(vc_participants.thread_id))
   and exists (
     select 1
     from public.vc_threads thread
     where thread.id = vc_participants.thread_id
-      and public.is_school_community_profile(
-        thread.school_id,
-        vc_participants.profile_id
-      )
+      and public.is_school_community_profile(thread.school_id, vc_participants.profile_id)
   )
 );
