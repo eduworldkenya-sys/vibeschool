@@ -6,6 +6,7 @@ on:
       - "app/teacher/profile/**"
       - "app/teacher/settings/**"
       - "supabase/migrations/**teacher_profile**"
+      - "supabase/migrations/**task26_teacher**"
       - "scripts/test-teacher-profile-task26-contract.mjs"
       - ".github/workflows/teacher-profile-task26.yml"
   workflow_dispatch:
