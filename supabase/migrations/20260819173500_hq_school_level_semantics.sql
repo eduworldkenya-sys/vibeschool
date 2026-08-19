@@ -19,7 +19,13 @@ declare
   v_days integer := greatest(1,least(coalesce(p_days,30),365));
   v_limit integer := greatest(1,least(coalesce(p_limit,100),500));
   v_search text := nullif(btrim(coalesce(p_search,'')),'');
-  v_level text := nullif(upper(btrim(coalesce(p_school_level,''))),'');
+  v_level text := case upper(btrim(coalesce(p_school_level,'')))
+    when '' then null
+    when 'JUNIOR SCHOOL' then 'JUNIOR'
+    when 'SECONDARY' then 'SENIOR_SECONDARY'
+    when 'SENIOR SCHOOL' then 'SENIOR_SECONDARY'
+    else upper(btrim(coalesce(p_school_level,'')))
+  end;
 begin
   if auth.uid() is null or not coalesce(public.is_platform_owner(),false) then
     raise exception 'owner_authorization_required';
@@ -30,6 +36,7 @@ begin
     from (
       select s.id,
              s.name,
+             (select min(sl.level) from public.school_levels sl where sl.school_id=s.id) as school_type,
              s.school_type as institution_type,
              s.school_category as institution_category,
              coalesce((select jsonb_agg(sl.level order by sl.level) from public.school_levels sl where sl.school_id=s.id),'[]'::jsonb) as levels,
