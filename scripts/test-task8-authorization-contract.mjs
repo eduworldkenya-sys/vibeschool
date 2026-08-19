@@ -36,10 +36,11 @@ mustContain(authenticatedPrivilegeMigration, "coalesce(psl.access_level,'full') 
 
 mustContain(defaultPrivilegeMigration, 'alter default privileges for role postgres in schema public', 'postgres public defaults must be hardened')
 mustContain(defaultPrivilegeMigration, 'alter default privileges for role supabase_admin in schema public', 'supabase_admin public defaults must be hardened')
-mustContain(defaultPrivilegeMigration, 'revoke truncate, references, trigger, maintain on tables from anon, authenticated', 'future public tables must not grant structural authority to clients')
+mustContain(defaultPrivilegeMigration, 'revoke truncate, references, trigger on tables from anon, authenticated', 'future public tables must not grant PostgreSQL 15 structural authority to clients')
 mustContain(defaultPrivilegeMigration, 'revoke update on sequences from anon, authenticated', 'future public sequences must not grant UPDATE by default')
 mustContain(defaultPrivilegeMigration, 'revoke execute on functions from public, anon, authenticated', 'future public functions must require explicit EXECUTE grants')
 mustContain(defaultPrivilegeMigration, "n.nspname = 'public'", 'existing structural-privilege cleanup must be constrained to public')
+mustNotContain(defaultPrivilegeMigration, 'revoke truncate, references, trigger, maintain', 'PostgreSQL 15 security migration must not use unsupported MAINTAIN privilege syntax')
 
 mustContain(storagePolicyCleanupMigration, 'drop policy if exists homework_photos_school_staff_select on storage.objects', 'legacy same-school homework photo read policy must be removed')
 mustContain(storagePolicyCleanupMigration, 'drop policy if exists homework_photos_staff_read on storage.objects', 'legacy homework photo staff policy variants must remain removed')
