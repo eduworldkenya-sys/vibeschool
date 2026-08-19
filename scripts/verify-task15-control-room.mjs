@@ -16,8 +16,10 @@ for(const fn of [
 
 requireText(sql,'perform public.hq_assert_owner()','owner assertion missing')
 requireText(sql,'control_room_stale_runtime_state','stale-state rejection missing')
-requireText(sql,"hq_workforce_trip_execution_breaker(\n      'global','global'",'Global Stop breaker integration missing')
-requireText(sql,"hq_workforce_owner_transition_capability_authority(\n        g.id,'suspend'",'shutdown authority neutralization missing')
+requireText(sql,'hq_workforce_trip_execution_breaker(','Global Stop breaker integration missing')
+requireText(sql,"'global','global','owner_global_stop'",'Global Stop scope/reason missing')
+requireText(sql,'hq_workforce_owner_transition_capability_authority(','authority lifecycle integration missing')
+requireText(sql,"g.id,'suspend'",'shutdown authority neutralization missing')
 requireText(sql,'task15_migration_must_not_activate_runtime','non-activation invariant missing')
 requireText(sql,'revoke all on function public.hq_workforce_owner_start_controlled_operations','start RPC grant hardening missing')
 requireText(sql,'from public,anon,service_role','service-role activation denial missing')
