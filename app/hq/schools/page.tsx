@@ -1,216 +1,37 @@
 "use client"
 
-export const dynamic = "force-dynamic"
-
-import { useCallback, useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+export const dynamic="force-dynamic"
+import Link from "next/link"
+import { useCallback,useEffect,useMemo,useState,type ReactNode } from "react"
+import { useRouter,useSearchParams } from "next/navigation"
 import { hqSupabase } from "@/lib/hq/supabase"
-import { HQPage, HQPanel, HQ_THEME as C, hqButtonStyle } from "@/components/hq/HQShell"
+import { HQPage,HQPanel,HQ_THEME as C } from "@/components/hq/HQShell"
 
-type Candidate = {
-  id: string
-  status: string
-  confidence: number | null
-  match_reason: string | null
-  directory_school_id: string | null
-  canonical_school_id: string | null
-  directory_name: string | null
-  directory_county: string | null
-  directory_sub_county: string | null
-  canonical_name: string | null
-  canonical_county: string | null
-  canonical_sub_county: string | null
-}
+type Network={known_schools:number;canonical_schools:number;connected_schools:number;active_schools:number;linked_users:number;active_users:number;attention_schools:number}
+type County={name:string;known_schools:number;canonical_schools:number;connected_schools:number;active_schools:number}
+type Overview={country:{code:string;name:string;administrative_regions:number};window_days:number;network:Network;counties:County[];generated_at:string}
+type DirectorySchool={id:string;name:string;county:string|null;sub_county:string|null;source:string}
+type AttentionItem={school_id:string;school_name:string;county:string|null;reasons:string[];signal_count:number;last_activity:string|null;open_support:number}
+type Attention={county:string|null;window_days:number;items:AttentionItem[]}
+const tabs=[["Overview","/hq/schools"],["Explorer","/hq/schools/explorer"],["Intelligence","/hq/schools/intelligence"],["Data quality","/hq/schools/data-quality"]] as const
+function Metric({label,value,help,onClick}:{label:string;value:string|number;help:string;onClick:()=>void}){return <button className="sn-metric sn-click" onClick={onClick}><span>{label}</span><strong>{value}</strong><small>{help}</small></button>}
+function StatusPill({children}:{children:ReactNode}){return <span className="sn-pill">{children}</span>}
 
-type Request = {
-  id: string
-  status: string
-  request_type: string | null
-  name: string
-  county: string | null
-  sub_county: string | null
-  ward: string | null
-  level: string | null
-  school_code: string | null
-  alternative_name: string | null
-  notes: string | null
-  requested_by: string
-  created_at: string
-}
-
-type Queue = { candidates: Candidate[]; requests: Request[] }
-type Canonical = { id: string; name: string; county: string | null; sub_county: string | null; source: string }
-
-export default function HQSchoolsPage() {
-  const router = useRouter()
-  const [queue, setQueue] = useState<Queue>({ candidates: [], requests: [] })
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-  const [busy, setBusy] = useState("")
-  const [dialog, setDialog] = useState<{ kind: "candidate" | "request"; id: string; action: "matched" | "created" } | null>(null)
-  const [canonicalSearch, setCanonicalSearch] = useState("")
-  const [canonicalRows, setCanonicalRows] = useState<Canonical[]>([])
-  const [selectedCanonical, setSelectedCanonical] = useState<Canonical | null>(null)
-  const [alias, setAlias] = useState("")
-  const [note, setNote] = useState("")
-
-  const refresh = useCallback(async () => {
-    setError("")
-    const { data, error } = await hqSupabase.rpc("hq_list_school_identity_queue", { p_status: "pending", p_limit: 100 })
-    if (error) {
-      setError(error.message)
-      return
-    }
-    setQueue((data || { candidates: [], requests: [] }) as Queue)
-  }, [])
-
-  useEffect(() => {
-    void (async () => {
-      setLoading(true)
-      await refresh()
-      setLoading(false)
-    })()
-  }, [refresh])
-
-  useEffect(() => {
-    if (!dialog || dialog.action !== "matched" || canonicalSearch.trim().length < 2) {
-      setCanonicalRows([])
-      return
-    }
-    const timer = setTimeout(async () => {
-      const { data, error } = await hqSupabase.rpc("search_school_directory", {
-        p_query: canonicalSearch.trim(),
-        p_level: null,
-        p_county: null,
-        p_sub_county: null,
-        p_lat: null,
-        p_lng: null,
-        p_limit: 20,
-      })
-      if (error) {
-        setError(error.message)
-        return
-      }
-      setCanonicalRows(((data || []) as Canonical[]).filter((row) => row.source === "CANONICAL"))
-    }, 180)
-    return () => clearTimeout(timer)
-  }, [canonicalSearch, dialog])
-
-  function openMatch(kind: "candidate" | "request", id: string) {
-    setDialog({ kind, id, action: "matched" })
-    setCanonicalSearch("")
-    setCanonicalRows([])
-    setSelectedCanonical(null)
-    setAlias("")
-    setNote("")
-    setError("")
-  }
-
-  async function actCandidate(id: string, action: "matched" | "new" | "rejected") {
-    setBusy(id)
-    setError("")
-    try {
-      const { error } = await hqSupabase.rpc("hq_review_school_identity_candidate", {
-        p_candidate_id: id,
-        p_action: action,
-        p_canonical_school_id: action === "matched" ? selectedCanonical?.id : null,
-        p_alias: alias.trim() || null,
-        p_note: note.trim() || null,
-      })
-      if (error) throw error
-      setDialog(null)
-      await refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Identity review failed")
-    } finally {
-      setBusy("")
-    }
-  }
-
-  async function actRequest(id: string, action: "matched" | "created" | "rejected") {
-    setBusy(id)
-    setError("")
-    try {
-      const { error } = await hqSupabase.rpc("hq_resolve_school_discovery_request", {
-        p_request_id: id,
-        p_action: action,
-        p_canonical_school_id: action === "matched" ? selectedCanonical?.id : null,
-        p_school_name: null,
-        p_alias: alias.trim() || null,
-        p_note: note.trim() || null,
-      })
-      if (error) throw error
-      setDialog(null)
-      await refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Discovery request resolution failed")
-    } finally {
-      setBusy("")
-    }
-  }
-
-  return (
-    <HQPage
-      title="School identity"
-      description="Reconcile directory records and teacher-submitted schools without silently creating duplicates."
-      actions={<><button onClick={() => router.push("/hq")} style={hqButtonStyle}>HQ</button><button onClick={() => void refresh()} style={hqButtonStyle}>Refresh</button></>}
-    >
-      {error && <div role="alert" style={{ marginBottom: 14, padding: 12, borderRadius: 11, border: `1px solid ${C.red}55`, background: `${C.red}12`, color: C.red, fontSize: 12 }}>{error}</div>}
-
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 10, marginBottom: 18 }}>
-        <HQPanel title="Pending identity matches"><div style={{ fontSize: 28, fontWeight: 950 }}>{queue.candidates.length}</div><div style={{ color: C.muted, fontSize: 11 }}>Directory records awaiting reconciliation</div></HQPanel>
-        <HQPanel title="Pending school requests"><div style={{ fontSize: 28, fontWeight: 950 }}>{queue.requests.length}</div><div style={{ color: C.muted, fontSize: 11 }}>Teacher-submitted missing/new schools</div></HQPanel>
-      </section>
-
-      <section style={{ marginBottom: 22 }}>
-        <HQPanel title="Directory identity queue">
-          {loading ? <div style={{ padding: 14, color: C.muted }}>Loading queue…</div> : queue.candidates.length === 0 ? <div style={{ padding: 14, color: C.muted }}>No pending identity candidates.</div> : queue.candidates.map((c, i) => (
-            <div key={c.id} style={{ padding: 14, borderTop: i ? `1px solid ${C.border}` : 0 }}>
-              <div style={{ fontWeight: 900, fontSize: 13 }}>{c.directory_name || "Unnamed directory record"}</div>
-              <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>{[c.directory_sub_county, c.directory_county].filter(Boolean).join(" · ") || "Location unavailable"}</div>
-              <div style={{ color: C.muted, fontSize: 10.5, marginTop: 4 }}>{c.match_reason || "No deterministic canonical match"}</div>
-              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 10 }}>
-                <button onClick={() => openMatch("candidate", c.id)} style={{ ...hqButtonStyle, color: C.green }}>Match canonical</button>
-                <button disabled={busy === c.id} onClick={() => void actCandidate(c.id, "new")} style={{ ...hqButtonStyle, color: C.amber }}>{busy === c.id ? "Working…" : "Create pending school"}</button>
-                <button disabled={busy === c.id} onClick={() => void actCandidate(c.id, "rejected")} style={{ ...hqButtonStyle, color: C.red }}>{busy === c.id ? "Working…" : "Reject"}</button>
-              </div>
-            </div>
-          ))}
-        </HQPanel>
-      </section>
-
-      <section>
-        <HQPanel title="Teacher discovery requests">
-          {loading ? <div style={{ padding: 14, color: C.muted }}>Loading requests…</div> : queue.requests.length === 0 ? <div style={{ padding: 14, color: C.muted }}>No pending school requests.</div> : queue.requests.map((r, i) => (
-            <div key={r.id} style={{ padding: 14, borderTop: i ? `1px solid ${C.border}` : 0 }}>
-              <div style={{ fontWeight: 900, fontSize: 13 }}>{r.name}</div>
-              <div style={{ color: C.muted, fontSize: 11, marginTop: 4 }}>{[r.sub_county, r.county, r.level, r.school_code].filter(Boolean).join(" · ") || "No extra identity data"}</div>
-              {r.alternative_name && <div style={{ color: C.muted, fontSize: 10.5, marginTop: 4 }}>Also known as: {r.alternative_name}</div>}
-              {r.notes && <div style={{ color: C.muted, fontSize: 10.5, marginTop: 4, whiteSpace: "pre-wrap" }}>{r.notes}</div>}
-              <div style={{ display: "flex", gap: 7, flexWrap: "wrap", marginTop: 10 }}>
-                <button onClick={() => openMatch("request", r.id)} style={{ ...hqButtonStyle, color: C.green }}>Match existing school</button>
-                <button disabled={busy === r.id} onClick={() => void actRequest(r.id, "created")} style={{ ...hqButtonStyle, color: C.amber }}>{busy === r.id ? "Working…" : "Create pending school"}</button>
-                <button disabled={busy === r.id} onClick={() => void actRequest(r.id, "rejected")} style={{ ...hqButtonStyle, color: C.red }}>{busy === r.id ? "Working…" : "Reject"}</button>
-              </div>
-            </div>
-          ))}
-        </HQPanel>
-      </section>
-
-      {dialog && (
-        <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 200, display: "grid", placeItems: "center", padding: 18, background: "rgba(2,6,23,.78)" }}>
-          <div style={{ width: "min(100%,560px)", maxHeight: "90dvh", overflow: "auto", border: `1px solid ${C.border}`, borderRadius: 16, background: C.panel, padding: 18, color: C.text }}>
-            <h2 style={{ margin: "0 0 6px", fontSize: 17 }}>Match to canonical school</h2>
-            <p style={{ margin: "0 0 12px", fontSize: 11.5, color: C.muted }}>Search the canonical school registry and choose the exact school. Do not use name similarity alone when the location is ambiguous.</p>
-            <input autoFocus value={canonicalSearch} onChange={(e) => setCanonicalSearch(e.target.value)} placeholder="Search canonical school name" style={{ width: "100%", boxSizing: "border-box", padding: 11, borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,.04)", color: C.text }} />
-            <div style={{ marginTop: 8 }}>{canonicalRows.map((row) => <button key={row.id} onClick={() => setSelectedCanonical(row)} style={{ display: "block", width: "100%", textAlign: "left", padding: 10, marginTop: 6, borderRadius: 9, border: selectedCanonical?.id === row.id ? `2px solid ${C.green}` : `1px solid ${C.border}`, background: selectedCanonical?.id === row.id ? `${C.green}12` : "transparent", color: C.text }}><b>{row.name}</b><div style={{ fontSize: 10.5, color: C.muted, marginTop: 3 }}>{[row.sub_county, row.county].filter(Boolean).join(" · ")}</div></button>)}</div>
-            {selectedCanonical && <div style={{ marginTop: 10, padding: 10, borderRadius: 9, background: `${C.green}12`, fontSize: 11 }}>Selected: <b>{selectedCanonical.name}</b> · {[selectedCanonical.sub_county, selectedCanonical.county].filter(Boolean).join(" · ")}</div>}
-            <input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="Verified alias to add (optional)" style={{ width: "100%", boxSizing: "border-box", marginTop: 10, padding: 11, borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,.04)", color: C.text }} />
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Review note (optional)" rows={3} style={{ width: "100%", boxSizing: "border-box", marginTop: 8, padding: 11, borderRadius: 10, border: `1px solid ${C.border}`, background: "rgba(255,255,255,.04)", color: C.text, resize: "vertical" }} />
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}><button onClick={() => setDialog(null)} style={hqButtonStyle}>Cancel</button><button disabled={!selectedCanonical || Boolean(busy)} onClick={() => dialog.kind === "candidate" ? void actCandidate(dialog.id, "matched") : void actRequest(dialog.id, "matched")} style={{ ...hqButtonStyle, color: C.green }}>{busy ? "Saving…" : "Confirm match"}</button></div>
-          </div>
-        </div>
-      )}
-    </HQPage>
-  )
+export default function HQSchoolsPage(){
+ const router=useRouter();const params=useSearchParams();const selectedCounty=params.get("county")||"";const [days,setDays]=useState(30);const [overview,setOverview]=useState<Overview|null>(null);const [attention,setAttention]=useState<AttentionItem[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState<string|null>(null);const [search,setSearch]=useState("");const [results,setResults]=useState<DirectorySchool[]>([]);const [searching,setSearching]=useState(false)
+ const load=useCallback(async()=>{setLoading(true);setError(null);const [{data:o,error:oe},{data:a,error:ae}]=await Promise.all([hqSupabase.rpc("hq_school_network_overview",{p_days:days}),hqSupabase.rpc("hq_school_network_attention",{p_county:selectedCounty||null,p_days:days,p_limit:8})]);if(oe){setOverview(null);setError("School intelligence is not commissioned for this environment yet. Existing school data has not been changed.")}else setOverview(o as Overview);setAttention(ae?[]:((a as Attention)?.items||[]));setLoading(false)},[days,selectedCounty]);useEffect(()=>{void load()},[load])
+ useEffect(()=>{if(search.trim().length<2){setResults([]);return}const timer=setTimeout(async()=>{setSearching(true);const {data,error:e}=await hqSupabase.rpc("search_school_directory",{p_query:search.trim(),p_level:null,p_county:selectedCounty||null,p_sub_county:null,p_lat:null,p_lng:null,p_limit:25});if(!e)setResults((data||[]) as DirectorySchool[]);setSearching(false)},220);return()=>clearTimeout(timer)},[search,selectedCounty])
+ const counties=overview?.counties||[];const scopedCounty=selectedCounty?counties.find(c=>c.name===selectedCounty):null;const topCounties=useMemo(()=>[...counties].sort((a,b)=>b.known_schools-a.known_schools),[counties]);const maxKnown=Math.max(1,...counties.map(c=>c.known_schools));const network=overview?.network;const scopeLabel=scopedCounty?`${scopedCounty.name} County`:overview?.country?.name||"Kenya";const selectCounty=(name:string)=>router.push(name?`/hq/schools?county=${encodeURIComponent(name)}`:"/hq/schools");const explore=(state:string)=>router.push(`/hq/schools/explorer?state=${state}${selectedCounty?`&county=${encodeURIComponent(selectedCounty)}`:""}`)
+ return <HQPage title={`Schools — ${scopeLabel}`} description="School network, adoption, activity and operating health. Known, canonical, connected and active are deliberately different states."><div className="sn-stack">
+  <nav className="sn-tabs" aria-label="Schools sections">{tabs.map(([label,href])=><Link key={href} href={href} className={href==="/hq/schools"?"active":""}>{label}</Link>)}</nav>
+  <div className="sn-scope"><div><span className="sn-kicker">NETWORK SCOPE</span><div className="sn-crumbs"><button onClick={()=>selectCounty("")}>World</button><b>›</b><button onClick={()=>selectCounty("")}>Kenya</button>{selectedCounty&&<><b>›</b><strong>{selectedCounty}</strong></>}</div></div><div className="sn-period">{[7,30,90].map(d=><button key={d} className={days===d?"active":""} onClick={()=>setDays(d)}>{d}D</button>)}</div></div>
+  {error&&<div role="status" className="sn-notice"><div><strong>School intelligence unavailable</strong><span>{error}</span></div><button onClick={()=>void load()}>Retry</button></div>}{loading?<div className="sn-loading">Loading owner-authorized school evidence…</div>:network?<>
+   <section className="sn-metrics"><Metric label="Known schools" value={scopedCounty?.known_schools??network.known_schools} help="Directory evidence; not canonical" onClick={()=>explore("known")}/><Metric label="Canonical" value={scopedCounty?.canonical_schools??network.canonical_schools} help="Canonical school identities" onClick={()=>explore("canonical")}/><Metric label="Connected" value={scopedCounty?.connected_schools??network.connected_schools} help="Has canonical VibeSchool membership" onClick={()=>explore("connected")}/><Metric label="Active" value={scopedCounty?.active_schools??network.active_schools} help={`Connected with activity · ${days}D`} onClick={()=>explore("active")}/>{!scopedCounty&&<Metric label="Active users" value={network.active_users} help={`Unique school-scoped actors · ${days}D`} onClick={()=>router.push("/hq/schools/intelligence")}/>}<Metric label="Needs attention" value={attention.length} help="Top evidenced exceptions in scope" onClick={()=>document.getElementById("attention")?.scrollIntoView({behavior:"smooth"})}/></section>
+   <div className="sn-grid-2"><HQPanel title="Network funnel" description="Discovery is not adoption. Each stage narrows to stronger evidence."><div className="sn-funnel">{[["Known",network.known_schools,"Directory"],["Canonical",network.canonical_schools,"Identity"],["Connected",network.connected_schools,"Membership"],["Active",network.active_schools,`${days}D activity`]].map(([label,value,note])=><button key={String(label)} onClick={()=>explore(String(label).toLowerCase())} className="sn-funnel-row"><span>{label}</span><div><i style={{width:`${Math.max(4,Number(value)/Math.max(network.known_schools,1)*100)}%`}}/></div><strong>{Number(value).toLocaleString()}</strong><small>{note}</small></button>)}</div></HQPanel><HQPanel title="Find a school" description={selectedCounty?`Searching within ${selectedCounty}. Clear county scope for national search.`:"Search canonical and directory evidence."}><div className="sn-search"><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="School name, KNEC or NEMIS…"/>{searching&&<span>Searching…</span>}</div>{results.length>0&&<div className="sn-results">{results.map((r,i)=><button key={`${r.id}-${i}`} disabled={r.source!=="CANONICAL"} onClick={()=>r.source==="CANONICAL"&&router.push(`/hq/schools/${r.id}`)}><strong>{r.name}</strong><small>{[r.sub_county,r.county].filter(Boolean).join(" · ")||"Location unavailable"}</small><span>{r.source==="CANONICAL"?"Open profile":"Directory evidence"}</span></button>)}</div>}</HQPanel></div>
+   <HQPanel title="Kenya — 47 counties" description="Every county remains visible and functional, including counties with no current canonical VibeSchool school."><div className="sn-county-toolbar"><span>{selectedCounty?`Scoped to ${selectedCounty}`:"All counties"}</span>{selectedCounty&&<button onClick={()=>selectCounty("")}>Clear scope</button>}</div><div className="sn-counties">{topCounties.map(c=><button key={c.name} className={selectedCounty===c.name?"selected":""} onClick={()=>selectCounty(c.name)}><div className="sn-county-head"><strong>{c.name}</strong><span>{c.known_schools.toLocaleString()} known</span></div><div className="sn-bar"><i style={{width:`${Math.max(c.known_schools?3:0,c.known_schools/maxKnown*100)}%`}}/></div><div className="sn-county-stats"><span><b>{c.canonical_schools}</b> canonical</span><span><b>{c.connected_schools}</b> connected</span><span><b>{c.active_schools}</b> active</span></div></button>)}</div></HQPanel>
+   <section id="attention" className="sn-grid-2"><HQPanel title={`Founder attention${selectedCounty?` — ${selectedCounty}`:""}`} description="Evidence-backed exceptions scoped to the current geography.">{attention.length===0?<div className="sn-empty">No evidenced exception in this scope.</div>:<div className="sn-attention">{attention.map(s=><button key={s.school_id} onClick={()=>router.push(`/hq/schools/${s.school_id}`)}><div><strong>{s.school_name}</strong><small>{s.reasons.map(x=>x.replaceAll("_"," ")).join(" · ")}</small></div><StatusPill>{s.signal_count} signal{s.signal_count===1?"":"s"}</StatusPill></button>)}</div>}</HQPanel><HQPanel title="Data quality" description="Identity reconciliation is an operational workspace, not the Schools landing experience."><div className="sn-quality"><strong>{network.known_schools.toLocaleString()}</strong><span>known directory records</span><strong>{network.canonical_schools.toLocaleString()}</strong><span>canonical schools</span><Link href="/hq/schools/data-quality">Open identity & data quality →</Link></div></HQPanel></section>
+  </>:null}</div><style jsx global>{`
+   .sn-stack{display:grid;gap:14px}.sn-tabs{display:flex;gap:6px;overflow:auto}.sn-tabs a{min-height:42px;display:grid;place-items:center;padding:0 14px;border:1px solid ${C.border};border-radius:10px;color:${C.muted};text-decoration:none;font-size:12px;font-weight:850;white-space:nowrap}.sn-tabs a.active{color:#fff;background:rgba(59,130,246,.16)}.sn-scope{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:14px 16px;border:1px solid ${C.border};border-radius:14px;background:${C.panel}}.sn-kicker{display:block;color:${C.muted};font-size:9px;font-weight:900}.sn-crumbs{display:flex;gap:7px;align-items:center;margin-top:5px}.sn-crumbs button{border:0;background:none;color:#93c5fd;padding:0;font-weight:800}.sn-crumbs b{color:#52677f}.sn-period{display:flex;gap:4px}.sn-period button,.sn-notice button,.sn-county-toolbar button{min-height:38px;border:1px solid ${C.border};border-radius:9px;background:rgba(255,255,255,.04);color:${C.muted};font-weight:850}.sn-period button{min-width:44px}.sn-period button.active{background:rgba(59,130,246,.22);color:#fff}.sn-notice{display:flex;justify-content:space-between;gap:12px;padding:13px;border:1px solid rgba(245,158,11,.28);border-radius:12px}.sn-notice strong,.sn-notice span{display:block}.sn-notice span{font-size:10px;color:${C.muted}}.sn-loading,.sn-empty{padding:16px;color:${C.muted};font-size:11px}.sn-metrics{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.sn-metric{min-height:108px;padding:12px;text-align:left;border:1px solid ${C.border};border-radius:12px;background:${C.panel};color:#fff}.sn-metric span,.sn-metric small{display:block}.sn-metric span{font-size:9px;color:${C.muted}}.sn-metric strong{display:block;font-size:25px;margin:7px 0}.sn-metric small{font-size:8.5px;color:#7489a3}.sn-click{cursor:pointer}.sn-grid-2{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}.sn-funnel{padding:14px;display:grid;gap:7px}.sn-funnel-row{display:grid;grid-template-columns:70px 1fr 65px 80px;gap:8px;align-items:center;border:0;background:none;color:#fff;text-align:left}.sn-funnel-row>div,.sn-bar{height:7px;background:rgba(255,255,255,.05);border-radius:99px;overflow:hidden}.sn-funnel-row i,.sn-bar i{display:block;height:100%;background:linear-gradient(90deg,#2563eb,#22c55e)}.sn-funnel-row strong{text-align:right}.sn-funnel-row small{font-size:8px;color:${C.muted}}.sn-search{padding:14px;position:relative}.sn-search input{width:100%;min-height:45px;border:1px solid ${C.border};border-radius:10px;background:rgba(255,255,255,.035);color:#fff;padding:0 12px}.sn-search span{position:absolute;right:25px;top:30px;font-size:8px;color:${C.muted}}.sn-results{max-height:270px;overflow:auto;padding:0 10px 10px}.sn-results button{width:100%;display:grid;grid-template-columns:1fr auto;gap:3px 10px;text-align:left;padding:9px;border:0;border-top:1px solid ${C.border};background:none;color:#fff}.sn-results strong,.sn-results small,.sn-results span{display:block}.sn-results strong{font-size:10px}.sn-results small,.sn-results span{font-size:8px;color:${C.muted}}.sn-results span{grid-column:2;grid-row:1/3}.sn-county-toolbar{display:flex;justify-content:space-between;padding:11px 13px;border-bottom:1px solid ${C.border};font-size:10px;color:${C.muted}}.sn-counties{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}.sn-counties>button{padding:11px;border:1px solid ${C.border};border-radius:10px;background:rgba(255,255,255,.018);color:#fff;text-align:left}.sn-counties>button.selected{background:rgba(59,130,246,.1);border-color:rgba(96,165,250,.3)}.sn-county-head{display:flex;justify-content:space-between}.sn-county-head strong{font-size:10px}.sn-county-head span{font-size:8px;color:${C.muted}}.sn-bar{margin:8px 0;height:5px}.sn-county-stats{display:flex;gap:8px;flex-wrap:wrap;font-size:8px;color:${C.muted}}.sn-attention{padding:6px 12px 12px}.sn-attention button{width:100%;display:flex;justify-content:space-between;gap:10px;padding:10px 2px;border:0;border-bottom:1px solid ${C.border};background:none;color:#fff;text-align:left}.sn-attention strong,.sn-attention small{display:block}.sn-attention strong{font-size:10px}.sn-attention small{font-size:8px;color:${C.muted};margin-top:3px}.sn-pill{padding:4px 7px;border-radius:99px;background:rgba(245,158,11,.08);color:#fcd34d;font-size:8px}.sn-quality{padding:16px;display:grid;grid-template-columns:auto 1fr;gap:8px 12px}.sn-quality strong{font-size:20px}.sn-quality span{font-size:9px;color:${C.muted}}.sn-quality a{grid-column:1/-1;color:#93c5fd;text-decoration:none;font-size:10px}
+   @media(max-width:1180px){.sn-metrics{grid-template-columns:repeat(3,1fr)}.sn-counties{grid-template-columns:repeat(2,1fr)}}@media(max-width:900px){.hq-sidebar{display:none!important}.hq-page{margin-left:0!important;padding-top:60px!important}.hq-mobile-topbar{display:flex!important}.hq-bottom-nav{display:grid!important}.sn-grid-2{grid-template-columns:1fr}.sn-counties{grid-template-columns:1fr}.sn-metrics{grid-template-columns:repeat(2,1fr)}.sn-funnel-row{grid-template-columns:60px 1fr 50px}.sn-funnel-row small{display:none}}@media(max-width:520px){.sn-scope{display:block}.sn-period{margin-top:10px}.sn-metric{min-height:94px}.sn-metric strong{font-size:21px}.sn-counties{padding:8px}}
+  `}</style></HQPage>
 }

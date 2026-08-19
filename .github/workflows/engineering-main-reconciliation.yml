@@ -108,8 +108,6 @@ jobs:
               fail_closed: [],
             };
 
-            // Process sequentially so mutation order and evidence are deterministic.
-            // A single pathological PR must never abort invalidation for the rest of the fleet.
             for (const pr of prs) {
               if (pr.head.sha === after) continue;
               const existingLabels = new Set((pr.labels || []).map(l => typeof l === 'string' ? l : l.name).filter(Boolean));
