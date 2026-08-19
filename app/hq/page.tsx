@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic"
 
 import Link from "next/link"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { hqSupabase } from "@/lib/hq/supabase"
 import HQTwinDrawer from "@/components/hq/TwinDrawer"
@@ -40,26 +40,26 @@ function deriveHealth(report:Obj|null,health:Obj|null,workforce:WorkerSnapshot|n
  const failedNotifications=firstNumber(operations?.notifications?.failed_24h)
  const paymentFailures=firstNumber(operations?.payments?.failed_7d)
  const runtimeDenials=firstNumber(operations?.runtime?.denials_24h)
- const controls=arr(health?.runtime_certifications)
- const failedCerts=controls.filter((x:Obj)=>lower(x.result)==="fail").length
+ const certifications=arr(health?.runtime_certifications)
+ const failedCerts=certifications.filter((x:Obj)=>lower(x.result)==="fail").length
  const engine=workforce?.engine??{}
  const workerUnsafe=Boolean(engine.runtime_execution_enabled)||Number(engine.runtime_autonomy_level??0)>0||Boolean(engine.factory_enabled)||Boolean(engine.heartbeat_enabled)
  const workerFailures=arr(workforce?.failures?.anomalies).length+arr(workforce?.failures?.dead_letters).length
- const unknown=(s:SourceState<unknown>)=>s.status==="failed"||s.status==="loading"
+ const unknown=(s:SourceState<unknown>)=>s.status!=="live"
  const result:Record<string,Health>={
   Auth:unknown(reportState)?"Unknown":criticalIncidents?"Critical":"Unknown",
-  Teacher:unknown(reportState)?"Unknown":"Unknown",
-  Student:unknown(reportState)?"Unknown":"Unknown",
-  Parent:unknown(reportState)?"Unknown":"Unknown",
-  Admin:unknown(reportState)?"Unknown":"Unknown",
-  VibeLearn:unknown(reportState)?"Unknown":"Unknown",
-  "Learning writes":unknown(reportState)?"Unknown":"Unknown",
-  Assessments:unknown(reportState)?"Unknown":"Unknown",
-  Notifications:failedNotifications===null?"Unknown":failedNotifications>0?"Degraded":"Healthy",
+  Teacher:"Unknown",
+  Student:"Unknown",
+  Parent:"Unknown",
+  Admin:"Unknown",
+  VibeLearn:"Unknown",
+  "Learning writes":"Unknown",
+  Assessments:"Unknown",
+  Notifications:unknown(reportState)||failedNotifications===null?"Unknown":failedNotifications>0?"Degraded":"Healthy",
   "Worker Engine":unknown(workforceState)?"Unknown":workerUnsafe?"Critical":workerFailures>0?"Degraded":"Healthy",
-  Payments:paymentFailures===null?"Unknown":paymentFailures>0?"Degraded":"Healthy",
-  "Control plane":unknown(healthState)?"Unknown":failedCerts>0?"Critical":controls.length?"Healthy":"Unknown",
-  Security:runtimeDenials===null?"Unknown":runtimeDenials>0?"Degraded":"Healthy",
+  Payments:unknown(reportState)||paymentFailures===null?"Unknown":paymentFailures>0?"Degraded":"Healthy",
+  "Control plane":unknown(healthState)?"Unknown":failedCerts>0?"Critical":certifications.length?"Healthy":"Unknown",
+  Security:unknown(reportState)||runtimeDenials===null?"Unknown":runtimeDenials>0?"Degraded":"Healthy",
  }
  return result
 }
@@ -67,7 +67,7 @@ function deriveHealth(report:Obj|null,health:Obj|null,workforce:WorkerSnapshot|n
 export default function HQToday(){
  const router=useRouter()
  const[report,setReport]=useState<SourceState<Obj>>(initial)
- const[controls,setControls]=useState<SourceState<Control[]>>(initial)
+ const[,setControls]=useState<SourceState<Control[]>>(initial)
  const[health,setHealth]=useState<SourceState<Obj>>(initial)
  const[decisions,setDecisions]=useState<SourceState<Obj[]>>(initial)
  const[workforce,setWorkforce]=useState<SourceState<WorkerSnapshot>>(initial)
@@ -89,15 +89,15 @@ export default function HQToday(){
   const now=new Date().toISOString()
   const read=<T,>(i:number,current:SourceState<T>):SourceState<T>=>{
    const settled=calls[i]
-   if(settled.status==="rejected")return current.data?{...current,error:String(settled.reason)}:{status:"failed",data:null,error:String(settled.reason)}
+   if(settled.status==="rejected")return current.data?{...current,status:"cached",error:String(settled.reason)}:{status:"failed",data:null,error:String(settled.reason)}
    const result=settled.value as {data:T|null;error?:{message?:string}|null}
-   if(result.error)return current.data?{...current,error:result.error.message??"Source unavailable"}:{status:"failed",data:null,error:result.error.message??"Source unavailable"}
+   if(result.error)return current.data?{...current,status:"cached",error:result.error.message??"Source unavailable"}:{status:"failed",data:null,error:result.error.message??"Source unavailable"}
    return {status:"live",data:result.data,observedAt:now}
   }
   setReport(old=>read(0,old));setControls(old=>read(1,old));setHealth(old=>read(2,old));setDecisions(old=>read(3,old));setWorkforce(old=>read(4,old))
 
   const succeeded=calls.map(x=>x.status==="fulfilled"&&!(x.value as any)?.error)
-  if(!succeeded.every(Boolean))setRefreshError("Some HQ evidence sources are unavailable. Available panels remain usable; unavailable data is shown as Unknown, not zero.")
+  if(!succeeded.every(Boolean))setRefreshError("Some HQ evidence sources are unavailable. Available panels remain usable; unavailable or stale data is shown as Unknown, not zero or healthy.")
   if(succeeded.every(Boolean)){
    const values=calls.map(x=>(x as PromiseFulfilledResult<any>).value.data)
    saveHQCache("task18-today",{report:values[0],controls:values[1]??[],health:values[2],decisions:values[3]??[],workforce:values[4]})
@@ -141,7 +141,7 @@ export default function HQToday(){
  const healthValues=Object.values(healthMap)
  const overall:Health=healthValues.includes("Critical")?"Critical":healthValues.includes("Degraded")?"Degraded":healthValues.every(x=>x==="Healthy")?"Healthy":"Unknown"
  const engine=workforce.data?.engine??{}
- const workerSafe=workforce.status!=="failed"&&!Boolean(engine.runtime_execution_enabled)&&Number(engine.runtime_autonomy_level??0)===0&&!Boolean(engine.factory_enabled)&&!Boolean(engine.heartbeat_enabled)
+ const workerSafe=workforce.status==="live"&&!Boolean(engine.runtime_execution_enabled)&&Number(engine.runtime_autonomy_level??0)===0&&!Boolean(engine.factory_enabled)&&!Boolean(engine.heartbeat_enabled)
  const generatedAt=report.data?.generated_at??report.observedAt
 
  return <><HQPage title="Today" description="Company state → attention → evidence → decision → action → verification" actions={<><button onClick={()=>void refresh()} style={hqButtonStyle}>Refresh evidence</button><button onClick={()=>void runCycle()} disabled={busy} style={hqButtonStyle}>{busy?"Running…":"Run operating cycle"}</button><button onClick={()=>setTwinOpen(true)} style={{...hqButtonStyle,color:C.blue}}>Ask HQ Twin</button><button onClick={()=>void signOut()} style={{...hqButtonStyle,color:C.red}}>Sign out</button></>}>
@@ -152,7 +152,7 @@ export default function HQToday(){
   `}</style>
 
   {refreshError&&<div role="alert" className="today-warning">{refreshError}</div>}
-  <section className="today-banner"><div><h2>Company status: <span style={{color:tone(overall)}}>{overall}</span></h2><p>{generatedAt?`Evidence generated ${new Date(String(generatedAt)).toLocaleString("en-KE")}. `:"No report timestamp is available. "}Unknown means evidence is unavailable or insufficient; it never means zero or healthy.</p></div><Status value={overall}/></section>
+  <section className="today-banner"><div><h2>Company status: <span style={{color:tone(overall)}}>{overall}</span></h2><p>{generatedAt?`Evidence generated ${new Date(String(generatedAt)).toLocaleString("en-KE")}. `:"No report timestamp is available. "}Unknown means evidence is unavailable, stale or insufficient; it never means zero or healthy.</p></div><Status value={overall}/></section>
 
   <HQPanel><SectionHead title="Pilot overview" state={report}/><div className="today-metrics">
    <Metric label="Daily active users" value={dau} note="Authoritative report only" href="/hq/analytics"/>
