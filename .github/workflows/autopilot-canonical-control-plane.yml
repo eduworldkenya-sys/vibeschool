@@ -5,7 +5,11 @@ on:
     paths:
       - ".github/workflows/autopilot-canonical-control-plane.yml"
       - "supabase/migrations/20260819162500_autopilot_canonical_founder_read_model.sql"
-      - "supabase/tests/autopilot_canonical_control_plane_contract.sql"
+      - "supabase/migrations/20260819173000_autopilot_commissioning_authority_clock_and_founder_read_model.sql"
+      - "supabase/migrations/20260819173500_autopilot_commissioning_owner_breaker_reset.sql"
+      - "supabase/migrations/20260819174000_autopilot_commissioning_execution_ledger_write_closure.sql"
+      - "supabase/migrations/20260819174800_autopilot_shadow_lineage_enrichment.sql"
+      - "supabase/tests/**"
       - "docs/AUTOPILOT_ARCHITECTURE_RECONSTRUCTION_20260819.md"
       - "lib/autopilot/organization.ts"
 
@@ -18,7 +22,7 @@ concurrency:
 
 jobs:
   certify:
-    name: Autopilot Architecture / Authority / Lineage / Content Contract
+    name: Autopilot Commissioning / Authority / Failure / Security Matrix
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -28,21 +32,40 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.114.0
-      - name: Start disposable Supabase
+      - name: Start disposable Supabase and reconstruct exact schema
         run: |
           set -euo pipefail
           if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
           supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
           supabase db reset --local --no-seed
-      - name: Run canonical Autopilot contract
-        run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/autopilot_canonical_control_plane_contract.sql
-      - name: Re-run Worker Engine production closure
-        run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_4_production_closure.sql
+      - name: Run commissioning adversarial matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          run_sql(){ echo "==> $1"; PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f "$1"; }
+          run_sql supabase/tests/autopilot_canonical_control_plane_contract.sql
+          run_sql supabase/tests/autopilot_production_commissioning_contract.sql
+          run_sql supabase/tests/autopilot_shadow_lineage_contract.sql
+          run_sql supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_capability_authority.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_preconditions_idempotency.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_budget_rate_concurrency.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_postcondition_verification.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_compensation.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_compensation_exact_state.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_circuit_breakers_stops.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_escalation_authority_boundary.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_escalation_outcomes.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_adversarial_canary_execution.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_forensic_readiness_control.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_legacy_authority_closure.sql
+          run_sql supabase/tests/worker_engine_we_r1_4_production_closure.sql
       - name: Typecheck organizational presentation contract
         run: |
           npm ci
           npm run typecheck
-      - name: Prove non-activation
+      - name: Prove non-activation and transport closure
         shell: bash
         run: |
           set -euo pipefail
@@ -51,6 +74,9 @@ jobs:
           test "$(q "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")" = 0
           STATE="$(q "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
           test "$STATE" = 'false|false|false|0|0|false|false|true'
+          test "$(q "select has_function_privilege('service_role','public.hq_workforce_reset_execution_breaker(uuid,text,text,jsonb)','EXECUTE')")" = 'f'
+          test "$(q "select has_table_privilege('service_role','public.hq_workforce_execution_budgets','UPDATE')")" = 'f'
+          test "$(q "select has_table_privilege('service_role','public.hq_workforce_dead_letters','UPDATE')")" = 'f'
       - name: Destroy disposable Supabase
         if: always()
         run: supabase stop --no-backup >/dev/null 2>&1 || true
