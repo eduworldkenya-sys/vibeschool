@@ -1,0 +1,30 @@
+name: HQ Geographic Intelligence Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/hq/geography/**'
+      - 'supabase/migrations/*hq_geographic_intelligence*'
+      - 'scripts/validate-hq-geographic-intelligence.mjs'
+      - '.github/workflows/hq-geographic-intelligence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/hq/geography/**'
+      - 'supabase/migrations/*hq_geographic_intelligence*'
+      - 'scripts/validate-hq-geographic-intelligence.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  geographic-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate bounded geography architecture
+        run: node scripts/validate-hq-geographic-intelligence.mjs
