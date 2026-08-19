@@ -7,12 +7,14 @@ on:
     paths:
       - 'supabase/migrations/20260818043*.sql'
       - 'supabase/migrations/*task19*payment*integrity*.sql'
+      - 'supabase/migrations/*task19*callback*ordering*.sql'
       - 'supabase/functions/learning-product-stk-push/**'
       - 'supabase/functions/learning-product-mpesa-callback/**'
       - 'scripts/sql/learning_product_commerce_verify.sql'
       - 'scripts/sql/learning_product_storefront_revenue_verify.sql'
       - 'scripts/sql/learning_product_catalogue_fixture_verify.sql'
       - 'scripts/sql/task19_payment_integrity_verify.sql'
+      - 'scripts/sql/task19_callback_ordering_verify.sql'
       - 'app/learn/purchase/**'
       - 'app/hq/billing/**'
       - 'app/global/store/**'
@@ -66,6 +68,7 @@ jobs:
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/learning_product_storefront_revenue_verify.sql
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/learning_product_catalogue_fixture_verify.sql
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/task19_payment_integrity_verify.sql
+          PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/task19_callback_ordering_verify.sql
       - name: Destroy disposable Supabase
         if: always()
         shell: bash
