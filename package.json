@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit --pretty false",
+    "test:teacher-ux": "node scripts/test-teacher-ux-task23.mjs",
     "validate": "npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
