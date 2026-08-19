@@ -18,16 +18,29 @@ export function safeInternalPath(value: string | null | undefined): string | nul
   if (!value || !value.startsWith('/') || value.startsWith('//')) return null
   try {
     const decoded = decodeURIComponent(value)
-    if (!decoded.startsWith('/') || decoded.startsWith('//') || decoded.includes('\\')) return null
+    if (
+      !decoded.startsWith('/') ||
+      decoded.startsWith('//') ||
+      decoded.includes('\\') ||
+      /[\u0000-\u001f\u007f]/.test(decoded)
+    ) return null
     return decoded
   } catch {
     return null
   }
 }
 
+export function pathnameOnly(value: string): string {
+  const query = value.indexOf('?')
+  const hash = value.indexOf('#')
+  const cut = [query, hash].filter(index => index >= 0).reduce((min, index) => Math.min(min, index), value.length)
+  return value.slice(0, cut) || '/'
+}
+
 export function requiredRoleForPath(pathname: string): string | null {
+  const normalized = pathnameOnly(pathname)
   for (const [prefix, role] of Object.entries(PROTECTED_ROLE_PREFIXES)) {
-    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return role
+    if (normalized === prefix || normalized.startsWith(`${prefix}/`)) return role
   }
   return null
 }
