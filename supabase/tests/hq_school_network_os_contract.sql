@@ -42,14 +42,42 @@ begin
   end loop;
 end $$;
 
+-- Governed Kenya geography must exist as source data, not as a hard-coded RPC list.
+do $$
+declare n int; src int;
+begin
+  select count(*) into n
+  from public.geo_counties c join public.geo_countries g on g.id=c.country_id
+  where g.iso2='KE' and c.status='active';
+  if n<>47 then raise exception 'governed Kenya county seed expected 47 rows, got %',n; end if;
+
+  select count(*) into src
+  from public.geo_counties c join public.geo_countries g on g.id=c.country_id
+  where g.iso2='KE'
+    and c.source_key='kenya_constitution_2010_first_schedule'
+    and c.verification_state='verified';
+  if src<>47 then raise exception 'Kenya county provenance/verification contract incomplete: %',src; end if;
+end $$;
+
 do $$
 declare d text; n text;
 begin
   d:=pg_get_functiondef('public.hq_school_network_overview(integer)'::regprocedure);
-  n:=replace(d,' ','');
-  if position('''administrative_regions'',47' in n)=0 then raise exception '47-county country contract missing'; end if;
-  if position('''West Pokot'',47' in d)=0 or position('''Baringo'',1' in d)=0 then raise exception 'Kenya county boundary list incomplete'; end if;
-  if position('join connected c on c.school_id=pe.school_id' in lower(d))=0 then raise exception 'active school stage must be bounded by connected schools'; end if;
+  n:=lower(regexp_replace(d,'\s+','','g'));
+  if position('public.geo_counties' in d)=0 or position('public.school_geography' in d)=0 then raise exception 'overview must consume governed geography'; end if;
+  if position('count(*)::intfromcounties' in n)=0 then raise exception 'administrative region count must derive from governed counties'; end if;
+  if position('''West Pokot'',47' in d)>0 or position('''Baringo'',1' in d)>0 then raise exception 'hard-coded county authority reintroduced in overview'; end if;
+  if position('join public.platform_events pe on pe.school_id=c.school_id' in lower(d))=0 then raise exception 'active school stage must remain bounded by connected schools'; end if;
+  if position('''unknown_is_zero'',false' in n)=0 then raise exception 'unknown geography semantics missing'; end if;
+end $$;
+
+do $$
+declare d text; n text;
+begin
+  d:=pg_get_functiondef('public.hq_school_network_county_detail(text,integer)'::regprocedure);
+  n:=lower(regexp_replace(d,'\s+','','g'));
+  if position('unknown_canonical_county' in d)=0 then raise exception 'county detail must reject unknown county text'; end if;
+  if position('public.school_geography' in d)=0 or position('sg.county_id=v_county_id' in n)=0 then raise exception 'county detail must scope canonical schools by governed county id'; end if;
 end $$;
 
 do $$
@@ -61,6 +89,7 @@ begin
   if position('''penetration_claimable'',false' in n)=0 then raise exception 'penetration must fail closed without authoritative denominator'; end if;
   if position('''institution_paid_claimable'',false' in n)=0 then raise exception 'institution-paid revenue must not be inferred'; end if;
   if position('distincto.id' in n)=0 then raise exception 'revenue attribution must de-duplicate paid orders'; end if;
+  if position('public.school_geography' in d)=0 or position('''verification_state'',''unresolved''' in n)=0 then raise exception 'School 360 governed/fallback geography semantics missing'; end if;
   if position('full_name' in d)>0 or position('date_of_birth' in d)>0 then raise exception 'School 360 read model exposes personal profile PII'; end if;
 end $$;
 
@@ -91,9 +120,11 @@ begin
   if position('v_limitinteger:=greatest(1,least(coalesce(p_limit,50),100))' in n)=0 then raise exception 'Explorer pagination bound missing'; end if;
   if position('full_name' in d)>0 or position('phone' in d)>0 or position('date_of_birth' in d)>0 then raise exception 'Explorer exposes profile PII'; end if;
   if position('v_state=''active''andconnectedandactive' in n)=0 then raise exception 'Explorer active state must require connected state'; end if;
+  if position('public.school_geography' in d)=0 or position('unknown_canonical_county' in d)=0 then raise exception 'Explorer geographic filters must resolve canonical county ids'; end if;
 
   d:=pg_get_functiondef('public.hq_school_network_attention(text,integer,integer)'::regprocedure);
-  if position('v_county' in d)=0 then raise exception 'attention must support geographic scope'; end if;
+  if position('public.school_geography' in d)=0 or position('unknown_canonical_county' in d)=0 then raise exception 'attention geographic scope must use canonical county ids'; end if;
+  if position('geography_requires_review' in d)=0 then raise exception 'attention queue must expose geography review evidence'; end if;
   if position('array_remove' in d)=0 then raise exception 'attention evidence reasons missing'; end if;
 end $$;
 
