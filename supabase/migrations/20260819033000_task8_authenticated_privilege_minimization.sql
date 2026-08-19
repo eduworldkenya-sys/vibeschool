@@ -15,34 +15,44 @@ begin
 end $$;
 
 -- School-admin notification writes must be both tenant-bound and recipient-bound.
-drop policy if exists notifications_admin_insert on public.notifications;
-create policy notifications_admin_insert on public.notifications
-for insert to authenticated
-with check (
-  public.is_school_admin(school_id)
-  and (
-    exists (
-      select 1
-      from public.school_members sm
-      where sm.school_id = notifications.school_id
-        and sm.profile_id = notifications.user_id
-    )
-    or exists (
-      select 1
-      from public.students s
-      join public.student_classes sc
-        on sc.student_id = s.id
-       and sc.is_current = true
-      where s.profile_id = notifications.user_id
-        and s.deleted_at is null
-        and sc.school_id = notifications.school_id
-    )
-    or exists (
-      select 1
-      from public.parent_student_links psl
-      where psl.parent_id = notifications.user_id
-        and psl.school_id = notifications.school_id
-        and coalesce(psl.access_level,'full') <> 'none'
-    )
-  )
-);
+-- The notifications compatibility surface exists in production but is not guaranteed
+-- by the canonical blank-rebuild chain. If it exists, enforce the restrictive policy;
+-- if it is absent, do not fabricate it as a side effect of an authorization migration.
+do $$
+begin
+  if to_regclass('public.notifications') is not null then
+    execute 'drop policy if exists notifications_admin_insert on public.notifications';
+    execute $sql$
+      create policy notifications_admin_insert on public.notifications
+      for insert to authenticated
+      with check (
+        public.is_school_admin(school_id)
+        and (
+          exists (
+            select 1
+            from public.school_members sm
+            where sm.school_id = notifications.school_id
+              and sm.profile_id = notifications.user_id
+          )
+          or exists (
+            select 1
+            from public.students s
+            join public.student_classes sc
+              on sc.student_id = s.id
+             and sc.is_current = true
+            where s.profile_id = notifications.user_id
+              and s.deleted_at is null
+              and sc.school_id = notifications.school_id
+          )
+          or exists (
+            select 1
+            from public.parent_student_links psl
+            where psl.parent_id = notifications.user_id
+              and psl.school_id = notifications.school_id
+              and coalesce(psl.access_level,'full') <> 'none'
+          )
+        )
+      )
+    $sql$;
+  end if;
+end $$;
