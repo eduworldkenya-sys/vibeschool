@@ -12,14 +12,14 @@ export const HQ_THEME = {
 type NavItem = readonly [string,string,string]
 type NavGroup = {label:string;items:readonly NavItem[]}
 const navGroups: readonly NavGroup[] = [
-  {label:"Company",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Operations","/hq/intelligence","◈"]]},
+  {label:"Company",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Operations","/hq/operations","◈"],["Decision Intelligence","/hq/intelligence","⌁"]]},
   {label:"Product",items:[["Product","/hq/analytics","◎"],["Schools","/hq/schools","⌂"],["Users","/hq/users","♙"]]},
   {label:"Content",items:[["Content","/hq/content","▣"],["Curriculum Authority","/hq/curriculum-authority","A"],["Content Factory","/hq/curriculum-intelligence/engine","✦"]]},
   {label:"Company systems",items:[["Revenue","/hq/billing","$"],["System","/hq/security","◇"],["Workforce","/hq/workforce","⚙"]]},
 ]
 
 const mobileLinks: readonly NavItem[] = [
-  ["Home","/hq","⌂"], ["Decisions","/hq/decisions","✓"], ["Alerts","/hq/notifications","!"], ["Operations","/hq/intelligence","◈"], ["More","/hq/more","≡"],
+  ["Home","/hq","⌂"], ["Decisions","/hq/decisions","✓"], ["Alerts","/hq/notifications","!"], ["Operations","/hq/operations","◈"], ["More","/hq/more","≡"],
 ]
 
 function isActive(pathname:string,href:string){return href==="/hq"?pathname===href:pathname===href||pathname.startsWith(`${href}/`)}
