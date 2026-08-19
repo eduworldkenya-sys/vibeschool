@@ -1,8 +1,11 @@
 import fs from 'node:fs'
 
-const migrationPath='supabase/migrations/20260819170000_hq_geographic_intelligence_foundation.sql'
+const foundationPath='supabase/migrations/20260819170000_hq_geographic_intelligence_foundation.sql'
+const readModelsPath='supabase/migrations/20260819171500_hq_national_intelligence_read_models.sql'
 const pagePath='app/hq/geography/page.tsx'
-const migration=fs.readFileSync(migrationPath,'utf8')
+const foundation=fs.readFileSync(foundationPath,'utf8')
+const readModels=fs.readFileSync(readModelsPath,'utf8')
+const migration=`${foundation}\n${readModels}`
 const page=fs.readFileSync(pagePath,'utf8')
 
 const required=[
@@ -21,6 +24,13 @@ const required=[
   'create or replace function public.hq_geography_summary',
   'create or replace function public.hq_geographic_data_quality',
   'create or replace function public.hq_map_school_points',
+  'create or replace function public.hq_school_360',
+  'create or replace function public.hq_growth_intelligence',
+  'create or replace function public.hq_geographic_opportunities',
+  'product_measurement_state',
+  'product_account_sessions',
+  "'residential_geography_inferred',false",
+  "'retention_state','not_calculated_here'",
 ]
 for(const token of required){if(!migration.includes(token)) throw new Error(`Missing geographic contract: ${token}`)}
 
@@ -29,8 +39,29 @@ const forbidden=[
   /create table[^;]*hq_users/i,
   /grant\s+select\s+on\s+public\.school_geography\s+to\s+(anon|authenticated)/i,
   /security definer[\s\S]{0,160}set search_path\s*=\s*public\s*(?:;|\n)/i,
+  /residential[^\n]{0,80}(infer|derived)[^\n]{0,80}true/i,
+  /stk[^\n]{0,80}(revenue|settled)/i,
 ]
 for(const pattern of forbidden){if(pattern.test(migration)) throw new Error(`Forbidden geographic architecture pattern: ${pattern}`)}
+
+// Aggregate correctness: school totals must be computed independently from event fan-out.
+const replacement=readModels.slice(readModels.indexOf('create or replace function public.hq_geography_region_breakdown'),readModels.indexOf('create or replace function public.hq_school_360'))
+if(!replacement.includes('school_rollup')||!replacement.includes('event_rollup')) throw new Error('Regional aggregation must separate school and event rollups')
+if(/left join public\.platform_events[\s\S]{0,500}count\(sg\.school_id\)/i.test(replacement)) throw new Error('Event fan-out can inflate school totals')
+if(!replacement.includes('count(distinct pe.school_id)')) throw new Error('Active-school aggregation must be distinct')
+
+// Security contract: HQ read RPCs are authenticated transport plus server-side owner assertion.
+for(const fn of ['hq_geography_region_breakdown','hq_school_360','hq_growth_intelligence','hq_geographic_opportunities']){
+  const marker=`create or replace function public.${fn}`
+  const start=readModels.indexOf(marker)
+  if(start<0) throw new Error(`Missing function ${fn}`)
+  const next=readModels.indexOf('create or replace function public.',start+marker.length)
+  const body=readModels.slice(start,next<0?undefined:next)
+  if(!body.includes('security definer')) throw new Error(`${fn} must define its privilege mode explicitly`)
+  if(!body.includes('set search_path=public,extensions,pg_temp')) throw new Error(`${fn} must pin search_path`)
+  if(!body.includes('public.is_platform_owner()')) throw new Error(`${fn} must assert canonical HQ owner`)
+  if(!body.includes('revoke all on function')||!body.includes('from public,anon')) throw new Error(`${fn} must revoke PUBLIC/anon execution`)
+}
 
 if(!page.includes('Unknown evidence remains unknown')) throw new Error('HQ geography must state evidence semantics')
 if(!page.includes('Map evidence not ready')) throw new Error('HQ geography must fail truthfully when map evidence is incomplete')
