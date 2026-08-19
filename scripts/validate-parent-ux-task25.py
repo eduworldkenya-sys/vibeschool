@@ -3,7 +3,6 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-
 checks: list[tuple[bool, str]] = []
 
 def read(path: str) -> str:
@@ -13,8 +12,13 @@ def read(path: str) -> str:
 
 layout = read("app/parent/layout.tsx")
 children = read("app/parent/students/page.tsx")
+child = read("app/parent/child/[id]/page.tsx")
+homework = read("app/parent/child/[id]/homework/page.tsx")
+learn = read("app/parent/learn/page.tsx")
+results = read("app/parent/assessments/page.tsx")
 profile = read("app/parent/profile/page.tsx")
 support = read("app/parent/support/page.tsx")
+connect = read("app/parent/connect/page.tsx")
 core = read("scripts/validate-parent-core-journey.py")
 
 for label in ["Home", "Children", "Schoolwork", "Progress", "Messages"]:
@@ -22,15 +26,41 @@ for label in ["Home", "Children", "Schoolwork", "Progress", "Messages"]:
 
 checks += [
     ('href: "/parent/inbox"' in layout, "canonical messages destination is Parent Inbox"),
-    ('router.push("/parent/messages")' not in layout, "top-level navigation does not route to legacy parent/messages"),
+    ('router.push("/parent/messages")' not in layout, "top-level navigation does not bypass Parent Inbox"),
     ('aria-current={isActive ? "page" : undefined}' in layout, "bottom navigation exposes active-page semantics"),
     ('width: 44, height: 44' in layout, "primary header controls keep 44px mobile tap targets"),
+    ("router.replace('/parent/inbox')" in connect, "legacy Connect route converges on canonical inbox"),
+
     ('attendanceRecords === 0 || child.attendancePct === null' in children, "missing attendance is explicit"),
-    ('This does not mean the learner was absent.' in children, "missing attendance is never presented as absence"),
-    ('attendancePct: rows.length ?' in children, "zero percent remains a real recorded value"),
+    ('does not mean the learner was absent' in children, "missing attendance is never presented as absence"),
+    ('countedRows = rows.filter' in children and 'row.status === "absent"' in children, "children attendance rate uses explicit countable states"),
+    ('attendancePct: countedRows.length ?' in children, "zero percent remains a real recorded value"),
+    ('Excused records are not treated as absence.' in children, "children attendance excludes excused records from absence semantics"),
     ('Link or request access' in children, "no-child state uses verified relationship flow"),
     ('Add Child to Class' not in children and '+ Add Child' not in children, "children page does not imply arbitrary learner creation"),
     ('router.push("/parent/profile")' in children, "children settings entry resolves to a real account surface"),
+
+    ('timeZone: "Africa/Nairobi"' in child, "child attendance uses Kenya-local school date"),
+    ('countedRows = termRows.filter' in child and 'row.status === "absent"' in child, "child attendance rate has explicit denominator"),
+    ('Excused records are not counted as absence.' in child, "child attendance explanation protects excused status"),
+    ('This does not mean {firstName} was absent.' in child, "today missing attendance is explicitly non-absence"),
+    ('router.push(`/parent/child/${child.id}/homework`)' in child, "child overview keeps homework child-scoped"),
+    ('router.push(`/parent/child/${child.id}/messages`)' in child, "child overview keeps messages child-scoped"),
+
+    ('submissionStatus === "submitted"' in homework, "submitted homework has explicit family-facing state"),
+    ('info.label === "Overdue" || info.label === "Due soon"' in homework, "homework prioritizes tasks needing attention"),
+    ('No submitted work is recorded and the due date has passed.' in homework, "overdue means no submission, not merely past due date"),
+    ('requestVersion.current' in homework and 'setItems([])' in homework, "homework fails closed across child-context changes"),
+
+    ('setState(EMPTY)' in learn and 'requestVersion.current' in learn, "Schoolwork clears sibling state before child loads"),
+    ('aria-pressed={child.id === activeChildId}' in learn, "Schoolwork child switcher exposes selected state"),
+
+    ('aria-label="Choose child for results"' in results, "Results exposes a multiple-child switcher"),
+    ('setSummary(null)' in results and 'requestVersion.current' in results, "Results clears prior sibling data before switching"),
+    ('.not("released_at", "is", null)' not in results or 'getParentAssessmentSummary' in results, "Results remains on governed assessment summary boundary"),
+    ('Draft or unreleased marks are not shown.' in results, "Results explains publication boundary"),
+    ('Missing results do not mean low performance.' in results, "Results empty state avoids false performance inference"),
+
     ('pretend switches are displayed' in profile.lower(), "profile explicitly withholds fake notification preferences"),
     ('router.push("/parent/link-child")' in profile, "profile linking uses verified relationship route"),
     ('router.push("/parent/support")' in profile, "profile exposes Report a Problem"),
