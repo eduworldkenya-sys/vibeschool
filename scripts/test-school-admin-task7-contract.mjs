@@ -19,21 +19,11 @@ requireText(authority.includes("selectTwinRoleBinding(context, 'admin')"), 'Admi
 requireText(authority.includes("binding.scopeType !== 'school'"), 'Admin authority fails closed without a canonical school scope')
 
 for (const path of [
-  'app/admin/page.tsx',
-  'app/admin/students/page.tsx',
-  'app/admin/students/[id]/page.tsx',
-  'app/admin/attendance/page.tsx',
-  'app/admin/academics/page.tsx',
-  'app/admin/academics/gradebook/page.tsx',
-  'app/admin/communication/page.tsx',
-  'app/admin/reports/page.tsx',
-  'app/admin/teachers/page.tsx',
-  'app/admin/timetable/page.tsx',
-  'app/admin/notifications/page.tsx',
-  'app/admin/profile/page.tsx',
-  'app/admin/settings/classes/page.tsx',
-  'app/admin/settings/subjects/page.tsx',
-  'app/admin/settings/term/page.tsx',
+  'app/admin/page.tsx', 'app/admin/students/page.tsx', 'app/admin/students/[id]/page.tsx',
+  'app/admin/attendance/page.tsx', 'app/admin/academics/page.tsx', 'app/admin/academics/gradebook/page.tsx',
+  'app/admin/communication/page.tsx', 'app/admin/reports/page.tsx', 'app/admin/teachers/page.tsx',
+  'app/admin/timetable/page.tsx', 'app/admin/notifications/page.tsx', 'app/admin/profile/page.tsx',
+  'app/admin/settings/classes/page.tsx', 'app/admin/settings/subjects/page.tsx', 'app/admin/settings/term/page.tsx',
   'app/admin/settings/school/page.tsx',
 ]) {
   const source = read(path)
@@ -42,9 +32,7 @@ for (const path of [
 }
 
 const home = read('app/admin/page.tsx')
-for (const token of ['student_classes', 'school_members', 'attendance', 'teaching_occurrences', 'assessment_definitions', 'parent_student_links', 'academic_terms']) {
-  requireText(home.includes(token), `Admin Home uses ${token} operational evidence`)
-}
+for (const token of ['student_classes', 'school_members', 'attendance', 'teaching_occurrences', 'assessment_definitions', 'parent_student_links', 'academic_terms']) requireText(home.includes(token), `Admin Home uses ${token} operational evidence`)
 requireText(!home.includes('attendance").select("id", { count: "exact", head: true }).eq("school_id", sid).gte("timestamp"'), 'Admin Home does not query nonexistent attendance.timestamp')
 
 const students = read('app/admin/students/page.tsx')
@@ -65,15 +53,11 @@ requireText(attendance.includes('.from("attendance")'), 'Attendance oversight re
 requireText(!attendance.includes('.from("attendance").insert') && !attendance.includes('.from("attendance").upsert') && !attendance.includes('.from("attendance").update'), 'Admin attendance surface is oversight-only')
 
 const academics = read('app/admin/academics/page.tsx')
-for (const token of ['scheme_of_work', 'teaching_occurrences', 'assessment_definitions', 'exam_results']) {
-  requireText(academics.includes(token), `Academic oversight reads canonical ${token}`)
-}
+for (const token of ['scheme_of_work', 'teaching_occurrences', 'assessment_definitions', 'exam_results']) requireText(academics.includes(token), `Academic oversight reads canonical ${token}`)
 requireText(!academics.includes('traditional_grades') && !academics.includes('cbc_assessments'), 'Academic oversight does not split reporting across legacy grade stores')
 
 const gradebook = read('app/admin/academics/gradebook/page.tsx')
-for (const token of ['student_classes', 'exams', 'exam_subject_config', 'exam_results']) {
-  requireText(gradebook.includes(token), `Gradebook reconciles canonical ${token}`)
-}
+for (const token of ['student_classes', 'exams', 'exam_subject_config', 'exam_results']) requireText(gradebook.includes(token), `Gradebook reconciles canonical ${token}`)
 requireText(!gradebook.includes('traditional_grades') && !gradebook.includes('cbc_assessments'), 'Gradebook no longer reads legacy parallel result stores')
 requireText(!gradebook.includes('.eq("class_id", cid)') || gradebook.includes('student_classes'), 'Gradebook roster is not derived from legacy students.class_id')
 
@@ -105,21 +89,17 @@ requireText(communications.includes('admin_send_school_circular'), 'Circular fan
 requireText(!communications.includes('.from("profiles").select("id, full_name, role")'), 'Communication compose does not scrape arbitrary profile recipients')
 
 const reports = read('app/admin/reports/page.tsx')
-for (const token of ['student_classes', 'attendance', 'teaching_occurrences', 'exam_results']) {
-  requireText(reports.includes(token), `Pilot reports reconcile canonical ${token}`)
-}
+for (const token of ['student_classes', 'attendance', 'teaching_occurrences', 'exam_results']) requireText(reports.includes(token), `Pilot reports reconcile canonical ${token}`)
 requireText(!reports.includes('134') && !reports.includes('Data Tables'), 'Reports hub contains no fake platform metrics')
 
 const settings = read('app/admin/settings/page.tsx')
 requireText(settings.includes('Personal account') && settings.includes('School settings') && settings.includes('HQ / platform controls'), 'Settings visibly separates personal, school and platform authority domains')
 
 const notifications = read('app/admin/notifications/page.tsx')
-for (const token of ['academic_terms', 'student_classes', 'attendance', 'parent_student_links', 'timetable_slots']) {
-  requireText(notifications.includes(token), `Operational alerts derive ${token} school state`)
-}
+for (const token of ['academic_terms', 'student_classes', 'attendance', 'parent_student_links', 'timetable_slots']) requireText(notifications.includes(token), `Operational alerts derive ${token} school state`)
 requireText(notifications.includes('href:'), 'Every computed Admin alert has an actionable destination')
 
-const commMigration = read('supabase/migrations/20260819020500_school_admin_cross_school_communication_hardening.sql')
+const commMigration = read('supabase/migrations/20260819020501_school_admin_cross_school_communication_hardening.sql')
 requireText(commMigration.includes('is_school_community_profile'), 'Communication hardening validates school community recipients')
 requireText(commMigration.includes('is_school_admin(school_id)'), 'Notification insert is bound to the administered school')
 requireText(commMigration.includes('vc_circular_recipients.profile_id'), 'Circular recipient insert validates target profile')
@@ -135,19 +115,15 @@ requireText(structureMigration.includes('uq_classes_school_normalized_name_strea
 
 const teacherMigration = read('supabase/migrations/20260819031000_school_admin_teacher_assignment_integrity.sql')
 requireText(teacherMigration.includes('uq_teacher_classes_school_teacher_class_subject'), 'Duplicate teacher/class/subject assignments are database-blocked')
-
 const subjectMigration = read('supabase/migrations/20260819032000_school_admin_subject_integrity.sql')
 requireText(subjectMigration.includes('uq_subjects_school_normalized_name'), 'Duplicate normalized school subject identities are database-blocked')
-
 const termMigration = read('supabase/migrations/20260819025500_school_admin_term_authority.sql')
 requireText(termMigration.includes("'upcoming'") && termMigration.includes("status = 'completed'") && termMigration.includes("status = 'active'"), 'Term authority uses valid production statuses')
 requireText(termMigration.includes('pg_advisory_xact_lock'), 'Term activation is serialized per school')
-
 const parentMigration = read('supabase/migrations/20260819033500_school_admin_parent_relationship_authority.sql')
 requireText(parentMigration.includes('student_not_currently_enrolled_in_school'), 'Parent claims/revocation require current same-school enrollment')
 requireText(parentMigration.includes("role = 'parent'"), 'Admin issues guardian claims rather than arbitrary parent links')
 requireText(parentMigration.includes("access_level = 'none'"), 'Parent revocation preserves historical relationship row')
-
 const schoolMigration = read('supabase/migrations/20260819035000_school_admin_school_profile_authority.sql')
 requireText(schoolMigration.includes('admin_update_school_profile') && schoolMigration.includes('is_school_admin(p_school_id)'), 'School profile mutation is backend-authorized by canonical membership')
 requireText(!schoolMigration.includes('knec_code =') && !schoolMigration.includes('nemis_code ='), 'School profile RPC cannot rewrite protected official identity')
