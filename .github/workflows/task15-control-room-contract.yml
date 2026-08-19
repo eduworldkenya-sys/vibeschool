@@ -1,0 +1,27 @@
+name: Task 15 Control Room Contract
+on:
+  pull_request:
+    paths:
+      - 'app/hq/workforce/**'
+      - 'supabase/migrations/**task15**'
+      - 'supabase/tests/task15_hq_workforce_control_room.sql'
+      - '.github/workflows/task15-control-room-contract.yml'
+permissions:
+  contents: read
+jobs:
+  static-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - name: Verify fail-closed owner-control source contract
+        run: |
+          grep -q 'hq_workforce_owner_start_controlled_operations' app/hq/workforce/Task15OwnerControls.tsx
+          grep -q 'control_room_active_authority_required' supabase/migrations/20260819190000_task15_hq_workforce_control_room.sql
+          grep -q 'reason_code=.owner_global_stop.' supabase/migrations/20260819190000_task15_hq_workforce_control_room.sql
+          grep -q 'hq_assert_owner' supabase/migrations/20260819190100_task15_hq_workforce_control_adjustments.sql
