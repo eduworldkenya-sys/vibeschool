@@ -23,3 +23,5 @@ jobs:
         run: python scripts/validate-parent-core-journey.py
       - name: Validate consequential Parent RPC authority contracts
         run: python scripts/validate-parent-consequential-rpcs.py
+      - name: Validate Family Life cross-child authority contracts
+        run: python scripts/validate-parent-family-life-authority.py
