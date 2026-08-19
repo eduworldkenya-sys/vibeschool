@@ -228,9 +228,11 @@ begin
   v_grant_key:='hq-control-room-'||left(md5(
     v_uid::text||'|'||w.worker_key||'|'||c.capability_key||'|'||c.version::text||'|'||clock_timestamp()::text
   ),24);
-  v_verification:=jsonb_build_array(
-    jsonb_build_object('type','certified_capability_verification','contract',c.verification_contract),
-    jsonb_build_object('type','skill_verification_required','required',sm.verification_required)
+  v_verification:=jsonb_build_object(
+    'source','hq_control_room_certified_package',
+    'capability_contract',c.verification_contract,
+    'skill_verification_required',sm.verification_required,
+    'tool_contract_id',tc.id
   );
   v_preconditions:=jsonb_build_array(
     jsonb_build_object('type','worker_identity_active','worker_key',w.worker_key),
