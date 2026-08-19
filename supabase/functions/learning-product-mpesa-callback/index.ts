@@ -14,6 +14,11 @@ function requiredEnv(name: string): string {
   return value;
 }
 
+function safeError(error: unknown): string {
+  if (error && typeof error === "object" && "code" in error) return String((error as { code?: unknown }).code ?? "unknown");
+  return error instanceof Error ? error.name : "unknown";
+}
+
 serve(async (req) => {
   if (req.method !== "POST") {
     return json({ ResultCode: 1, ResultDesc: "Method not allowed" }, 405);
@@ -43,7 +48,12 @@ serve(async (req) => {
     const resultDesc = String(callback?.ResultDesc ?? "").trim() || null;
 
     if (!checkoutRequestId || !Number.isFinite(resultCode)) {
-      console.error("[learning-product-mpesa-callback] malformed payload", payload);
+      console.error("[learning-product-mpesa-callback] malformed payload", {
+        hasBody: Boolean(payload?.Body),
+        hasCallback: Boolean(callback),
+        checkoutRequestIdPresent: Boolean(checkoutRequestId),
+        resultCodePresent: Number.isFinite(resultCode),
+      });
       return json({ ResultCode: 1, ResultDesc: "Malformed callback" }, 400);
     }
 
@@ -82,7 +92,7 @@ serve(async (req) => {
     let event = inserted;
     if (insertError) {
       if (insertError.code !== "23505") {
-        console.error("[learning-product-mpesa-callback] callback persistence failed", insertError);
+        console.error("[learning-product-mpesa-callback] callback persistence failed", { code: insertError.code });
         return json({ ResultCode: 1, ResultDesc: "Callback persistence failed" }, 500);
       }
       const { data: existing, error: existingError } = await supabase
@@ -91,7 +101,7 @@ serve(async (req) => {
         .eq("event_key", eventKey)
         .single();
       if (existingError || !existing) {
-        console.error("[learning-product-mpesa-callback] duplicate recovery failed", existingError);
+        console.error("[learning-product-mpesa-callback] duplicate recovery failed", { code: existingError?.code ?? "not_found" });
         return json({ ResultCode: 1, ResultDesc: "Callback persistence failed" }, 500);
       }
       event = existing;
@@ -111,19 +121,23 @@ serve(async (req) => {
         console.error("[learning-product-mpesa-callback] processing failed after durable persistence", {
           eventId: event.id,
           checkoutRequestId,
-          processError,
+          errorCode: safeError(processError),
         });
         // Evidence is durable, so acknowledge to prevent provider retry storms.
         return json({ ResultCode: 0, ResultDesc: "Accepted for reconciliation" }, 200);
       }
       if (!processed?.success && processed?.error !== "attempt_not_found") {
-        console.error("[learning-product-mpesa-callback] reconciliation required", { eventId: event.id, processed });
+        console.error("[learning-product-mpesa-callback] reconciliation required", {
+          eventId: event.id,
+          checkoutRequestId,
+          reason: String(processed?.error ?? "unknown"),
+        });
       }
     }
 
     return json({ ResultCode: 0, ResultDesc: "Accepted" }, 200);
   } catch (error) {
-    console.error("[learning-product-mpesa-callback] pre-persistence failure", error);
+    console.error("[learning-product-mpesa-callback] pre-persistence failure", { error: safeError(error) });
     return json({ ResultCode: 1, ResultDesc: "Temporary callback failure" }, 500);
   }
 });
