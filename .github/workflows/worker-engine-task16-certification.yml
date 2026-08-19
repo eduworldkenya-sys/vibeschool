@@ -1,0 +1,92 @@
+name: Worker Engine Task 16 Certification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/worker-engine-task16-certification.yml"
+      - "supabase/migrations/20260819081*_worker_engine_task16_*.sql"
+      - "supabase/tests/worker_engine_task16_*.sql"
+      - "docs/WORKER_ENGINE_TASK16_ACTIVATION_CERTIFICATION_HANDOVER.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-engine-task16-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-database-certification:
+    name: Local clean rebuild and Task 16 governance
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+      - name: Start disposable local Supabase
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
+          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+      - name: Clean rebuild exact candidate
+        run: |
+          set -euo pipefail
+          supabase db reset --local --no-seed
+      - name: Prove non-activating Safe OFF after rebuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          q(){ PGPASSWORD=postgres psql "$PSQL" -Atqc "$1"; }
+          STATE="$(q "select runtime_state||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||heartbeat_enabled::text||'|'||factory_enabled::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text||'|'||coalesce(runtime_activation_envelope_id::text,'null') from public.hq_workforce_engine_contract where singleton=true")"
+          test "$STATE" = 'OFF|false|0|0|false|false|false|false|true|null'
+          test "$(q "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")" = 0
+          test "$(q "select count(*) from public.hq_workforce_runtime_activation_envelopes where status='active'")" = 0
+      - name: Run Task 16 SQL contract suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          for f in $(find supabase/tests -maxdepth 1 -type f -name 'worker_engine_task16_*.sql' | sort); do
+            echo "=== $f ==="
+            PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Run inherited Worker Engine governance suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          for f in \
+            supabase/tests/worker_engine_we_r1_4_production_closure.sql \
+            supabase/tests/worker_engine_we_r1_4_adversarial_canary_execution.sql \
+            supabase/tests/worker_engine_we_r1_4_budget_rate_concurrency.sql \
+            supabase/tests/worker_engine_we_r1_4_consequential_execution_gateway.sql \
+            supabase/tests/worker_engine_we_r1_4_escalation_authority_boundary.sql; do
+            test -f "$f"
+            echo "=== $f ==="
+            PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f "$f"
+          done
+      - name: Destroy disposable local Supabase
+        if: always()
+        run: supabase stop --no-backup >/dev/null 2>&1 || true
+
+  application-certification:
+    name: TypeScript and production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
