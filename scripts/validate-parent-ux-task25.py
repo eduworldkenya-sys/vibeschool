@@ -17,6 +17,7 @@ child = read("app/parent/child/[id]/page.tsx")
 homework = read("app/parent/child/[id]/homework/page.tsx")
 learn = read("app/parent/learn/page.tsx")
 results = read("app/parent/assessments/page.tsx")
+inbox = read("app/parent/inbox/page.tsx")
 profile = read("app/parent/profile/page.tsx")
 support = read("app/parent/support/page.tsx")
 connect = read("app/parent/connect/page.tsx")
@@ -69,6 +70,12 @@ checks += [
     ('Draft or unreleased marks are not shown.' in results, "Results explains publication boundary"),
     ('Missing results do not mean low performance.' in results, "Results empty state avoids false performance inference"),
 
+    ('Action needed' in inbox and 'Child updates' in inbox and 'School notices' in inbox, "family inbox groups notifications by usefulness"),
+    ('Needs your confirmation' in inbox and 'ACK REQUIRED' not in inbox, "family inbox uses plain-language acknowledgement copy"),
+    ('href.startsWith("/parent")' in inbox and 'href.startsWith("//")' in inbox, "notification deep links are constrained to Parent routes"),
+    ('aria-pressed={filter === "unread"}' in inbox, "inbox filters expose selected state"),
+    ('childName ? `${childName} · `' in inbox, "child-scoped notifications visibly identify the learner"),
+
     ('pretend switches are displayed' in profile.lower(), "profile explicitly withholds fake notification preferences"),
     ('Verified family relationship' in profile and 'Relationship: ${child.relationship}' not in profile, "profile humanizes active family relationship state"),
     ('router.push("/parent/link-child")' in profile, "profile linking uses verified relationship route"),
@@ -76,6 +83,7 @@ checks += [
     ('parent_student_links' in profile, "profile linked-child list derives from relationship authority"),
     ('Do not send passwords, PINs' in support, "support copy warns against sensitive-data disclosure"),
     ('Role: parent' in support, "support context is role-scoped"),
+    ('replace(/\\/parent\\/child\\/[^/]+/g' in support, "support source screen redacts linked-child route identifiers"),
     ('student_id' not in support and 'childId' not in support, "support context does not embed child identifiers"),
     (bool(core), "Task 25 is stacked on Task 6 Parent core journey contract"),
 ]
