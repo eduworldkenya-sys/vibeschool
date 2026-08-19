@@ -10,14 +10,14 @@ concurrency:
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write
   issues: write
 
 jobs:
   invalidate-affected:
     name: Mark semantically affected PRs RECONCILE REQUIRED
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout exact promoted main
         uses: actions/checkout@v4
@@ -38,18 +38,33 @@ jobs:
 
             const domainsFor = (paths) => {
               const out = new Set();
-              for (const p of paths.map(x => x.toLowerCase())) {
+              for (const raw of paths) {
+                if (!raw) continue;
+                const p = String(raw).toLowerCase();
                 for (const [domain, needles] of Object.entries(policy.domains)) {
-                  if (needles.some(n => p.includes(n.toLowerCase()))) out.add(domain);
+                  if (needles.some(n => p.includes(String(n).toLowerCase()))) out.add(domain);
                 }
               }
               return out;
             };
 
-            const compare = await github.rest.repos.compareCommitsWithBasehead({owner, repo, basehead: `${before}...${after}`, per_page: 100});
-            const mainPaths = (compare.data.files || []).map(f => f.filename);
-            const mainDomains = domainsFor(mainPaths);
-            core.info(`policy=v${policy.version}; main ${before} -> ${after}; domains=${[...mainDomains].sort().join(',')}`);
+            const addLabelIfMissing = async (issueNumber, existingLabels, name) => {
+              if (existingLabels.has(name)) return false;
+              await github.rest.issues.addLabels({owner, repo, issue_number: issueNumber, labels: [name]});
+              existingLabels.add(name);
+              return true;
+            };
+
+            const removeLabelIfPresent = async (issueNumber, existingLabels, name) => {
+              if (!existingLabels.has(name)) return false;
+              try {
+                await github.rest.issues.removeLabel({owner, repo, issue_number: issueNumber, name});
+              } catch (e) {
+                if (e.status !== 404) throw e;
+              }
+              existingLabels.delete(name);
+              return true;
+            };
 
             const labels = [
               ['state:reconcile-required', 'FBCA04', 'Certification invalidated by relevant current-main change'],
@@ -61,23 +76,101 @@ jobs:
               catch (e) { if (e.status !== 422) throw e; }
             }
 
-            const prs = await github.paginate(github.rest.pulls.list, {owner, repo, state: 'open', base: 'main', per_page: 100});
+            const compare = await github.rest.repos.compareCommitsWithBasehead({
+              owner,
+              repo,
+              basehead: `${before}...${after}`,
+              per_page: 100,
+            });
+            const mainPaths = [];
+            for (const f of compare.data.files || []) {
+              mainPaths.push(f.filename);
+              if (f.previous_filename) mainPaths.push(f.previous_filename);
+            }
+            const mainDomains = domainsFor(mainPaths);
+            core.info(`policy=v${policy.version}; main ${before} -> ${after}; domains=${[...mainDomains].sort().join(',') || 'NONE'}`);
+
+            const prs = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              base: 'main',
+              per_page: 100,
+            });
+
+            const summary = {
+              main_before: before,
+              main_after: after,
+              main_domains: [...mainDomains].sort(),
+              open_prs: prs.length,
+              affected: [],
+              unaffected: [],
+              fail_closed: [],
+            };
+
             for (const pr of prs) {
               if (pr.head.sha === after) continue;
-              const files = await github.paginate(github.rest.pulls.listFiles, {owner, repo, pull_number: pr.number, per_page: 100});
-              const prDomains = domainsFor(files.map(f => f.filename));
-              const overlap = [...prDomains].filter(d => mainDomains.has(d));
-              if (!overlap.length) {
-                core.info(`#${pr.number}: unaffected; domains=${[...prDomains].join(',')}`);
-                continue;
+              const existingLabels = new Set((pr.labels || []).map(l => typeof l === 'string' ? l : l.name).filter(Boolean));
+              try {
+                const files = await github.paginate(github.rest.pulls.listFiles, {
+                  owner,
+                  repo,
+                  pull_number: pr.number,
+                  per_page: 100,
+                });
+                const prPaths = [];
+                for (const f of files) {
+                  prPaths.push(f.filename);
+                  if (f.previous_filename) prPaths.push(f.previous_filename);
+                }
+                const prDomains = domainsFor(prPaths);
+                const overlap = [...prDomains].filter(d => mainDomains.has(d)).sort();
+
+                if (!overlap.length) {
+                  summary.unaffected.push({pr: pr.number, domains: [...prDomains].sort()});
+                  core.info(`#${pr.number}: unaffected; domains=${[...prDomains].sort().join(',') || 'NONE'}`);
+                  continue;
+                }
+
+                await removeLabelIfPresent(pr.number, existingLabels, 'state:merge-ready');
+                const newlyInvalidated = await addLabelIfMissing(pr.number, existingLabels, 'state:reconcile-required');
+                summary.affected.push({pr: pr.number, overlap, newly_invalidated: newlyInvalidated});
+
+                if (newlyInvalidated) {
+                  const body = [
+                    `Engineering Control Plane: **RECONCILE REQUIRED**`,
+                    ``,
+                    `Current main advanced to \`${after}\`.`,
+                    `Semantic overlap: ${overlap.join(', ')}.`,
+                    `No defect is inferred. Historical green evidence must not be used for promotion until this PR is reconciled and re-certified against exact-current main.`
+                  ].join('\n');
+                  await github.rest.issues.createComment({owner, repo, issue_number: pr.number, body});
+                }
+              } catch (e) {
+                core.warning(`#${pr.number}: classification failed closed: ${e.message}`);
+                await removeLabelIfPresent(pr.number, existingLabels, 'state:merge-ready');
+                const newlyInvalidated = await addLabelIfMissing(pr.number, existingLabels, 'state:reconcile-required');
+                summary.fail_closed.push({pr: pr.number, error: String(e.message || e), newly_invalidated: newlyInvalidated});
+                if (newlyInvalidated) {
+                  const body = [
+                    `Engineering Control Plane: **RECONCILE REQUIRED — CLASSIFICATION INCOMPLETE**`,
+                    ``,
+                    `Current main advanced to \`${after}\`.`,
+                    `This PR could not be classified completely, so certification is invalidated fail-closed rather than assumed safe.`,
+                    `Classification error: \`${String(e.message || e).slice(0, 500)}\`.`
+                  ].join('\n');
+                  await github.rest.issues.createComment({owner, repo, issue_number: pr.number, body});
+                }
               }
-              await github.rest.issues.addLabels({owner, repo, issue_number: pr.number, labels: ['state:reconcile-required']});
-              const body = [
-                `Engineering Control Plane: **RECONCILE REQUIRED**`,
-                ``,
-                `Current main advanced to \`${after}\`.`,
-                `Semantic overlap: ${overlap.sort().join(', ')}.`,
-                `No defect is inferred. Historical green evidence must not be used for promotion until this PR is reconciled and re-certified against exact-current main.`
-              ].join('\n');
-              await github.rest.issues.createComment({owner, repo, issue_number: pr.number, body});
             }
+
+            core.summary
+              .addHeading('Engineering Main Reconciliation')
+              .addRaw(`Main: ${before} → ${after}\n`)
+              .addRaw(`Domains: ${summary.main_domains.join(', ') || 'NONE'}\n`)
+              .addRaw(`Open PRs: ${summary.open_prs}\n`)
+              .addRaw(`Affected: ${summary.affected.length}\n`)
+              .addRaw(`Unaffected: ${summary.unaffected.length}\n`)
+              .addRaw(`Fail-closed: ${summary.fail_closed.length}\n`);
+            await core.summary.write();
+            core.info(JSON.stringify(summary));
