@@ -8,6 +8,7 @@ on:
       - "supabase/config.toml"
       - "scripts/sql/tbl011_clean_rebuild_verify.sql"
       - "scripts/sql/verify_worker_engine_authority_plane.sql"
+      - "scripts/sql/certify_task12_observability.sql"
       - "scripts/sql/tbl012_core_schema_snapshot.sql"
       - "scripts/sql/tbl012_core_schema_hashes.sql"
       - "scripts/tbl012-compare-schema-hashes.py"
@@ -168,6 +169,18 @@ jobs:
             2>&1 \
             | tee .tbl011-artifacts/worker-engine-authority-plane.log
 
+      - name: Verify Task 12 observability contract
+        shell: bash
+        run: |
+          set -o pipefail
+
+          PGPASSWORD=postgres \
+            psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -f scripts/sql/certify_task12_observability.sql \
+            2>&1 \
+            | tee .tbl011-artifacts/task12-observability-contract.log
+
       - name: Capture rebuilt timetable schema
         shell: bash
         run: |
@@ -254,6 +267,7 @@ jobs:
             .tbl011-artifacts/final-migration-ledger.txt \
             .tbl011-artifacts/final-schema-verification.log \
             .tbl011-artifacts/worker-engine-authority-plane.log \
+            .tbl011-artifacts/task12-observability-contract.log \
             > .tbl011-artifacts/evidence.sha256
 
       - name: Upload rebuild evidence

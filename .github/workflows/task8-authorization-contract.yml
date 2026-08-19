@@ -1,0 +1,28 @@
+name: Task 8 Authorization Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/**'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'scripts/test-task8-authorization-contract.mjs'
+      - '.github/workflows/task8-authorization-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/api/**'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'scripts/test-task8-authorization-contract.mjs'
+
+jobs:
+  authorization-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enforce authorization contract
+        run: node scripts/test-task8-authorization-contract.mjs

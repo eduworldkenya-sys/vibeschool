@@ -79,9 +79,6 @@ using (
   )
 );
 
--- Some legacy/product relations exist in production but are intentionally not
--- prerequisites of the zero-to-current repository chain. Harden them when
--- present without making clean reconstruction depend on production-only state.
 do $do$
 begin
   if to_regclass('public.traditional_grades') is not null then
@@ -123,7 +120,7 @@ begin
         where psl.parent_id = (select auth.uid())
           and psl.student_id = finance_invoices.student_id
           and (psl.school_id is null or psl.school_id = finance_invoices.school_id)
-          and coalesce(psl.access_level, ''full'') <> ''none''
+          and coalesce(psl.access_level, 'full') <> 'none'
           and coalesce(psl.can_view_finance, false)))$sql$;
   end if;
   if to_regclass('public.finance_payments') is not null then
@@ -133,7 +130,7 @@ begin
         where psl.parent_id = (select auth.uid())
           and psl.student_id = finance_payments.student_id
           and (psl.school_id is null or psl.school_id = finance_payments.school_id)
-          and coalesce(psl.access_level, ''full'') <> ''none''
+          and coalesce(psl.access_level, 'full') <> 'none'
           and coalesce(psl.can_view_finance, false)))$sql$;
   end if;
 end
@@ -171,7 +168,7 @@ begin
         join public.parent_student_links psl on psl.student_id = sc.student_id
         where lp.id = lesson_content.lesson_plan_id
           and psl.parent_id = (select auth.uid())
-          and coalesce(psl.access_level, ''full'') <> ''none''
+          and coalesce(psl.access_level, 'full') <> 'none'
           and (lesson_content.school_id is null or sc.school_id = lesson_content.school_id)))$sql$;
   end if;
 end

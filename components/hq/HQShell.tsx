@@ -15,7 +15,7 @@ const navGroups: readonly NavGroup[] = [
   {label:"Company",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Operations","/hq/intelligence","◈"]]},
   {label:"Product",items:[["Product","/hq/analytics","◎"],["Schools","/hq/schools","⌂"],["Users","/hq/users","♙"]]},
   {label:"Content",items:[["Content","/hq/content","▣"],["Curriculum Authority","/hq/curriculum-authority","A"],["Content Factory","/hq/curriculum-intelligence/engine","✦"]]},
-  {label:"Company systems",items:[["Revenue","/hq/billing","$"],["System","/hq/security","◇"],["Workforce","/hq/workforce","⚙"]]},
+  {label:"Company systems",items:[["Revenue","/hq/billing","$"],["System","/hq/security","◇"],["Workforce","/hq/workforce","⚙"],["Commissioning","/hq/workforce/readiness","✓"]]},
 ]
 
 const mobileLinks: readonly NavItem[] = [
