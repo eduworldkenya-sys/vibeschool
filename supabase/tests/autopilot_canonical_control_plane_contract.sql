@@ -72,7 +72,7 @@ end $$;
 do $$
 begin
   if to_regprocedure('public.hq_content_authoring_evidence_packet(uuid)') is null
-     or to_regprocedure('public.hq_content_authoring_complete(uuid,jsonb)') is null
+     or to_regprocedure('public.hq_content_authoring_complete(uuid,uuid,uuid,text,text,jsonb,jsonb)') is null
      or to_regprocedure('public.hq_accept_content_authoring_draft(uuid)') is null then
     raise exception 'content_autopilot_vertical_contract_missing';
   end if;
