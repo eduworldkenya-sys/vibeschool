@@ -44,9 +44,9 @@ export default function HQGeographyPage(){
   const [error,setError]=useState<string|null>(null)
   const [loading,setLoading]=useState(true)
 
-  const counties=useMemo(()=>hierarchy.counties.filter(x=>!country||x.country_id===country),[hierarchy,countiesKey(country)])
-  const subcounties=useMemo(()=>hierarchy.subcounties.filter(x=>!county||x.county_id===county),[hierarchy,county])
-  const wards=useMemo(()=>hierarchy.wards.filter(x=>!subcounty||x.subcounty_id===subcounty),[hierarchy,subcounty])
+  const counties=useMemo(()=>hierarchy.counties.filter(x=>!country||x.country_id===country),[hierarchy.counties,country])
+  const subcounties=useMemo(()=>hierarchy.subcounties.filter(x=>!county||x.county_id===county),[hierarchy.subcounties,county])
+  const wards=useMemo(()=>hierarchy.wards.filter(x=>!subcounty||x.subcounty_id===subcounty),[hierarchy.wards,subcounty])
 
   const load=useCallback(async()=>{
     setLoading(true); setError(null)
@@ -128,5 +128,3 @@ export default function HQGeographyPage(){
     `}</style>
   </HQPage>
 }
-
-function countiesKey(value:string){return value}
