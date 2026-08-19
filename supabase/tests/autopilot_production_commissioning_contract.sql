@@ -1,0 +1,65 @@
+begin;
+
+do $$
+declare d text;
+begin
+  if to_regprocedure('public.hq_autopilot_constitution_snapshot()') is null
+     or to_regprocedure('public.hq_autopilot_founder_brief()') is null then
+    raise exception 'commissioning_founder_read_model_missing';
+  end if;
+
+  select lower(pg_get_functiondef('public.hq_workforce_owner_set_runtime(boolean,smallint,smallint,text)'::regprocedure)) into d;
+  if position('effective_from' in d)>0 then raise exception 'commissioning_runtime_uses_noncanonical_effective_from'; end if;
+  if position('activated_at is not null' in d)=0 or position('revoked_at is null' in d)=0 or position('expires_at>clock_timestamp()' in d)=0 then
+    raise exception 'commissioning_runtime_authority_clock_incomplete';
+  end if;
+  if position('hq_assert_owner' in d)=0 or position('runtime_activation_active_capability_authority_required' in d)=0 then
+    raise exception 'commissioning_runtime_owner_gate_incomplete';
+  end if;
+
+  select lower(pg_get_functiondef('public.hq_autopilot_constitution_snapshot()'::regprocedure)) into d;
+  if position('effective_from' in d)>0 then raise exception 'commissioning_constitution_uses_noncanonical_effective_from'; end if;
+  if position('activated_at is not null' in d)=0 or position('revoked_at is null' in d)=0 or position('expires_at>clock_timestamp()' in d)=0 then
+    raise exception 'commissioning_constitution_authority_clock_incomplete';
+  end if;
+  if position('hq_assert_owner' in d)=0 or position('worker_names_are_authority' in d)=0 then
+    raise exception 'commissioning_constitution_owner_or_alias_contract_missing';
+  end if;
+end $$;
+
+do $$
+declare ec public.hq_workforce_engine_contract%rowtype;
+begin
+  select * into ec from public.hq_workforce_engine_contract where singleton=true;
+  if not found then raise exception 'commissioning_engine_contract_missing'; end if;
+  if coalesce(ec.heartbeat_enabled,false) or coalesce(ec.factory_enabled,false)
+     or coalesce(ec.runtime_execution_enabled,false) or coalesce(ec.runtime_autonomy_level,0)<>0
+     or coalesce(ec.runtime_max_risk,0)<>0 or coalesce(ec.shadow_enabled,false)
+     or coalesce(ec.shadow_scheduler_enabled,false) or not coalesce(ec.shadow_global_stop,true) then
+    raise exception 'commissioning_runtime_not_fail_closed';
+  end if;
+  if exists(select 1 from public.hq_workforce_capability_authority_grants where status='active') then
+    raise exception 'commissioning_active_authority_detected';
+  end if;
+end $$;
+
+do $$
+begin
+  if has_function_privilege('anon','public.hq_workforce_owner_set_runtime(boolean,smallint,smallint,text)','EXECUTE')
+     or has_function_privilege('service_role','public.hq_workforce_owner_set_runtime(boolean,smallint,smallint,text)','EXECUTE')
+     or has_function_privilege('public','public.hq_workforce_owner_set_runtime(boolean,smallint,smallint,text)','EXECUTE') then
+    raise exception 'commissioning_runtime_owner_rpc_exposed';
+  end if;
+  if has_function_privilege('anon','public.hq_autopilot_constitution_snapshot()','EXECUTE')
+     or has_function_privilege('service_role','public.hq_autopilot_constitution_snapshot()','EXECUTE')
+     or has_function_privilege('public','public.hq_autopilot_constitution_snapshot()','EXECUTE') then
+    raise exception 'commissioning_constitution_rpc_exposed';
+  end if;
+  if has_function_privilege('anon','public.hq_autopilot_founder_brief()','EXECUTE')
+     or has_function_privilege('service_role','public.hq_autopilot_founder_brief()','EXECUTE')
+     or has_function_privilege('public','public.hq_autopilot_founder_brief()','EXECUTE') then
+    raise exception 'commissioning_founder_brief_rpc_exposed';
+  end if;
+end $$;
+
+rollback;
