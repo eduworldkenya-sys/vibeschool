@@ -97,8 +97,8 @@ parent_children=$("${PSQL[@]}" -Atc "select count(*) from public.students where 
 [[ "$parent_success" == "0" && "$parent_children" == "0" ]] || { echo "parent direct-create denial race failed: successes=$parent_success learners=$parent_children" >&2; exit 1; }
 
 "${PSQL[@]}" <<SQL
-insert into public.students(id,name,admission_number,class_id,self_use_enabled)
-values('$CLAIM_STUDENT','Claim Race Learner','T3-CLAIM-001','$CLASS_A',true);
+insert into public.students(id,name,admission_number,class_id)
+values('$CLAIM_STUDENT','Claim Race Learner','T3-CLAIM-001','$CLASS_A');
 insert into public.student_claim_codes(student_id,code,claimed,role)
 values('$CLAIM_STUDENT','T3CLAIMRACE',false,'student');
 SQL
