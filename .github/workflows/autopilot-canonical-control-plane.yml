@@ -7,6 +7,7 @@ on:
       - "supabase/migrations/20260819162500_autopilot_canonical_founder_read_model.sql"
       - "supabase/tests/autopilot_canonical_control_plane_contract.sql"
       - "docs/AUTOPILOT_ARCHITECTURE_RECONSTRUCTION_20260819.md"
+      - "lib/autopilot/organization.ts"
 
 permissions:
   contents: read
@@ -37,6 +38,10 @@ jobs:
         run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/autopilot_canonical_control_plane_contract.sql
       - name: Re-run Worker Engine production closure
         run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_4_production_closure.sql
+      - name: Typecheck organizational presentation contract
+        run: |
+          npm ci
+          npm run typecheck
       - name: Prove non-activation
         shell: bash
         run: |
