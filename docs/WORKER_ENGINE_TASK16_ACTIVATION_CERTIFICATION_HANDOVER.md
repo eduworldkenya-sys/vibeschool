@@ -1,157 +1,342 @@
 # VibeSchool Task 16 — Worker Engine Controlled Activation & Deactivation Certification
 
-Status: **SHARED-FOUNDATION HOLD — implementation in isolated branch, production unchanged**
+Status: **SHARED-FOUNDATION HOLD — isolated implementation in progress; production unchanged**
 
 Branch: `task16/worker-engine-activation-certification-20260819`
 Base main at branch creation: `77051a4011d7712a275f76af41efed382f017398`
+Current branch relation at latest review: 21 commits ahead / 0 behind that base.
 
-## Starting truth
+## Hold-gate compliance
 
-Read-only production inspection on 2026-08-19 established:
+Task 16 has not:
 
-- `runtime_execution_enabled = false`
-- `runtime_autonomy_level = 0`
-- `runtime_max_risk = 0`
-- `heartbeat_enabled = false`
-- `factory_enabled = false`
-- `shadow_enabled = false`
-- `shadow_scheduler_enabled = false`
-- `shadow_global_stop = true`
-- capability-authority rows are currently `revoked`; no active authority was observed
-- no global R1.4 execution-breaker row is currently tripped
+- merged
+- mutated production Supabase data
+- applied production migrations
+- changed production RLS/grants
+- deployed or changed production Edge Functions
+- repaired production data
+- issued production capability authority
+- disabled production Global Stop controls
+- raised production autonomy or risk
+- activated production Worker Engine runtime
+- intentionally triggered Vercel
 
-Production therefore remains in the stronger fail-closed posture required by the hold gate. No production mutation, migration, RLS/grant change, Edge Function deployment, capability issuance, Global Stop weakening, autonomy/risk increase, runtime activation, repair, or Vercel deployment was performed by Task 16.
+All production investigation recorded below was read-only.
 
-## P0 finding
+## Starting production truth — 2026-08-19
 
-The production definition of `hq_workforce_owner_set_runtime(boolean,smallint,smallint,text)` checks active grants using `effective_from <= clock_timestamp()`.
+`hq_workforce_engine_contract`:
 
-`public.hq_workforce_capability_authority_grants` has no `effective_from` column. Its lifecycle fields are `issued_at`, `certified_at`, `activated_at`, `expires_at`, `revoked_at`, `certified_by`, and `activated_by`.
+- runtime execution: OFF
+- autonomy: L0
+- maximum risk: R0
+- heartbeat: OFF
+- factory: OFF
+- shadow runtime: OFF
+- shadow scheduler: OFF
+- shadow Global Stop: ON
 
-Result: controlled activation currently fails closed with a schema error. This is safe but not operable.
+Authority / policy / budget truth:
 
-Task 16 replaces this activation predicate with the authoritative lifecycle contract: `status='active'`, identity-bound activation evidence present, and `expires_at > now()`.
+- 27 capability-authority rows exist; all are `revoked`
+- zero active capability-authority grants
+- no active enabled global runtime policy
+- execution budgets are `closed`; no active budget is available
+- runtime capability allowlist contains four enabled capability/version contracts, but allowlisting alone grants no runtime authority
 
-## State machine
+Scheduler / queue truth:
 
-Authoritative states introduced by Task 16:
+- production has an active one-minute cron calling `hq_workforce_scheduled_bounded_runtime_queue()`
+- two research Worker Engine tasks are queued
+- both queued tasks have `autonomous_authority_grant_id = NULL`
+- the bounded queue checks runtime execution/autonomy/risk before claiming work and delegates consequential work through the governed gateway
+- with runtime OFF, no active global policy, closed budgets and zero active authority, the cron is fail-closed/inert
+
+Transport truth:
+
+- anonymous/authenticated roles cannot call the queue executor or consequential gateway
+- `service_role` can call the consequential gateway, as required for trusted execution transport
+- owner runtime transition functions are not service-role callable
+
+Production therefore remains safely non-operational. The presence of an active cron is not treated as proof of an active Worker Engine; trusted execution admission remains the security boundary.
+
+## Findings
+
+### P0 — activation RPC schema drift
+
+Production `hq_workforce_owner_set_runtime(boolean,smallint,smallint,text)` references `capability_authority_grants.effective_from`.
+
+That column does not exist. The authoritative lifecycle fields are `issued_at`, `certified_at`, `activated_at`, `expires_at`, `revoked_at`, `certified_by`, and `activated_by`.
+
+Effect: controlled activation currently fails closed with a schema error. Safe OFF is preserved, but controlled activation is not operable.
+
+Repair: Task 16 uses active status + activation identity + expiry and closes the old versionless activation path.
+
+### P0/P1 safety boundary — service-role breaker reset
+
+Production currently permits `service_role` to call the low-level circuit-breaker reset primitive.
+
+A trusted runtime may need to **trip** a breaker automatically, but it must not be able to remove a safety prohibition or clear Global Stop authority on its own.
+
+Repair:
+
+- service transport retains fail-closed breaker trip authority
+- direct breaker reset is revoked from service transport
+- a new authenticated HQ-owner reset wrapper requires runtime version freshness
+- Global Stop reset is allowed only from proven Safe OFF
+- reset grants no runtime or capability authority
+
+### P1 — unscoped runtime activation
+
+The previous runtime switch did not bind runtime ON to an explicit set of capability-authority grants. Runtime ON therefore did not itself answer which exact authority set the owner intended to open.
+
+Repair: activation now creates one explicit immutable activation envelope and actual runtime admission requires the task to intersect that envelope.
+
+### P1 — queued work without authority binding
+
+Authority is resolved lazily. Queued tasks can legitimately have no grant ID before execution. A shutdown algorithm that only cancels tasks already bound to revoked grants misses these queued tasks and could allow stale work to revive after a future activation.
+
+Repair: every monotonic transition to Safe OFF centrally terminalizes **all** queued/running Worker Engine tasks, whether or not a grant was previously bound.
+
+### P1 — domain work containment
+
+A Worker Engine task can represent active domain work. Cancelling only the task row can leave a domain job and budget reservation ambiguous.
+
+Repair currently covers the live Content Factory research bridge:
+
+- running research job becomes `needs_human`
+- claim identity is cleared
+- budget reservation release is attempted
+- release failure is preserved as evidence rather than hidden
+- task/domain containment linkage is written into execution evidence
+
+### P1 — authority drift during operation
+
+Owner governance correctly permits revoking/suspending authority while runtime is active. Without envelope drift handling, the runtime label could remain operational after selected authority becomes invalid.
+
+Repair:
+
+- every execution checks that the complete selected authority set remains active/unexpired
+- hidden active authority outside the selected envelope is denied
+- scheduler authority watchdog trips the global breaker on authority drift
+- the runtime watchdog then returns the engine to Safe OFF
+
+## Authoritative state machine
+
+Task 16 introduces two supported runtime states:
 
 - `OFF`
 - `CONTROLLED_OPERATING`
 
-`hq_workforce_engine_contract.runtime_state` is authoritative. The legacy `runtime_execution_enabled` boolean remains a compatibility projection and is constrained so it cannot disagree with `runtime_state`.
+`hq_workforce_engine_contract.runtime_state` is the authoritative state. `runtime_execution_enabled` remains a compatibility projection and is constrained not to disagree with the state.
 
-`runtime_state_version` is monotonic and is required by every consequential owner transition. This closes stale-tab overwrite races.
+`runtime_state_version` is a monotonic optimistic-concurrency clock.
+
+When operating, `runtime_activation_envelope_id` is mandatory. When OFF, it must be NULL.
 
 Supported transitions:
 
-- `OFF -> CONTROLLED_OPERATING` via versioned owner activation
-- `CONTROLLED_OPERATING -> OFF` via normal Stop
-- `OFF -> OFF` via idempotent Stop
-- `CONTROLLED_OPERATING -> OFF + global breaker` via Global Stop
-- `OFF -> OFF + global breaker` via Global Stop when emergency containment is requested before runtime starts
+- OFF -> CONTROLLED_OPERATING: versioned owner activation with explicit envelope
+- CONTROLLED_OPERATING -> OFF: normal Stop
+- OFF -> OFF: idempotent Stop or OFF-state emergency cleanup
+- CONTROLLED_OPERATING -> OFF + global breaker: owner Global Stop or watchdog containment
+- expired/invalid operating envelope -> OFF: system fail-closed watchdog
 
-Global Stop is a prohibition and dominates ordinary runtime authority. Restart after Global Stop requires the breaker to be governed/reset separately, fresh authority, successful preflight, and a new versioned activation.
+The authoritative answer to “can consequential execution occur now?” is therefore not a UI boolean. It requires:
 
-## Activation preflight
+1. state = CONTROLLED_OPERATING
+2. runtime projection enabled
+3. current active envelope matches runtime version
+4. envelope not expired
+5. selected authority set still active/unexpired
+6. no active authority outside the envelope
+7. task intersects an exact selected capability/version/worker/scope grant
+8. global/runtime policy passes
+9. Global Stop / scoped breakers clear
+10. existing R1.4 autonomy/risk/budget/concurrency/rate/precondition/idempotency controls pass
 
-`hq_workforce_owner_runtime_preflight` evaluates:
+## Explicit activation envelope
 
-- authenticated HQ owner
-- expected state version
-- current OFF state
-- Global Stop clear
-- shadow runtime stopped and shadow Global Stop preserved
-- anomaly pause clear
-- background heartbeat/factory paths disabled
-- explicit enabled global runtime policy
-- requested autonomy/risk within that policy
-- active, unexpired, identity-bound capability authority compatible with the requested envelope
+`hq_workforce_runtime_activation_envelopes` records the owner-authorized operating window:
 
-Any failed condition prevents activation.
+- owner
+- runtime version
+- autonomy level
+- maximum risk
+- exact authority grant IDs
+- immutable authority snapshot
+- capability versions / operation / resource / scope data through the grant snapshot
+- worker scope through `permitted_worker_key`
+- global policy snapshot
+- maximum concurrency
+- maximum executions/minute
+- active budget/resource snapshot
+- activation time
+- expiry time
+- terminal status
+- evidence
+- activation transition-event linkage
 
-## Activation transaction
+Only one active envelope may exist.
 
-`hq_workforce_owner_transition_runtime('activate', ...)` performs the transition inside one PostgreSQL transaction and one advisory-locked control-plane critical section.
+Activation accepts a short duration of 1–60 minutes. Every selected grant must remain valid beyond the requested duration.
 
-Activation is rejected when:
+Envelope creation rejects:
 
-- the caller is not the authenticated owner
-- the expected version is stale
-- the idempotency key conflicts with a different request
-- runtime is not OFF
-- a Global Stop breaker is active
-- anomaly pause is active
-- shadow/background execution paths are not safely stopped
-- no enabled global policy exists
-- autonomy/risk exceeds policy
-- no compatible active authority exists
+- missing/empty authority set
+- duplicate/unselected hidden active authority
+- inactive/expired authority
+- unbound worker authority for this minimum pilot envelope
+- capability/version not in the runtime allowlist
+- risk/autonomy outside allowlist or global policy
+- no active budget capacity for a selected worker
+- Global Stop
+- stale runtime version
+- non-owner caller
+- unsafe background/shadow state
 
-Successful activation:
+The old activation RPC and the first unscoped Task-16 activation shape are closed for activation. Task 15 must use the explicit-envelope v2 preflight/transition contract after shared foundations reconcile.
 
-- moves authoritative state to `CONTROLLED_OPERATING`
-- increments `runtime_state_version`
-- enables only the consequential runtime gate
-- keeps heartbeat and factory paths OFF
-- preserves the existing server-side runtime, capability, risk, scope, budget, concurrency, rate, breaker, precondition and idempotency enforcement stack
-- emits immutable transition evidence atomically
+## Idempotency and stale state
 
-The previous versionless activation RPC is deliberately closed. The compatibility RPC retains Stop, but activation now requires the versioned transition API. Task 15 must consume this versioned contract before Task 16 can be considered integrated.
+Owner transition calls carry an owner-scoped `idempotency_key` plus expected runtime version.
 
-## Idempotency and stale-state protection
-
-Owner transitions require an `idempotency_key` scoped to the authenticated owner. Replaying the same request returns the previously recorded result. Reusing a key for a different request fails.
-
-The idempotency record is checked before the state-version check, so this sequence is deterministic:
+Replay semantics:
 
 1. activation commits
-2. network response is lost
-3. owner retries the same request with the old expected version and same idempotency key
-4. the committed result is returned instead of creating a second transition
+2. response is lost
+3. owner retries with the same key and old version
+4. previously committed result is returned
+5. no duplicate envelope/grants/budgets/schedules are created
 
-A different stale request fails with `runtime_transition_stale_state`.
+A different request using the same key fails as an idempotency conflict.
+
+A genuinely stale request with a new key fails against `runtime_state_version`.
+
+## Runtime enforcement
+
+The explicit envelope is enforced inside `hq_workforce_assert_runtime_task_authorized`, which is already in the consequential authorization chain.
+
+R1.4 resolves capability authority before it persists the grant ID onto a first-run task. Task 16 therefore handles both states safely:
+
+- already-bound task: exact grant ID must be inside the envelope and still active/unexpired
+- first-run unbound task: task capability/version/worker/operation/resource/scope must match a selected active grant
+
+Because activation rejects active grants outside the envelope and new authority activation is prohibited while runtime is ON, the later canonical authority resolver cannot silently select hidden authority.
+
+Existing lower-level enforcement remains intact for:
+
+- worker identity/certification/lifecycle
+- capability certification/version
+- tool/skill binding
+- plan/objective authorization
+- autonomy
+- risk
+- scope
+- budget reservation/consumption
+- concurrency
+- executions/minute
+- preconditions
+- idempotency
+- verification
+- compensation
+- circuit breakers
+
+## Scheduler / watchdog order
+
+The minute scheduler is hardened to run safety reconciliation before queue work:
+
+1. OFF-state Global Stop authority cleanup
+2. active-envelope authority-drift watchdog
+3. runtime/envelope expiry/integrity watchdog
+4. bounded queue execution
+
+Any scheduler exception returns `failed_closed` and does not proceed as successful consequential execution.
 
 ## Normal Stop
 
-Normal Stop is fail-safe and owner-governed:
+Normal Stop:
 
-- blocks new consequential execution by moving runtime to OFF
-- resets autonomy/risk to L0/R0
+- moves runtime to OFF
+- clears activation-envelope pointer
+- returns autonomy/risk to L0/R0
 - disables heartbeat/factory/shadow execution paths
 - preserves shadow Global Stop ON
-- revokes all active temporary capability-authority grants
-- contains queued and running tasks bound to those grants
-- queued or pre-commit running work becomes `cancelled`
-- running work with an already committed execution intent becomes `failed` with `runtime_shutdown_post_commit_verification_required`, preserving the fact that a timeout/stop is not proof that nothing happened
+- revokes all active temporary capability authority
+- proves zero active authority remains
+- closes the activation envelope
+- terminalizes all queued/running Worker Engine tasks, including tasks with no grant ID
+- clears leases
+- treats already-committed work as `runtime_shutdown_post_commit_verification_required`
+- quarantines active Content Factory research work and records budget-release outcome
 - writes immutable transition evidence
 
-Repeated Stop remains safe and becomes an idempotent OFF transition when no additional cleanup is required.
+Repeated Stop remains safe. If no state/authority cleanup is required, it does not manufacture a new activation.
 
 ## Global Stop
 
-Global Stop performs normal shutdown plus an authoritative global R1.4 execution-breaker trip in the same transaction.
+Global Stop dominates every ordinary permission.
 
-This gives priority ordering:
+Owner Global Stop:
 
-`Global Stop > runtime ON > valid authority > capability > risk > budget`
+- trips the authoritative global R1.4 breaker
+- performs normal shutdown in the same database transaction
+- revokes active temporary authority
+- contains queued/running work
+- closes the envelope as `global_stopped`
+- records evidence
 
-The existing consequential gateway checks breakers before reservation and again immediately before mutation. A worker, queue retry, stale authority reference, or already-planned action therefore cannot begin a new consequential mutation step after the global breaker becomes authoritative.
+A service-side safety system may trip a global breaker but cannot reset it. The scheduler then detects the breaker and returns operating runtime to Safe OFF.
 
-## Authority cleanup
+If a global breaker is tripped while runtime is already OFF, the OFF-state cleanup watchdog revokes any staged active authority and contains stale queued/running work so that it cannot be reused on restart.
 
-Normal Stop and Global Stop revoke all active temporary R1.4 capability-authority grants. Bound queued/running tasks are contained in the same transaction.
+## Active-job policy
 
-A subsequent activation cannot reuse those revoked grants. It requires newly active, unexpired authority plus a new successful preflight and a new runtime version.
+Task 16 does not use one unsafe universal “kill everything” assumption.
+
+Current behavior:
+
+- queued/pre-commit Worker Engine work: cancel
+- running task with committed execution intent: fail into post-commit verification-required state
+- running Content Factory research domain job: quarantine as `needs_human`; release budget reservation where possible; preserve release failure evidence
+- future operation-specific compensators remain responsible for capabilities whose domain semantics require rollback/compensation instead of quarantine
+
+No new consequential mutation step may begin after Global Stop because breaker checks exist at execution boundaries and the scheduler reconciles emergency state before queue work.
+
+## Authority cleanup and restart
+
+After normal Stop, Global Stop, expiry or authority-drift containment:
+
+- active temporary grants are revoked
+- stale task references are terminalized
+- active envelope is closed/expired and detached
+- consequential admission fails without a fresh envelope
+
+Restart requires:
+
+- Safe OFF
+- Global Stop cleared by owner-only governed reset if applicable
+- fresh active/certified authority
+- valid worker identity/certification
+- active global policy
+- active budget capacity
+- new preflight
+- new explicit envelope
+- new runtime version
+
+Old revoked authority is never revived by runtime activation.
 
 ## Evidence
 
-`hq_workforce_runtime_transition_events` records:
+`hq_workforce_runtime_transition_events` records owner and system transitions:
 
-- authenticated actor
+- actor provenance (`owner` or `system`)
+- owner ID when owner-triggered
 - idempotency key
 - action
 - previous/resulting state
-- previous/resulting state version
+- previous/resulting version
 - requested envelope
 - authority revoked count
 - jobs contained count
@@ -160,95 +345,147 @@ A subsequent activation cannot reuse those revoked grants. It requires newly act
 - evidence payload
 - timestamp
 
-Rows are immutable. `anon`, `authenticated`, and `service_role` cannot insert/update/delete them directly. Service transport has read-only access for diagnostics.
+Rows are immutable to ordinary transports. System watchdog evidence uses NULL actor ID plus constrained `actor_kind='system'`; owner events require a non-NULL authenticated actor.
+
+Activation envelopes are immutable after their one-time activation-event link is sealed, except for the governed terminal close fields. Budget snapshots are separately immutable.
 
 ## Regression coverage added
 
-`supabase/tests/worker_engine_task16_activation_lifecycle.sql` statically certifies:
+Task 16 currently adds static SQL contract suites for:
 
-- authoritative state + compatibility projection
-- version clock
-- owner gate
-- stale-state protection
-- transition idempotency
-- removal of the invalid `effective_from` activation predicate
-- authority freshness checks
-- Global Stop activation denial
-- operating-envelope policy gate
-- closure of versionless activation
-- preservation of Stop
-- authority cleanup
-- queued/running job containment
-- post-commit shutdown treatment
-- global breaker integration
-- execution-boundary breaker enforcement
-- immutable evidence
-- denial of service-role/anon owner transitions
-- non-activating safe-OFF candidate posture
+- state/version/projection
+- safe OFF
+- owner authorization
+- stale-state rejection
+- transition replay/idempotency
+- explicit activation envelope
+- capability/version allowlist
+- worker/scope intersection
+- hidden authority rejection
+- authority expiry/drift
+- budget/resource evidence
+- scheduler fail-closed behavior
+- Global Stop priority
+- owner-only breaker reset
+- expiry/integrity watchdog
+- OFF-state Global Stop cleanup
+- queued/running central containment
+- domain research quarantine
+- post-commit uncertainty
+- authority cleanup proof
+- service/anon attack boundaries
+- immutable lifecycle evidence
+
+Existing R1.4 suites remain required for:
+
+- consequential gateway
+- preconditions
+- execution idempotency
+- budget/rate/concurrency
+- breaker denial
+- approved-plan binding
+- verification/compensation
+- escalation/authority boundaries
+- production closure
 
 ## Minimum pilot envelope
 
-Task 16 intentionally does not enable heartbeat/factory autonomy. The minimum pilot runtime remains:
+Task 16 deliberately keeps pilot operation narrow:
 
-- explicit owner activation only
-- narrow pre-certified capability authority
-- low autonomy/risk bounded by global policy
-- existing runtime concurrency/rate ceilings, never widened by activation
-- existing budget/resource limits
-- mandatory preconditions/idempotency/verification/compensation contracts for consequential capability authority
-- Global Stop available and dominant
-- strong evidence
+- authenticated owner activation only
+- 1–60 minute envelope
+- explicit exact authority grants only
+- worker-bound authority only
+- allowlisted exact capability versions only
+- low autonomy and low risk bounded by global policy
+- no widening of existing concurrency/rate ceilings
+- active budget capacity required and snapshotted
+- heartbeat/factory remain OFF
+- strong preconditions/idempotency/verification/compensation
+- Global Stop dominant
+- immutable lifecycle evidence
 
-Broader scheduler/factory autonomy is outside this activation certification unless separately governed.
+Broader autonomous factory/scheduler authority is not opened by Task 16.
 
 ## Shared-foundation dependencies
 
-Before final certification:
+Open/unresolved work observed during Task 16 includes Task 1/2/3/4/5/6/7/8 foundations, Task 12 observability PR #289, and Worker Engine commissioning-lineage PR #279. Task 15 HQ runtime-control integration is not present on the inspected `main` workforce page.
+
+Task 12 is expected to provide the canonical `platform_events` observability contract. Task 16 will wire lifecycle telemetry to that merged contract rather than hardcode an incompatible parallel event system while PR #289 is still unresolved.
+
+Task 15 must bind its Control Room actions to:
+
+- authoritative runtime state/version read
+- explicit-envelope preflight v2
+- explicit-envelope transition v2
+- owner Global Stop
+- owner-only breaker reset
+- resulting immutable evidence
+
+## Required final gates after shared foundations merge
 
 1. Fetch exact current `main`.
-2. Confirm all shared foundations ahead of Task 16 are merged.
-3. Reconcile Task 15 HQ Control Room with the versioned activation/preflight/state contract.
-4. Inspect every Worker Engine migration/runtime/security change since base `77051a4011d...`.
+2. Confirm required shared foundations are merged.
+3. Reconcile/rebase Task 16.
+4. Inspect every changed Worker Engine/runtime/security contract.
 5. Reinspect production read-only.
-6. Reconcile migration order and production schema contracts.
-7. Run disposable full lifecycle simulation.
-8. Run Global Stop simulation.
-9. Run Worker Engine acceptance/governance/security suites.
-10. Run migration security and clean rebuild.
-11. Run HQ authorization, telemetry and incident-control integration.
-12. Run TypeScript and production build.
-13. Certify the exact candidate SHA.
+6. Reconcile migration ordering and repo/production schema contracts.
+7. Wire Task 12 telemetry contract.
+8. Reconcile Task 15 HQ Control Room contract.
+9. Apply the Task 16 chain only to an isolated disposable database.
+10. Run full lifecycle simulation: OFF -> preflight -> activate -> permitted execution -> excessive-risk denial -> Stop -> cleanup -> stale denial.
+11. Repeat with Global Stop.
+12. Inject authority expiry/revocation, stale state, retries, scheduler retry and crash/timeout scenarios.
+13. Run Worker Engine acceptance/governance/security suites.
+14. Run migration security and clean rebuild.
+15. Run HQ authorization, observability and incident-control integration.
+16. Run TypeScript and production build.
+17. Certify exact candidate SHA.
+18. Only then evaluate merge/deployment under the user’s release gate.
 
-Old evidence is invalidated by any changed runtime dependency.
+Old certification is invalidated by changed runtime dependencies.
 
-## Hold-gate certification status
+## Disposable database status
+
+No active healthy non-production Supabase branch is currently available. Existing development branches are inactive/migration-failed. Creating a fresh Supabase development branch has a provider cost workflow and therefore was not done autonomously under the user’s material-financial-authority exception.
+
+Accordingly, Task 16 has written the migration and regression contracts but has **not** claimed executable lifecycle simulation, clean-rebuild SQL execution, TypeScript/build certification, or exact-current-main final certification yet.
+
+## Current hold-gate certification status
 
 Completed on isolated branch:
 
-- repository/runtime truth inspection
-- production read-only safe-OFF verification
-- P0 activation schema-drift identification
-- authoritative two-state runtime model implementation
-- stale-state/version enforcement
-- replay-safe transition idempotency
-- owner-bound activation path
-- preflight contract
-- explicit activation envelope binding
-- normal Stop cleanup semantics
-- Global Stop integration
-- active-job containment policy
-- authority revocation on shutdown
-- immutable transition evidence
-- static regression suite
+- production read-only runtime truth
+- scheduler/queue truth
+- activation schema-drift root cause
+- breaker reset authority defect root cause
+- authoritative runtime state/version model
+- explicit activation envelope
+- exact authority/capability-version/worker/scope binding
+- budget/resource activation evidence
+- owner-only activation and breaker reset boundaries
+- optimistic stale-state protection
+- replay-safe owner transitions
+- Global Stop priority
+- expiry/integrity fail-closed watchdog
+- authority-drift fail-closed watchdog
+- OFF-state Global Stop cleanup
+- central queued/running task containment
+- Content Factory research domain quarantine/budget-release evidence
+- authority cleanup proof in transition logic
+- static regression coverage
+- production remains unchanged and fail-closed
 
-Still blocked by the shared-foundation hold and/or unavailable disposable database execution:
+Outstanding because of the shared-foundation hold and/or unavailable disposable execution environment:
 
-- applying this migration anywhere production-like
-- transactional activation simulation with real fixtures
-- shutdown/Global Stop end-to-end simulation
-- clean-build SQL execution of the new migration
-- exact-current-main final certification after upstream merges
-- Task 15 UI contract reconciliation
-- merge/deploy/production verification
+- executable full lifecycle simulation
+- executable Global Stop simulation
+- clean rebuild with the Task 16 migration chain
+- runtime failure/chaos execution against fixtures
+- Task 12 telemetry integration after canonical observability merges
+- Task 15 Control Room integration after its foundation is ready
+- exact-current-main reconciliation after upstream merges
+- TypeScript/production-build rerun on final reconciled candidate
+- merge/deployment/production-safe post-deploy verification
 
-No final production-ready certification is claimed while these gates remain outstanding.
+**No final Task 16 production-ready certification is claimed while these gates remain outstanding.**
