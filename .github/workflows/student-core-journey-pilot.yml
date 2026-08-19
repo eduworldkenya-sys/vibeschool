@@ -1,0 +1,27 @@
+name: Student Core Journey Pilot
+
+on:
+  pull_request:
+    paths:
+      - 'app/student/**'
+      - 'components/student/**'
+      - 'lib/student-context.tsx'
+      - 'lib/student/**'
+      - 'lib/assessment/**'
+      - 'lib/homework/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-student-core-journey-pilot.mjs'
+      - '.github/workflows/student-core-journey-pilot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  student-pilot-contract:
+    name: Student pilot journey contract
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Enforce Task 5 pilot contract
+        run: node scripts/test-student-core-journey-pilot.mjs

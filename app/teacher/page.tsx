@@ -5,6 +5,6 @@ import { useRouter } from "next/navigation";
 
 export default function TeacherRoot() {
   const router = useRouter();
-  useEffect(() => { router.replace("/teacher/week"); }, [router]);
+  useEffect(() => { router.replace("/teacher/pulse"); }, [router]);
   return null;
 }

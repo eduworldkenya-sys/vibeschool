@@ -234,6 +234,15 @@ export default function PulseHeader({
     (c) => c.class_id === activeClassId && c.subject_id === activeSubjectId
   );
 
+  const openNotifications = () => {
+    if (onOpenNotifications) {
+      // Keep the optional hook available for analytics/host integrations, but
+      // navigation is authoritative so the bell can never become a dead CTA.
+      onOpenNotifications();
+    }
+    router.push("/teacher/notifications");
+  };
+
   return (
     <div style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
@@ -247,7 +256,7 @@ export default function PulseHeader({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-          <IconChip count={unreadNotifications} onClick={onOpenNotifications}>
+          <IconChip count={unreadNotifications} onClick={openNotifications}>
             <IconBell />
           </IconChip>
         </div>

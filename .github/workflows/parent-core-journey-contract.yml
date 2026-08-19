@@ -1,0 +1,44 @@
+name: Parent Core Journey Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/parent/**'
+      - 'components/parent/**'
+      - 'lib/**parent**'
+      - 'scripts/validate-parent-*.py'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'middleware.ts'
+      - 'src/middleware.ts'
+      - 'app/auth/**'
+      - 'lib/auth/**'
+      - 'types/database*'
+      - 'database.types*'
+  push:
+    branches: [main]
+
+concurrency:
+  group: parent-core-journey-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  parent-core-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Parent privacy and child-state contracts
+        run: python scripts/validate-parent-core-journey.py
+      - name: Validate consequential Parent RPC authority contracts
+        run: python scripts/validate-parent-consequential-rpcs.py
+      - name: Validate Family Life cross-child authority contracts
+        run: python scripts/validate-parent-family-life-authority.py

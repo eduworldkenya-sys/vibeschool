@@ -1,0 +1,39 @@
+name: Engineering Control Plane Phase 2
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/control-plane/**'
+      - '.github/workflows/**'
+      - 'scripts/engineering_control_plane*.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engineering-control-plane-phase2-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase2-adversarial-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Run Phase-2 adversarial regression
+        run: python3 scripts/engineering_control_plane_phase2.py --self-test
+      - name: Validate policy vocabulary
+        run: |
+          python3 - <<'PY'
+          import json
+          p=json.load(open('.github/control-plane/phase2-policy.json'))
+          required={'STALE_MAIN','STALE_HEAD','SEMANTIC_COLLISION','MIGRATION_COLLISION','DB_RECONSTRUCTION_FAILURE','AUTH_CONTRACT_CHANGED','RLS_SECURITY_RED','GENERATED_TYPES_DRIFT','BUILD_FAILURE','WORKFLOW_SECURITY_RED','PRODUCTION_DRIFT','UPSTREAM_INVALIDATION'}
+          assert required <= set(p['failure_reasons'])
+          assert p['production_mode']=='READ_ONLY'
+          assert p['rules']['security_coverage_may_not_be_reduced'] is True
+          print('phase-2 policy contract: PASS')
+          PY

@@ -1,0 +1,74 @@
+name: Engineering Integration Gate
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: engineering-integration-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  EXACT_CANDIDATE: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  exact-current-main:
+    name: Exact-current-main freshness
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXACT_CANDIDATE }}
+          fetch-depth: 0
+      - name: Fetch current main and fail stale candidates
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
+          git merge-base --is-ancestor origin/main HEAD || {
+            echo "::error::RECONCILE REQUIRED: current main is not an ancestor of this exact candidate."
+            exit 1
+          }
+
+  control-plane-regression:
+    name: Control-plane adversarial regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXACT_CANDIDATE }}
+          fetch-depth: 0
+      - run: git fetch --no-tags origin main:refs/remotes/origin/main
+      - run: test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
+      - run: python3 scripts/engineering_control_plane.py --mode self-test
+      - run: python3 scripts/engineering_control_plane.py --mode audit --base origin/main --head HEAD --output control-plane-report.json
+
+  workflow-security:
+    name: Workflow recursion and privilege safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.EXACT_CANDIDATE }}
+          fetch-depth: 0
+      - run: git fetch --no-tags origin main:refs/remotes/origin/main
+      - run: test "$(git rev-parse HEAD)" = "$EXACT_CANDIDATE"
+      - name: Fail unsafe workflow patterns
+        run: |
+          python3 scripts/engineering_control_plane.py --mode audit --base origin/main --head HEAD --output control-plane-report.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('control-plane-report.json'))
+          risks=r['workflow_audit']['self_push_risk']
+          if risks:
+              print('Recursion-sensitive push workflows detected:')
+              print('\n'.join(risks))
+              raise SystemExit(2)
+          PY

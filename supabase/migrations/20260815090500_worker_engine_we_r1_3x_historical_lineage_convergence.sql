@@ -107,6 +107,9 @@ $converge$;
 
 -- Exact-identifier regexes prevent hq_workforce_memory from matching canonical
 -- hq_workforce_memory_records / hq_workforce_memory_events.
+-- pg_proc also contains aggregates/window functions. pg_get_functiondef() is only
+-- valid for ordinary functions/procedures, and the archival action below is ALTER
+-- FUNCTION, so restrict this scan to ordinary functions explicitly.
 do $functions$
 declare r record;
 begin
@@ -114,6 +117,7 @@ begin
     select p.oid,p.proname,pg_get_function_identity_arguments(p.oid) as args
     from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public'
+      and p.prokind='f'
       and (
         pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_capability_edges([^A-Za-z0-9_]|$)'
         or pg_get_functiondef(p.oid) ~ '(^|[^A-Za-z0-9_])hq_workforce_resources([^A-Za-z0-9_]|$)'
