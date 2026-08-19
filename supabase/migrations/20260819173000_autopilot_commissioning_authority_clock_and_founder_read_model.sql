@@ -48,8 +48,8 @@ begin
     raise exception 'runtime_activation_requires_shadow_stopped';
   end if;
 
-  -- Capability authority has no effective_from column. Activation time is the canonical
-  -- lower bound established by the owner-governed lifecycle transition.
+  -- Activation time is the canonical lower bound established by the owner-governed
+  -- capability-authority lifecycle transition; no separate effective-start column exists.
   select count(*) into v_authority
     from public.hq_workforce_capability_authority_grants
    where status='active'
