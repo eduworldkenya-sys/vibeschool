@@ -27,6 +27,12 @@ trap 'rm -rf "$work"' EXIT
 # DEFERRABLE constraint trigger, so committing an admin-shaped profile before its
 # canonical school membership would create an invalid fixture rather than model
 # a legitimate Admin actor.
+#
+# The two Student claim competitors intentionally remain roleless before the
+# claim. Task 1's canonical contract permits a roleless active profile to establish
+# Student identity through verified claim evidence. Pre-assigning role='student'
+# would run onboarding identity establishment before the race and would no longer
+# model two genuinely unclaimed accounts.
 "${PSQL[@]}" <<SQL
 begin;
 
@@ -42,8 +48,8 @@ insert into public.profiles(id,full_name,role) values
  ('$TEACHER_ID','Task3 Race Teacher','teacher'),
  ('$ADMIN_ID','Task3 Race Admin','admin'),
  ('$PARENT_ID','Task3 Race Parent','parent'),
- ('$STUDENT_A','Task3 Claim Student A','student'),
- ('$STUDENT_B','Task3 Claim Student B','student')
+ ('$STUDENT_A','Task3 Claim Student A',null),
+ ('$STUDENT_B','Task3 Claim Student B',null)
 on conflict (id) do update set full_name=excluded.full_name, role=excluded.role;
 
 insert into public.schools(id,name,subdomain,timezone,status,country_code,requires_dual_approval)
@@ -123,12 +129,14 @@ pending_rows=$("${PSQL[@]}" -Atc "select count(*) from public.class_join_request
 (run_as "$STUDENT_A" "select public.redeem_student_claim('T3CLAIMRACE','$STUDENT_A');" "$work/claim.a" || true) & p1=$!
 (run_as "$STUDENT_B" "select public.redeem_student_claim('T3CLAIMRACE','$STUDENT_B');" "$work/claim.b" || true) & p2=$!
 wait "$p1"; wait "$p2"
-# Claim ownership is canonicalized on students.profile_id. The claim-code table
-# deliberately stores one locked claimed state, not a second caller-identity copy.
 claim_successes=$(cat "$work/claim.a" "$work/claim.b" | grep -c '"status" *: *"success"' || true)
 claim_losers=$(cat "$work/claim.a" "$work/claim.b" | grep -c '"status" *: *"already_claimed"' || true)
 bound=$("${PSQL[@]}" -Atc "select count(*) from public.students where id='$CLAIM_STUDENT' and profile_id in ('$STUDENT_A','$STUDENT_B');")
-claimed_rows=$("${PSQL[@]}" -Atc "select count(*) from public.student_claim_codes where student_id='$CLAIM_STUDENT' and claimed=true;")
-[[ "$claim_successes" == "1" && "$claim_losers" == "1" && "$bound" == "1" && "$claimed_rows" == "1" ]] || { echo "student claim race failed: successes=$claim_successes losers=$claim_losers bound=$bound claimed_rows=$claimed_rows" >&2; exit 1; }
+claimed_rows=$("${PSQL[@]}" -Atc "select count(*) from public.student_claim_codes where student_id='$CLAIM_STUDENT' and student_claimed_at is not null and student_claimed_by in ('$STUDENT_A','$STUDENT_B');")
+if [[ "$claim_successes" != "1" || "$claim_losers" != "1" || "$bound" != "1" || "$claimed_rows" != "1" ]]; then
+  echo "student claim race failed: successes=$claim_successes losers=$claim_losers bound=$bound claimed_rows=$claimed_rows" >&2
+  cat "$work/claim.a.err" "$work/claim.b.err" >&2 || true
+  exit 1
+fi
 
 echo 'Task 3 real concurrency/failure-injection suite: PASS'
