@@ -1,0 +1,27 @@
+name: Teacher UX Task 23
+
+on:
+  push:
+    branches:
+      - ux/task-23-teacher-final-pilot-20260819
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  teacher-ux-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Teacher UX contract
+        run: npm run test:teacher-ux
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
