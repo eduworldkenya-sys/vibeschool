@@ -1,6 +1,8 @@
 -- VIBESCHOOL TASK 15: HQ Workforce Control Room owner operations.
 -- NON-ACTIVATING. Installs owner controls/read models only; no runtime, authority,
 -- scheduler, heartbeat, factory or Global Stop state is changed by migration install.
+-- access: owner-only public.hq_workforce_owner_control_events
+-- authorization-test: public.hq_workforce_owner_control_events denies public/anon/authenticated direct access; service_role is read-only and owner reads use an owner-gated RPC.
 
 create table if not exists public.hq_workforce_owner_control_events (
   id bigint generated always as identity primary key,
