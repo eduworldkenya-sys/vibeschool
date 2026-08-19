@@ -11,6 +11,7 @@ def read(path: str) -> str:
     return p.read_text(encoding="utf-8") if p.exists() else ""
 
 layout = read("app/parent/layout.tsx")
+home = read("app/parent/page.tsx")
 children = read("app/parent/students/page.tsx")
 child = read("app/parent/child/[id]/page.tsx")
 homework = read("app/parent/child/[id]/homework/page.tsx")
@@ -30,6 +31,13 @@ checks += [
     ('aria-current={isActive ? "page" : undefined}' in layout, "bottom navigation exposes active-page semantics"),
     ('width: 44, height: 44' in layout, "primary header controls keep 44px mobile tap targets"),
     ("router.replace('/parent/inbox')" in connect, "legacy Connect route converges on canonical inbox"),
+
+    ('countableAttendance = attendance.filter' in home and 'row.status === "absent"' in home, "Parent Home attendance denominator uses explicit states"),
+    ('attended = countableAttendance.filter' in home and 'row.status === "late"' in home, "Parent Home counts present and late as attended"),
+    ('attendancePct: countableAttendance.length ?' in home, "Parent Home preserves no-record state separately from 0 percent"),
+    ('Needs attention' in home and 'Your children' in home, "Parent Home prioritizes attention before family history"),
+    ('No verified child is linked yet' in home and 'router.push("/parent/link-child")' in home, "Parent Home no-child state uses verified linking"),
+    ('timeZone: "Africa/Nairobi"' in home, "Parent Home uses Kenya-local school date"),
 
     ('attendanceRecords === 0 || child.attendancePct === null' in children, "missing attendance is explicit"),
     ('does not mean the learner was absent' in children, "missing attendance is never presented as absence"),
@@ -57,11 +65,12 @@ checks += [
 
     ('aria-label="Choose child for results"' in results, "Results exposes a multiple-child switcher"),
     ('setSummary(null)' in results and 'requestVersion.current' in results, "Results clears prior sibling data before switching"),
-    ('.not("released_at", "is", null)' not in results or 'getParentAssessmentSummary' in results, "Results remains on governed assessment summary boundary"),
+    ('getParentAssessmentSummary' in results, "Results remains on governed assessment summary boundary"),
     ('Draft or unreleased marks are not shown.' in results, "Results explains publication boundary"),
     ('Missing results do not mean low performance.' in results, "Results empty state avoids false performance inference"),
 
     ('pretend switches are displayed' in profile.lower(), "profile explicitly withholds fake notification preferences"),
+    ('Verified family relationship' in profile and 'Relationship: ${child.relationship}' not in profile, "profile humanizes active family relationship state"),
     ('router.push("/parent/link-child")' in profile, "profile linking uses verified relationship route"),
     ('router.push("/parent/support")' in profile, "profile exposes Report a Problem"),
     ('parent_student_links' in profile, "profile linked-child list derives from relationship authority"),
