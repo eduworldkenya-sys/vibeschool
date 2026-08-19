@@ -68,6 +68,28 @@ begin
   if position('shadow_global_stop=true' in d)=0 then raise exception 'task16_safe_off_shadow_stop_missing'; end if;
 end $$;
 
+-- Global-stop reset is a separate owner governance act. Service transport may fail
+-- closed by tripping a breaker but cannot remove the prohibition.
+do $$
+declare d text;
+begin
+  if has_function_privilege('service_role','public.hq_workforce_reset_execution_breaker(uuid,text,text,jsonb)','EXECUTE') then
+    raise exception 'task16_service_can_reset_breaker';
+  end if;
+  if has_function_privilege('anon','public.hq_workforce_owner_reset_execution_breaker(uuid,bigint,text,jsonb)','EXECUTE')
+     or has_function_privilege('service_role','public.hq_workforce_owner_reset_execution_breaker(uuid,bigint,text,jsonb)','EXECUTE') then
+    raise exception 'task16_owner_breaker_reset_exposed';
+  end if;
+  if not has_function_privilege('service_role','public.hq_workforce_trip_execution_breaker(text,text,text,text,jsonb)','EXECUTE') then
+    raise exception 'task16_fail_closed_breaker_trip_removed';
+  end if;
+  select lower(pg_get_functiondef('public.hq_workforce_owner_reset_execution_breaker(uuid,bigint,text,jsonb)'::regprocedure)) into d;
+  if position('hq_assert_owner' in d)=0 or position('global_breaker_reset_requires_safe_off' in d)=0
+     or position('breaker_reset_stale_runtime_state' in d)=0 or position('authority_effect' in d)=0 then
+    raise exception 'task16_owner_breaker_reset_governance_incomplete';
+  end if;
+end $$;
+
 -- Execution boundaries still enforce runtime and breaker state server-side.
 do $$
 declare rd text; gd text;
