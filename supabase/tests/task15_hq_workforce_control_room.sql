@@ -35,11 +35,9 @@ begin
 end $$;
 
 -- Consequential owner controls are never callable by anon/public/service_role. Authenticated
--- can reach the function boundary, but every function is required to assert canonical owner identity.
+-- can reach the function boundary, but every function must assert canonical owner identity.
 do $$
-declare
-  sig text;
-  r text;
+declare sig text; r text;
 begin
   foreach sig in array array[
     'public.hq_workforce_owner_start_controlled_operations(timestamptz,smallint,smallint,text)',
@@ -56,7 +54,7 @@ begin
   end loop;
 end $$;
 
--- Every Task 15 public owner RPC must be SECURITY DEFINER and have an explicit fixed search_path.
+-- Every Task 15 public owner RPC must be SECURITY DEFINER and have a fixed search_path.
 do $$
 declare p record;
 begin
@@ -78,8 +76,7 @@ begin
   end loop;
 end $$;
 
--- Installation/current safe-state invariant. Task 15 is not allowed to be the event that
--- turns runtime on. This assertion is intended for the held/disposable certification lane.
+-- Task 15 held/disposable certification lane must remain fail closed.
 do $$
 declare ec public.hq_workforce_engine_contract%rowtype;
 begin
@@ -90,8 +87,7 @@ begin
   end if;
 end $$;
 
--- Stale-state, runtime-off policy mutation, Global Stop/breaker coupling, authority
--- neutralization and non-reactivation are structural requirements of the functions.
+-- Structural security semantics that must survive refactors.
 do $$
 declare d text;
 begin
@@ -103,11 +99,18 @@ begin
   if position('control_room_policy_change_requires_runtime_off' in d)=0 then raise exception 'policy runtime-off guard missing'; end if;
 
   d:=pg_get_functiondef('public.hq_workforce_owner_stop_operations(timestamptz,text)'::regprocedure);
-  if position('hq_workforce_owner_transition_capability_authority' in d)=0 or position('suspend' in d)=0 then raise exception 'normal stop authority neutralization missing'; end if;
+  if position('hq_workforce_owner_transition_capability_authority' in d)=0 or position('status=''active''' in d)=0 or position('authority_suspended' in d)=0 then
+    raise exception 'normal Stop must neutralize active authority even from OFF state';
+  end if;
 
   d:=pg_get_functiondef('public.hq_workforce_owner_set_global_stop(boolean,text)'::regprocedure);
   if position('hq_workforce_trip_execution_breaker' in d)=0 then raise exception 'Global Stop execution breaker missing'; end if;
   if position('authority_reactivated' in d)=0 then raise exception 'Global Stop release non-reactivation evidence missing'; end if;
+  if position('reason_code=''owner_global_stop''' in d)=0 then raise exception 'Global Stop release may reset unrelated global breakers'; end if;
+  if position('owner_global_stop_breakers_reset' in d)=0 then raise exception 'owner Global Stop breaker recovery evidence missing'; end if;
+
+  d:=pg_get_functiondef('public.hq_workforce_owner_control_authority(uuid,text,text)'::regprocedure);
+  if position('control_room_authority_activation_global_stop_active' in d)=0 then raise exception 'direct authority activation can bypass Global Stop'; end if;
 
   d:=pg_get_functiondef('public.hq_workforce_owner_reset_breaker(uuid,text)'::regprocedure);
   if position('control_room_breaker_reset_requires_runtime_off' in d)=0 then raise exception 'breaker reset runtime-off guard missing'; end if;
