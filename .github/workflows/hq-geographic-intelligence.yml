@@ -5,6 +5,7 @@ on:
     paths:
       - 'app/hq/geography/**'
       - 'supabase/migrations/*hq_*.sql'
+      - 'supabase/tests/hq_national_intelligence_contract.sql'
       - 'scripts/validate-hq-geographic-intelligence.mjs'
       - '.github/workflows/hq-geographic-intelligence.yml'
   push:
@@ -12,6 +13,7 @@ on:
     paths:
       - 'app/hq/geography/**'
       - 'supabase/migrations/*hq_*.sql'
+      - 'supabase/tests/hq_national_intelligence_contract.sql'
       - 'scripts/validate-hq-geographic-intelligence.mjs'
 
 permissions:
