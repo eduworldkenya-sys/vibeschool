@@ -1,0 +1,29 @@
+name: HQ Control Room Certification
+
+on:
+  pull_request:
+    paths:
+      - 'app/hq/**'
+      - 'components/hq/**'
+      - 'lib/hq/**'
+      - 'scripts/test-hq-control-room-ui.mjs'
+      - '.github/workflows/hq-control-room-certification.yml'
+  workflow_dispatch:
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: HQ UI truth contract
+        run: node scripts/test-hq-control-room-ui.mjs
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
