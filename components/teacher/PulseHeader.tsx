@@ -1,175 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { PulseSnapshot } from "@/lib/types";
 
-const WEEK_TYPE_LABELS: Record<string, string> = {
-  exam: "Exams",
-  midterm_break: "Mid-Term Break",
-  sports: "Sports",
-  holiday: "Holiday",
-};
-
-const iconProps = {
-  width: 20,
-  height: 20,
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-};
-
-function IconBell() {
-  return (
-    <svg {...iconProps}>
-      <path d="M6 8a6 6 0 0 1 12 0c0 3 1 5 1.5 6H4.5C5 13 6 11 6 8z" />
-      <path d="M10 20a2 2 0 0 0 4 0" />
-    </svg>
-  );
-}
-
-function IconChip({
-  children,
-  count,
-  onClick,
-}: {
-  children: React.ReactNode;
-  count: number;
-  onClick?: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        position: "relative",
-        width: 38,
-        height: 38,
-        borderRadius: 999,
-        background: "#f9fafb",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#374151",
-        cursor: onClick ? "pointer" : "default",
-        flexShrink: 0,
-      }}
-    >
-      {children}
-      {count > 0 && (
-        <span
-          style={{
-            position: "absolute",
-            top: -3,
-            right: -3,
-            minWidth: 16,
-            height: 16,
-            padding: "0 4px",
-            borderRadius: 999,
-            background: "#8b5cf6",
-            color: "#fff",
-            fontSize: 10,
-            fontWeight: 800,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {count > 9 ? "9+" : count}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function Avatar({ initials, photoUrl }: { initials: string; photoUrl?: string }) {
-  return (
-    <div style={{ position: "relative", width: 40, height: 40, flexShrink: 0 }}>
-      {photoUrl ? (
-        <img
-          src={photoUrl}
-          alt="Profile"
-          style={{ width: 40, height: 40, borderRadius: 999, objectFit: "cover" }}
-        />
-      ) : (
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 999,
-            background: "#1e1b4b",
-            color: "#fff",
-            fontSize: 14,
-            fontWeight: 800,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {initials}
-        </div>
-      )}
-      <span
-        style={{
-          position: "absolute",
-          bottom: -1,
-          right: -1,
-          width: 10,
-          height: 10,
-          borderRadius: 999,
-          background: "#10b981",
-          border: "2px solid #fff",
-        }}
-      />
-    </div>
-  );
-}
-
-function SelectorItem({
-  icon,
-  label,
-  value,
-  actionLabel,
-  onAction,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-      <span style={{ flexShrink: 0 }}>{icon}</span>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700 }}>{label}</div>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 800,
-            color: "#1e1b4b",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {value}
-        </div>
-        {actionLabel && (
-          <div
-            onClick={onAction}
-            style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, cursor: "pointer", marginTop: 1 }}
-          >
-            {actionLabel}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+const CONTEXT_KEY = "vibeschool:teacher:last-context";
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -178,13 +14,21 @@ function greeting(): string {
   return "Good evening";
 }
 
+function BellIcon() {
+  return (
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M6 8a6 6 0 0 1 12 0c0 3 1 5 1.5 6H4.5C5 13 6 11 6 8z" />
+      <path d="M10 20a2 2 0 0 0 4 0" />
+    </svg>
+  );
+}
+
 export default function PulseHeader({
   snap,
   name,
   avatarUrl,
   selectedKey,
   onSelectedKeyChange,
-  onOpenNotifications,
   schools = [],
   activeSchoolId,
   onSchoolChange,
@@ -202,10 +46,14 @@ export default function PulseHeader({
   const router = useRouter();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
+  const options = useMemo(() => snap.myClasses.map((item) => ({
+    key: `${item.class_id}::${item.subject_id}`,
+    label: `${item.class_name} · ${item.subject}`,
+  })), [snap.myClasses]);
+
   useEffect(() => {
     let cancelled = false;
-
-    supabase
+    void supabase
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", snap.userId)
@@ -213,141 +61,95 @@ export default function PulseHeader({
       .then(({ count }) => {
         if (!cancelled) setUnreadNotifications(count ?? 0);
       });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [snap.userId]);
 
+  useEffect(() => {
+    if (selectedKey || typeof window === "undefined" || options.length === 0) return;
+    const saved = window.sessionStorage.getItem(CONTEXT_KEY);
+    if (saved && options.some((option) => option.key === saved)) {
+      onSelectedKeyChange(saved);
+    }
+  }, [onSelectedKeyChange, options, selectedKey]);
+
+  function selectContext(key: string) {
+    onSelectedKeyChange(key);
+    if (typeof window !== "undefined") window.sessionStorage.setItem(CONTEXT_KEY, key);
+  }
+
   const initials = name
-    ? name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()
-    : "";
-
-  const key = (classId: string, subjectId: string) => `${classId}::${subjectId}`;
-
-  const [activeClassId, activeSubjectId] = selectedKey.split("::");
-
-  const selectedSlot = snap.todaySlots.find(
-    (slot) => slot.class_id === activeClassId && slot.subject_id === activeSubjectId
-  );
-  const selectedRoster = snap.myClasses.find(
-    (c) => c.class_id === activeClassId && c.subject_id === activeSubjectId
-  );
+    ? name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("")
+    : "T";
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
+    <header style={{ marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: "#1e1b4b", letterSpacing: -0.4 }}>
-            {greeting()}{name ? `, ${name}` : ""} 👋
-          </div>
-          <div style={{ fontSize: 13, color: "#9ca3af", marginTop: 2 }}>
-            You&apos;re changing lives today.
-          </div>
+          <h1 style={{ margin: 0, fontSize: 21, lineHeight: 1.2, fontWeight: 900, color: "#1e1b4b", letterSpacing: -0.35 }}>
+            {greeting()}{name ? `, ${name}` : ""}
+          </h1>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#6b7280" }}>Here’s what matters for teaching today.</p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-          <IconChip count={unreadNotifications} onClick={onOpenNotifications}>
-            <IconBell />
-          </IconChip>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <button
+            type="button"
+            onClick={() => router.push("/teacher/notifications")}
+            aria-label={unreadNotifications > 0 ? `Open notifications, ${unreadNotifications} unread` : "Open notifications"}
+            style={{ position: "relative", width: 44, height: 44, border: 0, borderRadius: 999, background: "#fff", color: "#374151", display: "grid", placeItems: "center", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", cursor: "pointer" }}
+          >
+            <BellIcon />
+            {unreadNotifications > 0 && (
+              <span aria-hidden="true" style={{ position: "absolute", top: -2, right: -1, minWidth: 18, height: 18, padding: "0 4px", borderRadius: 999, background: "#8b5cf6", color: "#fff", fontSize: 10, fontWeight: 900, display: "grid", placeItems: "center", border: "2px solid #f8fafc" }}>
+                {unreadNotifications > 9 ? "9+" : unreadNotifications}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push("/teacher/profile")}
+            aria-label="Open teacher profile"
+            style={{ width: 44, height: 44, borderRadius: 999, border: "2px solid #fff", overflow: "hidden", background: "#1e1b4b", color: "#fff", fontSize: 13, fontWeight: 900, display: "grid", placeItems: "center", cursor: "pointer", boxShadow: "0 2px 12px rgba(0,0,0,0.08)" }}
+          >
+            {avatarUrl ? <img src={avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
+          </button>
         </div>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          background: "#fff",
-          borderRadius: 16,
-          padding: "12px 14px",
-          boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
-          overflowX: "auto",
-        }}
-      >
+      <div style={{ background: "#fff", borderRadius: 16, padding: 14, boxShadow: "0 2px 16px rgba(0,0,0,0.06)", display: "grid", gap: 12 }}>
         {schools.length > 1 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <span style={{ color: "#8b5cf6", flexShrink: 0 }}>🏫</span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700 }}>School</div>
-              <select
-                value={activeSchoolId ?? ""}
-                onChange={(event) => onSchoolChange?.(event.target.value)}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 800,
-                  color: "#1e1b4b",
-                  border: "none",
-                  background: "transparent",
-                  padding: 0,
-                  maxWidth: 140,
-                }}
-              >
-                {schools.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <label style={{ display: "grid", gap: 5 }}>
+            <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 800 }}>School</span>
+            <select
+              aria-label="Current school"
+              value={activeSchoolId ?? ""}
+              onChange={(event) => onSchoolChange?.(event.target.value)}
+              style={{ width: "100%", minHeight: 44, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", color: "#1f2937", padding: "0 12px", fontSize: 14, fontWeight: 800 }}
+            >
+              {schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
+            </select>
+          </label>
         )}
-        {snap.myClasses.length > 0 ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-            <span style={{ color: "#10b981", flexShrink: 0 }}>👥</span>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: "#9ca3af", fontWeight: 700 }}>Class · Subject</div>
-              <select
-                value={selectedKey}
-                onChange={(event) => onSelectedKeyChange(event.target.value)}
-                style={{
-                  fontSize: 13,
-                  fontWeight: 800,
-                  color: "#1e1b4b",
-                  border: "none",
-                  background: "transparent",
-                  padding: 0,
-                  maxWidth: 170,
-                }}
-              >
-                {snap.myClasses.map((c) => (
-                  <option key={key(c.class_id, c.subject_id)} value={key(c.class_id, c.subject_id)}>
-                    {c.class_name} · {c.subject}
-                  </option>
-                ))}
-              </select>
-              {!selectedSlot && selectedRoster && (
-                <div
-                  onClick={() => router.push(`/teacher/classhub/${selectedRoster.class_id}`)}
-                  style={{ fontSize: 10, color: "#8b5cf6", fontWeight: 700, cursor: "pointer", marginTop: 1 }}
-                >
-                  No lesson today · View class →
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <SelectorItem
-            icon={<span style={{ color: "#10b981" }}>👥</span>}
-            label="Class"
-            value="No classes assigned"
-            actionLabel="Add your class →"
-            onAction={() => router.push("/teacher/onboarding/class")}
-          />
-        )}
-        <SelectorItem
-          icon={<span>📅</span>}
-          label="Week"
-          value={
-            snap.weekNumber == null
-              ? "No active term"
-              : snap.weekType && snap.weekType !== "normal"
-              ? `Week ${snap.weekNumber} · ${WEEK_TYPE_LABELS[snap.weekType] ?? snap.weekType}`
-              : `Week ${snap.weekNumber}`
-          }
-        />
+
+        <label style={{ display: "grid", gap: 5 }}>
+          <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 800 }}>Class · Subject</span>
+          {options.length > 0 ? (
+            <select
+              aria-label="Current class and subject"
+              value={selectedKey}
+              onChange={(event) => selectContext(event.target.value)}
+              style={{ width: "100%", minHeight: 46, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", color: "#1e1b4b", padding: "0 12px", fontSize: 14, fontWeight: 850 }}
+            >
+              {options.map((option) => <option key={option.key} value={option.key}>{option.label}</option>)}
+            </select>
+          ) : (
+            <button type="button" onClick={() => router.push("/teacher/classhub")} style={{ minHeight: 46, textAlign: "left", border: "1px dashed #cbd5e1", borderRadius: 12, background: "#f8fafc", color: "#475569", padding: "0 12px", fontSize: 13, fontWeight: 800, cursor: "pointer" }}>
+              No assigned classes yet · Open Classes
+            </button>
+          )}
+        </label>
       </div>
-    </div>
+    </header>
   );
 }
