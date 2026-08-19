@@ -15,7 +15,7 @@ const migration=`${foundation}\n${readModels}\n${explorer}\n${levelSemantics}\n$
 const page=fs.readFileSync(pagePath,'utf8')
 
 const required=[
-  'create table if not exists public.geo_countries','create table if not exists public.geo_counties','create table if not exists public.geo_subcounties','create table if not exists public.geo_wards','create table if not exists public.school_geography','references public.schools(id)','verification_state','source_checksum','alter table public.school_geography enable row level security','revoke all on public.geo_countries','public.is_platform_owner()',"raise exception 'invalid_geographic_hierarchy'",'create or replace function public.hq_geography_summary','create or replace function public.hq_geographic_data_quality','create or replace function public.hq_map_school_points','create or replace function public.hq_school_360','create or replace function public.hq_growth_intelligence','create or replace function public.hq_geographic_opportunities','create or replace function public.hq_school_explorer_list','product_measurement_state','product_account_sessions',"'residential_geography_inferred',false", "'retention_state','not_calculated_here'",'public.school_levels'
+  'create table if not exists public.geo_countries','create table if not exists public.geo_counties','create table if not exists public.geo_subcounties','create table if not exists public.geo_wards','create table if not exists public.school_geography','references public.schools(id)','verification_state','source_checksum','alter table public.school_geography enable row level security','revoke all on public.geo_countries','public.is_platform_owner()',"raise exception 'invalid_geographic_hierarchy'",'create or replace function public.hq_geography_summary','create or replace function public.hq_geographic_data_quality','create or replace function public.hq_map_school_points','create or replace function public.hq_school_360','create or replace function public.hq_growth_intelligence','create or replace function public.hq_geographic_opportunities','create or replace function public.hq_school_explorer_list','product_measurement_state','product_account_sessions',"'residential_geography_inferred',false","'retention_state','not_calculated_here'",'public.school_levels'
 ]
 for(const token of required){if(!migration.includes(token)) throw new Error(`Missing geographic contract: ${token}`)}
 
@@ -56,10 +56,20 @@ if(!school360Semantics.includes("'institution_type',v_school.school_type")) thro
 if(!school360Semantics.includes('limit 50')) throw new Error('School 360 alias payload must be bounded')
 if(/full_name|phone|email|date_of_birth/i.test(school360Semantics)) throw new Error('School 360 aggregate read model may not expose user PII')
 
+const opportunityStart=readModels.indexOf('create or replace function public.hq_geographic_opportunities')
+const opportunities=readModels.slice(opportunityStart)
+if(!opportunities.includes("'teacher_activation'::text")) throw new Error('Teacher activation opportunity must be deterministic')
+if(!/where\s+learners>0\s+and\s+active_teachers=0/i.test(opportunities)) throw new Error('Learners with zero active teachers must trigger teacher activation, including schools with zero teacher memberships')
+if(/where\s+learners>0\s+and\s+teachers>0\s+and\s+active_teachers=0/i.test(opportunities)) throw new Error('Teacher activation may not suppress schools that have learners but zero teacher memberships')
+if(!opportunities.includes("'geography_gap'")) throw new Error('Geography gap opportunity must remain explicit')
+if(!opportunities.includes('recommended_investigation')) throw new Error('Opportunity signals must return an investigation, not execute an action')
+
 if(!page.includes('Unknown evidence remains unknown')) throw new Error('HQ geography must state evidence semantics')
 if(!page.includes('Map evidence not ready')) throw new Error('HQ geography must fail truthfully when map evidence is incomplete')
 if(!page.includes('disabled={!county}')) throw new Error('Sub-county filter must be parent-scoped')
 if(!page.includes('disabled={!subcounty}')) throw new Error('Ward filter must be parent-scoped')
+for(const rpc of ['hq_growth_intelligence','hq_geographic_opportunities','hq_school_explorer_list','hq_school_360']){if(!page.includes(`supabase.rpc("${rpc}"`)) throw new Error(`HQ route must consume canonical bounded RPC ${rpc}`)}
+if(/supabase\.from\(/.test(page)) throw new Error('National HQ route may not pull raw analytical tables into the browser')
 if(/HQNavigation|navGroups/.test(page)) throw new Error('Geography module must not independently own global HQ navigation')
 if(/fake|demo data|fallback counties/i.test(page)) throw new Error('Production geography route may not contain fabricated fallback data')
 
