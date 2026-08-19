@@ -4,6 +4,7 @@ begin;
 -- that existed outside the repository migration chain. The subsequent Task 3
 -- boundary migration hardens its teacher policy, so the relation must be
 -- reconstructible before that policy is addressed.
+-- authorization-test: public.learner_outcomes
 create table if not exists public.learner_outcomes (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references public.students(id),
