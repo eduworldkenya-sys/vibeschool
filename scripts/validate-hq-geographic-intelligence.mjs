@@ -4,12 +4,14 @@ const foundationPath='supabase/migrations/20260819170000_hq_geographic_intellige
 const readModelsPath='supabase/migrations/20260819171500_hq_national_intelligence_read_models.sql'
 const explorerPath='supabase/migrations/20260819172500_hq_school_explorer_read_model.sql'
 const levelSemanticsPath='supabase/migrations/20260819173500_hq_school_level_semantics.sql'
+const school360SemanticsPath='supabase/migrations/20260819174500_hq_school_360_level_semantics.sql'
 const pagePath='app/hq/geography/page.tsx'
 const foundation=fs.readFileSync(foundationPath,'utf8')
 const readModels=fs.readFileSync(readModelsPath,'utf8')
 const explorer=fs.readFileSync(explorerPath,'utf8')
 const levelSemantics=fs.readFileSync(levelSemanticsPath,'utf8')
-const migration=`${foundation}\n${readModels}\n${explorer}\n${levelSemantics}`
+const school360Semantics=fs.readFileSync(school360SemanticsPath,'utf8')
+const migration=`${foundation}\n${readModels}\n${explorer}\n${levelSemantics}\n${school360Semantics}`
 const page=fs.readFileSync(pagePath,'utf8')
 
 const required=[
@@ -25,7 +27,7 @@ if(!replacement.includes('school_rollup')||!replacement.includes('event_rollup')
 if(/left join public\.platform_events[\s\S]{0,500}count\(sg\.school_id\)/i.test(replacement)) throw new Error('Event fan-out can inflate school totals')
 if(!replacement.includes('count(distinct pe.school_id)')) throw new Error('Active-school aggregation must be distinct')
 
-const functionSources={hq_geography_region_breakdown:readModels,hq_school_360:readModels,hq_growth_intelligence:readModels,hq_geographic_opportunities:readModels,hq_school_explorer_list:levelSemantics}
+const functionSources={hq_geography_region_breakdown:readModels,hq_school_360:school360Semantics,hq_growth_intelligence:readModels,hq_geographic_opportunities:readModels,hq_school_explorer_list:levelSemantics}
 for(const [fn,source] of Object.entries(functionSources)){
   const marker=`create or replace function public.${fn}`
   const start=source.indexOf(marker)
@@ -41,11 +43,18 @@ for(const [fn,source] of Object.entries(functionSources)){
 if(!levelSemantics.includes('public.school_levels')) throw new Error('School level intelligence must consume canonical school_levels')
 if(!/v_level[\s\S]{0,900}exists\s*\(select 1 from public\.school_levels sl where sl\.school_id=s\.id and upper\(sl\.level\)=v_level\)/i.test(levelSemantics)) throw new Error('School level filter must be enforced through canonical school_levels')
 if(/v_level[\s\S]{0,900}(?:s\.school_type|s\.school_category)\s*=/i.test(levelSemantics)) throw new Error('School level filter may not compare institution type/category as level')
+if(!levelSemantics.includes("when 'JUNIOR SCHOOL' then 'JUNIOR'")) throw new Error('Founder Junior School label must normalize to canonical JUNIOR')
+if(!levelSemantics.includes("when 'SECONDARY' then 'SENIOR_SECONDARY'")) throw new Error('Founder Secondary label must normalize to canonical SENIOR_SECONDARY')
 if(!levelSemantics.includes('institution_type')) throw new Error('Institution type must remain distinct from school level')
 if(!levelSemantics.includes('school_aliases')) throw new Error('School search must consume canonical aliases')
 if(!levelSemantics.includes('limit v_limit')) throw new Error('School explorer payload must be bounded')
 if(/select\s+s\.\*/i.test(levelSemantics)) throw new Error('School explorer may not return unrestricted school rows')
 if(/full_name|phone|email|date_of_birth/i.test(levelSemantics)) throw new Error('School explorer payload may not expose user PII')
+
+if(!school360Semantics.includes("'school_type',(select min(sl.level)")) throw new Error('School 360 display level must come from canonical school_levels')
+if(!school360Semantics.includes("'institution_type',v_school.school_type")) throw new Error('School 360 must keep institution type separate from school level')
+if(!school360Semantics.includes('limit 50')) throw new Error('School 360 alias payload must be bounded')
+if(/full_name|phone|email|date_of_birth/i.test(school360Semantics)) throw new Error('School 360 aggregate read model may not expose user PII')
 
 if(!page.includes('Unknown evidence remains unknown')) throw new Error('HQ geography must state evidence semantics')
 if(!page.includes('Map evidence not ready')) throw new Error('HQ geography must fail truthfully when map evidence is incomplete')
