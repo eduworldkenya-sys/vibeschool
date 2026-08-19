@@ -89,7 +89,7 @@ export default function TeacherNotificationsPage() {
   if (loading && items.length === 0) {
     return (
       <div aria-live="polite" aria-busy="true" style={{ padding: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: C.text, marginBottom: 14 }}>Notifications</div>
+        <div style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, marginBottom: 14 }}>Notifications</div>
         {[0,1,2].map((i) => <div key={i} style={{ height: 76, borderRadius: 16, background: "#e5e7eb", marginBottom: 10 }} />)}
       </div>
     );
@@ -98,7 +98,7 @@ export default function TeacherNotificationsPage() {
   return (
     <div style={{ padding: "16px 16px 24px", maxWidth: 720, margin: "0 auto" }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.text }}>Notifications</h1>
+        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: C.textPrimary }}>Notifications</h1>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: C.textMuted }}>Action first, then information and system updates.</p>
       </div>
 
@@ -111,7 +111,7 @@ export default function TeacherNotificationsPage() {
 
       {items.length === 0 && !error ? (
         <div style={{ background: "#fff", borderRadius: 18, padding: "44px 20px", textAlign: "center", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: C.text }}>You’re all caught up</div>
+          <div style={{ fontSize: 16, fontWeight: 900, color: C.textPrimary }}>You’re all caught up</div>
           <div style={{ fontSize: 13, color: C.textMuted, marginTop: 6 }}>New teaching, class and system updates will appear here.</div>
           <button onClick={() => router.push("/teacher/pulse")} style={{ marginTop: 16, minHeight: 44, border: 0, borderRadius: 12, padding: "0 16px", fontWeight: 800, background: C.accent, color: "#fff" }}>Back to Today</button>
         </div>
@@ -127,7 +127,7 @@ export default function TeacherNotificationsPage() {
                   <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
                     <div aria-hidden="true" style={{ width: 10, height: 10, borderRadius: 999, marginTop: 5, background: group === "action" ? "#f59e0b" : group === "system" ? "#64748b" : C.accent, flexShrink: 0 }} />
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 850, color: C.text }}>{item.title}</div>
+                      <div style={{ fontSize: 14, fontWeight: 850, color: C.textPrimary }}>{item.title}</div>
                       <div style={{ fontSize: 13, lineHeight: 1.5, color: C.textMuted, marginTop: 3 }}>{item.body}</div>
                       <div style={{ fontSize: 11, color: C.textMuted, marginTop: 8 }}>{timeAgo(item.created_at)}</div>
                     </div>
