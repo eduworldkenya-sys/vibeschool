@@ -8,6 +8,7 @@ on:
       - "supabase/migrations/20260819173000_autopilot_commissioning_authority_clock_and_founder_read_model.sql"
       - "supabase/migrations/20260819173500_autopilot_commissioning_owner_breaker_reset.sql"
       - "supabase/migrations/20260819174000_autopilot_commissioning_execution_ledger_write_closure.sql"
+      - "supabase/migrations/20260819174800_autopilot_shadow_lineage_enrichment.sql"
       - "supabase/tests/**"
       - "docs/AUTOPILOT_ARCHITECTURE_RECONSTRUCTION_20260819.md"
       - "lib/autopilot/organization.ts"
@@ -45,6 +46,7 @@ jobs:
           run_sql(){ echo "==> $1"; PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f "$1"; }
           run_sql supabase/tests/autopilot_canonical_control_plane_contract.sql
           run_sql supabase/tests/autopilot_production_commissioning_contract.sql
+          run_sql supabase/tests/autopilot_shadow_lineage_contract.sql
           run_sql supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql
           run_sql supabase/tests/worker_engine_we_r1_4_capability_authority.sql
           run_sql supabase/tests/worker_engine_we_r1_4_preconditions_idempotency.sql
