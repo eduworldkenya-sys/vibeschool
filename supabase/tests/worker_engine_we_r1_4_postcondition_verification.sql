@@ -57,7 +57,12 @@ begin
   if position('worker_cannot_verify_own_execution' in inner_d)=0 then raise exception 'deterministic verifier self-check missing'; end if;
   if position('verification_execution_intent_not_committed' in inner_d)=0 then raise exception 'committed intent gate missing'; end if;
   if position('verification_contract_missing' in inner_d)=0 then raise exception 'verification contract gate missing'; end if;
-  if position('negative evidence is deliberately persisted' in inner_d)=0 then raise exception 'negative evidence persistence contract missing'; end if;
+  if position('insert into public.hq_workforce_execution_verifications' in inner_d)=0
+     or position('passed) values' in inner_d)=0
+     or position('verification_status=case when v_pass then ''passed'' else ''failed'' end' in inner_d)=0
+     or position('verification_status=case when v_pass then ''verified'' else ''failed'' end' in inner_d)=0 then
+    raise exception 'negative evidence persistence contract missing';
+  end if;
   if position('execution_intent_id' in inner_d)=0 or position('authority_grant_id' in inner_d)=0 or position('plan_step_id' in inner_d)=0 then raise exception 'verification lineage comparison incomplete'; end if;
 
   if has_function_privilege('service_role','public.hq_workforce_verify_consequential_execution_r14_unbound_internal(uuid,text)','EXECUTE') then
