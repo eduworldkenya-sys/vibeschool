@@ -20,9 +20,9 @@ begin
       where s.deleted_at is null
       group by s.id
     ), days as (
-      select generate_series(current_date-(v_days-1),current_date,interval '1 day')::date day
+      select generate_series(current_date-(v_days-1),current_date,interval '1 day')::date as bucket_date
     ), event_daily as (
-      select pe.occurred_at::date day,
+      select pe.occurred_at::date as bucket_date,
              count(distinct pe.school_id)::int active_schools,
              count(distinct pe.actor_id) filter(where pe.actor_id is not null)::int active_users
       from public.platform_events pe
@@ -34,11 +34,11 @@ begin
     select jsonb_build_object(
       'window_days',v_days,
       'series',jsonb_agg(jsonb_build_object(
-        'date',d.day,
-        'connected_schools',(select count(*)::int from connected c where c.first_connected<=d.day),
+        'date',d.bucket_date,
+        'connected_schools',(select count(*)::int from connected c where c.first_connected<=d.bucket_date),
         'active_schools',coalesce(e.active_schools,0),
         'active_users',coalesce(e.active_users,0)
-      ) order by d.day),
+      ) order by d.bucket_date),
       'semantics',jsonb_build_object(
         'connected_schools','cumulative canonical schools from first school_members joined_at',
         'active_schools','connected schools with school-scoped platform_events on that date',
@@ -46,7 +46,7 @@ begin
       ),
       'generated_at',clock_timestamp()
     )
-    from days d left join event_daily e on e.day=d.day
+    from days d left join event_daily e on e.bucket_date=d.bucket_date
   );
 end;
 $$;
