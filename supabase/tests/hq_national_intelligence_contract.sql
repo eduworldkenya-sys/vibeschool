@@ -47,7 +47,7 @@ end $$;
 
 -- Semantic contracts independent of current fixture population.
 do $$
-declare d text;
+declare d text; normalized text;
 begin
   d:=pg_get_functiondef('public.hq_geography_region_breakdown(text,uuid,integer)'::regprocedure);
   if position('count(s.id)' in d)=0 then raise exception 'regional school totals must count eligible canonical schools'; end if;
@@ -71,7 +71,8 @@ begin
   if position('residential_geography_inferred' in d)=0 then raise exception 'institutional-vs-residential semantic guard missing'; end if;
 
   d:=pg_get_functiondef('public.hq_geographic_opportunities(uuid,uuid,uuid,uuid,integer,integer)'::regprocedure);
-  if position('learners>0 and active_teachers=0' in replace(d,' ',''))=0 and position('learners > 0 AND active_teachers = 0' in d)=0 then
+  normalized:=lower(regexp_replace(d,'\s+','','g'));
+  if position('learners>0andactive_teachers=0' in normalized)=0 then
     raise exception 'teacher activation opportunity must require learner evidence and zero active teachers';
   end if;
   if position('recommended_investigation' in d)=0 then raise exception 'opportunity evidence must remain investigatory, not consequential authority'; end if;
