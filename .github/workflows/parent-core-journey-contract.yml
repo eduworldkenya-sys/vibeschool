@@ -21,3 +21,5 @@ jobs:
           python-version: '3.12'
       - name: Validate Parent privacy and child-state contracts
         run: python scripts/validate-parent-core-journey.py
+      - name: Validate consequential Parent RPC authority contracts
+        run: python scripts/validate-parent-consequential-rpcs.py
