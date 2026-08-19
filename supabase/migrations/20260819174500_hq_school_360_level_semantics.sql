@@ -88,7 +88,7 @@ begin
       'students',(select count(distinct sc.student_id) from public.student_classes sc where sc.school_id=p_school_id and sc.is_current=true),
       'teachers',(select count(distinct sm.profile_id) from public.school_members sm where sm.school_id=p_school_id and sm.role::text='teacher'),
       'parents',(select count(distinct psl.parent_id) from public.parent_student_links psl where psl.school_id=p_school_id),
-      'admins',(select count(distinct sm.profile_id) from public.school_members sm where sm.school_id=p_school_id and sm.role::text in ('admin','owner','school_admin')),
+      'admins',(select count(distinct sm.profile_id) from public.school_members sm where sm.school_id=p_school_id and sm.role::text in ('admin','owner')),
       'membership_rows',(select count(*) from public.school_members sm where sm.school_id=p_school_id)
     ),
     'engagement',jsonb_build_object(
