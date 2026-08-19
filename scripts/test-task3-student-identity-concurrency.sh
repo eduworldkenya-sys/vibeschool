@@ -123,8 +123,12 @@ pending_rows=$("${PSQL[@]}" -Atc "select count(*) from public.class_join_request
 (run_as "$STUDENT_A" "select public.redeem_student_claim('T3CLAIMRACE','$STUDENT_A');" "$work/claim.a" || true) & p1=$!
 (run_as "$STUDENT_B" "select public.redeem_student_claim('T3CLAIMRACE','$STUDENT_B');" "$work/claim.b" || true) & p2=$!
 wait "$p1"; wait "$p2"
-claimants=$("${PSQL[@]}" -Atc "select count(distinct student_claimed_by) from public.student_claim_codes where student_id='$CLAIM_STUDENT' and student_claimed_by is not null;")
+# Claim ownership is canonicalized on students.profile_id. The claim-code table
+# deliberately stores one locked claimed state, not a second caller-identity copy.
+claim_successes=$(cat "$work/claim.a" "$work/claim.b" | grep -c '"status" *: *"success"' || true)
+claim_losers=$(cat "$work/claim.a" "$work/claim.b" | grep -c '"status" *: *"already_claimed"' || true)
 bound=$("${PSQL[@]}" -Atc "select count(*) from public.students where id='$CLAIM_STUDENT' and profile_id in ('$STUDENT_A','$STUDENT_B');")
-[[ "$claimants" == "1" && "$bound" == "1" ]] || { echo "student claim race failed: claimants=$claimants bound=$bound" >&2; exit 1; }
+claimed_rows=$("${PSQL[@]}" -Atc "select count(*) from public.student_claim_codes where student_id='$CLAIM_STUDENT' and claimed=true;")
+[[ "$claim_successes" == "1" && "$claim_losers" == "1" && "$bound" == "1" && "$claimed_rows" == "1" ]] || { echo "student claim race failed: successes=$claim_successes losers=$claim_losers bound=$bound claimed_rows=$claimed_rows" >&2; exit 1; }
 
 echo 'Task 3 real concurrency/failure-injection suite: PASS'
