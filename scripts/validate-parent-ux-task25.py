@@ -14,6 +14,7 @@ layout = read("app/parent/layout.tsx")
 home = read("app/parent/page.tsx")
 children = read("app/parent/students/page.tsx")
 child = read("app/parent/child/[id]/page.tsx")
+progress = read("app/parent/child/[id]/progress/page.tsx")
 homework = read("app/parent/child/[id]/homework/page.tsx")
 messages = read("app/parent/child/[id]/messages/page.tsx")
 learn = read("app/parent/learn/page.tsx")
@@ -56,6 +57,13 @@ checks += [
     ('This does not mean {firstName} was absent.' in child, "today missing attendance is explicitly non-absence"),
     ('router.push(`/parent/child/${child.id}/homework`)' in child, "child overview keeps homework child-scoped"),
     ('router.push(`/parent/child/${child.id}/messages`)' in child, "child overview keeps messages child-scoped"),
+    ('router.push(`/parent/child/${child.id}/progress`)' in child, "child overview routes academic progress to academic evidence"),
+    ('router.push(`/parent/child/${child.id}/growth`)' not in child, "academic progress does not expose physical growth tracking"),
+
+    ('.from("students")' in progress and '.eq("id", childId)' in progress and '.maybeSingle()' in progress, "academic progress checks child authority before summaries"),
+    ('.from("parent_learning_summaries")' in progress and '.eq("status", "published")' in progress, "academic progress renders published family summaries only"),
+    ('does not mean the learner is falling behind' in progress, "missing progress is not interpreted as failure"),
+    ('No information from another learner has been shown.' in progress, "academic progress fails closed across learner context"),
 
     ('submissionStatus === "submitted"' in homework, "submitted homework has explicit family-facing state"),
     ('info.label === "Overdue" || info.label === "Due soon"' in homework, "homework prioritizes tasks needing attention"),
@@ -82,6 +90,9 @@ checks += [
     ('href.startsWith("/parent")' in inbox and 'href.startsWith("//")' in inbox, "notification deep links are constrained to Parent routes"),
     ('aria-pressed={filter === "unread"}' in inbox, "inbox filters expose selected state"),
     ('childName ? `${childName} · `' in inbox, "child-scoped notifications visibly identify the learner"),
+    ('if (fatalLoadError) return' in inbox, "inbox has a distinct authoritative-load failure state"),
+    ('will not tell you that you are caught up' in inbox, "inbox never converts authoritative load failure into false caught-up state"),
+    ('setEvents([])' in inbox and 'setFatalLoadError(true)' in inbox, "inbox clears stale event data on fatal reload failure"),
 
     ('pretend switches are displayed' in profile.lower(), "profile explicitly withholds fake notification preferences"),
     ('Verified family relationship' in profile and 'Relationship: ${child.relationship}' not in profile, "profile humanizes active family relationship state"),
