@@ -2,182 +2,134 @@
 
 ## Promotion state
 
-**RECONCILE REQUIRED / SHARED-FOUNDATION HOLD**
+**INTEGRATION GREEN CANDIDATE — FINAL EXACT-HEAD CI REQUIRED**
 
-Task 5 remains draft, production-disconnected and unmerged. Production access is read-only until all upstream shared-foundation dependencies required by the promotion chain have merged and Task 5 has reconciled against exact-current `main`.
+Task 5 has been reconstructed on exact current `main` without stale ancestry. Production remains read-only during certification.
 
-Promotion chain: `T2 → T1 → T3 → T8 → T4 → T5 → T6 → T7`.
+Owner direction for this promotion: Task 8 is handled externally and is assumed for the Task 5 promotion decision.
 
 ## Candidate
 
-- PR: #284
-- Branch: `agent/task5-student-core-journey`
-- Original base: `77051a4011d7712a275f76af41efed382f017398`
-- Last observed current main during this reconciliation pass: `30dc14a4fff04ed671e034cb4c3be9156dd3d976`
-- Task 5 head after migration-security contract repair: `5dec7dc0a703840ff4b5348201035cf49a329288`
-- Exact-head evidence is invalidated whenever candidate SHA changes.
+- Original engineering PR: #284 (`agent/task5-student-core-journey`)
+- Final conflict-resolved promotion PR: #302
+- Final branch: `agent/task5-student-core-journey-reconciled`
+- Exact base main at reconciliation: `98cd045d5139acbd84ad989f44ed893de434e7ee`
+- Original Task 5 base: `77051a4011d7712a275f76af41efed382f017398`
+- Exact candidate is always the current PR #302 head containing this manifest; any subsequent head change invalidates affected CI evidence.
 
-## Upstream reconciliation
+## Reconciliation method
 
-### Task 2 / Task 1
+PR #284 could not merge because its ancestry was stale and GitHub reported real merge conflicts. The final candidate was therefore reconstructed directly on exact current `main` rather than force-merging or discarding current foundation work.
 
-Current main advanced 32 commits beyond the Task 5 original base and contains Task 2 reconstruction work plus the Task 1 authorization/claim-boundary merge.
+Comparison of original Task 5 delta with current main found only one same-path overlap: `scripts/test-auth-task1-state-machine.mjs`. That file was semantically merged, preserving all current-main Task 1 authority/recovery assertions while replacing only the obsolete split-name Teacher Profile expectation with the canonical `profiles.full_name` contract.
 
-Material Student-facing contracts added/changed upstream include:
+All other Task 5 application/test files were carried forward as their exact Task 5 content on top of current main.
 
-- auth callback/session continuation
-- auth routing and logout behavior
-- Student UUID auth-resolution repair
-- profile authority grants
-- claim-role production reconciliation
-- private identity anonymous-grant hardening
-- teacher-directory authority guard
-- legacy parent child-creation tombstone
-- identity-role transition guards
-- repository reconstruction for `public.notifications`
+## Migration convergence
 
-Task 5 must not treat the old base as certified after these changes.
+Current main already contains migrations through `20260819235930` and Task 4 owns migration version `20260819023000`. The original Task 5 migration line therefore could not be promoted unchanged.
 
-### Notifications reconstruction conflict — P0 security/reconstruction blocker
+Task 5 migrations were renumbered forward in dependency order:
 
-Task 2 now owns reconstruction of `public.notifications` via `20260819222000_task2_notifications_reconstruction.sql`.
+- `20260819235940_student_core_journey_pilot_context.sql`
+- `20260819235950_student_homework_retry_integrity.sql`
+- `20260819235960_student_exercise_submission_integrity.sql`
+- `20260819235970_student_pilot_content_release_reconciliation.sql`
+- `20260819235980_student_vibelearn_resume_grade_scope.sql`
+- `20260819235990_assessment_item_grounding_rpc_reconciliation.sql`
+- `20260820000010_student_actionable_notification_events.sql`
+- `20260820000020_task5_notifications_school_authority_reconcile.sql`
 
-Task 5 previously carried its own earlier reconstruction migration `20260819023400_restore_notifications_prerequisite.sql`. This creates overlapping ownership and must be reconciled before promotion.
+The former Task 5 `restore_notifications_prerequisite` migration was intentionally removed from the final candidate because Task 2 now owns canonical `public.notifications` reconstruction via `20260819222000_task2_notifications_reconstruction.sql`. Task 5 consumes that foundation and owns only learner notification vocabulary/producers plus the stricter school-bound insert policy.
 
-More importantly, the Task 2 migration recreates `notifications_admin_insert` with a school-admin existence check that does not bind `school_members.school_id` to `notifications.school_id`. That repository contract is weaker than the currently observed production policy, which is school-bound.
+## Canonical auth/profile reconciliation
 
-Task 5 must not inherit or certify a cross-school notification insertion boundary. Final reconciliation must leave one canonical reconstruction path and a school-bound authorization policy.
+Production and current application truth use `public.profiles.full_name` for Teacher Profile naming. Current Teacher Profile writes canonical self-editable fields including `full_name`, `phone`, `bio`, `date_of_birth`, `gender`, and `notification_prefs` and does not depend on legacy `first_name`/`last_name` writes.
 
-## Production read-only forensics
+The Task 1 regression preserves the historical intersection-safe migration allowlist while asserting the current canonical save contract and retaining all current-main callback, routing, recovery, logout, authority and role-claim checks.
 
-Project inspected read-only: `yauqsxggtuxuykcbrtzf`.
-
-Observed `public.notifications` state during this pass:
-
-- relation exists
-- 1 notification row currently present
-- observed event type: `homework_submitted`
-- own-read policy binds `user_id = auth.uid()`
-- own-update policy binds `user_id = auth.uid()`
-- current production admin-insert policy is materially stricter than the Task 2 repository migration because it binds authorization to the notification school and a legitimate target relationship
-- production still exposes authenticated DELETE table privilege, which differs from the Task 2 intended canonical grant set and must be classified during final drift reconciliation
-
-No production data, RLS, grants, functions, migrations or Edge Functions were modified.
-
-## Task 5 local repairs already present
-
-Candidate branch includes work for:
+## Student OS repairs carried forward
 
 - Africa/Nairobi learner-day semantics
 - current-grade unfinished Continue Learning
-- KCSE/Form isolation
-- StudentProvider recovery
-- homework retry/submission integrity
-- exercise draft/submit/feedback lifecycle
-- assessment grounding reconciliation
+- primary/KCSE and curriculum isolation
+- recoverable Student identity provider state
+- homework retry/idempotency and durable receipt semantics
+- complete exercise draft/submit/feedback lifecycle
+- assessment source grounding without weakening release invariants
 - VibeLearn publication/subject reconciliation
-- actionable learner notifications
-- Student navigation and Progress access
-- Student Core Journey regression coverage
+- actionable/deduplicated learner notifications
+- school-bound notification authorization
+- Student Progress navigation and actionable notification destinations
+- permanent Student Core Journey regression coverage
 
-These remain candidate repairs, not final certification.
+## Notification authority
 
-## CI evidence
+Task 2 owns base relation/RLS reconstruction. Task 5 final policy preserves the stronger live authorization model:
 
-At pre-reconciliation head `6814366da7a4945b94c5032798845fc519a1fef7`, all visible Task 5 workflows passed except Supabase Migration Security Contract.
+- caller must be school admin for `notifications.school_id`
+- recipient must have a legitimate relationship to the same school through school membership, current canonical Student/class relationship, or active Parent/student relationship
+- learner/account reads and updates remain owner-scoped
+- anonymous table access remains revoked
 
-Root cause: `20260819023400_restore_notifications_prerequisite.sql` created `public.notifications` without the required `-- authorization-test: public.notifications` declaration.
+Task 5 regression explicitly checks this school binding.
 
-Repair commit: `5dec7dc0a703840ff4b5348201035cf49a329288`.
+## Production read-only preflight
 
-At that exact head, the Supabase Migration Security Contract passed, along with:
+Project: `yauqsxggtuxuykcbrtzf`.
+
+Observed during final convergence:
+
+- canonical Students: 116
+- current `student_classes`: 70
+- homework submissions: 3
+- duplicate homework `(homework_id, student_id)` groups: 0
+- assessment attempts: 0
+- notifications: 1
+- production notification own-read policy: `user_id = auth.uid()`
+- production notification own-update policy: `user_id = auth.uid()`
+- production admin-insert policy binds school-admin authority and recipient relationship to the notification school
+
+No production data, migration, RLS, grants, function, Edge Function or runtime configuration was mutated during this certification pass.
+
+## Exact-head gates
+
+Required on the final PR #302 head after this manifest update:
 
 - Student Core Journey Pilot
 - Student One Full Journey
 - Student One Legacy Identity Recovery
 - Student Provisioning Contract
+- Task 3 Student Identity Integrity
+- Task 3 Student Identity Concurrency
+- Teacher Pilot Task 4
 - Deterministic Twin Contract
+- Auth Gateway Contract
+- Auth & Onboarding Hardening
+- Supabase Migration Security Contract
+- Task 2 Database Reconstruction Integrity
+- TBL-011 Isolated Clean Rebuild
+- TBL-012 repository extractor
+- TypeScript and Production Build Gate
 - CI Production Build Contract
+- other automatically triggered repository contracts
 
-Additional workflows were still running when this manifest was updated. No queued/running workflow is recorded as PASS until completion.
+Use PASS / FAIL / BLOCKED / NOT APPLICABLE only. Queued/running/stale SHA evidence is not PASS.
 
-## Required final attack matrix
+## Final merge contract
 
-### Identity and authorization
+Merge PR #302 only if:
 
-- canonical `students.id` resolution
-- no use of account UUID as learner identity except explicit bridges
-- Student A cannot SELECT/INSERT/UPDATE/DELETE Student B-owned data
-- RPC/direct URL/cache attacks remain denied
-- profile/class/grade institutional truth cannot be self-mutated
+1. exact current main remains the reconciled base or is re-reconciled
+2. PR remains mergeable
+3. all required exact-head CI completes successfully
+4. migration security and clean reconstruction pass
+5. no Task-5-owned P0/P1 remains
+6. production preflight remains read-only and materially unchanged
+7. merge uses the exact certified head SHA
 
-### Grade and curriculum
+After merge, verify the new `main` contains the exact Task 5 candidate and close/supersede PR #284. Then Task 6 becomes the next reconciliation/promotion target.
 
-- primary → KCSE deny/hide
-- Grade 4 → Grade 10 automatic action deny
-- stale historical grade does not dominate current eligibility
-- Senior School CBE and legacy Form/KCSE remain distinct
+## Safety
 
-### Homework / practice / assessment
-
-- homework submit idempotency under concurrent retries
-- submitted homework cannot revert to draft
-- exercise has complete execution lifecycle
-- assessment start creates/resumes one logical attempt
-- assessment submit is deterministic under duplicates
-- unreleased results remain invisible
-- grounding requirements remain intact
-
-### Learning state
-
-- Continue Learning is unfinished/currently eligible
-- reading progress is durable and does not imply mastery
-- progress/mastery semantics remain evidence-based
-- revision does not recycle completed work indefinitely
-- Twin advises and never overrides canonical academic truth
-
-### Notifications
-
-- one canonical reconstruction migration path
-- school-bound insert authorization
-- student-owned reads/updates only
-- actionable/deduplicated event emission
-- destination reauthorization
-- stale destination failure is safe
-
-### Reliability / mobile
-
-- weak-network retry semantics
-- no false submitted state before durable server acceptance
-- narrow Android viewport core journey
-- no permanent spinners or wrong-learner flashes
-- accessible forms/status changes
-
-## Remaining upstream gates
-
-Final Task 5 promotion remains blocked until:
-
-- Task 3 merged and reconciled
-- Task 8 merged and reconciled
-- Task 4 merged and reconciled
-- Task 5 synchronized with exact-current main
-- all affected exact-head gates rerun
-- production advisors reviewed after any intended DDL is promoted
-- controlled positive and negative production Student E2E pass
-- no owned P0/P1 remains
-
-## Safety constraints
-
-Until the shared-foundation hold clears:
-
-- do not merge Task 5
-- do not mutate production Student data
-- do not apply production migrations
-- do not modify production RLS/grants
-- do not deploy Edge Functions
-- do not activate feature flags
-- do not intentionally trigger Vercel deployment
-
-## Completion rule
-
-Only exact-current-main, exact-head evidence counts. Any upstream contract change or candidate SHA change invalidates affected certification evidence and returns Task 5 to `RECONCILE REQUIRED` or `RECONCILING` until rerun.
+This handover does not authorize an out-of-band production migration or data repair. Repository merge and any later production database promotion remain separately observable release actions.
