@@ -21,7 +21,15 @@ trap 'rm -rf "$work"' EXIT
 # disable auth-owned triggers: the CI database connection is intentionally not
 # the owner of auth.users, and the reconstructed application must tolerate the
 # normal signup trigger path.
+#
+# Keep profile role establishment and authoritative school membership in one
+# transaction. Task 1 deliberately enforces active Admin authority with a
+# DEFERRABLE constraint trigger, so committing an admin-shaped profile before its
+# canonical school membership would create an invalid fixture rather than model
+# a legitimate Admin actor.
 "${PSQL[@]}" <<SQL
+begin;
+
 insert into auth.users(id,instance_id,aud,role,email,encrypted_password,created_at,updated_at)
 values
  ('$TEACHER_ID','00000000-0000-0000-0000-000000000000','authenticated','authenticated','task3-teacher@example.invalid','',now(),now()),
@@ -48,6 +56,8 @@ insert into public.school_members(school_id,profile_id,role) values
 insert into public.classes(id,name,subject,school_id) values
  ('$CLASS_A','Grade 6 A','', '$SCHOOL_ID'),
  ('$CLASS_B','Grade 6 B','', '$SCHOOL_ID');
+
+commit;
 SQL
 
 run_as() {
