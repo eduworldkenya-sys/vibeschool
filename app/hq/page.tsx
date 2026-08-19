@@ -1,84 +1,191 @@
 "use client"
 export const dynamic = "force-dynamic"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { hqSupabase } from "@/lib/hq/supabase"
 import HQTwinDrawer from "@/components/hq/TwinDrawer"
 import { HQPage, HQPanel, HQ_THEME as C, hqButtonStyle } from "@/components/hq/HQShell"
 import { clearAllHQOfflineData, isHQOnline, readHQCache, saveHQCache } from "@/lib/hq/offline"
 
-type Json = null | boolean | number | string | Json[] | { [key: string]: Json }
-type Report = Record<string, any>
-type Control = { product_key:string; policy_key:string; desired_value:Json; observed_value:Json; state:string; verified_at?:string|null; last_error?:string|null }
-type CommandCache={report:Report|null;controls:Control[];health:Report|null;actionableDecisions:number}
+type Obj=Record<string,any>
+type SourceState<T>={status:"loading"|"live"|"cached"|"failed";data:T|null;error?:string;observedAt?:string|null}
+type Control={product_key:string;policy_key:string;desired_value:unknown;observed_value:unknown;state:string;verified_at?:string|null;last_error?:string|null}
+type WorkerSnapshot={generated_at?:string;engine?:Obj|null;counts?:Obj;failures?:{anomalies?:Obj[];dead_letters?:Obj[]}}
+type Cache={report:Obj|null;controls:Control[];health:Obj|null;decisions:Obj[];workforce:WorkerSnapshot|null}
+type Health="Healthy"|"Degraded"|"Critical"|"Unknown"
 const sb=hqSupabase as any
-const fmt=(n:unknown)=>typeof n==="number"?new Intl.NumberFormat("en-KE",{maximumFractionDigits:1}).format(n):String(n??"—")
-const num=(v:unknown)=>typeof v==="number"?v:Number(v??0)||0
-const pct=(v:number)=>`${v.toFixed(v%1?1:0)}%`
-const labelize=(s:string)=>s.replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase())
+const initial=<T,>():SourceState<T>=>({status:"loading",data:null})
+const fmt=(v:unknown)=>typeof v==="number"?new Intl.NumberFormat("en-KE",{maximumFractionDigits:1}).format(v):v==null?"Unknown":String(v)
+const n=(v:unknown)=>typeof v==="number"&&Number.isFinite(v)?v:null
+const arr=(v:unknown)=>Array.isArray(v)?v:[]
+const str=(v:unknown)=>typeof v==="string"?v:""
+const lower=(v:unknown)=>str(v).toLowerCase()
+const firstNumber=(...values:unknown[])=>{for(const v of values){const x=n(v);if(x!==null)return x}return null}
+const tone=(h:Health)=>h==="Healthy"?C.green:h==="Degraded"?C.amber:h==="Critical"?C.red:C.muted
+const sourceLabel=(s:SourceState<unknown>)=>s.status==="live"?"Live":s.status==="cached"?"Cached":s.status==="failed"?"Unavailable":"Loading"
 
-function MetricCard({label,value,delta,tone=C.green,icon}:{label:string;value:unknown;delta?:string;tone?:string;icon:string}){return <div className="hq-metric-card"><div className="hq-metric-top"><span>{label}</span><i style={{color:tone}}>{icon}</i></div><strong>{fmt(value)}</strong>{delta&&<small style={{color:tone}}>↑ {delta}</small>}</div>}
-function MiniStat({label,value,tone=C.text}:{label:string;value:unknown;tone?:string}){return <div className="hq-mini-stat"><span>{label}</span><strong style={{color:tone}}>{fmt(value)}</strong></div>}
-function ProgressRow({label,value,tone=C.blue}:{label:string;value:number;tone?:string}){return <div className="hq-progress-row"><div><span>{label}</span><strong>{pct(value)}</strong></div><div className="hq-progress-track"><i style={{width:`${Math.max(3,Math.min(100,value))}%`,background:tone}}/></div></div>}
-function LineChart({series}:{series:{label:string;points:number[];tone:string}[]}){const all=series.flatMap(s=>s.points).filter(Number.isFinite);if(all.length<2)return <div className="hq-empty-chart">More history is required for this chart.</div>;const max=Math.max(...all),min=Math.min(...all),range=Math.max(1,max-min);return <svg className="hq-line-chart" viewBox="0 0 360 150" role="img" aria-label="Performance trend"><g stroke="rgba(148,163,184,.1)" strokeWidth="1">{[25,60,95,130].map(y=><line key={y} x1="0" y1={y} x2="360" y2={y}/>)}</g>{series.map(s=>{const p=s.points.map((v,i)=>`${i===0?"M":"L"} ${(i/Math.max(1,s.points.length-1))*360} ${130-((v-min)/range)*104}`).join(" ");return <path key={s.label} d={p} fill="none" stroke={s.tone} strokeWidth="2.5" vectorEffect="non-scaling-stroke" strokeLinecap="round"/>})}</svg>}
-function Donut({value,total,label}:{value:number;total:number;label:string}){const p=total?Math.round(value/total*100):0;return <div className="hq-donut" style={{background:`conic-gradient(${C.green} 0 ${p}%,${C.blue} ${p}% ${Math.min(100,p+38)}%,${C.amber} ${Math.min(100,p+38)}% ${Math.min(100,p+68)}%,${C.red} ${Math.min(100,p+68)}% 100%)`}}><span><strong>{fmt(total)}</strong><small>{label}</small></span></div>}
-function displayValue(v:unknown){if(v==null)return "—";if(typeof v!=="object")return String(v);if(Array.isArray(v))return v.map(x=>typeof x==="object"?Object.values(x as Record<string,unknown>).filter(y=>typeof y!=="object").join(" · "):String(x)).join("\n");return Object.entries(v as Record<string,unknown>).map(([k,x])=>`${labelize(k)}: ${typeof x==="object"?JSON.stringify(x):String(x??"—")}`).join("\n")}
-function InsightList({value,limit=5}:{value:unknown;limit?:number}){const items=Array.isArray(value)?value.slice(0,limit):value&&typeof value==="object"?Object.entries(value as Record<string,unknown>).slice(0,limit).map(([k,v])=>({k,v})):value?[value]:[];if(!items.length)return <div className="hq-empty-list">No priority findings right now.</div>;return <div className="hq-insight-list">{items.map((item:any,i)=><div className="hq-insight" key={i}><span className={`hq-severity s${i}`}>{i+1}</span><div><strong>{item?.k?labelize(item.k):displayValue(item)}</strong>{item?.k&&<small>{displayValue(item.v)}</small>}</div><em>{i<2?"High":i<4?"Medium":"Low"}</em></div>)}</div>}
+function Status({value}:{value:Health}){return <span style={{display:"inline-flex",alignItems:"center",minHeight:25,padding:"0 8px",borderRadius:999,border:`1px solid ${tone(value)}55`,background:`${tone(value)}12`,color:tone(value),fontSize:9,fontWeight:900}}>{value}</span>}
+function SourceBadge({state}:{state:SourceState<unknown>}){const c=state.status==="live"?C.green:state.status==="cached"?C.amber:state.status==="failed"?C.red:C.muted;return <span title={state.error??undefined} style={{fontSize:8.5,fontWeight:850,color:c}}>{sourceLabel(state)}</span>}
+function Metric({label,value,note,href}:{label:string;value:unknown;note?:string;href?:string}){const body=<div className="today-metric"><span>{label}</span><strong>{fmt(value)}</strong>{note&&<small>{note}</small>}</div>;return href?<Link href={href} style={{textDecoration:"none",color:"inherit"}}>{body}</Link>:body}
+function Empty({children}:{children:React.ReactNode}){return <div style={{padding:18,color:C.muted,fontSize:11,lineHeight:1.55}}>{children}</div>}
+function SectionHead({title,state,href}:{title:string;state?:SourceState<unknown>;href?:string}){return <div className="today-section-head"><strong>{title}</strong><div>{state&&<SourceBadge state={state}/>} {href&&<Link href={href}>Open</Link>}</div></div>}
 
-export default function HQCommandCenter(){
- const router=useRouter();const[report,setReport]=useState<Report|null>(null);const[controls,setControls]=useState<Control[]>([]);const[health,setHealth]=useState<Report|null>(null);const[loading,setLoading]=useState(true);const[error,setError]=useState("");const[busy,setBusy]=useState("");const[twinOpen,setTwinOpen]=useState(false);const[actionableDecisions,setActionableDecisions]=useState(0);const[cachedAt,setCachedAt]=useState<number|null>(null)
- const applyCache=useCallback(()=>{const cached=readHQCache<CommandCache>("command-center");if(!cached)return false;setReport(cached.value.report);setControls(cached.value.controls);setHealth(cached.value.health);setActionableDecisions(cached.value.actionableDecisions);setCachedAt(cached.savedAt);setLoading(false);return true},[])
- const refresh=useCallback(async()=>{setError("");try{const[r,c,h,d]=await Promise.all([sb.rpc("hq_get_seven_day_owner_report"),sb.rpc("hq_get_product_controls"),sb.rpc("hq_get_control_health_v2"),sb.rpc("hq_workforce_list_decisions",{p_status:"actionable",p_limit:100})]);for(const result of[r,c,h,d])if(result.error)throw result.error;const next={report:r.data as Report,controls:(c.data??[])as Control[],health:h.data as Report,actionableDecisions:Array.isArray(d.data)?d.data.length:0};setReport(next.report);setControls(next.controls);setHealth(next.health);setActionableDecisions(next.actionableDecisions);setCachedAt(null);saveHQCache("command-center",next)}catch(e){const restored=applyCache();setError(restored?"Live HQ is unavailable. Showing the last-known certified snapshot.":e instanceof Error?e.message:"HQ operating state could not be loaded.")}finally{setLoading(false)}},[applyCache])
- useEffect(()=>{if(!isHQOnline())applyCache();void refresh()},[applyCache,refresh])
- async function runCycle(){if(!isHQOnline()){setError("Reconnect before running the operating cycle.");return}setBusy("cycle");try{const{error}=await sb.rpc("hq_run_operating_cycle");if(error)throw error;await refresh()}catch(e){setError(e instanceof Error?e.message:"Operating cycle failed.")}finally{setBusy("")}}
+function deriveHealth(report:Obj|null,health:Obj|null,workforce:WorkerSnapshot|null,reportState:SourceState<Obj>,healthState:SourceState<Obj>,workforceState:SourceState<WorkerSnapshot>){
+ const operations=report?.operations??{}
+ const outstanding=report?.outstanding??{}
+ const incidents=arr(outstanding.incidents)
+ const criticalIncidents=incidents.filter((x:Obj)=>["sev-0","sev-1","critical"].includes(lower(x.severity))).length
+ const failedNotifications=firstNumber(operations?.notifications?.failed_24h)
+ const paymentFailures=firstNumber(operations?.payments?.failed_7d)
+ const runtimeDenials=firstNumber(operations?.runtime?.denials_24h)
+ const certifications=arr(health?.runtime_certifications)
+ const failedCerts=certifications.filter((x:Obj)=>lower(x.result)==="fail").length
+ const engine=workforce?.engine??{}
+ const workerUnsafe=Boolean(engine.runtime_execution_enabled)||Number(engine.runtime_autonomy_level??0)>0||Boolean(engine.factory_enabled)||Boolean(engine.heartbeat_enabled)
+ const workerFailures=arr(workforce?.failures?.anomalies).length+arr(workforce?.failures?.dead_letters).length
+ const unknown=(s:SourceState<unknown>)=>s.status!=="live"
+ const result:Record<string,Health>={
+  Auth:unknown(reportState)?"Unknown":criticalIncidents?"Critical":"Unknown",
+  Teacher:"Unknown",
+  Student:"Unknown",
+  Parent:"Unknown",
+  Admin:"Unknown",
+  VibeLearn:"Unknown",
+  "Learning writes":"Unknown",
+  Assessments:"Unknown",
+  Notifications:unknown(reportState)||failedNotifications===null?"Unknown":failedNotifications>0?"Degraded":"Healthy",
+  "Worker Engine":unknown(workforceState)?"Unknown":workerUnsafe?"Critical":workerFailures>0?"Degraded":"Healthy",
+  Payments:unknown(reportState)||paymentFailures===null?"Unknown":paymentFailures>0?"Degraded":"Healthy",
+  "Control plane":unknown(healthState)?"Unknown":failedCerts>0?"Critical":certifications.length?"Healthy":"Unknown",
+  Security:unknown(reportState)||runtimeDenials===null?"Unknown":runtimeDenials>0?"Degraded":"Healthy",
+ }
+ return result
+}
+
+export default function HQToday(){
+ const router=useRouter()
+ const[report,setReport]=useState<SourceState<Obj>>(initial)
+ const[,setControls]=useState<SourceState<Control[]>>(initial)
+ const[health,setHealth]=useState<SourceState<Obj>>(initial)
+ const[decisions,setDecisions]=useState<SourceState<Obj[]>>(initial)
+ const[workforce,setWorkforce]=useState<SourceState<WorkerSnapshot>>(initial)
+ const[busy,setBusy]=useState(false)
+ const[twinOpen,setTwinOpen]=useState(false)
+ const[refreshError,setRefreshError]=useState("")
+
+ const restore=useCallback(()=>{const cached=readHQCache<Cache>("task18-today");if(!cached)return false;const observedAt=new Date(cached.savedAt).toISOString();setReport({status:"cached",data:cached.value.report,observedAt});setControls({status:"cached",data:cached.value.controls,observedAt});setHealth({status:"cached",data:cached.value.health,observedAt});setDecisions({status:"cached",data:cached.value.decisions,observedAt});setWorkforce({status:"cached",data:cached.value.workforce,observedAt});return true},[])
+
+ const refresh=useCallback(async()=>{
+  setRefreshError("")
+  const calls=await Promise.allSettled([
+   sb.rpc("hq_get_seven_day_owner_report"),
+   sb.rpc("hq_get_product_controls"),
+   sb.rpc("hq_get_control_health_v2"),
+   sb.rpc("hq_workforce_list_decisions",{p_status:"actionable",p_limit:100}),
+   sb.rpc("hq_workforce_get_control_room_snapshot",{p_recent_limit:25}),
+  ])
+  const now=new Date().toISOString()
+  const read=<T,>(i:number,current:SourceState<T>):SourceState<T>=>{
+   const settled=calls[i]
+   if(settled.status==="rejected")return current.data?{...current,status:"cached",error:String(settled.reason)}:{status:"failed",data:null,error:String(settled.reason)}
+   const result=settled.value as {data:T|null;error?:{message?:string}|null}
+   if(result.error)return current.data?{...current,status:"cached",error:result.error.message??"Source unavailable"}:{status:"failed",data:null,error:result.error.message??"Source unavailable"}
+   return {status:"live",data:result.data,observedAt:now}
+  }
+  setReport(old=>read(0,old));setControls(old=>read(1,old));setHealth(old=>read(2,old));setDecisions(old=>read(3,old));setWorkforce(old=>read(4,old))
+
+  const succeeded=calls.map(x=>x.status==="fulfilled"&&!(x.value as any)?.error)
+  if(!succeeded.every(Boolean))setRefreshError("Some HQ evidence sources are unavailable. Available panels remain usable; unavailable or stale data is shown as Unknown, not zero or healthy.")
+  if(succeeded.every(Boolean)){
+   const values=calls.map(x=>(x as PromiseFulfilledResult<any>).value.data)
+   saveHQCache("task18-today",{report:values[0],controls:values[1]??[],health:values[2],decisions:values[3]??[],workforce:values[4]})
+  }
+ },[])
+
+ useEffect(()=>{if(!isHQOnline())restore();void refresh()},[refresh,restore])
+ async function runCycle(){if(!isHQOnline()){setRefreshError("Reconnect before running the operating cycle.");return}setBusy(true);const{error}=await sb.rpc("hq_run_operating_cycle");if(error)setRefreshError(error.message??"Operating cycle failed.");else await refresh();setBusy(false)}
  async function signOut(){clearAllHQOfflineData();await hqSupabase.auth.signOut({scope:"local"});router.replace("/hq/login")}
 
- const q=report?.executive_questions??{};const headline=report?.executive_dashboard?.headline??report?.executive_dashboard?.headline_metrics??{};const finance=report?.finance??{};const daily=Array.isArray(report?.company_period?.daily)?report.company_period.daily:[];const certs=Array.isArray(health?.runtime_certifications)?health.runtime_certifications:[];const passed=certs.filter((c:Report)=>c.result==="pass").length
- const dau=num(headline.dau??daily.at?.(-1)?.metrics?.dau);const wau=num(headline.wau);const mau=num(headline.mau);const schools=num(headline.active_schools??headline.schools??report?.product_engagement?.schools);const teachers=num(headline.active_teachers??headline.teachers??report?.product_engagement?.teachers);const learners=num(headline.activated_learners??headline.learners??mau);const sessions=num(headline.active_sessions??headline.learning_sessions??dau);const attendance=num(headline.attendance_rate??report?.product_engagement?.attendance_rate);const learningSuccess=num(headline.learning_success??headline.mastery_rate??report?.product_engagement?.learning_success);const revenue=num(finance.mrr_kes??finance.mrr??finance.revenue_kes??finance.total_revenue);const openIssues=num(headline.open_incidents)+num(headline.open_findings);const controlHealthy=controls.filter(c=>c.state==="verified").length
- const dauTrend=daily.map((d:Report)=>num(d?.metrics?.dau));const sessionsTrend=daily.map((d:Report)=>num(d?.metrics?.sessions??d?.metrics?.learning_sessions));const successTrend=daily.map((d:Report)=>num(d?.metrics?.learning_success??d?.metrics?.mastery_rate));const totalSchools=Math.max(schools,1);const needsSupport=Math.max(0,num(headline.schools_needing_attention??headline.at_risk_schools));const developing=Math.max(0,Math.round(totalSchools*.25));const proficient=Math.max(0,Math.round(totalSchools*.4));const exemplary=Math.max(0,totalSchools-developing-proficient-needsSupport)
- const regions=[{name:"Nairobi",value:num(report?.geography?.nairobi??learners*.23)},{name:"Kiambu",value:num(report?.geography?.kiambu??learners*.14)},{name:"Nakuru",value:num(report?.geography?.nakuru??learners*.11)},{name:"Kisumu",value:num(report?.geography?.kisumu??learners*.09)},{name:"Mombasa",value:num(report?.geography?.mombasa??learners*.08)}]
- const subjects=[{name:"Mathematics",value:num(report?.product_engagement?.mathematics_mastery??85)},{name:"English",value:num(report?.product_engagement?.english_mastery??78)},{name:"Kiswahili",value:num(report?.product_engagement?.kiswahili_mastery??72)},{name:"Biology",value:num(report?.product_engagement?.biology_mastery??68)},{name:"Chemistry",value:num(report?.product_engagement?.chemistry_mastery??64)}]
- const alerts=q.what_broke??q.what_declined??q.what_decision_is_required
- if(loading&&!report)return <main className="hq-page" style={{display:"grid",placeItems:"center"}}>Loading live HQ…</main>
+ const r=report.data??{}
+ const headline=r?.executive_dashboard?.headline??r?.executive_dashboard?.headline_metrics??{}
+ const engagement=r?.product_engagement??{}
+ const operations=r?.operations??{}
+ const outstanding=r?.outstanding??{}
+ const incidentItems=arr(outstanding.incidents)
+ const findingItems=arr(outstanding.findings)
+ const workItems=arr(outstanding.work)
+ const supportItems=arr(outstanding.support_cases)
+ const decisionItems=arr(decisions.data)
+ const attention=[
+  ...incidentItems.map((x:Obj)=>({...x,kind:"Incident",href:"/hq/intelligence"})),
+  ...findingItems.map((x:Obj)=>({...x,kind:"Finding",href:"/hq/intelligence"})),
+  ...supportItems.map((x:Obj)=>({...x,kind:"Support",href:"/hq/support"})),
+  ...decisionItems.map((x:Obj)=>({...x,kind:"Decision",href:"/hq/decisions"})),
+  ...arr(workforce.data?.failures?.anomalies).map((x:Obj)=>({...x,kind:"Worker",href:"/hq/workforce"})),
+ ].sort((a:Obj,b:Obj)=>{const rank=(x:Obj)=>["critical","sev-0","sev-1","high"].includes(lower(x.severity??x.priority))?0:1;return rank(a)-rank(b)}).slice(0,12)
 
- return <><HQPage title="Founder Command Center" description="Observe · detect · explain · prioritize · decide · verify" actions={<><button onClick={()=>void refresh()} style={hqButtonStyle}>Refresh</button><button onClick={()=>void runCycle()} disabled={busy==="cycle"} style={hqButtonStyle}>{busy==="cycle"?"Running…":"Run cycle"}</button><button onClick={()=>setTwinOpen(true)} style={{...hqButtonStyle,color:C.blue}}>HQ Twin</button><button onClick={()=>router.push("/hq/decisions")} style={{...hqButtonStyle,color:actionableDecisions?C.amber:C.green}}>Decisions {actionableDecisions||""}</button><button onClick={()=>void signOut()} style={{...hqButtonStyle,color:C.red}}>Sign out</button></>}>
+ const activeSchools=firstNumber(headline.active_schools,headline.schools,engagement.schools)
+ const activeTeachers=firstNumber(headline.active_teachers,headline.teachers,engagement.teachers)
+ const activeStudents=firstNumber(headline.active_students,headline.activated_learners,headline.learners,engagement.students)
+ const activeParents=firstNumber(headline.active_parents,headline.parents,engagement.parents)
+ const dau=firstNumber(headline.dau)
+ const learningSessions=firstNumber(headline.learning_sessions,headline.active_sessions,engagement.learning_sessions)
+ const attendance=firstNumber(headline.attendance_rate,engagement.attendance_rate)
+ const revenue=firstNumber(r?.finance?.reconciled_revenue_kes,r?.finance?.revenue_kes,r?.finance?.total_revenue)
+ const paymentAttempts=firstNumber(operations?.payments?.attempts_7d)
+ const paymentSettled=firstNumber(operations?.payments?.settled_7d)
+ const paymentFailures=firstNumber(operations?.payments?.failed_7d)
+ const healthMap=deriveHealth(r,health.data,workforce.data,report,health,workforce)
+ const healthValues=Object.values(healthMap)
+ const overall:Health=healthValues.includes("Critical")?"Critical":healthValues.includes("Degraded")?"Degraded":healthValues.every(x=>x==="Healthy")?"Healthy":"Unknown"
+ const engine=workforce.data?.engine??{}
+ const workerSafe=workforce.status==="live"&&!Boolean(engine.runtime_execution_enabled)&&Number(engine.runtime_autonomy_level??0)===0&&!Boolean(engine.factory_enabled)&&!Boolean(engine.heartbeat_enabled)
+ const generatedAt=report.data?.generated_at??report.observedAt
+
+ return <><HQPage title="Today" description="Company state → attention → evidence → decision → action → verification" actions={<><button onClick={()=>void refresh()} style={hqButtonStyle}>Refresh evidence</button><button onClick={()=>void runCycle()} disabled={busy} style={hqButtonStyle}>{busy?"Running…":"Run operating cycle"}</button><button onClick={()=>setTwinOpen(true)} style={{...hqButtonStyle,color:C.blue}}>Ask HQ Twin</button><button onClick={()=>void signOut()} style={{...hqButtonStyle,color:C.red}}>Sign out</button></>}>
   <style jsx global>{`
-  .hq-welcome{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin:3px 0 13px}.hq-welcome h2{margin:0;font-size:18px;letter-spacing:-.03em}.hq-welcome p{margin:3px 0 0;color:var(--hq-muted);font-size:10px}.hq-filter-row{display:flex;gap:8px}.hq-filter{height:36px;padding:0 11px;border-radius:9px;border:1px solid var(--hq-border);background:#0a1829;color:#aebdd0;font-size:9.5px;font-weight:750}.hq-section-label{display:flex;align-items:center;justify-content:space-between;margin:14px 1px 8px;text-transform:uppercase;letter-spacing:.08em;color:#a7b6c9;font-size:9px;font-weight:900}.hq-section-label a{color:#60a5fa;text-decoration:none;text-transform:none;letter-spacing:0;font-weight:750}.hq-metrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.hq-metric-card{min-height:102px;border:1px solid var(--hq-border);border-radius:12px;background:linear-gradient(180deg,#0e1d31,#0a1727);padding:12px}.hq-metric-top{display:flex;align-items:center;justify-content:space-between;gap:6px;color:#94a6bb;font-size:8.5px}.hq-metric-top i{font-style:normal;width:26px;height:26px;border-radius:8px;background:rgba(255,255,255,.035);display:grid;place-items:center;font-size:13px}.hq-metric-card>strong{display:block;margin-top:7px;font-size:20px;letter-spacing:-.04em}.hq-metric-card>small{display:block;margin-top:5px;font-size:8.5px}.hq-grid-main{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:9px}.hq-grid-wide{display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:9px}.hq-grid-bottom{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}.hq-live-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:12px 12px 2px}.hq-mini-stat{border:1px solid rgba(148,163,184,.08);background:rgba(255,255,255,.02);border-radius:9px;padding:9px}.hq-mini-stat span{display:block;color:#7f93ad;font-size:8px}.hq-mini-stat strong{display:block;margin-top:4px;font-size:15px}.hq-line-wrap{padding:3px 12px 10px}.hq-line-chart{width:100%;height:146px;overflow:visible}.hq-empty-chart{height:145px;display:grid;place-items:center;color:#6f839b;font-size:9px}.hq-chart-legend{display:flex;gap:12px;padding:0 13px 11px;color:#879ab0;font-size:8px}.hq-chart-legend span{display:flex;align-items:center;gap:5px}.hq-chart-legend i{width:7px;height:7px;border-radius:50%}.hq-donut-layout{display:grid;grid-template-columns:132px 1fr;gap:10px;align-items:center;padding:15px}.hq-donut{width:116px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;position:relative}.hq-donut:after{content:"";position:absolute;inset:19px;border-radius:50%;background:#0b1829}.hq-donut span{position:relative;z-index:1;text-align:center}.hq-donut strong{display:block;font-size:17px}.hq-donut small{display:block;color:#70849b;font-size:7px;margin-top:2px}.hq-donut-legend{display:grid;gap:8px}.hq-donut-legend div{display:grid;grid-template-columns:8px 1fr auto;gap:7px;align-items:center;font-size:8px;color:#9aacc0}.hq-donut-legend i{width:7px;height:7px;border-radius:2px}.hq-donut-legend strong{color:#f8fafc}.hq-insight-list{padding:4px 11px 8px}.hq-insight{display:grid;grid-template-columns:25px 1fr auto;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid rgba(148,163,184,.08)}.hq-insight:last-child{border-bottom:0}.hq-severity{width:23px;height:23px;border-radius:50%;display:grid;place-items:center;background:rgba(239,68,68,.12);color:#fb7185;font-size:8px;font-weight:900}.hq-severity.s2,.hq-severity.s3{background:rgba(245,158,11,.12);color:#fbbf24}.hq-severity.s4{background:rgba(34,197,94,.12);color:#4ade80}.hq-insight strong{display:block;font-size:8.5px;line-height:1.35}.hq-insight small{display:block;margin-top:2px;color:#6f839a;font-size:7.5px;line-height:1.35;white-space:pre-wrap}.hq-insight em{font-style:normal;font-size:7px;padding:3px 5px;border-radius:4px;background:rgba(239,68,68,.08);color:#fb7185}.hq-empty-list{padding:20px;color:#6f839a;font-size:9px}.hq-quick-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px}.hq-quick-action{min-height:72px;border:1px solid rgba(148,163,184,.09);background:rgba(255,255,255,.018);border-radius:10px;display:grid;place-items:center;text-align:center;color:#cbd5e1;text-decoration:none;font-size:8px;font-weight:750;padding:8px}.hq-quick-action i{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:rgba(59,130,246,.1);color:#60a5fa;font-style:normal;font-size:13px;margin-bottom:4px}.hq-progress-stack{padding:10px 13px}.hq-progress-row{padding:6px 0}.hq-progress-row>div:first-child{display:flex;justify-content:space-between;gap:8px;color:#9aacc0;font-size:8px;margin-bottom:5px}.hq-progress-row strong{color:#fff}.hq-progress-track{height:5px;background:rgba(148,163,184,.1);border-radius:999px;overflow:hidden}.hq-progress-track i{display:block;height:100%;border-radius:999px}.hq-kenya-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px}.hq-kenya-map{min-height:195px;display:grid;place-items:center;border-radius:10px;background:radial-gradient(circle at 45% 50%,rgba(34,197,94,.18),rgba(59,130,246,.08) 35%,transparent 68%)}.hq-kenya-map svg{width:145px;height:170px;filter:drop-shadow(0 10px 24px rgba(14,165,233,.16))}.hq-region-list{display:grid;align-content:center;gap:10px}.hq-region-list div{display:grid;grid-template-columns:1fr auto;gap:8px;color:#8fa3b8;font-size:8px}.hq-region-list strong{color:#fff}.hq-health-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:11px}.hq-authority-strip{display:flex;gap:7px;overflow-x:auto;padding:10px 12px 13px;scrollbar-width:none}.hq-authority-pill{flex:0 0 auto;border:1px solid var(--hq-border);background:rgba(255,255,255,.02);border-radius:9px;padding:8px 10px;font-size:8px;color:#8ea2b8}.hq-authority-pill strong{display:block;color:#fff;margin-bottom:3px}.hq-cache{margin-bottom:9px;padding:8px 10px;border-radius:8px;background:rgba(245,158,11,.08);color:#fbbf24;font-size:8.5px}.hq-error{margin-bottom:10px;padding:9px 10px;border-radius:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);color:#fca5a5;font-size:9px}
-  @media(max-width:1180px){.hq-metrics{grid-template-columns:repeat(3,1fr)}.hq-grid-main,.hq-grid-wide,.hq-grid-bottom{grid-template-columns:1fr 1fr}.hq-grid-main>:first-child,.hq-grid-wide>:first-child{grid-column:1/-1}}
-  @media(max-width:720px){.hq-welcome{align-items:flex-start;display:block}.hq-welcome h2{font-size:18px}.hq-filter-row{margin-top:11px;overflow-x:auto}.hq-filter{flex:0 0 auto}.hq-section-label{margin-top:15px}.hq-metrics{grid-template-columns:repeat(2,1fr);gap:7px}.hq-metric-card{min-height:92px;padding:10px}.hq-metric-card>strong{font-size:19px}.hq-grid-main,.hq-grid-wide,.hq-grid-bottom{grid-template-columns:1fr;gap:8px}.hq-grid-main>:first-child,.hq-grid-wide>:first-child{grid-column:auto}.hq-panel-header{padding:12px}.hq-live-kpis{padding:10px 10px 0}.hq-line-chart{height:128px}.hq-quick-actions{grid-template-columns:repeat(4,1fr);padding:10px;gap:6px}.hq-quick-action{min-height:68px;padding:6px;font-size:7.5px}.hq-donut-layout{grid-template-columns:120px 1fr;padding:12px}.hq-donut{width:106px}.hq-kenya-wrap{grid-template-columns:1fr}.hq-kenya-map{min-height:180px}.hq-health-strip{grid-template-columns:repeat(2,1fr)} }
+  .today-banner{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;padding:15px;border:1px solid var(--hq-border);border-radius:14px;background:linear-gradient(90deg,rgba(59,130,246,.08),rgba(34,197,94,.035));margin-bottom:10px}.today-banner h2{font-size:16px;margin:0 0 4px}.today-banner p{margin:0;color:var(--hq-muted);font-size:10px;line-height:1.5}.today-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:10px;margin-top:10px}.today-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:12px}.today-metric{min-height:86px;border:1px solid rgba(148,163,184,.1);border-radius:11px;background:rgba(255,255,255,.02);padding:11px}.today-metric span{display:block;color:#8ea1b8;font-size:8.5px}.today-metric strong{display:block;margin-top:7px;color:#f8fafc;font-size:20px;letter-spacing:-.03em}.today-metric small{display:block;margin-top:5px;color:#71849a;font-size:8px;line-height:1.35}.today-section-head{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;border-bottom:1px solid var(--hq-border)}.today-section-head strong{font-size:10px;text-transform:uppercase;letter-spacing:.05em}.today-section-head>div{display:flex;gap:10px;align-items:center}.today-section-head a{font-size:8.5px;color:#60a5fa;text-decoration:none}.today-attention{display:grid}.today-attention a{display:grid;grid-template-columns:74px 1fr auto;gap:10px;align-items:center;padding:11px 13px;text-decoration:none;color:inherit;border-bottom:1px solid rgba(148,163,184,.08)}.today-attention a:last-child{border-bottom:0}.today-attention i{font-style:normal;font-size:8px;font-weight:900;color:#f59e0b}.today-attention strong{font-size:10.5px}.today-attention small{font-size:8.5px;color:#778aa1}.today-health{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:12px}.today-health-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px;border:1px solid rgba(148,163,184,.08);border-radius:9px;font-size:9.5px}.today-links{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.today-link{min-height:82px;padding:12px;border:1px solid var(--hq-border);border-radius:12px;background:var(--hq-panel);color:#f8fafc;text-decoration:none}.today-link strong{display:block;font-size:10.5px}.today-link small{display:block;margin-top:6px;color:#71849a;font-size:8.5px;line-height:1.4}.today-warning{padding:11px 13px;border:1px solid rgba(245,158,11,.3);border-radius:11px;background:rgba(245,158,11,.07);color:#fde68a;font-size:10px;line-height:1.45;margin-bottom:10px}
+  @media(max-width:1050px){.today-grid{grid-template-columns:1fr}.today-metrics{grid-template-columns:repeat(2,1fr)}.today-links{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:720px){.today-banner{grid-template-columns:1fr}.today-metrics{grid-template-columns:repeat(2,1fr);padding:9px}.today-metric{min-height:78px}.today-metric strong{font-size:18px}.today-health{grid-template-columns:1fr;padding:9px}.today-attention a{grid-template-columns:62px 1fr}.today-attention small{display:none}.today-links{grid-template-columns:1fr 1fr;gap:7px}.today-link{min-height:76px}}
   `}</style>
-  <div className="hq-welcome"><div><h2>Welcome back, Founder</h2><p>Here is the live operating picture for VibeSchool.</p></div><div className="hq-filter-row"><button className="hq-filter">Today⌄</button><button className="hq-filter">All Kenya⌄</button><button className="hq-filter">Filters</button></div></div>
-  {cachedAt&&<div className="hq-cache">Offline snapshot · {new Date(cachedAt).toLocaleString("en-KE")}</div>}{error&&<div role="alert" className="hq-error">{error}</div>}
 
-  <div className="hq-section-label"><span>Key metrics</span><a href="/hq/analytics">View all</a></div>
-  <section className="hq-metrics"><MetricCard label="Schools" value={schools} delta="active footprint" icon="⌂" tone={C.violet}/><MetricCard label="Learners" value={learners} delta="activated" icon="◇" tone={C.blue}/><MetricCard label="Teachers" value={teachers} delta="active" icon="♙" tone={C.green}/><MetricCard label="Attendance" value={attendance?pct(attendance):"—"} delta="today" icon="◉" tone={C.amber}/><MetricCard label="Revenue (KES)" value={revenue} delta="current" icon="$" tone={C.amber}/><MetricCard label="Active users" value={dau} delta="today" icon="⌁" tone={C.cyan}/></section>
+  {refreshError&&<div role="alert" className="today-warning">{refreshError}</div>}
+  <section className="today-banner"><div><h2>Company status: <span style={{color:tone(overall)}}>{overall}</span></h2><p>{generatedAt?`Evidence generated ${new Date(String(generatedAt)).toLocaleString("en-KE")}. `:"No report timestamp is available. "}Unknown means evidence is unavailable, stale or insufficient; it never means zero or healthy.</p></div><Status value={overall}/></section>
 
-  <div className="hq-section-label"><span>Live overview</span><a href="/hq/intelligence">Open operations</a></div>
-  <section className="hq-grid-main">
-   <HQPanel title="Live Operations" description="Real-time platform activity"><div className="hq-live-kpis"><MiniStat label="Users online" value={dau}/><MiniStat label="Active sessions" value={sessions}/><MiniStat label="Platform health" value={health?.failed_states?"Attention":"Healthy"} tone={health?.failed_states?C.red:C.green}/></div><div className="hq-line-wrap"><LineChart series={[{label:"Active users",points:dauTrend,tone:C.blue}]}/></div><div className="hq-chart-legend"><span><i style={{background:C.blue}}/>Active users</span><span><i style={{background:C.green}}/>Live</span></div></HQPanel>
-   <HQPanel title="Performance overview" description="Learning and platform outcomes"><div className="hq-line-wrap"><LineChart series={[{label:"Attendance",points:daily.map((d:Report)=>num(d?.metrics?.attendance_rate)),tone:C.green},{label:"Learning success",points:successTrend,tone:C.blue},{label:"Sessions",points:sessionsTrend,tone:C.violet}]}/></div><div className="hq-chart-legend"><span><i style={{background:C.green}}/>Attendance</span><span><i style={{background:C.blue}}/>Learning success</span><span><i style={{background:C.violet}}/>Sessions</span></div></HQPanel>
-   <HQPanel title="Alerts & actions" description="Founder attention queue"><InsightList value={alerts}/></HQPanel>
-  </section>
+  <HQPanel><SectionHead title="Pilot overview" state={report}/><div className="today-metrics">
+   <Metric label="Daily active users" value={dau} note="Authoritative report only" href="/hq/analytics"/>
+   <Metric label="Active schools" value={activeSchools} note="No inferred school counts" href="/hq/schools"/>
+   <Metric label="Active teachers" value={activeTeachers} note="Pilot activity" href="/hq/users"/>
+   <Metric label="Active students" value={activeStudents} note="Pilot activity" href="/hq/users"/>
+   <Metric label="Active parents" value={activeParents} note="Pilot activity" href="/hq/users"/>
+   <Metric label="Learning sessions" value={learningSessions} note="Activity, not effectiveness" href="/hq/analytics"/>
+   <Metric label="Attendance rate" value={attendance===null?null:`${attendance}%`} note="Only when reported" href="/hq/analytics"/>
+   <Metric label="Reconciled revenue" value={revenue===null?null:`KES ${fmt(revenue)}`} note="Never STK initiation" href="/hq/billing"/>
+  </div></HQPanel>
 
-  <div className="hq-section-label"><span>Quick actions</span><a href="/hq/decisions">Customize</a></div>
-  <HQPanel><div className="hq-quick-actions"><a className="hq-quick-action" href="/hq/schools"><i>⌂</i>Add / review schools</a><a className="hq-quick-action" href="/hq/notifications"><i>✈</i>Send notice</a><a className="hq-quick-action" href="/hq/analytics"><i>▥</i>View reports</a><a className="hq-quick-action" href="/hq/security"><i>◇</i>System health</a></div></HQPanel>
+  <div className="today-grid">
+   <HQPanel><SectionHead title={`Needs Attention · ${attention.length}`} href="/hq/notifications"/>{attention.length?<div className="today-attention">{attention.map((x:Obj,i)=><Link href={x.href??"/hq/intelligence"} key={String(x.id??x.decision_key??i)}><i>{x.kind}</i><strong>{x.title??x.anomaly_key??x.decision_key??"Requires investigation"}</strong><small>{x.severity??x.priority??x.status??"Review"}</small></Link>)}</div>:report.status==="live"&&decisions.status==="live"&&workforce.status==="live"?<Empty>No currently surfaced critical incidents, findings, support cases, decisions or Worker anomalies.</Empty>:<Empty>Attention evidence is incomplete. This is <strong>Unknown</strong>, not “nothing needs attention”.</Empty>}</HQPanel>
+   <HQPanel><SectionHead title="System health" state={health}/><div className="today-health">{Object.entries(healthMap).map(([label,value])=><div className="today-health-row" key={label}><span>{label}</span><Status value={value}/></div>)}</div></HQPanel>
+  </div>
 
-  <div className="hq-section-label"><span>Operating intelligence</span><a href="/hq/analytics">Explore analytics</a></div>
-  <section className="hq-grid-wide">
-   <HQPanel title="Schools by performance" description="Current school health distribution"><div className="hq-donut-layout"><Donut value={exemplary} total={totalSchools} label="Total schools"/><div className="hq-donut-legend"><div><i style={{background:C.green}}/><span>Exemplary</span><strong>{fmt(exemplary)}</strong></div><div><i style={{background:C.blue}}/><span>Proficient</span><strong>{fmt(proficient)}</strong></div><div><i style={{background:C.amber}}/><span>Developing</span><strong>{fmt(developing)}</strong></div><div><i style={{background:C.red}}/><span>Needs support</span><strong>{fmt(needsSupport)}</strong></div></div></div></HQPanel>
-   <HQPanel title="Learning & product evidence" description="Mastery and curriculum signals"><div className="hq-progress-stack">{subjects.map((s,i)=><ProgressRow key={s.name} label={s.name} value={Math.min(100,s.value)} tone={i<2?C.blue:i===2?C.cyan:i===3?C.violet:C.amber}/>)}</div><div className="hq-live-kpis"><MiniStat label="Learning success" value={learningSuccess?pct(learningSuccess):"—"}/><MiniStat label="WAU" value={wau}/><MiniStat label="MAU" value={mau}/></div></HQPanel>
-   <HQPanel title="Founder morning brief" description="What changed and why"><InsightList value={q.what_happened??q.what_grew??q.why}/></HQPanel>
-  </section>
+  <div className="today-grid">
+   <HQPanel><SectionHead title="Worker Engine safety" state={workforce} href="/hq/workforce"/>{workforce.data?<div className="today-metrics"><Metric label="Runtime" value={workerSafe?"L0 / OFF":"REVIEW"}/><Metric label="Workers" value={n(workforce.data.counts?.workers)}/><Metric label="Review decisions" value={n(workforce.data.counts?.decisions_waiting)}/><Metric label="Open anomalies" value={n(workforce.data.counts?.open_anomalies)}/></div>:<Empty>Worker Engine safety evidence is unavailable. Do not infer safe operation from silence.</Empty>}</HQPanel>
+   <HQPanel><SectionHead title="Payments" state={report} href="/hq/billing"/><div className="today-metrics"><Metric label="Attempts · 7d" value={paymentAttempts}/><Metric label="Settled · 7d" value={paymentSettled}/><Metric label="Failed · 7d" value={paymentFailures}/><Metric label="Revenue" value={revenue===null?null:`KES ${fmt(revenue)}`}/></div></HQPanel>
+  </div>
 
-  <div className="hq-section-label"><span>Geographic & financial intelligence</span><a href="/hq/billing">Finance</a></div>
-  <section className="hq-grid-bottom">
-   <HQPanel title="Geographic intelligence" description="Adoption across Kenya"><div className="hq-kenya-wrap"><div className="hq-kenya-map"><svg viewBox="0 0 180 210" aria-label="Kenya adoption map" role="img"><defs><linearGradient id="kg" x1="0" x2="1"><stop offset="0" stopColor="#2563eb"/><stop offset=".55" stopColor="#0891b2"/><stop offset="1" stopColor="#22c55e"/></linearGradient></defs><path d="M53 18 91 25 123 48 151 91 139 118 146 158 121 181 92 194 62 178 47 151 24 130 34 103 25 80 39 55Z" fill="url(#kg)" opacity=".9" stroke="rgba(255,255,255,.32)" strokeWidth="2"/><path d="M53 18 62 178M91 25 92 194M39 55 146 158M25 80 139 118M34 103 151 91" stroke="rgba(255,255,255,.15)" strokeWidth="1"/></svg></div><div className="hq-region-list">{regions.map(r=><div key={r.name}><span>{r.name}</span><strong>{fmt(Math.round(r.value))}</strong></div>)}</div></div></HQPanel>
-   <HQPanel title="Financial summary" description="Revenue & payments"><div className="hq-live-kpis"><MiniStat label="MRR / revenue" value={revenue}/><MiniStat label="Paying customers" value={finance.paying_customers??"—"}/><MiniStat label="Collections" value={finance.cash_collected_7d??finance.collected??"—"}/></div><div className="hq-line-wrap"><LineChart series={[{label:"Revenue",points:daily.map((d:Report)=>num(d?.metrics?.revenue_kes??d?.metrics?.revenue)),tone:C.green}]}/></div><div className="hq-progress-stack"><ProgressRow label="M-Pesa" value={68} tone={C.green}/><ProgressRow label="Bank transfer" value={22} tone={C.amber}/><ProgressRow label="Other" value={10} tone={C.blue}/></div></HQPanel>
-   <HQPanel title="System health" description="Reliability & certification"><div className="hq-health-strip"><MiniStat label="Verified states" value={health?.verified_states??0} tone={C.green}/><MiniStat label="Drifted" value={health?.drifted_states??0} tone={health?.drifted_states?C.red:C.green}/><MiniStat label="Failed" value={health?.failed_states??0} tone={health?.failed_states?C.red:C.green}/><MiniStat label="Certifications" value={`${passed}/${certs.length}`}/></div><InsightList value={{open_issues:openIssues,policy_failures_24h:health?.policy_failures_24h??0,founder_decisions:actionableDecisions,controls_verified:`${controlHealthy}/${controls.length}`}} limit={4}/></HQPanel>
-  </section>
+  <div className="today-links">
+   <Link className="today-link" href="/hq/intelligence"><strong>Investigate operations</strong><small>Incidents, failures, live operational state and evidence.</small></Link>
+   <Link className="today-link" href="/hq/decisions"><strong>Decision Inbox</strong><small>{decisionItems.length?`${decisionItems.length} actionable decision(s) surfaced.`:"Review governed owner decisions."}</small></Link>
+   <Link className="today-link" href="/hq/schools"><strong>Pilot schools</strong><small>Inspect school identity, activation and operating health.</small></Link>
+   <Link className="today-link" href="/hq/analytics"><strong>Product & learning</strong><small>Funnels, retention, learning activity and evidence.</small></Link>
+   <Link className="today-link" href="/hq/users"><strong>People</strong><small>Teacher, learner, parent and admin activation.</small></Link>
+   <Link className="today-link" href="/hq/marketing"><strong>Growth</strong><small>Acquisition, activation and school pipeline.</small></Link>
+   <Link className="today-link" href="/hq/workforce"><strong>Workforce</strong><small>Control Room, jobs, authority, evidence and failures.</small></Link>
+   <Link className="today-link" href="/hq/security"><strong>Security & controls</strong><small>Owner controls, control health and governed safety state.</small></Link>
+  </div>
 
-  <div className="hq-section-label"><span>Governed authority</span><a href="/hq/security">Open governance</a></div><HQPanel><div className="hq-authority-strip">{controls.slice(0,12).map(c=><div className="hq-authority-pill" key={`${c.product_key}:${c.policy_key}`}><strong>{labelize(c.product_key)}</strong>{labelize(c.state)} · {c.desired_value===true?"Enabled":"Disabled"}</div>)}{!controls.length&&<span className="hq-empty-list">No product controls configured.</span>}</div></HQPanel>
-  <footer style={{marginTop:18,textAlign:"center",fontSize:8,color:"#53677f"}}>VibeSchool HQ · Evidence-driven · Source-backed · {report?.generated_at?new Date(report.generated_at).toLocaleString("en-KE"):"live"}</footer>
+  {workItems.length>0&&<div style={{marginTop:10}}><HQPanel><SectionHead title="Open operating work" href="/hq/intelligence"/><div className="today-attention">{workItems.slice(0,8).map((x:Obj,i)=><Link href="/hq/intelligence" key={String(x.id??i)}><i>{x.priority??"Work"}</i><strong>{x.title??"Operating work"}</strong><small>{x.status??"Open"}</small></Link>)}</div></HQPanel></div>}
  </HQPage><HQTwinDrawer open={twinOpen} onClose={()=>setTwinOpen(false)}/></>
 }
