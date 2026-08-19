@@ -1,8 +1,8 @@
 -- Task 8 — future-object least privilege for the public API schema.
 --
--- Existing-object revokes are not sufficient: Supabase/Postgres default ACLs can
--- silently reintroduce structural table privileges and direct function EXECUTE
--- on objects created after Task 8. Keep normal DML grants explicit per domain.
+-- Existing-object revokes are not sufficient: Postgres default ACLs can silently
+-- reintroduce structural table privileges and direct function EXECUTE on objects
+-- created after Task 8. Keep normal DML grants explicit per domain.
 -- This migration intentionally touches public only; managed storage/graphql
 -- schemas remain owned by their platform-specific security model.
 --
@@ -10,7 +10,7 @@
 -- MAINTAIN is a later PostgreSQL table privilege and is intentionally omitted here;
 -- revoking unsupported syntax would make the security migration itself unreplayable.
 
--- Migrations normally create application objects as postgres.
+-- Application migrations normally create public objects as postgres.
 alter default privileges for role postgres in schema public
   revoke truncate, references, trigger on tables from anon, authenticated;
 alter default privileges for role postgres in schema public
@@ -18,19 +18,26 @@ alter default privileges for role postgres in schema public
 alter default privileges for role postgres in schema public
   revoke execute on functions from public, anon, authenticated;
 
--- Supabase-managed migrations/extensions can create public API objects as
--- supabase_admin. Harden that creation path as well so new public objects do not
--- regain broad client authority merely because of their creator role.
-alter default privileges for role supabase_admin in schema public
-  revoke truncate, references, trigger on tables from anon, authenticated;
-alter default privileges for role supabase_admin in schema public
-  revoke update on sequences from anon, authenticated;
-alter default privileges for role supabase_admin in schema public
-  revoke execute on functions from public, anon, authenticated;
+-- Some Supabase-managed operations create objects as supabase_admin. PostgreSQL
+-- permits ALTER DEFAULT PRIVILEGES FOR ROLE only when the executing migration role
+-- is that role or a member of it. Local/reconstruction environments intentionally
+-- do not grant that membership. Apply the managed-role hardening whenever the
+-- migration executor has legitimate authority; otherwise leave the managed role's
+-- ACL ownership untouched instead of requiring privilege escalation to reconstruct.
+do $$
+begin
+  if pg_has_role(current_user, 'supabase_admin', 'member') then
+    execute 'alter default privileges for role supabase_admin in schema public revoke truncate, references, trigger on tables from anon, authenticated';
+    execute 'alter default privileges for role supabase_admin in schema public revoke update on sequences from anon, authenticated';
+    execute 'alter default privileges for role supabase_admin in schema public revoke execute on functions from public, anon, authenticated';
+  end if;
+end
+$$;
 
--- Existing public relations must also lose structural privileges. This repeats
--- the earlier Task 8 invariant deliberately so reconstruction and upgrades end
--- in the same state even if an intermediate migration created another relation.
+-- Existing public relations always lose structural privileges regardless of creator.
+-- This repeats the earlier Task 8 invariant deliberately so reconstruction and
+-- upgrades end in the same client-facing state even when default-ACL ownership
+-- differs between local and managed Supabase environments.
 do $$
 declare
   r record;
