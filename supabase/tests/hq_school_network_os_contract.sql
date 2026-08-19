@@ -24,8 +24,6 @@ begin
   end loop;
 end $$;
 
--- Existing School Identity mutation/read RPCs must have browser transport only after
--- retaining their internal platform-owner authorization boundary.
 do $$
 declare sig text; d text;
 begin
@@ -42,43 +40,38 @@ begin
   end loop;
 end $$;
 
--- National hierarchy must expose exactly 47 Kenyan counties and preserve Empty county visibility.
 do $$
-declare d text; county_mentions integer;
+declare d text; n text;
 begin
   d:=pg_get_functiondef('public.hq_school_network_overview(integer)'::regprocedure);
-  county_mentions:=(length(d)-length(replace(d,"','",'')))/3;
-  if position("'administrative_regions',47" in replace(d,' ',''))=0 then raise exception '47-county country contract missing'; end if;
-  if position("'West Pokot',47" in d)=0 or position("'Baringo',1" in d)=0 then raise exception 'Kenya county boundary list incomplete'; end if;
+  n:=replace(d,' ','');
+  if position('''administrative_regions'',47' in n)=0 then raise exception '47-county country contract missing'; end if;
+  if position('''West Pokot'',47' in d)=0 or position('''Baringo'',1' in d)=0 then raise exception 'Kenya county boundary list incomplete'; end if;
   if position('join connected c on c.school_id=pe.school_id' in lower(d))=0 then raise exception 'active school stage must be bounded by connected schools'; end if;
 end $$;
 
--- School 360 must remain aggregate-first and must never silently turn unavailable
--- institution population into linked-user population.
 do $$
 declare d text; n text;
 begin
   d:=pg_get_functiondef('public.hq_school_network_school_360(uuid,integer)'::regprocedure);
   n:=lower(regexp_replace(d,'\s+','','g'));
-  if position("'reported_students',null" in n)=0 or position("'reported_staff',null" in n)=0 then raise exception 'unknown institution population semantics missing'; end if;
-  if position("'penetration_claimable',false" in n)=0 then raise exception 'penetration must fail closed without authoritative denominator'; end if;
-  if position("'institution_paid_claimable',false" in n)=0 then raise exception 'institution-paid revenue must not be inferred'; end if;
+  if position('''reported_students'',null' in n)=0 or position('''reported_staff'',null' in n)=0 then raise exception 'unknown institution population semantics missing'; end if;
+  if position('''penetration_claimable'',false' in n)=0 then raise exception 'penetration must fail closed without authoritative denominator'; end if;
+  if position('''institution_paid_claimable'',false' in n)=0 then raise exception 'institution-paid revenue must not be inferred'; end if;
   if position('distincto.id' in n)=0 then raise exception 'revenue attribution must de-duplicate paid orders'; end if;
   if position('full_name' in d)>0 or position('date_of_birth' in d)>0 then raise exception 'School 360 read model exposes personal profile PII'; end if;
 end $$;
 
--- Learning read model is usage evidence only, not a hidden learning-outcome or retention claim.
 do $$
 declare d text; n text;
 begin
   d:=pg_get_functiondef('public.hq_school_network_school_learning(uuid,integer)'::regprocedure);
   n:=lower(regexp_replace(d,'\s+','','g'));
-  if position("'usage_only',true" in n)=0 then raise exception 'learning usage semantic missing'; end if;
-  if position("'learning_outcome_claimed',false" in n)=0 or position("'retention_claimed',false" in n)=0 then raise exception 'unsupported learning/retention claim guard missing'; end if;
+  if position('''usage_only'',true' in n)=0 then raise exception 'learning usage semantic missing'; end if;
+  if position('''learning_outcome_claimed'',false' in n)=0 or position('''retention_claimed'',false' in n)=0 then raise exception 'unsupported learning/retention claim guard missing'; end if;
   if position('public.teaching_occurrences' in d)=0 or position('public.attendance' in d)=0 or position('public.homework' in d)=0 or position('public.assessment_attempts' in d)=0 then raise exception 'School learning evidence sources incomplete'; end if;
 end $$;
 
--- Trend data must bind activity to connected canonical schools and use daily distinct actors.
 do $$
 declare d text;
 begin
