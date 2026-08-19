@@ -112,8 +112,7 @@ function Toast({ msg }: { msg: string }) {
 }
 
 function StudentShell({ children }: { children: React.ReactNode }) {
-  const { identity, loading, error } = useStudent();
-  const router = useRouter();
+  const { identity, loading, error, retry } = useStudent();
 
   if (loading) {
     return (
@@ -129,7 +128,7 @@ function StudentShell({ children }: { children: React.ReactNode }) {
       <div style={{ minHeight: "100dvh", background: "#0F0F1A", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: 24 }}>
         <div style={{ fontSize: 14, color: "#F87171", textAlign: "center" }}>{error}</div>
         <button
-          onClick={() => router.replace("/student")}
+          onClick={retry}
           style={{ padding: "10px 24px", background: "#7C6EF8", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer" }}
         >
           Try Again
