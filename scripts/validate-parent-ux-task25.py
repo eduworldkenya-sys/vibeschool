@@ -15,6 +15,7 @@ home = read("app/parent/page.tsx")
 children = read("app/parent/students/page.tsx")
 child = read("app/parent/child/[id]/page.tsx")
 homework = read("app/parent/child/[id]/homework/page.tsx")
+messages = read("app/parent/child/[id]/messages/page.tsx")
 learn = read("app/parent/learn/page.tsx")
 results = read("app/parent/assessments/page.tsx")
 inbox = read("app/parent/inbox/page.tsx")
@@ -60,6 +61,12 @@ checks += [
     ('info.label === "Overdue" || info.label === "Due soon"' in homework, "homework prioritizes tasks needing attention"),
     ('No submitted work is recorded and the due date has passed.' in homework, "overdue means no submission, not merely past due date"),
     ('requestVersion.current' in homework and 'setItems([])' in homework, "homework fails closed across child-context changes"),
+
+    ('parent_student_links' in messages and 'teacher_classes' in messages, "messaging constrains child and staff context before conversation"),
+    ('sendInFlight.current' in messages and 'if (!activeThreadId || !messageBody.trim() || sendInFlight.current) return' in messages, "messaging has explicit duplicate-send guard"),
+    ('Your message was not confirmed as sent. It remains in the box so you can retry safely.' in messages, "messaging does not falsely confirm failed sends"),
+    ('rpcError?.message' not in messages and 'cause instanceof Error ? cause.message' not in messages, "messaging does not render raw RPC/database errors"),
+    ('Message sent.' in messages, "messaging confirms backend-successful send"),
 
     ('setState(EMPTY)' in learn and 'requestVersion.current' in learn, "Schoolwork clears sibling state before child loads"),
     ('aria-pressed={child.id === activeChildId}' in learn, "Schoolwork child switcher exposes selected state"),
