@@ -26,9 +26,45 @@ jobs:
   auth-contract:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Audit hosted Auth configuration safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_ACCESS_TOKEN:-}"
+          test -n "${SUPABASE_PROJECT_ID:-}"
+          curl --fail-with-body --silent --show-error \
+            "https://api.supabase.com/v1/projects/${SUPABASE_PROJECT_ID}/config/auth" \
+            -H "Authorization: Bearer ${SUPABASE_ACCESS_TOKEN}" \
+            > /tmp/auth-config.json
+          jq '{
+            site_url,
+            uri_allow_list,
+            disable_signup,
+            jwt_exp,
+            refresh_token_rotation_enabled,
+            security_refresh_token_reuse_interval,
+            password_min_length,
+            mailer_autoconfirm,
+            mailer_allow_unverified_email_sign_ins,
+            external_email_enabled,
+            smtp_sender_name,
+            rate_limit_email_sent,
+            rate_limit_token_refresh,
+            rate_limit_verify,
+            mailer_subjects_confirmation,
+            mailer_subjects_recovery,
+            mailer_subjects_invite,
+            mailer_subjects_magic_link,
+            mailer_subjects_email_change,
+            mailer_subjects_reauthentication
+          }' /tmp/auth-config.json
 
       - name: Auth authority + canonical production build certification
         uses: ./.github/actions/production-build-contract
