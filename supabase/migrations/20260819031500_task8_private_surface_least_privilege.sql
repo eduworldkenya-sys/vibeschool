@@ -23,20 +23,45 @@ begin
 end $$;
 
 -- Internal/tenant analytics views are not anonymous public catalogue surfaces.
-revoke select on
-  public.v_approvals_queue,
-  public.v_budget_vs_actual,
-  public.v_invoice_aging,
-  public.v_project_summary,
-  public.v_trial_balance,
-  public.teacher_content_engine_summary,
-  public.teacher_resource_usage_analytics,
-  public.lesson_evidence_resource_lineage,
-  public.hq_workforce_worker_performance,
-  public.school_identity_gap_report
-from anon;
+-- Several are production-observed compatibility views that are not part of the
+-- replayable blank repository chain. Revoke only when the relation exists; never
+-- fabricate a compatibility view solely to make a security migration replay.
+do $$
+declare
+  v_rel text;
+begin
+  foreach v_rel in array array[
+    'v_approvals_queue',
+    'v_budget_vs_actual',
+    'v_invoice_aging',
+    'v_project_summary',
+    'v_trial_balance',
+    'teacher_content_engine_summary',
+    'teacher_resource_usage_analytics',
+    'lesson_evidence_resource_lineage',
+    'hq_workforce_worker_performance',
+    'school_identity_gap_report'
+  ] loop
+    if to_regclass(format('public.%I', v_rel)) is not null then
+      execute format('revoke select on public.%I from anon', v_rel);
+    end if;
+  end loop;
+end $$;
 
 -- Trigger functions are privileged implementation details, not callable APIs.
-revoke execute on function public.guard_parent_child_record_write() from public, anon, authenticated;
-revoke execute on function public.guard_parent_student_link_identity() from public, anon, authenticated;
-revoke execute on function public.guard_parent_thread_update() from public, anon, authenticated;
+-- Harden each extant compatibility trigger without making an absent production-only
+-- implementation a prerequisite of clean repository reconstruction.
+do $$
+declare
+  v_proc text;
+begin
+  foreach v_proc in array array[
+    'public.guard_parent_child_record_write()',
+    'public.guard_parent_student_link_identity()',
+    'public.guard_parent_thread_update()'
+  ] loop
+    if to_regprocedure(v_proc) is not null then
+      execute format('revoke execute on function %s from public, anon, authenticated', v_proc);
+    end if;
+  end loop;
+end $$;
