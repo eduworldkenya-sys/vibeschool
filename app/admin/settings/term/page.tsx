@@ -1,171 +1,185 @@
-"use client";
-export const dynamic = "force-dynamic";
+"use client"
+export const dynamic = "force-dynamic"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 
-interface Term {
-  id: string; name: string; term: number; academic_year: number
-  start_date: string; end_date: string; status: string
+interface TermRow {
+  id: string
+  name: string
+  term: number
+  academic_year: number
+  start_date: string
+  end_date: string
+  status: string
 }
 
-const TERM_NAMES: Record<number, string> = { 1: "Term 1", 2: "Term 2", 3: "Term 3" }
+const fieldStyle = {
+  width: "100%",
+  boxSizing: "border-box" as const,
+  border: "1px solid #cbd5e1",
+  borderRadius: 10,
+  padding: "11px 12px",
+  background: "white",
+  fontSize: 14,
+}
 
-export default function TermSettingsPage() {
+export default function AdminTermSettingsPage() {
   const router = useRouter()
+  const currentYear = new Date().getFullYear()
   const [schoolId, setSchoolId] = useState("")
-  const [terms,    setTerms]    = useState<Term[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [saving,   setSaving]   = useState(false)
-  const [error,    setError]    = useState("")
-  const [form, setForm] = useState({
-    term: "1", academic_year: new Date().getFullYear().toString(),
-    start_date: "", end_date: ""
-  })
+  const [terms, setTerms] = useState<TermRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState("")
+  const [form, setForm] = useState({ term: "1", academicYear: String(currentYear), startDate: "", endDate: "" })
 
-  useEffect(() => { boot() }, [])
+  useEffect(() => {
+    void bootstrap()
+  }, [])
 
-  async function boot() {
+  async function bootstrap() {
+    setLoading(true)
+    setError("")
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/admin/login"); return }
-      const { data: p } = await supabase.from("profiles").select("school_id").eq("id", user.id).single()
-      if (!p?.school_id) { router.push("/admin/login"); return }
-      setSchoolId(p.school_id)
-      await loadTerms(p.school_id)
-    } catch (e) { console.error(e) } finally { setLoading(false) }
+      const authority = await getAdminSchoolAuthority()
+      setSchoolId(authority.schoolId)
+      await loadTerms(authority.schoolId)
+    } catch (cause) {
+      console.error("Admin term setup failed", cause)
+      setError(cause instanceof Error ? cause.message : "Academic terms could not be loaded.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function loadTerms(sid: string) {
-    const { data } = await supabase
+    const { data, error: queryError } = await supabase
       .from("academic_terms")
       .select("id,name,term,academic_year,start_date,end_date,status")
       .eq("school_id", sid)
       .order("academic_year", { ascending: false })
       .order("term", { ascending: false })
-    setTerms(data ?? [])
+    if (queryError) throw queryError
+    setTerms((data ?? []) as TermRow[])
   }
 
-  async function addTerm() {
-    if (!form.start_date || !form.end_date) { setError("Start and end dates are required"); return }
-    setError(""); setSaving(true)
+  async function saveTerm() {
+    if (!schoolId || !form.startDate || !form.endDate || saving) return
+    if (form.endDate < form.startDate) {
+      setError("End date must be on or after the start date.")
+      return
+    }
+    setSaving(true)
+    setError("")
     try {
-      const termNum = parseInt(form.term)
-      const year    = parseInt(form.academic_year)
-      const name    = TERM_NAMES[termNum]
-      const { error: err } = await supabase.from("academic_terms").insert({
-        school_id: schoolId, name, term: termNum, academic_year: year,
-        start_date: form.start_date, end_date: form.end_date, status: "inactive"
-      })
-      if (err) throw err
-      setForm({ term: "1", academic_year: new Date().getFullYear().toString(), start_date: "", end_date: "" })
+      const { error: rpcError } = await supabase.rpc(
+        "admin_upsert_academic_term" as never,
+        {
+          p_school_id: schoolId,
+          p_term: Number(form.term),
+          p_academic_year: Number(form.academicYear),
+          p_start_date: form.startDate,
+          p_end_date: form.endDate,
+        } as never
+      )
+      if (rpcError) throw rpcError
+      setForm({ term: "1", academicYear: String(currentYear), startDate: "", endDate: "" })
       await loadTerms(schoolId)
-    } catch (e: any) { setError(e?.message ?? "Failed to add term") } finally { setSaving(false) }
+    } catch (cause) {
+      console.error("Admin term upsert failed", cause)
+      setError(cause instanceof Error ? cause.message : "Term could not be saved.")
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function activateTerm(id: string) {
+    if (!schoolId || saving) return
+    setSaving(true)
+    setError("")
     try {
-      await supabase.from("academic_terms").update({ status: "inactive" }).eq("school_id", schoolId)
-      await supabase.from("academic_terms").update({ status: "active" }).eq("id", id)
+      const { error: rpcError } = await supabase.rpc(
+        "admin_activate_academic_term" as never,
+        { p_school_id: schoolId, p_term_id: id } as never
+      )
+      if (rpcError) throw rpcError
       await loadTerms(schoolId)
-    } catch (e: any) { setError(e?.message ?? "Failed to activate") }
+    } catch (cause) {
+      console.error("Admin term activation failed", cause)
+      setError(cause instanceof Error ? cause.message : "Term could not be activated.")
+    } finally {
+      setSaving(false)
+    }
   }
 
-  async function deleteTerm(id: string) {
+  async function removeUnusedTerm(id: string) {
+    if (!schoolId || saving) return
+    setSaving(true)
+    setError("")
     try {
-      const { error: err } = await supabase.from("academic_terms").delete().eq("id", id)
-      if (err) throw err
+      const { error: rpcError } = await supabase.rpc(
+        "admin_delete_unused_academic_term" as never,
+        { p_school_id: schoolId, p_term_id: id } as never
+      )
+      if (rpcError) throw rpcError
       await loadTerms(schoolId)
-    } catch (e: any) { setError(e?.message ?? "Failed to delete") }
+    } catch (cause) {
+      console.error("Admin term removal failed", cause)
+      setError(cause instanceof Error ? cause.message : "Used or active terms cannot be removed.")
+    } finally {
+      setSaving(false)
+    }
   }
 
-  const C = { card: "#ffffff", border: "#e2e8f0", text: "#0f172a", muted: "#64748b", emerald: "#10b981", red: "#ef4444", amber: "#f59e0b" }
-
-  const inputStyle = { width: "100%", padding: "12px 14px", borderRadius: "10px", border: `1px solid ${C.border}`, fontSize: "14px", color: C.text, background: C.card, outline: "none", boxSizing: "border-box" as const }
-
-  if (loading) return (
-    <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
-      {[1,2].map(i => <div key={i} style={{ height: "60px", background: "#e2e8f0", borderRadius: "12px", opacity: 0.6 }} />)}
-    </div>
-  )
+  if (loading) return <div aria-busy="true" style={{ minHeight: 220, borderRadius: 18, background: "#e2e8f0" }} />
 
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto", display: "flex", flexDirection: "column", gap: "24px" }}>
-
-      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-        <button onClick={() => router.back()} style={{ background: "none", border: "none", color: C.muted, fontSize: "24px", cursor: "pointer", padding: "0" }}>‹</button>
+    <main style={{ maxWidth: 720, margin: "0 auto", display: "grid", gap: 18 }}>
+      <header style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <button aria-label="Back" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontSize: 26, cursor: "pointer" }}>‹</button>
         <div>
-          <h1 style={{ fontSize: "22px", fontWeight: "700", color: C.text, margin: 0 }}>Academic Terms</h1>
-          <p style={{ fontSize: "13px", color: C.muted, margin: "2px 0 0" }}>Set and activate terms for your school</p>
+          <h1 style={{ margin: 0, fontSize: 24 }}>Academic terms</h1>
+          <p style={{ color: "#64748b", margin: "4px 0 0" }}>One active school term controls current academic context. Re-saving the same year/term updates it rather than duplicating it.</p>
         </div>
-      </div>
+      </header>
 
-      {/* Add Term Form */}
-      <div style={{ background: C.card, borderRadius: "16px", padding: "18px", border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: "12px" }}>
-        <p style={{ fontSize: "13px", fontWeight: "700", color: C.text, margin: 0, textTransform: "uppercase", letterSpacing: "0.8px" }}>Add New Term</p>
+      {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", borderRadius: 12, padding: 12 }}>{error}</div>}
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-          <select value={form.term} onChange={e => setForm(f => ({ ...f, term: e.target.value }))} style={inputStyle}>
-            <option value="1">Term 1</option>
-            <option value="2">Term 2</option>
-            <option value="3">Term 3</option>
+      <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
+        <strong>Add or update term</strong>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 9 }}>
+          <select value={form.term} onChange={event => setForm(current => ({ ...current, term: event.target.value }))} style={fieldStyle}>
+            <option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option>
           </select>
-          <select value={form.academic_year} onChange={e => setForm(f => ({ ...f, academic_year: e.target.value }))} style={inputStyle}>
-            {[2024,2025,2026,2027].map(y => <option key={y} value={y}>{y}</option>)}
+          <select value={form.academicYear} onChange={event => setForm(current => ({ ...current, academicYear: event.target.value }))} style={fieldStyle}>
+            {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map(year => <option key={year} value={year}>{year}</option>)}
           </select>
         </div>
+        <label>Start date<input type="date" value={form.startDate} onChange={event => setForm(current => ({ ...current, startDate: event.target.value }))} style={fieldStyle} /></label>
+        <label>End date<input type="date" value={form.endDate} onChange={event => setForm(current => ({ ...current, endDate: event.target.value }))} style={fieldStyle} /></label>
+        <button disabled={saving || !form.startDate || !form.endDate} onClick={() => void saveTerm()} style={{ border: 0, borderRadius: 11, padding: 12, background: "#10b981", color: "white", fontWeight: 780, cursor: "pointer" }}>{saving ? "Saving…" : "Save term"}</button>
+      </section>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <label style={{ fontSize: "11px", fontWeight: "600", color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>Start Date</label>
-          <input type="date" value={form.start_date} onChange={e => setForm(f => ({ ...f, start_date: e.target.value }))} style={inputStyle} />
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-          <label style={{ fontSize: "11px", fontWeight: "600", color: C.muted, textTransform: "uppercase", letterSpacing: "0.5px" }}>End Date</label>
-          <input type="date" value={form.end_date} onChange={e => setForm(f => ({ ...f, end_date: e.target.value }))} style={inputStyle} />
-        </div>
-
-        {error && <p style={{ color: C.red, fontSize: "13px", margin: 0 }}>{error}</p>}
-
-        <button onClick={addTerm} disabled={saving} style={{ background: C.emerald, border: "none", borderRadius: "10px", padding: "13px", color: "#fff", fontSize: "14px", fontWeight: "700", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
-          {saving ? "Adding..." : "+ Add Term"}
-        </button>
-      </div>
-
-      {/* Terms List */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-        <p style={{ fontSize: "10px", fontWeight: "700", color: C.muted, margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "1px" }}>All Terms ({terms.length})</p>
-
+      <section style={{ display: "grid", gap: 8 }}>
         {terms.length === 0 ? (
-          <div style={{ background: C.card, borderRadius: "14px", padding: "32px 20px", textAlign: "center", border: `1px solid ${C.border}` }}>
-            <p style={{ color: C.muted, fontSize: "14px", margin: 0 }}>No terms yet. Add your first term above.</p>
-          </div>
-        ) : terms.map(t => (
-          <div key={t.id} style={{ background: C.card, borderRadius: "12px", padding: "14px 16px", border: `1px solid ${t.status === "active" ? C.emerald : C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px" }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <p style={{ fontSize: "15px", fontWeight: "600", color: C.text, margin: 0 }}>{t.name} {t.academic_year}</p>
-                {t.status === "active" && <span style={{ background: "rgba(16,185,129,0.1)", color: C.emerald, fontSize: "10px", fontWeight: "700", padding: "2px 8px", borderRadius: "99px" }}>ACTIVE</span>}
-              </div>
-              <p style={{ fontSize: "12px", color: C.muted, margin: "3px 0 0" }}>{t.start_date} → {t.end_date}</p>
+          <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 26, textAlign: "center" }}><strong>No academic terms yet</strong><p style={{ color: "#64748b" }}>Create the first term above, then activate it.</p></div>
+        ) : terms.map(term => (
+          <article key={term.id} style={{ background: "white", border: `1px solid ${term.status === "active" ? "#86efac" : "#e2e8f0"}`, borderRadius: 14, padding: 14, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+            <div>
+              <strong>{term.name} {term.academic_year}</strong>
+              <div style={{ color: "#64748b", fontSize: 12, marginTop: 4 }}>{term.start_date} → {term.end_date} · <span style={{ textTransform: "capitalize" }}>{term.status}</span></div>
             </div>
-            <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-              <button onClick={() => router.push(`/admin/settings/term/${t.id}/weeks`)} style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.3)", borderRadius: "8px", padding: "6px 10px", color: "#8b5cf6", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>
-                Weeks
-              </button>
-              {t.status !== "active" && (
-                <button onClick={() => activateTerm(t.id)} style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "8px", padding: "6px 10px", color: C.emerald, fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>
-                  Activate
-                </button>
-              )}
-              <button onClick={() => deleteTerm(t.id)} style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "8px", padding: "6px 10px", color: C.red, fontSize: "11px", fontWeight: "700", cursor: "pointer" }}>
-                Delete
-              </button>
+            <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+              <button onClick={() => router.push(`/admin/settings/term/${term.id}/weeks`)} style={{ border: "1px solid #cbd5e1", borderRadius: 9, padding: "7px 10px", background: "white", cursor: "pointer" }}>Weeks</button>
+              {term.status !== "active" && <button disabled={saving} onClick={() => void activateTerm(term.id)} style={{ border: 0, borderRadius: 9, padding: "7px 10px", background: "#10b981", color: "white", fontWeight: 730, cursor: "pointer" }}>Activate</button>}
+              {term.status !== "active" && <button disabled={saving} onClick={() => void removeUnusedTerm(term.id)} style={{ border: "1px solid #fecaca", borderRadius: 9, padding: "7px 10px", background: "#fef2f2", color: "#b91c1c", cursor: "pointer" }}>Remove if unused</button>}
             </div>
-          </div>
+          </article>
         ))}
-      </div>
-    </div>
+      </section>
+    </main>
   )
 }

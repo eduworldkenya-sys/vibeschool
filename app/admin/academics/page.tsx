@@ -1,27 +1,18 @@
-"use client";
-export const dynamic = "force-dynamic";
+"use client"
+export const dynamic = "force-dynamic"
 
-import { useState, useEffect, useCallback } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import type { LessonPlanCoverageRow } from "@/lib/types"
+import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 
-const dark   = "#0a1628"
-const accent = "#10b981"
-const bg     = "#f0f2f5"
-const red    = "#ef4444"
-const amber  = "#f59e0b"
-
-const CBC_GRADES = ["PP1","PP2","Grade 1","Grade 2","Grade 3"]
-
-interface Term {
+interface TermRow {
   id: string
   name: string
   term: number
   academic_year: number
   start_date: string
   end_date: string
-  status: string
 }
 
 interface ClassRow {
@@ -30,432 +21,197 @@ interface ClassRow {
   stream: string | null
 }
 
-interface GradeRow {
+interface SchemeRow {
+  class_id: string | null
+  status: string | null
+}
+
+interface TeachingRow {
   class_id: string
-  marks: number
-  out_of: number
+  lifecycle: string
 }
 
-interface CbcRow {
+interface AssessmentRow {
   class_id: string
-  performance: string
+  status: string
 }
 
-function isCBC(className: string): boolean {
-  return CBC_GRADES.some(g => className.startsWith(g))
-}
-
-function weekOf(startDate: string): number {
-  const start = new Date(startDate)
-  const today = new Date()
-  const diff  = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24 * 7))
-  return Math.max(1, Math.min(diff + 1, 13))
-}
-
-function Toast({ msg }: { msg: string }) {
-  if (!msg) return null
-  return (
-    <div style={{
-      position: "fixed", bottom: 90, left: "50%", transform: "translateX(-50%)",
-      background: "#f0f4f8", color: "#111827", padding: "12px 24px", borderRadius: 40,
-      fontSize: 13, fontWeight: 700, zIndex: 9999, whiteSpace: "nowrap",
-      boxShadow: "0 4px 24px rgba(0,0,0,0.25)"
-    }}>{msg}</div>
-  )
-}
-
-function HealthCard({
-  label, value, sub, color, onClick
-}: {
-  label: string
-  value: string
-  sub: string
-  color: string
-  onClick: () => void
-}) {
-  return (
-    <div onClick={onClick} style={{
-      background: "#fff", borderRadius: 16, padding: "16px 12px",
-      border: "1px solid #e5e7eb", cursor: "pointer",
-      boxShadow: "0 2px 8px rgba(0,0,0,0.04)", flex: 1
-    }}>
-      <div style={{ fontSize: 22, fontWeight: 900, color, fontFamily: "monospace", lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: dark, marginTop: 4 }}>{label}</div>
-      <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{sub}</div>
-    </div>
-  )
-}
-
-export default function AcademicsPage() {
+export default function AdminAcademicsPage() {
   const router = useRouter()
+  const [term, setTerm] = useState<TermRow | null>(null)
+  const [classes, setClasses] = useState<ClassRow[]>([])
+  const [schemes, setSchemes] = useState<SchemeRow[]>([])
+  const [teaching, setTeaching] = useState<TeachingRow[]>([])
+  const [assessments, setAssessments] = useState<AssessmentRow[]>([])
+  const [resultCount, setResultCount] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  const [schoolId,  setSchoolId]  = useState("")
-  const [loading,   setLoading]   = useState(true)
-  const [toast,     setToast]     = useState("")
-  const [term,      setTerm]      = useState<Term | null>(null)
-  const [classes,   setClasses]   = useState<ClassRow[]>([])
-  const [lessonPlans, setLessonPlans] = useState<LessonPlanCoverageRow[]>([])
-  const [grades,    setGrades]    = useState<GradeRow[]>([])
-  const [cbcData,   setCbcData]   = useState<CbcRow[]>([])
-
-  const fireToast = useCallback((msg: string) => {
-    setToast(msg); setTimeout(() => setToast(""), 3000)
+  useEffect(() => {
+    void load()
   }, [])
 
-  useEffect(() => { bootstrap() }, [])
-
-  async function bootstrap() {
+  async function load() {
+    setLoading(true)
+    setError("")
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/admin/login"); return }
+      const authority = await getAdminSchoolAuthority()
+      const sid = authority.schoolId
+      const termRes = await supabase
+        .from("academic_terms")
+        .select("id,name,term,academic_year,start_date,end_date")
+        .eq("school_id", sid)
+        .eq("status", "active")
+        .limit(1)
+        .maybeSingle()
+      if (termRes.error) throw termRes.error
+      const activeTerm = termRes.data as TermRow | null
+      setTerm(activeTerm)
 
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("school_id")
-        .eq("id", user.id)
-        .single()
-      if (!p?.school_id) { router.push("/admin/login"); return }
-      setSchoolId(p.school_id)
+      const classRes = await supabase
+        .from("classes")
+        .select("id,name,stream")
+        .eq("school_id", sid)
+        .order("name")
+        .order("stream")
+      if (classRes.error) throw classRes.error
+      const classRows = (classRes.data ?? []) as ClassRow[]
+      setClasses(classRows)
 
-      const [termRes, classRes] = await Promise.all([
+      if (!activeTerm || classRows.length === 0) {
+        setSchemes([])
+        setTeaching([])
+        setAssessments([])
+        setResultCount(0)
+        return
+      }
+
+      const classIds = classRows.map(row => row.id)
+      const [schemeRes, teachingRes, assessmentRes, resultRes] = await Promise.all([
         supabase
-          .from("academic_terms")
-          .select("id,name,term,academic_year,start_date,end_date,status")
-          .eq("school_id", p.school_id)
-          .eq("status", "active")
-          .single(),
+          .from("scheme_of_work")
+          .select("class_id,status")
+          .eq("school_id", sid)
+          .eq("academic_term_id", activeTerm.id)
+          .in("class_id", classIds),
         supabase
-          .from("classes")
-          .select("id,name,stream")
-          .eq("school_id", p.school_id)
-          .order("name"),
+          .from("teaching_occurrences")
+          .select("class_id,lifecycle")
+          .eq("school_id", sid)
+          .gte("occurrence_date", activeTerm.start_date)
+          .lte("occurrence_date", activeTerm.end_date)
+          .in("class_id", classIds),
+        supabase
+          .from("assessment_definitions")
+          .select("class_id,status")
+          .eq("school_id", sid)
+          .in("class_id", classIds)
+          .neq("status", "archived"),
+        supabase
+          .from("exam_results")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", sid)
+          .in("class_id", classIds)
+          .gte("created_at", `${activeTerm.start_date}T00:00:00+03:00`)
+          .lte("created_at", `${activeTerm.end_date}T23:59:59+03:00`),
       ])
 
-      const activeTerm  = termRes.data as Term | null
-      const classList   = (classRes.data ?? []) as ClassRow[]
-      setTerm(activeTerm)
-      setClasses(classList)
-
-      if (!activeTerm) { setLoading(false); return }
-
-      await loadAcademicData(p.school_id, activeTerm, classList)
-    } catch {
-      fireToast("Failed to load academics.")
+      const firstError = [schemeRes.error, teachingRes.error, assessmentRes.error, resultRes.error].find(Boolean)
+      if (firstError) throw firstError
+      setSchemes((schemeRes.data ?? []) as SchemeRow[])
+      setTeaching((teachingRes.data ?? []) as TeachingRow[])
+      setAssessments((assessmentRes.data ?? []) as AssessmentRow[])
+      setResultCount(resultRes.count ?? 0)
+    } catch (cause) {
+      console.error("Admin academics load failed", cause)
+      setError(cause instanceof Error ? cause.message : "Academic oversight could not be loaded.")
     } finally {
       setLoading(false)
     }
   }
 
-  async function loadAcademicData(sid: string, t: Term, classList: ClassRow[]) {
-    const classIds = classList.map(cl => cl.id)
-    const [lpRes, gradeRes, cbcRes] = await Promise.all([
-      supabase
-        .from("lesson_plans")
-        .select("class_id,curriculum_id,status,week_start")
-        .in("class_id", classIds)
-        .not("curriculum_id", "is", null)
-        .gte("week_start", t.start_date)
-        .lte("week_start", t.end_date),
-      supabase
-        .from("traditional_grades")
-        .select("class_id,marks,out_of")
-        .eq("school_id", sid)
-        .eq("term", t.term)
-        .eq("academic_year", t.academic_year),
-      supabase
-        .from("cbc_assessments")
-        .select("class_id,performance")
-        .eq("school_id", sid)
-        .eq("term", t.term)
-        .eq("academic_year", t.academic_year),
-    ])
+  const rows = useMemo(() => {
+    return classes.map(classRow => {
+      const schemeRows = schemes.filter(row => row.class_id === classRow.id)
+      const teachingRows = teaching.filter(row => row.class_id === classRow.id)
+      const assessmentRows = assessments.filter(row => row.class_id === classRow.id)
+      return {
+        ...classRow,
+        schemeItems: schemeRows.length,
+        schemeCovered: schemeRows.filter(row => row.status === "covered" || row.status === "completed").length,
+        sessions: teachingRows.length,
+        taught: teachingRows.filter(row => row.lifecycle === "completed").length,
+        assessments: assessmentRows.length,
+        publishedAssessments: assessmentRows.filter(row => row.status === "published" || row.status === "closed").length,
+      }
+    })
+  }, [classes, schemes, teaching, assessments])
 
-    setLessonPlans((lpRes.data ?? []) as LessonPlanCoverageRow[])
-    setGrades((gradeRes.data ?? []) as GradeRow[])
-    setCbcData((cbcRes.data ?? []) as CbcRow[])
-  }
+  const totals = useMemo(() => ({
+    schemeClasses: rows.filter(row => row.schemeItems > 0).length,
+    teachingClasses: rows.filter(row => row.taught > 0).length,
+    assessmentClasses: rows.filter(row => row.assessments > 0).length,
+    sessions: teaching.length,
+    taught: teaching.filter(row => row.lifecycle === "completed").length,
+  }), [rows, teaching])
 
-  const currentWeek    = term ? weekOf(term.start_date) : 0
-  const weekPct        = Math.round((currentWeek / 13) * 100)
-  const expectedCovPct = weekPct
-
-  const classesWithScheme = new Set(lessonPlans.map(lp => lp.class_id)).size
-  const schemePct         = classes.length ? Math.round((classesWithScheme / classes.length) * 100) : 0
-
-  const classesWithGrades = new Set([
-    ...grades.map(g => g.class_id),
-    ...cbcData.map(c => c.class_id),
-  ]).size
-  const gradePct = classes.length ? Math.round((classesWithGrades / classes.length) * 100) : 0
-
-  const traditionalClasses = classes.filter(c => !isCBC(c.name))
-  let schoolAvg: number | null = null
-  if (grades.length) {
-    const total = grades.reduce((sum, g) => sum + (g.out_of > 0 ? (g.marks / g.out_of) * 100 : 0), 0)
-    schoolAvg   = Math.round(total / grades.length)
-  }
-
-  function classSchemeStatus(classId: string): "done" | "partial" | "none" {
-    const rows = lessonPlans.filter(lp => lp.class_id === classId)
-    if (!rows.length) return "none"
-    const delivered = rows.filter(lp => lp.status !== "draft").length
-    if (delivered === rows.length) return "done"
-    return "partial"
-  }
-
-  function classGradeStatus(classId: string, className: string): "done" | "partial" | "none" {
-    if (isCBC(className)) {
-      return cbcData.some(c => c.class_id === classId) ? "partial" : "none"
-    }
-    return grades.some(g => g.class_id === classId) ? "partial" : "none"
-  }
-
-  function classAvg(classId: string): number | null {
-    const rows = grades.filter(g => g.class_id === classId)
-    if (!rows.length) return null
-    const total = rows.reduce((sum, g) => sum + (g.out_of > 0 ? (g.marks / g.out_of) * 100 : 0), 0)
-    return Math.round(total / rows.length)
-  }
-
-  function statusDot(status: "done" | "partial" | "none"): string {
-    if (status === "done")    return accent
-    if (status === "partial") return amber
-    return red
-  }
-
-  const alerts: string[] = []
-  classes.forEach(c => {
-    if (classSchemeStatus(c.id) === "none")
-      alerts.push(`${c.name}${c.stream ? " "+c.stream : ""} — no scheme of work submitted`)
-    if (classGradeStatus(c.id, c.name) === "none")
-      alerts.push(`${c.name}${c.stream ? " "+c.stream : ""} — no assessments captured`)
-    if (!isCBC(c.name)) {
-      const avg = classAvg(c.id)
-      if (avg !== null && avg < 50)
-        alerts.push(`${c.name}${c.stream ? " "+c.stream : ""} — class average ${avg}% (below 50%)`)
-    }
-  })
-
-  if (loading) return (
-    <div style={{ padding: 24 }}>
-      <div style={{ height: 100, borderRadius: 16, background: "linear-gradient(135deg,#0a1628,#0d2347)", marginBottom: 16 }} />
-      {[1,2,3,4].map(i => (
-        <div key={i} style={{ height: 56, borderRadius: 12, background: "#e5e7eb", marginBottom: 10 }} />
-      ))}
-    </div>
-  )
+  if (loading) return <div aria-busy="true" style={{ minHeight: 260, borderRadius: 18, background: "#e2e8f0" }} />
 
   return (
-    <div style={{ background: bg, minHeight: "100vh", paddingBottom: 100 }}>
-      <style>{`
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        * { box-sizing: border-box; }
-        .class-row:active { background: #f3f4f6 !important; }
-      `}</style>
+    <main style={{ maxWidth: 980, margin: "0 auto", display: "grid", gap: 16 }}>
+      <header>
+        <h1 style={{ margin: 0, fontSize: 24 }}>Teaching & learning oversight</h1>
+        <p style={{ color: "#64748b", margin: "5px 0 0" }}>
+          {term ? `${term.name} · ${term.academic_year}` : "No active academic term"} · operational evidence only, without Student Twin private conversations.
+        </p>
+      </header>
 
-      {/* HERO */}
-      <div style={{
-        background: `linear-gradient(135deg, ${dark} 0%, #0d2347 100%)`,
-        padding: "24px 20px 32px", position: "relative", overflow: "hidden"
-      }}>
-        <div style={{
-          position: "absolute", top: -40, right: -40,
-          width: 160, height: 160, borderRadius: "50%",
-          background: "#ffffff"
-        }} />
-        <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: "rgba(16,185,129,0.08)" }} />
-        <div style={{ fontSize: 12, color: "#6b7280", fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>School Hub</div>
-        <div style={{ fontSize: 26, fontWeight: 900, color: "#111827", letterSpacing: -0.5 }}>Academics</div>
+      {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}
 
-        {term ? (
-          <div style={{ marginTop: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-              <div style={{ fontSize: 13, color: "#374151", fontWeight: 600 }}>
-                {term.name} {term.academic_year} &nbsp;·&nbsp; Week {currentWeek} of 13
-              </div>
-              <div style={{ fontSize: 12, color: accent, fontWeight: 700 }}>{weekPct}%</div>
-            </div>
-            <div style={{ height: 6, background: "#e2e8f0", borderRadius: 99, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${weekPct}%`, background: accent, borderRadius: 99, transition: "width 0.6s ease" }} />
-            </div>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
-              Expected syllabus coverage: {expectedCovPct}%
-            </div>
-          </div>
-        ) : (
-          <div style={{ marginTop: 12, fontSize: 13, color: amber, fontWeight: 600 }}>
-            ⚠ No active term set — go to Settings to activate a term
-          </div>
-        )}
-      </div>
-
-      <div style={{ maxWidth: 800, margin: "0 auto", padding: "16px 16px" }}>
-
-        {/* HEALTH CARDS */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-          <HealthCard
-            label="Curriculum"
-            value={`${schemePct}%`}
-            sub={`${classesWithScheme} of ${classes.length} classes`}
-            color={schemePct >= 80 ? accent : schemePct >= 50 ? amber : red}
-            onClick={() => router.push("/admin/academics/curriculum")}
-          />
-          <HealthCard
-            label="Assessments"
-            value={`${gradePct}%`}
-            sub={`${classesWithGrades} of ${classes.length} classes`}
-            color={gradePct >= 80 ? accent : gradePct >= 50 ? amber : red}
-            onClick={() => router.push("/admin/academics/gradebook")}
-          />
-          <HealthCard
-            label="Performance"
-            value={schoolAvg !== null ? `${schoolAvg}%` : "—"}
-            sub={schoolAvg !== null ? (schoolAvg >= 70 ? "On track" : schoolAvg >= 50 ? "At risk" : "Danger zone") : "No data yet"}
-            color={schoolAvg !== null ? (schoolAvg >= 70 ? accent : schoolAvg >= 50 ? amber : red) : "#9ca3af"}
-            onClick={() => router.push("/admin/academics/reports")}
-          />
-        </div>
-
-        {/* ALERTS */}
-        {alerts.length > 0 && (
-          <div style={{ background: "#fff", borderRadius: 16, border: `1px solid ${red}30`, marginBottom: 16, overflow: "hidden" }}>
-            <div style={{ background: red + "12", padding: "12px 16px", borderBottom: `1px solid ${red}20` }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: red, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                ⚠ {alerts.length} Alert{alerts.length > 1 ? "s" : ""} Require Attention
-              </div>
-            </div>
-            {alerts.slice(0, 5).map((a, i) => (
-              <div key={i} style={{
-                padding: "10px 16px", fontSize: 13, color: dark, fontWeight: 500,
-                borderBottom: i < Math.min(alerts.length, 5) - 1 ? "1px solid #f3f4f6" : "none"
-              }}>
-                {a}
-              </div>
+      {!term ? (
+        <button onClick={() => router.push("/admin/settings/term")} style={{ textAlign: "left", background: "#fffbeb", border: "1px solid #f59e0b", borderRadius: 16, padding: 18, cursor: "pointer" }}>
+          <strong>Activate the academic term</strong>
+          <div style={{ color: "#92400e", marginTop: 5 }}>Academic oversight is term-bound. Open Term settings to complete setup.</div>
+        </button>
+      ) : classes.length === 0 ? (
+        <button onClick={() => router.push("/admin/settings/classes")} style={{ textAlign: "left", background: "#fffbeb", border: "1px solid #f59e0b", borderRadius: 16, padding: 18, cursor: "pointer" }}>
+          <strong>Create classes and streams</strong>
+          <div style={{ color: "#92400e", marginTop: 5 }}>Teaching evidence cannot be reconciled until the school academic structure exists.</div>
+        </button>
+      ) : (
+        <>
+          <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))", gap: 10 }}>
+            {[
+              ["Scheme coverage", `${totals.schemeClasses}/${classes.length} classes`, "/admin/academics/curriculum"],
+              ["Teaching evidence", `${totals.taught}/${totals.sessions} sessions`, "/admin/academics"],
+              ["Assessment activity", `${totals.assessmentClasses}/${classes.length} classes`, "/admin/academics/gradebook"],
+              ["Results recorded", String(resultCount), "/admin/academics/gradebook"],
+            ].map(([label, value, href]) => (
+              <button key={label} onClick={() => router.push(href)} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, textAlign: "left", cursor: "pointer" }}>
+                <div style={{ fontSize: 21, fontWeight: 820 }}>{value}</div>
+                <div style={{ color: "#64748b", fontSize: 13, marginTop: 3 }}>{label}</div>
+              </button>
             ))}
-            {alerts.length > 5 && (
-              <div style={{ padding: "10px 16px", fontSize: 12, color: "#9ca3af", fontWeight: 600 }}>
-                +{alerts.length - 5} more issues
-              </div>
-            )}
-          </div>
-        )}
+          </section>
 
-        {alerts.length === 0 && term && (
-          <div style={{ background: accent + "12", border: `1px solid ${accent}30`, borderRadius: 16, padding: "14px 16px", marginBottom: 16 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: accent }}>✓ All classes on track</div>
-            <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>No issues detected for {term.name} {term.academic_year}</div>
-          </div>
-        )}
-
-        {/* CLASS LIST */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>
-            All Classes
-          </div>
-          <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e5e7eb", overflow: "hidden" }}>
-            {classes.length === 0 ? (
-              <div style={{ padding: "32px 16px", textAlign: "center", fontSize: 14, color: "#9ca3af" }}>
-                No classes found for this school.
-              </div>
-            ) : classes.map((c, i) => {
-              const schemeStatus = classSchemeStatus(c.id)
-              const gradeStatus  = classGradeStatus(c.id, c.name)
-              const avg          = isCBC(c.name) ? null : classAvg(c.id)
-              const cbcCount     = cbcData.filter(d => d.class_id === c.id).length
-
+          <section style={{ display: "grid", gap: 9 }}>
+            {rows.map(row => {
+              const needsAttention = row.schemeItems === 0 || row.sessions === 0 || row.assessments === 0
               return (
-                <div
-                  key={c.id}
-                  className="class-row"
-                  onClick={() => router.push(`/admin/academics/gradebook?class=${c.id}`)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "14px 16px", cursor: "pointer",
-                    borderBottom: i < classes.length - 1 ? "1px solid #f3f4f6" : "none",
-                    background: "#fff", transition: "background 0.15s"
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: dark }}>
-                      {c.name}{c.stream ? " " + c.stream : ""}
-                    </div>
-                    <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>
-                      {isCBC(c.name) ? `CBC · ${cbcCount} assessments recorded` : "Traditional · Marks based"}
-                    </div>
+                <article key={row.id} style={{ background: "white", border: `1px solid ${needsAttention ? "#fde68a" : "#e2e8f0"}`, borderRadius: 14, padding: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                    <strong>{row.name}{row.stream ? ` ${row.stream}` : ""}</strong>
+                    <span style={{ color: needsAttention ? "#92400e" : "#047857", fontSize: 12 }}>{needsAttention ? "Needs attention" : "Evidence present"}</span>
                   </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    {/* Scheme dot */}
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: statusDot(schemeStatus), margin: "0 auto 2px" }} />
-                      <div style={{ fontSize: 9, color: "#9ca3af", fontWeight: 600 }}>SCH</div>
-                    </div>
-
-                    {/* Grade dot */}
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: statusDot(gradeStatus), margin: "0 auto 2px" }} />
-                      <div style={{ fontSize: 9, color: "#9ca3af", fontWeight: 600 }}>GRD</div>
-                    </div>
-
-                    {/* Avg */}
-                    <div style={{ minWidth: 44, textAlign: "right" }}>
-                      {avg !== null ? (
-                        <div style={{
-                          fontSize: 14, fontWeight: 900, fontFamily: "monospace",
-                          color: avg >= 70 ? accent : avg >= 50 ? amber : red
-                        }}>{avg}%</div>
-                      ) : (
-                        <div style={{ fontSize: 12, color: "#d1d5db", fontWeight: 700 }}>—</div>
-                      )}
-                    </div>
-
-                    <div style={{ fontSize: 16, color: "#d1d5db" }}>›</div>
+                  <div style={{ color: "#64748b", fontSize: 13, marginTop: 6, lineHeight: 1.55 }}>
+                    Scheme: {row.schemeCovered}/{row.schemeItems} covered · Teaching: {row.taught}/{row.sessions} completed · Assessments: {row.publishedAssessments}/{row.assessments} published/closed
                   </div>
-                </div>
+                </article>
               )
             })}
-          </div>
-        </div>
-
-        {/* LEGEND */}
-        <div style={{ display: "flex", gap: 16, padding: "0 4px", marginBottom: 20 }}>
-          {[
-            { color: accent, label: "On track" },
-            { color: amber,  label: "Partial" },
-            { color: red,    label: "Not started" },
-          ].map(l => (
-            <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: l.color }} />
-              <div style={{ fontSize: 11, color: "#9ca3af", fontWeight: 600 }}>{l.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* BOTTOM ACTIONS */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {[
-            { label: "📚  View Curriculum Coverage", path: "/admin/academics/curriculum" },
-            { label: "📊  View Gradebook",           path: "/admin/academics/gradebook" },
-            { label: "📄  Generate Report Cards",    path: "/admin/academics/reports" },
-          ].map(btn => (
-            <div
-              key={btn.path}
-              onClick={() => router.push(btn.path)}
-              style={{
-                background: "#fff", border: "1px solid #e5e7eb", borderRadius: 14,
-                padding: "16px 20px", fontSize: 14, fontWeight: 700, color: dark,
-                cursor: "pointer", display: "flex", justifyContent: "space-between",
-                alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.04)"
-              }}
-            >
-              {btn.label}
-              <span style={{ color: "#d1d5db", fontSize: 18 }}>›</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <Toast msg={toast} />
-    </div>
+          </section>
+        </>
+      )}
+    </main>
   )
 }

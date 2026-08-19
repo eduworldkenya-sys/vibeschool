@@ -1,0 +1,53 @@
+name: Engineering Control Plane
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: engineering-control-plane-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  classify:
+    name: Tier A/B impact and control-plane certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Fetch current main
+        run: git fetch --no-tags origin main:refs/remotes/origin/main
+
+      - name: Verify exact candidate identity
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Adversarial control-plane self-test
+        run: python3 scripts/engineering_control_plane.py --mode self-test
+
+      - name: Classify exact candidate and audit CI contracts
+        run: |
+          python3 scripts/engineering_control_plane.py \
+            --mode audit \
+            --base origin/main \
+            --head HEAD \
+            --output control-plane-report.json
+
+      - name: Publish classification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: engineering-control-plane-${{ github.event.pull_request.head.sha || github.sha }}
+          path: control-plane-report.json
+          if-no-files-found: error
+          retention-days: 30

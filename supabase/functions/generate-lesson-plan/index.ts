@@ -3,18 +3,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const GROQ_KEY = Deno.env.get("GROQ_API_KEY") ?? ""
 const TAVILY_KEY = Deno.env.get("TAVILY_API_KEY") ?? ""
-const SUPABASE_URL     = Deno.env.get("SUPABASE_URL") ?? ""
-const SUPABASE_SERVICE  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? ""
+const SUPABASE_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 
-// Vibe Credits — same economics as app/api/generate-lesson-plan/route.ts.
-// One generation costs 1 credit; a brand-new wallet is seeded with 3 free
-// credits (gift-logged) exactly like the API route, so a teacher gets the
-// same balance no matter which surface they hit first.
-const CREDIT_COST  = 1
+const CREDIT_COST = 1
 const FREE_CREDITS = 3
 
 const CORS = {
-  "Access-Control-Allow-Origin":  Deno.env.get("ALLOWED_ORIGIN") ?? "*",
+  "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
@@ -28,9 +24,8 @@ function json(data: unknown, status = 200) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
 
-  // G1: verify JWT before anything else
   const authHeader = req.headers.get("authorization") ?? ""
-  const token = authHeader.replace("Bearer ", "").trim()
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : ""
   if (!token) return json({ error: "Missing auth token" }, 401)
 
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE)
@@ -38,8 +33,26 @@ serve(async (req) => {
   if (authError || !user) return json({ error: "Unauthorized" }, 401)
 
   try {
-    // ── Vibe Credits gate ──────────────────────────────────────────────────
-    // Get or create the wallet BEFORE any external spend (Tavily/Groq).
+    // This function uses service-role writes. Re-establish current teacher
+    // authority before wallet creation, external spend, or any consequential work.
+    const [{ data: profile }, { data: teacherAssignment }] = await Promise.all([
+      adminClient
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle(),
+      adminClient
+        .from("teacher_classes")
+        .select("id")
+        .eq("teacher_id", user.id)
+        .limit(1)
+        .maybeSingle(),
+    ])
+
+    if (profile?.role !== "teacher" || !teacherAssignment) {
+      return json({ error: "Forbidden" }, 403)
+    }
+
     let { data: wallet } = await adminClient
       .from("vibe_credits")
       .select("balance, total_spent")
@@ -50,17 +63,15 @@ serve(async (req) => {
       const { data: newWallet, error: walletErr } = await adminClient
         .from("vibe_credits")
         .insert({
-          teacher_id:   user.id,
-          balance:      FREE_CREDITS,
+          teacher_id: user.id,
+          balance: FREE_CREDITS,
           total_earned: FREE_CREDITS,
-          total_spent:  0,
+          total_spent: 0,
         })
         .select("balance, total_spent")
         .single()
 
       if (walletErr) {
-        // Race: a concurrent request created the wallet first (unique
-        // teacher_id). Re-read instead of failing the whole generation.
         const { data: existing } = await adminClient
           .from("vibe_credits")
           .select("balance, total_spent")
@@ -70,34 +81,32 @@ serve(async (req) => {
       } else {
         wallet = newWallet
         await adminClient.from("vibe_credit_transactions").insert({
-          teacher_id:    user.id,
-          type:          "gift",
-          feature:       "signup_bonus",
-          amount:        FREE_CREDITS,
+          teacher_id: user.id,
+          type: "gift",
+          feature: "signup_bonus",
+          amount: FREE_CREDITS,
           balance_after: FREE_CREDITS,
-          notes:         "Free credits on first AI use",
+          notes: "Free credits on first AI use",
         })
       }
     }
 
     if (!wallet || wallet.balance < CREDIT_COST) {
       return json({
-        error:    "insufficient_credits",
-        balance:  wallet?.balance ?? 0,
+        error: "insufficient_credits",
+        balance: wallet?.balance ?? 0,
         required: CREDIT_COST,
-        message:  "You have no Vibe Credits. Buy credits to generate lesson plans.",
+        message: "You have no Vibe Credits. Buy credits to generate lesson plans.",
       }, 402)
     }
 
     const body = await req.json()
     const { teacher, school, subject, className, studentCount, duration, topic, focus, previousTopics, curriculumStrand, curriculumSubStrand } = body
 
-    // G7: input validation — reject early if required fields missing
     if (!topic || !subject || !className) {
       return json({ error: "Missing required fields: topic, subject, className" }, 400)
     }
 
-    // Tavily — G4: wrapped in own try/catch, failure is non-fatal
     let tavilyContext = ""
     if (TAVILY_KEY) {
       try {
@@ -116,7 +125,6 @@ serve(async (req) => {
           .map((r: any) => "- " + r.title + ": " + r.content)
           .join("\n")
       } catch (tavilyErr) {
-        // non-fatal — continue without enrichment
         console.warn("[generate-lesson-plan] Tavily failed:", tavilyErr)
       }
     }
@@ -200,7 +208,6 @@ serve(async (req) => {
     })
 
     const groqData = await groqRes.json()
-
     if (!groqRes.ok || !groqData.choices) {
       console.error("[generate-lesson-plan] Groq error:", JSON.stringify(groqData))
       return json({ error: "Groq generation failed", detail: groqData }, 502)
@@ -212,34 +219,28 @@ serve(async (req) => {
       return json({ error: "Empty response from Groq" }, 502)
     }
 
-    // ── Deduct credit — only after generation actually succeeded ──────────
-    // Mirrors route.ts. Not atomic (check-then-write); acceptable at current
-    // scale, same exposure as the API route. Future hardening: a single
-    // spend_vibe_credit RPC that decrements-and-logs in one statement.
-    const newBalance    = wallet.balance - CREDIT_COST
+    const newBalance = wallet.balance - CREDIT_COST
     const newTotalSpent = (wallet.total_spent ?? 0) + CREDIT_COST
 
     const { error: deductErr } = await adminClient
       .from("vibe_credits")
       .update({
-        balance:     newBalance,
+        balance: newBalance,
         total_spent: newTotalSpent,
-        updated_at:  new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
       .eq("teacher_id", user.id)
 
     if (deductErr) {
-      // The teacher already has their plan — never fail the response over
-      // bookkeeping. Log loudly so it shows in function logs instead.
       console.error("[generate-lesson-plan] credit deduction failed:", deductErr)
     } else {
       await adminClient.from("vibe_credit_transactions").insert({
-        teacher_id:    user.id,
-        type:          "spend",
-        feature:       "lesson_plan",
-        amount:        -CREDIT_COST,
+        teacher_id: user.id,
+        type: "spend",
+        feature: "lesson_plan",
+        amount: -CREDIT_COST,
         balance_after: newBalance,
-        notes:         "Generated lesson plan",
+        notes: "Generated lesson plan",
       })
     }
 
@@ -247,9 +248,7 @@ serve(async (req) => {
       plan: text,
       credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance },
     })
-
   } catch (err) {
-    // G7: no silent swallows
     console.error("[generate-lesson-plan] Unhandled error:", err)
     return json({ error: String(err) }, 500)
   }

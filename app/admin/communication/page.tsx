@@ -1,1023 +1,526 @@
-"use client";
-export const dynamic = "force-dynamic";
+"use client"
+export const dynamic = "force-dynamic"
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-type MessageUI = {
-  id: string
-  thread_id: string
-  sender_id: string
-  body: string
-  created_at: string
-}
+import { useEffect, useMemo, useState } from "react"
+import { supabase } from "@/lib/supabase"
+import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 
-type CircularRecipientUI = {
-  id: string
-  circular_id: string
+type Audience = "all_staff" | "all_students" | "all_parents" | "everyone"
+
+type CommunityPerson = {
   profile_id: string
-  ack_at: string | null
+  full_name: string | null
+  relationship: string
 }
 
-type CircularUI = {
+type ProfileSummary = {
+  id: string
+  full_name: string | null
+  role: string | null
+}
+
+type ThreadRow = {
+  id: string
+  subject: string | null
+  context_tag: string | null
+  last_message_at: string | null
+  last_message_preview: string | null
+}
+
+type ThreadItem = ThreadRow & {
+  otherId: string | null
+  otherName: string
+  otherRole: string
+}
+
+type MessageRow = {
+  id: string
+  sender_id: string | null
+  body: string
+  created_at: string | null
+}
+
+type CircularRow = {
   id: string
   title: string
   body: string
-  audience_type: 'all_staff' | 'all_parents' | 'everyone'
-  requires_ack: boolean
-  sent_at: string
+  audience_type: string
+  requires_ack: boolean | null
   ack_deadline: string | null
+  sent_at: string | null
+  created_at: string | null
+}
+
+type CircularItem = CircularRow & {
+  recipientCount: number
   ackCount: number
-  totalCount: number
-  recipients: CircularRecipientUI[]
 }
 
-const C = {
-  hero:      '#0a1628',
-  heroMid:   '#0d2347',
-  emerald:   '#10b981',
-  emeraldLt: '#d1fae5',
-  bg:        '#f0f4f8',
-  border:    '#e2e8f0',
-  surface:   '#ffffff',
-  text:      '#0f172a',
-  muted:     '#64748b',
-  warning:   '#f59e0b',
-  warningLt: '#fef3c7',
-  error:     '#ef4444',
-  errorLt:   '#fee2e2',
-  navy3:     '#0f5fa8',
-  indigo:    '#6366f1',
-  indigoLt:  '#e0e7ff',
+const fieldStyle = {
+  width: "100%",
+  boxSizing: "border-box" as const,
+  border: "1px solid #cbd5e1",
+  borderRadius: 11,
+  padding: "11px 12px",
+  background: "white",
+  fontSize: 14,
 }
 
-function Skeleton({ h = 56, r = 12 }: { h?: number; r?: number }) {
-  return (
-    <div style={{
-      height: h, borderRadius: r,
-      background: 'linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'shimmer 1.4s infinite',
-    }} />
-  )
-}
-
-function VCIcon({ size = 24 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <rect width="32" height="32" rx="10" fill="#0a1628"/>
-      <path d="M6 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H10l-4 4V8z" fill="#10b981" opacity="0.15"/>
-      <path d="M6 8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H10l-4 4V8z" stroke="#10b981" strokeWidth="1.5" fill="none"/>
-      <text x="16" y="17" textAnchor="middle" fontSize="10" fill="#10b981" fontWeight="bold">✦</text>
-    </svg>
-  )
-}
-
-function ContextTag({ tag }: { tag: string }) {
-  const map: Record<string, { icon: string; label: string; bg: string; color: string }> = {
-    memo:     { icon: '📋', label: 'Memo',    bg: '#e0e7ff', color: '#3730a3' },
-    enquiry:  { icon: '❓', label: 'Enquiry', bg: '#fef3c7', color: '#92400e' },
-    urgent:   { icon: '🚨', label: 'Urgent',  bg: '#fee2e2', color: '#b91c1c' },
-    general:  { icon: '💬', label: 'General', bg: '#f0fdf4', color: '#166534' },
-    question: { icon: '❓', label: 'Question',bg: '#fef3c7', color: '#92400e' },
-    concern:  { icon: '🚨', label: 'Concern', bg: '#fee2e2', color: '#b91c1c' },
-    colleague:{ icon: '👥', label: 'Colleague',bg:'#f0f9ff', color: '#0369a1' },
-  }
-  const t = map[tag] ?? map.general
-  return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '3px',
-      fontSize: '11px', fontWeight: 600,
-      padding: '2px 7px', borderRadius: '99px',
-      background: t.bg, color: t.color,
-      whiteSpace: 'nowrap', flexShrink: 0,
-    }}>{t.icon} {t.label}</span>
-  )
-}
-
-function initials(name: string) {
-  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-}
-
-function timeAgo(ts: string) {
-  const diff = Date.now() - new Date(ts).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1)  return 'now'
-  if (m < 60) return `${m}m`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h`
-  return `${Math.floor(h / 24)}d`
-}
-
-async function ensureVCId(userId: string, fullName: string) {
-  const { data } = await supabase.from('profiles').select('vc_id').eq('id', userId).single()
-  if (data?.vc_id) return data.vc_id
-  const slug = fullName.toLowerCase().split(' ')[0].replace(/[^a-z]/g, '').slice(0, 8)
-  const suffix = Math.floor(1000 + Math.random() * 9000)
-  const vcId = `@${slug}.${suffix}`
-  await supabase.from('profiles').update({ vc_id: vcId }).eq('id', userId)
-  return vcId
-}
-
-async function findOrCreateThread(
-  schoolId: string,
-  currentUserId: string,
-  otherUserId: string,
-  contextTag = 'general'
-): Promise<string> {
-  const { data: myThreads } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', currentUserId)
-  const myThreadIds = (myThreads ?? []).map((t: { thread_id: string | null }) => t.thread_id).filter((id): id is string => id !== null)
-  if (myThreadIds.length > 0) {
-    const { data: shared } = await supabase.from('vc_participants').select('thread_id').eq('profile_id', otherUserId).in('thread_id', myThreadIds)
-    if (shared && shared.length > 0 && shared[0].thread_id) return shared[0].thread_id
-  }
-  const { data: thread } = await supabase.from('vc_threads').insert({
-    school_id: schoolId,
-    type: 'direct',
-    created_by: currentUserId,
-    context_tag: contextTag,
-  }).select().single()
-  if (!thread) throw new Error('Failed to create thread')
-  await supabase.from('vc_participants').insert([
-    { thread_id: thread.id, profile_id: currentUserId, school_id: schoolId },
-    { thread_id: thread.id, profile_id: otherUserId,   school_id: schoolId },
-  ])
-  return thread.id
-}
-
-interface ThreadUI {
-  threadId:      string
-  otherName:     string
-  otherInitials: string
-  lastMessage:   string
-  lastTime:      string
-  unreadCount:   number
-  otherRole:     string
-  otherId:       string
-  contextTag:    string
-}
-
-interface ProfileRow {
-  id:        string
-  full_name: string
-  role:      string
+function shortTime(value: string | null) {
+  if (!value) return ""
+  return new Date(value).toLocaleString("en-KE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
 }
 
 export default function AdminCommunicationPage() {
-  const router = useRouter()
+  const [schoolId, setSchoolId] = useState("")
+  const [userId, setUserId] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [tab, setTab] = useState<"messages" | "circulars">("messages")
 
-  const [userId,   setUserId]   = useState('')
-  const [schoolId, setSchoolId] = useState<string | null>(null)
-  const [myName,   setMyName]   = useState('')
-  const [loading,  setLoading]  = useState(true)
+  const [threads, setThreads] = useState<ThreadItem[]>([])
+  const [activeThread, setActiveThread] = useState<ThreadItem | null>(null)
+  const [messages, setMessages] = useState<MessageRow[]>([])
+  const [messageBody, setMessageBody] = useState("")
+  const [sendingMessage, setSendingMessage] = useState(false)
 
-  const [tab, setTab] = useState<'threads' | 'circulars'>('threads')
+  const [composeOpen, setComposeOpen] = useState(false)
+  const [personQuery, setPersonQuery] = useState("")
+  const [people, setPeople] = useState<CommunityPerson[]>([])
+  const [searching, setSearching] = useState(false)
 
-  // Threads
-  const [threads,      setThreads]      = useState<ThreadUI[]>([])
-  const [activeThread, setActiveThread] = useState<ThreadUI | null>(null)
-  const [messages,     setMessages]     = useState<MessageUI[]>([])
-  const [msgBody,      setMsgBody]      = useState('')
-  const [sending,      setSending]      = useState(false)
-  const [msgLoading,   setMsgLoading]   = useState(false)
-  const pollRef   = useRef<ReturnType<typeof setInterval> | null>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
-
-  // Compose type picker
-  const [composeTypeOpen, setComposeTypeOpen] = useState(false)
-  const [pendingTag,      setPendingTag]      = useState('general')
-
-  // Direct compose
-  const [composeOpen,   setComposeOpen]   = useState(false)
-  const [searchQuery,   setSearchQuery]   = useState('')
-  const [searchResults, setSearchResults] = useState<ProfileRow[]>([])
-  const [searching,     setSearching]     = useState(false)
-
-  // Memo sheet
-  const [memoOpen,          setMemoOpen]          = useState(false)
-  const [memoRecipient,     setMemoRecipient]     = useState<ProfileRow | null>(null)
-  const [memoSearch,        setMemoSearch]        = useState('')
-  const [memoSearchResults, setMemoSearchResults] = useState<ProfileRow[]>([])
-  const [memoSearching,     setMemoSearching]     = useState(false)
-  const [memoSubject,       setMemoSubject]       = useState('')
-  const [memoBody,          setMemoBody]          = useState('')
-  const [memoAck,           setMemoAck]           = useState(false)
-  const [memoSending,       setMemoSending]       = useState(false)
-  const memoSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Circulars
-  const [circulars,       setCirculars]       = useState<CircularUI[]>([])
-  const [activeCircular,  setActiveCircular]  = useState<CircularUI | null>(null)
-  const [newCircSheet,    setNewCircSheet]    = useState(false)
-  const [circTitle,       setCircTitle]       = useState('')
-  const [circBody,        setCircBody]        = useState('')
-  const [circAudience,    setCircAudience]    = useState<'all_staff' | 'all_parents' | 'everyone'>('everyone')
-  const [circAck,         setCircAck]         = useState(true)
-  const [circDeadline,    setCircDeadline]    = useState('')
-  const [circSending,     setCircSending]     = useState(false)
-
-  // Toast
-  const [toast, setToast] = useState<{ msg: string; type?: string } | null>(null)
+  const [circulars, setCirculars] = useState<CircularItem[]>([])
+  const [circularOpen, setCircularOpen] = useState(false)
+  const [circularTitle, setCircularTitle] = useState("")
+  const [circularBody, setCircularBody] = useState("")
+  const [audience, setAudience] = useState<Audience>("everyone")
+  const [requiresAck, setRequiresAck] = useState(true)
+  const [ackDeadline, setAckDeadline] = useState("")
+  const [sendingCircular, setSendingCircular] = useState(false)
 
   useEffect(() => {
-    loadUser()
-    return () => { if (pollRef.current) clearInterval(pollRef.current) }
+    void bootstrap()
   }, [])
 
-  function showToast(msg: string, type = 'success') {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
-  }
+  useEffect(() => {
+    if (!composeOpen || personQuery.trim().length < 2 || !schoolId) {
+      setPeople([])
+      return
+    }
+    const timer = setTimeout(() => void searchCommunity(personQuery), 250)
+    return () => clearTimeout(timer)
+  }, [composeOpen, personQuery, schoolId])
 
-  async function loadUser() {
+  async function bootstrap() {
+    setLoading(true)
+    setError("")
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/admin/login'); return }
-      const [pRes, adminRes, memberRes] = await Promise.all([
-        supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single(),
-        supabase.from('admin_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+      const authority = await getAdminSchoolAuthority()
+      setSchoolId(authority.schoolId)
+      setUserId(authority.userId)
+      await Promise.all([
+        loadThreads(authority.schoolId, authority.userId),
+        loadCirculars(authority.schoolId),
       ])
-      const p = pRes.data
-      if (p) p.school_id = memberRes.data?.school_id ?? adminRes.data?.school_id ?? p.school_id
-      if (!p || p.role !== 'admin') { router.push('/admin/login'); return }
-      setUserId(user.id)
-      setSchoolId(p?.school_id ?? null)
-      setMyName(p.full_name ?? 'Admin')
-      try { await ensureVCId(user.id, p.full_name ?? 'Admin') } catch {}
-      await loadAll(user.id, p?.school_id ?? '')
-    } catch {
-      router.push('/admin/login')
+    } catch (cause) {
+      console.error("Admin communications bootstrap failed", cause)
+      setError(cause instanceof Error ? cause.message : "School communications could not be loaded.")
     } finally {
       setLoading(false)
     }
   }
 
-  async function loadAll(uid: string, sid: string) {
-    const [{ data: parts }, { data: circs }] = await Promise.all([
-      supabase.from('vc_participants').select('thread_id, last_read_at').eq('profile_id', uid),
-      supabase.from('vc_circulars').select('*').eq('school_id', sid).order('sent_at', { ascending: false }),
+  async function loadThreads(sid: string, uid: string) {
+    const participantRes = await supabase
+      .from("vc_participants")
+      .select("thread_id")
+      .eq("profile_id", uid)
+      .eq("school_id", sid)
+      .is("left_at", null)
+    if (participantRes.error) throw participantRes.error
+    const threadIds = Array.from(new Set((participantRes.data ?? []).map(row => row.thread_id).filter((id): id is string => Boolean(id))))
+    if (threadIds.length === 0) {
+      setThreads([])
+      return
+    }
+
+    const [threadRes, allParticipantsRes] = await Promise.all([
+      supabase
+        .from("vc_threads")
+        .select("id,subject,context_tag,last_message_at,last_message_preview")
+        .eq("school_id", sid)
+        .in("id", threadIds)
+        .order("last_message_at", { ascending: false, nullsFirst: false }),
+      supabase
+        .from("vc_participants")
+        .select("thread_id,profile_id")
+        .eq("school_id", sid)
+        .in("thread_id", threadIds)
+        .is("left_at", null),
     ])
+    if (threadRes.error) throw threadRes.error
+    if (allParticipantsRes.error) throw allParticipantsRes.error
 
-    const threadIds = (parts ?? [])
-      .map(p => p.thread_id)
-      .filter((threadId): threadId is string => threadId !== null)
-
-    if (threadIds.length > 0) {
-      const [{ data: threadRows }, { data: allParts }] = await Promise.all([
-        supabase.from('vc_threads').select('*').in('id', threadIds).order('last_message_at', { ascending: false }),
-        supabase.from('vc_participants').select('thread_id, profile_id').in('thread_id', threadIds),
-      ])
-
-      const otherIds = (allParts ?? [])
-        .map(p => p.profile_id)
-        .filter((profileId): profileId is string =>
-          profileId !== null && profileId !== uid
-        )
-
-      const { data: profiles } = otherIds.length > 0
-        ? await supabase.from('profiles').select('id, full_name, role').in('id', otherIds)
-        : { data: [] }
-
-      const profileMap: Record<string, ProfileRow> = {}
-      ;(profiles ?? []).forEach(pr => {
-        profileMap[pr.id] = {
-          id: pr.id,
-          full_name: pr.full_name,
-          role: pr.role ?? 'staff',
-        }
-      })
-
-      const readMap: Record<string, string | null> = {}
-      ;(parts ?? []).forEach(p => {
-        if (p.thread_id !== null) {
-          readMap[p.thread_id] = p.last_read_at
-        }
-      })
-
-      // Accurate unread counts
-      const unreadCounts: Record<string, number> = {}
-      await Promise.all(threadIds.map(async (threadId: string) => {
-        const since = readMap[threadId] ?? '1970-01-01T00:00:00Z'
-        const { count } = await supabase
-          .from('vc_messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('thread_id', threadId)
-          .neq('sender_id', uid)
-          .gt('created_at', since)
-        unreadCounts[threadId] = count ?? 0
-      }))
-
-      const ui: ThreadUI[] = (threadRows ?? []).map(t => {
-        const otherPart = (allParts ?? []).find(
-          p =>
-            p.thread_id === t.id &&
-            p.profile_id !== null &&
-            p.profile_id !== uid
-        )
-        const otherProfileId = otherPart?.profile_id ?? null
-        const other = otherProfileId ? profileMap[otherProfileId] : null
-        return {
-          threadId:      t.id,
-          otherName:     other?.full_name ?? 'Unknown',
-          otherInitials: initials(other?.full_name ?? '?'),
-          lastMessage:   t.last_message_preview ?? '',
-          lastTime:      t.last_message_at ? timeAgo(t.last_message_at) : '',
-          unreadCount:   unreadCounts[t.id] ?? 0,
-          otherRole:     other?.role ?? '',
-          otherId:       otherProfileId ?? '',
-          contextTag:    t.context_tag ?? 'general',
-        }
-      })
-      setThreads(ui)
+    const otherIds = Array.from(new Set(
+      (allParticipantsRes.data ?? [])
+        .map(row => row.profile_id)
+        .filter((id): id is string => Boolean(id && id !== uid))
+    ))
+    const profiles = new Map<string, ProfileSummary>()
+    if (otherIds.length > 0) {
+      const profileRes = await supabase
+        .from("profiles")
+        .select("id,full_name,role")
+        .in("id", otherIds)
+      if (profileRes.error) throw profileRes.error
+      for (const row of profileRes.data ?? []) {
+        profiles.set(row.id, {
+          id: row.id,
+          full_name: row.full_name,
+          role: row.role,
+        })
+      }
     }
 
-    if ((circs ?? []).length > 0) {
-      const circIds = (circs ?? []).map(c => c.id)
-      const { data: recips } = await supabase
-        .from('vc_circular_recipients')
-        .select('*')
-        .in('circular_id', circIds)
+    setThreads(((threadRes.data ?? []) as ThreadRow[]).map(thread => {
+      const participant = (allParticipantsRes.data ?? []).find(row => row.thread_id === thread.id && row.profile_id && row.profile_id !== uid)
+      const profile = participant?.profile_id ? profiles.get(participant.profile_id) : null
+      return {
+        ...thread,
+        otherId: participant?.profile_id ?? null,
+        otherName: profile?.full_name ?? thread.subject ?? "School conversation",
+        otherRole: profile?.role ?? "community",
+      }
+    }))
+  }
 
-      const circUI: CircularUI[] = (circs ?? []).map(c => {
-        const audience: CircularUI['audience_type'] =
-          c.audience_type === 'all_staff' ||
-          c.audience_type === 'all_parents' ||
-          c.audience_type === 'everyone'
-            ? c.audience_type
-            : 'everyone'
-
-        const recipients: CircularRecipientUI[] = (recips ?? [])
-          .filter(
-            r =>
-              r.circular_id === c.id &&
-              r.circular_id !== null &&
-              r.profile_id !== null
-          )
-          .map(r => ({
-            id: r.id,
-            circular_id: r.circular_id as string,
-            profile_id: r.profile_id as string,
-            ack_at: r.ack_at,
-          }))
-
-        return {
-          id: c.id,
-          title: c.title,
-          body: c.body,
-          audience_type: audience,
-          requires_ack: c.requires_ack ?? false,
-          sent_at: c.sent_at ?? c.created_at ?? new Date(0).toISOString(),
-          ack_deadline: c.ack_deadline,
-          ackCount: recipients.filter(r => r.ack_at !== null).length,
-          totalCount: recipients.length,
-          recipients,
-        }
-      })
-
-      setCirculars(circUI)
-    } else {
+  async function loadCirculars(sid: string) {
+    const circularRes = await supabase
+      .from("vc_circulars")
+      .select("id,title,body,audience_type,requires_ack,ack_deadline,sent_at,created_at")
+      .eq("school_id", sid)
+      .order("sent_at", { ascending: false })
+      .limit(50)
+    if (circularRes.error) throw circularRes.error
+    const rows = (circularRes.data ?? []) as CircularRow[]
+    if (rows.length === 0) {
       setCirculars([])
+      return
+    }
+    const ids = rows.map(row => row.id)
+    const recipientRes = await supabase
+      .from("vc_circular_recipients")
+      .select("circular_id,ack_at")
+      .in("circular_id", ids)
+    if (recipientRes.error) throw recipientRes.error
+    setCirculars(rows.map(row => {
+      const recipients = (recipientRes.data ?? []).filter(recipient => recipient.circular_id === row.id)
+      return {
+        ...row,
+        recipientCount: recipients.length,
+        ackCount: recipients.filter(recipient => Boolean(recipient.ack_at)).length,
+      }
+    }))
+  }
+
+  async function searchCommunity(query: string) {
+    if (!schoolId) return
+    setSearching(true)
+    setError("")
+    try {
+      const { data, error: rpcError } = await supabase.rpc(
+        "admin_search_school_community" as never,
+        { p_school_id: schoolId, p_query: query.trim(), p_limit: 12 } as never
+      )
+      if (rpcError) throw rpcError
+      setPeople((data ?? []) as unknown as CommunityPerson[])
+    } catch (cause) {
+      console.error("Admin community search failed", cause)
+      setPeople([])
+      setError(cause instanceof Error ? cause.message : "School community search failed.")
+    } finally {
+      setSearching(false)
     }
   }
 
-  async function openThread(t: ThreadUI) {
-    setActiveThread(t)
-    setMsgLoading(true)
-    await loadMessages(t.threadId)
-    setMsgLoading(false)
-    await supabase.from('vc_participants')
-      .update({ last_read_at: new Date().toISOString() })
-      .eq('thread_id', t.threadId)
-      .eq('profile_id', userId)
-    if (pollRef.current) clearInterval(pollRef.current)
-    pollRef.current = setInterval(() => loadMessages(t.threadId), 10000)
+  async function findOrCreateDirectThread(other: CommunityPerson) {
+    if (!schoolId || !userId) return
+    setError("")
+    try {
+      const myParticipants = await supabase
+        .from("vc_participants")
+        .select("thread_id")
+        .eq("school_id", schoolId)
+        .eq("profile_id", userId)
+        .is("left_at", null)
+      if (myParticipants.error) throw myParticipants.error
+      const myThreadIds = (myParticipants.data ?? []).map(row => row.thread_id).filter((id): id is string => Boolean(id))
+      if (myThreadIds.length > 0) {
+        const shared = await supabase
+          .from("vc_participants")
+          .select("thread_id")
+          .eq("school_id", schoolId)
+          .eq("profile_id", other.profile_id)
+          .in("thread_id", myThreadIds)
+          .is("left_at", null)
+          .limit(1)
+        if (shared.error) throw shared.error
+        const existingId = shared.data?.[0]?.thread_id
+        if (existingId) {
+          const existing = threads.find(row => row.id === existingId)
+          if (existing) setActiveThread(existing)
+          else await loadThreads(schoolId, userId)
+          setComposeOpen(false)
+          return
+        }
+      }
+
+      const threadRes = await supabase
+        .from("vc_threads")
+        .insert({ school_id: schoolId, type: "direct", created_by: userId, context_tag: "general" })
+        .select("id,subject,context_tag,last_message_at,last_message_preview")
+        .single()
+      if (threadRes.error || !threadRes.data) throw threadRes.error ?? new Error("Conversation could not be created.")
+
+      const participantRes = await supabase.from("vc_participants").insert([
+        { thread_id: threadRes.data.id, profile_id: userId, school_id: schoolId },
+        { thread_id: threadRes.data.id, profile_id: other.profile_id, school_id: schoolId },
+      ])
+      if (participantRes.error) throw participantRes.error
+
+      const next: ThreadItem = {
+        ...(threadRes.data as ThreadRow),
+        otherId: other.profile_id,
+        otherName: other.full_name ?? "School community member",
+        otherRole: other.relationship,
+      }
+      setActiveThread(next)
+      setThreads(current => [next, ...current])
+      setComposeOpen(false)
+      setPersonQuery("")
+      setPeople([])
+      setMessages([])
+    } catch (cause) {
+      console.error("Admin direct conversation creation failed", cause)
+      setError(cause instanceof Error ? cause.message : "Conversation could not be created.")
+    }
   }
 
-  async function loadMessages(threadId: string) {
-    const { data } = await supabase
-      .from('vc_messages')
-      .select('*')
-      .eq('thread_id', threadId)
-      .is('deleted_at', null)
-      .order('created_at', { ascending: true })
-    const normalized: MessageUI[] = (data ?? [])
-      .filter(
-        row =>
-          row.thread_id !== null &&
-          row.sender_id !== null &&
-          row.created_at !== null
-      )
-      .map(row => ({
-        id: row.id,
-        thread_id: row.thread_id as string,
-        sender_id: row.sender_id as string,
-        body: row.body,
-        created_at: row.created_at as string,
-      }))
-
-    setMessages(normalized)
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  async function openThread(thread: ThreadItem) {
+    setActiveThread(thread)
+    setError("")
+    const { data, error: queryError } = await supabase
+      .from("vc_messages")
+      .select("id,sender_id,body,created_at")
+      .eq("school_id", schoolId)
+      .eq("thread_id", thread.id)
+      .is("deleted_at", null)
+      .order("created_at")
+    if (queryError) {
+      setError(queryError.message)
+      return
+    }
+    setMessages((data ?? []) as MessageRow[])
+    await supabase
+      .from("vc_participants")
+      .update({ last_read_at: new Date().toISOString() })
+      .eq("school_id", schoolId)
+      .eq("thread_id", thread.id)
+      .eq("profile_id", userId)
   }
 
   async function sendMessage() {
-    if (!msgBody.trim() || !activeThread) return
-    setSending(true)
-    const body = msgBody.trim()
-    setMsgBody('')
-    const { error: msgErr } = await supabase.from('vc_messages').insert({
-      thread_id: activeThread.threadId,
-      school_id: schoolId ?? null,
-      sender_id: userId,
-      body,
-    })
-    if (msgErr) { setSending(false); setMsgBody(body); return }
-    await supabase.from('vc_threads').update({
-      last_message_at:      new Date().toISOString(),
-      last_message_preview: body.slice(0, 80),
-    }).eq('id', activeThread.threadId)
-    await loadMessages(activeThread.threadId)
-    setSending(false)
-  }
-
-  async function searchPeople(q: string) {
-    setSearchQuery(q)
-    if (q.length < 2) { setSearchResults([]); return }
-    if (!schoolId) { setSearchResults([]); return }
-    setSearching(true)
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, role')
-      .eq('school_id', schoolId)
-      .neq('id', userId)
-      .ilike('full_name', `%${q}%`)
-      .limit(10)
-    setSearchResults(
-      (data ?? []).map(row => ({
-        id: row.id,
-        full_name: row.full_name,
-        role: row.role ?? 'staff',
-      }))
-    )
-    setSearching(false)
-  }
-
-  async function startThread(other: ProfileRow) {
-    if (!schoolId || !userId) return
-    setComposeOpen(false)
-    setSearchQuery('')
-    setSearchResults([])
-    const threadId = await findOrCreateThread(schoolId, userId, other.id, pendingTag)
-    const t: ThreadUI = {
-      threadId,
-      otherName:     other.full_name,
-      otherInitials: initials(other.full_name),
-      lastMessage:   '',
-      lastTime:      '',
-      unreadCount:   0,
-      otherRole:     other.role,
-      otherId:       other.id,
-      contextTag:    pendingTag,
-    }
-    await openThread(t)
-  }
-
-  // ── Memo search ────────────────────────────────
-  function onMemoSearchChange(q: string) {
-    setMemoSearch(q)
-    setMemoRecipient(null)
-    if (q.length < 2) { setMemoSearchResults([]); return }
-    if (memoSearchTimer.current) clearTimeout(memoSearchTimer.current)
-    memoSearchTimer.current = setTimeout(async () => {
-      if (!schoolId || !userId) {
-        setMemoSearchResults([])
-        return
-      }
-
-      setMemoSearching(true)
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .eq('school_id', schoolId)
-        .neq('id', userId)
-        .ilike('full_name', `%${q}%`)
-        .limit(8)
-      setMemoSearchResults(
-        (data ?? []).map(row => ({
-          id: row.id,
-          full_name: row.full_name,
-          role: row.role ?? 'staff',
-        }))
-      )
-      setMemoSearching(false)
-    }, 280)
-  }
-
-  function selectMemoRecipient(p: ProfileRow) {
-    setMemoRecipient(p)
-    setMemoSearch(p.full_name)
-    setMemoSearchResults([])
-  }
-
-  async function sendMemo() {
-    if (
-      !schoolId ||
-      !userId ||
-      !memoRecipient ||
-      !memoSubject.trim() ||
-      !memoBody.trim()
-    ) return
-    setMemoSending(true)
+    if (!activeThread || !messageBody.trim() || sendingMessage) return
+    setSendingMessage(true)
+    setError("")
+    const body = messageBody.trim()
     try {
-      const { data: circ, error } = await supabase
-        .from('vc_circulars')
-        .insert({
-          school_id:            schoolId,
-          title:                memoSubject.trim(),
-          body:                 memoBody.trim(),
-          audience_type:        'all_staff',
-          recipient_profile_id: memoRecipient.id,
-          requires_ack:         memoAck,
-          sent_by:              userId,
-          sent_at:              new Date().toISOString(),
-        })
-        .select()
+      const { data, error: insertError } = await supabase
+        .from("vc_messages")
+        .insert({ school_id: schoolId, thread_id: activeThread.id, sender_id: userId, body })
+        .select("id,sender_id,body,created_at")
         .single()
-      if (error) throw error
-      if (circ) {
-        await supabase.from('vc_circular_recipients').insert({
-          circular_id: circ.id,
-          profile_id:  memoRecipient.id,
-        })
-      }
-      setMemoOpen(false)
-      setMemoRecipient(null)
-      setMemoSearch('')
-      setMemoSubject('')
-      setMemoBody('')
-      setMemoAck(false)
-      showToast(`Memo sent to ${memoRecipient.full_name}`)
-      if (schoolId) await loadAll(userId, schoolId)
-    } catch (err) {
-      console.error('Memo send failed:', err)
-      showToast('Failed to send memo', 'error')
+      if (insertError || !data) throw insertError ?? new Error("Message was not sent.")
+      await supabase
+        .from("vc_threads")
+        .update({ last_message_at: new Date().toISOString(), last_message_preview: body.slice(0, 80) })
+        .eq("id", activeThread.id)
+        .eq("school_id", schoolId)
+      setMessages(current => [...current, data as MessageRow])
+      setMessageBody("")
+      await loadThreads(schoolId, userId)
+    } catch (cause) {
+      console.error("Admin message send failed", cause)
+      setError(cause instanceof Error ? cause.message : "Message was not sent.")
     } finally {
-      setMemoSending(false)
+      setSendingMessage(false)
     }
   }
 
   async function sendCircular() {
-    if (!schoolId || !userId || !circTitle.trim() || !circBody.trim()) return
-    setCircSending(true)
-    const { data: circ, error: circErr } = await supabase.from('vc_circulars').insert({
-      school_id:     schoolId,
-      title:         circTitle.trim(),
-      body:          circBody.trim(),
-      audience_type: circAudience,
-      requires_ack:  circAck,
-      ack_deadline:  circDeadline || null,
-      sent_by:       userId,
-    }).select().single()
-
-    if (circErr || !circ) { setCircSending(false); showToast('Failed to send circular', 'error'); return }
-    if (circ) {
-      let roleFilter: string[] = []
-      if (circAudience === 'all_staff')   roleFilter = ['teacher', 'admin']
-      if (circAudience === 'all_parents') roleFilter = ['parent']
-      if (circAudience === 'everyone')    roleFilter = ['teacher', 'admin', 'parent']
-      const { data: recipients } = await supabase
-        .from('profiles').select('id').eq('school_id', schoolId).in('role', roleFilter)
-      if (recipients && recipients.length > 0) {
-        await supabase.from('vc_circular_recipients').insert(
-          recipients.map((r: { id: string }) => ({ circular_id: circ.id, profile_id: r.id }))
-        )
-      }
+    if (!schoolId || !circularTitle.trim() || !circularBody.trim() || sendingCircular) return
+    setSendingCircular(true)
+    setError("")
+    try {
+      const { error: rpcError } = await supabase.rpc(
+        "admin_send_school_circular" as never,
+        {
+          p_school_id: schoolId,
+          p_title: circularTitle.trim(),
+          p_body: circularBody.trim(),
+          p_audience: audience,
+          p_requires_ack: requiresAck,
+          p_ack_deadline: ackDeadline ? new Date(ackDeadline).toISOString() : null,
+        } as never
+      )
+      if (rpcError) throw rpcError
+      setCircularOpen(false)
+      setCircularTitle("")
+      setCircularBody("")
+      setAudience("everyone")
+      setRequiresAck(true)
+      setAckDeadline("")
+      await loadCirculars(schoolId)
+    } catch (cause) {
+      console.error("Admin circular send failed", cause)
+      setError(cause instanceof Error ? cause.message : "Circular was not sent.")
+    } finally {
+      setSendingCircular(false)
     }
-    setNewCircSheet(false)
-    setCircTitle('')
-    setCircBody('')
-    setCircAudience('everyone')
-    setCircAck(true)
-    setCircDeadline('')
-    setCircSending(false)
-    if (schoolId) await loadAll(userId, schoolId)
   }
 
-  // ── Conversation view ──────────────────────────
+  const audienceLabels: Record<Audience, string> = useMemo(() => ({
+    all_staff: "Teachers & school staff",
+    all_students: "Students with VibeSchool accounts",
+    all_parents: "Verified parents / guardians",
+    everyone: "Whole school community",
+  }), [])
+
+  if (loading) return <div aria-busy="true" style={{ minHeight: 280, borderRadius: 18, background: "#e2e8f0" }} />
+
   if (activeThread) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100dvh - 120px)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-          <button
-            onClick={() => { setActiveThread(null); if (pollRef.current) clearInterval(pollRef.current); if (schoolId) loadAll(userId, schoolId) }}
-            style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}
-          >←</button>
-          <div style={{ width: 40, height: 40, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '14px', flexShrink: 0 }}>
-            {activeThread.otherInitials}
+      <main style={{ maxWidth: 820, margin: "0 auto", display: "grid", gap: 12 }}>
+        <header style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button aria-label="Back to conversations" onClick={() => { setActiveThread(null); setMessages([]) }} style={{ border: 0, background: "transparent", fontSize: 26, cursor: "pointer" }}>‹</button>
+          <div>
+            <h1 style={{ fontSize: 18, margin: 0 }}>{activeThread.otherName}</h1>
+            <div style={{ color: "#64748b", fontSize: 12, textTransform: "capitalize" }}>{activeThread.otherRole}</div>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: '700', fontSize: '15px', color: C.text }}>{activeThread.otherName}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-              <span style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{activeThread.otherRole}</span>
-              <ContextTag tag={activeThread.contextTag} />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingBottom: '8px' }}>
-          {msgLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {[1,2,3].map(i => <Skeleton key={i} h={48} />)}
-            </div>
-          ) : messages.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: C.muted }}>
-              <VCIcon size={40} />
-              <p style={{ marginTop: '12px', fontSize: '14px' }}>No messages yet. Say hello!</p>
-            </div>
-          ) : messages.map(m => {
-            const mine = m.sender_id === userId
+        </header>
+        {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 10, borderRadius: 10 }}>{error}</div>}
+        <section style={{ minHeight: 360, maxHeight: "60vh", overflowY: "auto", background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+          {messages.length === 0 ? <div style={{ color: "#64748b", textAlign: "center", margin: "auto" }}>No messages yet.</div> : messages.map(message => {
+            const mine = message.sender_id === userId
             return (
-              <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                <div style={{ maxWidth: '75%', padding: '10px 14px', borderRadius: mine ? '18px 18px 4px 18px' : '18px 18px 18px 4px', background: mine ? C.emerald : C.surface, color: mine ? '#fff' : C.text, fontSize: '14px', lineHeight: '1.4', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-                  {m.body}
-                  <div style={{ fontSize: '10px', opacity: 0.6, marginTop: '4px', textAlign: 'right' }}>{timeAgo(m.created_at)}</div>
-                </div>
+              <div key={message.id} style={{ alignSelf: mine ? "flex-end" : "flex-start", maxWidth: "82%", background: mine ? "#d1fae5" : "#f1f5f9", borderRadius: 14, padding: "9px 11px" }}>
+                <div style={{ whiteSpace: "pre-wrap", lineHeight: 1.45 }}>{message.body}</div>
+                <div style={{ color: "#64748b", fontSize: 10, marginTop: 4 }}>{shortTime(message.created_at)}</div>
               </div>
             )
           })}
-          <div ref={bottomRef} />
-        </div>
-
-        <div style={{ paddingTop: '8px', borderTop: `1px solid ${C.border}`, display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-          <textarea
-            value={msgBody}
-            onChange={e => setMsgBody(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-            placeholder="Type a message..."
-            rows={2}
-            style={{ flex: 1, padding: '10px 14px', borderRadius: '14px', border: `1px solid ${C.border}`, fontSize: '14px', resize: 'none', fontFamily: 'inherit', outline: 'none', background: C.surface }}
-          />
-          <button
-            onClick={sendMessage}
-            disabled={sending || !msgBody.trim()}
-            style={{ background: C.emerald, border: 'none', borderRadius: '14px', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '18px', flexShrink: 0, opacity: sending || !msgBody.trim() ? 0.5 : 1 }}
-          >➤</button>
-        </div>
-        <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
-      </div>
+        </section>
+        <section style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 8 }}>
+          <textarea aria-label="Message" value={messageBody} onChange={event => setMessageBody(event.target.value)} rows={2} placeholder="Write a school-related message" style={{ ...fieldStyle, resize: "vertical" }} />
+          <button disabled={sendingMessage || !messageBody.trim()} onClick={() => void sendMessage()} style={{ border: 0, borderRadius: 11, padding: "0 17px", background: "#10b981", color: "white", fontWeight: 780, cursor: "pointer" }}>{sendingMessage ? "…" : "Send"}</button>
+        </section>
+      </main>
     )
   }
 
-  // ── Circular detail ────────────────────────────
-  if (activeCircular) {
-    return (
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <button onClick={() => setActiveCircular(null)} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '10px', padding: '8px 12px', cursor: 'pointer', fontSize: '16px' }}>←</button>
-          <div style={{ fontWeight: '700', fontSize: '16px', color: C.text, flex: 1 }}>{activeCircular.title}</div>
-        </div>
-        <div style={{ background: C.surface, borderRadius: '16px', padding: '16px', marginBottom: '12px', border: `1px solid ${C.border}` }}>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-            <span style={{ background: C.emeraldLt, color: C.emerald, borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: '600' }}>{activeCircular.audience_type.replace(/_/g, ' ')}</span>
-            {activeCircular.requires_ack && <span style={{ background: C.warningLt, color: C.warning, borderRadius: '20px', padding: '4px 12px', fontSize: '12px', fontWeight: '600' }}>Ack required</span>}
-          </div>
-          <p style={{ fontSize: '14px', color: C.text, lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{activeCircular.body}</p>
-          <p style={{ fontSize: '12px', color: C.muted, marginTop: '12px' }}>Sent {timeAgo(activeCircular.sent_at)}</p>
-        </div>
-        <div style={{ background: C.surface, borderRadius: '16px', padding: '16px', border: `1px solid ${C.border}` }}>
-          <div style={{ fontWeight: '700', fontSize: '14px', color: C.text, marginBottom: '12px' }}>
-            Acknowledgements: {activeCircular.ackCount} of {activeCircular.totalCount}
-          </div>
-          <div style={{ height: '6px', borderRadius: '6px', background: C.border, marginBottom: '16px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: '6px', background: C.emerald, width: activeCircular.totalCount > 0 ? `${(activeCircular.ackCount / activeCircular.totalCount) * 100}%` : '0%', transition: 'width 0.4s ease' }} />
-          </div>
-          {activeCircular.recipients.map(r => (
-            <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
-              <span style={{ fontSize: '13px', color: C.text }}>{r.profile_id.slice(0, 8)}…</span>
-              <span style={{ fontSize: '12px', color: r.ack_at ? C.emerald : C.muted, fontWeight: '600' }}>{r.ack_at ? '✓ Acknowledged' : 'Pending'}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  // ── Main view ──────────────────────────────────
   return (
-    <div>
-      {/* Toast */}
-      {toast && (
-        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', background: toast.type === 'error' ? C.error : C.hero, color: '#fff', padding: '10px 20px', borderRadius: '12px', fontSize: '14px', fontWeight: '600', zIndex: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
-          {toast.msg}
-        </div>
-      )}
+    <main style={{ maxWidth: 900, margin: "0 auto", display: "grid", gap: 16 }}>
+      <header>
+        <h1 style={{ margin: 0, fontSize: 24 }}>School communications</h1>
+        <p style={{ color: "#64748b", margin: "5px 0 0" }}>Message only verified members of this school community. Recipient scope is enforced by backend authority.</p>
+      </header>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
-        <VCIcon size={32} />
-        <div>
-          <h1 style={{ fontSize: '20px', fontWeight: '800', color: C.text, margin: 0 }}>VibeConnect</h1>
-          <p style={{ fontSize: '12px', color: C.muted, margin: 0 }}>Messages · Memos · Circulars</p>
-        </div>
-      </div>
+      {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '8px', margin: '20px 0 16px', background: C.surface, borderRadius: '12px', padding: '4px', border: `1px solid ${C.border}` }}>
-        {(['threads', 'circulars'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '14px', background: tab === t ? C.hero : 'transparent', color: tab === t ? '#fff' : C.muted, transition: 'all 0.2s' }}>
-            {t === 'threads' ? '💬 Messages' : '📢 Circulars'}
-          </button>
-        ))}
-      </div>
+      <nav style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, background: "#f1f5f9", borderRadius: 13, padding: 4 }}>
+        <button onClick={() => setTab("messages")} style={{ border: 0, borderRadius: 10, padding: 10, background: tab === "messages" ? "white" : "transparent", fontWeight: 730, cursor: "pointer" }}>Messages</button>
+        <button onClick={() => setTab("circulars")} style={{ border: 0, borderRadius: 10, padding: 10, background: tab === "circulars" ? "white" : "transparent", fontWeight: 730, cursor: "pointer" }}>Circulars</button>
+      </nav>
 
-      {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {[1,2,3,4].map(i => <Skeleton key={i} h={72} />)}
-        </div>
-      ) : tab === 'threads' ? (
+      {tab === "messages" ? (
         <>
+          <button onClick={() => setComposeOpen(true)} style={{ border: 0, borderRadius: 12, padding: 12, background: "#0a1628", color: "white", fontWeight: 760, cursor: "pointer" }}>New school conversation</button>
           {threads.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', background: C.surface, borderRadius: '16px', border: `1px solid ${C.border}` }}>
-              <VCIcon size={48} />
-              <p style={{ marginTop: '16px', fontWeight: '700', color: C.text }}>No conversations yet</p>
-              <p style={{ fontSize: '13px', color: C.muted, marginTop: '4px' }}>Tap + to start a conversation</p>
-            </div>
+            <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 28, textAlign: "center" }}>
+              <strong>No conversations yet</strong>
+              <p style={{ color: "#64748b" }}>Search the authorized school community to begin a conversation.</p>
+            </section>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {threads.map(t => (
-                <button key={t.threadId} onClick={() => openThread(t)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '15px', flexShrink: 0 }}>
-                    {t.otherInitials}
+            <section style={{ display: "grid", gap: 8 }}>
+              {threads.map(thread => (
+                <button key={thread.id} onClick={() => void openThread(thread)} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, textAlign: "left", cursor: "pointer", display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 780, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{thread.otherName}</div>
+                    <div style={{ color: "#64748b", fontSize: 13, marginTop: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{thread.last_message_preview || "No messages yet"}</div>
                   </div>
-                  <div style={{ flex: 1, overflow: 'hidden' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontWeight: '700', fontSize: '14px', color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.otherName}</span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-                        <ContextTag tag={t.contextTag} />
-                        <span style={{ fontSize: '11px', color: C.muted }}>{t.lastTime}</span>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: '13px', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: '2px' }}>{t.lastMessage || 'No messages yet'}</div>
-                  </div>
-                  {t.unreadCount > 0 && (
-                    <div style={{ width: 20, height: 20, borderRadius: '50%', background: C.emerald, color: '#fff', fontSize: '11px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{t.unreadCount}</div>
-                  )}
+                  <div style={{ color: "#64748b", fontSize: 11, textAlign: "right" }}>{thread.otherRole}<br />{shortTime(thread.last_message_at)}</div>
                 </button>
               ))}
-            </div>
+            </section>
           )}
-
-          {/* FAB — opens 3-card picker */}
-          <button
-            onClick={() => setComposeTypeOpen(true)}
-            style={{ position: 'fixed', bottom: '80px', right: '20px', width: '56px', height: '56px', borderRadius: '50%', background: C.emerald, border: 'none', color: '#fff', fontSize: '24px', cursor: 'pointer', boxShadow: '0 4px 20px rgba(16,185,129,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 20 }}
-          >+</button>
         </>
       ) : (
         <>
-          <button onClick={() => setNewCircSheet(true)} style={{ width: '100%', padding: '14px', borderRadius: '14px', background: C.emerald, border: 'none', color: '#fff', fontWeight: '700', fontSize: '15px', cursor: 'pointer', marginBottom: '16px' }}>
-            + New Circular
-          </button>
-          {circulars.filter(c => c.audience_type !== 'everyone').length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', background: C.surface, borderRadius: '16px', border: `1px solid ${C.border}` }}>
-              <p style={{ fontSize: '32px' }}>📢</p>
-              <p style={{ marginTop: '12px', fontWeight: '700', color: C.text }}>No circulars sent yet</p>
-              <p style={{ fontSize: '13px', color: C.muted, marginTop: '4px' }}>Send your first circular above</p>
-            </div>
+          <button onClick={() => setCircularOpen(true)} style={{ border: 0, borderRadius: 12, padding: 12, background: "#10b981", color: "white", fontWeight: 760, cursor: "pointer" }}>New circular</button>
+          {circulars.length === 0 ? (
+            <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 28, textAlign: "center" }}>
+              <strong>No circulars sent yet</strong>
+              <p style={{ color: "#64748b" }}>Send a school-scoped notice to teachers, students, parents, or everyone.</p>
+            </section>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {circulars.filter(c => c.audience_type !== 'everyone').map(c => (
-                <button key={c.id} onClick={() => setActiveCircular(c)} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '14px', padding: '16px', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-                    <span style={{ fontWeight: '700', fontSize: '14px', color: C.text, flex: 1 }}>{c.title}</span>
-                    <span style={{ fontSize: '11px', color: C.muted, marginLeft: '8px', flexShrink: 0 }}>{timeAgo(c.sent_at)}</span>
+            <section style={{ display: "grid", gap: 8 }}>
+              {circulars.map(circular => (
+                <article key={circular.id} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                    <strong>{circular.title}</strong>
+                    <span style={{ color: "#64748b", fontSize: 11 }}>{shortTime(circular.sent_at ?? circular.created_at)}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ background: C.emeraldLt, color: C.emerald, borderRadius: '20px', padding: '3px 10px', fontSize: '11px', fontWeight: '600' }}>{c.audience_type.replace(/_/g, ' ')}</span>
-                    {c.requires_ack && (
-                      <span style={{ fontSize: '12px', color: c.ackCount === c.totalCount && c.totalCount > 0 ? C.emerald : C.warning, fontWeight: '600' }}>
-                        {c.ackCount}/{c.totalCount} ack
-                      </span>
-                    )}
+                  <p style={{ color: "#475569", lineHeight: 1.5, whiteSpace: "pre-wrap", margin: "8px 0" }}>{circular.body}</p>
+                  <div style={{ color: "#64748b", fontSize: 12 }}>
+                    {audienceLabels[(circular.audience_type as Audience)] ?? circular.audience_type} · {circular.recipientCount} recipients{circular.requires_ack ? ` · ${circular.ackCount}/${circular.recipientCount} acknowledged` : ""}
                   </div>
-                </button>
+                </article>
               ))}
-            </div>
+            </section>
           )}
         </>
       )}
 
-      {/* ── Compose type picker ── */}
-      {composeTypeOpen && (
-        <>
-          <div onClick={() => setComposeTypeOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderRadius: '20px 20px 0 0', background: C.surface, zIndex: 50, padding: '12px 16px 32px' }}>
-            <div style={{ width: 40, height: 4, background: C.border, borderRadius: 99, margin: '0 auto 16px' }} />
-            <div style={{ fontWeight: '700', fontSize: '17px', color: C.text, textAlign: 'center', marginBottom: '20px' }}>New message</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {[
-                { type: 'general',  icon: '💬', label: 'Direct message', desc: 'One-to-one conversation' },
-                { type: 'memo',     icon: '📋', label: 'Send memo',      desc: 'Formal message to one person' },
-                { type: 'circular', icon: '📢', label: 'Send circular',  desc: 'Broadcast to all staff, parents, or everyone' },
-              ].map(opt => (
-                <button key={opt.type} onClick={() => {
-                  setComposeTypeOpen(false)
-                  if (opt.type === 'circular') { setNewCircSheet(true); setTab('circulars') }
-                  else if (opt.type === 'memo') { setMemoOpen(true) }
-                  else { setPendingTag('general'); setComposeOpen(true) }
-                }} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', border: `1.5px solid ${C.border}`, borderRadius: '14px', background: '#fff', textAlign: 'left', cursor: 'pointer' }}>
-                  <span style={{ fontSize: '26px', flexShrink: 0 }}>{opt.icon}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '15px', fontWeight: '600', color: C.text }}>{opt.label}</div>
-                    <div style={{ fontSize: '13px', color: C.muted, marginTop: '2px' }}>{opt.desc}</div>
-                  </div>
-                  <span style={{ fontSize: '20px', color: C.muted }}>›</span>
-                </button>
-              ))}
-            </div>
-            <button onClick={() => setComposeTypeOpen(false)} style={{ width: '100%', marginTop: '14px', padding: '13px', background: '#f3f4f6', border: 'none', borderRadius: '12px', fontSize: '15px', fontWeight: '600', color: '#374151', cursor: 'pointer' }}>Cancel</button>
-          </div>
-        </>
-      )}
-
-      {/* ── Direct compose sheet ── */}
       {composeOpen && (
-        <>
-          <div onClick={() => setComposeOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderRadius: '20px 20px 0 0', background: C.surface, zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '70dvh' }}>
-            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ fontWeight: '700', fontSize: '16px', color: C.text }}>New Message</div>
-            </div>
-            <div style={{ overflowY: 'auto', flex: 1, padding: '16px' }}>
-              <input
-                value={searchQuery}
-                onChange={e => searchPeople(e.target.value)}
-                placeholder="Search by name..."
-                style={{ width: '100%', padding: '12px 16px', borderRadius: '12px', border: `1px solid ${C.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-              />
-              {searching && <div style={{ textAlign: 'center', padding: '16px', color: C.muted, fontSize: '13px' }}>Searching...</div>}
-              {searchResults.map(p => (
-                <button key={p.id} onClick={() => startThread(p)} style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px', borderRadius: '12px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', marginTop: '4px' }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: `linear-gradient(135deg,${C.emerald},${C.navy3})`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '700', fontSize: '13px', flexShrink: 0 }}>{initials(p.full_name)}</div>
-                  <div>
-                    <div style={{ fontWeight: '600', fontSize: '14px', color: C.text }}>{p.full_name}</div>
-                    <div style={{ fontSize: '12px', color: C.muted, textTransform: 'capitalize' }}>{p.role}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <div style={{ padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', borderTop: `1px solid ${C.border}` }}>
-              <button onClick={() => setComposeOpen(false)} style={{ width: '100%', padding: '13px', borderRadius: '12px', border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ── Memo sheet ── */}
-      {memoOpen && (
-        <>
-          <div onClick={() => setMemoOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderRadius: '20px 20px 0 0', background: C.surface, zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '90dvh' }}>
-            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}`, flexShrink: 0 }}>
-              <div style={{ width: 40, height: 4, background: C.border, borderRadius: 99, margin: '0 auto 12px' }} />
-              <div style={{ fontWeight: '700', fontSize: '16px', color: C.text }}>Send Memo</div>
-            </div>
-            <div style={{ overflowY: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-              {/* Recipient */}
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.5px', color: C.muted, display: 'block', marginBottom: '6px' }}>To</label>
-                <div style={{ position: 'relative' }}>
-                  {memoRecipient ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', border: `1.5px solid ${C.indigo}`, borderRadius: '10px', background: C.indigoLt }}>
-                      <span style={{ flex: 1, fontSize: '14px', fontWeight: '500', color: '#3730a3' }}>{memoRecipient.full_name}</span>
-                      <button onClick={() => { setMemoRecipient(null); setMemoSearch('') }} style={{ background: 'none', border: 'none', fontSize: '18px', color: '#3730a3', cursor: 'pointer', lineHeight: 1, padding: 0 }}>×</button>
-                    </div>
-                  ) : (
-                    <>
-                      <input
-                        value={memoSearch}
-                        onChange={e => onMemoSearchChange(e.target.value)}
-                        placeholder="Search staff or parent…"
-                        style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                      />
-                      {memoSearching && <div style={{ padding: '8px 12px', fontSize: '13px', color: C.muted }}>Searching…</div>}
-                      {memoSearchResults.length > 0 && (
-                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: `1.5px solid ${C.border}`, borderRadius: '10px', marginTop: '4px', zIndex: 10, boxShadow: '0 8px 24px rgba(0,0,0,.1)', maxHeight: '200px', overflowY: 'auto' }}>
-                          {memoSearchResults.map(p => (
-                            <button key={p.id} onClick={() => selectMemoRecipient(p)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '10px 14px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-                              <span style={{ fontSize: '14px', color: C.text }}>{p.full_name}</span>
-                              <span style={{ fontSize: '11px', color: C.muted, textTransform: 'capitalize' }}>{p.role}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Subject */}
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.5px', color: C.muted, display: 'block', marginBottom: '6px' }}>Subject</label>
-                <input
-                  value={memoSubject}
-                  onChange={e => setMemoSubject(e.target.value)}
-                  placeholder="e.g. Attendance concern — Week 3"
-                  style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.border}`, borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                />
-              </div>
-
-              {/* Body */}
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '.5px', color: C.muted, display: 'block', marginBottom: '6px' }}>Message</label>
-                <textarea
-                  value={memoBody}
-                  onChange={e => setMemoBody(e.target.value)}
-                  placeholder="Write your memo…"
-                  rows={5}
-                  style={{ width: '100%', padding: '10px 12px', border: `1.5px solid ${C.border}`, borderRadius: '10px', fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
-                />
-              </div>
-
-              {/* Ack toggle */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '12px 0', borderTop: `1px solid ${C.border}` }}>
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: '600', color: C.text }}>Requires acknowledgement</div>
-                  <div style={{ fontSize: '12px', color: C.muted, marginTop: '2px' }}>Recipient must tap to confirm receipt</div>
-                </div>
-                <button
-                  onClick={() => setMemoAck(v => !v)}
-                  style={{ width: '48px', height: '26px', borderRadius: '13px', border: 'none', background: memoAck ? C.emerald : C.border, cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
-                >
-                  <div style={{ position: 'absolute', top: '3px', left: memoAck ? '25px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,.2)' }} />
-                </button>
-              </div>
-            </div>
-
-            <div style={{ padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', borderTop: `1px solid ${C.border}`, display: 'flex', gap: '8px', flexShrink: 0 }}>
-              <button onClick={() => setMemoOpen(false)} style={{ flex: 1, padding: '13px', borderRadius: '12px', border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
-              <button
-                onClick={sendMemo}
-                disabled={memoSending || !memoRecipient || !memoSubject.trim() || !memoBody.trim()}
-                style={{ flex: 2, padding: '13px', borderRadius: '12px', border: 'none', background: C.indigo, color: '#fff', fontWeight: '700', fontSize: '14px', cursor: 'pointer', opacity: memoSending || !memoRecipient || !memoSubject.trim() || !memoBody.trim() ? 0.5 : 1 }}
-              >{memoSending ? 'Sending…' : 'Send Memo'}</button>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* ── New circular sheet ── */}
-      {newCircSheet && (
-        <>
-          <div onClick={() => setNewCircSheet(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} />
-          <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, borderRadius: '20px 20px 0 0', background: C.surface, zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '85dvh' }}>
-            <div style={{ padding: '16px 16px 12px', borderBottom: `1px solid ${C.border}` }}>
-              <div style={{ fontWeight: '700', fontSize: '16px', color: C.text }}>New Circular</div>
-            </div>
-            <div style={{ overflowY: 'auto', flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: C.muted, display: 'block', marginBottom: '6px' }}>Title</label>
-                <input value={circTitle} onChange={e => setCircTitle(e.target.value)} placeholder="Circular title..." style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: `1px solid ${C.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: C.muted, display: 'block', marginBottom: '6px' }}>Message</label>
-                <textarea value={circBody} onChange={e => setCircBody(e.target.value)} placeholder="Write your circular..." rows={5} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: `1px solid ${C.border}`, fontSize: '14px', resize: 'none', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: '600', color: C.muted, display: 'block', marginBottom: '6px' }}>Audience</label>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {(['all_staff', 'all_parents', 'everyone'] as const).map(a => (
-                    <button key={a} onClick={() => setCircAudience(a)} style={{ flex: 1, padding: '10px 4px', borderRadius: '10px', border: `2px solid ${circAudience === a ? C.emerald : C.border}`, background: circAudience === a ? C.emeraldLt : 'transparent', color: circAudience === a ? C.emerald : C.muted, fontWeight: '700', fontSize: '11px', cursor: 'pointer' }}>
-                      {a === 'all_staff' ? 'Staff' : a === 'all_parents' ? 'Parents' : 'Everyone'}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0' }}>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: C.text }}>Requires acknowledgement</span>
-                <button onClick={() => setCircAck(v => !v)} style={{ width: '48px', height: '26px', borderRadius: '13px', border: 'none', background: circAck ? C.emerald : C.border, cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
-                  <div style={{ position: 'absolute', top: '3px', left: circAck ? '25px' : '3px', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
-                </button>
-              </div>
-              {circAck && (
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: '600', color: C.muted, display: 'block', marginBottom: '6px' }}>Acknowledgement deadline</label>
-                  <input type="date" value={circDeadline} onChange={e => setCircDeadline(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: `1px solid ${C.border}`, fontSize: '14px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
-                </div>
-              )}
-            </div>
-            <div style={{ padding: '12px 16px', paddingBottom: 'max(16px, env(safe-area-inset-bottom))', borderTop: `1px solid ${C.border}`, display: 'flex', gap: '8px' }}>
-              <button onClick={() => setNewCircSheet(false)} style={{ flex: 1, padding: '13px', borderRadius: '12px', border: `1px solid ${C.border}`, background: 'transparent', color: C.muted, fontWeight: '600', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={sendCircular} disabled={circSending || !circTitle.trim() || !circBody.trim()} style={{ flex: 2, padding: '13px', borderRadius: '12px', border: 'none', background: C.emerald, color: '#fff', fontWeight: '700', fontSize: '14px', cursor: 'pointer', opacity: circSending || !circTitle.trim() || !circBody.trim() ? 0.5 : 1 }}>
-                {circSending ? 'Sending...' : 'Send Circular'}
+        <div role="dialog" aria-modal="true" aria-label="New school conversation" style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(15,23,42,.55)", display: "grid", placeItems: "end center" }}>
+          <section style={{ width: "min(100%,620px)", maxHeight: "85vh", overflowY: "auto", background: "white", borderRadius: "22px 22px 0 0", padding: 20, boxSizing: "border-box", display: "grid", gap: 11 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h2 style={{ margin: 0 }}>New conversation</h2><button aria-label="Close" onClick={() => setComposeOpen(false)} style={{ border: 0, background: "#f1f5f9", borderRadius: 999, width: 36, height: 36, cursor: "pointer" }}>×</button></div>
+            <input autoFocus value={personQuery} onChange={event => setPersonQuery(event.target.value)} placeholder="Search teacher, student or parent" style={fieldStyle} />
+            {searching && <div style={{ color: "#64748b" }}>Searching authorized school community…</div>}
+            {!searching && personQuery.length >= 2 && people.length === 0 && <div style={{ color: "#64748b" }}>No matching member in this school.</div>}
+            {people.map(person => (
+              <button key={person.profile_id} onClick={() => void findOrCreateDirectThread(person)} style={{ border: "1px solid #e2e8f0", borderRadius: 12, background: "white", padding: 12, textAlign: "left", cursor: "pointer" }}>
+                <strong>{person.full_name ?? "Unnamed school member"}</strong>
+                <div style={{ color: "#64748b", fontSize: 12, textTransform: "capitalize", marginTop: 3 }}>{person.relationship}</div>
               </button>
-            </div>
-          </div>
-        </>
+            ))}
+          </section>
+        </div>
       )}
 
-      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
-    </div>
+      {circularOpen && (
+        <div role="dialog" aria-modal="true" aria-label="New school circular" style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(15,23,42,.55)", display: "grid", placeItems: "end center" }}>
+          <section style={{ width: "min(100%,620px)", maxHeight: "90vh", overflowY: "auto", background: "white", borderRadius: "22px 22px 0 0", padding: 20, boxSizing: "border-box", display: "grid", gap: 11 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h2 style={{ margin: 0 }}>New circular</h2><button aria-label="Close" onClick={() => setCircularOpen(false)} style={{ border: 0, background: "#f1f5f9", borderRadius: 999, width: 36, height: 36, cursor: "pointer" }}>×</button></div>
+            <label>Title<input value={circularTitle} onChange={event => setCircularTitle(event.target.value)} style={fieldStyle} /></label>
+            <label>Audience<select value={audience} onChange={event => setAudience(event.target.value as Audience)} style={fieldStyle}>{(Object.keys(audienceLabels) as Audience[]).map(key => <option key={key} value={key}>{audienceLabels[key]}</option>)}</select></label>
+            <label>Message<textarea value={circularBody} onChange={event => setCircularBody(event.target.value)} rows={6} style={{ ...fieldStyle, resize: "vertical" }} /></label>
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="checkbox" checked={requiresAck} onChange={event => setRequiresAck(event.target.checked)} /> Require acknowledgement</label>
+            {requiresAck && <label>Acknowledgement deadline (optional)<input type="datetime-local" value={ackDeadline} onChange={event => setAckDeadline(event.target.value)} style={fieldStyle} /></label>}
+            <button disabled={sendingCircular || !circularTitle.trim() || !circularBody.trim()} onClick={() => void sendCircular()} style={{ border: 0, borderRadius: 12, padding: 13, background: "#10b981", color: "white", fontWeight: 780, cursor: "pointer" }}>{sendingCircular ? "Sending…" : "Send to school audience"}</button>
+          </section>
+        </div>
+      )}
+    </main>
   )
 }

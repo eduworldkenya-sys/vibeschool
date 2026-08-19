@@ -4,24 +4,14 @@ on:
   push:
     branches:
       - main
-      - 'work/**'
-      - 'ops/**'
-      - 'hq/**'
-      - 'content/**'
-      - 'audit/**'
-      - 'twin/**'
-      - 'feature/**'
-      - 'feat/**'
-      - 'fix/**'
-      - 'agent/**'
   pull_request:
     branches:
       - main
   workflow_dispatch:
 
 concurrency:
-  group: typescript-build-${{ github.ref }}
-  cancel-in-progress: true
+  group: typescript-build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

@@ -4,6 +4,8 @@
     "environment": "PRODUCTION",
     "project_ref": "yauqsxggtuxuykcbrtzf",
     "captured_at": "2026-08-03",
+    "target_updated_at": "2026-08-19",
+    "target_semantics": "Task 7 reviewed post-migration structural target; production preflight must verify the forward delta before promotion",
     "scope": [
       "school_periods",
       "teacher_classes",
@@ -25,7 +27,7 @@
       "table_hash": "80b6182c4e2c655abf4e9445a230442f",
       "columns_hash": "fd0a0a7bf8cad0222a05314293ef63f5",
       "constraints_hash": "a55f5bd44ca0d83496cf1e07d046ed63",
-      "indexes_hash": "9ed6ca6aba8038eade1fcd68416ee51b",
+      "indexes_hash": "0e6acbccc17d2e2040ab015b247ac511",
       "triggers_hash": "bf5ed9e57c97ef5a8b7acd31675b09e5"
     },
     "timetable_slots": {

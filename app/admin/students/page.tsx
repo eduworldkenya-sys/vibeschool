@@ -1,13 +1,13 @@
-"use client";
-export const dynamic = "force-dynamic";
+"use client"
+export const dynamic = "force-dynamic"
 
-import { useState, useEffect } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import { getAdminSchoolAuthority } from "@/lib/admin/authority"
 import type { Database } from "@/lib/database.types"
 
-type GeneratedAdminAddStudentArgs =
-  Database["public"]["Functions"]["admin_add_student"]["Args"]
+type GeneratedAdminAddStudentArgs = Database["public"]["Functions"]["admin_add_student"]["Args"]
 
 type AdminAddStudentArgs = {
   p_name: string
@@ -18,733 +18,254 @@ type AdminAddStudentArgs = {
   p_school_id: string
 }
 
-const deepspace = "#0a1628"
-const accent    = "#10b981"
-const amber     = "#f59e0b"
-const violet    = "#8b5cf6"
-const red       = "#ef4444"
-
-interface Student {
-  id:               string
-  name:             string
-  admission_number: string | null
-  gender:           string | null
-  class_name:       string
-  class_stream:     string
-  parent_linked:    boolean
-  fee_status:       "paid" | "partial" | "owing" | "none"
-}
-
-interface ClassFilter {
-  id:   string
+interface ClassRow {
+  id: string
   name: string
-  stream: string
+  stream: string | null
 }
 
-export default function StudentsPage() {
+interface StudentRow {
+  id: string
+  name: string
+  admissionNumber: string | null
+  gender: string | null
+  classId: string
+  className: string
+  stream: string | null
+  parentLinked: boolean
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  border: "1px solid #cbd5e1",
+  borderRadius: 11,
+  padding: "11px 12px",
+  background: "white",
+  fontSize: 14,
+}
+
+export default function AdminStudentsPage() {
   const router = useRouter()
+  const [schoolId, setSchoolId] = useState("")
+  const [classes, setClasses] = useState<ClassRow[]>([])
+  const [students, setStudents] = useState<StudentRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [search, setSearch] = useState("")
+  const [classId, setClassId] = useState("all")
+  const [showAdd, setShowAdd] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ name: "", admissionNumber: "", gender: "", dateOfBirth: "", classId: "" })
 
-  const [students,   setStudents]   = useState<Student[]>([])
-  const [classes,    setClasses]    = useState<ClassFilter[]>([])
-  const [schoolId,   setSchoolId]   = useState("")
-  const [loading,    setLoading]    = useState(true)
-  const [search,     setSearch]     = useState("")
-  const [classFilter,setClassFilter]= useState("all")
-  const [showModal,  setShowModal]  = useState(false)
-  const [saving,     setSaving]     = useState(false)
-
-  const [form, setForm] = useState({
-    name:             "",
-    admission_number: "",
-    class_id:         "",
-    gender:           "",
-    date_of_birth:    "",
-  })
-
-  const [stats, setStats] = useState({
-    total:          0,
-    withParent:     0,
-    withoutParent:  0,
-    owing:          0,
-  })
-
-  useEffect(() => { bootstrap() }, [])
+  useEffect(() => {
+    void bootstrap()
+  }, [])
 
   async function bootstrap() {
+    setLoading(true)
+    setError("")
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/admin/login"); return }
-
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("school_id")
-        .eq("id", user.id)
-        .single()
-
-      if (!p?.school_id) { router.push("/admin/login"); return }
-
-      setSchoolId(p.school_id)
-      await Promise.all([
-        loadStudents(p.school_id),
-        loadClasses(p.school_id),
-      ])
-    } catch {
-      router.push("/admin/login")
+      const authority = await getAdminSchoolAuthority()
+      setSchoolId(authority.schoolId)
+      await Promise.all([loadClasses(authority.schoolId), loadStudents(authority.schoolId)])
+    } catch (cause) {
+      console.error("Admin students bootstrap failed", cause)
+      setError(cause instanceof Error ? cause.message : "Students could not be loaded.")
     } finally {
       setLoading(false)
     }
   }
 
   async function loadClasses(sid: string) {
-    const { data } = await supabase
+    const { data, error: queryError } = await supabase
       .from("classes")
-      .select("id, name, stream")
+      .select("id,name,stream")
       .eq("school_id", sid)
       .order("name")
-
-    setClasses(
-      (data ?? []).map(row => ({
-        id: row.id,
-        name: row.name,
-        stream: row.stream ?? "",
-      }))
-    )
+      .order("stream")
+    if (queryError) throw queryError
+    setClasses((data ?? []) as ClassRow[])
   }
 
   async function loadStudents(sid: string) {
-    const { data: scRows } = await supabase
+    const { data: enrollmentRows, error: enrollmentError } = await supabase
       .from("student_classes")
-      .select("student_id, class_id, classes(id, name, stream)")
+      .select("student_id,class_id,classes(id,name,stream)")
       .eq("school_id", sid)
       .eq("is_current", true)
+    if (enrollmentError) throw enrollmentError
 
-    if (!scRows || scRows.length === 0) {
+    const enrollments = enrollmentRows ?? []
+    const ids = Array.from(new Set(enrollments.map(row => row.student_id).filter((id): id is string => Boolean(id))))
+    if (ids.length === 0) {
       setStudents([])
-      setStats({ total: 0, withParent: 0, withoutParent: 0, owing: 0 })
       return
     }
 
-    const studentIds = scRows
-      .map(row => row.student_id)
-      .filter(
-        (studentId): studentId is string =>
-          studentId !== null
-      )
-
-    if (studentIds.length === 0) {
-      setStudents([])
-      setStats({
-        total: 0,
-        withParent: 0,
-        withoutParent: 0,
-        owing: 0,
-      })
-      return
-    }
-
-    const [studentsRes, linksRes, invoicesRes] = await Promise.all([
-      supabase
-        .from("students")
-        .select("id, name, admission_number, gender, date_of_birth")
-        .in("id", studentIds)
-        .is("deleted_at", null),
-      supabase
-        .from("parent_student_links")
-        .select("student_id")
-        .in("student_id", studentIds),
-      supabase
-        .from("finance_invoices")
-        .select("student_id, status")
-        .in("student_id", studentIds)
-        .is("deleted_at", null),
+    const [studentRes, parentRes] = await Promise.all([
+      supabase.from("students").select("id,name,admission_number,gender").in("id", ids).is("deleted_at", null),
+      supabase.from("parent_student_links").select("student_id,access_level").eq("school_id", sid).in("student_id", ids),
     ])
+    if (studentRes.error) throw studentRes.error
+    if (parentRes.error) throw parentRes.error
 
-    const linkedSet = new Set(
-      (linksRes.data ?? [])
+    const parentLinked = new Set(
+      (parentRes.data ?? [])
+        .filter(row => (row.access_level ?? "full") !== "none")
         .map(row => row.student_id)
-        .filter(
-          (studentId): studentId is string =>
-            studentId !== null
-        )
     )
+    const enrollmentByStudent = new Map<string, { classId: string; name: string; stream: string | null }>()
 
-    const invoiceMap = new Map<
-      string,
-      Student["fee_status"]
-    >()
-
-    for (const invoice of invoicesRes.data ?? []) {
-      if (!invoice.student_id) continue
-
-      const status: Student["fee_status"] =
-        invoice.status === "paid" ||
-        invoice.status === "partial" ||
-        invoice.status === "owing"
-          ? invoice.status
-          : "none"
-
-      const existing = invoiceMap.get(invoice.student_id)
-
-      if (
-        !existing ||
-        status === "owing" ||
-        status === "partial"
-      ) {
-        invoiceMap.set(invoice.student_id, status)
-      }
+    for (const row of enrollments) {
+      if (!row.student_id || !row.class_id) continue
+      const joined = Array.isArray(row.classes) ? row.classes[0] : row.classes
+      if (!joined) continue
+      enrollmentByStudent.set(row.student_id, { classId: row.class_id, name: joined.name, stream: joined.stream ?? null })
     }
 
-    const classMap = new Map<
-      string,
-      { name: string; stream: string }
-    >()
-
-    for (const row of scRows) {
-      if (!row.student_id) continue
-
-      const joinedClass = Array.isArray(row.classes)
-        ? row.classes[0] ?? null
-        : row.classes
-
-      if (!joinedClass) continue
-
-      classMap.set(row.student_id, {
-        name: joinedClass.name,
-        stream: joinedClass.stream ?? "",
-      })
-    }
-
-    const rows: Student[] = (studentsRes.data ?? []).map(student => {
-      const cls = classMap.get(student.id)
-
-      return {
-        id: student.id,
-        name: student.name,
-        admission_number: student.admission_number,
-        gender: student.gender,
-        class_name: cls?.name ?? "—",
-        class_stream: cls?.stream ?? "",
-        parent_linked: linkedSet.has(student.id),
-        fee_status: invoiceMap.get(student.id) ?? "none",
-      }
-    })
-
-    rows.sort((a, b) => {
-      const aScore =
-        (a.fee_status === "owing" ? 0 : 1) +
-        (!a.parent_linked ? 0 : 2)
-      const bScore =
-        (b.fee_status === "owing" ? 0 : 1) +
-        (!b.parent_linked ? 0 : 2)
-      return aScore - bScore
-    })
-
-    setStudents(rows)
-    setStats({
-      total:         rows.length,
-      withParent:    rows.filter(r => r.parent_linked).length,
-      withoutParent: rows.filter(r => !r.parent_linked).length,
-      owing:         rows.filter(r => r.fee_status === "owing" || r.fee_status === "partial").length,
-    })
+    setStudents(
+      (studentRes.data ?? [])
+        .map(student => {
+          const enrollment = enrollmentByStudent.get(student.id)
+          if (!enrollment) return null
+          return {
+            id: student.id,
+            name: student.name,
+            admissionNumber: student.admission_number,
+            gender: student.gender,
+            classId: enrollment.classId,
+            className: enrollment.name,
+            stream: enrollment.stream,
+            parentLinked: parentLinked.has(student.id),
+          } satisfies StudentRow
+        })
+        .filter((row): row is StudentRow => row !== null)
+        .sort((a, b) => a.name.localeCompare(b.name))
+    )
   }
 
   async function addStudent() {
-    if (!schoolId || !form.name.trim()) return
+    if (!schoolId || !form.name.trim() || saving) return
     setSaving(true)
+    setError("")
     try {
       const args: AdminAddStudentArgs = {
         p_name: form.name.trim(),
-        p_admission_number: form.admission_number || null,
+        p_admission_number: form.admissionNumber.trim() || null,
         p_gender: form.gender || null,
-        p_date_of_birth: form.date_of_birth || null,
-        p_class_id: form.class_id || null,
+        p_date_of_birth: form.dateOfBirth || null,
+        p_class_id: form.classId || null,
         p_school_id: schoolId,
       }
-
-      // PostgreSQL accepts NULL for these optional arguments. The generated
-      // function Args type does not preserve SQL parameter nullability.
-      const { data: studentId, error } = await supabase.rpc(
-        "admin_add_student",
-        args as unknown as GeneratedAdminAddStudentArgs
-      )
-
-      if (error || !studentId) throw error
-
-
-      setShowModal(false)
-      setForm({ name: "", admission_number: "", class_id: "", gender: "", date_of_birth: "" })
+      const { data, error: rpcError } = await supabase.rpc("admin_add_student", args as unknown as GeneratedAdminAddStudentArgs)
+      if (rpcError || !data) throw rpcError ?? new Error("Student was not created.")
+      setForm({ name: "", admissionNumber: "", gender: "", dateOfBirth: "", classId: "" })
+      setShowAdd(false)
       await loadStudents(schoolId)
-    } catch (e: any) {
-      console.error(e)
+    } catch (cause) {
+      console.error("Admin add student failed", cause)
+      const message = cause instanceof Error ? cause.message : "Student could not be added."
+      setError(message.includes("duplicate") ? "This learner or admission number may already exist. Search before creating another learner." : message)
     } finally {
       setSaving(false)
     }
   }
 
-  const filtered = students.filter(s => {
-    const matchSearch =
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      (s.admission_number ?? "").toLowerCase().includes(search.toLowerCase())
-    const matchClass =
-      classFilter === "all" || s.class_name === classFilter
-    return matchSearch && matchClass
-  })
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return students.filter(student => {
+      const matchesClass = classId === "all" || student.classId === classId
+      const matchesSearch = !q || student.name.toLowerCase().includes(q) || (student.admissionNumber ?? "").toLowerCase().includes(q)
+      return matchesClass && matchesSearch
+    })
+  }, [students, search, classId])
 
-  const feeColor = (status: Student["fee_status"]) =>
-    status === "paid"    ? accent :
-    status === "partial" ? amber  :
-    status === "owing"   ? red    :
-    "#e2e8f0"
-
-  const feeLabel = (status: Student["fee_status"]) =>
-    status === "paid"    ? "Paid"    :
-    status === "partial" ? "Partial" :
-    status === "owing"   ? "Owing"   :
-    "No Invoice"
-
-  const genderIcon = (g: string | null) =>
-    g === "male" ? "👦" : g === "female" ? "👧" : "🧑"
-
-  if (loading) {
-    return (
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {[1,2,3,4,5].map(i => (
-          <div key={i} style={{
-            height:       "72px",
-            background:   "#ffffff",
-            borderRadius: "16px",
-            animation:    "pulse 1.5s ease-in-out infinite",
-          }} />
-        ))}
-        <style>{`@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.8}}`}</style>
-      </div>
-    )
-  }
+  if (loading) return <div aria-busy="true" style={{ minHeight: 220, borderRadius: 18, background: "#e2e8f0" }} />
 
   return (
-    <div style={{ maxWidth: "900px", margin: "0 auto" }}>
-
-      {/* ── Header ── */}
-      <div style={{
-        display:        "flex",
-        alignItems:     "center",
-        justifyContent: "space-between",
-        marginBottom:   "24px",
-      }}>
+    <main style={{ maxWidth: 960, margin: "0 auto", display: "grid", gap: 16 }}>
+      <header style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap" }}>
         <div>
-          <h1 style={{
-            color:      "#0f172a",
-            fontSize:   "22px",
-            fontWeight: "800",
-            margin:     "0 0 2px",
-          }}>
-            Students
-          </h1>
-          <p style={{ color: "rgba(255,255,255,0.35)", fontSize: "13px", margin: 0 }}>
-            {stats.total} enrolled
-          </p>
+          <h1 style={{ margin: 0, fontSize: 24 }}>Learners</h1>
+          <p style={{ color: "#64748b", margin: "5px 0 0" }}>{students.length} currently enrolled · canonical enrollment roster</p>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          style={{
-            background:   accent,
-            border:       "none",
-            borderRadius: "12px",
-            padding:      "10px 18px",
-            color:        "#0f172a",
-            fontSize:     "13px",
-            fontWeight:   "700",
-            cursor:       "pointer",
-          }}
-        >
-          + Add Student
+        <button onClick={() => setShowAdd(true)} style={{ border: 0, borderRadius: 12, padding: "11px 15px", background: "#10b981", color: "white", fontWeight: 750, cursor: "pointer" }}>
+          Add learner
         </button>
-      </div>
+      </header>
 
-      {/* ── Summary Bar ── */}
-      <div style={{
-        display:             "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gap:                 "10px",
-        marginBottom:        "20px",
-      }}>
-        {[
-          { label: "Total",          value: stats.total,         color: "#111827" },
-          { label: "Parent Linked",  value: stats.withParent,    color: accent    },
-          { label: "No Parent",      value: stats.withoutParent, color: amber     },
-          { label: "Fee Issues",     value: stats.owing,         color: red       },
-        ].map(s => (
-          <div key={s.label} style={{
-            background:    "#ffffff",
-            border:        "1px solid #e2e8f0",
-            borderRadius:  "12px",
-            padding:       "12px",
-            textAlign:     "center",
-            backdropFilter:"blur(12px)",
-          }}>
-            <div style={{
-              color:      s.color,
-              fontSize:   "22px",
-              fontWeight: "800",
-              fontFamily: "monospace",
-            }}>
-              {s.value}
-            </div>
-            <div style={{ color: "rgba(255,255,255,0.35)", fontSize: "11px", marginTop: "2px" }}>
-              {s.label}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Search ── */}
-      <input
-        type="text"
-        placeholder="Search by name or admission number..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        style={{
-          width:        "100%",
-          background:   "#f8fafc",
-          border:       "1px solid #e2e8f0",
-          borderRadius: "12px",
-          padding:      "12px 16px",
-          color:        "#0f172a",
-          fontSize:     "14px",
-          marginBottom: "12px",
-          boxSizing:    "border-box",
-          outline:      "none",
-        }}
-      />
-
-      {/* ── Class Filter ── */}
-      <div style={{
-        display:      "flex",
-        gap:          "8px",
-        overflowX:    "auto",
-        marginBottom: "20px",
-        paddingBottom:"4px",
-      }}>
-        {["all", ...classes.map(c => c.name)].map(cls => (
-          <button
-            key={cls}
-            onClick={() => setClassFilter(cls)}
-            style={{
-              background:   classFilter === cls ? accent : "rgba(255,255,255,0.05)",
-              border:       "1px solid " + (classFilter === cls ? accent : "rgba(255,255,255,0.1)"),
-              borderRadius: "20px",
-              padding:      "6px 14px",
-              color:        classFilter === cls ? "#ffffff" : "#6b7280",
-              fontSize:     "12px",
-              fontWeight:   "600",
-              cursor:       "pointer",
-              whiteSpace:   "nowrap",
-            }}
-          >
-            {cls === "all" ? "All Classes" : cls}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Student List ── */}
-      {filtered.length === 0 ? (
-        <div style={{
-          textAlign:  "center",
-          padding:    "60px 20px",
-          color:      "#9ca3af",
-          fontSize:   "14px",
-        }}>
-          {students.length === 0
-            ? "No students enrolled yet. Add the first student."
-            : "No students match your search."}
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {filtered.map(s => (
-            <button
-              key={s.id}
-              onClick={() => router.push(`/admin/students/${s.id}`)}
-              style={{
-                background:     "#ffffff",
-                border:         "1px solid #e2e8f0",
-                borderRadius:   "16px",
-                padding:        "16px",
-                display:        "flex",
-                alignItems:     "center",
-                gap:            "14px",
-                cursor:         "pointer",
-                textAlign:      "left",
-                backdropFilter: "blur(12px)",
-                transition:     "border-color 0.15s",
-                width:          "100%",
-              }}
-            >
-              {/* Avatar */}
-              <div style={{
-                width:          "44px",
-                height:         "44px",
-                borderRadius:   "50%",
-                background:     "#f1f5f9",
-                display:        "flex",
-                alignItems:     "center",
-                justifyContent: "center",
-                fontSize:       "20px",
-                flexShrink:     0,
-              }}>
-                {genderIcon(s.gender)}
-              </div>
-
-              {/* Info */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{
-                  color:        "#0f172a",
-                  fontSize:     "15px",
-                  fontWeight:   "700",
-                  marginBottom: "4px",
-                  overflow:     "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace:   "nowrap",
-                }}>
-                  {s.name}
-                </div>
-                <div style={{
-                  display:  "flex",
-                  gap:      "8px",
-                  flexWrap: "wrap",
-                }}>
-                  <span style={{
-                    color:     "#64748b",
-                    fontSize:  "12px",
-                  }}>
-                    {s.class_name}{s.class_stream ? " " + s.class_stream : ""}
-                  </span>
-                  {s.admission_number && (
-                    <span style={{
-                      color:    "#94a3b8",
-                      fontSize: "12px",
-                    }}>
-                      #{s.admission_number}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Chips */}
-              <div style={{
-                display:       "flex",
-                flexDirection: "column",
-                alignItems:    "flex-end",
-                gap:           "6px",
-                flexShrink:    0,
-              }}>
-                <span style={{
-                  background:   s.parent_linked
-                    ? "rgba(16,185,129,0.12)"
-                    : "rgba(245,158,11,0.12)",
-                  border:       "1px solid " + (s.parent_linked ? accent : amber),
-                  borderRadius: "20px",
-                  padding:      "2px 10px",
-                  fontSize:     "11px",
-                  fontWeight:   "600",
-                  color:        s.parent_linked ? accent : amber,
-                }}>
-                  {s.parent_linked ? "Parent ✓" : "No Parent"}
-                </span>
-                <span style={{
-                  background:   `rgba(${
-                    s.fee_status === "paid"    ? "16,185,129"  :
-                    s.fee_status === "partial" ? "245,158,11"  :
-                    s.fee_status === "owing"   ? "239,68,68"   :
-                    "255,255,255"
-                  },0.10)`,
-                  border:       "1px solid " + feeColor(s.fee_status),
-                  borderRadius: "20px",
-                  padding:      "2px 10px",
-                  fontSize:     "11px",
-                  fontWeight:   "600",
-                  color:        feeColor(s.fee_status),
-                }}>
-                  {feeLabel(s.fee_status)}
-                </span>
-              </div>
-
-              <span style={{ color: "#e2e8f0", fontSize: "16px" }}>›</span>
-            </button>
-          ))}
+      {error && (
+        <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", borderRadius: 12, padding: 12, color: "#991b1b" }}>
+          {error}
         </div>
       )}
 
-      {/* ── Add Student Modal ── */}
-      {showModal && (
-        <div style={{
-          position:        "fixed",
-          inset:           0,
-          background:      "rgba(0,0,0,0.7)",
-          backdropFilter:  "blur(8px)",
-          display:         "flex",
-          alignItems:      "flex-end",
-          justifyContent:  "center",
-          zIndex:          100,
-        }}>
-          <div style={{
-            background:   "#0a1628",
-            borderRadius: "24px 24px 0 0",
-            padding:      "28px 24px 40px",
-            width:        "100%",
-            maxWidth:     "600px",
-          }}>
-            <div style={{
-              display:        "flex",
-              justifyContent: "space-between",
-              alignItems:     "center",
-              marginBottom:   "24px",
-            }}>
-              <h2 style={{ color: "#111827", fontSize: "18px", fontWeight: "800", margin: 0 }}>
-                Add Student
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  background: "#e2e8f0",
-                  border:     "none",
-                  borderRadius:"50%",
-                  width:      "32px",
-                  height:     "32px",
-                  color:      "#0f172a",
-                  fontSize:   "16px",
-                  cursor:     "pointer",
-                }}
-              >
-                ×
+      {classes.length === 0 ? (
+        <section style={{ background: "white", border: "1px solid #f59e0b", borderRadius: 16, padding: 18 }}>
+          <strong>Create classes before enrolling learners</strong>
+          <p style={{ color: "#64748b", lineHeight: 1.5 }}>A learner needs a valid current school/class enrollment. Set up classes and streams first.</p>
+          <button onClick={() => router.push("/admin/settings/classes")} style={{ border: 0, borderRadius: 10, padding: "9px 13px", cursor: "pointer" }}>Open class setup</button>
+        </section>
+      ) : (
+        <>
+          <section style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(150px,240px)", gap: 10 }}>
+            <input aria-label="Search learners" value={search} onChange={event => setSearch(event.target.value)} placeholder="Search name or admission number" style={inputStyle} />
+            <select aria-label="Filter by class" value={classId} onChange={event => setClassId(event.target.value)} style={inputStyle}>
+              <option value="all">All classes</option>
+              {classes.map(row => <option key={row.id} value={row.id}>{row.name}{row.stream ? ` ${row.stream}` : ""}</option>)}
+            </select>
+          </section>
+
+          {filtered.length === 0 ? (
+            <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 28, textAlign: "center" }}>
+              <strong>{students.length === 0 ? "No learners enrolled yet" : "No learners match this search"}</strong>
+              <p style={{ color: "#64748b" }}>{students.length === 0 ? "Use Add learner to create the first canonical enrollment." : "Change the search or class filter."}</p>
+            </section>
+          ) : (
+            <section style={{ display: "grid", gap: 8 }}>
+              {filtered.map(student => (
+                <button key={student.id} onClick={() => router.push(`/admin/students/${student.id}`)} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 12, textAlign: "left", cursor: "pointer" }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 780, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{student.name}</div>
+                    <div style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>
+                      {student.className}{student.stream ? ` ${student.stream}` : ""}{student.admissionNumber ? ` · #${student.admissionNumber}` : ""}
+                    </div>
+                  </div>
+                  <span style={{ alignSelf: "center", borderRadius: 999, padding: "4px 9px", fontSize: 12, background: student.parentLinked ? "#ecfdf5" : "#fffbeb", color: student.parentLinked ? "#047857" : "#92400e" }}>
+                    {student.parentLinked ? "Guardian linked" : "Guardian needed"}
+                  </span>
+                </button>
+              ))}
+            </section>
+          )}
+        </>
+      )}
+
+      {showAdd && (
+        <div role="dialog" aria-modal="true" aria-label="Add learner" style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(15,23,42,.55)", display: "grid", placeItems: "end center" }}>
+          <section style={{ width: "min(100%,620px)", maxHeight: "90vh", overflowY: "auto", background: "white", borderRadius: "22px 22px 0 0", padding: 20, boxSizing: "border-box" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 20 }}>Add learner</h2>
+                <p style={{ color: "#64748b", fontSize: 13 }}>Search before creating. Duplicate learner identities must not be created.</p>
+              </div>
+              <button aria-label="Close" onClick={() => setShowAdd(false)} style={{ border: 0, background: "#f1f5f9", borderRadius: 999, width: 36, height: 36, cursor: "pointer" }}>×</button>
+            </div>
+
+            <div style={{ display: "grid", gap: 12 }}>
+              <label>Full name<input value={form.name} onChange={event => setForm(current => ({ ...current, name: event.target.value }))} style={inputStyle} /></label>
+              <label>Admission number<input value={form.admissionNumber} onChange={event => setForm(current => ({ ...current, admissionNumber: event.target.value }))} style={inputStyle} /></label>
+              <label>Class / stream<select value={form.classId} onChange={event => setForm(current => ({ ...current, classId: event.target.value }))} style={inputStyle}><option value="">Choose class</option>{classes.map(row => <option key={row.id} value={row.id}>{row.name}{row.stream ? ` ${row.stream}` : ""}</option>)}</select></label>
+              <label>Gender<select value={form.gender} onChange={event => setForm(current => ({ ...current, gender: event.target.value }))} style={inputStyle}><option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option></select></label>
+              <label>Date of birth<input type="date" value={form.dateOfBirth} onChange={event => setForm(current => ({ ...current, dateOfBirth: event.target.value }))} style={inputStyle} /></label>
+              <button disabled={saving || !form.name.trim()} onClick={() => void addStudent()} style={{ border: 0, borderRadius: 12, padding: 13, background: saving ? "#94a3b8" : "#10b981", color: "white", fontWeight: 780, cursor: saving ? "not-allowed" : "pointer" }}>
+                {saving ? "Saving…" : "Create learner enrollment"}
               </button>
             </div>
-
-            {[
-              { label: "Full Name *",        key: "name",             type: "text",   placeholder: "e.g. James Mwangi"    },
-              { label: "Admission Number",   key: "admission_number", type: "text",   placeholder: "e.g. 2026-001"        },
-              { label: "Date of Birth",      key: "date_of_birth",    type: "date",   placeholder: ""                     },
-            ].map(f => (
-              <div key={f.key} style={{ marginBottom: "16px" }}>
-                <label style={{
-                  color:        "#6b7280",
-                  fontSize:     "12px",
-                  fontWeight:   "600",
-                  display:      "block",
-                  marginBottom: "6px",
-                }}>
-                  {f.label}
-                </label>
-                <input
-                  type={f.type}
-                  placeholder={f.placeholder}
-                  value={(form as any)[f.key]}
-                  onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                  style={{
-                    width:        "100%",
-                    background:   "#f1f5f9",
-                    border:       "1px solid #e2e8f0",
-                    borderRadius: "10px",
-                    padding:      "10px 14px",
-                    color:        "#0f172a",
-                    fontSize:     "14px",
-                    boxSizing:    "border-box",
-                    outline:      "none",
-                  }}
-                />
-              </div>
-            ))}
-
-            {/* Gender */}
-            <div style={{ marginBottom: "16px" }}>
-              <label style={{
-                color:        "#6b7280",
-                fontSize:     "12px",
-                fontWeight:   "600",
-                display:      "block",
-                marginBottom: "6px",
-              }}>
-                Gender
-              </label>
-              <div style={{ display: "flex", gap: "8px" }}>
-                {["male", "female", "other"].map(g => (
-                  <button
-                    key={g}
-                    onClick={() => setForm(prev => ({ ...prev, gender: g }))}
-                    style={{
-                      flex:         1,
-                      background:   form.gender === g ? accent : "#f8fafc",
-                      border:       "1px solid " + (form.gender === g ? accent : "rgba(255,255,255,0.1)"),
-                      borderRadius: "10px",
-                      padding:      "10px",
-                      color:        form.gender === g ? "#ffffff" : "#6b7280",
-                      fontSize:     "13px",
-                      fontWeight:   "600",
-                      cursor:       "pointer",
-                      textTransform:"capitalize",
-                    }}
-                  >
-                    {g}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Class */}
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{
-                color:        "#6b7280",
-                fontSize:     "12px",
-                fontWeight:   "600",
-                display:      "block",
-                marginBottom: "6px",
-              }}>
-                Class
-              </label>
-              <select
-                value={form.class_id}
-                onChange={e => setForm(prev => ({ ...prev, class_id: e.target.value }))}
-                style={{
-                  width:        "100%",
-                  background:   "#f1f5f9",
-                  border:       "1px solid #e2e8f0",
-                  borderRadius: "10px",
-                  padding:      "10px 14px",
-                  color:        form.class_id ? "#ffffff" : "#9ca3af",
-                  fontSize:     "14px",
-                  boxSizing:    "border-box",
-                  outline:      "none",
-                }}
-              >
-                <option value="">Select class</option>
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {c.stream}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <button
-              onClick={addStudent}
-              disabled={saving || !form.name.trim()}
-              style={{
-                width:        "100%",
-                background:   saving || !form.name.trim() ? "rgba(16,185,129,0.4)" : accent,
-                border:       "none",
-                borderRadius: "12px",
-                padding:      "14px",
-                color:        "#0f172a",
-                fontSize:     "15px",
-                fontWeight:   "700",
-                cursor:       saving || !form.name.trim() ? "not-allowed" : "pointer",
-              }}
-            >
-              {saving ? "Saving..." : "Add Student"}
-            </button>
-          </div>
+          </section>
         </div>
       )}
-
-    </div>
+    </main>
   )
 }

@@ -74,20 +74,6 @@ export async function POST(req: NextRequest) {
       }, { status: 403 })
     }
 
-    const { data: parentLink } = await adminSupabase
-      .from('parent_student_links')
-      .select('parent_id')
-      .eq('student_id', student.id)
-      .limit(1)
-      .maybeSingle()
-
-    if (!parentLink?.parent_id) {
-      return NextResponse.json({
-        error: 'The parent or guardian connection is incomplete. Ask your teacher to resend the parent link.',
-        code: 'guardian_required',
-      }, { status: 403 })
-    }
-
     if (!student.class_id) return NextResponse.json({ error: 'The learner is not assigned to a class.' }, { status: 409 })
 
     const { data: klass, error: classError } = await adminSupabase
@@ -97,6 +83,24 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (classError || !klass?.school_id) return NextResponse.json({ error: 'School assignment not found.' }, { status: 409 })
+
+    // A historical/revoked parent link must not satisfy the guardian gate.
+    // Bind the relationship to the learner's current school and require active access.
+    const { data: parentLink } = await adminSupabase
+      .from('parent_student_links')
+      .select('parent_id')
+      .eq('student_id', student.id)
+      .eq('school_id', klass.school_id)
+      .neq('access_level', 'none')
+      .limit(1)
+      .maybeSingle()
+
+    if (!parentLink?.parent_id) {
+      return NextResponse.json({
+        error: 'The parent or guardian connection is incomplete. Ask your teacher to resend the parent link.',
+        code: 'guardian_required',
+      }, { status: 403 })
+    }
 
     const { data: school } = await adminSupabase
       .from('schools')
@@ -117,7 +121,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (createError || !created.user) {
-      const message = createError?.message?.includes('already been registered')
+      const message = createError?.message.includes('already been registered')
         ? 'A learner account already exists. Sign in instead.'
         : (createError?.message || 'Could not create learner account.')
       return NextResponse.json({ error: message }, { status: 400 })
