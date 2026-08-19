@@ -39,7 +39,8 @@ replace_once(
     "const evidence = [assignments.count, timetable.count, schemes.count, lessons.count, assessments.count, results.count].reduce<number>((sum, count) => sum + (count ?? 0), 0)",
 )
 
-# Generated DB contract: canonical migration chain and production both contain schools.moe_registration_no.
+# Generated DB contract: production and canonical migrations contain all School Profile identity/provenance fields used here.
+# Patch the generated schools Row/Insert/Update block only, without regenerating unrelated tables.
 db_path = Path("lib/database.types.ts")
 db = db_path.read_text(encoding="utf-8")
 start = db.find("      schools: {")
@@ -50,16 +51,25 @@ if not match:
     raise SystemExit("database.types.ts: next table after schools not found")
 end = start + len("      schools: {") + match.start()
 block = db[start:end]
-if "moe_registration_no:" in block:
-    raise SystemExit("database.types.ts: moe_registration_no already present; generation contract changed")
+missing_fields = {
+    "moe_registration_no": "string | null",
+    "tsc_code": "string | null",
+    "directory_source": "string | null",
+    "last_verified_at": "string | null",
+}
+for field in missing_fields:
+    if f"          {field}:" in block or f"          {field}?:" in block:
+        raise SystemExit(f"database.types.ts: {field} unexpectedly already present; generated contract changed")
 row_needle = "          nemis_code: string | null\n"
 optional_needle = "          nemis_code?: string | null\n"
 if block.count(row_needle) != 1 or block.count(optional_needle) != 2:
     raise SystemExit(
         f"database.types.ts: unexpected schools nemis_code shape row={block.count(row_needle)} optional={block.count(optional_needle)}"
     )
-block = block.replace(row_needle, row_needle + "          moe_registration_no: string | null\n", 1)
-block = block.replace(optional_needle, optional_needle + "          moe_registration_no?: string | null\n")
+row_additions = "".join(f"          {field}: {field_type}\n" for field, field_type in missing_fields.items())
+optional_additions = "".join(f"          {field}?: {field_type}\n" for field, field_type in missing_fields.items())
+block = block.replace(row_needle, row_needle + row_additions, 1)
+block = block.replace(optional_needle, optional_needle + optional_additions)
 db = db[:start] + block + db[end:]
 db_path.write_text(db, encoding="utf-8")
 
