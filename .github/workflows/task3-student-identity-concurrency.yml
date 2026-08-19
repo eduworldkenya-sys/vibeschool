@@ -1,0 +1,42 @@
+name: Task 3 Student Identity Concurrency
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**student**'
+      - 'scripts/test-task3-student-identity-concurrency.sh'
+      - '.github/workflows/task3-student-identity-concurrency.yml'
+  push:
+    branches:
+      - main
+      - 'agent/task3-student-identity-integrity'
+    paths:
+      - 'supabase/migrations/**student**'
+      - 'scripts/test-task3-student-identity-concurrency.sh'
+      - '.github/workflows/task3-student-identity-concurrency.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  concurrency-attacks:
+    name: Real concurrent learner identity attacks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Disable repository seed for schema-only disposable reconstruction
+        run: |
+          if [ -f supabase/seed.sql ]; then mv supabase/seed.sql supabase/seed.sql.task3-disabled; fi
+      - name: Start disposable Supabase and reconstruct exact head
+        run: supabase start
+      - name: Run real concurrent Task 3 attacks
+        run: bash scripts/test-task3-student-identity-concurrency.sh
+      - name: Stop disposable Supabase
+        if: always()
+        run: supabase stop --no-backup
