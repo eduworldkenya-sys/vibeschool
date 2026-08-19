@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import type { PulseSnapshot } from "@/lib/types";
@@ -45,6 +45,7 @@ export default function PulseHeader({
 }) {
   const router = useRouter();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const restoredContextRef = useRef(false);
 
   const options = useMemo(() => snap.myClasses.map((item) => ({
     key: `${item.class_id}::${item.subject_id}`,
@@ -65,9 +66,10 @@ export default function PulseHeader({
   }, [snap.userId]);
 
   useEffect(() => {
-    if (selectedKey || typeof window === "undefined" || options.length === 0) return;
+    if (restoredContextRef.current || typeof window === "undefined" || options.length === 0) return;
+    restoredContextRef.current = true;
     const saved = window.sessionStorage.getItem(CONTEXT_KEY);
-    if (saved && options.some((option) => option.key === saved)) {
+    if (saved && saved !== selectedKey && options.some((option) => option.key === saved)) {
       onSelectedKeyChange(saved);
     }
   }, [onSelectedKeyChange, options, selectedKey]);
