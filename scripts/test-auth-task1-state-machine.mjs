@@ -50,12 +50,17 @@ for (const field of ['role','school_id','account_status','is_anonymized','create
   assert.ok(!new RegExp(`['\"]${field}['\"]`, 'i').test(allowlist), `authority/provenance field ${field} must not be client-updatable`)
 }
 
-// Do not make the grant so narrow that the real Teacher Profile save silently regresses.
+// Current Teacher Profile uses profiles.full_name as canonical name truth. Historical
+// split-name columns remain in the migration allowlist only for rebuild compatibility;
+// the live save path must not depend on obsolete first_name/last_name fields.
 const teacherProfileUpdate = teacherProfile.match(/from\(["']profiles["']\)\.update\(\{([\s\S]*?)\}\)\.eq\(["']id["']/i)?.[1] ?? ''
 assert.ok(teacherProfileUpdate, 'teacher profile update contract not found')
-for (const field of ['first_name','last_name','full_name','phone','date_of_birth','gender','county','sub_county','address','emergency_contact_name','emergency_contact_phone','emergency_contact_relation']) {
-  assert.match(teacherProfileUpdate, new RegExp(`\\b${field}\\s*:`, 'i'), `teacher profile no longer writes ${field}`)
+for (const field of ['full_name','phone','bio','date_of_birth','gender','notification_prefs']) {
+  assert.match(teacherProfileUpdate, new RegExp(`\\b${field}\\s*:`, 'i'), `teacher profile no longer writes canonical field ${field}`)
   assert.match(allowlist, new RegExp(`['\"]${field}['\"]`, 'i'), `profile grant would block Teacher Profile field ${field}`)
+}
+for (const legacyField of ['first_name','last_name']) {
+  assert.ok(!new RegExp(`\\b${legacyField}\\s*:`, 'i').test(teacherProfileUpdate), `teacher profile must not depend on legacy ${legacyField}`)
 }
 
 // Role claim is one-time, self-service allowlisted, identity-bound and non-admin.
