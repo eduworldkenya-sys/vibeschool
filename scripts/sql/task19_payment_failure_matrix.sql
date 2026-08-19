@@ -164,7 +164,7 @@ begin
     perform public.process_commerce_payment_callback_event(v_event6);
     raise exception 'task19 matrix: injected receipt failure did not abort settlement';
   exception when others then
-    if sqlerrm='task19 matrix: injected receipt failure did not abort settlement' then raise; end if;
+    if sqlerrm <> 'task19_injected_receipt_failure' then raise; end if;
   end;
 
   if exists(select 1 from public.commerce_financial_ledger where payment_attempt_id=v_attempt6)
