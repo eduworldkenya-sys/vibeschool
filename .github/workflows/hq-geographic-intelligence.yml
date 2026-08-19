@@ -4,14 +4,14 @@ on:
   pull_request:
     paths:
       - 'app/hq/geography/**'
-      - 'supabase/migrations/*hq_*intelligence*.sql'
+      - 'supabase/migrations/*hq_*.sql'
       - 'scripts/validate-hq-geographic-intelligence.mjs'
       - '.github/workflows/hq-geographic-intelligence.yml'
   push:
     branches: [main]
     paths:
       - 'app/hq/geography/**'
-      - 'supabase/migrations/*hq_*intelligence*.sql'
+      - 'supabase/migrations/*hq_*.sql'
       - 'scripts/validate-hq-geographic-intelligence.mjs'
 
 permissions:
