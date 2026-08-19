@@ -13,6 +13,8 @@ begin
   if to_regprocedure('public.hq_workforce_owner_configure_global_envelope(timestamptz,boolean,smallint,smallint,integer,integer,text)') is null then raise exception 'task15 envelope control missing'; end if;
   if to_regprocedure('public.hq_workforce_owner_control_authority(uuid,text,text)') is null then raise exception 'task15 authority control missing'; end if;
   if to_regprocedure('public.hq_workforce_owner_reset_breaker(uuid,text)') is null then raise exception 'task15 breaker recovery missing'; end if;
+  if to_regprocedure('public.hq_workforce_owner_authority_catalog(integer)') is null then raise exception 'task15 authority catalog missing'; end if;
+  if to_regprocedure('public.hq_workforce_owner_issue_authority_draft(text,text,integer,integer,integer,integer,integer,integer,text)') is null then raise exception 'task15 authority draft bridge missing'; end if;
 end $$;
 
 -- Browser/product roles and service transport cannot mutate the owner audit relation directly.
@@ -45,7 +47,9 @@ begin
     'public.hq_workforce_owner_set_global_stop(boolean,text)',
     'public.hq_workforce_owner_configure_global_envelope(timestamptz,boolean,smallint,smallint,integer,integer,text)',
     'public.hq_workforce_owner_control_authority(uuid,text,text)',
-    'public.hq_workforce_owner_reset_breaker(uuid,text)'
+    'public.hq_workforce_owner_reset_breaker(uuid,text)',
+    'public.hq_workforce_owner_authority_catalog(integer)',
+    'public.hq_workforce_owner_issue_authority_draft(text,text,integer,integer,integer,integer,integer,integer,text)'
   ] loop
     foreach r in array array['public','anon','service_role'] loop
       if has_function_privilege(r,sig,'EXECUTE') then raise exception 'unexpected execute privilege % on %',r,sig; end if;
@@ -65,7 +69,8 @@ begin
       'hq_workforce_owner_control_snapshot','hq_workforce_owner_start_controlled_operations',
       'hq_workforce_owner_stop_operations','hq_workforce_owner_set_global_stop',
       'hq_workforce_owner_configure_global_envelope','hq_workforce_owner_control_authority',
-      'hq_workforce_owner_reset_breaker'
+      'hq_workforce_owner_reset_breaker','hq_workforce_owner_authority_catalog',
+      'hq_workforce_owner_issue_authority_draft'
     )
   loop
     if not p.prosecdef then raise exception '% must be SECURITY DEFINER',p.proname; end if;
@@ -115,6 +120,15 @@ begin
   d:=pg_get_functiondef('public.hq_workforce_owner_reset_breaker(uuid,text)'::regprocedure);
   if position('control_room_breaker_reset_requires_runtime_off' in d)=0 then raise exception 'breaker reset runtime-off guard missing'; end if;
   if position('control_room_global_breaker_release_via_global_stop_only' in d)=0 then raise exception 'global breaker recovery bypass exists'; end if;
+
+  d:=pg_get_functiondef('public.hq_workforce_owner_issue_authority_draft(text,text,integer,integer,integer,integer,integer,integer,text)'::regprocedure);
+  if position('control_room_authority_draft_requires_runtime_off' in d)=0 then raise exception 'authority draft runtime-off guard missing'; end if;
+  if position('control_room_foundational_capability_grant_missing' in d)=0 then raise exception 'authority draft can bypass foundational worker capability'; end if;
+  if position('control_room_worker_budget_missing' in d)=0 then raise exception 'authority draft can bypass worker budget'; end if;
+  if position('control_room_authority_nonterminal_grant_already_exists' in d)=0 then raise exception 'authority draft overlap guard missing'; end if;
+  if position('hq_workforce_issue_capability_authority_draft' in d)=0 then raise exception 'authority draft bypasses canonical R1.4 draft constructor'; end if;
+  if position('hq_workforce_owner_transition_capability_authority' in d)>0 then raise exception 'authority draft bridge must not activate/certify authority'; end if;
+  if position('jsonb_build_object' in d)=0 or position('capability_contract' in d)=0 then raise exception 'authority verification contract object missing'; end if;
 end $$;
 
 rollback;
