@@ -63,7 +63,12 @@ block = block.replace(optional_needle, optional_needle + "          moe_registra
 db = db[:start] + block + db[end:]
 db_path.write_text(db, encoding="utf-8")
 
-# Make the school settings assignment a compile-time schema check, not an assertion.
+# Query the typed school row directly. This avoids PostgREST select-string parser drift while preserving compile-time schema checking.
+replace_once(
+    "app/admin/settings/school/page.tsx",
+    '.select("name,subdomain,motto,vision,knec_code,nemis_code,moe_registration_no,tsc_code,county,sub_county,ward,phone,postal_address,school_type,school_category,established_year,directory_source,last_verified_at")',
+    '.select("*")',
+)
 replace_once(
     "app/admin/settings/school/page.tsx",
     "      const row = data as SchoolRow",
