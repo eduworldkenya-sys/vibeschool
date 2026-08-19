@@ -1,99 +1,118 @@
 begin;
 
 -- Task 6: family-owned Life & Learning records are support artifacts, but they
--- are still child-scoped personal data. Owning parent_id alone is not authority
--- to target an arbitrary canonical learner. Every read/write must retain a
--- current active parent_student_links relationship.
+-- are still child-scoped personal data. These relations are production-only
+-- legacy objects whose creation migrations are not preserved in the repository.
+-- Apply the BOLA closure when each relation exists; clean reconstruction must
+-- remain valid when the legacy relation is absent.
+do $migration$
+begin
+  if to_regclass('public.child_goals') is not null then
+    execute 'drop policy if exists "parent owns child goals" on public.child_goals';
+    execute $policy$
+      create policy "parent owns child goals"
+      on public.child_goals
+      for all
+      to authenticated
+      using (
+        child_goals.parent_id = (select auth.uid())
+        and (select public.is_parent_of_student(child_goals.student_id))
+      )
+      with check (
+        child_goals.parent_id = (select auth.uid())
+        and (select public.is_parent_of_student(child_goals.student_id))
+      )
+    $policy$;
+  end if;
 
--- Goals
-drop policy if exists "parent owns child goals" on public.child_goals;
-create policy "parent owns child goals"
-on public.child_goals
-for all
-to authenticated
-using (
-  child_goals.parent_id = (select auth.uid())
-  and (select public.is_parent_of_student(child_goals.student_id))
-)
-with check (
-  child_goals.parent_id = (select auth.uid())
-  and (select public.is_parent_of_student(child_goals.student_id))
-);
+  if to_regclass('public.child_skills') is not null then
+    execute 'drop policy if exists "parent owns child skills" on public.child_skills';
+    execute $policy$
+      create policy "parent owns child skills"
+      on public.child_skills
+      for all
+      to authenticated
+      using (
+        child_skills.parent_id = (select auth.uid())
+        and (select public.is_parent_of_student(child_skills.student_id))
+      )
+      with check (
+        child_skills.parent_id = (select auth.uid())
+        and (select public.is_parent_of_student(child_skills.student_id))
+      )
+    $policy$;
+  end if;
 
--- Skills
-drop policy if exists "parent owns child skills" on public.child_skills;
-create policy "parent owns child skills"
-on public.child_skills
-for all
-to authenticated
-using (
-  child_skills.parent_id = (select auth.uid())
-  and (select public.is_parent_of_student(child_skills.student_id))
-)
-with check (
-  child_skills.parent_id = (select auth.uid())
-  and (select public.is_parent_of_student(child_skills.student_id))
-);
+  if to_regclass('public.child_books') is not null then
+    execute 'drop policy if exists "parent owns child books" on public.child_books';
+    execute $policy$
+      create policy "parent owns child books"
+      on public.child_books
+      for all
+      to authenticated
+      using (
+        child_books.parent_id = (select auth.uid())
+        and (select public.is_parent_of_student(child_books.student_id))
+      )
+      with check (
+        child_books.parent_id = (select auth.uid())
+        and (select public.is_parent_of_student(child_books.student_id))
+      )
+    $policy$;
+  end if;
 
--- Books
-drop policy if exists "parent owns child books" on public.child_books;
-create policy "parent owns child books"
-on public.child_books
-for all
-to authenticated
-using (
-  child_books.parent_id = (select auth.uid())
-  and (select public.is_parent_of_student(child_books.student_id))
-)
-with check (
-  child_books.parent_id = (select auth.uid())
-  and (select public.is_parent_of_student(child_books.student_id))
-);
+  if to_regclass('public.child_events') is not null then
+    execute 'drop policy if exists "parent owns child events" on public.child_events';
+    execute $policy$
+      create policy "parent owns child events"
+      on public.child_events
+      for all
+      to authenticated
+      using (
+        child_events.parent_id = (select auth.uid())
+        and (select public.is_parent_of_student(child_events.student_id))
+      )
+      with check (
+        child_events.parent_id = (select auth.uid())
+        and (select public.is_parent_of_student(child_events.student_id))
+      )
+    $policy$;
+  end if;
 
--- Family-recorded events. These are not the canonical Parent Command Center
--- event inbox; they are personal family support records and remain parent-owned.
-drop policy if exists "parent owns child events" on public.child_events;
-create policy "parent owns child events"
-on public.child_events
-for all
-to authenticated
-using (
-  child_events.parent_id = (select auth.uid())
-  and (select public.is_parent_of_student(child_events.student_id))
-)
-with check (
-  child_events.parent_id = (select auth.uid())
-  and (select public.is_parent_of_student(child_events.student_id))
-);
-
--- Milestones inherit authority from the parent-owned goal, but the milestone's
--- learner ID must also agree with the goal learner ID. This prevents mixing one
--- authorized goal with another learner's UUID.
-drop policy if exists "parent owns milestones" on public.child_goal_milestones;
-create policy "parent owns milestones"
-on public.child_goal_milestones
-for all
-to authenticated
-using (
-  exists (
-    select 1
-    from public.child_goals g
-    where g.id = child_goal_milestones.goal_id
-      and g.student_id = child_goal_milestones.student_id
-      and g.parent_id = (select auth.uid())
-      and (select public.is_parent_of_student(g.student_id))
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.child_goals g
-    where g.id = child_goal_milestones.goal_id
-      and g.student_id = child_goal_milestones.student_id
-      and g.parent_id = (select auth.uid())
-      and (select public.is_parent_of_student(g.student_id))
-  )
-);
+  -- Milestones inherit authority from the parent-owned goal, but only when
+  -- both legacy relations exist in this schema state.
+  if to_regclass('public.child_goal_milestones') is not null
+     and to_regclass('public.child_goals') is not null then
+    execute 'drop policy if exists "parent owns milestones" on public.child_goal_milestones';
+    execute $policy$
+      create policy "parent owns milestones"
+      on public.child_goal_milestones
+      for all
+      to authenticated
+      using (
+        exists (
+          select 1
+          from public.child_goals g
+          where g.id = child_goal_milestones.goal_id
+            and g.student_id = child_goal_milestones.student_id
+            and g.parent_id = (select auth.uid())
+            and (select public.is_parent_of_student(g.student_id))
+        )
+      )
+      with check (
+        exists (
+          select 1
+          from public.child_goals g
+          where g.id = child_goal_milestones.goal_id
+            and g.student_id = child_goal_milestones.student_id
+            and g.parent_id = (select auth.uid())
+            and (select public.is_parent_of_student(g.student_id))
+        )
+      )
+    $policy$;
+  end if;
+end
+$migration$;
 
 -- Pathway Passport projection is learner-owned evidence. A historical/revoked
 -- link must not keep returning it from this SECURITY DEFINER function.
