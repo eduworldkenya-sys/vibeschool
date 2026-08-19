@@ -68,6 +68,8 @@ update public.pilot_event_contract set
   end,
   updated_at = now();
 
+-- access: owner-only public.pilot_slo_contract
+-- authorization-test: public.pilot_slo_contract
 create table if not exists public.pilot_slo_contract (
   slo_key text primary key,
   journey text not null unique,
