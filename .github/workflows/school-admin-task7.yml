@@ -1,0 +1,40 @@
+name: School Admin Pilot Task 7
+
+on:
+  pull_request:
+    paths:
+      - 'app/admin/**'
+      - 'components/admin/**'
+      - 'lib/admin/**'
+      - 'lib/twin/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-school-admin-task7-contract.mjs'
+      - 'scripts/test-school-admin-route-contract.mjs'
+      - '.github/workflows/school-admin-task7.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  school-admin-pilot-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: School Admin Task 7 contract
+        run: node scripts/test-school-admin-task7-contract.mjs
+      - name: School Admin dead-route contract
+        run: node scripts/test-school-admin-route-contract.mjs
+      - name: School Admin anonymous operational grant closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration='supabase/migrations/20260819040500_school_admin_anon_operational_grant_hardening.sql'
+          test -f "$migration"
+          for relation in academic_terms exams finance_invoices finance_payments subjects timetable_slots; do
+            grep -Fq "revoke all privileges on table public.${relation} from anon;" "$migration"
+            grep -Fq "revoke all privileges on table public.${relation} from public;" "$migration"
+          done

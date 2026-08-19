@@ -1,32 +1,38 @@
-"use client";
-export const dynamic = "force-dynamic";
+"use client"
+export const dynamic = "force-dynamic"
+
 import { useRouter } from "next/navigation"
 
-export default function SettingsPage() {
+const schoolItems = [
+  ["School profile", "Operational school details and protected official identity", "/admin/settings/school"],
+  ["Academic terms", "Create and activate the current academic term", "/admin/settings/term"],
+  ["Classes & streams", "Canonical classes used by enrollment, timetable and reporting", "/admin/settings/classes"],
+  ["Subjects", "Stable subject identities for teaching and assessment", "/admin/settings/subjects"],
+  ["Teachers", "School membership and class/subject assignments", "/admin/teachers"],
+  ["Timetable", "Current class, teacher, subject and room schedule oversight", "/admin/timetable"],
+] as const
+
+export default function AdminSettingsPage() {
   const router = useRouter()
-  const items = [
-    { label: "School Profile", desc: "Name, motto, KNEC code, county, contacts", icon: "🏫", href: "/admin/settings/school" },
-    { label: "Classes", desc: "Add and manage classes and streams", icon: "📚", href: "/admin/settings/classes" },
-    { label: "Academic Terms", desc: "Set Term 1, 2, 3 dates and activate current term", icon: "📅", href: "/admin/settings/term" },
-    { label: "Finance & Bursar", desc: "Appoint bursar, dual-approval rules", icon: "💰", href: "/admin/settings/finance" },
-  ]
   return (
-    <div style={{ padding: "20px", maxWidth: "600px", margin: "0 auto" }}>
-      <h1 style={{ fontSize: "22px", fontWeight: "700", color: "#0f172a", marginBottom: "6px" }}>Settings</h1>
-      <p style={{ fontSize: "14px", color: "#64748b", marginBottom: "24px" }}>Manage your school configuration</p>
-      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-        {items.map(item => (
-          <button key={item.href} onClick={() => router.push(item.href)}
-            style={{ display: "flex", alignItems: "center", gap: "16px", padding: "16px", borderRadius: "12px", border: "1px solid #e2e8f0", background: "#ffffff", cursor: "pointer", textAlign: "left" }}>
-            <span style={{ fontSize: "28px" }}>{item.icon}</span>
-            <div>
-              <div style={{ fontSize: "15px", fontWeight: "600", color: "#0f172a" }}>{item.label}</div>
-              <div style={{ fontSize: "13px", color: "#64748b", marginTop: "2px" }}>{item.desc}</div>
-            </div>
-            <span style={{ marginLeft: "auto", color: "#94a3b8", fontSize: "18px" }}>›</span>
-          </button>
-        ))}
-      </div>
-    </div>
+    <main style={{ maxWidth: 760, margin: "0 auto", display: "grid", gap: 18 }}>
+      <header><h1 style={{ margin: 0, fontSize: 24 }}>Settings</h1><p style={{ color: "#64748b", margin: "5px 0 0" }}>Personal account, school operations, and platform ownership are deliberately separate authority domains.</p></header>
+
+      <section style={{ display: "grid", gap: 8 }}>
+        <h2 style={{ fontSize: 16, margin: "3px 0" }}>Personal account</h2>
+        <button onClick={() => router.push("/admin/profile")} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, textAlign: "left", cursor: "pointer" }}><strong>My account</strong><div style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>Your name, contact information, session and sign-out. This does not change school authority.</div></button>
+        <button onClick={() => router.push("/admin/notifications")} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, textAlign: "left", cursor: "pointer" }}><strong>Operational alerts</strong><div style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>Incomplete setup, missing attendance and unresolved school relationships.</div></button>
+      </section>
+
+      <section style={{ display: "grid", gap: 8 }}>
+        <h2 style={{ fontSize: 16, margin: "3px 0" }}>School settings</h2>
+        {schoolItems.map(([label, desc, href]) => <button key={href} onClick={() => router.push(href)} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, textAlign: "left", cursor: "pointer", display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10 }}><div><strong>{label}</strong><div style={{ color: "#64748b", fontSize: 13, marginTop: 4 }}>{desc}</div></div><span style={{ color: "#94a3b8", alignSelf: "center" }}>›</span></button>)}
+      </section>
+
+      <section style={{ background: "#f8fafc", border: "1px solid #cbd5e1", borderRadius: 14, padding: 15 }}>
+        <h2 style={{ fontSize: 16, margin: "0 0 5px" }}>HQ / platform controls</h2>
+        <p style={{ color: "#64748b", fontSize: 13, lineHeight: 1.5, margin: 0 }}>Not available from the School Admin surface. Platform owner, Worker Engine, service-role and HQ controls require separate backend-authoritative ownership and are never granted by school settings.</p>
+      </section>
+    </main>
   )
 }

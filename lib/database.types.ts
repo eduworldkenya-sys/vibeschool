@@ -13332,6 +13332,10 @@ export type Database = {
           name: string
           name_normalized: string | null
           nemis_code: string | null
+          moe_registration_no: string | null
+          tsc_code: string | null
+          directory_source: string | null
+          last_verified_at: string | null
           phone: string | null
           postal_address: string | null
           requires_dual_approval: boolean
@@ -13361,6 +13365,10 @@ export type Database = {
           name: string
           name_normalized?: string | null
           nemis_code?: string | null
+          moe_registration_no?: string | null
+          tsc_code?: string | null
+          directory_source?: string | null
+          last_verified_at?: string | null
           phone?: string | null
           postal_address?: string | null
           requires_dual_approval?: boolean
@@ -13390,6 +13398,10 @@ export type Database = {
           name?: string
           name_normalized?: string | null
           nemis_code?: string | null
+          moe_registration_no?: string | null
+          tsc_code?: string | null
+          directory_source?: string | null
+          last_verified_at?: string | null
           phone?: string | null
           postal_address?: string | null
           requires_dual_approval?: boolean

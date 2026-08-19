@@ -1,107 +1,115 @@
-"use client";
-export const dynamic = "force-dynamic";
-import { supabase } from '@/lib/supabase'
+"use client"
+export const dynamic = "force-dynamic"
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+import { getAdminSchoolAuthority } from "@/lib/admin/authority"
+import { nairobiDateStr } from "@/lib/time"
 
+type ClassRow = { id: string; name: string; stream: string | null }
+type EnrollmentRow = { student_id: string; class_id: string }
+type AttendanceRow = { student_id: string; class_id: string; status: string }
+type TeachingRow = { class_id: string; lifecycle: string }
+type ResultRow = { student_id: string; class_id: string; subject_id: string; marks: number | null; is_absent: boolean }
 
-const categories = [
-  { key: 'academic',     label: 'Academic',     icon: '📚', href: '/admin/reports/academic',     color: 'from-blue-600 to-blue-800' },
-  { key: 'attendance',   label: 'Attendance',   icon: '📅', href: '/admin/reports/attendance',   color: 'from-green-600 to-green-800' },
-  { key: 'finance',      label: 'Finance',      icon: '💰', href: '/admin/reports/finance',      color: 'from-yellow-600 to-yellow-800' },
-  { key: 'staff',        label: 'Staff',        icon: '👨‍🏫', href: '/admin/reports/staff',        color: 'from-purple-600 to-purple-800' },
-  { key: 'students',     label: 'Students',     icon: '👥', href: '/admin/reports/students',     color: 'from-pink-600 to-pink-800' },
-  { key: 'operational',  label: 'Operational',  icon: '🏛️', href: '/admin/reports/operational',  color: 'from-orange-600 to-orange-800' },
-  { key: 'system',       label: 'System',       icon: '🔐', href: '/admin/reports/system',       color: 'from-red-600 to-red-800' },
-]
-
-export default function ReportsPage() {
-  const [search, setSearch] = useState('')
-  const [schoolName, setSchoolName] = useState('EduWorld Kenya')
+export default function AdminReportsPage() {
+  const router = useRouter()
+  const [schoolName, setSchoolName] = useState("")
+  const [classes, setClasses] = useState<ClassRow[]>([])
+  const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([])
+  const [attendance, setAttendance] = useState<AttendanceRow[]>([])
+  const [teaching, setTeaching] = useState<TeachingRow[]>([])
+  const [results, setResults] = useState<ResultRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  useEffect(() => {
-    async function loadSchool() {
-      const { data } = await supabase.from('schools').select('name').limit(1).single()
-      if (data?.name) setSchoolName(data.name)
+  useEffect(() => { void load() }, [])
+
+  async function load() {
+    setLoading(true)
+    setError("")
+    try {
+      const authority = await getAdminSchoolAuthority()
+      const sid = authority.schoolId
+      const today = nairobiDateStr()
+      const [schoolRes, classRes, enrollmentRes, attendanceRes, teachingRes, resultRes] = await Promise.all([
+        supabase.from("schools").select("name").eq("id", sid).single(),
+        supabase.from("classes").select("id,name,stream").eq("school_id", sid).order("name").order("stream"),
+        supabase.from("student_classes").select("student_id,class_id").eq("school_id", sid).eq("is_current", true),
+        supabase.from("attendance").select("student_id,class_id,status").eq("school_id", sid).eq("date", today),
+        supabase.from("teaching_occurrences").select("class_id,lifecycle").eq("school_id", sid).eq("occurrence_date", today),
+        supabase.from("exam_results").select("student_id,class_id,subject_id,marks,is_absent").eq("school_id", sid).gte("created_at", `${today.slice(0,4)}-01-01T00:00:00+03:00`),
+      ])
+      const firstError = [schoolRes.error, classRes.error, enrollmentRes.error, attendanceRes.error, teachingRes.error, resultRes.error].find(Boolean)
+      if (firstError) throw firstError
+      setSchoolName(schoolRes.data?.name ?? "School")
+      setClasses((classRes.data ?? []) as ClassRow[])
+      setEnrollments((enrollmentRes.data ?? []) as EnrollmentRow[])
+      setAttendance((attendanceRes.data ?? []) as AttendanceRow[])
+      setTeaching((teachingRes.data ?? []) as TeachingRow[])
+      setResults((resultRes.data ?? []) as ResultRow[])
+    } catch (cause) {
+      console.error("Admin reports load failed", cause)
+      setError(cause instanceof Error ? cause.message : "School reports could not be loaded.")
+    } finally {
       setLoading(false)
     }
-    loadSchool()
-  }, [])
+  }
 
-  const filtered = categories.filter(c =>
-    c.label.toLowerCase().includes(search.toLowerCase())
-  )
+  const totals = useMemo(() => {
+    const enrolled = new Set(enrollments.map(row => row.student_id)).size
+    const attendanceCaptured = new Set(attendance.map(row => row.student_id)).size
+    const attendanceRate = attendance.length ? Math.round((attendance.filter(row => row.status === "present").length / attendance.length) * 100) : null
+    const teachingCompleted = teaching.filter(row => row.lifecycle === "completed").length
+    const resultStudents = new Set(results.map(row => row.student_id)).size
+    return { enrolled, attendanceCaptured, attendanceRate, teachingCompleted, teachingScheduled: teaching.length, resultStudents, resultRows: results.length }
+  }, [enrollments, attendance, teaching, results])
+
+  const classRows = useMemo(() => classes.map(cls => {
+    const expected = new Set(enrollments.filter(row => row.class_id === cls.id).map(row => row.student_id)).size
+    const captured = new Set(attendance.filter(row => row.class_id === cls.id).map(row => row.student_id)).size
+    const sessions = teaching.filter(row => row.class_id === cls.id)
+    const classResults = results.filter(row => row.class_id === cls.id)
+    return {
+      ...cls,
+      expected,
+      captured,
+      sessions: sessions.length,
+      completed: sessions.filter(row => row.lifecycle === "completed").length,
+      resultStudents: new Set(classResults.map(row => row.student_id)).size,
+    }
+  }), [classes, enrollments, attendance, teaching, results])
+
+  if (loading) return <div aria-busy="true" style={{ minHeight: 280, borderRadius: 18, background: "#e2e8f0" }} />
 
   return (
-    <div style={{minHeight:"100vh",background:"#0f172a",color:"#f1f5f9"}}>
-      {/* Header */}
-      <div style={{background:"#1e293b",borderBottom:"1px solid #334155",padding:"16px",position:"sticky",top:0,zIndex:10}}>
-        <div style={{maxWidth:"672px",margin:"0 auto"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"12px"}}>
-            <div>
-              <h1 style={{fontSize:"20px",fontWeight:700,color:"#f1f5f9",margin:0}}>Reports</h1>
-              {!loading && (
-                <p style={{fontSize:"11px",color:"#94a3b8",margin:0}}>{schoolName}</p>
-              )}
-            </div>
-            <span style={{fontSize:"24px"}}>📊</span>
-          </div>
-          {/* Search */}
-          <input
-            type="text"
-            placeholder="Search reports..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{width:"100%",background:"#0f172a",border:"1px solid #475569",borderRadius:"12px",padding:"10px 16px",fontSize:"13px",color:"#f1f5f9",outline:"none"}}
-          />
-        </div>
-      </div>
+    <main style={{ maxWidth: 980, margin: "0 auto", display: "grid", gap: 16 }}>
+      <header><h1 style={{ margin: 0, fontSize: 24 }}>School reports</h1><p style={{ color: "#64748b", margin: "5px 0 0" }}>{schoolName} · pilot-critical operational reports use the same canonical identities as daily workflows.</p></header>
+      {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}
 
-      <div style={{maxWidth:"672px",margin:"0 auto",padding:"24px 16px",display:"flex",flexDirection:"column",gap:"24px"}}>
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 }}>
+        {[
+          ["Current enrollment", totals.enrolled, "/admin/students"],
+          ["Attendance captured", `${totals.attendanceCaptured}/${totals.enrolled}`, "/admin/attendance"],
+          ["Present rate today", totals.attendanceRate === null ? "—" : `${totals.attendanceRate}%`, "/admin/attendance"],
+          ["Teaching completed", `${totals.teachingCompleted}/${totals.teachingScheduled}`, "/admin/academics"],
+          ["Learners with results", totals.resultStudents, "/admin/academics/gradebook"],
+          ["Result records", totals.resultRows, "/admin/academics/gradebook"],
+        ].map(([label, value, href]) => <button key={String(label)} onClick={() => router.push(String(href))} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 14, padding: 14, textAlign: "left", cursor: "pointer" }}><div style={{ fontSize: 22, fontWeight: 820 }}>{String(value)}</div><div style={{ color: "#64748b", fontSize: 12, marginTop: 3 }}>{String(label)}</div></button>)}
+      </section>
 
-        {/* Quick Stats */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px"}}>
-          <div style={{background:"#1e293b",borderRadius:"12px",padding:"12px",border:"1px solid #334155",textAlign:"center"}}>
-            <p style={{fontSize:"24px",fontWeight:800,color:"#38bdf8",margin:0}}>7</p>
-            <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Categories</p>
-          </div>
-          <div style={{background:"#1e293b",borderRadius:"12px",padding:"12px",border:"1px solid #334155",textAlign:"center"}}>
-            <p style={{fontSize:"24px",fontWeight:800,color:"#10b981",margin:0}}>134</p>
-            <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Data Tables</p>
-          </div>
-          <div style={{background:"#1e293b",borderRadius:"12px",padding:"12px",border:"1px solid #334155",textAlign:"center"}}>
-            <p style={{fontSize:"24px",fontWeight:800,color:"#f59e0b",margin:0}}>5</p>
-            <p style={{fontSize:"11px",color:"#94a3b8",marginTop:"4px"}}>Live Views</p>
-          </div>
-        </div>
-
-        {/* Categories */}
-        <div>
-          <h2 style={{fontSize:"12px",fontWeight:600,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.05em",marginBottom:"12px"}}>
-            Report Categories
-          </h2>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px"}}>
-            {filtered.map(cat => (
-              <Link key={cat.key} href={cat.href}>
-                <div style={{background:"linear-gradient(135deg,#1e3a5f,#0f172a)",borderRadius:"12px",padding:"16px",border:"1px solid #334155",cursor:"pointer"}}>
-                  <div style={{fontSize:"30px",marginBottom:"8px"}}>{cat.icon}</div>
-                  <p style={{fontWeight:600,color:"#f1f5f9",fontSize:"13px",margin:0}}>{cat.label}</p>
-                  <p style={{fontSize:"11px",color:"rgba(255,255,255,0.6)",marginTop:"2px"}}>View reports →</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        {filtered.length === 0 && (
-          <div style={{textAlign:"center",padding:"48px 0"}}>
-            <p style={{color:"#64748b",fontSize:"14px"}}>No categories match "{search}"</p>
-          </div>
-        )}
-
-      </div>
-    </div>
+      <section style={{ display: "grid", gap: 8 }}>
+        <h2 style={{ margin: "4px 0", fontSize: 17 }}>Class consistency</h2>
+        {classRows.length === 0 ? <div style={{ background: "white", border: "1px solid #fde68a", borderRadius: 14, padding: 20 }}><strong>No classes configured</strong><p style={{ color: "#64748b" }}>Reports will populate as the school completes setup.</p></div> : classRows.map(row => (
+          <article key={row.id} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 13, padding: 13, display: "grid", gridTemplateColumns: "minmax(0,1fr) repeat(3,auto)", gap: 14, alignItems: "center" }}>
+            <strong>{row.name}{row.stream ? ` ${row.stream}` : ""}</strong>
+            <div style={{ textAlign: "right" }}><div style={{ fontWeight: 760 }}>{row.captured}/{row.expected}</div><div style={{ color: "#64748b", fontSize: 10 }}>attendance</div></div>
+            <div style={{ textAlign: "right" }}><div style={{ fontWeight: 760 }}>{row.completed}/{row.sessions}</div><div style={{ color: "#64748b", fontSize: 10 }}>teaching</div></div>
+            <div style={{ textAlign: "right" }}><div style={{ fontWeight: 760 }}>{row.resultStudents}</div><div style={{ color: "#64748b", fontSize: 10 }}>with results</div></div>
+          </article>
+        ))}
+      </section>
+    </main>
   )
 }
