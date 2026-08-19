@@ -1,0 +1,33 @@
+name: Task 15 Control Room Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/hq/workforce/**'
+      - 'supabase/migrations/**worker_engine**'
+      - 'supabase/migrations/**task15**'
+      - 'scripts/verify-task15-control-room.mjs'
+      - '.github/workflows/task15-control-room-contract.yml'
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - 'app/hq/workforce/**'
+      - 'supabase/migrations/**task15**'
+      - 'scripts/verify-task15-control-room.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  control-room-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: node scripts/verify-task15-control-room.mjs
+      - run: npm ci
+      - run: npx tsc --noEmit
