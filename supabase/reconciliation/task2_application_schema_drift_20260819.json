@@ -1,0 +1,42 @@
+{
+  "captured_at": "2026-08-19",
+  "scope": "Task 2 branch-local reconstruction versus read-only production catalog and literal application contracts",
+  "safety": "Evidence only. No production mutation was performed or authorized.",
+  "clean_reconstruction": {
+    "migration_files": 661,
+    "applied_migrations": 661,
+    "literal_application_relations": 222,
+    "literal_application_rpcs": 190,
+    "missing_relations": 90,
+    "missing_rpcs": 21
+  },
+  "classification": {
+    "production_only_relations": [
+      "admin_meetings","admin_profiles","admin_project_milestones","admin_projects","admin_staff_attendance","admin_staff_leave","admin_visitors","audit_logs","badges","child_badges","child_books","child_change_requests","child_events","child_goal_milestones","child_goals","child_growth","child_media","child_profiles","child_skills","child_streaks","course_enrollments","curriculum_imports","finance_accounts","finance_bank_accounts","finance_budgets","finance_expenses","finance_invoice_lines","finance_invoices","finance_mpesa_statements","finance_payments","finance_payroll_lines","finance_payroll_runs","finance_periods","finance_pocket_money","finance_receipt_sequences","finance_roles","finance_savings_goals","finance_transaction_lines","funhub_claims","funhub_leaderboard_school","funhub_vouchers","health_records","health_vaccinations","hq_support_cases","hq_support_messages","learner_outcomes","lesson_content","library_books","library_borrowings","manual_students","meeting_actions","meeting_agenda_items","meeting_attendees","meeting_minutes","parent_profiles","project_log","project_members","project_transactions","publication_revisions","report_card_remarks","resource_assets","resource_documents","resource_requests","resource_roles","resources","staff","staff_attendance","staff_leave","store_items","store_transactions","student_accessible_resources","system_health_logs","teacher_profiles","tpad_deadlines","tpad_evidence","traditional_grades","twin_sessions","v_approvals_queue","v_budget_vs_actual","v_invoice_aging","v_project_summary","vibe_stories","vibe_story_pages","vibelearn_leaderboard","vibelearn_teacher_stats","vibelearn_vibes"
+    ],
+    "production_only_rpcs": [
+      "bump_bank_served","connect_current_teacher_school","count_bank_questions","create_child_for_parent","dismiss_bank_question","funhub_claim_voucher","funhub_save_session","get_bank_questions","get_my_classroom_reading_assignments","hq_check_owner_access","hq_get_control_health_v2","hq_get_executive_analytics","hq_review_curriculum_intelligence_proposal","hq_run_operating_cycle","increment_available_copies","review_homework_submission","submit_contact_request","update_chapter_assignment_due_at"
+    ],
+    "absent_in_both_production_and_reconstruction_relations": [
+      "vibevoice_live_rooms","vibevoice_narrations","vibevoice_queue","vibevoice_reviews"
+    ],
+    "absent_in_both_production_and_reconstruction_rpcs": [
+      "increment_story_likes","increment_story_views","increment_vibe_count"
+    ]
+  },
+  "verified_ledger_provenance": {
+    "admin_profiles": {
+      "earliest_direct_production_ledger_mention_found": "20260809040150_fix_role_membership_verification_null_school",
+      "evidence_kind": "later trigger-function hardening reference, not object creation",
+      "creation_migration_preserved_in_ledger": false
+    }
+  },
+  "provenance_status": "INCOMPLETE_BY_DESIGN",
+  "notes": [
+    "The production-only versus absent-in-both object classification is based on direct read-only pg_catalog / pg_proc existence checks and remains authoritative for this snapshot.",
+    "An earlier inferred first-ledger-mention mapping was removed after direct version/name queries proved that those inferred historical labels were not actual production ledger rows. Do not use inferred migration names as recovery authority.",
+    "Many production-only objects appear to predate or bypass the currently preserved migration ledger. Recovery therefore requires current catalog metadata plus application/security contracts, with provenance recorded explicitly.",
+    "The four VibeVoice relations and three story/vibe increment RPCs are application-contract gaps rather than repository-production migration drift because they exist in neither inspected production nor clean reconstruction.",
+    "Shared Task 1 auth/onboarding contracts are intentionally excluded from recovery while its foundation PR remains unmerged; exact-current-main reconciliation must happen after that foundation lands."
+  ]
+}

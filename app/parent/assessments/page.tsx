@@ -15,7 +15,7 @@ export default function ParentAssessmentsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const requestedStudentId = searchParams.get('studentId')
-  const [studentId, setStudentId] = useState<string | null>(requestedStudentId)
+  const [studentId, setStudentId] = useState<string | null>(null)
   const [studentName, setStudentName] = useState('Learner')
   const [summary, setSummary] = useState<ParentAssessmentSummary | null>(null)
   const [loading, setLoading] = useState(true)
@@ -23,6 +23,15 @@ export default function ParentAssessmentsPage() {
 
   useEffect(() => {
     let cancelled = false
+
+    // Fail closed before resolving a new child. A previous sibling's assessment
+    // summary must never remain visible while the next relationship is checked.
+    setStudentId(null)
+    setStudentName('Learner')
+    setSummary(null)
+    setError('')
+    setLoading(true)
+
     async function load() {
       try {
         let targetId = requestedStudentId
@@ -39,19 +48,34 @@ export default function ParentAssessmentsPage() {
           if (linkError) throw linkError
           targetId = data?.student_id ?? null
           const student = Array.isArray(data?.students) ? data?.students[0] : data?.students
-          if (student && typeof student === 'object' && 'name' in student && typeof student.name === 'string') setStudentName(student.name)
+          if (!cancelled && student && typeof student === 'object' && 'name' in student && typeof student.name === 'string') {
+            setStudentName(student.name)
+          }
         } else {
-          const { data } = await supabase.from('students').select('name').eq('id', targetId).maybeSingle()
-          if (data?.name) setStudentName(data.name)
+          // RLS on students is the explicit deep-link authorization gate before
+          // requesting any assessment summary for a browser-supplied studentId.
+          const { data, error: studentError } = await supabase
+            .from('students')
+            .select('id, name')
+            .eq('id', targetId)
+            .maybeSingle()
+          if (studentError) throw studentError
+          if (!data) throw new Error('This learner is not linked to your active parent account.')
+          if (!cancelled) setStudentName(data.name)
         }
         if (!targetId) throw new Error('No linked learner was found for this parent account.')
+
         const payload = await getParentAssessmentSummary(targetId)
         if (!cancelled) {
           setStudentId(targetId)
           setSummary(payload)
         }
       } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load assessment progress.')
+        if (!cancelled) {
+          setSummary(null)
+          setStudentId(null)
+          setError(cause instanceof Error ? cause.message : 'Could not load assessment progress.')
+        }
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -118,7 +142,7 @@ export default function ParentAssessmentsPage() {
               </div>}
           </section>
 
-          <button type="button" onClick={() => router.push(studentId ? `/parent/report-cards?studentId=${studentId}` : '/parent/report-cards')} style={primaryButton}>View report cards</button>
+          {studentId && <button type="button" onClick={() => router.push(`/parent/child/${studentId}`)} style={primaryButton}>Back to learner overview</button>}
         </>}
     </div>
   )

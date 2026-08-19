@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import RecoveryActions from './RecoveryActions'
 
 const COPY: Record<string, { title: string; body: string }> = {
   missing_code: { title: 'Sign-in link is incomplete', body: 'Start the sign-in process again. The previous provider response cannot be used.' },
@@ -12,11 +13,13 @@ const COPY: Record<string, { title: string; body: string }> = {
   role_required: { title: 'Choose the account you want to create', body: 'Start from the appropriate VibeSchool sign-up page.' },
   role_claim_failed: { title: 'Account setup could not be completed', body: 'VibeSchool stopped before assigning a role because the account state was not safe to change.' },
   role_unresolved: { title: 'Account role needs attention', body: 'VibeSchool could not determine an authoritative role for this account.' },
-  onboarding_resolution_failed: { title: 'Account setup state is unavailable', body: 'VibeSchool could not safely determine your next step. No dashboard was guessed.' },
+  onboarding_resolution_failed: { title: 'Account setup state is unavailable', body: 'VibeSchool could not safely determine your next step. No dashboard was guessed. You can retry safely.' },
   onboarding_invalid: { title: 'Account setup state is inconsistent', body: 'VibeSchool stopped the sign-in journey because the account state needs repair.' },
   authority_resolution_failed: { title: 'Account authority could not be verified', body: 'Access was stopped because VibeSchool could not safely verify your role and onboarding state.' },
   recovery_session_missing: { title: 'Recovery session expired', body: 'This password-reset session is no longer valid. Start password recovery again.' },
   account_unavailable: { title: 'Account is unavailable', body: 'This account cannot currently enter VibeSchool. Contact support if you believe this is a mistake.' },
+  admin_membership_missing: { title: 'School administrator access needs repair', body: 'Your account does not currently have a verified administrator membership. Access was stopped safely.' },
+  identity_conflict: { title: 'Learner identity needs review', body: 'VibeSchool found conflicting learner identity evidence and stopped rather than choosing the wrong learner.' },
 }
 
 export default function AuthErrorPage({ searchParams }: { searchParams?: { reason?: string } }) {
@@ -33,9 +36,9 @@ export default function AuthErrorPage({ searchParams }: { searchParams?: { reaso
         <p style={{ marginTop: 32, color: '#c8a84b', fontSize: 11, fontWeight: 800, letterSpacing: '.14em' }}>SECURE SIGN-IN</p>
         <h1 style={{ fontSize: 34, lineHeight: 1.1, margin: '8px 0 12px' }}>{copy.title}</h1>
         <p style={{ color: 'rgba(255,255,255,.65)', lineHeight: 1.6 }}>{copy.body}</p>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 24 }}>
-          <Link href="/login" style={{ background: '#c8a84b', color: '#05050f', padding: '12px 16px', borderRadius: 9, textDecoration: 'none', fontWeight: 800 }}>Try sign in again</Link>
-          <Link href="/auth/forgot-password" style={{ border: '1px solid rgba(255,255,255,.18)', color: '#fff', padding: '12px 16px', borderRadius: 9, textDecoration: 'none', fontWeight: 700 }}>Reset password</Link>
+        <RecoveryActions />
+        <div style={{ marginTop: 16 }}>
+          <Link href="/auth/forgot-password" style={{ color: '#fff', minHeight: 44, display: 'inline-flex', alignItems: 'center', fontWeight: 700 }}>Reset password</Link>
         </div>
         <p style={{ marginTop: 24, color: 'rgba(255,255,255,.4)', fontSize: 12 }}>Reference: {reason || 'auth_error'}</p>
       </section>

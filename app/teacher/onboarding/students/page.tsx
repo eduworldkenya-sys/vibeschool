@@ -41,19 +41,21 @@ export default function StudentsOnboardingPage() {
       return
     }
 
+    const missingAdmission = valid.findIndex(s => !s.admission_number.trim())
+    if (missingAdmission >= 0) {
+      setError(`Admission number is required for Student ${missingAdmission + 1}. It protects the learner from duplicate creation if saving is retried.`)
+      return
+    }
+
     setLoading(true)
 
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/'); return }
 
-    // The class step already created this exact class. Reuse that result instead
-    // of querying teacher_classes to rediscover it on the next screen.
     const params = new URLSearchParams(window.location.search)
     let classId = params.get('class_id')
     let schoolId = params.get('school_id')
 
-    // Direct/legacy visits may not carry context. Keep a compatibility fallback,
-    // but the normal onboarding path performs zero relationship queries here.
     if (!classId || !schoolId) {
       const { data: tcData } = await supabase
         .from('teacher_classes')
@@ -70,15 +72,23 @@ export default function StudentsOnboardingPage() {
       schoolId = tcData.school_id
     }
 
-    for (const s of valid) {
+    for (let i = 0; i < valid.length; i += 1) {
+      const s = valid[i]
       const { error: insertErr } = await supabase.rpc('teacher_add_student', {
         p_name: s.name.trim(),
-        p_admission_number: s.admission_number.trim() || undefined,
+        p_admission_number: s.admission_number.trim(),
         p_class_id: classId,
         p_school_id: schoolId,
       })
       if (insertErr) {
         console.error('[StudentOnboarding] insert error', insertErr)
+        setLoading(false)
+        if (insertErr.message.includes('admission_identifier_conflict')) {
+          setError(`Student ${i + 1} was not added because that admission number is already in use at this school. Verify the learner instead of creating a duplicate.`)
+        } else {
+          setError(`Student ${i + 1} could not be added. ${insertErr.message}`)
+        }
+        return
       }
     }
 
@@ -104,7 +114,7 @@ export default function StudentsOnboardingPage() {
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input type="text" placeholder={`Student ${i + 1} name`} value={s.name} onChange={e => updateRow(i, 'name', e.target.value)} disabled={loading}
                 style={{ flex: 2, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
-              <input type="text" placeholder="Adm. No." value={s.admission_number} onChange={e => updateRow(i, 'admission_number', e.target.value)} disabled={loading}
+              <input type="text" required aria-label={`Student ${i + 1} admission number`} placeholder="Adm. No. *" value={s.admission_number} onChange={e => updateRow(i, 'admission_number', e.target.value)} disabled={loading}
                 style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
               {students.length > 1 && (
                 <button onClick={() => removeRow(i)} disabled={loading} style={{ background: 'none', border: 'none', color: C.error, fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
