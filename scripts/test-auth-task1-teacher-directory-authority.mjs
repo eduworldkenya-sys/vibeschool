@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import assert from 'node:assert/strict'
 
 const directory = fs.readFileSync('supabase/migrations/20260819224500_auth_teacher_directory_connect_authority_guard.sql', 'utf8')
-const transitions = fs.readFileSync('supabase/migrations/20260819225000_auth_identity_role_transition_guards.sql', 'utf8')
+const transitions = fs.readFileSync('supabase/migrations/20260819235900_auth_identity_role_transition_guards.sql', 'utf8')
 const legacyParentRoute = fs.readFileSync('app/parent/create-child/page.tsx', 'utf8')
 
 assert.match(directory, /create or replace function public\.connect_teacher_to_directory_school/i)
