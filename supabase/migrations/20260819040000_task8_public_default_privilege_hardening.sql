@@ -5,10 +5,14 @@
 -- on objects created after Task 8. Keep normal DML grants explicit per domain.
 -- This migration intentionally touches public only; managed storage/graphql
 -- schemas remain owned by their platform-specific security model.
+--
+-- VibeSchool's certified Supabase reconstruction currently runs PostgreSQL 15.
+-- MAINTAIN is a later PostgreSQL table privilege and is intentionally omitted here;
+-- revoking unsupported syntax would make the security migration itself unreplayable.
 
 -- Migrations normally create application objects as postgres.
 alter default privileges for role postgres in schema public
-  revoke truncate, references, trigger, maintain on tables from anon, authenticated;
+  revoke truncate, references, trigger on tables from anon, authenticated;
 alter default privileges for role postgres in schema public
   revoke update on sequences from anon, authenticated;
 alter default privileges for role postgres in schema public
@@ -18,7 +22,7 @@ alter default privileges for role postgres in schema public
 -- supabase_admin. Harden that creation path as well so new public objects do not
 -- regain broad client authority merely because of their creator role.
 alter default privileges for role supabase_admin in schema public
-  revoke truncate, references, trigger, maintain on tables from anon, authenticated;
+  revoke truncate, references, trigger on tables from anon, authenticated;
 alter default privileges for role supabase_admin in schema public
   revoke update on sequences from anon, authenticated;
 alter default privileges for role supabase_admin in schema public
@@ -39,7 +43,7 @@ begin
       and c.relkind in ('r', 'p')
   loop
     execute format(
-      'revoke truncate, references, trigger, maintain on table %I.%I from anon, authenticated',
+      'revoke truncate, references, trigger on table %I.%I from anon, authenticated',
       r.nspname,
       r.relname
     );
