@@ -49,10 +49,10 @@ end $$;
 do $$
 declare d text;
 begin
-  select pg_get_constraintdef(oid) into d from pg_constraint
+  select lower(pg_get_constraintdef(oid)) into d from pg_constraint
    where conrelid='public.hq_workforce_runtime_transition_events'::regclass
      and conname='hq_workforce_runtime_transition_events_actor_check';
-  if d is null or position('actor_kind' in d)=0 or position('actor_id IS NULL' in d)=0 or position('actor_id IS NOT NULL' in d)=0 then
+  if d is null or position('actor_kind' in d)=0 or position('actor_id is null' in d)=0 or position('actor_id is not null' in d)=0 then
     raise exception 'task16_transition_actor_provenance_constraint_missing';
   end if;
 end $$;
