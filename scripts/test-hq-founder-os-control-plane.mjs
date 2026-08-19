@@ -4,20 +4,20 @@ const migration=fs.readFileSync('supabase/migrations/20260819133000_hq_founder_o
 const readiness=fs.readFileSync('supabase/migrations/20260819135000_hq_worker_runtime_readiness_schema_fix.sql','utf8')
 const r13x=fs.readFileSync('supabase/migrations/20260819140500_worker_engine_r13x_certification_fail_closed.sql','utf8')
 const stop=fs.readFileSync('supabase/migrations/20260819142000_hq_worker_emergency_stop.sql','utf8')
+const revenue=fs.readFileSync('supabase/migrations/20260819143500_hq_revenue_operations_snapshot.sql','utf8')
+const business=fs.readFileSync('supabase/migrations/20260819144500_hq_founder_os_business_health.sql','utf8')
+const school=fs.readFileSync('supabase/migrations/20260819145500_hq_school_success_snapshot.sql','utf8')
 const operations=fs.readFileSync('app/hq/operations/page.tsx','utf8')
 const emergency=fs.readFileSync('app/hq/operations/emergency-stop/page.tsx','utf8')
 const decisions=fs.readFileSync('app/hq/decisions/page.tsx','utf8')
 const intelligence=fs.readFileSync('app/hq/intelligence/page.tsx','utf8')
+const billing=fs.readFileSync('app/hq/billing/page.tsx','utf8')
+const schoolSuccess=fs.readFileSync('app/hq/schools/success/page.tsx','utf8')
+const content=fs.readFileSync('app/hq/content/page.tsx','utf8')
 const workforce=fs.readFileSync('app/hq/workforce/page.tsx','utf8')
 const twin=fs.readFileSync('components/hq/TwinDrawer.tsx','utf8')
 
-const requiredMigration=[
- 'hq_founder_os_snapshot','hq_assert_owner','security definer','revoke all','grant execute',
- "'INCIDENT'","'DEGRADED'","'ATTENTION'","'LIVE'",
- 'hq_workforce_execution_intents','hq_workforce_execution_verifications','hq_workforce_task_verifications',
- 'hq_workforce_heartbeat_runs','hq_workforce_scheduler_events','hq_workforce_execution_breakers',
- 'Historical runs exist without a complete intent-to-verification trail'
-]
+const requiredMigration=['hq_founder_os_snapshot','hq_assert_owner','security definer','revoke all','grant execute',"'INCIDENT'","'DEGRADED'","'ATTENTION'","'LIVE'",'hq_workforce_execution_intents','hq_workforce_execution_verifications','hq_workforce_task_verifications','hq_workforce_heartbeat_runs','hq_workforce_scheduler_events','hq_workforce_execution_breakers','Historical runs exist without a complete intent-to-verification trail']
 for(const token of requiredMigration) if(!migration.includes(token)) throw new Error(`Founder OS migration missing ${token}`)
 if(/insert\s+into|update\s+public\.|delete\s+from|runtime_execution_enabled\s*=|runtime_autonomy_level\s*=/i.test(migration)) throw new Error('Founder OS snapshot must remain read-only')
 
@@ -26,11 +26,17 @@ if(/insert\s+into|update\s+public\.|delete\s+from/i.test(readiness)) throw new E
 for(const token of ['certified',"'available',false",'r13x_metrics_contract_missing','no evidence was inferred or fabricated','hq_assert_owner']) if(!r13x.includes(token)) throw new Error(`R1.3X fail-closed repair missing ${token}`)
 for(const token of ['hq_workforce_owner_emergency_stop','hq_assert_owner','runtime_execution_enabled=false','runtime_autonomy_level=0','runtime_max_risk=0','shadow_global_stop=true','hq_workforce_owner_control_events','previous_state','resulting_state','revoke all','service_role']) if(!stop.includes(token)) throw new Error(`Emergency stop contract missing ${token}`)
 if(/runtime_execution_enabled=true|runtime_autonomy_level=[1-9]|runtime_max_risk=[1-9]|shadow_global_stop=false/i.test(stop)) throw new Error('Emergency stop must never contain an activation path')
+for(const token of ['hq_revenue_operations_snapshot','initiation_enabled','callback_missing_over_15m','paid_not_fulfilled','callback_without_attempt','paid_without_entitlement','hq_assert_owner']) if(!revenue.includes(token)) throw new Error(`Revenue truth contract missing ${token}`)
+for(const token of ['payment_exceptions','content_health_critical','content_health_high','r13x_certification_available','company_state']) if(!business.includes(token)) throw new Error(`Business health extension missing ${token}`)
+for(const token of ['hq_school_success_snapshot','current_learners','teachers','attendance_marks_7d','homework_created_7d','learners_with_parent_link','risk_reasons','no opaque health score']) if(!school.toLowerCase().includes(token.toLowerCase())) throw new Error(`School success contract missing ${token}`)
 
 for(const token of ['hq_founder_os_snapshot','hq_workforce_runtime_readiness','Company state','Attention Required','Execution integrity','Global Stop','verification deficit','Recent execution lineage','Activation readiness','ACTIVATION BLOCKED']) if(!operations.toLowerCase().includes(token.toLowerCase())) throw new Error(`Operations UI missing ${token}`)
 for(const token of ['hq_workforce_owner_emergency_stop','Type STOP to confirm','Activate Global Stop','one-way safety action']) if(!emergency.includes(token)) throw new Error(`Emergency stop UI missing ${token}`)
 for(const token of ['Needs Me Now','Waiting','Recently Resolved','Observation / reason','Recommendation','Evidence & authority references','does not activate Worker Engine runtime']) if(!decisions.includes(token)) throw new Error(`Decision Inbox missing ${token}`)
 for(const token of ['Business truth','Learning & product evidence','Intervention queue','Metric trust & provenance']) if(!intelligence.includes(token)) throw new Error(`Decision Intelligence missing ${token}`)
+for(const token of ['hq_revenue_operations_snapshot','M-Pesa initiation','Paid not fulfilled','Reconciliation exceptions','empty billing state']) if(!billing.includes(token)) throw new Error(`Revenue Operations UI missing ${token}`)
+for(const token of ['hq_school_success_snapshot','no opaque health score','Current learners','Attendance marks · 7d','Learners with parent link','risk_reasons']) if(!schoolSuccess.includes(token)) throw new Error(`School Success UI missing ${token}`)
+for(const token of ['human review','explicit apply','Release certification','Drafts never count as release-ready']) if(!content.includes(token)) throw new Error(`Content governance UI missing ${token}`)
 if(!workforce.includes('shadow_global_stop')) throw new Error('Worker Engine must retain canonical Global Stop display')
 
 for(const token of ['hq_check_owner_access','resolveHQReply','router.push']) if(!twin.includes(token)) throw new Error(`HQ Twin boundary missing ${token}`)
