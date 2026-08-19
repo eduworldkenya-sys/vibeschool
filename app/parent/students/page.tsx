@@ -65,18 +65,18 @@ function ChildCard({ child, onOpen }: { child: ChildSummary; onOpen: () => void 
       <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 12, paddingTop: 12 }}>
         {child.attendanceRecords === 0 || child.attendancePct === null ? (
           <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
-            <strong style={{ color: "#334155" }}>Attendance:</strong> No attendance has been recorded yet. This does not mean the learner was absent.
+            <strong style={{ color: "#334155" }}>Attendance:</strong> No present, late or absent attendance has been recorded yet. This does not mean the learner was absent.
           </div>
         ) : (
           <div>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12 }}>
-              <span style={{ color: "#475569", fontWeight: 650 }}>Recorded attendance</span>
-              <span style={{ color: attendanceTone(child.attendancePct), fontWeight: 800 }}>{child.attendancePct}%</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Recorded attendance</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: attendanceTone(child.attendancePct) }}>{child.attendancePct}%</span>
             </div>
-            <div aria-hidden="true" style={{ height: 6, borderRadius: 999, background: "#e2e8f0", overflow: "hidden", marginTop: 6 }}>
-              <div style={{ width: `${child.attendancePct}%`, height: "100%", borderRadius: 999, background: attendanceTone(child.attendancePct) }} />
+            <div style={{ height: 6, borderRadius: 6, background: "#f3f4f6", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${child.attendancePct}%`, background: attendanceTone(child.attendancePct), borderRadius: 6 }} />
             </div>
-            <div style={{ marginTop: 5, fontSize: 10, color: "#64748b" }}>Based on {child.attendanceRecords} recorded school {child.attendanceRecords === 1 ? "entry" : "entries"}.</div>
+            <div style={{ marginTop: 5, fontSize: 10, color: "#64748b" }}>Based on {child.attendanceRecords} present, late or absent {child.attendanceRecords === 1 ? "record" : "records"}. Excused records are not treated as absence.</div>
           </div>
         )}
       </div>
@@ -151,14 +151,15 @@ export default function ParentStudentsPage() {
         const cls = (classes ?? []).find(row => row.id === student.class_id);
         const school = (schools ?? []).find(row => row.id === cls?.school_id);
         const rows = (attendance ?? []).filter(row => row.student_id === student.id);
-        const present = rows.filter(row => row.status === "present" || row.status === "late").length;
+        const countedRows = rows.filter(row => row.status === "present" || row.status === "late" || row.status === "absent");
+        const present = countedRows.filter(row => row.status === "present" || row.status === "late").length;
         return {
           studentId: student.id,
           name: student.name,
           className: cls ? `${cls.name}${cls.stream ? ` ${cls.stream}` : ""}` : null,
           schoolName: school?.name ?? null,
-          attendanceRecords: rows.length,
-          attendancePct: rows.length ? Math.round((present / rows.length) * 100) : null,
+          attendanceRecords: countedRows.length,
+          attendancePct: countedRows.length ? Math.round((present / countedRows.length) * 100) : null,
           pendingApproval: pending.has(student.id) && !student.class_id,
         };
       });
