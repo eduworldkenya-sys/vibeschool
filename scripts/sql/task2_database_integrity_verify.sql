@@ -104,21 +104,23 @@ begin
   ) then raise exception 'TASK2 exam_results marks constraint missing'; end if;
 end $$;
 
--- 5) Core authentication/onboarding RPC contracts must reconstruct.
+-- 5) Shared auth/identity RPCs that predate Task 1 must reconstruct. Task 1 owns
+-- the composite auth-journey contract (including get_my_auth_journey_state) and will
+-- certify it only after Task 2 is merged and Task 1 reconciles against that new main.
 do $$
 declare missing text[];
 begin
   select array_agg(x order by x) into missing
   from unnest(array[
     'get_my_role','get_my_onboarding_state','get_my_auth_access_state',
-    'get_my_auth_journey_state','current_student_id'
+    'current_student_id'
   ]) x
   where not exists (
     select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
     where n.nspname='public' and p.proname=x
   );
   if missing is not null then
-    raise exception 'TASK2 missing auth/identity RPC contracts: %', array_to_string(missing, ', ');
+    raise exception 'TASK2 missing shared auth/identity RPC contracts: %', array_to_string(missing, ', ');
   end if;
 end $$;
 
