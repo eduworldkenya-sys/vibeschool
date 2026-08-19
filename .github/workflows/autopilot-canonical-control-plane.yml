@@ -9,6 +9,8 @@ on:
       - "supabase/migrations/20260819142350_autopilot_commissioning_owner_breaker_reset.sql"
       - "supabase/migrations/20260819142625_autopilot_commissioning_execution_ledger_write_closure.sql"
       - "supabase/migrations/20260819143210_autopilot_shadow_lineage_enrichment.sql"
+      - "supabase/migrations/20260819190500_autopilot_priority_canary_catalog_forward_repair.sql"
+      - "supabase/migrations/20260819190600_autopilot_commissioning_capability_competency_binding.sql"
       - "supabase/tests/**"
       - "docs/AUTOPILOT_ARCHITECTURE_RECONSTRUCTION_20260819.md"
       - "lib/autopilot/organization.ts"
