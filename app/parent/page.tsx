@@ -1,422 +1,255 @@
 "use client"
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { getParentAssessmentSummary } from '@/lib/assessment/integration'
-import ParentTwinDrawer from '@/components/parent/TwinDrawer'
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+import { getParentAssessmentSummary } from "@/lib/assessment/integration"
 
-interface ChildData {
+type Child = {
   id: string
   name: string
-  admissionNumber: string | null
-  classId: string | null
   className: string
-  schoolId: string | null
-  school: string
+  schoolName: string
   attendancePct: number | null
+  attendanceRecords: number
   todayAttendance: string | null
-  latestMark: number | null
-  latestAssessmentTitle: string | null
-  pendingApproval: boolean
-  openHomework: number
-  overdueHomework: number
-  publishedReports: number
-  recentTeacherMessages: number
-  feeExpected: number | null
-  feePaid: number | null
-  canViewFinance: boolean
+  homeworkOpen: number
+  homeworkOverdue: number
+  latestResult: number | null
+  latestAssessment: string | null
+  recentMessages: number
 }
 
-interface ActionItem {
+type Attention = {
   id: string
   childId: string
   childName: string
-  type: 'urgent' | 'warning' | 'info' | 'success'
   title: string
   detail: string
   href: string
+  priority: number
 }
 
-const C = {
-  navy: '#0f172a',
-  indigo: '#1e1b4b',
-  emerald: '#059669',
-  emeraldBright: '#10b981',
-  surface: '#ffffff',
-  border: '#e2e8f0',
-  muted: '#64748b',
-  bg: '#f1f5f9',
-}
+const C = { dark: "#1e1b4b", green: "#059669", muted: "#64748b", border: "#e2e8f0" }
 
 function kenyaDate() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Africa/Nairobi', year: 'numeric', month: '2-digit', day: '2-digit',
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit",
   }).format(new Date())
 }
 
+function daysAgoDate(days: number) {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit",
+  })
+  return formatter.format(new Date(Date.now() - days * 86400000))
+}
+
 function greeting() {
-  const hour = Number(new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Africa/Nairobi', hour: '2-digit', hour12: false,
-  }).format(new Date()))
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
+  const hour = Number(new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Nairobi", hour: "2-digit", hour12: false }).format(new Date()))
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  return "Good evening"
 }
 
-function money(value: number | null) {
-  if (value === null) return 'Not published'
-  return `KES ${Math.max(0, value).toLocaleString('en-KE', { maximumFractionDigits: 0 })}`
+function attendanceLabel(status: string | null) {
+  if (status === "present") return "Present today"
+  if (status === "late") return "Late today"
+  if (status === "absent") return "Absent today"
+  if (status === "excused") return "Excused today"
+  return "Attendance not recorded yet"
 }
 
-function Skeleton({ h = 72 }: { h?: number }) {
-  return <div style={{ height: h, borderRadius: 16, background: 'linear-gradient(90deg,#e2e8f0 25%,#f8fafc 50%,#e2e8f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-}
-
-function Pill({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'good' | 'warn' | 'bad' | 'info' }) {
-  const tones = {
-    neutral: { bg: '#f1f5f9', color: '#475569' },
-    good: { bg: '#dcfce7', color: '#166534' },
-    warn: { bg: '#fef3c7', color: '#92400e' },
-    bad: { bg: '#fee2e2', color: '#b91c1c' },
-    info: { bg: '#dbeafe', color: '#1d4ed8' },
-  }
-  const style = tones[tone]
-  return <span style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 8px', borderRadius: 999, background: style.bg, color: style.color, fontSize: 10, fontWeight: 800 }}>{children}</span>
+function ChildCard({ child }: { child: Child }) {
+  const router = useRouter()
+  return (
+    <button type="button" onClick={() => router.push(`/parent/child/${child.id}`)} aria-label={`Open ${child.name}`} style={{
+      width: "100%", minHeight: 132, textAlign: "left", border: `1px solid ${C.border}`, borderRadius: 18,
+      background: "#fff", padding: 16, cursor: "pointer", fontFamily: "inherit", color: "#0f172a",
+      boxShadow: "0 2px 10px rgba(15,23,42,.05)",
+    }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <strong style={{ display: "block", fontSize: 17 }}>{child.name}</strong>
+          <span style={{ display: "block", marginTop: 3, color: C.muted, fontSize: 11 }}>{child.className} · {child.schoolName}</span>
+        </div>
+        <span aria-hidden="true" style={{ color: "#94a3b8", fontSize: 22 }}>›</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 14 }}>
+        <div style={{ background: "#f8fafc", borderRadius: 11, padding: 10 }}>
+          <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 700 }}>Today</span>
+          <strong style={{ display: "block", marginTop: 3, fontSize: 12 }}>{attendanceLabel(child.todayAttendance)}</strong>
+        </div>
+        <div style={{ background: "#f8fafc", borderRadius: 11, padding: 10 }}>
+          <span style={{ display: "block", color: C.muted, fontSize: 10, fontWeight: 700 }}>Recorded attendance</span>
+          <strong style={{ display: "block", marginTop: 3, fontSize: 12 }}>{child.attendancePct === null ? "No rate yet" : `${child.attendancePct}%`}</strong>
+        </div>
+      </div>
+    </button>
+  )
 }
 
 export default function ParentHomePage() {
   const router = useRouter()
-  const [firstName, setFirstName] = useState('Parent')
-  const [children, setChildren] = useState<ChildData[]>([])
-  const [actions, setActions] = useState<ActionItem[]>([])
+  const [firstName, setFirstName] = useState("Parent")
+  const [children, setChildren] = useState<Child[]>([])
   const [loading, setLoading] = useState(true)
-  const [noChild, setNoChild] = useState(false)
-  const [twinOpen, setTwinOpen] = useState(false)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     let cancelled = false
-
     async function load() {
       setLoading(true)
+      setError(false)
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) { router.replace('/'); return }
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (authError || !user) { router.replace("/"); return }
 
         const [{ data: profile }, { data: links, error: linkError }] = await Promise.all([
-          supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
-          supabase.from('parent_student_links')
-            .select('student_id, is_primary, can_view_finance, receives_alerts, access_level')
-            .eq('parent_id', user.id)
-            .order('is_primary', { ascending: false }),
+          supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+          supabase.from("parent_student_links").select("student_id, is_primary").eq("parent_id", user.id).order("is_primary", { ascending: false }),
         ])
         if (linkError) throw linkError
         if (cancelled) return
+        setFirstName(profile?.full_name?.trim()?.split(/\s+/)[0] || "Parent")
 
-        const name = profile?.full_name?.trim() ?? ''
-        setFirstName(name.split(/\s+/)[0] || 'Parent')
+        const ids = (links ?? []).map(link => link.student_id).filter((id): id is string => Boolean(id))
+        if (ids.length === 0) { setChildren([]); return }
 
-        const validLinks = (links ?? []).filter(link => Boolean(link.student_id))
-        if (validLinks.length === 0) {
-          setNoChild(true)
-          setChildren([])
-          setActions([])
-          return
-        }
-
-        const studentIds = validLinks.map(link => link.student_id)
-        const { data: students, error: studentError } = await supabase
-          .from('students')
-          .select('id, name, admission_number, class_id')
-          .in('id', studentIds)
+        const { data: students, error: studentError } = await supabase.from("students").select("id, name, class_id").in("id", ids)
         if (studentError) throw studentError
-        if (!students || students.length === 0) {
-          setNoChild(true)
-          return
-        }
-
-        const classIds = Array.from(new Set(students.map(student => student.class_id).filter((value): value is string => Boolean(value))))
-        const { data: classes } = classIds.length > 0
-          ? await supabase.from('classes').select('id, name, stream, school_id').in('id', classIds)
-          : { data: [] }
-        const schoolIds = Array.from(new Set((classes ?? []).map(row => row.school_id).filter((value): value is string => Boolean(value))))
-        const { data: schools } = schoolIds.length > 0
-          ? await supabase.from('schools').select('id, name').in('id', schoolIds)
-          : { data: [] }
+        const orderedStudents = ids.flatMap(id => {
+          const student = (students ?? []).find(row => row.id === id)
+          return student ? [student] : []
+        })
+        const classIds = Array.from(new Set(orderedStudents.map(row => row.class_id).filter((id): id is string => Boolean(id))))
+        const { data: classes, error: classError } = classIds.length
+          ? await supabase.from("classes").select("id, name, stream, school_id").in("id", classIds)
+          : { data: [], error: null }
+        if (classError) throw classError
+        const schoolIds = Array.from(new Set((classes ?? []).map(row => row.school_id).filter((id): id is string => Boolean(id))))
+        const { data: schools, error: schoolError } = schoolIds.length
+          ? await supabase.from("schools").select("id, name").in("id", schoolIds)
+          : { data: [], error: null }
+        if (schoolError) throw schoolError
 
         const today = kenyaDate()
-        const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10)
-        const sevenDaysAgoIso = new Date(Date.now() - 7 * 86400000).toISOString()
-
-        const [attendanceRes, pendingRes, homeworkRes, submissionsRes, reportsRes, messagesRes, paymentsRes, feeStructuresRes] = await Promise.all([
-          supabase.from('attendance').select('student_id, status, is_late, date').in('student_id', studentIds).gte('date', ninetyDaysAgo),
-          supabase.from('class_join_requests').select('student_id').in('student_id', studentIds).eq('status', 'pending'),
-          classIds.length > 0
-            ? supabase.from('homework').select('id, class_id, title, subject, due_date').in('class_id', classIds).gte('due_date', new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10))
-            : Promise.resolve({ data: [], error: null }),
-          supabase.from('homework_submissions').select('homework_id, student_id, status').in('student_id', studentIds),
-          supabase.from('report_cards').select('id, student_id, published_at, status').in('student_id', studentIds).not('published_at', 'is', null),
-          supabase.from('parent_messages').select('id, student_id, subject, body, sent_at, delivery_purpose').in('student_id', studentIds).not('sent_at', 'is', null).gte('sent_at', sevenDaysAgoIso),
-          supabase.from('finance_fee_payments').select('student_id, amount, deleted_at').in('student_id', studentIds).is('deleted_at', null),
-          classIds.length > 0
-            ? supabase.from('finance_fee_structures').select('class_id, amount, deleted_at').in('class_id', classIds).is('deleted_at', null)
-            : Promise.resolve({ data: [], error: null }),
+        const [attendanceRes, homeworkRes, submissionsRes, messagesRes] = await Promise.all([
+          supabase.from("attendance").select("student_id, status, is_late, date").in("student_id", ids).gte("date", daysAgoDate(90)),
+          classIds.length ? supabase.from("homework").select("id, class_id, due_date").in("class_id", classIds).gte("due_date", daysAgoDate(30)) : Promise.resolve({ data: [], error: null }),
+          supabase.from("homework_submissions").select("homework_id, student_id, status").in("student_id", ids),
+          supabase.from("parent_messages").select("id, student_id, sent_at").in("student_id", ids).not("sent_at", "is", null).gte("sent_at", new Date(Date.now() - 7 * 86400000).toISOString()),
         ])
+        if (attendanceRes.error || homeworkRes.error || submissionsRes.error || messagesRes.error) throw attendanceRes.error || homeworkRes.error || submissionsRes.error || messagesRes.error
 
-        const pendingSet = new Set((pendingRes.data ?? []).map(row => row.student_id))
-        const submissionSet = new Set((submissionsRes.data ?? []).filter(row => row.status !== 'draft').map(row => `${row.student_id}:${row.homework_id}`))
-        const assessmentByStudent = new Map<string, { percentage: number | null; title: string | null }>()
-
-        await Promise.all(students.map(async student => {
+        const completed = new Set((submissionsRes.data ?? []).filter(row => row.status === "submitted" || row.status === "marked").map(row => `${row.student_id}:${row.homework_id}`))
+        const resultMap = new Map<string, { score: number | null; title: string | null }>()
+        await Promise.all(orderedStudents.map(async student => {
           try {
             const assessment = await getParentAssessmentSummary(student.id)
-            const latest = [...assessment.results]
-              .filter(result => Boolean(result.releasedAt))
-              .sort((a, b) => new Date(b.releasedAt).getTime() - new Date(a.releasedAt).getTime())[0]
-            assessmentByStudent.set(student.id, {
-              percentage: latest?.percentage ?? null,
-              title: latest?.assessmentTitle ?? null,
-            })
+            const latest = [...assessment.results].filter(result => Boolean(result.releasedAt)).sort((a, b) => new Date(b.releasedAt).getTime() - new Date(a.releasedAt).getTime())[0]
+            resultMap.set(student.id, { score: latest?.percentage ?? null, title: latest?.assessmentTitle ?? null })
           } catch {
-            assessmentByStudent.set(student.id, { percentage: null, title: null })
+            resultMap.set(student.id, { score: null, title: null })
           }
         }))
+        if (cancelled) return
 
-        const mappedChildren: ChildData[] = students.map(student => {
+        setChildren(orderedStudents.map(student => {
           const cls = (classes ?? []).find(row => row.id === student.class_id)
           const school = (schools ?? []).find(row => row.id === cls?.school_id)
-          const link = validLinks.find(row => row.student_id === student.id)
-          const attRows = (attendanceRes.data ?? []).filter(row => row.student_id === student.id)
-          const presentRows = attRows.filter(row => row.status === 'present')
-          const attendancePct = attRows.length > 0 ? Math.round((presentRows.length / attRows.length) * 100) : null
-          const todayRow = attRows.find(row => row.date === today)
+          const attendance = (attendanceRes.data ?? []).filter(row => row.student_id === student.id)
+          const countableAttendance = attendance.filter(row => row.status === "present" || row.status === "late" || row.status === "absent")
+          const attended = countableAttendance.filter(row => row.status === "present" || row.status === "late").length
+          const todayRow = attendance.find(row => row.date === today)
           const classHomework = (homeworkRes.data ?? []).filter(row => row.class_id === student.class_id)
-          const openHomeworkRows = classHomework.filter(row => !submissionSet.has(`${student.id}:${row.id}`))
-          const overdueHomework = openHomeworkRows.filter(row => row.due_date && row.due_date < today).length
-          const publishedReports = (reportsRes.data ?? []).filter(row => row.student_id === student.id && row.published_at).length
-          const recentTeacherMessages = (messagesRes.data ?? []).filter(row => row.student_id === student.id).length
-          const feeExpectedRows = (feeStructuresRes.data ?? []).filter(row => row.class_id === student.class_id)
-          const feeExpected = feeExpectedRows.length > 0 ? feeExpectedRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0) : null
-          const feePaidRows = (paymentsRes.data ?? []).filter(row => row.student_id === student.id)
-          const feePaid = feeExpected !== null ? feePaidRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0) : null
-          const latest = assessmentByStudent.get(student.id) ?? { percentage: null, title: null }
-
+          const open = classHomework.filter(row => !completed.has(`${student.id}:${row.id}`))
+          const latest = resultMap.get(student.id) ?? { score: null, title: null }
           return {
             id: student.id,
             name: student.name,
-            admissionNumber: student.admission_number,
-            classId: student.class_id,
-            className: cls ? `${cls.name}${cls.stream ? ` ${cls.stream}` : ''}` : 'Class pending',
-            schoolId: cls?.school_id ?? null,
-            school: school?.name ?? 'School pending',
-            attendancePct,
-            todayAttendance: todayRow?.is_late ? 'late' : todayRow?.status ?? null,
-            latestMark: latest.percentage,
-            latestAssessmentTitle: latest.title,
-            pendingApproval: pendingSet.has(student.id) && !student.class_id,
-            openHomework: openHomeworkRows.length,
-            overdueHomework,
-            publishedReports,
-            recentTeacherMessages,
-            feeExpected,
-            feePaid,
-            canViewFinance: link?.can_view_finance ?? false,
+            className: cls ? `${cls.name}${cls.stream ? ` ${cls.stream}` : ""}` : "Class not confirmed",
+            schoolName: school?.name ?? "School not confirmed",
+            attendancePct: countableAttendance.length ? Math.round(attended / countableAttendance.length * 100) : null,
+            attendanceRecords: countableAttendance.length,
+            todayAttendance: todayRow?.is_late ? "late" : todayRow?.status ?? null,
+            homeworkOpen: open.length,
+            homeworkOverdue: open.filter(row => row.due_date && row.due_date < today).length,
+            latestResult: latest.score,
+            latestAssessment: latest.title,
+            recentMessages: (messagesRes.data ?? []).filter(row => row.student_id === student.id).length,
           }
-        })
-
-        const nextActions: ActionItem[] = []
-        mappedChildren.forEach(child => {
-          if (child.todayAttendance === 'absent') {
-            nextActions.push({ id: `attendance-${child.id}`, childId: child.id, childName: child.name, type: 'urgent', title: 'Absent today', detail: 'Attendance has been marked absent. Open the child record for details or contact the school.', href: `/parent/child/${child.id}` })
-          } else if (child.todayAttendance === 'late') {
-            nextActions.push({ id: `late-${child.id}`, childId: child.id, childName: child.name, type: 'warning', title: 'Late arrival today', detail: 'A late arrival was recorded today.', href: `/parent/child/${child.id}` })
-          }
-          if (child.overdueHomework > 0) {
-            nextActions.push({ id: `homework-${child.id}`, childId: child.id, childName: child.name, type: 'warning', title: `${child.overdueHomework} overdue ${child.overdueHomework === 1 ? 'task' : 'tasks'}`, detail: 'These class tasks have no non-draft submission recorded yet.', href: `/parent/child/${child.id}` })
-          }
-          if (child.recentTeacherMessages > 0) {
-            nextActions.push({ id: `messages-${child.id}`, childId: child.id, childName: child.name, type: 'info', title: `${child.recentTeacherMessages} recent teacher ${child.recentTeacherMessages === 1 ? 'update' : 'updates'}`, detail: 'Teacher-to-parent updates were sent during the last seven days.', href: `/parent/child/${child.id}/messages` })
-          }
-          if (child.canViewFinance && child.feeExpected !== null && child.feePaid !== null && child.feeExpected > child.feePaid) {
-            const balance = child.feeExpected - child.feePaid
-            nextActions.push({ id: `fees-${child.id}`, childId: child.id, childName: child.name, type: 'warning', title: `${money(balance)} fee balance`, detail: 'Calculated only from the school fee structure and recorded payments visible to this parent.', href: `/parent/child/${child.id}/finance` })
-          }
-        })
-
-        if (!cancelled) {
-          setNoChild(false)
-          setChildren(mappedChildren)
-          setActions(nextActions.slice(0, 8))
-        }
-      } catch (error) {
-        console.error('[ParentCommandCenter] load failed', error)
+        }))
+      } catch (loadError) {
+        console.error("[ParentHome] load failed", loadError)
+        if (!cancelled) setError(true)
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
-
     void load()
     return () => { cancelled = true }
   }, [router])
 
-  const familyPulse = useMemo(() => {
-    const attendanceValues = children.map(child => child.attendancePct).filter((value): value is number => value !== null)
-    const averageAttendance = attendanceValues.length > 0 ? Math.round(attendanceValues.reduce((sum, value) => sum + value, 0) / attendanceValues.length) : null
-    const marks = children.map(child => child.latestMark).filter((value): value is number => value !== null)
-    const averageLatestMark = marks.length > 0 ? Math.round(marks.reduce((sum, value) => sum + value, 0) / marks.length) : null
-    return {
-      averageAttendance,
-      averageLatestMark,
-      openHomework: children.reduce((sum, child) => sum + child.openHomework, 0),
-      recentMessages: children.reduce((sum, child) => sum + child.recentTeacherMessages, 0),
+  const attention = useMemo(() => {
+    const rows: Attention[] = []
+    for (const child of children) {
+      if (child.todayAttendance === "absent") rows.push({ id: `absent-${child.id}`, childId: child.id, childName: child.name, title: "Absent today", detail: "The school recorded an absence today.", href: `/parent/child/${child.id}`, priority: 0 })
+      if (child.todayAttendance === "late") rows.push({ id: `late-${child.id}`, childId: child.id, childName: child.name, title: "Late arrival today", detail: "The school recorded a late arrival today.", href: `/parent/child/${child.id}`, priority: 1 })
+      if (child.homeworkOverdue > 0) rows.push({ id: `homework-${child.id}`, childId: child.id, childName: child.name, title: `${child.homeworkOverdue} overdue ${child.homeworkOverdue === 1 ? "task" : "tasks"}`, detail: "No submitted work is recorded for these past-due tasks.", href: `/parent/child/${child.id}/homework`, priority: 1 })
+      if (child.recentMessages > 0) rows.push({ id: `messages-${child.id}`, childId: child.id, childName: child.name, title: `${child.recentMessages} recent ${child.recentMessages === 1 ? "message" : "messages"}`, detail: "Teacher or school communication from the last seven days.", href: `/parent/child/${child.id}/messages`, priority: 2 })
     }
+    return rows.sort((a, b) => a.priority - b.priority).slice(0, 8)
   }, [children])
 
-  if (loading) return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
-      <Skeleton h={112} />
-      <Skeleton h={86} />
-      <Skeleton h={180} />
-    </div>
+  if (loading) return <div role="status" aria-label="Loading Parent Home" style={{ display: "grid", gap: 12 }}>{[112, 92, 160].map((height, i) => <div key={i} style={{ height, borderRadius: 18, background: "#e2e8f0" }} />)}</div>
+
+  if (error) return (
+    <section role="alert" style={{ background: "#fff", border: "1px solid #fecaca", borderRadius: 18, padding: 20 }}>
+      <h1 style={{ margin: 0, color: "#991b1b", fontSize: 19 }}>Parent Home is temporarily unavailable</h1>
+      <p style={{ margin: "8px 0 14px", color: C.muted, fontSize: 13 }}>Your child relationships have not been changed. Check your connection and try again.</p>
+      <button type="button" onClick={() => window.location.reload()} style={{ minHeight: 44, border: 0, borderRadius: 10, padding: "0 16px", background: C.dark, color: "#fff", fontWeight: 800 }}>Try again</button>
+    </section>
   )
 
-  if (noChild) return (
-    <div style={{ animation: 'fadeIn 0.2s ease' }}>
-      <section style={{ background: `linear-gradient(145deg,${C.navy},${C.indigo})`, color: '#fff', borderRadius: 22, padding: 20, marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: 1 }}>Family command center</div>
-        <h1 style={{ fontSize: 22, lineHeight: 1.2, margin: '6px 0' }}>{greeting()}, {firstName}</h1>
-        <p style={{ margin: 0, color: '#cbd5e1', fontSize: 13 }}>Link your child to bring school updates, learning progress and family actions into one place.</p>
-      </section>
-      <section style={cardStyle}>
-        <div style={{ fontSize: 32, marginBottom: 10 }}>👨‍👩‍👧</div>
-        <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Connect your child</h2>
-        <p style={{ color: C.muted, fontSize: 13, margin: '0 0 16px' }}>Use a verified claim code for an existing learner, or request a new class connection.</p>
-        <button onClick={() => router.push('/parent/link-child')} style={primaryButton}>Link with claim code</button>
-        <button onClick={() => router.push('/parent/create-child')} style={{ ...secondaryButton, marginTop: 8 }}>Add child to class</button>
-      </section>
-    </div>
+  if (children.length === 0) return (
+    <section style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 20, padding: "28px 20px", textAlign: "center" }}>
+      <div aria-hidden="true" style={{ fontSize: 40 }}>👨‍👩‍👧</div>
+      <h1 style={{ margin: "10px 0 6px", color: C.dark, fontSize: 21 }}>No verified child is linked yet</h1>
+      <p style={{ margin: "0 auto 16px", maxWidth: 430, color: C.muted, fontSize: 13, lineHeight: 1.6 }}>For child privacy, a school-authorized relationship is required before learner information can appear here.</p>
+      <button type="button" onClick={() => router.push("/parent/link-child")} style={{ minHeight: 46, border: 0, borderRadius: 11, padding: "0 17px", background: C.green, color: "#fff", fontWeight: 800 }}>Link or request access</button>
+    </section>
   )
 
   return (
-    <div style={{ animation: 'fadeIn 0.2s ease' }}>
-      <section style={{ background: `linear-gradient(145deg,${C.navy} 0%,${C.indigo} 72%,#064e3b 130%)`, color: '#fff', borderRadius: 22, padding: 18, marginBottom: 14, boxShadow: '0 12px 30px rgba(15,23,42,0.16)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 800, color: '#a7f3d0', textTransform: 'uppercase', letterSpacing: 1.1 }}>Family command center</div>
-            <h1 style={{ fontSize: 21, lineHeight: 1.2, margin: '5px 0 4px' }}>{greeting()}, {firstName}</h1>
-            <p style={{ margin: 0, color: '#cbd5e1', fontSize: 12 }}>{new Date().toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi', weekday: 'long', day: 'numeric', month: 'long' })} · {children.length} {children.length === 1 ? 'child' : 'children'} connected</p>
-          </div>
-          <button onClick={() => router.push('/parent/inbox')} aria-label="Open family inbox" style={{ border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.09)', color: '#fff', borderRadius: 12, padding: '9px 11px', cursor: 'pointer', fontWeight: 800, fontFamily: 'inherit', fontSize: 12 }}>Inbox {familyPulse.recentMessages > 0 ? `· ${familyPulse.recentMessages}` : ''}</button>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginTop: 16 }}>
-          <HeroMetric label="Attendance" value={familyPulse.averageAttendance === null ? '—' : `${familyPulse.averageAttendance}%`} />
-          <HeroMetric label="Latest marks" value={familyPulse.averageLatestMark === null ? '—' : `${familyPulse.averageLatestMark}%`} />
-          <HeroMetric label="Open tasks" value={String(familyPulse.openHomework)} />
-        </div>
+    <div>
+      <section style={{ borderRadius: 22, padding: 19, marginBottom: 14, background: `linear-gradient(145deg,#0f172a,${C.dark})`, color: "#fff" }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: "#a7f3d0", textTransform: "uppercase", letterSpacing: .8 }}>Parent Home</div>
+        <h1 style={{ margin: "5px 0 3px", fontSize: 23 }}>{greeting()}, {firstName}</h1>
+        <p style={{ margin: 0, color: "#cbd5e1", fontSize: 12 }}>Important family-school updates first. Tap a child for full context.</p>
       </section>
 
-      <section style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '15px 16px 11px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div>
-            <div style={eyebrow}>Needs attention</div>
-            <h2 style={{ margin: '3px 0 0', fontSize: 17 }}>What should I act on?</h2>
-          </div>
-          <Pill tone={actions.length > 0 ? 'warn' : 'good'}>{actions.length > 0 ? `${actions.length} items` : 'All clear'}</Pill>
+      <section aria-labelledby="attention-heading" style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <h2 id="attention-heading" style={{ margin: 0, fontSize: 17, color: "#0f172a" }}>Needs attention</h2>
+          <button type="button" onClick={() => router.push("/parent/inbox")} style={{ minHeight: 44, border: 0, background: "transparent", color: C.green, fontWeight: 800 }}>All messages</button>
         </div>
-        {actions.length === 0 ? (
-          <div style={{ padding: '6px 16px 16px', color: C.muted, fontSize: 13 }}>No urgent attendance, overdue-task, recent-teacher-update or published-fee-balance signal needs action right now.</div>
-        ) : (
-          <div>
-            {actions.map((action, index) => <ActionRow key={action.id} item={action} last={index === actions.length - 1} onOpen={() => router.push(action.href)} />)}
-          </div>
-        )}
+        {attention.length === 0 ? <div style={{ background: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: 14, padding: 14, color: "#166534", fontSize: 13 }}>No current attendance, homework or message item needs your attention.</div>
+          : <div style={{ display: "grid", gap: 8 }}>{attention.map(item => (
+            <button key={item.id} type="button" onClick={() => router.push(item.href)} style={{ width: "100%", minHeight: 66, textAlign: "left", border: `1px solid ${item.priority <= 1 ? "#fde68a" : C.border}`, borderRadius: 14, background: item.priority <= 1 ? "#fffbeb" : "#fff", padding: 12, cursor: "pointer" }}>
+              <strong style={{ display: "block", color: "#0f172a", fontSize: 13 }}>{item.childName} · {item.title}</strong>
+              <span style={{ display: "block", marginTop: 3, color: C.muted, fontSize: 11, lineHeight: 1.45 }}>{item.detail}</span>
+            </button>
+          ))}</div>}
       </section>
 
-      <div style={{ margin: '18px 2px 9px', display: 'flex', justifyContent: 'space-between', alignItems: 'end' }}>
-        <div>
-          <div style={eyebrow}>Children</div>
-          <h2 style={{ margin: '3px 0 0', fontSize: 18 }}>School & learning pulse</h2>
+      <section aria-labelledby="children-heading">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <h2 id="children-heading" style={{ margin: 0, fontSize: 17 }}>Your children</h2>
+          <button type="button" onClick={() => router.push("/parent/students")} style={{ minHeight: 44, border: 0, background: "transparent", color: C.green, fontWeight: 800 }}>Manage</button>
         </div>
-        <button onClick={() => router.push('/parent/students')} style={textButton}>See all</button>
-      </div>
-
-      {children.map(child => {
-        const feeBalance = child.canViewFinance && child.feeExpected !== null && child.feePaid !== null ? Math.max(0, child.feeExpected - child.feePaid) : null
-        return (
-          <section key={child.id} style={cardStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 46, height: 46, borderRadius: 15, background: '#ede9fe', color: C.indigo, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, flexShrink: 0 }}>{child.name.slice(0, 1).toUpperCase()}</div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 16, fontWeight: 900, color: C.navy, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{child.name}</div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{child.className} · {child.school}</div>
-                {child.pendingApproval && <div style={{ marginTop: 5 }}><Pill tone="warn">Waiting for teacher approval</Pill></div>}
-              </div>
-              <button onClick={() => router.push(`/parent/child/${child.id}`)} style={{ ...textButton, border: `1px solid ${C.border}`, borderRadius: 10, padding: '7px 9px' }}>Open</button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginTop: 14 }}>
-              <MetricCard label="Attendance" value={child.attendancePct === null ? 'No data' : `${child.attendancePct}%`} detail={child.todayAttendance ? `Today: ${child.todayAttendance}` : 'Today not marked'} tone={child.todayAttendance === 'absent' ? 'bad' : child.attendancePct !== null && child.attendancePct < 80 ? 'warn' : 'good'} />
-              <MetricCard label="Latest released result" value={child.latestMark === null ? 'No result' : `${Math.round(child.latestMark)}%`} detail={child.latestAssessmentTitle ?? 'Released results appear here'} tone={child.latestMark !== null && child.latestMark < 50 ? 'warn' : 'info'} />
-              <MetricCard label="Homework" value={`${child.openHomework} open`} detail={child.overdueHomework > 0 ? `${child.overdueHomework} overdue` : 'No overdue class task detected'} tone={child.overdueHomework > 0 ? 'warn' : 'neutral'} />
-              <MetricCard label="Fees" value={child.canViewFinance ? money(feeBalance) : 'Restricted'} detail={child.canViewFinance ? (child.feeExpected === null ? 'School fee structure not published' : 'School structure minus recorded payments') : 'Finance visibility is not granted'} tone={feeBalance !== null && feeBalance > 0 ? 'warn' : 'neutral'} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginTop: 10 }}>
-              <QuickButton label="Message teacher" onClick={() => router.push(`/parent/child/${child.id}/messages`)} />
-              <QuickButton label="Assessments" onClick={() => router.push(`/parent/assessments?studentId=${child.id}`)} />
-              <QuickButton label={`Report cards${child.publishedReports > 0 ? ` · ${child.publishedReports}` : ''}`} onClick={() => router.push(`/parent/report-cards?studentId=${child.id}`)} />
-              <QuickButton label="Child details" onClick={() => router.push(`/parent/child/${child.id}`)} />
-            </div>
-          </section>
-        )
-      })}
-
-      <section style={{ ...cardStyle, marginTop: 14 }}>
-        <div style={eyebrow}>Family channels</div>
-        <h2 style={{ margin: '4px 0 12px', fontSize: 17 }}>Everything important has a home</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8 }}>
-          <Channel title="Teacher & school messages" detail="Conversations and notices" onClick={() => router.push('/parent/messages')} />
-          <Channel title="Learning progress" detail="Released assessments" onClick={() => router.push('/parent/assessments')} />
-          <Channel title="Official reports" detail="Published report cards" onClick={() => router.push('/parent/report-cards')} />
-          <Channel title="Children" detail="Profiles and records" onClick={() => router.push('/parent/students')} />
-        </div>
+        <div style={{ display: "grid", gap: 10 }}>{children.map(child => <ChildCard key={child.id} child={child} />)}</div>
       </section>
-
-      <button onClick={() => setTwinOpen(true)} aria-label="Open parent Twin" style={{ position: 'fixed', bottom: 86, right: 20, zIndex: 750, width: 52, height: 52, borderRadius: 18, background: `linear-gradient(135deg,${C.indigo},#064e3b)`, border: '1.5px solid rgba(16,185,129,0.5)', color: C.emeraldBright, fontSize: 20, cursor: 'pointer', boxShadow: '0 8px 28px rgba(15,23,42,0.28)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✦</button>
-      <ParentTwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
     </div>
   )
 }
-
-function HeroMetric({ label, value }: { label: string; value: string }) {
-  return <div style={{ border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.07)', borderRadius: 12, padding: '9px 8px' }}><div style={{ fontSize: 16, fontWeight: 900 }}>{value}</div><div style={{ fontSize: 9, marginTop: 2, color: '#cbd5e1', fontWeight: 700 }}>{label}</div></div>
-}
-
-function MetricCard({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: 'neutral' | 'good' | 'warn' | 'bad' | 'info' }) {
-  const border = tone === 'bad' ? '#fecaca' : tone === 'warn' ? '#fde68a' : tone === 'good' ? '#bbf7d0' : tone === 'info' ? '#bfdbfe' : C.border
-  const bg = tone === 'bad' ? '#fff7f7' : tone === 'warn' ? '#fffbeb' : tone === 'good' ? '#f0fdf4' : tone === 'info' ? '#f8fbff' : '#f8fafc'
-  return <div style={{ border: `1px solid ${border}`, background: bg, borderRadius: 13, padding: 11, minWidth: 0 }}><div style={{ fontSize: 9, color: C.muted, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div><div style={{ fontSize: 15, color: C.navy, fontWeight: 900, marginTop: 4 }}>{value}</div><div style={{ fontSize: 10, color: C.muted, marginTop: 3, lineHeight: 1.35 }}>{detail}</div></div>
-}
-
-function ActionRow({ item, last, onOpen }: { item: ActionItem; last: boolean; onOpen: () => void }) {
-  const icon = item.type === 'urgent' ? '!' : item.type === 'warning' ? '⚠' : item.type === 'success' ? '✓' : 'i'
-  const bg = item.type === 'urgent' ? '#fee2e2' : item.type === 'warning' ? '#fef3c7' : item.type === 'success' ? '#dcfce7' : '#dbeafe'
-  const color = item.type === 'urgent' ? '#b91c1c' : item.type === 'warning' ? '#92400e' : item.type === 'success' ? '#166534' : '#1d4ed8'
-  return <button onClick={onOpen} style={{ width: '100%', border: 'none', borderTop: `1px solid ${C.border}`, borderBottom: last ? 'none' : undefined, background: '#fff', padding: '12px 16px', textAlign: 'left', display: 'flex', gap: 11, cursor: 'pointer', fontFamily: 'inherit' }}><span style={{ width: 28, height: 28, borderRadius: 9, background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, flexShrink: 0 }}>{icon}</span><span style={{ minWidth: 0, flex: 1 }}><span style={{ display: 'block', fontSize: 12, fontWeight: 900, color: C.navy }}>{item.title} · {item.childName}</span><span style={{ display: 'block', fontSize: 10, color: C.muted, marginTop: 3, lineHeight: 1.4 }}>{item.detail}</span></span><span style={{ color: '#94a3b8', fontSize: 18 }}>›</span></button>
-}
-
-function QuickButton({ label, onClick }: { label: string; onClick: () => void }) {
-  return <button onClick={onClick} style={{ border: `1px solid ${C.border}`, background: '#fff', borderRadius: 11, padding: '10px 8px', color: C.navy, fontSize: 11, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
-}
-
-function Channel({ title, detail, onClick }: { title: string; detail: string; onClick: () => void }) {
-  return <button onClick={onClick} style={{ border: `1px solid ${C.border}`, background: '#f8fafc', borderRadius: 13, padding: 12, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit' }}><div style={{ fontSize: 11, fontWeight: 900, color: C.navy }}>{title}</div><div style={{ fontSize: 10, color: C.muted, marginTop: 3 }}>{detail}</div></button>
-}
-
-const cardStyle: React.CSSProperties = { background: C.surface, border: `1px solid ${C.border}`, borderRadius: 17, padding: 15, marginBottom: 12, boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }
-const eyebrow: React.CSSProperties = { fontSize: 9, fontWeight: 900, color: C.emerald, textTransform: 'uppercase', letterSpacing: 1 }
-const primaryButton: React.CSSProperties = { width: '100%', border: 'none', borderRadius: 12, padding: '13px 16px', background: C.emerald, color: '#fff', fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' }
-const secondaryButton: React.CSSProperties = { width: '100%', border: `1px solid ${C.border}`, borderRadius: 12, padding: '12px 16px', background: '#fff', color: C.navy, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
-const textButton: React.CSSProperties = { border: 'none', background: 'transparent', color: C.emerald, fontSize: 11, fontWeight: 900, cursor: 'pointer', fontFamily: 'inherit' }

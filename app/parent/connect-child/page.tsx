@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
-export default function ParentCreateChildCompatibilityPage() {
+export default function ParentConnectChildAliasPage() {
   redirect('/parent/link-child')
 }

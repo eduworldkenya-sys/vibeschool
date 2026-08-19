@@ -1,0 +1,27 @@
+name: Parent UX Task 25 Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/parent/**'
+      - 'components/parent/**'
+      - 'lib/parent-context.tsx'
+      - 'lib/types.ts'
+      - 'scripts/validate-parent-ux-task25.py'
+      - 'scripts/validate-parent-core-journey.py'
+      - '.github/workflows/parent-ux-task25-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parent-ux-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Parent UX contract
+        run: python scripts/validate-parent-ux-task25.py

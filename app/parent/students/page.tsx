@@ -1,378 +1,212 @@
-
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { LinkedChild } from "@/lib/types";
 
-// ─── Colors ───────────────────────────────────────────────────────────────────
-const dark   = "#1e1b4b";
-const accent = "#10b981";
-const bg     = "#f0f2f5";
-const red    = "#ef4444";
-const amber  = "#f59e0b";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function greeting(): string {
-  const h = new Date().getHours();
-  if (h < 12) return "Good morning";
-  if (h < 17) return "Good afternoon";
-  return "Good evening";
+interface ChildSummary {
+  studentId: string;
+  name: string;
+  className: string | null;
+  schoolName: string | null;
+  attendancePct: number | null;
+  attendanceRecords: number;
+  pendingApproval: boolean;
 }
 
-function todayLabel(): string {
-  return new Date().toLocaleDateString("en-KE", {
-    weekday: "long", day: "numeric", month: "long",
-  });
+const dark = "#1e1b4b";
+const accent = "#059669";
+const bg = "#f0f2f5";
+
+function attendanceTone(pct: number) {
+  if (pct >= 80) return "#166534";
+  if (pct >= 60) return "#92400e";
+  return "#b91c1c";
 }
 
-function attendanceColor(pct: number): string {
-  if (pct >= 80) return accent;
-  if (pct >= 60) return amber;
-  return red;
-}
-
-// ─── Shimmer ──────────────────────────────────────────────────────────────────
-function Shimmer({ w = "100%", h = 16, r = 8 }: { w?: string | number; h?: number; r?: number }) {
+function ChildCard({ child, onOpen }: { child: ChildSummary; onOpen: () => void }) {
+  const initial = child.name.trim()[0]?.toUpperCase() ?? "?";
   return (
-    <div style={{
-      width: w, height: h, borderRadius: r, flexShrink: 0,
-      background: "linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%)",
-      backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite",
-    }} />
-  );
-}
-
-// ─── Child Card ───────────────────────────────────────────────────────────────
-function ChildCard({ child, onTap }: { child: LinkedChild; onTap: () => void }) {
-  const initial  = child.name.trim()[0]?.toUpperCase() ?? "?";
-  const hasAtt   = child.attendance_pct > 0;
-  const attColor = attendanceColor(child.attendance_pct);
-  const isPending = child.pending_approval && child.class_name === "—";
-
-  // Warm one-liner
-  const h = new Date().getHours();
-  const vibe = h < 9
-    ? "Early start — off to a great day 🌅"
-    : h < 12
-    ? "Morning check-in — you're a great parent 💛"
-    : h < 15
-    ? "Midday — hope the day is going well 🌤️"
-    : h < 18
-    ? "Afternoon — almost home time 🏠"
-    : "Evening — another day done with love ⭐";
-
-  return (
-    <div
-      onClick={onTap}
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label={`Open ${child.name}`}
       style={{
-        background: "#fff", borderRadius: 20, border: "1px solid #e5e7eb",
-        padding: "18px 16px", marginBottom: 12, cursor: "pointer",
-        boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-        WebkitTapHighlightColor: "transparent",
-        transition: "box-shadow 0.15s ease, transform 0.15s ease",
-        borderLeft: `4px solid ${dark}`,
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 6px 24px rgba(0,0,0,0.1)";
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 12px rgba(0,0,0,0.06)";
-        (e.currentTarget as HTMLDivElement).style.transform = "translateY(0)";
+        width: "100%", textAlign: "left", background: "#fff", borderRadius: 18,
+        border: "1px solid #e2e8f0", borderLeft: `4px solid ${dark}`,
+        padding: 16, marginBottom: 12, cursor: "pointer", fontFamily: "inherit",
+        boxShadow: "0 2px 10px rgba(15,23,42,0.05)", color: "#0f172a",
       }}
     >
-      {/* Top row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-        {/* Avatar */}
-        <div style={{
-          width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
-          background: `linear-gradient(135deg, ${dark} 0%, #4c1d95 100%)`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 22, fontWeight: 900, color: "#fff",
-          boxShadow: "0 4px 12px rgba(30,27,75,0.25)",
-        }}>
-          {initial}
-        </div>
-
-        {/* Name + class + school */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: dark, marginBottom: 2 }}>
-            {child.name}
-          </div>
-          <div style={{ fontSize: 12, color: "#6b7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {child.class_name !== "—" ? child.class_name : "Class not assigned"}
-          </div>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {child.school_name !== "—" ? child.school_name : "School not linked"}
-          </div>
-          {isPending && (
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 4, marginTop: 4, background: "#fef3c7", border: "1px solid #f59e0b", borderRadius: 20, padding: "2px 10px" }}>
-              <span style={{ fontSize: 10 }}>⏳</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: "#92400e" }}>Waiting for teacher approval</span>
-            </div>
-          )}
-        </div>
-
-        {/* Chevron */}
-        <div style={{ fontSize: 20, color: "#d1d5db", flexShrink: 0 }}>›</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span aria-hidden="true" style={{
+          width: 48, height: 48, borderRadius: "50%", background: dark, color: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900,
+          flexShrink: 0,
+        }}>{initial}</span>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span style={{ display: "block", fontSize: 17, fontWeight: 800 }}>{child.name}</span>
+          <span style={{ display: "block", fontSize: 12, color: "#475569", marginTop: 2 }}>
+            {child.className ?? "Class not confirmed"}
+          </span>
+          <span style={{ display: "block", fontSize: 11, color: "#64748b", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {child.schoolName ?? "School details not available yet"}
+          </span>
+        </span>
+        <span aria-hidden="true" style={{ fontSize: 24, color: "#94a3b8" }}>›</span>
       </div>
 
-      {/* Attendance bar */}
-      {hasAtt && (
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-            <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Attendance this term</span>
-            <span style={{ fontSize: 11, fontWeight: 800, color: attColor }}>{child.attendance_pct}%</span>
-          </div>
-          <div style={{ height: 6, borderRadius: 6, background: "#f3f4f6", overflow: "hidden" }}>
-            <div style={{
-              height: "100%", width: `${child.attendance_pct}%`,
-              background: attColor, borderRadius: 6,
-              transition: "width 0.6s ease",
-            }} />
-          </div>
+      {child.pendingApproval && (
+        <div style={{ marginTop: 12, padding: "9px 11px", borderRadius: 10, background: "#fffbeb", color: "#92400e", fontSize: 12, lineHeight: 1.45 }}>
+          <strong>School verification pending.</strong> You will get access to class-linked information after the school confirms the relationship.
         </div>
       )}
 
-      {/* Vibe line */}
-      <div style={{
-        fontSize: 11, color: "#9ca3af", paddingTop: 8,
-        borderTop: "1px solid #f3f4f6",
-      }}>{vibe}</div>
-    </div>
+      <div style={{ borderTop: "1px solid #f1f5f9", marginTop: 12, paddingTop: 12 }}>
+        {child.attendanceRecords === 0 || child.attendancePct === null ? (
+          <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.45 }}>
+            <strong style={{ color: "#334155" }}>Attendance:</strong> No present, late or absent attendance has been recorded yet. This does not mean the learner was absent.
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <span style={{ fontSize: 11, color: "#6b7280", fontWeight: 600 }}>Recorded attendance</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: attendanceTone(child.attendancePct) }}>{child.attendancePct}%</span>
+            </div>
+            <div style={{ height: 6, borderRadius: 6, background: "#f3f4f6", overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${child.attendancePct}%`, background: attendanceTone(child.attendancePct), borderRadius: 6 }} />
+            </div>
+            <div style={{ marginTop: 5, fontSize: 10, color: "#64748b" }}>Based on {child.attendanceRecords} present, late or absent {child.attendanceRecords === 1 ? "record" : "records"}. Excused records are not treated as absence.</div>
+          </div>
+        )}
+      </div>
+    </button>
   );
 }
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
 function EmptyState() {
   const router = useRouter();
   return (
-    <div style={{
-      background: "#fff", borderRadius: 20, padding: "40px 24px",
-      textAlign: "center", border: "1px solid #e5e7eb", marginTop: 8,
-      boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-    }}>
-      <div style={{ fontSize: 56, marginBottom: 16 }}>👨‍👩‍👧</div>
-      <p style={{ fontSize: 17, fontWeight: 800, color: dark, margin: "0 0 8px" }}>
-        Your children appear here
+    <section style={{ background: "#fff", borderRadius: 20, padding: "30px 20px", border: "1px solid #e2e8f0", textAlign: "center" }}>
+      <div aria-hidden="true" style={{ fontSize: 42, marginBottom: 10 }}>👨‍👩‍👧</div>
+      <h1 style={{ fontSize: 20, margin: 0, color: dark }}>No verified child is linked yet</h1>
+      <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6, margin: "10px auto 18px", maxWidth: 420 }}>
+        For child privacy, knowing a learner&apos;s name is not enough to gain access. Start the verified linking process using a school-authorized claim or invitation.
       </p>
-      <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 28px", lineHeight: 1.6 }}>
-        Link an existing student with a claim code, or add your child to get started.
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <button
-          onClick={() => router.push("/parent/link-child")}
-          style={{
-            padding: "14px 24px", borderRadius: 14, border: "none",
-            background: dark, color: "#fff", fontWeight: 700,
-            fontSize: 14, cursor: "pointer", fontFamily: "inherit",
-          }}
-        >🔗 Link with Claim Code</button>
-        <button
-          onClick={() => router.push("/parent/create-child")}
-          style={{
-            padding: "14px 24px", borderRadius: 14,
-            border: `1.5px solid ${dark}`, background: "transparent",
-            color: dark, fontWeight: 700, fontSize: 14,
-            cursor: "pointer", fontFamily: "inherit",
-          }}
-        >+ Add Child to Class</button>
-      </div>
-    </div>
+      <button type="button" onClick={() => router.push("/parent/link-child")} style={{
+        minHeight: 46, padding: "0 18px", borderRadius: 12, border: "none", background: dark,
+        color: "#fff", fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+      }}>Link or request access</button>
+    </section>
   );
 }
 
-// ─── Love Card ────────────────────────────────────────────────────────────────
-function LoveCard() {
-  return (
-    <div style={{
-      background: `linear-gradient(135deg, ${dark} 0%, #312e81 100%)`,
-      borderRadius: 20, padding: "20px", marginBottom: 12,
-      color: "#fff", textAlign: "center",
-    }}>
-      <div style={{ fontSize: 28, marginBottom: 8 }}>💛</div>
-      <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 700, lineHeight: 1.5 }}>
-        Every day you check in is a day they feel loved.
-      </p>
-      <p style={{ margin: 0, fontSize: 12, color: "rgba(255,255,255,0.55)", lineHeight: 1.5 }}>
-        VibeSchool — keeping you close to what matters most.
-      </p>
-    </div>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ParentStudentsPage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [children, setChildren] = useState<ChildSummary[]>([]);
 
-  const [loading,  setLoading]  = useState(true);
-  const [children, setChildren] = useState<LinkedChild[]>([]);
+  const loadChildren = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.replace("/"); return; }
 
-  const fetchChildren = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { router.push("/"); return; }
+      const { data: links, error: linksError } = await supabase
+        .from("parent_student_links")
+        .select("student_id")
+        .eq("parent_id", user.id);
+      if (linksError) throw linksError;
 
-    const { data: links } = await supabase
-      .from("parent_student_links")
-      .select("student_id")
-      .eq("parent_id", user.id);
+      const studentIds = (links ?? []).map(link => link.student_id).filter(Boolean);
+      if (studentIds.length === 0) { setChildren([]); return; }
 
-    if (!links || links.length === 0) { setLoading(false); return; }
+      const { data: students, error: studentError } = await supabase
+        .from("students").select("id, name, class_id").in("id", studentIds);
+      if (studentError) throw studentError;
 
-    const studentIds = links.map((l: { student_id: string }) => l.student_id);
+      const classIds = Array.from(new Set((students ?? []).map(student => student.class_id).filter((id): id is string => Boolean(id))));
+      const { data: classes, error: classError } = classIds.length
+        ? await supabase.from("classes").select("id, name, stream, school_id").in("id", classIds)
+        : { data: [], error: null };
+      if (classError) throw classError;
 
-    const { data: students } = await supabase
-      .from("students")
-      .select("id, name, class_id")
-      .in("id", studentIds);
+      const schoolIds = Array.from(new Set((classes ?? []).map(cls => cls.school_id).filter((id): id is string => Boolean(id))));
+      const { data: schools, error: schoolError } = schoolIds.length
+        ? await supabase.from("schools").select("id, name").in("id", schoolIds)
+        : { data: [], error: null };
+      if (schoolError) throw schoolError;
 
-    if (!students || students.length === 0) { setLoading(false); return; }
+      const [{ data: attendance, error: attendanceError }, { data: requests, error: requestError }] = await Promise.all([
+        supabase.from("attendance").select("student_id, status").in("student_id", studentIds),
+        supabase.from("class_join_requests").select("student_id").in("student_id", studentIds).eq("status", "pending"),
+      ]);
+      if (attendanceError) throw attendanceError;
+      if (requestError) throw requestError;
 
-    const classIds = students
-      .map(student => student.class_id)
-      .filter((classId): classId is string => classId !== null);
-
-    const { data: classes } = await supabase
-      .from("classes")
-      .select("id, name, stream, school_id")
-      .in("id", classIds);
-
-    const schoolIds = Array.from(
-      new Set(
-        (classes ?? [])
-          .map(cls => cls.school_id)
-          .filter((schoolId): schoolId is string => schoolId !== null)
-      )
-    );
-
-    const { data: schools } = await supabase
-      .from("schools")
-      .select("id, name")
-      .in("id", schoolIds);
-
-    // Attendance — single query for all students
-    const { data: allAtt } = await supabase
-      .from("attendance")
-      .select("student_id, status")
-      .in("student_id", studentIds);
-
-    const attMap: Record<string, number> = {};
-    for (const sid of studentIds) {
-      const rows    = (allAtt ?? []).filter((r: { student_id: string }) => r.student_id === sid);
-      const total   = rows.length;
-      const present = rows.filter((r: { status: string }) => r.status === "present").length;
-      attMap[sid]   = total > 0 ? Math.round((present / total) * 100) : 0;
+      const pending = new Set((requests ?? []).map(request => request.student_id));
+      const assembled: ChildSummary[] = (students ?? []).map(student => {
+        const cls = (classes ?? []).find(row => row.id === student.class_id);
+        const school = (schools ?? []).find(row => row.id === cls?.school_id);
+        const rows = (attendance ?? []).filter(row => row.student_id === student.id);
+        const countedRows = rows.filter(row => row.status === "present" || row.status === "late" || row.status === "absent");
+        const present = countedRows.filter(row => row.status === "present" || row.status === "late").length;
+        return {
+          studentId: student.id,
+          name: student.name,
+          className: cls ? `${cls.name}${cls.stream ? ` ${cls.stream}` : ""}` : null,
+          schoolName: school?.name ?? null,
+          attendanceRecords: countedRows.length,
+          attendancePct: countedRows.length ? Math.round((present / countedRows.length) * 100) : null,
+          pendingApproval: pending.has(student.id) && !student.class_id,
+        };
+      });
+      setChildren(assembled);
+    } catch (loadError) {
+      console.error("[ParentChildren] load failed", loadError);
+      setError(true);
+    } finally {
+      setLoading(false);
     }
-
-    // Pending join requests
-    const { data: pendingReqs } = await supabase
-      .from("class_join_requests")
-      .select("student_id")
-      .in("student_id", studentIds)
-      .eq("status", "pending");
-
-    const pendingSet = new Set((pendingReqs ?? []).map((r: { student_id: string }) => r.student_id));
-
-    const assembled: LinkedChild[] = students.map(student => {
-      const cls = student.class_id
-        ? (classes ?? []).find(c => c.id === student.class_id)
-        : undefined;
-      const school = cls?.school_id
-        ? (schools ?? []).find(sc => sc.id === cls.school_id)
-        : undefined;
-      const className = cls ? cls.name + (cls.stream ? " " + cls.stream : "") : "—";
-      return {
-        student_id:       student.id,
-        name:             student.name,
-        class_name:       className,
-        attendance_pct:   attMap[student.id] ?? 0,
-        school_name:      school?.name ?? "—",
-        pending_approval: pendingSet.has(student.id),
-      };
-    });
-
-    setChildren(assembled);
-    setLoading(false);
   }, [router]);
 
-  useEffect(() => { fetchChildren(); }, [fetchChildren]);
+  useEffect(() => { void loadChildren(); }, [loadChildren]);
 
   return (
-    <div style={{ minHeight: "100vh", background: bg, fontFamily: "system-ui, -apple-system, sans-serif" }}>
-      <style>{`
-        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-        @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
-        @keyframes slideIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-      `}</style>
-
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "16px 16px 120px", animation: "slideIn 0.22s ease" }}>
-
-        {/* ── Header ── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+    <div style={{ minHeight: "100vh", background: bg }}>
+      <div style={{ maxWidth: 680, margin: "0 auto" }}>
+        <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: dark }}>{greeting()}</div>
-            <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>{todayLabel()}</div>
+            <div style={{ color: accent, fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.8 }}>Family</div>
+            <h1 style={{ margin: "3px 0 4px", color: dark, fontSize: 24 }}>My children</h1>
+            <p style={{ margin: 0, color: "#64748b", fontSize: 13 }}>Choose a learner to see schoolwork, attendance, progress and messages in the correct child context.</p>
           </div>
-          <div
-            onClick={() => router.push("/parent/settings")}
-            style={{ fontSize: 22, cursor: "pointer", color: "#6b7280" }}
-          >⚙️</div>
-        </div>
+          <button type="button" onClick={() => router.push("/parent/profile")} aria-label="Open account and settings" style={{
+            minWidth: 44, minHeight: 44, borderRadius: 12, border: "1px solid #cbd5e1", background: "#fff",
+            cursor: "pointer", fontSize: 18,
+          }}>⚙</button>
+        </header>
 
-        {/* ── Loading ── */}
         {loading && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {[1, 2].map(i => (
-              <div key={i} style={{ background: "#fff", borderRadius: 20, padding: "18px 16px", border: "1px solid #e5e7eb" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12 }}>
-                  <Shimmer w={52} h={52} r={26} />
-                  <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                    <Shimmer w="55%" h={15} />
-                    <Shimmer w="40%" h={11} />
-                    <Shimmer w="65%" h={10} />
-                  </div>
-                </div>
-                <Shimmer h={6} r={6} />
-              </div>
-            ))}
+          <div role="status" aria-label="Loading children" style={{ display: "grid", gap: 12 }}>
+            {[1, 2].map(item => <div key={item} style={{ height: 132, borderRadius: 18, background: "#e2e8f0" }} />)}
           </div>
         )}
 
-        {/* ── Empty ── */}
-        {!loading && children.length === 0 && <EmptyState />}
-
-        {/* ── Children list ── */}
-        {!loading && children.length > 0 && (
-          <>
-            {children.map(child => (
-              <ChildCard
-                key={child.student_id}
-                child={child}
-                onTap={() => router.push(`/parent/child/${child.student_id}/profile`)}
-              />
-            ))}
-
-            {/* Love card */}
-            <LoveCard />
-
-            {/* Add another */}
-            <button
-              onClick={() => router.push("/parent/create-child")}
-              style={{
-                width: "100%", padding: "16px", borderRadius: 16,
-                border: `1.5px solid ${dark}`, background: "#fff",
-                color: dark, fontWeight: 700, fontSize: 14,
-                cursor: "pointer", fontFamily: "inherit",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-              }}
-            >
-              <span style={{ fontSize: 18 }}>+</span> Add Another Child
-            </button>
-          </>
+        {!loading && error && (
+          <section role="alert" style={{ background: "#fff", border: "1px solid #fecaca", borderRadius: 16, padding: 18 }}>
+            <h2 style={{ margin: 0, color: "#991b1b", fontSize: 16 }}>Children are temporarily unavailable</h2>
+            <p style={{ margin: "7px 0 14px", color: "#64748b", fontSize: 13 }}>Your relationship has not been changed. Check your connection and try again.</p>
+            <button type="button" onClick={() => void loadChildren()} style={{ minHeight: 44, padding: "0 16px", borderRadius: 10, border: "none", background: dark, color: "#fff", fontWeight: 800 }}>Try again</button>
+          </section>
         )}
+
+        {!loading && !error && children.length === 0 && <EmptyState />}
+        {!loading && !error && children.map(child => (
+          <ChildCard key={child.studentId} child={child} onOpen={() => router.push(`/parent/child/${child.studentId}`)} />
+        ))}
       </div>
     </div>
   );
