@@ -5,6 +5,7 @@ const profile = read("app/teacher/profile/page.tsx");
 const account = read("app/teacher/profile/account/page.tsx");
 const settings = read("app/teacher/settings/page.tsx");
 const migration = read("supabase/migrations/20260819083000_task26_teacher_profile_identity_authority.sql");
+const contextHardening = read("supabase/migrations/20260819083500_task26_teacher_context_active_school_hardening.sql");
 
 const failures = [];
 const expect = (condition, message) => { if (!condition) failures.push(message); };
@@ -32,15 +33,22 @@ for (const key of ["attendance", "flags", "messages", "lessonPlans", "schoolNoti
 expect(settings.includes('/teacher/profile/account'), "Settings must expose governed account security entry point.");
 
 expect(migration.includes('guard_teacher_profile_self_service'), "Database must guard direct teacher_profiles self-service writes.");
-for (const protectedField of ["school_id", "employment_type", "subjects_taught", "designation", "leave_balance", "appraisal_score", "appraisal_notes", "finance_ref", "documents"]) {
+for (const protectedField of ["school_id", "employment_type", "subjects_taught", "designation", "leave_balance", "appraisal_score", "appraisal_notes", "finance_ref", "documents", "created_at"]) {
   expect(migration.includes(protectedField), `Self-service guard must protect ${protectedField}.`);
 }
+expect(migration.includes('teacher_profile_identity_reassignment_denied'), "Teacher must not reassign the identity key of their professional-profile row.");
 expect(migration.includes('teacher_profile_authoritative_fields_school_managed'), "Protected field mutation must fail with a stable authority error.");
 expect(migration.includes('create or replace function public.teacher_update_my_profile'), "Atomic teacher self-profile RPC must exist.");
-expect(migration.includes("p.role = 'teacher'") && migration.includes("p.account_status::text = 'active'"), "Self-profile RPC must fail closed for non-teacher/inactive accounts.");
+expect(migration.includes("p.role = 'teacher'") && migration.includes("p.account_status::text = 'active'"), "Self-profile writes must fail closed for non-teacher/inactive accounts.");
 reject(migration, /teacher_update_my_profile[\s\S]*update public\.teacher_profiles[\s\S]*school_id\s*=/, "Self-profile RPC must not change teacher_profiles.school_id.");
 reject(migration, /teacher_update_my_profile[\s\S]*update public\.teacher_profiles[\s\S]*employment_type\s*=/, "Self-profile RPC must not change employment authority.");
 expect(migration.includes('revoke all on function public.teacher_update_my_profile') && migration.includes('grant execute on function public.teacher_update_my_profile'), "Self-profile RPC execute grants must be explicit.");
+
+expect(contextHardening.includes("s.status::text = 'active'"), "Teacher operating context must exclude inactive schools.");
+expect(contextHardening.includes("p.role = 'teacher'") && contextHardening.includes("p.account_status::text = 'active'"), "Teacher operating context must require an active teacher account.");
+expect(contextHardening.includes('teacher_school_scope_not_authorized'), "Unauthorized/inactive school selection must fail closed.");
+expect(contextHardening.includes("'state', 'needs_school'"), "No valid active school membership must resolve to needs_school.");
+expect(contextHardening.includes('revoke all on function public.teacher_get_operating_context') && contextHardening.includes('grant execute on function public.teacher_get_operating_context'), "Context resolver execute grants must remain explicit.");
 
 if (failures.length) {
   console.error("Teacher Profile Task 26 contract FAILED:\n- " + failures.join("\n- "));
