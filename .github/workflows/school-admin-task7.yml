@@ -28,3 +28,13 @@ jobs:
         run: node scripts/test-school-admin-task7-contract.mjs
       - name: School Admin dead-route contract
         run: node scripts/test-school-admin-route-contract.mjs
+      - name: School Admin anonymous operational grant closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration='supabase/migrations/20260819040500_school_admin_anon_operational_grant_hardening.sql'
+          test -f "$migration"
+          for relation in academic_terms exams finance_invoices finance_payments subjects timetable_slots; do
+            grep -Fq "revoke all privileges on table public.${relation} from anon;" "$migration"
+            grep -Fq "revoke all privileges on table public.${relation} from public;" "$migration"
+          done
