@@ -5,13 +5,17 @@ const readModelsPath='supabase/migrations/20260819171500_hq_national_intelligenc
 const explorerPath='supabase/migrations/20260819172500_hq_school_explorer_read_model.sql'
 const levelSemanticsPath='supabase/migrations/20260819173500_hq_school_level_semantics.sql'
 const school360SemanticsPath='supabase/migrations/20260819174500_hq_school_360_level_semantics.sql'
+const regionIntegrityPath='supabase/migrations/20260819175500_hq_region_aggregate_integrity.sql'
+const sqlContractPath='supabase/tests/hq_national_intelligence_contract.sql'
 const pagePath='app/hq/geography/page.tsx'
 const foundation=fs.readFileSync(foundationPath,'utf8')
 const readModels=fs.readFileSync(readModelsPath,'utf8')
 const explorer=fs.readFileSync(explorerPath,'utf8')
 const levelSemantics=fs.readFileSync(levelSemanticsPath,'utf8')
 const school360Semantics=fs.readFileSync(school360SemanticsPath,'utf8')
-const migration=`${foundation}\n${readModels}\n${explorer}\n${levelSemantics}\n${school360Semantics}`
+const regionIntegrity=fs.readFileSync(regionIntegrityPath,'utf8')
+const sqlContract=fs.readFileSync(sqlContractPath,'utf8')
+const migration=`${foundation}\n${readModels}\n${explorer}\n${levelSemantics}\n${school360Semantics}\n${regionIntegrity}`
 const page=fs.readFileSync(pagePath,'utf8')
 
 const required=[
@@ -22,12 +26,13 @@ for(const token of required){if(!migration.includes(token)) throw new Error(`Mis
 const forbidden=[/create table[^;]*hq_schools/i,/create table[^;]*hq_users/i,/grant\s+select\s+on\s+public\.school_geography\s+to\s+(anon|authenticated)/i,/security definer[\s\S]{0,160}set search_path\s*=\s*public\s*(?:;|\n)/i,/residential[^\n]{0,80}(infer|derived)[^\n]{0,80}true/i,/stk[^\n]{0,80}(revenue|settled)/i]
 for(const pattern of forbidden){if(pattern.test(migration)) throw new Error(`Forbidden geographic architecture pattern: ${pattern}`)}
 
-const replacement=readModels.slice(readModels.indexOf('create or replace function public.hq_geography_region_breakdown'),readModels.indexOf('create or replace function public.hq_school_360'))
-if(!replacement.includes('school_rollup')||!replacement.includes('event_rollup')) throw new Error('Regional aggregation must separate school and event rollups')
-if(/left join public\.platform_events[\s\S]{0,500}count\(sg\.school_id\)/i.test(replacement)) throw new Error('Event fan-out can inflate school totals')
-if(!replacement.includes('count(distinct pe.school_id)')) throw new Error('Active-school aggregation must be distinct')
+if(!regionIntegrity.includes('school_rollup')||!regionIntegrity.includes('event_rollup')) throw new Error('Regional aggregation must separate school and event rollups')
+if(!regionIntegrity.includes('count(s.id)')) throw new Error('Regional totals must count eligible non-deleted canonical schools')
+if(!regionIntegrity.includes('count(distinct pe.school_id)')) throw new Error('Active-school aggregation must be distinct')
+if(!regionIntegrity.includes('s.deleted_at is null')) throw new Error('Regional totals must exclude soft-deleted schools')
+if(/count\(sg\.school_id\)/i.test(regionIntegrity)) throw new Error('Regional totals may not count geography rows directly')
 
-const functionSources={hq_geography_region_breakdown:readModels,hq_school_360:school360Semantics,hq_growth_intelligence:readModels,hq_geographic_opportunities:readModels,hq_school_explorer_list:levelSemantics}
+const functionSources={hq_geography_region_breakdown:regionIntegrity,hq_school_360:school360Semantics,hq_growth_intelligence:readModels,hq_geographic_opportunities:readModels,hq_school_explorer_list:levelSemantics}
 for(const [fn,source] of Object.entries(functionSources)){
   const marker=`create or replace function public.${fn}`
   const start=source.indexOf(marker)
@@ -59,10 +64,11 @@ if(/full_name|phone|email|date_of_birth/i.test(school360Semantics)) throw new Er
 const opportunityStart=readModels.indexOf('create or replace function public.hq_geographic_opportunities')
 const opportunities=readModels.slice(opportunityStart)
 if(!opportunities.includes("'teacher_activation'::text")) throw new Error('Teacher activation opportunity must be deterministic')
-if(!/where\s+learners>0\s+and\s+active_teachers=0/i.test(opportunities)) throw new Error('Learners with zero active teachers must trigger teacher activation, including schools with zero teacher memberships')
-if(/where\s+learners>0\s+and\s+teachers>0\s+and\s+active_teachers=0/i.test(opportunities)) throw new Error('Teacher activation may not suppress schools that have learners but zero teacher memberships')
+if(!/where\s+learners>0\s+and\s+active_teachers=0/i.test(opportunities)) throw new Error('Learners with zero active teachers must trigger teacher activation')
 if(!opportunities.includes("'geography_gap'")) throw new Error('Geography gap opportunity must remain explicit')
 if(!opportunities.includes('recommended_investigation')) throw new Error('Opportunity signals must return an investigation, not execute an action')
+
+for(const token of ['has_function_privilege','has_table_privilege','product_measurement_state','residential_geography_inferred','recommended_investigation']){if(!sqlContract.includes(token)) throw new Error(`SQL regression contract missing ${token}`)}
 
 if(!page.includes('Unknown evidence remains unknown')) throw new Error('HQ geography must state evidence semantics')
 if(!page.includes('Map evidence not ready')) throw new Error('HQ geography must fail truthfully when map evidence is incomplete')
