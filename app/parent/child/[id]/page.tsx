@@ -112,7 +112,10 @@ export default function ParentChildPage() {
     }
 
     const termRows = termRes.data ?? []
-    const attended = termRows.filter(row => row.status === "present" || row.status === "late").length
+    const attended = termRows.filter(row => {
+      const status = String(row.status)
+      return status === "present" || status === "late"
+    }).length
     const pct = termRows.length > 0 ? Math.round((attended / termRows.length) * 100) : null
 
     setChild({ id: student.id, name: student.name, className, schoolName })
