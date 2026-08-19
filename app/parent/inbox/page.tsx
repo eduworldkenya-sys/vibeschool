@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -63,52 +63,58 @@ export default function ParentInboxPage() {
   const [students, setStudents] = useState<Record<string, string>>({})
   const [filter, setFilter] = useState<"unread" | "all">("unread")
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [fatalLoadError, setFatalLoadError] = useState(false)
+  const [actionError, setActionError] = useState("")
 
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) { router.replace("/"); return }
-        const { data, error: eventError } = await supabase
-          .from("parent_events")
-          .select("id, student_id, category, severity, title, body, action_href, metadata, occurred_at, read_at, acknowledged_at")
-          .eq("parent_id", user.id)
-          .order("occurred_at", { ascending: false })
-          .limit(100)
-        if (eventError) throw eventError
-        const normalized = (data ?? []) as ParentEvent[]
-        if (cancelled) return
-        setEvents(normalized)
+  const load = useCallback(async () => {
+    setLoading(true)
+    setFatalLoadError(false)
+    setActionError("")
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) { router.replace("/"); return }
 
-        const ids = Array.from(new Set(normalized.map(row => row.student_id).filter((value): value is string => Boolean(value))))
-        if (ids.length) {
-          const { data: rows, error: studentError } = await supabase.from("students").select("id, name").in("id", ids)
-          if (studentError) throw studentError
-          const names: Record<string, string> = {}
-          for (const row of rows ?? []) names[row.id] = row.name
-          if (!cancelled) setStudents(names)
-        }
-      } catch (cause) {
-        if (!cancelled) setError("Family updates are temporarily unavailable. Check your connection and try again.")
-      } finally {
-        if (!cancelled) setLoading(false)
+      const { data, error: eventError } = await supabase
+        .from("parent_events")
+        .select("id, student_id, category, severity, title, body, action_href, metadata, occurred_at, read_at, acknowledged_at")
+        .eq("parent_id", user.id)
+        .order("occurred_at", { ascending: false })
+        .limit(100)
+      if (eventError) throw eventError
+
+      const normalized = (data ?? []) as ParentEvent[]
+      setEvents(normalized)
+      setStudents({})
+
+      const ids = Array.from(new Set(normalized.map(row => row.student_id).filter((value): value is string => Boolean(value))))
+      if (ids.length) {
+        const { data: rows, error: studentError } = await supabase.from("students").select("id, name").in("id", ids)
+        if (studentError) throw studentError
+        const names: Record<string, string> = {}
+        for (const row of rows ?? []) names[row.id] = row.name
+        setStudents(names)
       }
+    } catch {
+      setEvents([])
+      setStudents({})
+      setFatalLoadError(true)
+    } finally {
+      setLoading(false)
     }
-    void load()
-    return () => { cancelled = true }
   }, [router])
+
+  useEffect(() => { void load() }, [load])
 
   const unreadCount = events.filter(event => !event.read_at).length
   const visible = useMemo(() => filter === "unread" ? events.filter(event => !event.read_at) : events, [events, filter])
   const grouped = useMemo(() => GROUPS.map(group => ({ ...group, events: visible.filter(event => groupFor(event) === group.id) })).filter(group => group.events.length), [visible])
 
   async function markRead(event: ParentEvent, follow = false) {
+    setActionError("")
     if (!event.read_at) {
       const now = new Date().toISOString()
-      const { error: updateError } = await supabase.from("parent_events").update({ read_at: now }).eq("id", event.id)
-      if (updateError) { setError("This update could not be marked as read. Try again."); return }
+      const { error } = await supabase.from("parent_events").update({ read_at: now }).eq("id", event.id)
+      if (error) { setActionError("This update could not be marked as read. Try again."); return }
       setEvents(current => current.map(row => row.id === event.id ? { ...row, read_at: now } : row))
     }
     const href = safeParentHref(event.action_href)
@@ -116,15 +122,27 @@ export default function ParentInboxPage() {
   }
 
   async function markAllRead() {
+    setActionError("")
     const ids = events.filter(event => !event.read_at).map(event => event.id)
     if (!ids.length) return
     const now = new Date().toISOString()
-    const { error: updateError } = await supabase.from("parent_events").update({ read_at: now }).in("id", ids)
-    if (updateError) { setError("Updates could not be marked as read. Try again."); return }
+    const { error } = await supabase.from("parent_events").update({ read_at: now }).in("id", ids)
+    if (error) { setActionError("Updates could not be marked as read. Try again."); return }
     setEvents(current => current.map(row => ids.includes(row.id) ? { ...row, read_at: now } : row))
   }
 
   if (loading) return <section role="status" style={card}>Loading family updates…</section>
+
+  if (fatalLoadError) return (
+    <section role="alert" style={{ ...card, padding: 20 }}>
+      <h1 style={{ margin: 0, fontSize: 19, color: "#991b1b" }}>Family updates are unavailable</h1>
+      <p style={{ margin: "8px 0 14px", color: C.muted, fontSize: 12, lineHeight: 1.55 }}>
+        VibeSchool could not confirm your inbox state, so it will not tell you that you are caught up. Your child relationships have not been changed.
+      </p>
+      <button type="button" onClick={() => void load()} style={primaryButton}>Try again</button>
+      <button type="button" onClick={() => router.push("/parent/messages")} style={secondaryButton}>Open conversations</button>
+    </section>
+  )
 
   return (
     <div>
@@ -136,7 +154,7 @@ export default function ParentInboxPage() {
         </div>
       </section>
 
-      {error && <div role="alert" style={errorBox}>{error}</div>}
+      {actionError && <div role="alert" style={errorBox}>{actionError}</div>}
 
       <section style={{ ...card, padding: 10 }}>
         <div style={{ display: "flex", gap: 7, alignItems: "center" }}>
@@ -195,4 +213,5 @@ export default function ParentInboxPage() {
 const card: React.CSSProperties = { background: "#fff", border: `1px solid ${C.border}`, borderRadius: 15, padding: 14, marginBottom: 10 }
 const errorBox: React.CSSProperties = { border: "1px solid #fecaca", background: "#fef2f2", color: "#b91c1c", borderRadius: 12, padding: 11, marginBottom: 10, fontSize: 11 }
 const primaryButton: React.CSSProperties = { width: "100%", minHeight: 46, border: "none", borderRadius: 11, background: C.green, color: "#fff", padding: 11, fontWeight: 900, fontFamily: "inherit", cursor: "pointer" }
+const secondaryButton: React.CSSProperties = { width: "100%", minHeight: 46, marginTop: 8, border: `1px solid ${C.border}`, borderRadius: 11, background: "#fff", color: C.dark, padding: 11, fontWeight: 800, fontFamily: "inherit", cursor: "pointer" }
 function filterButton(active: boolean): React.CSSProperties { return { minHeight: 44, border: `1px solid ${active ? C.green : C.border}`, background: active ? "#ecfdf5" : "#fff", color: active ? "#065f46" : C.muted, borderRadius: 999, padding: "6px 12px", fontSize: 10, fontWeight: 900, cursor: "pointer", fontFamily: "inherit" } }
