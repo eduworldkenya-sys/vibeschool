@@ -1,5 +1,7 @@
 begin;
 
+-- access: owner-only public.geo_countries
+-- authorization-test: public.geo_countries
 create table if not exists public.geo_countries (
   id uuid primary key default gen_random_uuid(),
   iso2 char(2) not null unique,
@@ -14,6 +16,8 @@ create table if not exists public.geo_countries (
   updated_at timestamptz not null default now()
 );
 
+-- access: owner-only public.geo_counties
+-- authorization-test: public.geo_counties
 create table if not exists public.geo_counties (
   id uuid primary key default gen_random_uuid(),
   country_id uuid not null references public.geo_countries(id) on delete restrict,
@@ -31,6 +35,8 @@ create table if not exists public.geo_counties (
   unique(country_id, official_code)
 );
 
+-- access: owner-only public.geo_subcounties
+-- authorization-test: public.geo_subcounties
 create table if not exists public.geo_subcounties (
   id uuid primary key default gen_random_uuid(),
   county_id uuid not null references public.geo_counties(id) on delete restrict,
@@ -48,6 +54,8 @@ create table if not exists public.geo_subcounties (
   unique(county_id, official_code)
 );
 
+-- access: owner-only public.geo_wards
+-- authorization-test: public.geo_wards
 create table if not exists public.geo_wards (
   id uuid primary key default gen_random_uuid(),
   subcounty_id uuid not null references public.geo_subcounties(id) on delete restrict,
@@ -65,6 +73,8 @@ create table if not exists public.geo_wards (
   unique(subcounty_id, official_code)
 );
 
+-- access: owner-only public.school_geography
+-- authorization-test: public.school_geography
 create table if not exists public.school_geography (
   school_id uuid primary key references public.schools(id) on delete cascade,
   country_id uuid references public.geo_countries(id) on delete restrict,
@@ -110,7 +120,6 @@ begin
   if auth.uid() is null or not coalesce(public.is_platform_owner(),false) then
     raise exception 'owner_authorization_required';
   end if;
-
   return jsonb_build_object(
     'countries', coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'code',c.iso2,'name',c.official_name,'verification_state',c.verification_state) order by c.official_name) from public.geo_countries c where c.status='active'),'[]'::jsonb),
     'counties', coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'country_id',c.country_id,'code',c.official_code,'name',c.official_name,'verification_state',c.verification_state) order by c.official_name) from public.geo_counties c where c.status='active'),'[]'::jsonb),
@@ -139,19 +148,10 @@ declare
   v_days integer := greatest(1,least(coalesce(p_days,30),365));
   v_scope_schools uuid[];
 begin
-  if auth.uid() is null or not coalesce(public.is_platform_owner(),false) then
-    raise exception 'owner_authorization_required';
-  end if;
-
-  if p_ward_id is not null and not exists(select 1 from public.geo_wards w where w.id=p_ward_id and (p_subcounty_id is null or w.subcounty_id=p_subcounty_id)) then
-    raise exception 'invalid_geographic_hierarchy';
-  end if;
-  if p_subcounty_id is not null and not exists(select 1 from public.geo_subcounties s where s.id=p_subcounty_id and (p_county_id is null or s.county_id=p_county_id)) then
-    raise exception 'invalid_geographic_hierarchy';
-  end if;
-  if p_county_id is not null and not exists(select 1 from public.geo_counties c where c.id=p_county_id and (p_country_id is null or c.country_id=p_country_id)) then
-    raise exception 'invalid_geographic_hierarchy';
-  end if;
+  if auth.uid() is null or not coalesce(public.is_platform_owner(),false) then raise exception 'owner_authorization_required'; end if;
+  if p_ward_id is not null and not exists(select 1 from public.geo_wards w where w.id=p_ward_id and (p_subcounty_id is null or w.subcounty_id=p_subcounty_id)) then raise exception 'invalid_geographic_hierarchy'; end if;
+  if p_subcounty_id is not null and not exists(select 1 from public.geo_subcounties s where s.id=p_subcounty_id and (p_county_id is null or s.county_id=p_county_id)) then raise exception 'invalid_geographic_hierarchy'; end if;
+  if p_county_id is not null and not exists(select 1 from public.geo_counties c where c.id=p_county_id and (p_country_id is null or c.country_id=p_country_id)) then raise exception 'invalid_geographic_hierarchy'; end if;
 
   select coalesce(array_agg(s.id),'{}'::uuid[]) into v_scope_schools
   from public.schools s
@@ -195,57 +195,42 @@ $$;
 revoke all on function public.hq_geography_summary(uuid,uuid,uuid,uuid,uuid,integer) from public,anon;
 grant execute on function public.hq_geography_summary(uuid,uuid,uuid,uuid,uuid,integer) to authenticated;
 
-create or replace function public.hq_geography_region_breakdown(
-  p_parent_type text,
-  p_parent_id uuid default null,
-  p_days integer default 30
-)
+create or replace function public.hq_geography_region_breakdown(p_parent_type text,p_parent_id uuid default null,p_days integer default 30)
 returns jsonb
 language plpgsql
 security definer
 set search_path=public,extensions,pg_temp
 as $$
-declare
-  v_days integer := greatest(1,least(coalesce(p_days,30),365));
+declare v_days integer := greatest(1,least(coalesce(p_days,30),365));
 begin
   if auth.uid() is null or not coalesce(public.is_platform_owner(),false) then raise exception 'owner_authorization_required'; end if;
   if p_parent_type not in ('country','county','subcounty') then raise exception 'invalid_parent_type'; end if;
-
   if p_parent_type='country' then
     return coalesce((select jsonb_agg(to_jsonb(x) order by x.school_count desc,x.name) from (
       select c.id,c.official_name name,
-        count(sg.school_id)::bigint school_count,
-        count(sg.school_id) filter(where sg.verification_state='verified')::bigint verified_school_count,
+        count(distinct sg.school_id)::bigint school_count,
+        count(distinct sg.school_id) filter(where sg.verification_state='verified')::bigint verified_school_count,
         count(distinct pe.school_id) filter(where pe.occurred_at>=now()-(v_days||' days')::interval)::bigint active_school_count
-      from public.geo_counties c
-      left join public.school_geography sg on sg.county_id=c.id
-      left join public.platform_events pe on pe.school_id=sg.school_id
-      where (p_parent_id is null or c.country_id=p_parent_id) and c.status='active'
-      group by c.id,c.official_name
+      from public.geo_counties c left join public.school_geography sg on sg.county_id=c.id left join public.platform_events pe on pe.school_id=sg.school_id
+      where (p_parent_id is null or c.country_id=p_parent_id) and c.status='active' group by c.id,c.official_name
     ) x),'[]'::jsonb);
   elsif p_parent_type='county' then
     return coalesce((select jsonb_agg(to_jsonb(x) order by x.school_count desc,x.name) from (
       select s.id,s.official_name name,
-        count(sg.school_id)::bigint school_count,
-        count(sg.school_id) filter(where sg.verification_state='verified')::bigint verified_school_count,
+        count(distinct sg.school_id)::bigint school_count,
+        count(distinct sg.school_id) filter(where sg.verification_state='verified')::bigint verified_school_count,
         count(distinct pe.school_id) filter(where pe.occurred_at>=now()-(v_days||' days')::interval)::bigint active_school_count
-      from public.geo_subcounties s
-      left join public.school_geography sg on sg.subcounty_id=s.id
-      left join public.platform_events pe on pe.school_id=sg.school_id
-      where s.county_id=p_parent_id and s.status='active'
-      group by s.id,s.official_name
+      from public.geo_subcounties s left join public.school_geography sg on sg.subcounty_id=s.id left join public.platform_events pe on pe.school_id=sg.school_id
+      where s.county_id=p_parent_id and s.status='active' group by s.id,s.official_name
     ) x),'[]'::jsonb);
   else
     return coalesce((select jsonb_agg(to_jsonb(x) order by x.school_count desc,x.name) from (
       select w.id,w.official_name name,
-        count(sg.school_id)::bigint school_count,
-        count(sg.school_id) filter(where sg.verification_state='verified')::bigint verified_school_count,
+        count(distinct sg.school_id)::bigint school_count,
+        count(distinct sg.school_id) filter(where sg.verification_state='verified')::bigint verified_school_count,
         count(distinct pe.school_id) filter(where pe.occurred_at>=now()-(v_days||' days')::interval)::bigint active_school_count
-      from public.geo_wards w
-      left join public.school_geography sg on sg.ward_id=w.id
-      left join public.platform_events pe on pe.school_id=sg.school_id
-      where w.subcounty_id=p_parent_id and w.status='active'
-      group by w.id,w.official_name
+      from public.geo_wards w left join public.school_geography sg on sg.ward_id=w.id left join public.platform_events pe on pe.school_id=sg.school_id
+      where w.subcounty_id=p_parent_id and w.status='active' group by w.id,w.official_name
     ) x),'[]'::jsonb);
   end if;
 end;
@@ -254,11 +239,7 @@ revoke all on function public.hq_geography_region_breakdown(text,uuid,integer) f
 grant execute on function public.hq_geography_region_breakdown(text,uuid,integer) to authenticated;
 
 create or replace function public.hq_geographic_data_quality()
-returns jsonb
-language plpgsql
-security definer
-set search_path=public,extensions,pg_temp
-as $$
+returns jsonb language plpgsql security definer set search_path=public,extensions,pg_temp as $$
 begin
   if auth.uid() is null or not coalesce(public.is_platform_owner(),false) then raise exception 'owner_authorization_required'; end if;
   return jsonb_build_object(
@@ -278,28 +259,17 @@ $$;
 revoke all on function public.hq_geographic_data_quality() from public,anon;
 grant execute on function public.hq_geographic_data_quality() to authenticated;
 
-create or replace function public.hq_map_school_points(
-  p_county_id uuid default null,
-  p_subcounty_id uuid default null,
-  p_ward_id uuid default null,
-  p_limit integer default 2000
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path=public,extensions,pg_temp
-as $$
+create or replace function public.hq_map_school_points(p_county_id uuid default null,p_subcounty_id uuid default null,p_ward_id uuid default null,p_limit integer default 2000)
+returns jsonb language plpgsql security definer set search_path=public,extensions,pg_temp as $$
 begin
   if auth.uid() is null or not coalesce(public.is_platform_owner(),false) then raise exception 'owner_authorization_required'; end if;
   return coalesce((select jsonb_agg(to_jsonb(x) order by x.name) from (
-    select s.id school_id,s.name,sg.latitude,sg.longitude,sg.verification_state,sg.location_precision,
-      c.official_name county,sc.official_name subcounty,w.official_name ward
-    from public.school_geography sg
-    join public.schools s on s.id=sg.school_id and s.deleted_at is null
-    left join public.geo_counties c on c.id=sg.county_id
-    left join public.geo_subcounties sc on sc.id=sg.subcounty_id
-    left join public.geo_wards w on w.id=sg.ward_id
+    select s.id school_id,s.name,sg.latitude,sg.longitude,sg.verification_state,sg.location_precision,c.official_name county,sc.official_name subcounty,w.official_name ward
+    from public.school_geography sg join public.schools s on s.id=sg.school_id and s.deleted_at is null
+    left join public.geo_counties c on c.id=sg.county_id left join public.geo_subcounties sc on sc.id=sg.subcounty_id left join public.geo_wards w on w.id=sg.ward_id
     where sg.latitude is not null and sg.longitude is not null
+      and sg.verification_state='verified'
+      and sg.location_precision in ('exact','campus','locality')
       and (p_county_id is null or sg.county_id=p_county_id)
       and (p_subcounty_id is null or sg.subcounty_id=p_subcounty_id)
       and (p_ward_id is null or sg.ward_id=p_ward_id)
