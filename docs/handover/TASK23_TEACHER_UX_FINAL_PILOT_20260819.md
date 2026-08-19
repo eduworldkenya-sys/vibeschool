@@ -97,6 +97,10 @@ Repository routes such as `academics`, `content-*`, `credits`, `tpad`, `resource
 - Screen: `/teacher/teach-today`.
 - Resolution: Retry/Refresh at least 44px, tool cards at least 72px, more readable 11px secondary text, accessible busy/error semantics and a simple loading skeleton instead of only one loading sentence.
 
+### Audit correction — lesson assessment route is valid
+
+An initial text search did not surface `/teacher/assessment/new`, but direct route inspection confirmed that it exists and is a real lesson-assessment studio. It uses the canonical assessment generation authority, request/idempotency keying and teacher-review requirement. No Task 23 compatibility redirect or duplicate assessment-entry model is required.
+
 ### Verified strong existing behavior — Timetable
 
 - Mobile-first slot-list structure rather than a dense desktop calendar.
@@ -147,7 +151,15 @@ Scheme already has meaningful loading/empty states, week coverage, status semant
 - notifications expose action grouping, accessible error and recovery/empty actions;
 - Teacher Help exposes Report a Problem;
 - FAQ disclosure state is accessible;
-- Report a Problem reuses `submit_contact_request`, adds safe investigation context, warns against secrets and disables duplicate send while busy.
+- Report a Problem reuses `submit_contact_request`, adds safe investigation context, warns against secrets and disables duplicate send while busy;
+- Plan & Teach links academics/curriculum work to the real `/teacher/academics` route and does not expose the dead `/teacher/curriculum` destination;
+- Plan & Teach recovery/refresh controls preserve phone-sized targets.
+
+## Shared-foundation CI evidence
+
+Task 4 head `686344735e5346c3f39ce4db123ee0042290d6e5` currently has green TypeScript/production-build, CI production-build, migration-security, isolated clean-rebuild, Auth & Onboarding and Teacher Profile Trust workflows. Its dedicated `Teacher Pilot Task 4` workflow is not green.
+
+The Task 4 failure is a regression-test path bug rather than evidence that every listed Teacher route is absent: `routeExists()` strips the leading slash from `/teacher/...` and checks `teacher/.../page.tsx`, while Next routes live under `app/teacher/.../page.tsx`. The log therefore reports every Teacher navigation route missing. This upstream test must be corrected and rerun on the Task 4 branch; Task 23 will not modify an upstream shared-foundation branch from its isolated UX branch.
 
 ## Validation state
 
@@ -157,11 +169,12 @@ Scheme already has meaningful loading/empty states, week coverage, status semant
 - Timetable source walk.
 - Attendance source walk.
 - Homework overview and class-homework source walk.
-- Assessment source walk.
+- Assessment source walk, including direct verification of `/teacher/assessment/new`.
 - Scheme source walk.
 - Teach workflow / `LessonFlowCard` source walk.
 - Help/contact source walk.
 - Task 4 changed-file and dependency audit.
+- Task 4 CI/failure-root-cause inspection.
 
 ### Not yet valid to certify
 
