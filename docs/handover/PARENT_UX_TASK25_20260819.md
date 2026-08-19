@@ -2,162 +2,204 @@
 
 Date: 2026-08-19
 Branch: `cert/parent-ux-task25-20260819`
+Draft PR: #291
 Stacked foundation: Task 6 PR #285 head `23c515e1bc922c25558c59c60d956a40c27d3432`
-Shared-foundation state: HOLD — do not merge or mutate production.
+Shared-foundation state: **HOLD — do not merge or mutate production.**
 
 ## Mission
 
-Certify the Parent/Guardian product as one understandable, privacy-safe family-school experience on low-cost Android devices.
+Certify one understandable, privacy-safe family-school Parent experience:
 
-Canonical journey:
+`Login -> Parent authority -> verified child relationship -> child context -> Home -> Attendance -> Schoolwork -> Progress/Results -> Messages -> Profile -> Logout -> Re-login`
 
-`Login -> Parent authority -> verified child relationship -> child/family context -> Home -> Attendance -> Schoolwork -> Progress -> Messages -> Profile -> Logout -> Re-login`
+Task 6 is the authorization/functionality floor. Task 25 does not replace backend authorization with frontend child state.
 
 ## Starting state
 
-Task 6 already closes the critical Parent authorization/revocation/publication defects and adds permanent Parent core-journey regression coverage. Task 25 therefore treats Task 6 as the security/functionality floor and focuses on coherent family UX without weakening backend authority.
+The Parent app already had Command Center R1 and Task 6 security/functionality work, but the family experience still exposed internal product architecture and several trust defects:
 
-Existing Parent Command Center R1 already provides a useful Home/inbox foundation, but the shell and account/children surfaces retained product-fragmentation and trust defects.
+- `Home / Inbox / VibeLearn / Learn / Children` primary navigation;
+- competing `/parent/messages`, `/parent/connect` and `/parent/inbox` communication entries;
+- zero attendance records indistinguishable from a real 0% attendance value;
+- `excused` attendance included in some rate denominators and therefore capable of reducing the displayed rate like absence;
+- UTC date derivation in child attendance instead of Kenya-local school date;
+- Parent `Add Child` wording inconsistent with verified relationship authority;
+- dead `/parent/settings` entry;
+- React-only notification toggles that looked saveable but had no authoritative persistence;
+- raw relationship terminology on Profile;
+- Results defaulted silently to a child and had no visible sibling switcher;
+- Homework exposed implementation submission states and due-date ordering rather than family action priority;
+- no privacy-safe Report Problem route.
 
-## Confirmed findings
+## Implemented repairs
 
-### P1 — Parent primary navigation exposed implementation/product modules
+### Parent information architecture
 
-The bottom navigation was `Home / Inbox / VibeLearn / Learn / Children`, with VibeLearn treated as a raised central action. This reflects internal product modules rather than common parent questions and creates two overlapping learning destinations.
+Primary navigation is now:
 
-Impact: low-digital-literacy parents must understand VibeSchool product architecture before they can find child schoolwork or progress.
+`Home / Children / Schoolwork / Progress / Messages`
 
-Repair: canonical family navigation is now `Home / Children / Schoolwork / Progress / Messages`. Existing routes remain; this is an information-architecture repair, not a backend rewrite.
+The shell and legacy `/parent/connect` converge on `/parent/inbox`. Deep child routes remain child-scoped.
 
-### P1 — duplicate communication destination
+### Parent Home
 
-The shell's top message control used `/parent/messages` while the canonical Parent event/inbox surface is `/parent/inbox`.
+`app/parent/page.tsx` was reduced to a family-first command surface:
 
-Impact: fragmented communication mental model and inconsistent deep-link behavior.
+1. `Needs attention`;
+2. explicit child cards;
+3. today attendance;
+4. recorded attendance;
+5. open/overdue homework and recent communication signals behind child-scoped actions.
 
-Repair: top-level communication now converges on `/parent/inbox`.
+The Home query keeps released assessment summary behind `getParentAssessmentSummary` and does not expose draft results.
 
-### P1 — attendance empty-data semantics were wrong
+### Attendance trust semantics
 
-The old Children screen derived `attendance_pct = 0` when no attendance records existed and then treated `attendance_pct > 0` as the condition for rendering attendance. A legitimate recorded 0% and zero recorded attendance were therefore indistinguishable.
+Home, Children and child detail now use the same rule:
 
-Impact: violates Task 25 trust requirement; missing data could not be explained correctly.
+- countable rate denominator = `present | late | absent`;
+- attended numerator = `present | late`;
+- `excused` is excluded from the rate denominator and is not treated as absence;
+- no countable attendance records => no percentage, never synthetic 0%;
+- a genuine 0% remains a real displayed value;
+- no record today explicitly says it does not mean the learner was absent;
+- child date boundary uses `Africa/Nairobi`.
 
-Repair: Children now retains `attendanceRecords` and nullable percentage. Zero records render: `No attendance has been recorded yet. This does not mean the learner was absent.` A real 0% remains a displayed recorded value.
+Read-only production inspection confirmed current attendance values include `present`, `absent` and `excused`, making this distinction operationally necessary.
 
-### P1 — child linking language conflicted with verified authority
+### Verified child relationship UX
 
-The old Children/Profile flows contained `Add Child to Class` / `+ Add Child` affordances even though Task 6 closes arbitrary Parent learner creation and routes Parents through verified linking.
+All repaired child-linking affordances use `Link or request access` and `/parent/link-child`. Copy states that knowing a learner name is not enough to gain access.
 
-Impact: misleading trust boundary and expectation that a Parent can self-create or self-claim canonical school learners.
+Profile shows `Verified family relationship` instead of surfacing the raw production relationship value.
 
-Repair: all repaired entry points say `Link or request access`, route to `/parent/link-child`, and explain that knowing a learner name is not sufficient.
+### Multiple-child / stale sibling state
 
-### P1 — Profile exposed non-persistent notification controls
+- Task 6 Schoolwork retains request-version and empty-state reset before child data loads.
+- Results now has an explicit sibling switcher with selected-state semantics.
+- Results clears prior summary before a child switch and rechecks the requested learner through RLS before requesting the governed assessment summary.
+- Homework clears prior learner data and invalidates stale async responses when child context changes.
 
-The Profile page rendered interactive notification toggles while labelling the feature `Coming soon`; state changed only in React and was not authoritative.
+Read-only production inspection currently finds two linked parent accounts with one linked learner each. Therefore production cannot prove the multi-child case today; deterministic branch contracts must cover it, and an authenticated disposable multi-child fixture is still required for final browser certification.
 
-Impact: false confirmation — a Parent could believe important attendance/homework/fee alerts were configured when nothing was saved or enforced.
+### Homework
 
-Repair: fake controls removed. Profile exposes current relationship-level alert status only and explicitly withholds preference controls until backend persistence/enforcement exists.
+Family-facing states are normalized to:
 
-### P1 — dead Settings route
+- `Overdue` only when no submitted work is recorded and the due date has passed;
+- `Due soon`;
+- `Assigned`;
+- `Started`;
+- `Submitted`;
+- `Marked`.
 
-The Children screen linked to `/parent/settings`, but no Parent settings route existed.
+Submitted/marked work is never downgraded to overdue merely because the due date passed. Read-only production inspection confirmed `homework.due_date` is a date and current submission statuses are `submitted` / `marked`.
 
-Repair: account/settings affordance now resolves to `/parent/profile`.
+### Results / progress
 
-### P1 — Report Problem path absent
+Results now always identifies the active learner and class, exposes a sibling switcher when needed, explains that draft/unreleased marks are hidden, shows score/max-score context when available, and avoids interpreting missing results as poor performance.
 
-Task 25 requires a low-friction diagnostic route without asking Parents to send screenshots of internal errors.
+### Profile / settings
 
-Repair: `/parent/support` now produces privacy-minimized safe context: Parent role, current support screen, timestamp, network status and an ephemeral correlation reference. It deliberately excludes child/student identifiers and warns against sharing passwords, PINs and learner screenshots.
+- account identity remains editable where persistence already exists;
+- linked learners derive from `parent_student_links`;
+- fake local-only notification switches are removed;
+- existing relationship-level alert state is descriptive only;
+- child linking stays in the verified flow;
+- logout remains explicit;
+- Report Problem is available.
 
-## Changes in this branch
+### Support
 
-- `app/parent/layout.tsx`
-  - family-centered primary navigation;
-  - canonical Inbox message route;
-  - accessible button semantics and active-page state;
-  - >=44px header tap targets and mobile safe-area bottom navigation;
-  - removes Parent-shell VibeLearn modal as a competing primary action.
-- `app/parent/students/page.tsx`
-  - trust-first child list;
-  - explicit missing-attendance semantics;
-  - verified-linking-only empty state;
-  - real account/settings destination;
-  - recoverable load error and retry state;
-  - touch-friendly child cards.
-- `app/parent/profile/page.tsx`
-  - account identity and linked-child authority made explicit;
-  - removes fake notification toggles;
-  - removes generic editable `relationship` field from account profile UX;
-  - routes all new child access through verified linking;
-  - adds Report Problem entry;
-  - keeps logout explicit.
-- `app/parent/support/page.tsx`
-  - privacy-safe support context and copy action.
-- `scripts/validate-parent-ux-task25.py`
-  - permanent repository-level Task 25 contract.
-- `.github/workflows/parent-ux-task25-contract.yml`
-  - CI gate for Parent UX contract changes.
+`/parent/support` captures privacy-minimized context: Parent role, support screen, timestamp, online/offline state and an ephemeral reference. It contains no learner/student identifier and warns against sending passwords, PINs, full assessment records or screenshots containing unrelated learner information.
 
-## Privacy invariants preserved
+### Mobile/accessibility shell
 
-- Task 25 does not introduce any new Parent authority source.
-- Frontend child selection does not grant access.
-- `parent_student_links -> students.id` remains the family authorization boundary inherited from Task 6.
-- No production Supabase mutation, migration, grant/RLS change or relationship repair has been performed by Task 25.
-- Support diagnostics contain no child/student ID.
-- Parent notification UX no longer claims settings were saved when they were not.
+- semantic primary `<nav>`;
+- `aria-current` for the active tab;
+- 44px header controls;
+- bottom safe-area padding;
+- focus-visible treatment;
+- lightweight loading/error states;
+- child switch controls expose selection state.
 
-## Validation matrix
+## Permanent regression protection
 
-Current branch validation to run on the exact branch candidate:
+Added:
 
-1. `Parent UX Task 25 Contract`.
-2. `Parent Core Journey Contract` inherited from Task 6.
-3. TypeScript and production build.
-4. Auth/onboarding contract.
-5. canonical Student identity/full journey contracts.
-6. migration-security / RLS contracts because Task 25 is stacked on Task 6 security changes.
-7. mobile/browser Parent journeys when an authenticated disposable family fixture is available.
+- `scripts/validate-parent-ux-task25.py`;
+- `.github/workflows/parent-ux-task25-contract.yml`.
 
-## Realistic Parent scenarios — current branch status
+The Task 25 contract checks navigation, Parent Home attention hierarchy, Kenya-local attendance semantics, excused handling, no-child verified linking, child-scoped routes, Homework state semantics, stale sibling clearing, Results publication/context behavior, Profile truthfulness and privacy-safe support.
 
-- New Parent / no verified child: UX repaired; backend authority inherited from Task 6; browser E2E pending shared-foundation reconciliation.
-- Morning attendance: missing-vs-recorded semantics repaired; authenticated browser E2E pending.
-- Homework / schoolwork: primary navigation now has one parent-facing `Schoolwork` destination; Task 6 child-scoped homework authority remains underlying gate.
-- Academic update: primary navigation now exposes `Progress`; publication safety inherited from Task 6.
-- Multiple children: Task 6 stale sibling-state closure remains required; Task 25 final repeated-switch browser certification pending.
-- Communication: canonical shell destination is Inbox; child-scoped authorization inherited from Task 6.
-- Return/logout/re-login: Profile logout preserved; final authenticated production proof remains pending deployment.
+Task 6 `Parent Core Journey Contract` remains required alongside it.
+
+## Read-only production evidence
+
+No production mutation was performed.
+
+Observed only as aggregates/schema metadata:
+
+- active Parent links: 2;
+- parents with links: 2;
+- linked learners: 2;
+- each current linked Parent has one learner;
+- current relationship text values: `parent`;
+- current attendance rows include present/absent/excused;
+- current homework submission values include submitted/marked;
+- `homework.due_date` is a PostgreSQL `date`.
+
+These observations were used only to validate UX semantics; no relationship, attendance, homework or configuration row was changed.
+
+## CI / validation state
+
+Task 25 is still running branch-level certification. On earlier Task 25 heads, inherited Parent Core Journey, migration security, Student One and production-build contracts were green. The latest exact head must still complete its newly triggered CI after the Parent Home/Profile refinements.
+
+Required exact-candidate gates before completion:
+
+1. Parent UX Task 25 Contract;
+2. Parent Core Journey Contract;
+3. TypeScript + production build;
+4. Auth gateway/onboarding contracts;
+5. Student identity/full-journey contracts;
+6. migration/RLS security contracts;
+7. deterministic multi-child/revocation/cross-child scenarios;
+8. authenticated Android/browser Parent E2E;
+9. final production mobile smoke after intended deployment.
+
+## Browser/mobile limitation in this gated phase
+
+The hosting project was inspected read-only and no deployment was created. The available execution runtime does not currently expose the browser CLI required by the installed browser skill, and production has no multi-child fixture. Therefore branch/mobile browser evidence must not be fabricated. Static/mobile interaction contracts and CI continue; authenticated mobile E2E remains a final gate.
 
 ## Shared-foundation dependencies
 
-Do not merge Task 25 while the foundation hold is active. At minimum reconcile after:
+Do not merge Task 25 while the hold is active. Reconcile after the relevant foundations land, including:
 
 - Task 1 Auth/Onboarding PR #281;
 - Task 3 canonical Student identity PR #283;
 - Task 6 Parent Core Journey PR #285;
-- Task 8 authorization/privacy PR #288 where it changes Parent/global authorization surfaces;
-- Task 12 telemetry PR #289 and Task 21 measurement work where Parent event naming/analytics contracts become authoritative.
+- Task 8 authorization/privacy PR #288 where it affects Parent/global authorization;
+- Task 12 telemetry PR #289;
+- Task 21 measurement work for final Parent analytics event naming/measurement alignment.
 
-Before final certification:
+Current `main` remains `77051a4011d7712a275f76af41efed382f017398`; no false exact-main certification has been claimed while those dependencies remain open.
 
-`fetch current main -> reconcile Task 25 -> rerun Parent Core + privacy + multi-child + revoked-link + mobile + TypeScript/build -> certify exact candidate`
+Final sequence:
+
+`fetch exact current main -> reconcile Parent/auth/student/relationship/security/telemetry changes -> rerun privacy + multi-child + revoked-link + mobile + TypeScript/build -> exact candidate -> intended deployment -> production Parent smoke`
 
 ## Production safety log
 
-- Production Supabase mutation: NONE.
-- Production migrations/RLS/grants: NONE.
-- Production relationship repair: NONE.
-- Edge Function deployment: NONE.
-- Intentional Vercel deployment: NONE.
-- Merge: FORBIDDEN while shared-foundation hold remains.
+- production Supabase mutation: **NONE**;
+- production migrations: **NONE**;
+- production RLS/grant changes: **NONE**;
+- production relationship repair: **NONE**;
+- Edge Function deployment: **NONE**;
+- intentional Vercel deployment: **NONE**;
+- merge: **FORBIDDEN while hold remains**.
 
 ## Certification state
 
 **NOT FINAL / HOLD.**
 
-The branch closes confirmed Parent UX P1 defects and adds permanent regression protection, but Task 25 cannot be declared complete until exact-current-main reconciliation, all relevant CI/build/privacy gates, authenticated repeated-child switching, Android/mobile E2E and intended production smoke are green with zero unresolved P0/P1 Parent UX/privacy defects.
+There are no known unresolved P0 defects introduced by Task 25. Confirmed Parent UX P1 defects found in this audit have branch repairs, but Task 25 cannot be declared pilot-certified until the exact-current-main, latest CI/build/privacy suite, deterministic multi-child proof, authenticated Android/browser E2E and post-deployment production smoke are green.
