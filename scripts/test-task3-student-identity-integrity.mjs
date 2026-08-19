@@ -33,8 +33,11 @@ expect(migration,/revoke all privileges on table public\.student_external_identi
 
 // Task 1 is authoritative for Parent identity establishment. Task 3 may retain
 // historical parent_create_child receipts as evidence, but the final schema must
-// make the legacy direct child-creation RPC fail closed and non-executable.
-expect(task1Reconciliation,/create or replace function public\.create_child_for_parent[\s\S]*verified_parent_child_relationship_required/i,'direct parent canonical learner creation must fail closed after Task 1 reconciliation')
+// replace the legacy callable with the canonical fail-closed tombstone. Dropping
+// first is intentional because PostgreSQL cannot rename input parameters through
+// CREATE OR REPLACE; the rebuilt function is still the same SQL signature.
+expect(task1Reconciliation,/drop function if exists public\.create_child_for_parent\(text,date,uuid\)/i,'legacy parent child callable must be removed before canonical tombstone reconstruction')
+expect(task1Reconciliation,/create function public\.create_child_for_parent[\s\S]*p_child_name text[\s\S]*p_date_of_birth date[\s\S]*verified_parent_child_relationship_required/i,'direct parent canonical learner creation must rebuild as the Task 1 fail-closed tombstone')
 expect(task1Reconciliation,/revoke all on function public\.create_child_for_parent\(text,date,uuid\)[\s\S]*public, anon, authenticated, service_role/i,'legacy parent child creation RPC must not be executable by client or service roles')
 reject(task1Reconciliation,/grant execute on function public\.create_child_for_parent/i,'Task 3 must not re-grant direct parent learner creation after Task 1')
 
