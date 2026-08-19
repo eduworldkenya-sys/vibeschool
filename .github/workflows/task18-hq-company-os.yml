@@ -1,0 +1,44 @@
+name: Task 18 HQ Company OS
+
+on:
+  pull_request:
+    paths:
+      - "app/hq/**"
+      - "components/hq/**"
+      - "lib/hq/**"
+      - "middleware.ts"
+      - "supabase/migrations/**"
+      - "scripts/task18-hq-company-os-contract.mjs"
+      - ".github/workflows/task18-hq-company-os.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  company-os-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Task 18 HQ contract
+        run: node scripts/task18-hq-company-os-contract.mjs
+
+  typecheck-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Production build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: npm run build
