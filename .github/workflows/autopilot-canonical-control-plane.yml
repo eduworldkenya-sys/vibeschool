@@ -1,0 +1,51 @@
+name: Autopilot Canonical Control Plane
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/autopilot-canonical-control-plane.yml"
+      - "supabase/migrations/20260819162500_autopilot_canonical_founder_read_model.sql"
+      - "supabase/tests/autopilot_canonical_control_plane_contract.sql"
+      - "docs/AUTOPILOT_ARCHITECTURE_RECONSTRUCTION_20260819.md"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: autopilot-canonical-control-plane-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  certify:
+    name: Autopilot Architecture / Authority / Lineage / Content Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+      - name: Start disposable Supabase
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
+          supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+          supabase db reset --local --no-seed
+      - name: Run canonical Autopilot contract
+        run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/autopilot_canonical_control_plane_contract.sql
+      - name: Re-run Worker Engine production closure
+        run: PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -v ON_ERROR_STOP=1 -f supabase/tests/worker_engine_we_r1_4_production_closure.sql
+      - name: Prove non-activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
+          q(){ PGPASSWORD=postgres psql "$PSQL" -Atqc "$1"; }
+          test "$(q "select count(*) from public.hq_workforce_capability_authority_grants where status='active'")" = 0
+          STATE="$(q "select heartbeat_enabled::text||'|'||factory_enabled::text||'|'||runtime_execution_enabled::text||'|'||runtime_autonomy_level::text||'|'||runtime_max_risk::text||'|'||shadow_enabled::text||'|'||shadow_scheduler_enabled::text||'|'||shadow_global_stop::text from public.hq_workforce_engine_contract where singleton=true")"
+          test "$STATE" = 'false|false|false|0|0|false|false|true'
+      - name: Destroy disposable Supabase
+        if: always()
+        run: supabase stop --no-backup >/dev/null 2>&1 || true
