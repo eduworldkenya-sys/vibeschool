@@ -18,6 +18,20 @@ begin
     return new;
   end if;
 
+  -- A historical teacher_profiles row is not itself proof that the caller is a
+  -- current teacher. Null/other roles must not regain Teacher self-service by
+  -- directly targeting a legacy professional-profile row.
+  if not exists (
+    select 1
+    from public.profiles p
+    where p.id = v_uid
+      and p.role = 'teacher'
+      and p.account_status::text = 'active'
+  ) then
+    raise exception 'teacher_profile_not_authorized'
+      using errcode = '42501';
+  end if;
+
   if tg_op = 'INSERT' then
     if new.school_id is not null
        or new.employment_type is not null
@@ -48,7 +62,8 @@ begin
        or new.appraisal_score is distinct from old.appraisal_score
        or new.appraisal_notes is distinct from old.appraisal_notes
        or new.finance_ref is distinct from old.finance_ref
-       or new.documents is distinct from old.documents then
+       or new.documents is distinct from old.documents
+       or new.created_at is distinct from old.created_at then
       raise exception 'teacher_profile_authoritative_fields_school_managed'
         using errcode = '42501';
     end if;
