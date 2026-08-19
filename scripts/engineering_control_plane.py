@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""VibeSchool Engineering Control Plane.
-
-Deterministic, stdlib-only classifier and certification-freshness gate.
-It deliberately does not mutate GitHub or production systems.
-"""
+"""VibeSchool Engineering Control Plane deterministic certification gate."""
 from __future__ import annotations
 
 import argparse
@@ -16,27 +12,27 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Iterable
 
-STATES = {
-    "DEVELOPING", "BRANCH GREEN", "RECONCILE REQUIRED", "RECONCILING",
-    "INTEGRATION GREEN", "SECURITY GREEN", "MERGE READY", "MERGED FOUNDATION",
-    "BLOCKED FOUNDATION", "BLOCKED SECURITY", "BLOCKED DATA INTEGRITY",
-    "BLOCKED PRODUCTION DRIFT", "SUPERSEDED", "ABANDONED",
-}
+POLICY_PATH = Path(".github/control-plane/policy.json")
 
-DOMAINS = {
-    "AUTH": ("src/app/auth/", "src/lib/auth", "middleware", "oauth", "password", "onboarding"),
-    "DATABASE": ("supabase/migrations/", "supabase/schema", "database.types", "types/database"),
-    "AUTHORIZATION": ("rls", "grant", "revoke", "security_definer", "storage", "authorization", "policy"),
-    "IDENTITY": ("profile", "student", "teacher", "parent", "school_identity", "membership", "claim"),
-    "HQ": ("src/app/hq/", "hq_", "founder"),
-    "WORKER": ("worker", "autopilot", "workforce"),
-    "TELEMETRY": ("telemetry", "analytics", "observability", "metric", "event"),
-    "PAYMENTS": ("mpesa", "payment", "daraja", "wallet", "finance"),
-    "CI": (".github/workflows/", ".github/actions/", "engineering_control_plane", "ci/"),
-}
 
-SECURITY_DOMAINS = {"AUTHORIZATION", "AUTH", "IDENTITY", "DATABASE", "WORKER", "PAYMENTS"}
-SHARED_DOMAINS = {"AUTH", "DATABASE", "AUTHORIZATION", "IDENTITY", "CI"}
+def load_policy(root: Path = Path.cwd()) -> dict:
+    path = root / POLICY_PATH
+    if not path.exists():
+        raise RuntimeError(f"missing canonical control-plane policy: {path}")
+    data = json.loads(path.read_text(encoding="utf-8"))
+    required = {"version", "states", "foundation_promotion_order", "security_domains", "shared_domains", "domains"}
+    missing = required - data.keys()
+    if missing:
+        raise RuntimeError(f"control-plane policy missing keys: {sorted(missing)}")
+    return data
+
+
+POLICY = load_policy()
+STATES = set(POLICY["states"])
+DOMAINS = {k: tuple(v) for k, v in POLICY["domains"].items()}
+SECURITY_DOMAINS = set(POLICY["security_domains"])
+SHARED_DOMAINS = set(POLICY["shared_domains"])
+
 
 @dataclass(frozen=True)
 class Classification:
@@ -63,12 +59,15 @@ def changed_paths(base: str, head: str) -> list[str]:
 
 def classify(paths: Iterable[str]) -> Classification:
     normalized = sorted(set(paths))
-    domains: set[str] = set()
     lowered = [p.lower() for p in normalized]
-    for domain, needles in DOMAINS.items():
-        if any(any(needle.lower() in p for needle in needles) for p in lowered):
-            domains.add(domain)
-    requires_build = any(p.startswith(("src/", "app/", "pages/", "components/", "next.config", "package")) for p in normalized)
+    domains = {
+        domain for domain, needles in DOMAINS.items()
+        if any(any(needle.lower() in p for needle in needles) for p in lowered)
+    }
+    requires_build = any(
+        p.startswith(("src/", "app/", "pages/", "components/", "next.config", "package"))
+        for p in normalized
+    )
     return Classification(
         paths=normalized,
         domains=sorted(domains),
@@ -86,17 +85,18 @@ def migration_inventory(root: Path) -> dict:
     versions: dict[str, list[str]] = {}
     invalid: list[str] = []
     for name in files:
-        m = re.match(r"^(\d{8,14})_[A-Za-z0-9_.-]+\.sql$", name)
-        if not m:
+        match = re.match(r"^(\d{8,14})_[A-Za-z0-9_.-]+\.sql$", name)
+        if not match:
             invalid.append(name)
             continue
-        versions.setdefault(m.group(1), []).append(name)
-    duplicates = {v: n for v, n in versions.items() if len(n) > 1}
-    digest = hashlib.sha256("\n".join(files).encode()).hexdigest()
+        versions.setdefault(match.group(1), []).append(name)
+    duplicates = {v: names for v, names in versions.items() if len(names) > 1}
     return {
-        "count": len(files), "distinct_versions": len(versions),
-        "duplicates": duplicates, "invalid": invalid,
-        "sha256": digest,
+        "count": len(files),
+        "distinct_versions": len(versions),
+        "duplicates": duplicates,
+        "invalid": invalid,
+        "sha256": hashlib.sha256("\n".join(files).encode()).hexdigest(),
     }
 
 
@@ -112,9 +112,7 @@ def workflow_audit(root: Path) -> dict:
         low = text.lower()
         if "\nconcurrency:" in low:
             with_concurrency += 1
-        push_trigger = bool(re.search(r"(?m)^\s*push\s*:", text))
-        pushes_git = bool(re.search(r"(?m)\bgit\s+push\b", text))
-        if push_trigger and pushes_git:
+        if re.search(r"(?m)^\s*push\s*:", text) and re.search(r"(?m)\bgit\s+push\b", text):
             self_push_risk.append(str(path.relative_to(root)))
         if "pull_request_target" in low and "actions/checkout" in low:
             findings.append({"severity": "RED", "file": str(path.relative_to(root)), "kind": "PULL_REQUEST_TARGET_CHECKOUT"})
@@ -151,17 +149,22 @@ def evidence_status(candidate_sha: str, main_sha: str, classification: Classific
 
 
 def adversarial_self_test() -> None:
-    c = classify(["supabase/migrations/20260819000000_test.sql"])
-    state, blockers = evidence_status("head-b", "main-b", c, {
+    assert POLICY["foundation_promotion_order"] == ["T2", "T1", "T3", "T8", "T4", "T5", "T6", "T7"]
+    assert "MERGE READY" in STATES and "BLOCKED SECURITY" in STATES
+
+    db = classify(["supabase/migrations/20260819000000_test.sql"])
+    state, blockers = evidence_status("head-b", "main-b", db, {
         "candidate_sha": "head-b", "main_sha": "main-a", "security": "GREEN",
         "reconstruction": "GREEN", "generated_types": "GREEN", "build": "GREEN", "unresolved_red": 0,
     })
     assert state == "RECONCILE REQUIRED" and any("CURRENT-MAIN" in x for x in blockers)
-    state, blockers = evidence_status("h", "m", classify(["src/lib/authorization.ts"]), {
+
+    state, blockers = evidence_status("h", "m", classify(["lib/authorization.ts"]), {
         "candidate_sha": "h", "main_sha": "m", "security": "RED",
         "reconstruction": "GREEN", "generated_types": "GREEN", "build": "GREEN", "unresolved_red": 0,
     })
     assert state != "MERGE READY" and any("SECURITY" in x for x in blockers)
+
     docs = classify(["docs/notes/example.md"])
     assert not docs.requires_reconstruction and not docs.security_critical
     state, blockers = evidence_status("new", "m", docs, {"candidate_sha": "old", "main_sha": "m", "unresolved_red": 0})
@@ -175,7 +178,7 @@ def main() -> int:
     parser.add_argument("--base", default="origin/main")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--mode", choices=("classify", "audit", "promotion", "self-test"), default="audit")
-    parser.add_argument("--evidence", help="JSON evidence file for promotion mode")
+    parser.add_argument("--evidence")
     parser.add_argument("--output", default="control-plane-report.json")
     args = parser.parse_args()
     root = Path.cwd()
@@ -187,6 +190,7 @@ def main() -> int:
 
     classification = classify(changed_paths(args.base, args.head))
     report = {
+        "policy_version": POLICY["version"],
         "candidate_sha": run("git", "rev-parse", args.head),
         "base_ref": args.base,
         "base_sha": run("git", "rev-parse", args.base),
@@ -220,6 +224,7 @@ def main() -> int:
     if args.mode == "promotion" and report["promotion"]["state"] != "MERGE READY":
         return 3
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())
