@@ -28,7 +28,11 @@ begin
 
   select count(*) into v_active_authority
     from public.hq_workforce_capability_authority_grants
-   where status='active' and effective_from<=clock_timestamp() and expires_at>clock_timestamp();
+   where status='active'
+     and activated_at is not null
+     and activated_at<=clock_timestamp()
+     and revoked_at is null
+     and expires_at>clock_timestamp();
   select count(*) into v_tripped_breakers
     from public.hq_workforce_execution_breakers where status='tripped';
 
