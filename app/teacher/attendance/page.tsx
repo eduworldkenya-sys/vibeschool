@@ -1,684 +1,520 @@
 "use client";
-import { nairobiDateStr } from '@/lib/time'
-import {
-  loadActiveTeacherTimetable,
-  timetableSlotsForDay,
-} from '@/lib/timetable/engine'
-import {
-  loadExactLessonAttendance,
-} from '@/lib/teaching/lessonAttendance'
+
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useCallback, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { nairobiDateAdd, nairobiDateStr } from "@/lib/time";
+import { loadActiveTeacherTimetable, timetableSlotsForDay } from "@/lib/timetable/engine";
+import { loadExactLessonAttendance } from "@/lib/teaching/lessonAttendance";
 import { refreshPulse } from "@/lib/pulse/refresh";
 
-type AttStatus = 'present' | 'absent' | 'late' | 'excused'
-type Mode = 'class' | 'lesson'
+type AttendanceStatus = "present" | "absent" | "late" | "excused";
+type Mode = "class" | "lesson";
 
-interface TSlot {
-  id:      string
-  classId: string
-  subject: string
-  class:   string
-  room:    string
-  start:   string
-  end:     string
-  marked:  boolean
+type OperatingContext = {
+  teacher_id: string;
+  school_id: string | null;
+  school_count: number;
+  state: "ready" | "needs_school" | "needs_class";
+  schools: Array<{ id: string; name: string; assignment_count: number; active: boolean }>;
+  classes: Array<{
+    assignment_id: string;
+    class_id: string;
+    class_name: string;
+    stream: string | null;
+    subject_id: string;
+    subject_name: string;
+    is_class_teacher: boolean;
+  }>;
+};
+
+type ClassOption = { id: string; label: string };
+type StudentRow = { id: string; name: string; admissionNumber: string };
+type LessonSlot = {
+  id: string;
+  classId: string;
+  subjectId: string;
+  subject: string;
+  className: string;
+  room: string;
+  start: string;
+  end: string;
+  marked: boolean;
+};
+
+const STATUSES: AttendanceStatus[] = ["present", "absent", "late", "excused"];
+
+function draftKey(mode: Mode, date: string, classId: string | null, occurrenceId: string | null) {
+  return `vibeschool:teacher:attendance:${mode}:${date}:${classId ?? "none"}:${occurrenceId ?? "general"}`;
 }
 
-interface ClassOption {
-  id:       string
-  name:     string
-  stream:   string | null
-  schoolId: string | null
+function loadDraft(key: string): Record<string, AttendanceStatus> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { statuses?: Record<string, AttendanceStatus> };
+    return parsed.statuses ?? null;
+  } catch {
+    return null;
+  }
 }
 
-interface Student {
-  id:    string
-  name:  string
-  admNo: string
+function saveDraft(key: string, statuses: Record<string, AttendanceStatus>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ statuses, savedAt: new Date().toISOString() }));
+  } catch {
+    // Storage failure must never block the register.
+  }
 }
 
-const OPTIONS: AttStatus[] = ['present', 'absent', 'late', 'excused']
-
-const STATUS_COLOR: Record<AttStatus, { bg: string; color: string }> = {
-  present: { bg: C.accent,  color: '#fff' },
-  absent:  { bg: C.error,   color: '#fff' },
-  late:    { bg: C.warning, color: '#fff' },
-  excused: { bg: '#6366f1', color: '#fff' },
+function clearDraft(key: string) {
+  if (typeof window === "undefined") return;
+  try { window.localStorage.removeItem(key); } catch {}
 }
 
-const STATUS_IDLE = { bg: '#f3f4f6', color: C.textMuted }
-
-function formatTime(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`
+function formatTime(value: string) {
+  const [h, m] = value.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return value;
+  return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${h >= 12 ? "PM" : "AM"}`;
 }
 
-function Skeleton({ h = 56 }: { h?: number }) {
+function dayOfWeek(date: string) {
+  const day = new Date(`${date}T12:00:00+03:00`).getDay();
+  return day === 0 ? 7 : day;
+}
+
+function StatusButton({ value, active, onClick }: { value: AttendanceStatus; active: boolean; onClick: () => void }) {
+  const labels: Record<AttendanceStatus, string> = { present: "Present", absent: "Absent", late: "Late", excused: "Excused" };
   return (
-    <div style={{
-      height: h, borderRadius: 12,
-      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
-      backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
-    }} />
-  )
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      style={{
+        minHeight: 38,
+        border: active ? "1px solid #111827" : "1px solid #d1d5db",
+        borderRadius: 10,
+        padding: "0 10px",
+        background: active ? "#111827" : "#fff",
+        color: active ? "#fff" : "#374151",
+        fontSize: 11,
+        fontWeight: 800,
+      }}
+    >
+      {labels[value]}
+    </button>
+  );
 }
 
-function AttendanceInner() {
-  const router       = useRouter()
-  const searchParams = useSearchParams()
-  const urlMode            = searchParams.get('mode')
-  const urlClassId         = searchParams.get('classId')
-  const urlDate            = searchParams.get('date')
-  const urlSubjectId       = searchParams.get('subjectId')
-  const urlTimetableSlotId = searchParams.get('timetableSlotId')
-  const requestedMode: Mode =
-    urlMode === 'lesson' && Boolean(urlTimetableSlotId) && Boolean(urlDate) ? 'lesson' : 'class'
-  const today        = nairobiDateStr()
+function AttendancePageInner() {
+  const router = useRouter();
+  const search = useSearchParams();
+  const urlClassId = search.get("classId");
+  const urlSlotId = search.get("timetableSlotId");
+  const urlSubjectId = search.get("subjectId");
+  const urlDate = search.get("date");
+  const exactLessonRequested = search.get("mode") === "lesson" && Boolean(urlSlotId && urlDate);
 
-  const [mode,            setMode]            = useState<Mode>(requestedMode)
-  const [selectedDate,    setSelectedDate]    = useState(urlDate ?? today)
-  const [uid,             setUid]             = useState<string | null>(null)
-  const [schoolId,        setSchoolId]        = useState<string | null>(null)
-  const [slotError,       setSlotError]       = useState<string | null>(null)
+  const [mode, setMode] = useState<Mode>(exactLessonRequested ? "lesson" : "class");
+  const [selectedDate, setSelectedDate] = useState(urlDate ?? nairobiDateStr());
+  const [context, setContext] = useState<OperatingContext | null>(null);
+  const [activeClassId, setActiveClassId] = useState<string | null>(urlClassId);
+  const [lessonSlots, setLessonSlots] = useState<LessonSlot[]>([]);
+  const [activeSlot, setActiveSlot] = useState<LessonSlot | null>(null);
+  const [occurrenceId, setOccurrenceId] = useState<string | null>(null);
+  const [students, setStudents] = useState<StudentRow[]>([]);
+  const [statuses, setStatuses] = useState<Record<string, AttendanceStatus>>({});
+  const [loading, setLoading] = useState(true);
+  const [registerLoading, setRegisterLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
-  // class mode
-  const [classes,         setClasses]         = useState<ClassOption[]>([])
-  const [activeClassId,   setActiveClassId]   = useState<string | null>(urlClassId ?? null)
-  const [classesLoading,  setClassesLoading]  = useState(true)
-
-  // lesson mode
-  const [slots,           setSlots]           = useState<TSlot[]>([])
-  const [activeSlot,      setActiveSlot]      = useState<TSlot | null>(null)
-  const [activeOccurrenceId, setActiveOccurrenceId] = useState<string | null>(null)
-  const [slotsLoading,    setSlotsLoading]    = useState(true)
-
-  // register
-  const [students,        setStudents]        = useState<Student[]>([])
-  const [statuses,        setStatuses]        = useState<Record<string, AttStatus>>({})
-  const [studentsLoading, setStudentsLoading] = useState(false)
-  const [saving,          setSaving]          = useState(false)
-  const [saveState,       setSaveState]       = useState<'idle' | 'saved' | 'error'>('idle')
-
-  // init — fetch user, school, classes, slots
-  useEffect(() => {
-    async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      setUid(user.id)
-
-      const browserDow = new Date(selectedDate + 'T12:00:00').getDay()
-      const selectedDow = browserDow === 0 ? 7 : browserDow
-
-      const [profileRes, memberRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('id', user.id)
-          .single(),
-        supabase
-          .from('school_members')
-          .select('school_id')
-          .eq('profile_id', user.id)
-          .maybeSingle(),
-      ])
-
-      const resolvedSchoolId =
-        memberRes.data?.school_id ??
-        profileRes.data?.school_id ??
-        null
-
-      setSchoolId(resolvedSchoolId)
-
-      if (!resolvedSchoolId) {
-        setSlotError('Your teacher profile is not connected to a school.')
-        setClasses([])
-        setSlots([])
-        setClassesLoading(false)
-        setSlotsLoading(false)
-        return
+  const classOptions = useMemo<ClassOption[]>(() => {
+    const map = new Map<string, ClassOption>();
+    for (const assignment of context?.classes ?? []) {
+      if (!map.has(assignment.class_id)) {
+        map.set(assignment.class_id, {
+          id: assignment.class_id,
+          label: assignment.class_name + (assignment.stream ? ` ${assignment.stream}` : ""),
+        });
       }
+    }
+    return Array.from(map.values());
+  }, [context]);
 
-      // TOS-010: lesson-mode handoff already contains the exact occurrence
-      // identity. Resolve that slot directly rather than requiring it to still
-      // appear in a newly reconstructed active timetable.
-      if (
-        requestedMode === 'lesson' &&
-        urlTimetableSlotId &&
-        urlDate
-      ) {
-        try {
-          const exactLesson =
-            await loadExactLessonAttendance({
-              teacherId: user.id,
-              schoolId: resolvedSchoolId,
-              timetableSlotId:
-                urlTimetableSlotId,
-              occurrenceDate: urlDate,
-              expectedClassId: urlClassId,
-              expectedSubjectId:
-                urlSubjectId,
-            })
+  const activeRegisterClassId = mode === "lesson" ? activeSlot?.classId ?? null : activeClassId;
+  const storageKey = draftKey(mode, selectedDate, activeRegisterClassId, occurrenceId);
 
-          if (!exactLesson) {
-            setActiveSlot(null)
-            setSlots([])
-            setSlotError(
-              'This lesson occurrence could not be verified for your teacher account.',
-            )
-          } else {
-            const exactSlot: TSlot = {
-              id: exactLesson.id,
-              classId:
-                exactLesson.classId,
-              subject:
-                exactLesson.subject,
-              class:
-                exactLesson.className,
-              room:
-                exactLesson.room,
-              start:
-                exactLesson.start,
-              end:
-                exactLesson.end,
-              marked:
-                exactLesson.marked,
-            }
+  const loadContext = useCallback(async (requestedSchoolId?: string | null) => {
+    const { data, error: contextError } = await supabase.rpc("teacher_get_operating_context", {
+      p_requested_school_id: requestedSchoolId ?? undefined,
+    });
+    if (contextError) throw contextError;
+    return data as unknown as OperatingContext;
+  }, []);
 
-            setSlots([exactSlot])
-            setActiveSlot(exactSlot)
-            setActiveClassId(
-              exactLesson.classId,
-            )
-            setSlotError(null)
-          }
-        } catch (exactLessonError) {
-          console.error(
-            '[Attendance] exact lesson resolution failed',
-            exactLessonError,
-          )
-          setActiveSlot(null)
-          setSlots([])
-          setSlotError(
-            'Could not load this lesson occurrence.',
-          )
-        } finally {
-          setClassesLoading(false)
-          setSlotsLoading(false)
+  const loadScheduledLessons = useCallback(async (ctx: OperatingContext, date: string) => {
+    if (!ctx.school_id) return [] as LessonSlot[];
+    const timetable = await loadActiveTeacherTimetable({
+      teacherId: ctx.teacher_id,
+      schoolId: ctx.school_id,
+      activeOn: date,
+    });
+    const raw = timetableSlotsForDay(timetable, dayOfWeek(date));
+    if (raw.length === 0) return [] as LessonSlot[];
+
+    const subjectIds = Array.from(new Set(raw.map((slot) => slot.subject_id)));
+    const classIds = Array.from(new Set(raw.map((slot) => slot.class_id)));
+    const [subjectsRes, classesRes, attendanceRes] = await Promise.all([
+      supabase.from("subjects").select("id,name").in("id", subjectIds),
+      supabase.from("classes").select("id,name,stream").in("id", classIds),
+      supabase.from("attendance").select("timetable_slot_id").eq("date", date).in("timetable_slot_id", raw.map((slot) => slot.id)),
+    ]);
+    if (subjectsRes.error) throw subjectsRes.error;
+    if (classesRes.error) throw classesRes.error;
+    if (attendanceRes.error) throw attendanceRes.error;
+
+    const subjectNames = new Map((subjectsRes.data ?? []).map((row) => [row.id, row.name]));
+    const classNames = new Map((classesRes.data ?? []).map((row) => [row.id, `${row.name}${row.stream ? ` ${row.stream}` : ""}`]));
+    const marked = new Set((attendanceRes.data ?? []).map((row) => row.timetable_slot_id).filter(Boolean));
+
+    return raw.map((slot) => ({
+      id: slot.id,
+      classId: slot.class_id,
+      subjectId: slot.subject_id,
+      subject: subjectNames.get(slot.subject_id) ?? "Subject",
+      className: classNames.get(slot.class_id) ?? "Class",
+      room: slot.room ?? "",
+      start: slot.start_time,
+      end: slot.end_time,
+      marked: marked.has(slot.id),
+    }));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function boot() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: auth, error: authError } = await supabase.auth.getUser();
+        if (authError || !auth.user) {
+          router.replace("/login");
+          return;
+        }
+        const ctx = await loadContext();
+        if (cancelled) return;
+        setContext(ctx);
+        if (!ctx.school_id) {
+          setError("Connect your teacher account to a school before taking attendance.");
+          return;
+        }
+        const options = Array.from(new Set(ctx.classes.map((item) => item.class_id)));
+        if (urlClassId && !options.includes(urlClassId)) {
+          setError("That class is not assigned to you in the active school.");
+          setActiveClassId(options[0] ?? null);
+        } else if (!activeClassId) {
+          setActiveClassId(options[0] ?? null);
         }
 
-        return
-      }
-
-      const [classesRes, activeTimetable] = await Promise.all([
-        supabase
-          .from('teacher_classes')
-          .select('class_id, is_class_teacher, classes(id, name, stream, school_id)')
-          .eq('teacher_id', user.id)
-          .eq('school_id', resolvedSchoolId),
-        loadActiveTeacherTimetable({
-          teacherId: user.id,
-          schoolId: resolvedSchoolId,
-          activeOn: selectedDate,
-        }),
-      ])
-
-      const rawSlots = timetableSlotsForDay(
-        activeTimetable,
-        selectedDow
-      )
-
-      const loadedClasses: ClassOption[] = Array.from(
-        new Map<string, ClassOption>(
-          (classesRes.data ?? [])
-            .map((row: any) => row.classes)
-            .filter(Boolean)
-            .map((classRow: any) => [
-              classRow.id,
-              {
-                id:       classRow.id,
-                name:     classRow.name,
-                stream:   classRow.stream,
-                schoolId: classRow.school_id ?? null,
-              } satisfies ClassOption,
-            ])
-        ).values()
-      )
-      setClasses(loadedClasses)
-      setClassesLoading(false)
-
-      if (!activeClassId && loadedClasses.length > 0) {
-        setActiveClassId(loadedClasses[0].id)
-      }
-
-      // Fetch subject and class labels for canonical timetable slots.
-      const subjectIds = Array.from(new Set(rawSlots.map(s => s.subject_id).filter(Boolean)))
-      const classIds = Array.from(new Set(rawSlots.map(s => s.class_id).filter(Boolean)))
-
-      const [subjRes, clsRes] = await Promise.all([
-        subjectIds.length > 0 ? supabase.from('subjects').select('id,name').in('id', subjectIds) : Promise.resolve({ data: [] }),
-        classIds.length > 0   ? supabase.from('classes').select('id,name,stream').in('id', classIds) : Promise.resolve({ data: [] }),
-      ])
-
-      const subjMap = Object.fromEntries((subjRes.data ?? []).map((s: any) => [s.id, s.name]))
-      const clsMap  = Object.fromEntries((clsRes.data ?? []).map((c: any) => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]))
-
-      const slotIds = rawSlots.map(s => s.id)
-      let markedSet = new Set<string>()
-      if (slotIds.length > 0) {
-        const { data: attRows } = await supabase
-          .from('attendance')
-          .select('timetable_slot_id')
-          .in('timetable_slot_id', slotIds)
-          .gte('timestamp', selectedDate + 'T00:00:00')
-          .lte('timestamp', selectedDate + 'T23:59:59')
-        markedSet = new Set((attRows ?? []).map((r: any) => r.timetable_slot_id))
-      }
-
-      const mapped: TSlot[] = rawSlots.map(s => ({
-        id:      s.id,
-        classId: s.class_id,
-        subject: subjMap[s.subject_id] ?? 'Unknown',
-        class:   clsMap[s.class_id] ?? '',
-        room:    s.room ?? '',
-        start:   s.start_time,
-        end:     s.end_time,
-        marked:  markedSet.has(s.id),
-      }))
-
-      setSlots(mapped)
-      setSlotsLoading(false)
-
-      if (requestedMode === 'lesson' && urlTimetableSlotId) {
-        const matched = mapped.find(
-          s => s.id === urlTimetableSlotId && (!urlClassId || s.classId === urlClassId)
-        )
-        if (matched) {
-          setActiveSlot(matched)
-          setSlotError(null)
+        if (exactLessonRequested && urlSlotId && urlDate) {
+          const exact = await loadExactLessonAttendance({
+            teacherId: ctx.teacher_id,
+            schoolId: ctx.school_id,
+            timetableSlotId: urlSlotId,
+            occurrenceDate: urlDate,
+            expectedClassId: urlClassId,
+            expectedSubjectId: urlSubjectId,
+          });
+          if (!exact) throw new Error("lesson_occurrence_not_authorized");
+          const slot: LessonSlot = {
+            id: exact.id,
+            classId: exact.classId,
+            subjectId: urlSubjectId ?? "",
+            subject: exact.subject,
+            className: exact.className,
+            room: exact.room,
+            start: exact.start,
+            end: exact.end,
+            marked: exact.marked,
+          };
+          setLessonSlots([slot]);
+          setActiveSlot(slot);
+          setActiveClassId(slot.classId);
         } else {
-          setActiveSlot(null)
-          setSlotError('This timetable lesson could not be found for the selected class and date.')
-        }
-      } else if (mode === 'lesson') {
-        const first = mapped.find(s => !s.marked) ?? mapped[0] ?? null
-        if (first) setActiveSlot(first)
-      }
-    }
-    init()
-  }, [selectedDate])
-
-  // load register for class mode
-  const loadClassRegister = useCallback(async (classId: string) => {
-    setStudentsLoading(true)
-    setStatuses({})
-    setActiveOccurrenceId(null)
-
-    const [studentsRes, attRes] = await Promise.all([
-      supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', classId).eq('is_current', true),
-      supabase.from('attendance').select('student_id, status, is_late').eq('class_id', classId).gte('timestamp', selectedDate + 'T00:00:00').lte('timestamp', selectedDate + 'T23:59:59').is('timetable_slot_id', null),
-    ])
-
-    const studs: Student[] = (studentsRes.data ?? []).map((r: any) => r.students).filter(Boolean).map((s: any) => ({
-      id: s.id, name: s.name, admNo: s.admission_number ?? '',
-    }))
-
-    const existingMap: Record<string, AttStatus> = {}
-    ;(attRes.data ?? []).forEach((r: any) => {
-      existingMap[r.student_id] = r.is_late ? 'late' : r.status as AttStatus
-    })
-
-    const initialStatuses: Record<string, AttStatus> = {}
-    studs.forEach(s => { initialStatuses[s.id] = existingMap[s.id] ?? 'present' })
-
-    setStudents(studs)
-    setStatuses(initialStatuses)
-    setStudentsLoading(false)
-  }, [selectedDate])
-
-  // load register for lesson mode
-  const loadSlotRegister = useCallback(async (slot: TSlot) => {
-    setStudentsLoading(true)
-    setStatuses({})
-    setActiveOccurrenceId(null)
-    setSlotError(null)
-
-    if (!uid) {
-      setStudents([])
-      setStudentsLoading(false)
-      return
-    }
-
-    const {
-      data: occurrence,
-      error: occurrenceError,
-    } = await supabase
-      .from('teaching_occurrences')
-      .select('id')
-      .eq('timetable_slot_id', slot.id)
-      .eq('occurrence_date', selectedDate)
-      .eq('teacher_id', uid)
-      .maybeSingle()
-
-    if (
-      occurrenceError ||
-      !occurrence?.id
-    ) {
-      if (occurrenceError) {
-        console.error(
-          'attendance occurrence load error:',
-          occurrenceError,
-        )
-      }
-
-      setStudents([])
-      setStatuses({})
-      setSlotError(
-        'Start this lesson before marking its attendance register.',
-      )
-      setStudentsLoading(false)
-      return
-    }
-
-    setActiveOccurrenceId(occurrence.id)
-
-    const [studentsRes, attRes] = await Promise.all([
-      supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', slot.classId).eq('is_current', true),
-      supabase.from('attendance').select('student_id, status, is_late').eq('teaching_occurrence_id', occurrence.id),
-    ])
-
-    const studs: Student[] = (studentsRes.data ?? []).map((r: any) => r.students).filter(Boolean).map((s: any) => ({
-      id: s.id, name: s.name, admNo: s.admission_number ?? '',
-    }))
-
-    const existingMap: Record<string, AttStatus> = {}
-    ;(attRes.data ?? []).forEach((r: any) => {
-      existingMap[r.student_id] = r.is_late ? 'late' : r.status as AttStatus
-    })
-
-    const initialStatuses: Record<string, AttStatus> = {}
-    studs.forEach(s => { initialStatuses[s.id] = existingMap[s.id] ?? 'present' })
-
-    setStudents(studs)
-    setStatuses(initialStatuses)
-    setStudentsLoading(false)
-  }, [selectedDate, uid])
-
-  useEffect(() => {
-    if (mode === 'class' && activeClassId) loadClassRegister(activeClassId)
-  }, [mode, activeClassId, loadClassRegister])
-
-  useEffect(() => {
-    if (mode === 'lesson' && activeSlot) loadSlotRegister(activeSlot)
-  }, [mode, activeSlot, loadSlotRegister])
-
-  async function save() {
-    if (!uid) return
-    if (mode === 'class' && !activeClassId) return
-    if (mode === 'lesson') {
-      if (!activeSlot?.id) {
-        setSlotError('Select a timetable lesson before saving attendance.')
-        return
-      }
-      if (!selectedDate) {
-        setSlotError('The lesson date is missing.')
-        return
-      }
-
-      if (!activeOccurrenceId) {
-        setSlotError(
-          'Start this lesson before saving attendance.',
-        )
-        return
-      }
-    }
-    setSlotError(null)
-    setSaving(true)
-    setSaveState('idle')
-
-    const isLesson = mode === 'lesson'
-    const classSchoolId = isLesson
-      ? classes.find(c => c.id === activeSlot!.classId)?.schoolId ?? schoolId
-      : classes.find(c => c.id === activeClassId)?.schoolId ?? schoolId
-    const rows = students.map(s => ({
-      student_id: s.id,
-      class_id:   isLesson ? activeSlot!.classId : activeClassId!,
-      teacher_id: uid,
-      school_id:  classSchoolId,
-      date:      selectedDate,
-      status:     statuses[s.id] === 'late' ? 'present' : (statuses[s.id] ?? 'present'),
-      is_late:    statuses[s.id] === 'late',
-      marked_at:  new Date().toISOString(),
-      ...(isLesson
-        ? {
-            timetable_slot_id:
-              activeSlot!.id,
-            teaching_occurrence_id:
-              activeOccurrenceId,
+          const slots = await loadScheduledLessons(ctx, selectedDate);
+          if (!cancelled) {
+            setLessonSlots(slots);
+            if (mode === "lesson") setActiveSlot(slots.find((slot) => !slot.marked) ?? slots[0] ?? null);
           }
-        : {}),
-    }))
-
-    const { error } = await supabase
-      .rpc('upsert_attendance_batch', { p_rows: rows })
-
-    if (!error) {
-      if (isLesson && activeSlot) {
-        setSlots(prev => prev.map(s => s.id === activeSlot.id ? { ...s, marked: true } : s))
-        setActiveSlot(prev => prev ? { ...prev, marked: true } : prev)
+        }
+      } catch (bootError) {
+        console.error("[Attendance] boot", bootError);
+        if (!cancelled) setError("Attendance could not be loaded. Check your connection and try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setSaveState('saved')
-      refreshPulse('attendance')
-
-      // TOS-004: lesson-mode attendance is a task inside the active teaching
-      // workspace. After a successful authoritative save, reopen the exact
-      // lesson occurrence rather than leaving the teacher stranded here.
-      if (isLesson && activeSlot && selectedDate && urlSubjectId) {
-        const lessonUrl =
-          `/teacher/lessonplan?` +
-          `timetableSlotId=${encodeURIComponent(activeSlot.id)}` +
-          `&date=${encodeURIComponent(selectedDate)}` +
-          `&subjectId=${encodeURIComponent(urlSubjectId)}` +
-          `&classId=${encodeURIComponent(activeSlot.classId)}`
-        router.push(lessonUrl)
-      } else {
-        setTimeout(() => setSaveState('idle'), 2500)
-      }
-    } else {
-      console.error('attendance save error:', error)
-      setSaveState('error')
     }
-    setSaving(false)
+    void boot();
+    return () => { cancelled = true; };
+  }, [activeClassId, exactLessonRequested, loadContext, loadScheduledLessons, mode, router, selectedDate, urlClassId, urlDate, urlSlotId, urlSubjectId]);
+
+  const loadRegister = useCallback(async () => {
+    const classId = mode === "lesson" ? activeSlot?.classId : activeClassId;
+    if (!classId || !context?.school_id) {
+      setStudents([]);
+      setStatuses({});
+      return;
+    }
+    setRegisterLoading(true);
+    setError(null);
+    setSaved(false);
+    try {
+      let activeOccurrenceId: string | null = null;
+      if (mode === "lesson") {
+        if (!activeSlot) return;
+        const { data: occurrence, error: occurrenceError } = await supabase
+          .from("teaching_occurrences")
+          .select("id")
+          .eq("teacher_id", context.teacher_id)
+          .eq("school_id", context.school_id)
+          .eq("class_id", activeSlot.classId)
+          .eq("timetable_slot_id", activeSlot.id)
+          .eq("occurrence_date", selectedDate)
+          .maybeSingle();
+        if (occurrenceError) throw occurrenceError;
+        if (!occurrence?.id) {
+          setOccurrenceId(null);
+          setStudents([]);
+          setStatuses({});
+          setError("Start this lesson before taking its lesson attendance.");
+          return;
+        }
+        activeOccurrenceId = occurrence.id;
+        setOccurrenceId(activeOccurrenceId);
+      } else {
+        setOccurrenceId(null);
+      }
+
+      const rosterPromise = supabase
+        .from("student_classes")
+        .select("student_id, students(id,name,admission_number,deleted_at)")
+        .eq("school_id", context.school_id)
+        .eq("class_id", classId)
+        .eq("is_current", true);
+      const attendancePromise = mode === "lesson" && activeOccurrenceId
+        ? supabase.from("attendance").select("student_id,status,is_late").eq("teaching_occurrence_id", activeOccurrenceId)
+        : supabase.from("attendance").select("student_id,status,is_late").eq("class_id", classId).eq("date", selectedDate).is("timetable_slot_id", null);
+      const [rosterRes, attendanceRes] = await Promise.all([rosterPromise, attendancePromise]);
+      if (rosterRes.error) throw rosterRes.error;
+      if (attendanceRes.error) throw attendanceRes.error;
+
+      const roster: StudentRow[] = (rosterRes.data ?? [])
+        .map((row: any) => row.students)
+        .filter((student: any) => student && !student.deleted_at)
+        .map((student: any) => ({ id: student.id, name: student.name, admissionNumber: student.admission_number ?? "" }));
+      const existing: Record<string, AttendanceStatus> = {};
+      for (const row of attendanceRes.data ?? []) {
+        existing[row.student_id] = row.is_late ? "late" : (row.status as AttendanceStatus);
+      }
+      const base: Record<string, AttendanceStatus> = {};
+      for (const student of roster) base[student.id] = existing[student.id] ?? "present";
+      const key = draftKey(mode, selectedDate, classId, activeOccurrenceId);
+      const draft = loadDraft(key);
+      setStudents(roster);
+      setStatuses(draft ? { ...base, ...draft } : base);
+    } catch (registerError) {
+      console.error("[Attendance] register", registerError);
+      setStudents([]);
+      setStatuses({});
+      setError("The register could not be loaded. Check your connection and retry.");
+    } finally {
+      setRegisterLoading(false);
+    }
+  }, [activeClassId, activeSlot, context, mode, selectedDate]);
+
+  useEffect(() => { void loadRegister(); }, [loadRegister]);
+  useEffect(() => {
+    if (students.length > 0 && Object.keys(statuses).length > 0) saveDraft(storageKey, statuses);
+  }, [statuses, storageKey, students.length]);
+
+  async function changeSchool(schoolId: string) {
+    if (saving || schoolId === context?.school_id) return;
+    setError(null);
+    try {
+      const { error: setError } = await supabase.rpc("teacher_set_active_school", { p_school_id: schoolId });
+      if (setError) throw setError;
+      const next = await loadContext(schoolId);
+      setContext(next);
+      const firstClass = next.classes[0]?.class_id ?? null;
+      setActiveClassId(firstClass);
+      setActiveSlot(null);
+      setLessonSlots(await loadScheduledLessons(next, selectedDate));
+      refreshPulse("attendance");
+    } catch (schoolError) {
+      console.error("[Attendance] school", schoolError);
+      setError("That school could not be selected. Your previous school remains active.");
+    }
   }
 
-  function markAll(status: AttStatus) {
-    const all: Record<string, AttStatus> = {}
-    students.forEach(s => { all[s.id] = status })
-    setStatuses(all)
+  function updateStatus(studentId: string, value: AttendanceStatus) {
+    setStatuses((current) => ({ ...current, [studentId]: value }));
+    setSaved(false);
   }
 
-  const presentCount = Object.values(statuses).filter(s => s === 'present').length
-  const absentCount  = Object.values(statuses).filter(s => s === 'absent').length
-  const lateCount    = Object.values(statuses).filter(s => s === 'late').length
-  const activeClass  = classes.find(c => c.id === activeClassId)
+  function markAll(value: AttendanceStatus) {
+    setStatuses(Object.fromEntries(students.map((student) => [student.id, value])));
+    setSaved(false);
+  }
+
+  async function saveRegister() {
+    const classId = mode === "lesson" ? activeSlot?.classId : activeClassId;
+    if (!context?.school_id || !classId || students.length === 0 || saving) return;
+    if (mode === "lesson" && (!activeSlot || !occurrenceId)) {
+      setError("Start this lesson before saving attendance.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    setSaved(false);
+    try {
+      const rows = students.map((student) => {
+        const value = statuses[student.id] ?? "present";
+        return {
+          student_id: student.id,
+          class_id: classId,
+          school_id: context.school_id,
+          teacher_id: context.teacher_id,
+          date: selectedDate,
+          status: value === "late" ? "present" : value,
+          is_late: value === "late",
+          ...(mode === "lesson" && activeSlot && occurrenceId
+            ? { timetable_slot_id: activeSlot.id, teaching_occurrence_id: occurrenceId }
+            : {}),
+        };
+      });
+      const { error: saveError } = await supabase.rpc("upsert_attendance_batch", { p_rows: rows });
+      if (saveError) throw saveError;
+      clearDraft(storageKey);
+      setSaved(true);
+      refreshPulse("attendance");
+      if (mode === "lesson" && activeSlot) {
+        const subjectId = activeSlot.subjectId || urlSubjectId || "";
+        router.push(`/teacher/lessonplan?timetableSlotId=${encodeURIComponent(activeSlot.id)}&date=${encodeURIComponent(selectedDate)}&subjectId=${encodeURIComponent(subjectId)}&classId=${encodeURIComponent(activeSlot.classId)}`);
+      }
+    } catch (saveError) {
+      console.error("[Attendance] save", saveError);
+      saveDraft(storageKey, statuses);
+      setError("Attendance was not saved. Your choices are kept on this device; retry when the connection is stable.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return <div style={{ padding: 18 }} aria-label="Loading attendance"><div style={{ height: 120, borderRadius: 18, background: "#e5e7eb" }} /></div>;
+  }
+
+  const counts = STATUSES.reduce<Record<AttendanceStatus, number>>((acc, value) => {
+    acc[value] = Object.values(statuses).filter((status) => status === value).length;
+    return acc;
+  }, { present: 0, absent: 0, late: 0, excused: 0 });
 
   return (
-    <>
-      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+    <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
+      <section style={{ background: "linear-gradient(135deg,#065f46,#10b981)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>Attendance</div>
+        <h1 style={{ margin: "4px 0", fontSize: 23 }}>Mark register</h1>
+        <div style={{ fontSize: 12, opacity: .8 }}>{selectedDate}{context?.schools.find((school) => school.id === context.school_id)?.name ? ` · ${context.schools.find((school) => school.id === context.school_id)?.name}` : ""}</div>
 
-      {/* HERO */}
-      <div style={{ background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)', borderRadius: 20, padding: 20, marginBottom: 14, color: '#fff' }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Attendance</div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>Mark Register</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 4 }}>{selectedDate}</div>
-
-        {/* MODE TOGGLE */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 12, marginBottom: 12 }}>
-          {(['class', 'lesson'] as Mode[]).map(m => (
-            <button key={m} onClick={() => {
-              setMode(m)
-              setStudents([])
-              setStatuses({})
-              setSlotError(null)
-              if (m === 'class') {
-                setActiveSlot(null)
-                setActiveOccurrenceId(null)
-              }
-            }} style={{ flex: 1, padding: '9px 8px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: 12, background: mode === m ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)', color: mode === m ? '#065f46' : 'rgba(255,255,255,0.85)', transition: 'all 0.15s' }}>
-              {m === 'class' ? '🏫 Class Register' : '📖 Lesson Register'}
-            </button>
-          ))}
-        </div>
-
-        {/* DATE NAV */}
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setSelectedDate(d => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() - 1); return dt.toISOString().split('T')[0] })} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Prev</button>
-          <button onClick={() => setSelectedDate(today)} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Today</button>
-          <button onClick={() => setSelectedDate(d => { const dt = new Date(d + 'T12:00:00'); dt.setDate(dt.getDate() + 1); return dt.toISOString().split('T')[0] })} style={{ flex: 1, padding: '6px 0', borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
-        </div>
-        <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ marginTop: 6, padding: '6px 12px', borderRadius: 8, border: 'none', background: '#fff', color: '#111827', fontSize: 12, fontFamily: 'inherit', cursor: 'pointer', width: '100%', boxSizing: 'border-box' }} />
-
-        {urlClassId && (
-          <button onClick={() => router.push('/teacher/classhub/' + urlClassId)} style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>← View Class</button>
+        {context && context.schools.length > 1 && (
+          <select aria-label="Active school" value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={{ marginTop: 12, width: "100%", minHeight: 44, border: 0, borderRadius: 12, padding: "0 12px", background: "#fff", color: "#111827", fontWeight: 800 }}>
+            {context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
+          </select>
         )}
-      </div>
 
-      {/* CLASS MODE — pick class */}
-      {mode === 'class' && (
-        <Card>
-          <SectionLabel>Select Class</SectionLabel>
-          {classesLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[1,2,3].map(i => <Skeleton key={i} h={48} />)}</div>
-          ) : classes.length === 0 ? (
-            <div style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', padding: '20px 0' }}>No classes found</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {classes.map(c => (
-                <button key={c.id} onClick={() => setActiveClassId(c.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: activeClassId === c.id ? C.accentLight : C.surface, outline: activeClassId === c.id ? `2px solid ${C.accent}` : 'none', transition: 'background 0.15s' }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{c.name}{c.stream ? ' · ' + c.stream : ''}</div>
-                  {activeClassId === c.id && <span style={{ fontSize: 11, fontWeight: 700, color: '#065f46' }}>Selected</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
+          <button type="button" onClick={() => { setMode("class"); setActiveSlot(null); }} style={{ minHeight: 44, border: 0, borderRadius: 12, fontWeight: 900, background: mode === "class" ? "#fff" : "rgba(255,255,255,.16)", color: mode === "class" ? "#065f46" : "#fff" }}>Class register</button>
+          <button type="button" onClick={() => { setMode("lesson"); setActiveSlot(lessonSlots.find((slot) => !slot.marked) ?? lessonSlots[0] ?? null); }} style={{ minHeight: 44, border: 0, borderRadius: 12, fontWeight: 900, background: mode === "lesson" ? "#fff" : "rgba(255,255,255,.16)", color: mode === "lesson" ? "#065f46" : "#fff" }}>Lesson register</button>
+        </div>
 
-      {/* LESSON MODE — pick slot */}
-      {mode === 'lesson' && (
-        <Card>
-          <SectionLabel>Select Period</SectionLabel>
-          {mode === 'lesson' && slotError && (
-            <div style={{ fontSize: 12, color: C.error, fontWeight: 700, marginBottom: 10 }}>{slotError}</div>
-          )}
-          {slotsLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[1,2,3].map(i => <Skeleton key={i} h={56} />)}</div>
-          ) : slots.length === 0 ? (
-            <div style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', padding: '20px 0' }}>No lessons scheduled for this day</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {slots.map(slot => (
-                <button key={slot.id} onClick={() => setActiveSlot(slot)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: activeSlot?.id === slot.id ? C.accentLight : C.surface, outline: activeSlot?.id === slot.id ? `2px solid ${C.accent}` : 'none', transition: 'background 0.15s' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{slot.subject} · {slot.class}</div>
-                    <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ` · ${slot.room}` : ''}</div>
-                  </div>
-                  {slot.marked && <span style={{ fontSize: 11, fontWeight: 700, color: '#065f46', background: C.accentLight, padding: '3px 10px', borderRadius: 20, flexShrink: 0 }}>✓ Done</span>}
-                </button>
-              ))}
-            </div>
-          )}
-        </Card>
-      )}
+        {!exactLessonRequested && (
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 7, marginTop: 9 }}>
+            <button type="button" aria-label="Previous day" onClick={() => setSelectedDate((date) => nairobiDateAdd(date, -1))} style={{ minWidth: 44, minHeight: 44, border: 0, borderRadius: 11, background: "rgba(255,255,255,.16)", color: "#fff", fontWeight: 900 }}>‹</button>
+            <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} style={{ minHeight: 44, border: 0, borderRadius: 11, padding: "0 10px", fontWeight: 800 }} />
+            <button type="button" aria-label="Next day" onClick={() => setSelectedDate((date) => nairobiDateAdd(date, 1))} style={{ minWidth: 44, minHeight: 44, border: 0, borderRadius: 11, background: "rgba(255,255,255,.16)", color: "#fff", fontWeight: 900 }}>›</button>
+          </div>
+        )}
+      </section>
 
-      {/* REGISTER */}
-      {((mode === 'class' && activeClassId) || (mode === 'lesson' && activeSlot)) && (
-        <Card>
-          <SectionLabel>
-            {mode === 'class'
-              ? `Register — ${activeClass ? activeClass.name + (activeClass.stream ? ' · ' + activeClass.stream : '') : ''}`
-              : `Register — ${activeSlot?.class} · ${formatTime(activeSlot?.start ?? '')}`
-            }
-          </SectionLabel>
+      {error && <div role="alert" style={{ borderRadius: 14, background: "#fef2f2", color: "#991b1b", padding: 13, marginBottom: 12, fontSize: 13, lineHeight: 1.45 }}>{error}</div>}
+      {saved && <div role="status" style={{ borderRadius: 14, background: "#ecfdf5", color: "#065f46", padding: 13, marginBottom: 12, fontSize: 13, fontWeight: 800 }}>Attendance saved.</div>}
 
-          {!studentsLoading && students.length > 0 && (
-            <>
-              {/* STATS */}
-              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                {[
-                  { label: 'Present', value: presentCount, bg: C.accentLight, color: '#065f46' },
-                  { label: 'Absent',  value: absentCount,  bg: '#fee2e2',     color: '#991b1b' },
-                  { label: 'Late',    value: lateCount,    bg: '#fef3c7',     color: '#92400e' },
-                ].map(s => (
-                  <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 10, padding: '8px 10px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
-                    <div style={{ fontSize: 10, color: s.color, fontWeight: 600 }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* QUICK ACTIONS */}
-              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-                {(['present', 'absent'] as AttStatus[]).map(s => (
-                  <button key={s} onClick={() => markAll(s)} style={{ flex: 1, padding: '7px', borderRadius: 8, border: '1.5px solid ' + (s === 'present' ? C.accent : C.error), background: 'transparent', color: s === 'present' ? C.accent : C.error, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    All {s.charAt(0).toUpperCase() + s.slice(1)}
+      {context?.state === "needs_school" ? (
+        <section style={{ background: "#fff", borderRadius: 18, padding: 24, textAlign: "center" }}><strong>School connection needed</strong><p style={{ color: "#6b7280", fontSize: 13 }}>Connect your school before taking attendance.</p><button type="button" onClick={() => router.push("/teacher/onboarding/school")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Connect school</button></section>
+      ) : context?.state === "needs_class" ? (
+        <section style={{ background: "#fff", borderRadius: 18, padding: 24, textAlign: "center" }}><strong>No class assignment yet</strong><p style={{ color: "#6b7280", fontSize: 13 }}>Add or request a class assignment to open a register.</p><button type="button" onClick={() => router.push("/teacher/onboarding/class")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Set up class</button></section>
+      ) : (
+        <>
+          <section style={{ background: "#fff", borderRadius: 18, padding: 14, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
+            {mode === "class" ? (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 8 }}>CLASS</div>
+                {classOptions.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>No assigned classes in this school.</div> : (
+                  <select value={activeClassId ?? ""} onChange={(event) => setActiveClassId(event.target.value)} style={{ width: "100%", minHeight: 46, border: "1px solid #d1d5db", borderRadius: 12, padding: "0 12px", background: "#fff", fontWeight: 800 }}>
+                    {classOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                  </select>
+                )}
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 8 }}>LESSON</div>
+                {lessonSlots.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>No timetable lessons for this day. Use the class register or open your timetable.</div> : lessonSlots.map((slot) => (
+                  <button key={slot.id} type="button" onClick={() => setActiveSlot(slot)} style={{ width: "100%", minHeight: 58, marginBottom: 7, border: activeSlot?.id === slot.id ? "2px solid #10b981" : "1px solid #e5e7eb", borderRadius: 13, background: activeSlot?.id === slot.id ? "#ecfdf5" : "#fff", textAlign: "left", padding: "9px 12px" }}>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{slot.subject} · {slot.className}</div>
+                    <div style={{ marginTop: 3, fontSize: 11, color: "#6b7280" }}>{formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ` · ${slot.room}` : ""}{slot.marked ? " · Attendance saved" : ""}</div>
                   </button>
                 ))}
-              </div>
-            </>
-          )}
+              </>
+            )}
+          </section>
 
-          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 14 }}>Tap to change status. Default: Present.</div>
+          <section style={{ background: "#fff", borderRadius: 18, padding: 14, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
+              <div><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>REGISTER</div><div style={{ marginTop: 3, fontSize: 13, color: "#374151" }}>{students.length} learners</div></div>
+              {students.length > 0 && <button type="button" onClick={() => markAll("present")} style={{ minHeight: 40, border: "1px solid #a7f3d0", borderRadius: 11, background: "#ecfdf5", color: "#065f46", padding: "0 12px", fontWeight: 900 }}>All present</button>}
+            </div>
 
-          {studentsLoading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[1,2,3,4,5].map(i => <Skeleton key={i} h={44} />)}</div>
-          ) : students.length === 0 ? (
-            <div style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', padding: '20px 0' }}>No students found for this class</div>
-          ) : (
-            <>
-              {students.map(s => (
-                <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 0', borderBottom: `1px solid ${C.border}`, gap: 8 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{s.name}</div>
-                    {s.admNo && <div style={{ fontSize: 10, color: C.textMuted }}>{s.admNo}</div>}
-                  </div>
-                  <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                    {OPTIONS.map(o => {
-                      const active = statuses[s.id] === o
-                      const style  = active ? STATUS_COLOR[o] : STATUS_IDLE
-                      return (
-                        <button key={o} onClick={() => setStatuses(p => ({ ...p, [s.id]: o }))} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit', background: style.bg, color: style.color, transition: 'all 0.12s' }}>
-                          {o.charAt(0).toUpperCase() + o.slice(1)}
-                        </button>
-                      )
-                    })}
-                  </div>
+            {registerLoading ? <div style={{ height: 100, borderRadius: 14, background: "#e5e7eb" }} /> : students.length === 0 ? (
+              <div style={{ padding: "24px 8px", textAlign: "center", color: "#6b7280", fontSize: 13 }}>{mode === "lesson" && !occurrenceId ? "Start the lesson first, then return here to take attendance." : "No current learners were found for this class."}</div>
+            ) : (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 12 }}>
+                  {STATUSES.map((value) => <div key={value} style={{ borderRadius: 10, background: "#f8fafc", padding: "7px 4px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{counts[value]}</div><div style={{ fontSize: 9, color: "#6b7280", textTransform: "capitalize" }}>{value}</div></div>)}
                 </div>
-              ))}
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, marginTop: 18 }}>
-                {mode === 'lesson' && slotError && <span style={{ fontSize: 13, color: C.error, fontWeight: 700 }}>{slotError}</span>}
-                {saveState === 'saved' && <span style={{ fontSize: 13, color: C.accent, fontWeight: 700 }}>✓ Saved</span>}
-                {saveState === 'error' && <span style={{ fontSize: 13, color: C.error, fontWeight: 700 }}>Error — try again</span>}
-                <Btn onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Attendance'}</Btn>
-              </div>
-            </>
-          )}
-        </Card>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {students.map((student) => (
+                    <div key={student.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 11 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 9 }}><div><div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{student.name}</div>{student.admissionNumber && <div style={{ marginTop: 2, fontSize: 10, color: "#9ca3af" }}>{student.admissionNumber}</div>}</div><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280", textTransform: "capitalize" }}>{statuses[student.id] ?? "present"}</div></div>
+                      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>{STATUSES.map((value) => <StatusButton key={value} value={value} active={(statuses[student.id] ?? "present") === value} onClick={() => updateStatus(student.id, value)} />)}</div>
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => void saveRegister()} disabled={saving} style={{ width: "100%", minHeight: 50, marginTop: 14, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 900, fontSize: 14 }}>{saving ? "Saving…" : "Save attendance"}</button>
+              </>
+            )}
+          </section>
+        </>
       )}
-    </>
-  )
+    </div>
+  );
 }
 
 export default function AttendancePage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: C.textMuted }}>Loading…</div>}>
-      <AttendanceInner />
-    </Suspense>
-  )
+  return <Suspense fallback={<div style={{ padding: 18 }}>Loading attendance…</div>}><AttendancePageInner /></Suspense>;
 }
