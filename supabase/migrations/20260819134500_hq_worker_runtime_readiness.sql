@@ -18,7 +18,8 @@ begin
   select count(*) into v_global_policies from public.hq_workforce_runtime_policies
     where status='active' and enabled and scope_kind='global' and scope_key='global';
   select count(*) into v_active_grants from public.hq_workforce_capability_authority_grants
-    where status='active' and effective_from<=clock_timestamp() and expires_at>clock_timestamp();
+    where status='active' and activated_at is not null and activated_at<=clock_timestamp()
+      and expires_at>clock_timestamp() and revoked_at is null;
   select count(*) into v_global_breakers from public.hq_workforce_execution_breakers
     where scope_type='global' and scope_ref='global' and status='tripped';
   return jsonb_build_object(
