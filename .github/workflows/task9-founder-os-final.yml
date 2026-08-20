@@ -1,0 +1,29 @@
+name: Task 9 Founder OS Final
+
+on:
+  pull_request:
+    paths:
+      - 'app/hq/**'
+      - 'components/hq/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-task9-founder-os-final.mjs'
+      - '.github/workflows/task9-founder-os-final.yml'
+  workflow_dispatch:
+
+jobs:
+  task9-founder-os-final:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Task 9 Founder OS contract
+        run: node scripts/test-task9-founder-os-final.mjs
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build
