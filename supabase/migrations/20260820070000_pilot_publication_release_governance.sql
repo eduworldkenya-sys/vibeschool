@@ -2,6 +2,8 @@
 -- Publishing is consequential: a draft may only become learner-visible after the
 -- repository release checks pass and an authenticated platform owner explicitly
 -- approves the exact reviewed content fingerprint. No service-role/worker bypass.
+-- access: owner-only public.publication_release_approvals
+-- authorization-test: public.publication_release_approvals
 
 create table if not exists public.publication_release_approvals (
   publication_id uuid primary key references public.vibe_publications(id) on delete cascade,
@@ -90,7 +92,6 @@ begin
   end if;
 
   if coalesce(p_approve,false) then
-    -- Run the canonical release checker as part of the same owner-authorized review.
     perform 1 from public.hq_run_publication_release_check(p_publication_id);
 
     select count(*) into v_chapters from public.vibe_chapters where publication_id=p_publication_id;
@@ -198,6 +199,11 @@ grant execute on function public.publish_publication(uuid) to authenticated;
 do $$
 declare d text;
 begin
+  if has_table_privilege('anon','public.publication_release_approvals','SELECT')
+     or has_table_privilege('authenticated','public.publication_release_approvals','SELECT')
+     or has_table_privilege('service_role','public.publication_release_approvals','SELECT') then
+    raise exception 'publication_release_approval_table_exposed';
+  end if;
   if has_function_privilege('anon','public.hq_review_publication_release(uuid,boolean,text)','EXECUTE')
      or has_function_privilege('service_role','public.hq_review_publication_release(uuid,boolean,text)','EXECUTE') then
     raise exception 'publication_release_human_approval_boundary_exposed';
