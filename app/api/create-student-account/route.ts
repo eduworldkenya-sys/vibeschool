@@ -20,9 +20,12 @@ function safeSlug(value: string) {
 function provisioningError(status: string) {
   switch (status) {
     case 'not_found': return { error: 'Learner code not found. Ask your teacher for a new code.', status: 404 }
+    case 'replaced': return { error: 'This learner code was replaced. Ask your teacher for the current code.', status: 410 }
     case 'already_claimed': return { error: 'A learner account already exists. Sign in instead.', status: 409 }
     case 'expired': return { error: 'This learner code has expired. Ask your teacher for a new one.', status: 410 }
     case 'student_not_found': return { error: 'Learner record not found.', status: 404 }
+    case 'class_not_found': return { error: 'Current class enrollment could not be found.', status: 409 }
+    case 'enrollment_conflict': return { error: 'Your school enrollment needs correction before this account can be created. Ask your teacher to review the learner record.', status: 409 }
     case 'guardian_required': return { error: 'A parent or guardian must connect to this learner before the learner account can be created.', status: 403, code: 'guardian_required' }
     case 'school_not_found': return { error: 'School assignment not found.', status: 409 }
     case 'profile_missing': return { error: 'Learner identity setup is incomplete.', status: 409 }
