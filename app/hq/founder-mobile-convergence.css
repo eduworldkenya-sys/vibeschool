@@ -1,0 +1,35 @@
+/* Founder Control Room mobile convergence.
+   Presentation only: no owner authority, RPC, analytics, workforce,
+   publishing or runtime behavior is changed. */
+@media (max-width: 900px), (pointer: coarse) {
+  html,body{max-width:100%;overflow-x:hidden}
+  .hq-page,.hq-container,.hq-page-header,.hq-page-header>div,.hq-panel,.hq-panel-body,.fc-state,.fc-layout,.fc-lower,.fc-pulse,.fc-attention-list,.fc-attention,.fc-metric,.fc-row{min-width:0;max-width:100%}
+  .hq-page,.hq-container{overflow-x:clip}
+  .hq-page-header h1,.hq-page-header p,.hq-panel-header h2,.hq-panel-header p,.fc-state p,.fc-attention h3,.fc-attention p,.fc-attention dd,.fc-row strong,.fc-row span,.fc-row small{overflow-wrap:anywhere;word-break:normal}
+  .hq-page-header{margin-bottom:14px}
+  .hq-page-header h1{line-height:1.08;max-width:100%}
+  .hq-page-header p{max-width:46rem;line-height:1.45}
+  .hq-page-actions{width:100%;max-width:100%;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;overflow:visible!important;padding-bottom:0!important}
+  .hq-page-actions>*{width:100%;min-width:0;max-width:100%;margin:0!important;white-space:normal;line-height:1.2}
+  .fc-state{padding:14px!important;gap:12px!important;border-radius:13px!important}
+  .fc-state>div>strong{font-size:22px!important}
+  .fc-state p{font-size:12px!important;line-height:1.45!important}
+  .fc-state-meta{margin-top:10px!important;padding-top:10px!important}
+  .fc-layout,.fc-lower{grid-template-columns:minmax(0,1fr)!important}
+  .fc-pulse{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .fc-layout .hq-panel-body,.fc-lower .hq-panel-body{padding:11px!important}
+  .fc-attention{padding:12px!important}
+  .fc-attention h3{font-size:14px!important;line-height:1.3!important}
+  .fc-attention p{font-size:12px!important}
+  .fc-attention dl{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+  .fc-attention dl>div:last-child{display:none}
+  .fc-attention a{min-height:42px;display:inline-flex!important;align-items:center;padding-right:8px}
+  .fc-metric{padding:12px!important}
+  .fc-row{grid-template-columns:minmax(0,1fr)!important}
+  .hq-mobile-topbar{grid-template-columns:42px minmax(0,1fr) auto!important;max-width:100vw;overflow:hidden}
+  .hq-mobile-brand,.hq-mobile-brand>span:last-child,.hq-mobile-actions{min-width:0}
+  .hq-mobile-actions{max-width:46vw;overflow:hidden}
+  .hq-mobile-search,.hq-menu-btn{flex:0 0 auto}
+}
+@media (max-width:520px){.fc-pulse{grid-template-columns:minmax(0,1fr)!important}.hq-mobile-actions{max-width:42vw}}
+@media (max-width:360px){.hq-page-actions{grid-template-columns:minmax(0,1fr)}}
