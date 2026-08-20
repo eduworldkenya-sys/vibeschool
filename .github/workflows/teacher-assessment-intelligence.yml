@@ -1,0 +1,20 @@
+name: Teacher Assessment Intelligence
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/results/page.tsx'
+      - 'components/teacher/AssessmentIntelligenceConsole.tsx'
+      - 'supabase/migrations/20260820093000_teacher_assessment_intelligence_console.sql'
+      - 'scripts/validate-teacher-assessment-intelligence.py'
+      - '.github/workflows/teacher-assessment-intelligence.yml'
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-teacher-assessment-intelligence.py
