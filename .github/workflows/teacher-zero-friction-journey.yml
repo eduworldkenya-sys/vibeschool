@@ -5,6 +5,7 @@ on:
     paths:
       - 'app/teacher/lesson-notes/**'
       - 'components/teacher/LessonFlowCard.tsx'
+      - 'lib/pulse/rules.ts'
       - 'scripts/test-teacher-zero-friction-journey.mjs'
       - '.github/workflows/teacher-zero-friction-journey.yml'
   workflow_dispatch:
