@@ -6,6 +6,7 @@ const authority = fs.readFileSync("supabase/migrations/20260820104000_teacher_co
 const telemetry = fs.readFileSync("supabase/migrations/20260820104100_teacher_content_telemetry_contract.sql", "utf8");
 const pilot = fs.readFileSync("supabase/migrations/20260820104200_teacher_content_pilot_scope_and_backfill.sql", "utf8");
 const matrix = fs.readFileSync("supabase/migrations/20260820104300_teacher_content_integrity_matrix.sql", "utf8");
+const reviewAuthority = fs.readFileSync("supabase/migrations/20260820104400_teacher_content_mapping_review_authority.sql", "utf8");
 const hq = fs.readFileSync("app/hq/content/coverage/page.tsx", "utf8");
 
 function has(text, needle, message) {
@@ -32,6 +33,15 @@ has(pilot, "vc.alignment_status='verified'", "Deterministic backfill may only co
 has(pilot, "vp.status='published'", "Deterministic backfill may only consume published publications");
 has(pilot, "lr.curriculum_id=lp.curriculum_id", "Backfill must use exact curriculum IDs");
 has(pilot, "learning_resource_versions", "Backfill must pin an immutable certified version");
+has(pilot, "platform_owners", "Deterministic backfill must require a platform-owner reviewer");
+
+has(reviewAuthority, "hq_review_curriculum_resource_mapping", "Owner mapping review RPC is required");
+has(reviewAuthority, "owner_authorization_required", "Mapping review must fail closed for non-owners");
+has(reviewAuthority, "platform_owners", "Verified teaching links must be backed by a real platform owner");
+has(reviewAuthority, "mapping_decision_reason_required", "Human decisions must require an audit reason");
+has(reviewAuthority, "mapping_resource_not_certified", "Review cannot verify an uncertified resource");
+has(reviewAuthority, "from public,anon,authenticated,service_role", "Service role must not impersonate human mapping approval");
+has(reviewAuthority, "teacher_content_materialize_reviewed_links_for_lesson", "Verified mappings must materialize deterministically for future lessons");
 
 for (const state of ["FULL","PARTIAL","MISSING","UNMAPPED","AMBIGUOUS","UNPUBLISHED","UNAUTHORIZED","BROKEN"]) {
   has(matrix, `'${state}'`, `Coverage matrix must preserve ${state}`);
@@ -51,7 +61,7 @@ for (const integrityCheck of [
 ]) has(matrix, integrityCheck, `Missing integrity check ${integrityCheck}`);
 
 for (const forbidden of ["similarity(", "embedding <=>", "levenshtein(", " ilike ", "websearch_to_tsquery(", "to_tsvector("]) {
-  for (const [name,sql] of [["authority",authority],["pilot",pilot],["matrix",matrix]]) {
+  for (const [name,sql] of [["authority",authority],["pilot",pilot],["matrix",matrix],["reviewAuthority",reviewAuthority]]) {
     assert.ok(!sql.toLowerCase().includes(forbidden), `${name} migration contains forbidden fuzzy/semantic matching primitive: ${forbidden}`);
   }
 }
