@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 
 export default function StudentSignupPage() {
   const router = useRouter()
-  const [name, setName] = useState('')
   const [claimCode, setClaimCode] = useState('')
   const [pin, setPin] = useState('')
   const [busy, setBusy] = useState(false)
@@ -17,7 +16,6 @@ export default function StudentSignupPage() {
     if (busy) return
     setMessage('')
     setGuardianRequired(false)
-    if (!name.trim()) { setMessage('Enter your full name.'); return }
     if (claimCode.trim().length < 4) { setMessage('Enter the learner code from your teacher.'); return }
     if (!/^\d{4,6}$/.test(pin)) { setMessage('Choose a PIN with 4–6 digits.'); return }
 
@@ -29,7 +27,6 @@ export default function StudentSignupPage() {
         body: JSON.stringify({
           claim_code: claimCode.trim().toUpperCase(),
           password: pin,
-          full_name: name.trim(),
         }),
       })
       const created = await createResponse.json()
@@ -61,25 +58,23 @@ export default function StudentSignupPage() {
     <a href="/" className="brand">Vibe<span>School</span></a>
     <p className="eyebrow">LEARNER SETUP</p>
     <h1>Join your learning space.</h1>
-    <p className="lead">Your teacher gives your family two secure connections: a parent/guardian link and your learner code. Once your parent or guardian connects, your learner setup takes less than a minute.</p>
+    <p className="lead">Use the learner code your teacher gave you. VibeSchool identifies your school learner record from that code, so you do not need to type or recreate your name.</p>
 
     <div className="steps" aria-label="Learner setup steps">
       <div><strong>1</strong><span>Parent or guardian connects</span></div>
-      <div><strong>2</strong><span>You enter your learner code</span></div>
+      <div><strong>2</strong><span>Enter your learner code</span></div>
       <div><strong>3</strong><span>Choose your PIN and start learning</span></div>
     </div>
 
-    {message && <div role="alert" className={guardianRequired ? 'message guardian' : 'message'}>{message}{guardianRequired && <p>Ask your teacher to resend the secure parent link. After your parent or guardian confirms the connection, come back with the same learner code.</p>}</div>}
+    {message && <div role="alert" className={guardianRequired ? 'message guardian' : 'message'}>{message}{guardianRequired && <p>Ask your teacher to resend the secure parent link. After your parent or guardian connects, return with your learner code.</p>}</div>}
 
-    <label>Full name</label>
-    <input autoComplete="name" value={name} onChange={e=>setName(e.target.value)} />
     <label>Learner code</label>
     <input autoCapitalize="characters" value={claimCode} onChange={e=>setClaimCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} />
     <label>Choose PIN</label>
     <input type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
     <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create learner account'}</button>
     <p className="switch">Already registered? <a href="/login/student">Sign in</a></p>
-    <p className="help">Need the parent link or learner code? Ask your teacher. VibeSchool never asks a learner to send a password or one-time code over WhatsApp.</p>
+    <p className="help">If your code is expired or replaced, ask your teacher for a new learner code. VibeSchool never asks a learner to send a password or one-time code over WhatsApp.</p>
     <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }
