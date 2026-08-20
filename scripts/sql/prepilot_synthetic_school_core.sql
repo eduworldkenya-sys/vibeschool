@@ -1,18 +1,18 @@
 \set ON_ERROR_STOP on
 
 -- READY FOR FIRST TEACHER — disposable core synthetic school certification.
--- This script runs only against an isolated local rebuild. Every fixture is
--- wrapped in one transaction and rolled back. It must never seed production.
+-- Runs only against an isolated local rebuild. Every fixture is transactional
+-- and rolled back. Direct profile provisioning below is test-fixture setup,
+-- never an application/auth provisioning path and never production seed data.
 
 begin;
 
--- Stable synthetic IDs make failures reproducible and make it impossible to
--- confuse these fixtures with real production identities.
-
+-- Stable synthetic principals. Direct SQL insertion into auth.users does not
+-- execute the hosted Auth signup lifecycle in this isolated harness, therefore
+-- profiles are created explicitly by postgres before school FKs are introduced.
 insert into auth.users (
-  id, aud, role, email, email_confirmed_at,
-  raw_app_meta_data, raw_user_meta_data,
-  created_at, updated_at, is_sso_user, is_anonymous
+  id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,
+  created_at,updated_at,is_sso_user,is_anonymous
 ) values
   ('10000000-0000-0000-0000-000000000001','authenticated','authenticated','synthetic.admin.a@example.invalid',clock_timestamp(),'{}','{"role":"global_user","full_name":"Synthetic School Admin A"}',clock_timestamp(),clock_timestamp(),false,false),
   ('10000000-0000-0000-0000-000000000002','authenticated','authenticated','synthetic.teacher.a@example.invalid',clock_timestamp(),'{}','{"role":"teacher","full_name":"Synthetic Chemistry Teacher A"}',clock_timestamp(),clock_timestamp(),false,false),
@@ -20,12 +20,12 @@ insert into auth.users (
   ('10000000-0000-0000-0000-000000000004','authenticated','authenticated','synthetic.parent.a@example.invalid',clock_timestamp(),'{}','{"role":"parent","full_name":"Synthetic Parent A"}',clock_timestamp(),clock_timestamp(),false,false),
   ('10000000-0000-0000-0000-000000000005','authenticated','authenticated','synthetic.parent.b@example.invalid',clock_timestamp(),'{}','{"role":"parent","full_name":"Synthetic Parent B"}',clock_timestamp(),clock_timestamp(),false,false);
 
--- The public signup trigger intentionally cannot mint admin authority. Local
--- fixture setup promotes the synthetic admin only as postgres, never through a
--- client-accessible path.
-update public.profiles
-set role='admin'
-where id='10000000-0000-0000-0000-000000000001';
+insert into public.profiles (id,full_name,role,country_code) values
+  ('10000000-0000-0000-0000-000000000001','Synthetic School Admin A','admin','KE'),
+  ('10000000-0000-0000-0000-000000000002','Synthetic Chemistry Teacher A','teacher','KE'),
+  ('10000000-0000-0000-0000-000000000003','Synthetic Chemistry Teacher B','teacher','KE'),
+  ('10000000-0000-0000-0000-000000000004','Synthetic Parent A','parent','KE'),
+  ('10000000-0000-0000-0000-000000000005','Synthetic Parent B','parent','KE');
 
 insert into public.schools (
   id,name,subdomain,timezone,status,country_code,requires_dual_approval,
@@ -41,10 +41,8 @@ set school_id = case
   else '40000000-0000-0000-0000-000000000002'::uuid
 end
 where id in (
-  '10000000-0000-0000-0000-000000000001',
-  '10000000-0000-0000-0000-000000000002',
-  '10000000-0000-0000-0000-000000000003',
-  '10000000-0000-0000-0000-000000000004',
+  '10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002',
+  '10000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000004',
   '10000000-0000-0000-0000-000000000005'
 );
 
@@ -69,8 +67,8 @@ insert into public.teacher_classes (school_id,teacher_id,class_id,subject_id,is_
   ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001',true),
   ('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000003','50000000-0000-0000-0000-000000000002','60000000-0000-0000-0000-000000000002',true);
 
--- Twenty synthetic Grade 10 learners for the pilot class plus one learner in a
--- second school to prove tenant isolation.
+-- Twenty Grade 10 Chemistry learners in School A plus one adversarial learner
+-- in School B. Every learner has both Auth/profile and canonical student IDs.
 do $$
 declare
   i integer;
@@ -78,37 +76,35 @@ declare
   v_student uuid;
   v_school uuid;
   v_class uuid;
+  v_creator uuid;
 begin
   for i in 1..21 loop
-    v_profile := format('20000000-0000-0000-0000-%s', lpad(i::text,12,'0'))::uuid;
-    v_student := format('30000000-0000-0000-0000-%s', lpad(i::text,12,'0'))::uuid;
+    v_profile := format('20000000-0000-0000-0000-%s',lpad(i::text,12,'0'))::uuid;
+    v_student := format('30000000-0000-0000-0000-%s',lpad(i::text,12,'0'))::uuid;
     if i <= 20 then
       v_school := '40000000-0000-0000-0000-000000000001'::uuid;
       v_class := '50000000-0000-0000-0000-000000000001'::uuid;
+      v_creator := '10000000-0000-0000-0000-000000000002'::uuid;
     else
       v_school := '40000000-0000-0000-0000-000000000002'::uuid;
       v_class := '50000000-0000-0000-0000-000000000002'::uuid;
+      v_creator := '10000000-0000-0000-0000-000000000003'::uuid;
     end if;
 
     insert into auth.users (
       id,aud,role,email,email_confirmed_at,raw_app_meta_data,raw_user_meta_data,
       created_at,updated_at,is_sso_user,is_anonymous
     ) values (
-      v_profile,'authenticated','authenticated',
-      format('synthetic.learner.%s@example.invalid',i),clock_timestamp(),'{}'::jsonb,
-      jsonb_build_object('role','student','full_name',format('Synthetic Learner %s',i)),
+      v_profile,'authenticated','authenticated',format('synthetic.learner.%s@example.invalid',i),clock_timestamp(),
+      '{}'::jsonb,jsonb_build_object('role','student','full_name',format('Synthetic Learner %s',i)),
       clock_timestamp(),clock_timestamp(),false,false
     );
 
-    update public.profiles set school_id=v_school where id=v_profile;
+    insert into public.profiles (id,full_name,role,country_code,school_id)
+    values (v_profile,format('Synthetic Learner %s',i),'student','KE',v_school);
 
-    insert into public.students (
-      id,class_id,name,admission_number,profile_id,created_by,self_use_enabled
-    ) values (
-      v_student,v_class,format('Synthetic Learner %s',i),format('SYN-%03s',i),v_profile,
-      case when i <= 20 then '10000000-0000-0000-0000-000000000002'::uuid else '10000000-0000-0000-0000-000000000003'::uuid end,
-      true
-    );
+    insert into public.students (id,class_id,name,admission_number,profile_id,created_by,self_use_enabled)
+    values (v_student,v_class,format('Synthetic Learner %s',i),format('SYN-%03s',i),v_profile,v_creator,true);
 
     insert into public.student_classes (school_id,student_id,class_id,is_current)
     values (v_school,v_student,v_class,true);
@@ -120,7 +116,6 @@ insert into public.parent_student_links (parent_id,student_id,school_id,relation
   ('10000000-0000-0000-0000-000000000004','30000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','guardian',true,'full'),
   ('10000000-0000-0000-0000-000000000005','30000000-0000-0000-0000-000000000021','40000000-0000-0000-0000-000000000002','guardian',true,'full');
 
--- Static fixture sanity before RLS-role simulation.
 do $$
 begin
   if (select count(*) from public.students where class_id='50000000-0000-0000-0000-000000000001') <> 20 then
@@ -135,7 +130,8 @@ begin
 end
 $$;
 
--- Teacher A: can create an exam only in their own active school.
+-- Teacher A can create/manage an exam only in the active school to which they
+-- belong. Cross-school direct-client writes must fail closed.
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
 set local role authenticated;
 
@@ -148,96 +144,73 @@ begin
     insert into public.exams (id,school_id,name,term,academic_year,exam_type,pass_mark,is_locked,created_by)
     values ('70000000-0000-0000-0000-000000000099','40000000-0000-0000-0000-000000000002','ILLEGAL CROSS SCHOOL EXAM',2,2026,'cat',50,false,'10000000-0000-0000-0000-000000000002');
     raise exception 'cross-school exam insert unexpectedly succeeded';
-  exception
-    when insufficient_privilege or check_violation then null;
+  exception when insufficient_privilege or check_violation then null;
   end;
 end
 $$;
 
-insert into public.exam_results (
-  id,exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,is_absent
-) values
+insert into public.exam_results (id,exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,is_absent) values
   ('71000000-0000-0000-0000-000000000001','70000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002',78,false),
   ('71000000-0000-0000-0000-000000000002','70000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002',42,false);
 
 do $$
 begin
   begin
-    insert into public.exam_results (
-      exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,is_absent
-    ) values (
-      '70000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000002',101,false
-    );
+    insert into public.exam_results (exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,is_absent)
+    values ('70000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','50000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000002',101,false);
     raise exception 'mark >100 unexpectedly succeeded';
-  exception
-    when check_violation then null;
+  exception when check_violation then null;
   end;
 
   if (select count(*) from public.students) <> 20 then
-    raise exception 'Teacher A can see a learner outside their assigned school/class';
+    raise exception 'Teacher A can see a learner outside the assigned school/class';
   end if;
 end
 $$;
-
 reset role;
 
--- Teacher B creates the isolation-school exam and result.
+-- Teacher B establishes an isolation-school result so the following read tests
+-- prove cross-school and cross-child boundaries rather than testing emptiness.
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003',true);
 set local role authenticated;
 insert into public.exams (id,school_id,name,term,academic_year,exam_type,pass_mark,is_locked,created_by)
 values ('70000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','Isolation Chemistry CAT',2,2026,'cat',50,false,'10000000-0000-0000-0000-000000000003');
-insert into public.exam_results (
-  id,exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,is_absent
-) values (
-  '71000000-0000-0000-0000-000000000021','70000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000002','60000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000021','10000000-0000-0000-0000-000000000003',88,false
-);
+insert into public.exam_results (id,exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,is_absent)
+values ('71000000-0000-0000-0000-000000000021','70000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000002','60000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000021','10000000-0000-0000-0000-000000000003',88,false);
 reset role;
 
--- Parent A sees only the linked child's result, not classmates or School B.
+-- Parent A may read only the explicitly linked child's result.
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000004',true);
 set local role authenticated;
 do $$
 begin
-  if (select count(*) from public.exam_results) <> 1 then
-    raise exception 'Parent A exam-result boundary failed';
-  end if;
-  if (select student_id from public.exam_results limit 1) <> '30000000-0000-0000-0000-000000000001'::uuid then
-    raise exception 'Parent A received the wrong learner result';
-  end if;
+  if (select count(*) from public.exam_results) <> 1 then raise exception 'Parent A exam-result boundary failed'; end if;
+  if (select student_id from public.exam_results limit 1) <> '30000000-0000-0000-0000-000000000001'::uuid then raise exception 'Parent A received the wrong learner result'; end if;
 end
 $$;
 reset role;
 
--- Learner 1 sees only their own canonical learner result.
+-- Learner 1 may read only their canonical learner result.
 select set_config('request.jwt.claim.sub','20000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
 do $$
 begin
-  if (select count(*) from public.exam_results) <> 1 then
-    raise exception 'Learner self-result boundary failed';
-  end if;
-  if (select student_id from public.exam_results limit 1) <> '30000000-0000-0000-0000-000000000001'::uuid then
-    raise exception 'Learner received another learner result';
-  end if;
+  if (select count(*) from public.exam_results) <> 1 then raise exception 'Learner self-result boundary failed'; end if;
+  if (select student_id from public.exam_results limit 1) <> '30000000-0000-0000-0000-000000000001'::uuid then raise exception 'Learner received another learner result'; end if;
 end
 $$;
 reset role;
 
--- Admin A sees its school results but never School B.
+-- School Admin A sees School A results and never School B.
 select set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000001',true);
 set local role authenticated;
 do $$
 begin
-  if (select count(*) from public.exam_results) <> 2 then
-    raise exception 'School Admin A result scope failed';
-  end if;
-  if exists (select 1 from public.exam_results where school_id='40000000-0000-0000-0000-000000000002') then
-    raise exception 'School Admin A can see School B results';
-  end if;
+  if (select count(*) from public.exam_results) <> 2 then raise exception 'School Admin A result scope failed'; end if;
+  if exists (select 1 from public.exam_results where school_id='40000000-0000-0000-0000-000000000002') then raise exception 'School Admin A can see School B results'; end if;
 end
 $$;
 reset role;
 
 rollback;
-
 select 'PREPILOT_SYNTHETIC_SCHOOL_CORE_PASS' as certification;
