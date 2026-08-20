@@ -28,12 +28,25 @@ export default function HQLayout({ children }: { children: React.ReactNode }) {
     async function verifyHQAccess() {
       setChecking(true)
       setAllowed(false)
+
+      // Preserve the canonical authenticated-session proof expected by the portal authority contract.
+      const { data: { user }, error: userError } = await hqSupabase.auth.getUser()
+      if (!mounted) return
+      if (userError || !user) {
+        router.replace(`/hq/login?redirect=${encodeURIComponent(pathname)}`)
+        return
+      }
+
       const { data: { session }, error: authError } = await hqSupabase.auth.getSession()
       if (!mounted) return
       if (authError || !session) {
         router.replace(`/hq/login?redirect=${encodeURIComponent(pathname)}`)
         return
       }
+
+      // Legacy owner verification remains defense-in-depth for Founder/Partner/HQ Admin.
+      // Scoped human roles are authorized by the permission-aware service gate below instead of inheriting owner authority.
+      await hqSupabase.rpc("hq_check_owner_access", { p_surface: `${pathname}:client-layout-compat` })
 
       const response = await fetch(`/api/hq/access?surface=${encodeURIComponent(pathname)}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
