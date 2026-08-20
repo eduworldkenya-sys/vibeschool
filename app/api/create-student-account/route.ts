@@ -58,13 +58,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: mapped.error, ...(mapped.code ? { code: mapped.code } : {}) }, { status: mapped.status })
     }
 
-    if (!lookup.guardian_linked) {
-      return NextResponse.json({
-        error: 'A parent or guardian must connect to this learner before the learner account can be created.',
-        code: 'guardian_required',
-      }, { status: 403 })
-    }
-
     const studentId = typeof lookup.student_id === 'string' ? lookup.student_id : ''
     const studentName = typeof lookup.student_name === 'string' ? lookup.student_name.trim() : ''
     const admission = typeof lookup.admission_number === 'string' && lookup.admission_number.trim()
@@ -74,6 +67,24 @@ export async function POST(req: NextRequest) {
 
     if (!studentId || !studentName || !schoolId) {
       return NextResponse.json({ error: 'Learner identity setup is incomplete.' }, { status: 409 })
+    }
+
+    // Keep the guardian gate explicit in this service-role boundary as defense in
+    // depth. The RPC also checks it atomically during finalization.
+    const { data: parentLink } = await adminSupabase
+      .from('parent_student_links')
+      .select('parent_id')
+      .eq('student_id', studentId)
+      .eq('school_id', schoolId)
+      .neq('access_level', 'none')
+      .limit(1)
+      .maybeSingle()
+
+    if (!lookup.guardian_linked || !parentLink?.parent_id) {
+      return NextResponse.json({
+        error: 'A parent or guardian must connect to this learner before the learner account can be created.',
+        code: 'guardian_required',
+      }, { status: 403 })
     }
 
     const { data: school } = await adminSupabase
