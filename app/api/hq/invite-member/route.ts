@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
   let invited = false
 
   if (!user) {
-    const redirectTo = new URL("/hq/reset-password", SITE_URL).toString()
+    const redirectTo = new URL("/hq/accept-invite", SITE_URL).toString()
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
       redirectTo,
       data: { hq_role: "partner_admin" },
@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     userId: user.id,
     status: invited ? "invited" : "authorized_existing_account",
     message: invited
-      ? "Invitation sent. The Partner/Admin can set a password from the email and then sign in to HQ."
+      ? "Invitation sent. The Partner/Admin can activate HQ access from the secure email link."
       : "Existing VibeSchool account authorized for HQ. The user can sign in through HQ with their existing password.",
   })
 }
