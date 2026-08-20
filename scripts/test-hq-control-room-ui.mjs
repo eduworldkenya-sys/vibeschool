@@ -2,6 +2,8 @@ import fs from 'node:fs'
 
 const page = fs.readFileSync('app/hq/page.tsx','utf8')
 const shell = fs.readFileSync('components/hq/HQShell.tsx','utf8')
+const layout = fs.readFileSync('app/hq/layout.tsx','utf8')
+const mobile = fs.readFileSync('app/hq/founder-mobile-convergence.css','utf8')
 const presentation = fs.readFileSync('lib/hq/presentation.ts','utf8')
 
 const failures = []
@@ -20,12 +22,21 @@ requireText(presentation, 'numberOrNull', 'Null-safe metric parsing is required'
 requireText(presentation, 'deltaMeaning', 'Semantic delta evaluation is required')
 
 for (const label of ['Home','Decisions','Operations','Product','Content','Revenue','System']) requireText(shell, `\"${label}\"`, `Primary HQ domain missing: ${label}`)
-for (const mobile of ['[\"Home\"','[\"Decisions\"','[\"Alerts\"','[\"Operations\"']) requireText(shell, mobile, `Mobile HQ destination missing: ${mobile}`)
+for (const mobileDestination of ['[\"Home\"','[\"Decisions\"','[\"Alerts\"','[\"Operations\"']) requireText(shell, mobileDestination, `Mobile HQ destination missing: ${mobileDestination}`)
 if (!shell.includes('[\"More\"') && !shell.includes('<span>Menu</span>')) failures.push('Mobile HQ must expose the full navigation entry point')
 if (shell.includes('<span>Menu</span>')) {
   requireText(shell, 'hq-drawer', 'Mobile Menu must open the full HQ navigation drawer')
   requireText(shell, 'Search everything in HQ', 'Mobile navigation drawer must expose HQ search')
 }
+
+requireText(layout, 'HQGlobalSearch', 'Canonical HQ layout must retain global search')
+requireText(layout, '@media(max-width:900px), (pointer:coarse)', 'Global search must follow the same coarse-pointer mobile boundary as the HQ shell')
+requireText(layout, '.hq-global-search-desktop { display:none !important; }', 'Desktop search bridge must be suppressed in mobile/touch mode')
+requireText(mobile, '.hq-page-actions', 'Founder mobile convergence must govern the action toolbar')
+requireText(mobile, 'grid-template-columns: repeat(2, minmax(0, 1fr))', 'Founder actions must reflow inside the phone viewport')
+requireText(mobile, 'overflow-x: clip', 'Founder mobile page must prevent page-level horizontal overflow')
+requireText(mobile, '.fc-attention dl > div:last-child', 'Technical owner identifiers must be progressively disclosed on mobile')
+requireText(mobile, '.hq-mobile-topbar', 'Founder convergence must protect the mobile HQ header from overflow')
 
 const hrefs = [...shell.matchAll(/\[\"[^\"]+\",\"(\/hq[^\"]*)\"/g)].map(match=>match[1])
 const duplicatePrimary = ['/hq/analytics','/hq/workforce','/hq/security'].filter(href => hrefs.filter(item=>item===href).length > 1)
