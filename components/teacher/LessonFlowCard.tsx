@@ -143,6 +143,9 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
   const occurrenceId = workspace?.occurrenceId ?? null;
 
   const exactLessonUrl = `/teacher/lessonplan?timetableSlotId=${encodeURIComponent(activeSlot.id)}&date=${encodeURIComponent(occurrenceDate)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&classId=${encodeURIComponent(activeSlot.class_id)}`;
+  const lessonNotesUrl = lessonPlanId
+    ? `/teacher/lesson-notes?lessonPlanId=${encodeURIComponent(lessonPlanId)}`
+    : exactLessonUrl;
   const lineage = `lessonPlanId=${encodeURIComponent(lessonPlanId ?? "")}&occurrenceId=${encodeURIComponent(occurrenceId ?? "")}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&subject=${encodeURIComponent(activeSlot.subject)}&topic=${encodeURIComponent(activeSlot.subject)}`;
 
   const routes: Partial<Record<StepName, string>> = {
@@ -185,8 +188,25 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
         </div>
       </div>
 
-      <div style={{ height: 6, borderRadius: 99, background: "#e5e7eb", overflow: "hidden", margin: "12px 0 14px" }}>
+      <div style={{ height: 6, borderRadius: 99, background: "#e5e7eb", overflow: "hidden", margin: "12px 0 12px" }}>
         <div style={{ height: "100%", width: `${workspace?.completionPercent ?? 0}%`, background: "#10b981" }} />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+        <button
+          type="button"
+          onClick={() => onNavigate(exactLessonUrl)}
+          style={{ border: "1px solid #d1d5db", background: "#fff", color: "#111827", borderRadius: 12, padding: "11px 10px", fontSize: 12, fontWeight: 900 }}
+        >
+          Lesson plan
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigate(lessonNotesUrl)}
+          style={{ border: 0, background: lessonPlanId ? "#047857" : "#111827", color: "#fff", borderRadius: 12, padding: "11px 10px", fontSize: 12, fontWeight: 900 }}
+        >
+          {lessonPlanId ? "Open lesson notes" : "Prepare lesson notes"}
+        </button>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
