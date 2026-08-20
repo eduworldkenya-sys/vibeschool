@@ -1,0 +1,37 @@
+name: Task 9 Founder OS Reconciliation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/hq/**'
+      - 'components/hq/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-task9-founder-os-reconciliation.mjs'
+      - '.github/workflows/task9-founder-os-reconciliation.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/hq/**'
+      - 'components/hq/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-task9-founder-os-reconciliation.mjs'
+      - '.github/workflows/task9-founder-os-reconciliation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  founder-os-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Task 9 contract + canonical production build certification
+        uses: ./.github/actions/production-build-contract
+        with:
+          prebuild_command: |
+            node scripts/test-task9-founder-os-reconciliation.mjs
+            npm run typecheck
+            npm run lint
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
