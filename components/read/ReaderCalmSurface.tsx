@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+// Canonical learner surface: one reading view, one Contents action, one More menu.
 export function ReaderCalmSurface() {
   const [contentsOpen, setContentsOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -46,18 +47,9 @@ export function ReaderCalmSurface() {
     if (shell) shell.dataset.readerContents = contentsOpen ? "true" : "false";
   }, [contentsOpen]);
 
-  function openPractice() {
-    setMoreOpen(false);
-    document.querySelector<HTMLButtonElement>(".reader-practice-button")?.click();
-  }
-  function openStudy() {
-    setMoreOpen(false);
-    Array.from(document.querySelectorAll<HTMLButtonElement>(".reader-mode-switcher button")).find(b => b.textContent?.trim() === "Study")?.click();
-  }
-  function toggleFocus() {
-    setMoreOpen(false);
-    document.querySelector<HTMLButtonElement>(".reader-excellence-bar > button:nth-child(3)")?.click();
-  }
+  function openPractice() { setMoreOpen(false); document.querySelector<HTMLButtonElement>(".reader-practice-button")?.click(); }
+  function openStudy() { setMoreOpen(false); Array.from(document.querySelectorAll<HTMLButtonElement>(".reader-mode-switcher button")).find(b => b.textContent?.trim() === "Study")?.click(); }
+  function toggleFocus() { setMoreOpen(false); document.querySelector<HTMLButtonElement>(".reader-excellence-bar > button:nth-child(3)")?.click(); }
 
   if (!activeReader) return null;
   return <>
@@ -76,16 +68,10 @@ export function ReaderCalmSurface() {
     `}</style>
     {contentsOpen?<button type="button" className="reader-calm-backdrop" aria-label="Close contents" onClick={()=>setContentsOpen(false)}/>:null}
     <nav className="reader-calm-toolbar" aria-label="Reader navigation">
-      <button type="button" aria-label="Back" onClick={()=>window.history.back()}>←</button>
-      <div className="reader-calm-title">{currentTitle}</div>
+      <button type="button" aria-label="Back" onClick={()=>window.history.back()}>←</button><div className="reader-calm-title">{currentTitle}</div>
       <button type="button" aria-expanded={contentsOpen} onClick={()=>{setContentsOpen(v=>!v);setMoreOpen(false)}}>Contents</button>
       <button type="button" className="reader-calm-more" aria-label="More reader options" aria-expanded={moreOpen} onClick={()=>{setMoreOpen(v=>!v);setContentsOpen(false)}}>⋯</button>
     </nav>
-    {moreOpen?<div className="reader-calm-popover" role="menu" aria-label="More reader options">
-      <button type="button" role="menuitem" onClick={openPractice}>Practice this topic</button>
-      <button type="button" role="menuitem" onClick={()=>{setMoreOpen(false);window.dispatchEvent(new CustomEvent("vibe:reader-help"))}}>Get help</button>
-      <button type="button" role="menuitem" onClick={openStudy}>Notes & highlights</button>
-      <button type="button" role="menuitem" onClick={toggleFocus}>Focus mode</button>
-    </div>:null}
+    {moreOpen?<div className="reader-calm-popover" role="menu" aria-label="More reader options"><button type="button" role="menuitem" onClick={openPractice}>Practice this topic</button><button type="button" role="menuitem" onClick={()=>{setMoreOpen(false);window.dispatchEvent(new CustomEvent("vibe:reader-help"))}}>Get help</button><button type="button" role="menuitem" onClick={openStudy}>Notes & highlights</button><button type="button" role="menuitem" onClick={toggleFocus}>Focus mode</button></div>:null}
   </>;
 }
