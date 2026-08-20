@@ -1,8 +1,8 @@
 "use client"
 import {useCallback,useEffect,useState} from "react"
-import {supabase} from "@/lib/supabase"
+import {hqSupabase} from "@/lib/hq/supabase"
 import {HQPanel,HQ_THEME as C,hqButtonStyle} from "@/components/hq/HQShell"
-type Obj=Record<string,any>; const sb=supabase as any
+type Obj=Record<string,any>; const sb=hqSupabase as any
 const when=(v:any)=>v?new Date(String(v)).toLocaleString("en-KE"):"—"
 function Metric({label,value}:{label:string;value:any}){return <div style={{padding:12,border:`1px solid ${C.border}`,borderRadius:12,background:C.panelSoft}}><strong style={{fontSize:18}}>{String(value??0)}</strong><div style={{fontSize:10.5,color:C.muted,marginTop:4}}>{label}</div></div>}
 export default function Task15OwnerControls(){
