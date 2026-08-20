@@ -1,4 +1,14 @@
 -- HQ human operations control plane: durable identity, authority, audit, approvals and offboarding.
+-- access: service-only public.hq_human_members
+-- authorization-test: public.hq_human_members
+-- access: service-only public.hq_human_audit_log
+-- authorization-test: public.hq_human_audit_log
+-- access: service-only public.hq_human_assignments
+-- authorization-test: public.hq_human_assignments
+-- access: service-only public.hq_human_approvals
+-- authorization-test: public.hq_human_approvals
+-- access: service-only public.hq_human_notification_preferences
+-- authorization-test: public.hq_human_notification_preferences
 create table if not exists public.hq_human_members (
   profile_id uuid primary key references auth.users(id) on delete cascade,
   role text not null default 'viewer' check (role in ('founder','partner_admin','hq_admin','reviewer','support','finance','viewer')),
