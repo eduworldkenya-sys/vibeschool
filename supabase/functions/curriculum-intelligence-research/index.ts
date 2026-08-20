@@ -1,65 +1,35 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const headers={"Content-Type":"application/json","Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};
-const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers});
-const GROQ_KEY=Deno.env.get("GROQ_API_KEY")??"";
-const TAVILY_KEY=Deno.env.get("TAVILY_API_KEY")??"";
-const MODEL=Deno.env.get("CURRICULUM_INTELLIGENCE_GROQ_MODEL")??"llama-3.3-70b-versatile";
-const WORKER="curriculum-intelligence-research:v6-cors";
-
-async function sha256(value:string){
-  const bytes=new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)));
-  return Array.from(bytes).map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-function host(url:string){try{return new URL(url).hostname.replace(/^www\./,"").toLowerCase()}catch{return ""}}
-function tier(url:string){const h=host(url);if(/(^|\.)kicd\.ac\.ke$|(^|\.)knec\.ac\.ke$|\.go\.ke$|(^|\.)kenyalaw\.org$/.test(h))return 1;if(/(^|\.)who\.int$|(^|\.)fao\.org$|(^|\.)nasa\.gov$|(^|\.)mit\.edu$|(^|\.)nature\.com$|(^|\.)science\.org$|\.edu$|\.ac\.ke$/.test(h))return 2;return 3}
-function sourceType(url:string,t:number){const h=host(url);if(t===1)return h.includes("kicd")||h.includes("knec")?"official":"government";if(t===2)return /nature\.com|science\.org/.test(h)?"primary_research":"institutional";return "web"}
-function authority(t:number){return t===1?1:t===2?.92:.65}
-function parseJson(raw:string){const txt=raw.match(/<json>([\s\S]*?)<\/json>/i)?.[1]??raw;try{return JSON.parse(txt.replace(/^```json\s*/i,"").replace(/```$/i,"").trim())}catch{return null}}
-
+import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+const C={"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Content-Type":"application/json"}
+const reply=(b:unknown,s=200)=>new Response(JSON.stringify(b),{status:s,headers:C})
+const GROQ=Deno.env.get("GROQ_API_KEY")??"",TAVILY=Deno.env.get("TAVILY_API_KEY")??"",MODEL=Deno.env.get("CURRICULUM_INTELLIGENCE_GROQ_MODEL")??"llama-3.3-70b-versatile"
+const parse=(s:string)=>{const x=s.match(/<proposal_json>([\s\S]*?)<\/proposal_json>/i)?.[1]??s;try{return JSON.parse(x.replace(/^```json\s*/i,"").replace(/```$/i,"").trim())}catch{return null}}
+const fingerprint=async(s:string)=>Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s.toLowerCase().replace(/\s+/g," ").trim())))).map(b=>b.toString(16).padStart(2,"0")).join("")
+function rightsFor(url:string){try{const host=new URL(url).hostname.replace(/^www\./,"").toLowerCase();const official=/\.go\.ke$|(^|\.)kicd\.ac\.ke$|(^|\.)knec\.ac\.ke$|(^|\.)kenyalaw\.org$/.test(host);if(official)return{source_domain:host,rights_class:"official_public_source",can_quote:false,can_adapt:false,can_reproduce_media:false,notes:"Official/public authority used as a factual source. Do not assume reproduction rights without explicit terms."};if(/nature\.com$|science\.org$|pubmed\.ncbi\.nlm\.nih\.gov$|mit\.edu$|\.edu$|\.ac\.ke$/.test(host))return{source_domain:host,rights_class:"factual_reference_only",can_quote:false,can_adapt:false,can_reproduce_media:false,notes:"Use facts and findings as reference; do not reproduce source prose or media without license review."};return{source_domain:host,rights_class:"unknown_review_required",can_quote:false,can_adapt:false,can_reproduce_media:false,notes:"Public accessibility does not establish reuse rights. Rights review required."}}catch{return{source_domain:null,rights_class:"unknown_review_required",can_quote:false,can_adapt:false,can_reproduce_media:false,notes:"Invalid or unclassified URL; rights review required."}}}
 Deno.serve(async(req:Request)=>{
-  if(req.method==="OPTIONS")return new Response("ok",{headers});
-  if(req.method!=="POST")return json({error:"method_not_allowed"},405);
-  let db:any=null; let claimedJobId:string|null=null;
-  try{
-    if(!GROQ_KEY||!TAVILY_KEY)return json({error:"research_provider_not_configured"},500);
-    const auth=req.headers.get("Authorization");if(!auth)return json({error:"unauthorized"},401);
-    const url=Deno.env.get("SUPABASE_URL")!,anon=Deno.env.get("SUPABASE_ANON_KEY")!,service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const userDb=createClient(url,anon,{global:{headers:{Authorization:auth}}});
-    const {data:{user}}=await userDb.auth.getUser();if(!user)return json({error:"unauthorized"},401);
-    const {data:isOwner}=await userDb.rpc("is_platform_owner");if(!isOwner)return json({error:"hq_platform_owner_required"},403);
-    db=createClient(url,service);
-    const {data:job,error:claimErr}=await db.rpc("claim_next_research_job",{p_worker:WORKER});if(claimErr)throw claimErr;
-    if(!job)return json({ok:true,status:"no_work"});
-    claimedJobId=job.id;
-    const {data:proposal,error:pErr}=await db.from("curriculum_intelligence_proposals").select("id,title,claim,current_content,proposed_content,rationale,curriculum_relevance,volatility,publication_id,chapter_id").eq("id",job.proposal_id).single();if(pErr)throw pErr;
-    const allowed=Array.isArray(job.allowed_domains)?job.allowed_domains:[];
-    const query=[job.research_question,proposal.title,"Kenya curriculum evidence"].filter(Boolean).join(" ");
-    const search=await fetch("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:TAVILY_KEY,query,search_depth:"advanced",max_results:10,include_answer:false,include_raw_content:false,include_domains:allowed.length?allowed:undefined})});
-    const searchData=await search.json();if(!search.ok)throw new Error(`tavily_search_failed:${search.status}`);
-    const candidates=(searchData.results??[]).slice(0,10).map((s:any)=>({url:String(s.url??""),title:String(s.title??""),snippet:String(s.content??"").slice(0,1800)})).filter((s:any)=>s.url&&s.snippet);
-    if(candidates.length===0)throw new Error("research_no_usable_sources");
-    const evidenceText=candidates.map((s:any,i:number)=>`SOURCE ${i+1}\nURL: ${s.url}\nTITLE: ${s.title}\nEXCERPT: ${s.snippet}`).join("\n\n");
-    const prompt=`You are an evidence adjudicator for a Kenyan educational publisher. Evaluate ONLY the supplied source excerpts against this claim. Never invent facts or source content.\nCLAIM: ${proposal.claim||job.research_question}\nCURRENT CONTENT: ${proposal.current_content||""}\nPROPOSED CONTENT: ${proposal.proposed_content||""}\nSOURCES:\n${evidenceText}\nReturn only <json>{"sources":[{"index":1,"stance":"supports|contradicts|neutral","excerpt":"short evidence-bearing excerpt or paraphrase from supplied snippet","reason":"brief reason"}],"synthesis":"brief evidence synthesis"}</json>. A source supports only if its excerpt materially supports the claim; contradiction must be explicit; otherwise neutral.`;
-    const gr=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${GROQ_KEY}`},body:JSON.stringify({model:MODEL,messages:[{role:"user",content:prompt}],temperature:0,max_tokens:2600})});
-    const gd=await gr.json();if(!gr.ok)throw new Error(`groq_adjudication_failed:${gr.status}`);
-    const adjudication=parseJson(gd.choices?.[0]?.message?.content??"");
-    if(!adjudication||!Array.isArray(adjudication.sources))throw new Error("research_adjudication_invalid");
-    const byIndex=new Map(adjudication.sources.map((x:any)=>[Number(x.index),x]));
-    const rows=[];
-    for(let i=0;i<candidates.length;i++){
-      const c=candidates[i],a:any=byIndex.get(i+1)??{};const t=tier(c.url);const stance=a.stance==="supports"?"supports":a.stance==="contradicts"?"contradicts":"neutral";
-      rows.push({proposal_id:proposal.id,url:c.url,title:c.title||null,publisher:host(c.url)||null,source_type:sourceType(c.url,t),authority_score:authority(t),supports_claim:stance==="supports",accessed_at:new Date().toISOString(),retrieved_at:new Date().toISOString(),content_hash:await sha256(c.snippet),source_tier:t,verification_method:"tavily_search+groq_excerpt_adjudication",claim_excerpt:String(a.excerpt||c.snippet).slice(0,1200),contradicts_claim:stance==="contradicts",evidence_summary:String(a.reason||c.snippet).slice(0,1200)});
-    }
-    await db.from("curriculum_intelligence_sources").delete().eq("proposal_id",proposal.id).eq("verification_method","tavily_search+groq_excerpt_adjudication");
-    const {error:sErr}=await db.from("curriculum_intelligence_sources").insert(rows);if(sErr)throw sErr;
-    const {data:result,error:fErr}=await db.rpc("finalize_research_job",{p_job_id:job.id,p_result:{worker:WORKER,model:MODEL,search_provider:"tavily",candidate_count:candidates.length,synthesis:String(adjudication.synthesis||"").slice(0,2000)}});if(fErr)throw fErr;
-    claimedJobId=null;
-    return json({ok:true,status:result?.status??"completed",jobId:job.id,proposalId:proposal.id,evidence:result});
-  }catch(e){
-    const message=e instanceof Error?e.message:String(e); console.error(e);
-    if(db&&claimedJobId){try{await db.rpc("fail_research_job",{p_job_id:claimedJobId,p_error:message})}catch(failErr){console.error("fail_research_job_failed",failErr)}}
-    return json({error:message},500);
-  }
-});
+ if(req.method==="OPTIONS")return new Response("ok",{headers:C}); if(req.method!=="POST")return reply({error:"method_not_allowed"},405)
+ try{
+  if(!GROQ)return reply({error:"groq_key_missing"},500); if(!TAVILY)return reply({error:"tavily_key_missing"},500)
+  const auth=req.headers.get("Authorization"); if(!auth)return reply({error:"Unauthorized"},401)
+  const url=Deno.env.get("SUPABASE_URL")!,anon=Deno.env.get("SUPABASE_ANON_KEY")!,service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  const udb=createClient(url,anon,{global:{headers:{Authorization:auth}}}),db=createClient(url,service)
+  const {data:{user}}=await udb.auth.getUser(); if(!user)return reply({error:"Unauthorized"},401); const {data:owner}=await udb.rpc("is_platform_owner"); if(!owner)return reply({error:"HQ platform owner required"},403)
+  const body=await req.json().catch(()=>({})); let q=db.from("curriculum_intelligence_watch_targets").select("*").eq("enabled",true); q=body.targetId?q.eq("id",body.targetId):q.order("next_check_at",{ascending:true,nullsFirst:true}).limit(1)
+  const {data:targets,error:te}=await q;if(te)throw te;const t=targets?.[0];if(!t)return reply({status:"no_work"})
+  const {data:run,error:re}=await db.from("curriculum_intelligence_runs").insert({watch_target_id:t.id,status:"running",trigger_type:"manual",started_by:user.id,model:`groq:${MODEL}+tavily`}).select("id").single();if(re)throw re
+  let current="No specific Vibeschool passage is attached. Propose enrichment/review only, never an automatic replacement.";if(t.chapter_id){const {data:c}=await db.from("vibe_chapters").select("title,learning_outcomes,blocks").eq("id",t.chapter_id).maybeSingle();if(c)current=`Chapter: ${c.title}\nOutcomes: ${JSON.stringify(c.learning_outcomes||[])}\n${(c.blocks||[]).slice(0,70).map((b:any,i:number)=>`${i+1}. ${String(b.content||"").slice(0,900)}`).join("\n")}`.slice(0,24000)}
+  const domains=Array.isArray(t.preferred_domains)?t.preferred_domains:[];const sr=await fetch("https://api.tavily.com/search",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({api_key:TAVILY,query:`${t.query} ${t.grade||""} ${t.subject||""} Kenya curriculum current evidence`,search_depth:"advanced",max_results:8,include_answer:true,include_domains:domains.length?domains:undefined})});const sd=await sr.json();if(!sr.ok)throw new Error(`tavily_search_failed:${sr.status}`)
+  const sources=(sd.results||[]).slice(0,8).map((x:any)=>({url:x.url,title:x.title||null,publisher:null,source_type:"web",authority_score:domains.some((d:string)=>{try{return new URL(x.url).hostname.endsWith(d)}catch{return false}})?.95:.75,supports_claim:true,evidence_summary:String(x.content||"").slice(0,1000)}));const evidence=sources.map((x:any,i:number)=>`SOURCE ${i+1}\n${x.title}\n${x.url}\n${x.evidence_summary}`).join("\n\n")
+  const system="You are Vibeschool's senior editorial board: an experienced Kenyan subject editor, classroom teacher, fact-checker and educational writer. Produce prose with a human editorial hand: precise, warm, lucid, concrete, intellectually serious and natural in rhythm. Never sound like generic AI, marketing copy, a template, or inflated claims. Explain why ideas matter. Use Kenyan contexts only when authentic and educationally useful. Preserve subject terminology and learner dignity. Distinguish curriculum requirements, established knowledge, changing facts and emerging research. Never invent citations, curriculum changes, quotations, statistics, experiments or historical facts. Prefer the smallest improvement that genuinely improves learning. Write original synthesis and never imitate publisher prose."
+  const prompt=`WATCH ${t.label}\nGrade ${t.grade||"unspecified"}; Subject ${t.subject||"cross-curriculum"}\nQuestion: ${t.query}\n\nCURRENT VIBESCHOOL\n${current}\n\nLIVE EVIDENCE\n${evidence||"None"}\n\nEditorial rules: require two credible independent sources for verified status; KICD/KNEC changes require an official KICD/KNEC source; compare before rewriting; C0=curriculum change, C1=correction, C2=changed fact, C3=strong enrichment, C4=optional, C5=irrelevant. Draft at most one high-value learner-facing improvement. It must read like finished textbook prose, not research notes. No choppy bullet spam, 'delve', 'in today's rapidly changing world', empty motivation, fake certainty, excessive headings, or repeated conclusions. If evidence is weak or learning is not improved, choose no_change. Return only <proposal_json>{"decision":"proposal|no_change","title":"...","claim":"...","current_content":"...","proposed_content":"...","rationale":"...","proposal_type":"curriculum_change|correction|current_fact_update|enrichment|review_candidate","curriculum_relevance":"C0|C1|C2|C3|C4|C5","confidence":0.0,"verification_status":"verified|insufficient_evidence|disputed|unverified","volatility":"low|medium|high"}</proposal_json>`
+  const gr=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${GROQ}`},body:JSON.stringify({model:MODEL,messages:[{role:"system",content:system},{role:"user",content:prompt}],temperature:.25,max_tokens:4200})});const gd=await gr.json();if(!gr.ok)throw new Error(`groq_generation_failed:${gr.status}`);const p=parse(gd.choices?.[0]?.message?.content||"")
+  const now=new Date(),next=new Date(now);t.cadence==="daily"?next.setUTCDate(next.getUTCDate()+1):t.cadence==="monthly"?next.setUTCMonth(next.getUTCMonth()+1):next.setUTCDate(next.getUTCDate()+7);await db.from("curriculum_intelligence_watch_targets").update({last_checked_at:now.toISOString(),next_check_at:next.toISOString(),updated_at:now.toISOString()}).eq("id",t.id)
+  if(!p||p.decision!=="proposal"||p.curriculum_relevance==="C5"){await db.from("curriculum_intelligence_runs").update({status:"no_change",search_requests:1,sources_found:sources.length,summary:p?.rationale||"No material improvement found.",completed_at:now.toISOString()}).eq("id",run.id);return reply({ok:true,status:"no_change",runId:run.id})}
+  let verification=p.verification_status||"unverified",confidence=Math.max(0,Math.min(1,Number(p.confidence)||0));if(sources.length<2){if(verification==="verified")verification="insufficient_evidence";confidence=Math.min(confidence,.6)}const fp=await fingerprint(`${t.id}|${p.claim}|${p.proposed_content}`);const {data:dup}=await db.from("curriculum_intelligence_proposals").select("id").eq("research_fingerprint",fp).maybeSingle();if(dup)return reply({ok:true,status:"duplicate",proposalId:dup.id})
+  const {data:proposal,error:pe}=await db.from("curriculum_intelligence_proposals").insert({watch_target_id:t.id,publication_id:t.publication_id||null,chapter_id:t.chapter_id||null,proposal_type:p.proposal_type||"review_candidate",title:p.title||"Editorial research proposal",claim:p.claim||null,current_content:p.current_content||null,proposed_content:p.proposed_content||"",patch:{operation:"research_draft",auto_apply:false},rationale:p.rationale||"Evidence-based editorial candidate.",curriculum_relevance:p.curriculum_relevance||"C4",confidence,verification_status:verification,volatility:p.volatility||"medium",status:"pending_review",generated_by:`curriculum_intelligence_engine:groq:${MODEL}+tavily`,engine_run_id:run.id,research_fingerprint:fp}).select("id").single();if(pe)throw pe
+  if(sources.length)await db.from("curriculum_intelligence_sources").insert(sources.map((s:any)=>({...s,proposal_id:proposal.id})))
+  if(sources.length){const rights=sources.map((s:any)=>({proposal_id:proposal.id,source_url:s.url,...rightsFor(s.url)}));const {error:rightsError}=await db.from("curriculum_content_rights").upsert(rights,{onConflict:"proposal_id,source_url"});if(rightsError)throw rightsError}
+  await db.from("curriculum_intelligence_audit").insert({proposal_id:proposal.id,actor_id:user.id,action:"engine_generated",after_state:{provider:"groq",search_provider:"tavily",model:MODEL,verification,confidence,source_count:sources.length,rights_classified:sources.length,editorial_standard:"vibeschool-senior-editor-v1"},note:"Generated by Groq from live Tavily evidence under Vibeschool senior editorial standard; source rights conservatively classified."});await db.from("curriculum_intelligence_runs").update({status:"completed",search_requests:1,proposals_created:1,sources_found:sources.length,summary:p.rationale||"Editorial proposal generated.",completed_at:now.toISOString()}).eq("id",run.id)
+  return reply({ok:true,status:"completed",runId:run.id,proposalId:proposal.id,provider:"groq",searchProvider:"tavily",model:MODEL,verification,confidence,sourcesFound:sources.length,rightsClassified:sources.length})
+ }catch(e){console.error(e);return reply({error:e instanceof Error?e.message:String(e)},500)}
+})
