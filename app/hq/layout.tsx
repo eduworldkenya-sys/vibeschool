@@ -7,6 +7,7 @@ import HQGlobalSearch from "@/components/hq/HQGlobalSearch"
 import HQOfflineStatus from "@/components/hq/HQOfflineStatus"
 import { hqSupabase } from "@/lib/hq/supabase"
 import "./hq-layout-fallback.css"
+import "./founder-mobile-convergence.css"
 
 const PUBLIC_HQ_ROUTES = new Set(["/hq/login", "/hq/reset-password"])
 
@@ -80,12 +81,12 @@ export default function HQLayout({ children }: { children: React.ReactNode }) {
       .hq-sidebar.is-collapsed ~ .hq-global-search-desktop .hq-search-trigger { width:48px; padding:0; justify-content:center; }
       .hq-sidebar.is-collapsed ~ .hq-global-search-desktop .hq-search-trigger span,
       .hq-sidebar.is-collapsed ~ .hq-global-search-desktop .hq-search-trigger kbd { display:none; }
-      @media(max-width:980px) and (min-width:901px){.hq-global-search-desktop{width:180px}}
-      @media(max-width:900px){
+      @media(max-width:980px) and (min-width:901px) and (pointer:fine){.hq-global-search-desktop{width:180px}}
+      @media(max-width:900px), (pointer:coarse){
         .hq-sidebar > .hq-side-scroll { padding-top:0 !important; }
-        .hq-global-search-desktop { display:none; }
-        .hq-global-search-mobile { display:block; top:11px; right:96px; }
-        .hq-global-search-mobile .hq-search-trigger.compact { width:40px; height:40px; min-height:40px; border:1px solid var(--hq-border); border-radius:10px; background:#0c1a2b; color:#dbeafe; }
+        .hq-global-search-desktop { display:none !important; }
+        .hq-global-search-mobile { display:block !important; top:11px !important; right:96px !important; left:auto !important; width:40px !important; height:40px !important; }
+        .hq-global-search-mobile .hq-search-trigger.compact { position:static !important; margin:0 !important; width:40px !important; height:40px !important; min-height:40px !important; padding:0 !important; justify-content:center !important; border:1px solid var(--hq-border) !important; border-radius:10px !important; background:#0c1a2b !important; color:#dbeafe !important; }
       }
     `}</style>
   </>
