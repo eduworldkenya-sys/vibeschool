@@ -30,7 +30,6 @@ begin
   );
 end $$;
 
--- The legacy primitive becomes internal-only. No transport/user role may remove a stop.
 revoke all on function public.hq_workforce_reset_execution_breaker(uuid,text,text,jsonb)
   from public,anon,authenticated,service_role;
 revoke all on function public.hq_workforce_owner_reset_execution_breaker(uuid,text,jsonb)

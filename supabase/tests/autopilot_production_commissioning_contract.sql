@@ -44,6 +44,47 @@ begin
 end $$;
 
 do $$
+declare v_count integer;
+begin
+  select count(*) into v_count
+  from public.hq_workforce_capabilities c
+  join public.hq_workforce_capability_competencies cc on cc.capability_id=c.id and cc.required
+  where c.capability_key='content.research.execute' and c.version=1
+    and cc.competency_key='curriculum.analysis' and cc.minimum_proficiency>=0.90;
+  if v_count<>1 then raise exception 'research_capability_competency_contract_missing'; end if;
+
+  select count(*) into v_count
+  from public.hq_workforce_capabilities c
+  join public.hq_workforce_capability_competencies cc on cc.capability_id=c.id and cc.required
+  where c.capability_key='content.evidence.semantic_verify' and c.version=1
+    and cc.competency_key='quality.analysis' and cc.minimum_proficiency>=0.90;
+  if v_count<>1 then raise exception 'semantic_verifier_competency_contract_missing'; end if;
+
+  select count(*) into v_count
+  from public.hq_workforce_capabilities c
+  join public.hq_workforce_capability_competencies cc on cc.capability_id=c.id and cc.required
+  where c.capability_key='content.authoring.source_grounded' and c.version=1
+    and cc.competency_key in ('curriculum.analysis','content.quality') and cc.minimum_proficiency>=0.90;
+  if v_count<>2 then raise exception 'authoring_capability_competency_contract_incomplete'; end if;
+
+  if not exists(
+    select 1 from public.hq_workforce_worker_competencies wc
+    join public.hq_workforce_workers w on w.worker_key=wc.worker_key
+    where wc.worker_key='curriculum-worker-01' and w.status='active'
+      and wc.competency_key='curriculum.analysis' and wc.certification_status='certified'
+      and wc.proficiency>=0.90 and (wc.expires_at is null or wc.expires_at>clock_timestamp())
+  ) then raise exception 'research_canary_candidate_not_competency_qualified'; end if;
+
+  if not exists(
+    select 1 from public.hq_workforce_worker_competencies wc
+    join public.hq_workforce_workers w on w.worker_key=wc.worker_key
+    where wc.worker_key='quality-worker-01' and w.status='active'
+      and wc.competency_key='quality.analysis' and wc.certification_status='certified'
+      and wc.proficiency>=0.90 and (wc.expires_at is null or wc.expires_at>clock_timestamp())
+  ) then raise exception 'semantic_verifier_candidate_not_competency_qualified'; end if;
+end $$;
+
+do $$
 begin
   if has_function_privilege('anon','public.hq_workforce_owner_set_runtime(boolean,smallint,smallint,text)','EXECUTE')
      or has_function_privilege('service_role','public.hq_workforce_owner_set_runtime(boolean,smallint,smallint,text)','EXECUTE')

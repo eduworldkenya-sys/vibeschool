@@ -48,8 +48,6 @@ begin
     raise exception 'runtime_activation_requires_shadow_stopped';
   end if;
 
-  -- Activation time is the canonical lower bound established by the owner-governed
-  -- capability-authority lifecycle transition; no separate effective-start column exists.
   select count(*) into v_authority
     from public.hq_workforce_capability_authority_grants
    where status='active'
@@ -183,7 +181,6 @@ revoke all on function public.hq_autopilot_founder_brief() from public,anon,serv
 grant execute on function public.hq_autopilot_constitution_snapshot() to authenticated;
 grant execute on function public.hq_autopilot_founder_brief() to authenticated;
 
--- Migration-time constitutional attestation. This change must remain non-activating.
 do $$
 declare ec public.hq_workforce_engine_contract%rowtype; v_active integer; d text;
 begin

@@ -135,7 +135,6 @@ create trigger trg_hq_autopilot_enrich_shadow_scheduler_event
 before insert on public.hq_workforce_scheduler_events
 for each row execute function public.hq_autopilot_enrich_shadow_scheduler_event();
 
--- No direct client or transport invocation is required; this is a table trigger only.
 revoke all on function public.hq_autopilot_enrich_shadow_scheduler_event() from public,anon,authenticated,service_role;
 
 do $$
