@@ -3,37 +3,20 @@ export const dynamic="force-dynamic"
 
 import Link from "next/link"
 import {useCallback,useEffect,useMemo,useState} from "react"
-import {supabase} from "@/lib/supabase"
+import {hqSupabase} from "@/lib/hq/supabase"
 import {HQPage,HQPanel,HQ_THEME as C,hqButtonStyle} from "@/components/hq/HQShell"
 
 type Obj=Record<string,any>
-const sb=supabase as any
+const sb=hqSupabase as any
 const when=(v:any)=>v?new Date(String(v)).toLocaleString("en-KE"):"—"
-
-function Pill({ok,label}:{ok:boolean;label:string}){
- return <span style={{display:"inline-flex",alignItems:"center",minHeight:28,padding:"0 10px",borderRadius:999,border:`1px solid ${ok?C.green:C.red}55`,background:`${ok?C.green:C.red}12`,color:ok?C.green:C.red,fontSize:11,fontWeight:900}}>{label}</span>
-}
-
-function Metric({label,value,ok=true}:{label:string;value:any;ok?:boolean}){
- return <div style={{padding:13,border:`1px solid ${C.border}`,borderRadius:14,background:C.panelSoft}}><div style={{fontSize:22,fontWeight:950,color:ok?C.green:C.red}}>{String(value??0)}</div><div style={{marginTop:4,fontSize:10.5,color:C.muted}}>{label}</div></div>
-}
-
+function Pill({ok,label}:{ok:boolean;label:string}){return <span style={{display:"inline-flex",alignItems:"center",minHeight:28,padding:"0 10px",borderRadius:999,border:`1px solid ${ok?C.green:C.red}55`,background:`${ok?C.green:C.red}12`,color:ok?C.green:C.red,fontSize:11,fontWeight:900}}>{label}</span>}
+function Metric({label,value,ok=true}:{label:string;value:any;ok?:boolean}){return <div style={{padding:13,border:`1px solid ${C.border}`,borderRadius:14,background:C.panelSoft}}><div style={{fontSize:22,fontWeight:950,color:ok?C.green:C.red}}>{String(value??0)}</div><div style={{marginTop:4,fontSize:10.5,color:C.muted}}>{label}</div></div>}
 export default function WorkerEngineReadinessPage(){
- const[data,setData]=useState<Obj|null>(null)
- const[loading,setLoading]=useState(true)
- const[error,setError]=useState("")
+ const[data,setData]=useState<Obj|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState("")
  const load=useCallback(async()=>{setLoading(true);setError("");try{const{data,error}=await sb.rpc("hq_workforce_get_commissioning_readiness");if(error)throw error;setData(data as Obj)}catch(e){setError(e instanceof Error?e.message:"Commissioning readiness could not be loaded.")}finally{setLoading(false)}},[])
- useEffect(()=>{void load()},[load])
- const runtime=data?.runtime_state??{}
- const residue=data?.residue??{}
- const residueZero=useMemo(()=>Object.values(residue).every(v=>Number(v??0)===0),[residue])
- const runtimeClosed=!runtime.execution_enabled&&Number(runtime.autonomy_level??0)===0&&Number(runtime.max_risk??0)===0&&!runtime.heartbeat_enabled&&!runtime.factory_enabled&&runtime.global_stop===true
+ useEffect(()=>{void load()},[load]);const runtime=data?.runtime_state??{},residue=data?.residue??{};const residueZero=useMemo(()=>Object.values(residue).every(v=>Number(v??0)===0),[residue]);const runtimeClosed=!runtime.execution_enabled&&Number(runtime.autonomy_level??0)===0&&Number(runtime.max_risk??0)===0&&!runtime.heartbeat_enabled&&!runtime.factory_enabled&&runtime.global_stop===true
  return <HQPage title="Worker Engine Commissioning" description="Owner-only production readiness · certified evidence, runtime safety and residue" actions={<div style={{display:"flex",gap:8,flexWrap:"wrap"}}><Link href="/hq/workforce" style={hqButtonStyle}>Control Room</Link><button onClick={()=>void load()} disabled={loading} style={hqButtonStyle}>{loading?"Refreshing…":"Refresh"}</button></div>}>
-  {error&&<div role="alert" style={{marginBottom:12,padding:12,border:`1px solid ${C.red}55`,borderRadius:11,background:`${C.red}12`,color:C.red,fontSize:11.5}}>{error}</div>}
-  {!data?<HQPanel><div style={{padding:28,color:C.muted,fontSize:12}}>{loading?"Loading owner-certified production evidence…":"No readiness evidence available."}</div></HQPanel>:<div style={{display:"grid",gap:12}}>
-   <HQPanel title="Definition of done" description="This is evidence visibility only. It does not activate runtime, grant authority or publish content."><div style={{padding:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill ok={data.definition_of_done_certified===true} label={data.definition_of_done_certified?"Commissioning certified":"Commissioning blocked"}/><Pill ok={runtimeClosed} label={runtimeClosed?"Runtime OFF · L0/R0":"Runtime boundary open"}/><Pill ok={residueZero} label={residueZero?"Zero live residue":"Live residue detected"}/><Pill ok={data.high_risk_l2_excluded===true} label={data.high_risk_l2_excluded?"High-risk L2 excluded":"L2 boundary violation"}/><Pill ok={data.scheduler_active===true} label={data.scheduler_active?"Scheduler installed · inert while OFF":"Scheduler missing"}/></div><div style={{padding:"0 14px 14px",fontSize:10.5,color:C.muted}}>Generated {when(data.generated_at)}</div></HQPanel>
-   <section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}><Metric label="Active authority grants" value={residue.active_authority_grants} ok={Number(residue.active_authority_grants??0)===0}/><Metric label="Active identities" value={residue.active_identities} ok={Number(residue.active_identities??0)===0}/><Metric label="Active budgets" value={residue.active_budgets} ok={Number(residue.active_budgets??0)===0}/><Metric label="Active canary sessions" value={residue.active_canary_sessions} ok={Number(residue.active_canary_sessions??0)===0}/></section>
-   <HQPanel title="Certification gates" description="Permanent production commissioning ledger."><div style={{display:"grid",gap:8,padding:14}}>{(data.gates??[]).map((g:Obj)=><div key={g.gate_key} style={{padding:12,border:`1px solid ${C.border}`,borderRadius:12,background:C.panelSoft}}><div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}><strong style={{fontSize:12}}>{String(g.gate_key).replaceAll("_"," ")}</strong><Pill ok={g.status==="certified"} label={String(g.status)}/></div><div style={{marginTop:6,fontSize:10.5,color:C.muted}}>Certified {when(g.certified_at)}</div></div>)}</div></HQPanel>
-  </div>}
+ {error&&<div role="alert" style={{marginBottom:12,padding:12,border:`1px solid ${C.red}55`,borderRadius:11,background:`${C.red}12`,color:C.red,fontSize:11.5}}>{error}</div>}
+ {!data?<HQPanel><div style={{padding:28,color:C.muted,fontSize:12}}>{loading?"Loading owner-certified production evidence…":"No readiness evidence available."}</div></HQPanel>:<div style={{display:"grid",gap:12}}><HQPanel title="Definition of done" description="This is evidence visibility only. It does not activate runtime, grant authority or publish content."><div style={{padding:14,display:"flex",gap:8,flexWrap:"wrap"}}><Pill ok={data.definition_of_done_certified===true} label={data.definition_of_done_certified?"Commissioning certified":"Commissioning blocked"}/><Pill ok={runtimeClosed} label={runtimeClosed?"Runtime OFF · L0/R0":"Runtime boundary open"}/><Pill ok={residueZero} label={residueZero?"Zero live residue":"Live residue detected"}/><Pill ok={data.high_risk_l2_excluded===true} label={data.high_risk_l2_excluded?"High-risk L2 excluded":"L2 boundary violation"}/><Pill ok={data.scheduler_active===true} label={data.scheduler_active?"Scheduler installed · inert while OFF":"Scheduler missing"}/></div><div style={{padding:"0 14px 14px",fontSize:10.5,color:C.muted}}>Generated {when(data.generated_at)}</div></HQPanel><section style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}><Metric label="Active authority grants" value={residue.active_authority_grants} ok={Number(residue.active_authority_grants??0)===0}/><Metric label="Active identities" value={residue.active_identities} ok={Number(residue.active_identities??0)===0}/><Metric label="Active budgets" value={residue.active_budgets} ok={Number(residue.active_budgets??0)===0}/><Metric label="Active canary sessions" value={residue.active_canary_sessions} ok={Number(residue.active_canary_sessions??0)===0}/></section><HQPanel title="Certification gates" description="Permanent production commissioning ledger."><div style={{display:"grid",gap:8,padding:14}}>{(data.gates??[]).map((g:Obj)=><div key={g.gate_key} style={{padding:12,border:`1px solid ${C.border}`,borderRadius:12,background:C.panelSoft}}><div style={{display:"flex",gap:8,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}><strong style={{fontSize:12}}>{String(g.gate_key).replaceAll("_"," ")}</strong><Pill ok={g.status==="certified"} label={String(g.status)}/></div><div style={{marginTop:6,fontSize:10.5,color:C.muted}}>Certified {when(g.certified_at)}</div></div>)}</div></HQPanel></div>}
  </HQPage>
 }
