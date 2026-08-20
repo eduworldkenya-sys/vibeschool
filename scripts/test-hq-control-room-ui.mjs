@@ -20,7 +20,12 @@ requireText(presentation, 'numberOrNull', 'Null-safe metric parsing is required'
 requireText(presentation, 'deltaMeaning', 'Semantic delta evaluation is required')
 
 for (const label of ['Home','Decisions','Operations','Product','Content','Revenue','System']) requireText(shell, `\"${label}\"`, `Primary HQ domain missing: ${label}`)
-for (const mobile of ['[\"Home\"','[\"Decisions\"','[\"Alerts\"','[\"Operations\"','[\"More\"']) requireText(shell, mobile, `Mobile HQ destination missing: ${mobile}`)
+for (const mobile of ['[\"Home\"','[\"Decisions\"','[\"Alerts\"','[\"Operations\"']) requireText(shell, mobile, `Mobile HQ destination missing: ${mobile}`)
+if (!shell.includes('[\"More\"') && !shell.includes('<span>Menu</span>')) failures.push('Mobile HQ must expose the full navigation entry point')
+if (shell.includes('<span>Menu</span>')) {
+  requireText(shell, 'hq-drawer', 'Mobile Menu must open the full HQ navigation drawer')
+  requireText(shell, 'Search everything in HQ', 'Mobile navigation drawer must expose HQ search')
+}
 
 const hrefs = [...shell.matchAll(/\[\"[^\"]+\",\"(\/hq[^\"]*)\"/g)].map(match=>match[1])
 const duplicatePrimary = ['/hq/analytics','/hq/workforce','/hq/security'].filter(href => hrefs.filter(item=>item===href).length > 1)
