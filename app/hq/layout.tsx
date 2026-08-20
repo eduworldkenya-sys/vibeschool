@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { HQNavigation, HQStyles } from "@/components/hq/HQShell"
 import HQOfflineStatus from "@/components/hq/HQOfflineStatus"
 import { hqSupabase } from "@/lib/hq/supabase"
+import "./hq-layout-fallback.css"
 
 const PUBLIC_HQ_ROUTES = new Set(["/hq/login", "/hq/reset-password"])
 
