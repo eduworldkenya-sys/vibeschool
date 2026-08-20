@@ -1,0 +1,35 @@
+name: Task 9 Founder Operations Current Main
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/hq/operations/**'
+      - 'components/hq/**'
+      - 'scripts/test-task9-founder-operations-current-main.mjs'
+      - '.github/workflows/task9-founder-operations-current-main.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/hq/operations/**'
+      - 'components/hq/**'
+      - 'scripts/test-task9-founder-operations-current-main.mjs'
+      - '.github/workflows/task9-founder-operations-current-main.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  founder-operations-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Task 9 current-main contract + production build
+        uses: ./.github/actions/production-build-contract
+        with:
+          prebuild_command: |
+            node scripts/test-task9-founder-operations-current-main.mjs
+            npm run typecheck
+            npm run lint
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
