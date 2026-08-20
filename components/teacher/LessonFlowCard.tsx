@@ -165,7 +165,7 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
     "Take Attendance": `/teacher/attendance?mode=lesson&classId=${encodeURIComponent(activeSlot.class_id)}&timetableSlotId=${encodeURIComponent(activeSlot.id)}&date=${encodeURIComponent(occurrenceDate)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}`,
     "Teach Lesson": exactLessonUrl,
     "Assign Task": `/teacher/classhub/${encodeURIComponent(activeSlot.class_id)}/homework?${lineage}`,
-    "Mark Learner Work": `/teacher/assessment?classId=${encodeURIComponent(activeSlot.class_id)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}`,
+    "Mark Learner Work": `/teacher/classhub/${encodeURIComponent(activeSlot.class_id)}/homework`,
     "Record Assessment": `/teacher/assessment/new?classId=${encodeURIComponent(activeSlot.class_id)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&lessonPlanId=${encodeURIComponent(lessonPlanId ?? "")}&teachingOccurrenceId=${encodeURIComponent(occurrenceId ?? "")}`,
     "Complete Lesson": exactLessonUrl,
     "Record Progress": `/teacher/progress?planId=${encodeURIComponent(lessonPlanId ?? "")}&occurrenceId=${encodeURIComponent(occurrenceId ?? "")}&classId=${encodeURIComponent(activeSlot.class_id)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&date=${encodeURIComponent(occurrenceDate)}`,
