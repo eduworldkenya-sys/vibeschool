@@ -2,13 +2,13 @@
 export const dynamic = "force-dynamic"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { hqSupabase } from "@/lib/hq/supabase"
 import { HQPage, HQPanel, HQ_THEME as C, hqButtonStyle } from "@/components/hq/HQShell"
 import { isHQOnline, readHQCache, readHQDraft, saveHQCache, saveHQDraft } from "@/lib/hq/offline"
 
 type WorkforceDecision={id:string;decision_key:string;worker_key:string|null;lane_key:string;job_key:string;proposed_action:string;reason:string;risk:string;status:string;revision:string|null;run_id:string|null;evidence_snapshot_id:string|null;created_at:string}
 type Action="approve"|"revise"|"reject"|"skip"
-const sb=supabase as any
+const sb=hqSupabase as any
 const riskTone=(risk:string)=>risk==="critical"?C.red:risk==="high"?C.amber:risk==="normal"?C.blue:C.muted
 export default function HQWorkforceDecisionsPage(){
  const[items,setItems]=useState<WorkforceDecision[]>([]);const[notes,setNotes]=useState<Record<string,string>>({});const[busy,setBusy]=useState("");const[loading,setLoading]=useState(true);const[error,setError]=useState("");const[message,setMessage]=useState("");const[pending,setPending]=useState<{item:WorkforceDecision;action:Action}|null>(null);const[cachedAt,setCachedAt]=useState<number|null>(null)

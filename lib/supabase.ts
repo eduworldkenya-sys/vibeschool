@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
+import { getHQSupabaseClient } from './hq/supabase'
 
 export function createSupabaseClient() {
   return createBrowserClient<Database>(
@@ -20,19 +21,32 @@ type LiveSchemaCompatClient = TypedBrowserClient & {
   rpc(fn: string, args?: Record<string, unknown>): any
 }
 
-// Safe singleton — only created once on client side
 let client: TypedBrowserClient | null = null
 
 export function getSupabaseClient() {
-  if (!client) {
-    client = createSupabaseClient()
-  }
+  if (!client) client = createSupabaseClient()
   return client
 }
 
-// Keep generated typing for known schema while allowing newly deployed tables/RPCs
-// to compile until database.types.ts is regenerated from the live project.
-export const supabase = getSupabaseClient() as LiveSchemaCompatClient
+function activeBrowserClient(): any {
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/hq')) {
+    return getHQSupabaseClient()
+  }
+  return getSupabaseClient()
+}
+
+// Compatibility proxy: legacy HQ browser surfaces historically imported the shared
+// client. Resolve the client at call time so /hq always uses the isolated HQ session,
+// while every non-HQ route continues to use the normal application session. This also
+// remains correct across client-side navigation because the pathname is checked for
+// every property access rather than when the module singleton is first created.
+export const supabase = new Proxy({} as LiveSchemaCompatClient, {
+  get(_target, prop) {
+    const active = activeBrowserClient()
+    const value = active[prop as keyof typeof active]
+    return typeof value === 'function' ? value.bind(active) : value
+  },
+})
 
 export async function getTeacherProfile(userId: string) {
   const sb = getSupabaseClient()

@@ -1,7 +1,7 @@
 "use client"
 export const dynamic="force-dynamic"
 import {useCallback,useEffect,useMemo,useState} from "react"
-import {supabase} from "@/lib/supabase"
+import {hqSupabase} from "@/lib/hq/supabase"
 import {HQPage,HQPanel,HQ_THEME as C,hqButtonStyle} from "@/components/hq/HQShell"
 import {workerIdentity} from "@/lib/hq/workforceIdentity"
 import Task15OwnerControls from "./Task15OwnerControls"
@@ -11,7 +11,7 @@ type Obj=Record<string,any>
 type Snapshot={generated_at:string;engine:Obj|null;counts:Obj;workers:Obj[];jobs:Obj[];shadow_candidates:Obj[];shadow_runs:Obj[];decisions:Obj[];skills:Obj[];authority:Obj[];evidence:Obj[];failures:{anomalies:Obj[];dead_letters:Obj[]};resources:Obj[]}
 type TeamSnapshot={assignments:Obj[];collaborations:Obj[];identity_registry:Obj[]}
 type Tab="Control Room"|"Team"|"Assign"|"Worker Room"|"Proof"|"Registry"|"Jobs"|"Runs"|"Decisions"|"Skills"|"Authority"|"Evidence"|"Failures"|"Resources"
-const sb=supabase as any
+const sb=hqSupabase as any
 const primary:Tab[]=["Control Room","Team","Assign","Worker Room","Proof"]
 const secondary:Tab[]=["Registry","Jobs","Runs","Decisions","Skills","Authority","Evidence","Failures","Resources"]
 const yes=(v:any)=>v===true,tone=(k:string)=>k==="bad"?C.red:k==="warn"?C.amber:k==="good"?C.green:C.blue,when=(v:any)=>v?new Date(String(v)).toLocaleString("en-KE"):"—",short=(v:any,n=100)=>{const s=typeof v==="string"?v:JSON.stringify(v??{});return s.length>n?s.slice(0,n)+"…":s}
