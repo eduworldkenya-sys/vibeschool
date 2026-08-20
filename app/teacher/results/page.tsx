@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import ProfessionalMarkbook from '@/components/teacher/ProfessionalMarkbook'
+import AssessmentIntelligenceConsole from '@/components/teacher/AssessmentIntelligenceConsole'
 import type { Database } from '@/lib/database.types'
 
 type ExamInsert = Database["public"]["Tables"]["exams"]["Insert"]
@@ -62,7 +63,6 @@ function ResultsInner() {
   const [examError,setExamError]=useState<string|null>(null)
   const [students,setStudents]=useState<Student[]>([])
   const [results,setResults]=useState<Result[]>([])
-  const [prevResults,setPrevResults]=useState<Result[]>([])
   const [draftMarks,setDraftMarks]=useState<Record<string,string>>({})
   const [savingId,setSavingId]=useState<string|null>(null)
   const [savedId,setSavedId]=useState<string|null>(null)
@@ -150,14 +150,6 @@ function ResultsInner() {
     const draft:Record<string,string>={}
     for (const r of loaded) if (!r.is_absent) draft[r.student_id]=String(r.marks)
     setDraftMarks(draft); setErrorByStudent({})
-    const currentIndex=exams.findIndex(e=>e.id===activeExam.id)
-    const prevExam=currentIndex>=0 ? exams[currentIndex+1] : undefined
-    if (prevExam) {
-      let prevQuery=supabase.from('exam_results').select('id, student_id, marks, is_absent').eq('exam_id',prevExam.id).in('student_id',studentIds)
-      if (subjectId) prevQuery=prevQuery.eq('subject_id',subjectId)
-      const {data:prevData}=await prevQuery
-      setPrevResults((prevData??[]) as Result[])
-    } else setPrevResults([])
   }
 
   async function createExam() {
@@ -217,7 +209,7 @@ function ResultsInner() {
     const passM=activeExam?.pass_mark??50
     const grades:Record<string,number>={}
     for (const m of marks) { const g=getGrade(m); grades[g]=(grades[g]??0)+1 }
-    return {avg,highest:Math.max(...marks),lowest:Math.min(...marks),passed:marks.filter(m=>m>=passM).length,failed:marks.filter(m=>m<passM).length,grades,total:entered.length,absent:results.filter(r=>r.is_absent).length}
+    return {avg,passed:marks.filter(m=>m>=passM).length,failed:marks.filter(m=>m<passM).length,grades,total:entered.length,absent:results.filter(r=>r.is_absent).length}
   }
   const analysis=analysisData()
 
@@ -228,7 +220,7 @@ function ResultsInner() {
 
   return <div style={{padding:'0 0 80px',fontFamily:W.font,background:W.bg,minHeight:'100vh'}}>
     <div style={{padding:'20px 16px 12px',borderBottom:'1px solid #EDE0CE'}}>
-      <h1 style={{margin:0,fontSize:20,fontWeight:800,color:W.text}}>Results & Markbook</h1>
+      <h1 style={{margin:0,fontSize:20,fontWeight:800,color:W.text}}>Results & Intelligence</h1>
       <p style={{margin:'4px 0 0',fontSize:13,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''}`:'Complete school/class setup to use the professional markbook.'}</p>
     </div>
 
@@ -238,7 +230,7 @@ function ResultsInner() {
     </>}
 
     <div style={{padding:'12px 16px 0',display:'flex',gap:8,alignItems:'center'}}>
-      <div style={{flex:1,overflowX:'auto',display:'flex',gap:8}}>{exams.length===0?<span style={{fontSize:13,color:W.textMuted}}>No exams yet</span>:exams.map(e=><button key={e.id} onClick={()=>setActiveExam(e)} style={pill(activeExam?.id===e.id,'#0a0a0a')}>{e.name}{e.is_locked?' 🔒':''}</button>)}</div>
+      <div style={{flex:1,overflowX:'auto',display:'flex',gap:8}}>{exams.length===0?<span style={{fontSize:13,color:W.textMuted}}>No exams yet</span>:exams.map(e=><button key={e.id} onClick={()=>setActiveExam(e)} style={pill(activeExam?.id===e.id,'#0a0a0a')}>{e.name}{e.is_locked?' · Locked':''}</button>)}</div>
       <button onClick={()=>setShowExamSheet(true)} style={{padding:'6px 14px',borderRadius:20,border:'1px solid #EDE0CE',background:'#fff',fontWeight:700}}>＋ Exam</button>
     </div>
 
@@ -246,7 +238,7 @@ function ResultsInner() {
       {[['Students',students.length],['Recorded',results.length],['Class mean',analysis?`${analysis.avg.toFixed(1)}%`:'—'],['Need support',analysis?analysis.failed:'—']].map(([label,value])=><div key={String(label)} style={{padding:'12px',background:'#fff',border:'1px solid #E7E5E4',borderRadius:14}}><div style={{fontSize:11,color:W.textSoft,fontWeight:700}}>{label}</div><div style={{fontSize:20,fontWeight:800,marginTop:3}}>{value}</div></div>)}
     </div>}
 
-    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Markbook':'Analysis'}</button>)}</div>}
+    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Markbook':'Intelligence'}</button>)}</div>}
 
     {activeTab==='entry' && <div style={{padding:'14px 16px 0'}}>
       {!activeExam?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Create or select an exam to open the markbook.</div>
@@ -256,11 +248,8 @@ function ResultsInner() {
       : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} locked={activeExam.is_locked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} />}
     </div>}
 
-    {activeTab==='analysis' && <div style={{padding:'14px 16px 0',display:'grid',gap:10}}>
-      {!analysis?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Enter marks first to see analysis.</div>:<>
-        <div style={{padding:16,borderRadius:16,background:'#111827',color:'#fff'}}><div style={{fontSize:12,color:'#d1d5db'}}>Class decision summary</div><div style={{fontSize:18,fontWeight:800,marginTop:5}}>{analysis.failed===0?'Whole class is at or above the pass mark.':`${analysis.failed} learner${analysis.failed===1?'':'s'} need attention before the next assessment.`}</div></div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:8}}>{[['Average',analysis.avg.toFixed(1)],['Highest',analysis.highest],['Lowest',analysis.lowest],['Absent',analysis.absent]].map(([l,v])=><div key={String(l)} style={{background:'#fff',border:'1px solid #e7e5e4',borderRadius:14,padding:14}}><div style={{fontSize:11,color:W.textSoft}}>{l}</div><div style={{fontSize:22,fontWeight:800,marginTop:3}}>{v}</div></div>)}</div>
-      </>}
+    {activeTab==='analysis' && <div style={{padding:'14px 16px 0'}}>
+      {!activeExam || !activeClass || !activeSubject ? <div style={{padding:40,textAlign:'center',color:W.textMuted}}>Select a class, subject and exam to open intelligence.</div> : <AssessmentIntelligenceConsole examId={activeExam.id} classId={activeClass.id} subjectId={activeSubject.id} refreshKey={`${activeExam.id}:${activeClass.id}:${activeSubject.id}:${results.length}:${results.map(r=>`${r.id}:${r.marks}:${r.is_absent}`).join('|')}`} onOpenMarkbook={()=>setActiveTab('entry')} />}
     </div>}
 
     {showExamSheet && <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'flex-end'}} onClick={e=>{if(e.target===e.currentTarget)setShowExamSheet(false)}}><div style={{width:'100%',background:W.bg,borderRadius:'22px 22px 0 0',padding:'18px 16px 32px'}}><h2 style={{margin:'0 0 16px',fontSize:18}}>Create exam</h2><label style={labelStyle}>Exam name</label><input style={inputStyle} value={newExamName} onChange={e=>setNewExamName(e.target.value)} placeholder="e.g. Term 2 Midterm"/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:12}}><div><label style={labelStyle}>Type</label><select style={inputStyle} value={newExamType} onChange={e=>setNewExamType(e.target.value)}>{['summative','cat','midterm','opener','endterm'].map(t=><option key={t} value={t}>{t}</option>)}</select></div><div><label style={labelStyle}>Pass mark</label><input type="number" min={0} max={100} style={inputStyle} value={newExamPass} onChange={e=>setNewExamPass(Number(e.target.value))}/></div><div><label style={labelStyle}>Term</label><select style={inputStyle} value={newExamTerm} onChange={e=>setNewExamTerm(Number(e.target.value))}>{[1,2,3].map(t=><option key={t} value={t}>Term {t}</option>)}</select></div><div><label style={labelStyle}>Year</label><input type="number" style={inputStyle} value={newExamYear} onChange={e=>setNewExamYear(Number(e.target.value))}/></div></div>{examError&&<p style={{color:'#b91c1c',fontSize:12,fontWeight:700}}>{examError}</p>}<button onClick={()=>void createExam()} disabled={creatingExam} style={{...btnPrimary,marginTop:16,opacity:creatingExam?.6:1}}>{creatingExam?'Creating…':'Create exam'}</button></div></div>}
