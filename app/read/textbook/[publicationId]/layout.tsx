@@ -12,6 +12,7 @@ import { ReaderStudyInteractions } from "@/components/read/ReaderStudyInteractio
 import { ReaderAnnotationManager } from "@/components/read/ReaderAnnotationManager";
 import { ReaderTermExplainer } from "@/components/read/ReaderTermExplainer";
 import { ReaderSecondaryToolsDrawer } from "@/components/read/ReaderSecondaryToolsDrawer";
+import { ReaderModeController } from "@/components/read/ReaderModeController";
 import { ReaderAssessmentLauncher } from "@/components/read/ReaderAssessmentLauncher";
 import { ReaderLearningLauncher } from "@/components/read/ReaderLearningLauncher";
 import { ReaderPurchaseBar } from "@/components/read/ReaderPurchaseBar";
@@ -66,6 +67,7 @@ export default async function TextbookReaderLayout({ children, params }: { child
       <ReaderHumanFirstPolish />
       <ReaderCalmSurface />
       <ReaderListenContinuity publicationId={params.publicationId} />
+      <ReaderModeController />
       <div id="vibetextbook-reading-content" tabIndex={-1}>
         <ReaderContinuityCoordinator />
         <ReaderStudyInteractions />
