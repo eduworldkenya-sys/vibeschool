@@ -46,7 +46,7 @@ export function ReaderLearningSheet({open,mode,chapterId,chapterTitle,fontSize,n
     const key=(event:KeyboardEvent)=>{
       if(event.key==='Escape'){event.preventDefault();if(window.history.state?.vibeReaderSheet===token)window.history.back();else onClose();return}
       if(event.key!=='Tab'||!sheetRef.current)return
-      const focusable=[...sheetRef.current.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+      const focusable=Array.from(sheetRef.current.querySelectorAll<HTMLElement>('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
       if(!focusable.length)return
       const first=focusable[0],last=focusable[focusable.length-1]
       if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
