@@ -1,9 +1,8 @@
 -- Autopilot commissioning: close certified capability -> worker competency routing gap.
 -- NON-ACTIVATING. This migration reconstructs the certified Content Factory capability
--- ontology and the minimum production-proven worker competency evidence required to route
--- those capabilities, then tightens qualification/routing semantics.
--- It creates no worker, identity, worker lifecycle transition, authority grant, runtime
--- policy, budget, task, execution intent, or side effect, and it does not release Global Stop.
+-- ontology plus the two production-proven catalog workers and minimum competency evidence
+-- needed to route those capabilities. Worker catalog status does not enable execution:
+-- runtime remains OFF/L0/R0, Global Stop remains ON, and no authority grant is created.
 
 insert into public.hq_workforce_capabilities(
   capability_key, version, display_name, purpose,
@@ -69,15 +68,50 @@ on conflict(capability_id,competency_key) do update set
   weight=excluded.weight,
   minimum_proficiency=excluded.minimum_proficiency;
 
--- Production has these competency attestations from the converged WE-R1.3X bootstrap
--- lineage, but the historical production-only lineage was never reconstructed by the
--- repository migrations. Recreate only the evidence required by the three certified
--- Content Factory capabilities. Existing workers are not created or activated here.
+-- These are durable catalog identities already present in production. They have no direct
+-- runtime authority. job_key is deliberately left NULL here because historical job catalog
+-- bootstrap rows were production-only; routing authority comes from capability/skill/grant
+-- contracts, not this legacy metadata pointer.
+insert into public.hq_workforce_workers(
+  worker_key,worker_kind,title,department_key,job_key,manager_worker_key,mission,status,
+  reasoning_mode,paid_ai_allowed,competencies,permissions,approval_boundaries,kpis
+) values
+(
+  'curriculum-worker-01','digital','Curriculum Intelligence Worker','content',null,null,
+  'Maintain authoritative curriculum intelligence and reviewed updates.','active',
+  'deterministic',false,
+  '["research","source evaluation","curriculum"]'::jsonb,
+  '["read_curriculum_sources","draft_change","record_sources","request_review"]'::jsonb,
+  '["no_auto_publish","no_unverified_external_fact"]'::jsonb,
+  '["source_quality_rate","review_pass_rate","stale_content_rate"]'::jsonb
+),
+(
+  'quality-worker-01','digital','Product Quality Worker','product',null,null,
+  'Detect and verify product quality problems and fixes.','active',
+  'deterministic',false,
+  '["verification","evidence","product quality"]'::jsonb,
+  '["read_quality_signals","record_findings","verify_outcomes","request_approval"]'::jsonb,
+  '["no_destructive_actions","no_release_override"]'::jsonb,
+  '["verification_rate","regression_escape_rate","reopen_rate"]'::jsonb
+)
+on conflict(worker_key) do update set
+  worker_kind=excluded.worker_kind,
+  title=excluded.title,
+  department_key=excluded.department_key,
+  mission=excluded.mission,
+  reasoning_mode=excluded.reasoning_mode,
+  paid_ai_allowed=false,
+  competencies=excluded.competencies,
+  permissions=excluded.permissions,
+  approval_boundaries=excluded.approval_boundaries,
+  kpis=excluded.kpis,
+  updated_at=clock_timestamp();
+
 insert into public.hq_workforce_worker_competencies(
   worker_key, competency_key, version, proficiency, reliability, sample_count,
   certification_status, evidence, scope_types, jurisdictions, last_evaluated_at, expires_at
 )
-select w.worker_key, v.competency_key, 1, v.proficiency, v.reliability, 0,
+select v.worker_key, v.competency_key, 1, v.proficiency, v.reliability, 0,
        'certified',
        jsonb_build_object(
          'mode','WE-R1.3X_bootstrap',
@@ -90,14 +124,12 @@ select w.worker_key, v.competency_key, 1, v.proficiency, v.reliability, 0,
        ),
        array['platform_internal','global']::text[], array['global']::text[],
        clock_timestamp(), null
-from public.hq_workforce_workers w
-join (values
+from (values
   ('curriculum-worker-01','curriculum.analysis',0.98::numeric,0.93::numeric),
   ('curriculum-worker-01','content.quality',0.95::numeric,0.90::numeric),
   ('quality-worker-01','quality.analysis',0.98::numeric,0.92::numeric)
 ) as v(worker_key,competency_key,proficiency,reliability)
-  on w.worker_key=v.worker_key
-where w.status='active'
+join public.hq_workforce_workers w on w.worker_key=v.worker_key and w.status='active'
 on conflict(worker_key,competency_key,version) do update set
   proficiency=excluded.proficiency,
   reliability=excluded.reliability,
@@ -141,7 +173,6 @@ begin
     ('content.evidence.semantic_verify',1),
     ('content.authoring.source_grounded',1)
   ) and c.lifecycle_status='certified';
-
   if v_capabilities<>3 then
     raise exception 'autopilot_certified_content_capability_reconstruction_incomplete:%',v_capabilities;
   end if;
@@ -155,7 +186,6 @@ begin
     or (c.capability_key='content.authoring.source_grounded' and cc.competency_key='curriculum.analysis' and cc.minimum_proficiency>=0.90)
     or (c.capability_key='content.authoring.source_grounded' and cc.competency_key='content.quality' and cc.minimum_proficiency>=0.90)
   );
-
   if v_bindings<>4 then
     raise exception 'autopilot_certified_capability_competency_contract_incomplete:%',v_bindings;
   end if;
@@ -170,7 +200,6 @@ begin
       or (wc.worker_key='curriculum-worker-01' and wc.competency_key='content.quality' and wc.proficiency>=0.90)
       or (wc.worker_key='quality-worker-01' and wc.competency_key='quality.analysis' and wc.proficiency>=0.90)
     );
-
   if v_candidates<>3 then
     raise exception 'autopilot_content_worker_competency_reconstruction_incomplete:%',v_candidates;
   end if;
