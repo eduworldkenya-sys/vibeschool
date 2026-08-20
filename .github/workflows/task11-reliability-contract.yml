@@ -1,0 +1,38 @@
+name: Task 11 Reliability Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'public/sw.js'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'scripts/test-task11-reliability-contract.mjs'
+      - '.github/workflows/task11-reliability-contract.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'public/sw.js'
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'scripts/test-task11-reliability-contract.mjs'
+      - '.github/workflows/task11-reliability-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reliability-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Task 11 contract + canonical production build certification
+        uses: ./.github/actions/production-build-contract
+        with:
+          prebuild_command: |
+            node scripts/test-task11-reliability-contract.mjs
+            npm run typecheck
+            npm run lint
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
