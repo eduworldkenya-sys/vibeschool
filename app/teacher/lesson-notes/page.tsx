@@ -72,7 +72,7 @@ async function recordEvent(eventName: string, contentState: ContentState, extra:
 }
 
 async function chapterCanRead(publicationId: string, chapterId: string | null): Promise<boolean> {
-  const { data, error } = await supabase.rpc("get_vibetextbook_reader", { p_publication_id: publicationId });
+  const { data, error } = await supabase.rpc("get_vibetextbook_reader", { publication_id_input: publicationId });
   if (error || !data) return false;
   const payload = data as ReaderPayload;
   if (!payload.ok) return false;
@@ -332,7 +332,7 @@ function LessonNotesInner() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
             <button type="button" onClick={() => router.back()} style={{ border: "1px solid #f59e0b", borderRadius: 10, padding: "8px 10px", background: "#fff", fontWeight: 800 }}>Use lesson plan</button>
             <button type="button" onClick={() => router.push("/teacher/scheme")} style={{ border: "1px solid #f59e0b", borderRadius: 10, padding: "8px 10px", background: "#fff", fontWeight: 800 }}>Open scheme</button>
-            <button type="button" onClick={() => router.push("/teacher/resources")} style={{ border: "1px solid #f59e0b", borderRadius: 10, padding: "8px 10px", background: "#fff", fontWeight: 800 }}>Prepare my own resource</button>
+            <button type="button" onClick={() => router.push("/teacher/studio")} style={{ border: "1px solid #f59e0b", borderRadius: 10, padding: "8px 10px", background: "#fff", fontWeight: 800 }}>Prepare my own resource</button>
           </div>
         </section>
       )}
