@@ -8,7 +8,7 @@ type ReaderChapterEvent = CustomEvent<{
   chapterId: string;
   progressPercent?: number;
 }>;
-type ReaderProgressEvent = CustomEvent<{ chapterId?: unknown; progressPercent?: unknown }>;
+
 type EndReason = "chapter_change" | "page_hide" | "reader_close";
 
 export function ReadingAnalyticsTracker() {
@@ -61,7 +61,7 @@ export function ReadingAnalyticsTracker() {
       const chapterId = event.detail?.chapterId;
       if (!chapterId) return;
 
-      progressRef.current = Math.max(0, Math.min(Number(event.detail.progressPercent ?? 0), 100));
+      progressRef.current = event.detail.progressPercent ?? 10;
 
       if (chapterRef.current === chapterId) return;
 
@@ -71,14 +71,6 @@ export function ReadingAnalyticsTracker() {
         lastTickRef.current = Date.now();
         void record("start");
       });
-    };
-
-    const onProgress = (rawEvent: Event) => {
-      const event = rawEvent as ReaderProgressEvent;
-      if (typeof event.detail?.chapterId !== "string" || event.detail.chapterId !== chapterRef.current) return;
-      const progress = Number(event.detail.progressPercent);
-      if (!Number.isFinite(progress)) return;
-      progressRef.current = Math.max(progressRef.current, Math.max(0, Math.min(progress, 100)));
     };
 
     const heartbeat = window.setInterval(() => {
@@ -104,17 +96,17 @@ export function ReadingAnalyticsTracker() {
       visibleRef.current = isVisible;
     };
 
-    const onPageHide = () => { void closeCurrent("reader_close"); };
+    const onPageHide = () => {
+      void closeCurrent("reader_close");
+    };
 
     window.addEventListener("vibe:reader-chapter", onChapter);
-    window.addEventListener("vibe:reader-progress", onProgress);
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("pagehide", onPageHide);
 
     return () => {
       window.clearInterval(heartbeat);
       window.removeEventListener("vibe:reader-chapter", onChapter);
-      window.removeEventListener("vibe:reader-progress", onProgress);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", onPageHide);
       void closeCurrent("reader_close");
