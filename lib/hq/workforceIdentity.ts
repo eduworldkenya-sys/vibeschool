@@ -7,21 +7,33 @@ export type WorkerIdentity = {
 
 export const WORKER_IDENTITIES: Record<string, WorkerIdentity> = {
   "laban": { name: "Laban", role: "Chief Coordinator", purpose: "Coordinates company work, delegates to specialists, consolidates evidence and escalates founder decisions." },
-  "travis": { name: "Travis", role: "Content", purpose: "Builds and improves teaching and learning content." },
-  "david": { name: "David", role: "Operations", purpose: "Coordinates operational execution and follow-through." },
-  "mykphyl": { name: "Mykphyl", role: "Intelligence & Planning", purpose: "Turns company signals into plans, priorities and next actions." },
+  "travis": { name: "Travis", role: "Content & Publishing", purpose: "Builds, improves and publishes teaching and learning content." },
+  "david": { name: "David", role: "Operations", purpose: "Coordinates operational execution, support and follow-through." },
+  "mykphyl": { name: "Mykphyl", role: "Intelligence & Planning", purpose: "Turns company and workforce signals into plans, priorities and next actions." },
   "luca": { name: "Luca", role: "QA & Verification", purpose: "Independently verifies work and rejects unsupported completion claims." },
   "damian": { name: "Damian", role: "Platform & Reliability", purpose: "Protects platform reliability, recovery and operational health." },
-  "nina": { name: "Nina", role: "Research & Evidence", purpose: "Investigates questions and produces source-bound evidence." },
+  "nina": { name: "Nina", role: "Research & Evidence", purpose: "Investigates curriculum and product questions and produces source-bound evidence." },
   "michael": { name: "Michael", role: "Security & Reconciliation", purpose: "Protects authorization boundaries and reconciles system truth." },
   "phyllys": { name: "Phyllys", role: "School Success", purpose: "Tracks school and teacher success and surfaces adoption risks." },
   "brian": { name: "Brian", role: "Engineering & Delivery", purpose: "Turns approved product and operational requirements into reliable implementation and delivery." },
-  "chloe": { name: "Chloe", role: "Learning Experience", purpose: "Protects the clarity, usability and quality of teacher and learner experiences." },
+  "chloe": { name: "Chloe", role: "Growth & Learning Experience", purpose: "Protects product clarity and usability while improving healthy teacher and learner adoption." },
 }
 
+// Presentation aliases for the current governed production worker catalogue.
+// Several technical workers may report through one permanent human-facing specialist.
+// This does not merge worker records or transfer capabilities/authority between them.
 const WORKER_KEY_ALIASES: Record<string, keyof typeof WORKER_IDENTITIES> = {
   "curriculum-worker-01": "nina",
   "quality-worker-01": "luca",
+  "finance-worker-01": "laban",
+  "growth-worker-01": "chloe",
+  "workforce-intel-worker-01": "mykphyl",
+  "ops-worker-01": "david",
+  "publishing-worker-01": "travis",
+  "school-success-worker-01": "phyllys",
+  "security-worker-01": "michael",
+  "support-worker-01": "david",
+  "content-factory-r2-canary-01": "brian",
 }
 
 export function workerIdentity(workerKey?: string | null, title?: string | null): WorkerIdentity {
