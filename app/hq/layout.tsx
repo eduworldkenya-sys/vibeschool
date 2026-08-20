@@ -9,7 +9,7 @@ import { hqSupabase } from "@/lib/hq/supabase"
 import "./hq-layout-fallback.css"
 import "./founder-mobile-convergence.css"
 
-const PUBLIC_HQ_ROUTES = new Set(["/hq/login", "/hq/reset-password"])
+const PUBLIC_HQ_ROUTES = new Set(["/hq/login", "/hq/reset-password", "/hq/accept-invite"])
 
 export default function HQLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -24,26 +24,39 @@ export default function HQLayout({ children }: { children: React.ReactNode }) {
       setChecking(false)
       return () => { mounted = false }
     }
+
     async function verifyHQAccess() {
       setChecking(true)
       setAllowed(false)
-      const { data: { user }, error: authError } = await hqSupabase.auth.getUser()
+      const { data: { session }, error: authError } = await hqSupabase.auth.getSession()
       if (!mounted) return
-      if (authError || !user) {
+      if (authError || !session) {
         router.replace(`/hq/login?redirect=${encodeURIComponent(pathname)}`)
         return
       }
-      const { data: access, error: accessError } = await hqSupabase.rpc("hq_check_owner_access", { p_surface: `${pathname}:client-layout` })
+
+      const response = await fetch(`/api/hq/access?surface=${encodeURIComponent(pathname)}`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        cache: "no-store",
+      })
       if (!mounted) return
-      const authorized = !accessError && Boolean((access as { allowed?: boolean } | null)?.allowed)
-      if (!authorized) {
-        await hqSupabase.auth.signOut({ scope: "local" })
-        router.replace("/hq/login?denied=1")
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        const reason = String(body.reason || "permission_denied")
+        if (reason === "invalid_session" || reason === "authentication_required") {
+          await hqSupabase.auth.signOut({ scope: "local" })
+          router.replace(`/hq/login?redirect=${encodeURIComponent(pathname)}`)
+        } else if (reason === "setup_required") {
+          router.replace("/hq/reset-password?setup=1")
+        } else {
+          router.replace(`/hq/login?denied=${encodeURIComponent(reason)}`)
+        }
         return
       }
       setAllowed(true)
       setChecking(false)
     }
+
     void verifyHQAccess()
     return () => { mounted = false }
   }, [pathname, router])
@@ -51,7 +64,7 @@ export default function HQLayout({ children }: { children: React.ReactNode }) {
   if (PUBLIC_HQ_ROUTES.has(pathname)) return <>{children}</>
   if (checking || !allowed) {
     return <main style={{minHeight:"100dvh",display:"grid",placeItems:"center",background:"#07111f",color:"#f8fafc",fontFamily:"Inter,system-ui,sans-serif"}}>
-      <div role="status" style={{fontSize:13,color:"rgba(255,255,255,.62)"}}>Verifying HQ owner authority…</div>
+      <div role="status" style={{fontSize:13,color:"rgba(255,255,255,.62)"}}>Verifying HQ access…</div>
     </main>
   }
 
