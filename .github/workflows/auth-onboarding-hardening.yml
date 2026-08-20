@@ -7,6 +7,11 @@ on:
       - 'app/login/**'
       - 'app/signup/**'
       - 'app/global/signup/**'
+      - 'app/hq/login/**'
+      - 'app/hq/reset-password/**'
+      - 'app/hq/accept-invite/**'
+      - 'app/api/hq/complete-password-setup/**'
+      - 'lib/hq/supabase.ts'
       - 'lib/auth-routing.ts'
       - 'middleware.ts'
       - 'public/sw.js'
@@ -14,6 +19,7 @@ on:
       - 'scripts/test-auth-onboarding-contract.mjs'
       - 'scripts/test-auth-task1-state-machine.mjs'
       - 'scripts/test-auth-task1-teacher-directory-authority.mjs'
+      - 'scripts/test-hq-recovery-contract.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.github/actions/production-build-contract/**'
@@ -38,6 +44,7 @@ jobs:
             node scripts/test-auth-onboarding-contract.mjs
             node scripts/test-auth-task1-state-machine.mjs
             node scripts/test-auth-task1-teacher-directory-authority.mjs
+            node scripts/test-hq-recovery-contract.mjs
             npm run typecheck
             npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
