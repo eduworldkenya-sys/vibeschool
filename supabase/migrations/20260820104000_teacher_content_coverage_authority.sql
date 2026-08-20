@@ -46,6 +46,7 @@ create index if not exists teaching_resource_links_curriculum_idx
   on public.teaching_resource_links(curriculum_id, sub_strand_id, learning_outcome_id)
   where verification_state='VERIFIED' and lifecycle_status='active';
 
+-- authorization-test: public.curriculum_resource_mapping_reviews owner read is policy-gated; anon/auth direct writes are revoked; service writes only create review work and may not publish teacher-authoritative links.
 create table if not exists public.curriculum_resource_mapping_reviews (
   id uuid primary key default gen_random_uuid(),
   resource_id uuid not null references public.learning_resources(id) on delete restrict,
