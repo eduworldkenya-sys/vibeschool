@@ -127,7 +127,7 @@ function LessonNotesInner() {
       void recordEvent("teacher.lesson_notes_opened", "missing");
 
       let subStrandId: string | null = null;
-      let curriculumId: string | null = typedPlan.curriculum_id;
+      let curriculumId: string | null = typedPlan.curriculum_id ?? null;
 
       if (typedPlan.scheme_id) {
         const { data: schemeData, error: schemeError } = await supabase
