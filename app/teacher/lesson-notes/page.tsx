@@ -15,7 +15,6 @@ type PlanRow = {
   body: string | null;
   scheme_id: string | null;
   curriculum_id: string | null;
-  strand_id: string | null;
   status: string | null;
 };
 
@@ -85,7 +84,7 @@ function LessonNotesInner() {
 
       const { data: planData, error: planError } = await supabase
         .from("lesson_plans")
-        .select("id,title,topic,body,scheme_id,curriculum_id,strand_id,status")
+        .select("id,title,topic,body,scheme_id,curriculum_id,status")
         .eq("id", lessonPlanId)
         .single();
 
@@ -133,7 +132,7 @@ function LessonNotesInner() {
         }
       }
 
-      let subStrandId: string | null = typedPlan.strand_id ?? null;
+      let subStrandId: string | null = null;
       let curriculumId: string | null = typedPlan.curriculum_id ?? null;
 
       if (typedPlan.scheme_id) {
@@ -143,7 +142,7 @@ function LessonNotesInner() {
           .eq("id", typedPlan.scheme_id)
           .maybeSingle();
 
-        subStrandId = schemeData?.sub_strand_id ?? subStrandId;
+        subStrandId = schemeData?.sub_strand_id ?? null;
         curriculumId = schemeData?.curriculum_id ?? curriculumId;
       }
 
