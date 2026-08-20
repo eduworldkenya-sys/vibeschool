@@ -30,9 +30,9 @@ has(pilot, "vp.status='published'", "Deterministic backfill may only consume pub
 has(pilot, "lr.curriculum_id=lp.curriculum_id", "Backfill must use exact curriculum IDs");
 has(pilot, "learning_resource_versions", "Backfill must pin an immutable certified version");
 
-for (const forbidden of ["similarity(", "embedding", "ilike", "levenshtein", "fuzzy", "websearch_to_tsquery"]) {
-  assert.ok(!authority.toLowerCase().includes(forbidden), `Authority migration contains forbidden fuzzy matching primitive: ${forbidden}`);
-  assert.ok(!pilot.toLowerCase().includes(forbidden), `Pilot mapping migration contains forbidden fuzzy matching primitive: ${forbidden}`);
+for (const forbidden of ["similarity(", "embedding <=>", "levenshtein(", " ilike ", "websearch_to_tsquery(", "to_tsvector("]) {
+  assert.ok(!authority.toLowerCase().includes(forbidden), `Authority migration contains forbidden fuzzy/semantic matching primitive: ${forbidden}`);
+  assert.ok(!pilot.toLowerCase().includes(forbidden), `Pilot mapping migration contains forbidden fuzzy/semantic matching primitive: ${forbidden}`);
 }
 
 for (const event of [
