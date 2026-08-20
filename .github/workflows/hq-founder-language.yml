@@ -1,0 +1,27 @@
+name: HQ Founder Human Language
+on:
+  pull_request:
+    paths:
+      - 'app/hq/**'
+      - 'components/hq/**'
+      - 'lib/hq/**'
+      - 'scripts/validate-hq-founder-language.mjs'
+      - '.github/workflows/hq-founder-language.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/hq/**'
+      - 'components/hq/**'
+      - 'lib/hq/**'
+      - 'scripts/validate-hq-founder-language.mjs'
+permissions:
+  contents: read
+jobs:
+  founder-language:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/validate-hq-founder-language.mjs
