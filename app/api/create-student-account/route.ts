@@ -69,13 +69,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Learner identity setup is incomplete.' }, { status: 409 })
     }
 
-    // Keep the guardian gate explicit in this service-role boundary as defense in
-    // depth. The RPC also checks it atomically during finalization.
+    const klass = { school_id: schoolId }
+
+    // Defense in depth: the API independently verifies the active same-school
+    // guardian relationship. The database finalizer repeats this check atomically.
     const { data: parentLink } = await adminSupabase
       .from('parent_student_links')
       .select('parent_id')
       .eq('student_id', studentId)
-      .eq('school_id', schoolId)
+      .eq('school_id', klass.school_id)
       .neq('access_level', 'none')
       .limit(1)
       .maybeSingle()
@@ -90,7 +92,7 @@ export async function POST(req: NextRequest) {
     const { data: school } = await adminSupabase
       .from('schools')
       .select('id, subdomain')
-      .eq('id', schoolId)
+      .eq('id', klass.school_id)
       .single()
 
     if (!school) return NextResponse.json({ error: 'School not found.' }, { status: 404 })
