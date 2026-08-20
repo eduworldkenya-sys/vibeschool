@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import { HQ_NAV_GROUPS, HQPage, HQPanel } from "@/components/hq/HQShell"
 
