@@ -7,9 +7,9 @@ SHEET=(ROOT/"components/read/ReaderLearningSheet.tsx").read_text(encoding="utf-8
 CSS=(ROOT/"components/read/ReaderLearningSheet.module.css").read_text(encoding="utf-8")
 for forbidden in ["ReaderCalmSurface","ReaderHumanFirstPolish","ReaderExcellenceShell","ReaderModeController","ReaderLearningLauncher"]:
     if forbidden in LAYOUT: raise AssertionError(f"legacy/competing reader layer still mounted: {forbidden}")
-for required in ['position:"sticky"','Contents','ReaderLearningSheet','ReaderNarrationMiniPlayer','width:"min(calc(100% - 36px),700px)"','Focus reading']:
+for required in ['position:"sticky"','Contents','ReaderLearningSheet','ReaderNarrationMiniPlayer','width:"min(calc(100% - 36px),700px)"']:
     if required not in PAGE: raise AssertionError(f"missing flagship reader invariant: {required}")
-for required in ['Reading tools','Learn','Practice','Listen','Text size','safe-area-inset-bottom','vibeReaderSheet','Escape','Tab']:
+for required in ['Reading tools','Learn','Practice','Listen','Text size','Focus reading','safe-area-inset-bottom','vibeReaderSheet','Escape','Tab']:
     target=SHEET+CSS
     if required not in target: raise AssertionError(f"missing responsive learning-sheet invariant: {required}")
 for required in ['@media (min-width:768px)','@media (min-width:1100px)','orientation:landscape']:
