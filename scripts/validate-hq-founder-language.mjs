@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+// Permanent guard: ordinary Founder surfaces must present meaning before machine evidence.
 const path='app/hq/intelligence/page.tsx'
 const src=fs.readFileSync(path,'utf8')
 const failures=[]
