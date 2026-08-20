@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
@@ -41,14 +41,14 @@ export default function LearnYourWayReaderBridge() {
 
   useEffect(() => { if (!isReader) setChapterId(null) }, [isReader])
 
-  if (!learner || !chapterId || !isReader || pathname.startsWith('/student/twin/transform') || pathname.startsWith('/student/twin/teach')) return null
+  useEffect(() => {
+    if (!isReader || !learner || !chapterId) return
+    const open = () => router.push(`/student/twin/teach/chapter/${chapterId}`)
+    window.addEventListener('vibe:reader-help', open)
+    return () => window.removeEventListener('vibe:reader-help', open)
+  }, [chapterId, isReader, learner, router])
 
-  const open = () => { router.push(`/student/twin/teach/chapter/${chapterId}`) }
-
-  return <button type="button" onClick={open} style={button} aria-label="Learn this unit with VibeTwin's guided multimodal teaching path">
-    <span style={icon}>✦</span><span><strong style={{ display:'block' }}>Learn with Twin</strong><small style={{ opacity:.78 }}>Best format → another way → recall</small></span>
-  </button>
+  // Inside Read, Twin is contextual intelligence behind the reader's Help action,
+  // not a permanent floating advertisement competing with the book.
+  return null
 }
-
-const button: CSSProperties = { position:'fixed', right:16, bottom:'calc(20px + env(safe-area-inset-bottom))', zIndex:9990, display:'flex', alignItems:'center', gap:9, border:'1px solid rgba(255,255,255,.18)', borderRadius:16, padding:'10px 13px', background:'#5b4ee8', color:'#fff', boxShadow:'0 14px 36px rgba(31,25,104,.36)', fontFamily:'inherit', textAlign:'left', cursor:'pointer' }
-const icon: CSSProperties = { width:34,height:34,borderRadius:11,display:'grid',placeItems:'center',background:'rgba(255,255,255,.15)',fontSize:18,fontWeight:900 }
