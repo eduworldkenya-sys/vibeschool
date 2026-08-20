@@ -2,50 +2,29 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useRef, Suspense } from 'react'
-import { useSearchParams }                        from 'next/navigation'
-import { supabase }                               from '@/lib/supabase'
-import type { Database }                            from '@/lib/database.types'
+import { useSearchParams } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import ProfessionalMarkbook from '@/components/teacher/ProfessionalMarkbook'
+import type { Database } from '@/lib/database.types'
 
-type ExamInsert =
-  Database["public"]["Tables"]["exams"]["Insert"]
-type ExamResultInsert =
-  Database["public"]["Tables"]["exam_results"]["Insert"]
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+type ExamInsert = Database["public"]["Tables"]["exams"]["Insert"]
+type ExamResultInsert = Database["public"]["Tables"]["exam_results"]["Insert"]
 
 interface Exam {
-  id:            string
-  name:          string
-  term:          number
+  id: string
+  name: string
+  term: number
   academic_year: number
-  exam_type:     string
-  pass_mark:     number
-  is_locked:     boolean
-  created_by:    string
+  exam_type: string
+  pass_mark: number
+  is_locked: boolean
+  created_by: string
 }
-
-interface ClassOption   { id: string; name: string; stream: string }
+interface ClassOption { id: string; name: string; stream: string }
 interface SubjectOption { id: string; name: string }
-
-interface Student {
-  id:         string
-  name:       string
-  source:     'db' | 'manual'
-  class_name?: string
-}
-
-interface Result {
-  id:         string
-  student_id: string
-  marks:      number
-  is_absent:  boolean
-}
-
+interface Student { id: string; name: string; source: 'db' | 'manual'; class_name?: string }
+interface Result { id: string; student_id: string; marks: number; is_absent: boolean }
 type Tier = 1 | 2 | 3
-
-// ─── Grade utility (CBC Kenya) ────────────────────────────────────────────────
-// CBC exam grades: EE=Exceeding Expectation, ME=Meeting, AE=Approaching, BE=Below
-// Used for Grade 4–9 exams. PP1–3 assessments use EE/ME/AE/BE via Assessment page.
 
 function getGrade(marks: number): string {
   if (marks >= 80) return 'EE'
@@ -53,1064 +32,239 @@ function getGrade(marks: number): string {
   if (marks >= 40) return 'AE'
   return 'BE'
 }
-
-function gradeColor(grade: string): { bg: string; color: string } {
-  if (grade === 'EE') return { bg: '#d1fae5', color: '#065f46' }
-  if (grade === 'ME') return { bg: '#dbeafe', color: '#1e40af' }
-  if (grade === 'AE') return { bg: '#fef3c7', color: '#92400e' }
-  return { bg: '#fee2e2', color: '#991b1b' }
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const EXAM_TYPES  = ['summative', 'cat', 'midterm', 'opener', 'endterm']
-const TERM_LABELS = ['Term 1', 'Term 2', 'Term 3']
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
 function Skeleton({ h = 56 }: { h?: number }) {
-  return (
-    <div style={{
-      height: h, borderRadius: 12,
-      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
-      backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
-    }} />
-  )
+  return <div style={{ height: h, borderRadius: 12, background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)', backgroundSize: '200% 100%' }} />
 }
-
-// ─── Shared styles ────────────────────────────────────────────────────────────
-
-// ─── Warm theme tokens ───────────────────────────────────────────────────────
-const W = {
-  bg:         '#FFFBF5',
-  card:       '#FFF8EF',
-  border:     '#EDE0CE',
-  borderSoft: '#F5ECD9',
-  text:       '#1c1917',
-  textSoft:   '#78716c',
-  textMuted:  '#a8998a',
-  gold:       '#C8A84B',
-  goldLight:  '#FEF3C7',
-  goldDark:   '#92400e',
-  green:      '#16a34a',
-  greenLight: '#f0fdf4',
-  red:        '#dc2626',
-  redLight:   '#fff7f7',
-  font:       'Jost, sans-serif',
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', borderRadius: 10,
-  border: `1.5px solid ${W.border}`, fontSize: 13, color: W.text,
-  background: W.card, outline: 'none', boxSizing: 'border-box',
-  fontFamily: W.font,
-}
-
-const selectStyle: React.CSSProperties = {
-  ...inputStyle, appearance: 'none' as const,
-}
-
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 12, fontWeight: 600,
-  color: W.textSoft, marginBottom: 6, fontFamily: W.font,
-}
-
-const btnPrimary: React.CSSProperties = {
-  width: '100%', padding: '13px 0', borderRadius: 14, border: 'none',
-  cursor: 'pointer', fontSize: 14, fontWeight: 700,
-  background: W.gold, color: '#fff', fontFamily: W.font,
-  boxShadow: '0 2px 8px rgba(200,168,75,0.25)',
-}
-
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(28,25,23,0.45)',
-  zIndex: 1000, display: 'flex', alignItems: 'flex-end',
-}
-
-const sheetStyle: React.CSSProperties = {
-  width: '100%', maxHeight: '90vh', overflowY: 'auto',
-  background: W.bg, borderRadius: '24px 24px 0 0',
-  padding: '16px 16px 40px',
-  boxShadow: '0 -4px 24px rgba(200,168,75,0.10)',
-}
-
-function pill(active: boolean, accent = W.gold): React.CSSProperties {
-  return {
-    flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: 'none',
-    cursor: 'pointer', fontSize: 13, fontWeight: 600,
-    fontFamily: W.font,
-    background: active ? accent    : W.borderSoft,
-    color:      active ? '#fff'    : W.textSoft,
-    boxShadow:  active ? '0 2px 6px rgba(200,168,75,0.2)' : 'none',
-  }
-}
-
-// ─── Main ─────────────────────────────────────────────────────────────────────
+const W = { bg:'#FFFBF5', card:'#FFF8EF', border:'#EDE0CE', borderSoft:'#F5ECD9', text:'#1c1917', textSoft:'#78716c', textMuted:'#a8998a', gold:'#C8A84B', font:'Jost, sans-serif' }
+const inputStyle: React.CSSProperties = { width:'100%', padding:'10px 12px', borderRadius:10, border:`1.5px solid ${W.border}`, fontSize:13, color:W.text, background:W.card, outline:'none', boxSizing:'border-box', fontFamily:W.font }
+const labelStyle: React.CSSProperties = { display:'block', fontSize:12, fontWeight:600, color:W.textSoft, marginBottom:6, fontFamily:W.font }
+const btnPrimary: React.CSSProperties = { width:'100%', padding:'13px 0', borderRadius:14, border:'none', cursor:'pointer', fontSize:14, fontWeight:700, background:W.gold, color:'#fff', fontFamily:W.font }
+function pill(active:boolean, accent=W.gold):React.CSSProperties { return { flexShrink:0, padding:'6px 14px', borderRadius:20, border:'none', cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:W.font, background:active?accent:W.borderSoft, color:active?'#fff':W.textSoft } }
 
 function ResultsInner() {
   const searchParams = useSearchParams()
+  const [teacherId,setTeacherId]=useState<string|null>(null)
+  const [schoolId,setSchoolId]=useState<string|null>(null)
+  const [tier,setTier]=useState<Tier|null>(null)
+  const [classes,setClasses]=useState<ClassOption[]>([])
+  const [subjects,setSubjects]=useState<SubjectOption[]>([])
+  const [activeClassIdx,setActiveClassIdx]=useState(0)
+  const [activeSubjectIdx,setActiveSubjectIdx]=useState(0)
+  const [exams,setExams]=useState<Exam[]>([])
+  const [activeExam,setActiveExam]=useState<Exam|null>(null)
+  const [showExamSheet,setShowExamSheet]=useState(false)
+  const [newExamName,setNewExamName]=useState('')
+  const [newExamType,setNewExamType]=useState('summative')
+  const [newExamTerm,setNewExamTerm]=useState(1)
+  const [newExamYear,setNewExamYear]=useState(new Date().getFullYear())
+  const [newExamPass,setNewExamPass]=useState(50)
+  const [creatingExam,setCreatingExam]=useState(false)
+  const [examError,setExamError]=useState<string|null>(null)
+  const [students,setStudents]=useState<Student[]>([])
+  const [results,setResults]=useState<Result[]>([])
+  const [prevResults,setPrevResults]=useState<Result[]>([])
+  const [draftMarks,setDraftMarks]=useState<Record<string,string>>({})
+  const [savingId,setSavingId]=useState<string|null>(null)
+  const [savedId,setSavedId]=useState<string|null>(null)
+  const [errorByStudent,setErrorByStudent]=useState<Record<string,string>>({})
+  const [activeTab,setActiveTab]=useState<'entry'|'analysis'>('entry')
+  const [booting,setBooting]=useState(true)
+  const [loading,setLoading]=useState(false)
+  const [error,setError]=useState<string|null>(null)
+  const loadIdRef=useRef(0)
 
-  // ── Identity ──
-  const [teacherId, setTeacherId] = useState<string | null>(null)
-  const [schoolId,  setSchoolId]  = useState<string | null>(null)
-  const [tier,      setTier]      = useState<Tier | null>(null)
-
-  // ── Tier 1 data ──
-  const [classes,  setClasses]  = useState<ClassOption[]>([])
-  const [subjects, setSubjects] = useState<SubjectOption[]>([])
-  const [activeClassIdx,   setActiveClassIdx]   = useState(0)
-  const [activeSubjectIdx, setActiveSubjectIdx] = useState(0)
-
-  // ── Exams ──
-  const [exams,          setExams]          = useState<Exam[]>([])
-  const [activeExam,     setActiveExam]     = useState<Exam | null>(null)
-  const [showExamSheet,  setShowExamSheet]  = useState(false)
-  const [newExamName,    setNewExamName]    = useState('')
-  const [newExamType,    setNewExamType]    = useState('summative')
-  const [newExamTerm,    setNewExamTerm]    = useState(1)
-  const [newExamYear,    setNewExamYear]    = useState(new Date().getFullYear())
-  const [newExamPass,    setNewExamPass]    = useState(50)
-  const [creatingExam,   setCreatingExam]   = useState(false)
-  const [editingExam,    setEditingExam]    = useState(false)
-  const [examError,      setExamError]      = useState<string | null>(null)
-
-  // ── Students ──
-  const [students,        setStudents]        = useState<Student[]>([])
-  const [showAddStudent,  setShowAddStudent]  = useState(false)
-  const [newStudentName,  setNewStudentName]  = useState('')
-  const [newStudentClass, setNewStudentClass] = useState('')
-  const [addingStudent,   setAddingStudent]   = useState(false)
-
-  // ── Results ──
-  const [results,    setResults]    = useState<Result[]>([])
-  const [prevResults, setPrevResults] = useState<Result[]>([])
-  const [draftMarks, setDraftMarks] = useState<Record<string, string>>({})
-  const [savingId,   setSavingId]   = useState<string | null>(null)
-  const [savedId,    setSavedId]    = useState<string | null>(null)
-  const [activeTab,  setActiveTab]  = useState<'entry' | 'analysis'>('entry')
-
-  // ── Loading ──
-  const [booting,  setBooting]  = useState(true)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState<string | null>(null)
-
-  const loadIdRef = useRef(0)
-
-  // ── Boot ──────────────────────────────────────────────────────────────────
-
-  useEffect(() => { boot() }, [])
+  useEffect(()=>{ void boot() },[])
 
   async function boot() {
-    setBooting(true)
-    setError(null)
-
-    const { data: { user }, error: authErr } = await supabase.auth.getUser()
+    setBooting(true); setError(null)
+    const { data:{user}, error:authErr } = await supabase.auth.getUser()
     if (authErr || !user) { setError('Not signed in.'); setBooting(false); return }
     setTeacherId(user.id)
-
-    // Profile — school_id optional
-    const [teacherRes, memberRes, profileRes] = await Promise.all([
-      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
+    const [teacherRes,memberRes,profileRes]=await Promise.all([
+      supabase.from('teacher_profiles').select('school_id').eq('profile_id',user.id).maybeSingle(),
+      supabase.from('school_members').select('school_id').eq('profile_id',user.id).maybeSingle(),
+      supabase.from('profiles').select('school_id').eq('id',user.id).single(),
     ])
-    const sid: string | null = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
+    const sid:string|null = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
     setSchoolId(sid)
-
-    // Detect tier
-    if (!sid) {
-      // Tier 3 — no school at all
-      setTier(3)
-      await loadManualStudents(user.id)
-      await loadExams(user.id, null)
-      setBooting(false)
-      return
-    }
-
-    // Check teacher_classes
-    const { data: tcRows } = await supabase
-      .from('teacher_classes')
-      .select('class_id, subject_id')
-      .eq('teacher_id', user.id)
-
-    const rows      = tcRows ?? []
-    const classIds  = Array.from(new Set(rows.map((r: { class_id: string }) => r.class_id).filter(Boolean)))
-    const subjectIds = Array.from(new Set(rows.map((r: { subject_id: string }) => r.subject_id).filter(Boolean)))
-
-    if (classIds.length === 0) {
-      // Tier 2 — school exists, no class assignment
-      setTier(2)
-      await loadManualStudents(user.id)
-      await loadExams(user.id, sid)
-      setBooting(false)
-      return
-    }
-
-    // Tier 1 — full setup
+    if (!sid) { setTier(3); await loadExams(user.id,null); setBooting(false); return }
+    const { data:tcRows } = await supabase.from('teacher_classes').select('class_id, subject_id').eq('teacher_id',user.id)
+    const rows=tcRows??[]
+    const classIds=Array.from(new Set(rows.map((r:{class_id:string})=>r.class_id).filter(Boolean)))
+    const subjectIds=Array.from(new Set(rows.map((r:{subject_id:string})=>r.subject_id).filter(Boolean)))
+    if (classIds.length===0) { setTier(2); await loadExams(user.id,sid); setBooting(false); return }
     setTier(1)
-    const [classesRes, subjectsRes] = await Promise.all([
-      supabase.from('classes').select('id, name, stream').in('id', classIds),
-      subjectIds.length > 0
-        ? supabase.from('subjects').select('id, name').in('id', subjectIds)
-        : Promise.resolve({ data: [] }),
+    const [classesRes,subjectsRes]=await Promise.all([
+      supabase.from('classes').select('id, name, stream').in('id',classIds),
+      subjectIds.length>0 ? supabase.from('subjects').select('id, name').in('id',subjectIds) : Promise.resolve({data:[]}),
     ])
-
-    const loadedClasses  = (classesRes.data  ?? []) as ClassOption[]
-    const loadedSubjects = (subjectsRes.data ?? []) as SubjectOption[]
-
-    // URL pre-selection
-    const urlClassId   = searchParams.get('classId')
-    const urlSubjectId = searchParams.get('subjectId')
-    let ci = 0, si = 0
-    if (urlClassId)   { const i = loadedClasses.findIndex(c => c.id === urlClassId);    if (i !== -1) ci = i }
-    if (urlSubjectId) { const i = loadedSubjects.findIndex(s => s.id === urlSubjectId); if (i !== -1) si = i }
-
-    setClasses(loadedClasses)
-    setSubjects(loadedSubjects)
-    setActiveClassIdx(ci)
-    setActiveSubjectIdx(si)
-
-    await loadExams(user.id, sid)
+    const loadedClasses=(classesRes.data??[]) as ClassOption[]
+    const loadedSubjects=(subjectsRes.data??[]) as SubjectOption[]
+    let ci=0,si=0
+    const urlClassId=searchParams.get('classId'); const urlSubjectId=searchParams.get('subjectId')
+    if (urlClassId) { const i=loadedClasses.findIndex(c=>c.id===urlClassId); if (i!==-1) ci=i }
+    if (urlSubjectId) { const i=loadedSubjects.findIndex(s=>s.id===urlSubjectId); if (i!==-1) si=i }
+    setClasses(loadedClasses); setSubjects(loadedSubjects); setActiveClassIdx(ci); setActiveSubjectIdx(si)
+    await loadExams(user.id,sid)
     setBooting(false)
   }
 
-  // ── Load exams ────────────────────────────────────────────────────────────
-
-  async function loadExams(tid: string, sid: string | null) {
-    const query = sid
-      ? supabase.from('exams').select('*').or(`created_by.eq.${tid},school_id.eq.${sid}`).order('created_at', { ascending: false })
-      : supabase.from('exams').select('*').eq('created_by', tid).order('created_at', { ascending: false })
-
-    const { data } = await query
-    const loaded = (data ?? []) as Exam[]
-    setExams(loaded)
-    if (loaded.length > 0) setActiveExam(loaded[0])
+  async function loadExams(tid:string,sid:string|null) {
+    const query=sid ? supabase.from('exams').select('*').or(`created_by.eq.${tid},school_id.eq.${sid}`).order('created_at',{ascending:false}) : supabase.from('exams').select('*').eq('created_by',tid).order('created_at',{ascending:false})
+    const {data}=await query
+    const loaded=(data??[]) as Exam[]
+    setExams(loaded); setActiveExam(loaded[0]??null)
   }
 
-  // ── Load students (Tier 1) ────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (tier !== 1) return
-    const classId = classes[activeClassIdx]?.id
+  useEffect(()=>{
+    if (tier!==1) { setStudents([]); return }
+    const classId=classes[activeClassIdx]?.id
     if (!classId) return
-    const thisLoad = ++loadIdRef.current
-    loadTier1Students(thisLoad, classId)
-  }, [tier, activeClassIdx, classes])
+    const id=++loadIdRef.current
+    void loadTier1Students(id,classId)
+  },[tier,activeClassIdx,classes])
 
-  async function loadTier1Students(loadId: number, classId: string) {
+  async function loadTier1Students(loadId:number,classId:string) {
     setLoading(true)
-    const { data: scRows } = await supabase
-      .from('student_classes')
-      .select('student_id')
-      .eq('class_id', classId)
-      .eq('is_current', true)
-
-    if (loadId !== loadIdRef.current) return
-    const ids = (scRows ?? []).map((r: { student_id: string }) => r.student_id)
-    if (ids.length === 0) { setStudents([]); setLoading(false); return }
-
-    const { data: studs } = await supabase
-      .from('students').select('id, name').in('id', ids)
-
-    if (loadId !== loadIdRef.current) return
-    setStudents(((studs ?? []) as { id: string; name: string }[])
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map(s => ({ ...s, source: 'db' as const }))
-    )
+    const {data:scRows}=await supabase.from('student_classes').select('student_id').eq('class_id',classId).eq('is_current',true)
+    if (loadId!==loadIdRef.current) return
+    const ids=(scRows??[]).map((r:{student_id:string})=>r.student_id)
+    if (ids.length===0) { setStudents([]); setLoading(false); return }
+    const {data:studs}=await supabase.from('students').select('id, name').in('id',ids)
+    if (loadId!==loadIdRef.current) return
+    setStudents(((studs??[]) as {id:string;name:string}[]).sort((a,b)=>a.name.localeCompare(b.name)).map(s=>({...s,source:'db' as const})))
     setLoading(false)
   }
 
-  // ── Load manual students (Tier 2 & 3) ────────────────────────────────────
-
-  async function loadManualStudents(tid: string) {
-    const { data } = await supabase
-      .from('manual_students')
-      .select('id, name, class_name')
-      .eq('teacher_id', tid)
-      .order('name')
-    setStudents(((data ?? []) as { id: string; name: string; class_name: string | null }[])
-      .map(s => ({ id: s.id, name: s.name, source: 'manual' as const, class_name: s.class_name ?? undefined }))
-    )
-  }
-
-  // ── Load results when exam + students ready ───────────────────────────────
-
-  useEffect(() => {
-    if (!activeExam || students.length === 0) return
-    loadResults()
-  }, [activeExam, students])
+  useEffect(()=>{ if (activeExam && students.length>0) void loadResults() },[activeExam,students,activeSubjectIdx])
 
   async function loadResults() {
     if (!activeExam) return
-    const studentIds = students.map(s => s.id)
-    const { data } = await supabase
-      .from('exam_results')
-      .select('id, student_id, marks, is_absent')
-      .eq('exam_id', activeExam.id)
-      .in('student_id', studentIds)
-    const loaded = (data ?? []) as Result[]
+    const studentIds=students.map(s=>s.id)
+    let query=supabase.from('exam_results').select('id, student_id, marks, is_absent').eq('exam_id',activeExam.id).in('student_id',studentIds)
+    const subjectId=subjects[activeSubjectIdx]?.id
+    if (subjectId) query=query.eq('subject_id',subjectId)
+    const {data}=await query
+    const loaded=(data??[]) as Result[]
     setResults(loaded)
-    // Seed draft marks from saved results
-    const draft: Record<string, string> = {}
-    for (const r of loaded) {
-      if (!r.is_absent) draft[r.student_id] = String(r.marks)
-    }
-    setDraftMarks(draft)
-
-    // Load previous exam results for comparison
-    const prevExam = exams[exams.findIndex(e => e.id === activeExam.id) + 1]
+    const draft:Record<string,string>={}
+    for (const r of loaded) if (!r.is_absent) draft[r.student_id]=String(r.marks)
+    setDraftMarks(draft); setErrorByStudent({})
+    const currentIndex=exams.findIndex(e=>e.id===activeExam.id)
+    const prevExam=currentIndex>=0 ? exams[currentIndex+1] : undefined
     if (prevExam) {
-      const { data: prevData } = await supabase
-        .from('exam_results')
-        .select('id, student_id, marks, is_absent')
-        .eq('exam_id', prevExam.id)
-        .in('student_id', studentIds)
-      setPrevResults((prevData ?? []) as Result[])
-    } else {
-      setPrevResults([])
-    }
+      let prevQuery=supabase.from('exam_results').select('id, student_id, marks, is_absent').eq('exam_id',prevExam.id).in('student_id',studentIds)
+      if (subjectId) prevQuery=prevQuery.eq('subject_id',subjectId)
+      const {data:prevData}=await prevQuery
+      setPrevResults((prevData??[]) as Result[])
+    } else setPrevResults([])
   }
-
-  // ── Create exam ───────────────────────────────────────────────────────────
 
   async function createExam() {
-    if (creatingExam) return
+    if (creatingExam || !teacherId || !schoolId) return
     if (!newExamName.trim()) { setExamError('Enter exam name'); return }
-    if (!teacherId)          { setExamError('Not signed in');  return }
     setCreatingExam(true); setExamError(null)
-
-    // ── Edit mode ──
-    if (editingExam && activeExam) {
-      const { data, error: uErr } = await supabase
-        .from('exams')
-        .update({ name: newExamName.trim(), exam_type: newExamType, term: newExamTerm, academic_year: newExamYear, pass_mark: newExamPass })
-        .eq('id', activeExam.id)
-        .select('*').single()
-      if (uErr || !data) { setExamError('Could not update exam. Please try again.'); setCreatingExam(false); return }
-      const updated = data as Exam
-      setExams(prev => prev.map(e => e.id === updated.id ? updated : e))
-      setActiveExam(updated)
-      setShowExamSheet(false)
-      setNewExamName(''); setCreatingExam(false); setEditingExam(false)
-      return
-    }
-
-    // ── Create mode ──
-    if (!schoolId) {
-      setExamError('School context is unavailable')
-      setCreatingExam(false)
-      return
-    }
-
-    const payload: ExamInsert = {
-      name:          newExamName.trim(),
-      exam_type:     newExamType,
-      term:          newExamTerm,
-      academic_year: newExamYear,
-      pass_mark:     newExamPass,
-      created_by:    teacherId,
-      school_id:     schoolId,
-    }
-
-    const { data, error: cErr } = await supabase
-      .from('exams').insert(payload)
-      .select('*').single()
-
+    const payload:ExamInsert={name:newExamName.trim(),exam_type:newExamType,term:newExamTerm,academic_year:newExamYear,pass_mark:newExamPass,created_by:teacherId,school_id:schoolId}
+    const {data,error:cErr}=await supabase.from('exams').insert(payload).select('*').single()
     if (cErr || !data) { setExamError('Could not create exam. Please try again.'); setCreatingExam(false); return }
-    const created = data as Exam
-    setExams(prev => [created, ...prev])
-    setActiveExam(created)
-    setShowExamSheet(false)
-    setNewExamName(''); setCreatingExam(false); setEditingExam(false)
+    const created=data as Exam
+    setExams(prev=>[created,...prev]); setActiveExam(created); setShowExamSheet(false); setNewExamName(''); setCreatingExam(false)
   }
 
-  // ── Add manual student ────────────────────────────────────────────────────
-
-  async function addManualStudent() {
-    if (addingStudent) return
-    if (!newStudentName.trim()) return
-    if (!teacherId) return
-    setAddingStudent(true)
-
-    const { data, error: aErr } = await supabase
-      .from('manual_students')
-      .insert({ teacher_id: teacherId, name: newStudentName.trim(), class_name: newStudentClass.trim() || null })
-      .select('id, name, class_name').single()
-
-    if (!aErr && data) {
-      const s = data as { id: string; name: string; class_name: string | null }
-      setStudents(prev => [...prev, { id: s.id, name: s.name, source: 'manual' as const, class_name: s.class_name ?? undefined }]
-        .sort((a, b) => a.name.localeCompare(b.name))
-      )
+  async function saveMark(student:Student,isAbsent=false):Promise<boolean> {
+    if (!activeExam || !teacherId || activeExam.is_locked) return false
+    const raw=draftMarks[student.id]??''
+    const marks=isAbsent?0:Number(raw)
+    if (!isAbsent && (raw.trim()==='' || !Number.isFinite(marks) || marks<0 || marks>100)) {
+      setErrorByStudent(prev=>({...prev,[student.id]:'Enter a mark from 0 to 100.'})); return false
     }
-    setNewStudentName(''); setNewStudentClass(''); setAddingStudent(false); setShowAddStudent(false)
-  }
-
-  // ── Save mark (upsert on blur) ────────────────────────────────────────────
-
-  async function saveMark(student: Student, isAbsent = false) {
-    if (!activeExam || !teacherId) return
-    if (activeExam.is_locked) return
-
-    const rawMark = draftMarks[student.id] ?? ''
-    const marks   = isAbsent ? 0 : parseFloat(rawMark)
-    if (!isAbsent && (isNaN(marks) || marks < 0 || marks > 100)) return
-
-    setSavingId(student.id)
-
-    const classId   = tier === 1 ? classes[activeClassIdx]?.id   : null
-    const subjectId = tier === 1 ? subjects[activeSubjectIdx]?.id : null
-
+    const classId=classes[activeClassIdx]?.id
+    const subjectId=subjects[activeSubjectIdx]?.id
     if (!schoolId || !classId || !subjectId) {
-      setSavingId(null)
-      return
+      setErrorByStudent(prev=>({...prev,[student.id]:'Class or subject context is unavailable.'})); return false
     }
-
-    const payload: ExamResultInsert = {
-      exam_id:    activeExam.id,
-      student_id: student.id,
-      teacher_id: teacherId,
-      school_id:  schoolId,
-      class_id:   classId,
-      subject_id: subjectId,
-      marks,
-      is_absent:  isAbsent,
-    }
-
-    const existing = results.find(r => r.student_id === student.id)
-
-    if (existing) {
-      const { data } = await supabase
-        .from('exam_results').update({ marks, is_absent: isAbsent })
-        .eq('id', existing.id)
-        .select('id, student_id, marks, is_absent').single()
-      if (data) setResults(prev => prev.map(r => r.id === existing.id ? data as Result : r))
-    } else {
-      const { data } = await supabase
-        .from('exam_results').insert(payload)
-        .select('id, student_id, marks, is_absent').single()
-      if (data) setResults(prev => [...prev, data as Result])
-    }
-
+    setSavingId(student.id); setErrorByStudent(prev=>{const n={...prev}; delete n[student.id]; return n})
+    const payload:ExamResultInsert={exam_id:activeExam.id,student_id:student.id,teacher_id:teacherId,school_id:schoolId,class_id:classId,subject_id:subjectId,marks,is_absent:isAbsent}
+    const existing=results.find(r=>r.student_id===student.id)
+    const response=existing
+      ? await supabase.from('exam_results').update({marks,is_absent:isAbsent}).eq('id',existing.id).select('id, student_id, marks, is_absent').single()
+      : await supabase.from('exam_results').insert(payload).select('id, student_id, marks, is_absent').single()
     setSavingId(null)
-    setSavedId(student.id)
-    setTimeout(() => setSavedId(null), 2000)
+    if (response.error || !response.data) {
+      setErrorByStudent(prev=>({...prev,[student.id]:'Could not save this mark. Check your assignment and try again.'})); return false
+    }
+    const saved=response.data as Result
+    setResults(prev=>existing?prev.map(r=>r.id===saved.id?saved:r):[...prev,saved])
+    if (isAbsent) setDraftMarks(prev=>{const n={...prev}; delete n[student.id]; return n})
+    setSavedId(student.id); setTimeout(()=>setSavedId(current=>current===student.id?null:current),1600)
+    return true
   }
 
-  // ── Analysis helpers ──────────────────────────────────────────────────────
+  async function clearAbsent(student:Student):Promise<boolean> {
+    const existing=results.find(r=>r.student_id===student.id)
+    if (!existing || !existing.is_absent || !activeExam || activeExam.is_locked) return false
+    setSavingId(student.id)
+    const {data,error:updateError}=await supabase.from('exam_results').update({marks:0,is_absent:false}).eq('id',existing.id).select('id, student_id, marks, is_absent').single()
+    setSavingId(null)
+    if (updateError || !data) { setErrorByStudent(prev=>({...prev,[student.id]:'Could not clear absence.'})); return false }
+    setResults(prev=>prev.map(r=>r.id===existing.id?data as Result:r)); setDraftMarks(prev=>({...prev,[student.id]:'0'})); setSavedId(student.id); return true
+  }
 
   function analysisData() {
-    const entered = results.filter(r => !r.is_absent)
-    if (entered.length === 0) return null
-    const marks  = entered.map(r => r.marks)
-    const avg    = marks.reduce((a, b) => a + b, 0) / marks.length
-    const highest = Math.max(...marks)
-    const lowest  = Math.min(...marks)
-    const passM  = activeExam?.pass_mark ?? 50
-    const passed = marks.filter(m => m >= passM).length
-    const failed = marks.filter(m => m < passM).length
-    const grades: Record<string, number> = {}
-    for (const m of marks) {
-      const g = getGrade(m)
-      grades[g] = (grades[g] ?? 0) + 1
-    }
-    return { avg, highest, lowest, passed, failed, grades, total: entered.length, absent: results.filter(r => r.is_absent).length }
+    const entered=results.filter(r=>!r.is_absent)
+    if (entered.length===0) return null
+    const marks=entered.map(r=>r.marks); const avg=marks.reduce((a,b)=>a+b,0)/marks.length
+    const passM=activeExam?.pass_mark??50
+    const grades:Record<string,number>={}
+    for (const m of marks) { const g=getGrade(m); grades[g]=(grades[g]??0)+1 }
+    return {avg,highest:Math.max(...marks),lowest:Math.min(...marks),passed:marks.filter(m=>m>=passM).length,failed:marks.filter(m=>m<passM).length,grades,total:entered.length,absent:results.filter(r=>r.is_absent).length}
   }
+  const analysis=analysisData()
 
-  const analysis = analysisData()
+  if (booting) return <div style={{padding:24,display:'flex',flexDirection:'column',gap:12}}><Skeleton h={40}/><Skeleton h={64}/><Skeleton h={64}/></div>
+  if (error) return <div style={{padding:24,color:'#991b1b',fontSize:14}}>⚠️ {error}</div>
 
-  // ─── Render ────────────────────────────────────────────────────────────────
+  const activeClass=classes[activeClassIdx]; const activeSubject=subjects[activeSubjectIdx]; const passM=activeExam?.pass_mark??50
 
-  if (booting) return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Skeleton h={40} /><Skeleton h={40} /><Skeleton h={64} /><Skeleton h={64} /><Skeleton h={64} />
+  return <div style={{padding:'0 0 80px',fontFamily:W.font,background:W.bg,minHeight:'100vh'}}>
+    <div style={{padding:'20px 16px 12px',borderBottom:'1px solid #EDE0CE'}}>
+      <h1 style={{margin:0,fontSize:20,fontWeight:800,color:W.text}}>Results & Markbook</h1>
+      <p style={{margin:'4px 0 0',fontSize:13,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''}`:'Complete school/class setup to use the professional markbook.'}</p>
     </div>
-  )
 
-  if (error) return (
-    <div style={{ padding: 24, color: '#991b1b', fontSize: 14 }}>⚠️ {error}</div>
-  )
+    {tier===1 && <>
+      <div style={{overflowX:'auto',display:'flex',gap:8,padding:'12px 16px 0'}}>{classes.map((c,i)=><button key={c.id} onClick={()=>setActiveClassIdx(i)} style={pill(i===activeClassIdx)}>{c.name}{c.stream?' '+c.stream:''}</button>)}</div>
+      <div style={{overflowX:'auto',display:'flex',gap:8,padding:'8px 16px 0'}}>{subjects.map((s,i)=><button key={s.id} onClick={()=>setActiveSubjectIdx(i)} style={pill(i===activeSubjectIdx,'#4f46e5')}>{s.name}</button>)}</div>
+    </>}
 
-  const activeClass   = classes[activeClassIdx]
-  const activeSubject = subjects[activeSubjectIdx]
-  const passM         = activeExam?.pass_mark ?? 50
-
-  return (
-    <div style={{ padding: '0 0 80px', fontFamily: W.font, background: W.bg, minHeight: '100vh' }}>
-
-      {/* ── Header ── */}
-      <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #EDE0CE' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1c1917' }}>📊 Results</h1>
-            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#78716c' }}>
-              {tier === 1
-                ? `${activeClass?.name ?? '—'}${activeClass?.stream ? ' ' + activeClass.stream : ''}${activeSubject ? ' · ' + activeSubject.name : ''}`
-                : tier === 2 ? 'School teacher · no class assigned'
-                : 'Solo mode · no school linked'}
-            </p>
-          </div>
-          {/* Tier badge */}
-          <span style={{
-            padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-            background: tier === 1 ? '#d1fae5' : tier === 2 ? '#fef3c7' : '#f3f4f6',
-            color:      tier === 1 ? '#065f46' : tier === 2 ? '#92400e' : '#6b7280',
-          }}>
-            {tier === 1 ? 'Full setup' : tier === 2 ? 'Partial setup' : 'Solo'}
-          </span>
-        </div>
-      </div>
-
-      {/* ── Tier 1: class + subject tabs ── */}
-      {tier === 1 && (
-        <>
-          <div style={{ overflowX: 'auto', display: 'flex', gap: 8, padding: '12px 16px 0' }}>
-            {classes.map((c, i) => (
-              <button key={c.id} onClick={() => setActiveClassIdx(i)} style={pill(i === activeClassIdx)}>
-                {c.name}{c.stream ? ' ' + c.stream : ''}
-              </button>
-            ))}
-          </div>
-          {subjects.length > 1 && (
-            <div style={{ overflowX: 'auto', display: 'flex', gap: 8, padding: '8px 16px 0' }}>
-              {subjects.map((s, i) => (
-                <button key={s.id} onClick={() => setActiveSubjectIdx(i)} style={pill(i === activeSubjectIdx, '#6366f1')}>
-                  {s.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── Exam selector ── */}
-      <div style={{ padding: '12px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
-        <div style={{ flex: 1, overflowX: 'auto', display: 'flex', gap: 8 }}>
-          {exams.length === 0
-            ? <p style={{ margin: 0, fontSize: 13, color: '#a8998a' }}>No exams yet</p>
-            : exams.map(e => (
-                <button key={e.id} onClick={() => setActiveExam(e)} style={{
-                  ...pill(activeExam?.id === e.id, '#0a0a0a'),
-                  flexShrink: 0,
-                }}>
-                  {e.name}
-                  {e.is_locked && <span style={{ marginLeft: 4, fontSize: 10 }}>🔒</span>}
-                </button>
-              ))
-          }
-        </div>
-        <button onClick={() => { setShowExamSheet(true); setExamError(null) }} style={{
-          flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: '1.5px solid #EDE0CE',
-          background: '#FFFBF5', color: '#78716c', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-        }}>＋ Exam</button>
-      </div>
-
-      {/* ── Exam info bar ── */}
-      {activeExam && (
-        <div style={{ margin: '10px 16px 0', padding: '10px 14px', borderRadius: 12, background: '#FFF8EF', border: '1px solid #EDE0CE', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 12, color: '#78716c' }}>🗓️ {TERM_LABELS[activeExam.term - 1]} · {activeExam.academic_year}</span>
-          <span style={{ fontSize: 12, color: '#78716c' }}>📝 {activeExam.exam_type.charAt(0).toUpperCase() + activeExam.exam_type.slice(1)}</span>
-          <span style={{ fontSize: 12, color: '#78716c' }}>✅ Pass: {activeExam.pass_mark}</span>
-          {activeExam.is_locked && (
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 700 }}>🔒 Locked</span>
-              <button
-                onClick={async () => {
-                  if (!confirm('Unlock this exam? Marks can be edited again.')) return
-                  await supabase.from('exams').update({ is_locked: false }).eq('id', activeExam.id)
-                  setExams(prev => prev.map(e => e.id === activeExam.id ? { ...e, is_locked: false } : e))
-                  setActiveExam(prev => prev ? { ...prev, is_locked: false } : prev)
-                }}
-                style={{ padding: '4px 10px', borderRadius: 12, border: '1px solid #EDE0CE', background: '#FFF8EF', fontSize: 11, fontWeight: 700, color: '#991b1b', cursor: 'pointer' }}
-              >🔓 Unlock</button>
-            </div>
-          )}
-          {/* Edit + Lock buttons */}
-          {!activeExam.is_locked && (
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-              <button
-                onClick={() => {
-                  setNewExamName(activeExam.name)
-                  setNewExamType(activeExam.exam_type)
-                  setNewExamTerm(activeExam.term)
-                  setNewExamYear(activeExam.academic_year)
-                  setNewExamPass(activeExam.pass_mark)
-                  setEditingExam(true)
-                  setShowExamSheet(true)
-                  setExamError(null)
-                }}
-                style={{ padding: '4px 10px', borderRadius: 12, border: '1px solid #EDE0CE', background: '#FFF8EF', fontSize: 11, fontWeight: 700, color: '#78716c', cursor: 'pointer' }}
-              >✏️ Edit</button>
-              <button
-                onClick={async () => {
-                  if (!activeExam) return
-                  await supabase.from('exams').update({ is_locked: true }).eq('id', activeExam.id)
-                  setExams(prev => prev.map(e => e.id === activeExam.id ? { ...e, is_locked: true } : e))
-                  setActiveExam(prev => prev ? { ...prev, is_locked: true } : prev)
-                }}
-                style={{ padding: '4px 10px', borderRadius: 12, border: '1px solid #EDE0CE', background: '#FFF8EF', fontSize: 11, fontWeight: 700, color: '#991b1b', cursor: 'pointer' }}
-              >🔒 Lock</button>
-            </div>
-          )}
-        </div>
-      )}
-
-
-      {/* ── Completion Ring ── */}
-      {activeExam && students.length > 0 && (
-        () => {
-          const total     = students.length
-          const entered   = results.filter(r => !r.is_absent).length + results.filter(r => r.is_absent).length
-          const pct       = Math.round((entered / total) * 100)
-          const radius    = 28
-          const circ      = 2 * Math.PI * radius
-          const dash      = (pct / 100) * circ
-          const done      = entered === total
-          const insight   = done && analysis
-            ? pct === 100 && analysis.passed === total
-              ? '🌟 Whole class passed!'
-              : done
-              ? `📌 ${analysis.failed} student${analysis.failed !== 1 ? 's' : ''} need${analysis.failed === 1 ? 's' : ''} attention · avg ${analysis.avg.toFixed(1)}`
-              : ''
-            : ''
-          return (
-            <div style={{ margin: '10px 16px 0', padding: '12px 16px', borderRadius: 14, background: done ? '#f0fdf4' : '#FFF8EF', border: `1.5px solid ${done ? '#86efac' : '#EDE0CE'}`, display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.4s ease' }}>
-              {/* SVG Ring */}
-              <div style={{ position: 'relative', flexShrink: 0 }}>
-                <svg width={72} height={72} style={{ transform: 'rotate(-90deg)' }}>
-                  <circle cx={36} cy={36} r={radius} fill="none" stroke="#e5e7eb" strokeWidth={6} />
-                  <circle cx={36} cy={36} r={radius} fill="none"
-                    stroke={done ? '#10b981' : '#C8A84B'}
-                    strokeWidth={6}
-                    strokeDasharray={`${dash} ${circ}`}
-                    strokeLinecap="round"
-                    style={{ transition: 'stroke-dasharray 0.6s ease' }}
-                  />
-                </svg>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: done ? '#065f46' : '#92400e' }}>{pct}%</span>
-                </div>
-              </div>
-              {/* Text */}
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#1c1917' }}>
-                  {done ? '✅ All marks entered' : `${entered} of ${total} marks entered`}
-                </p>
-                {insight
-                  ? <p style={{ margin: '4px 0 0', fontSize: 12, color: '#065f46', fontWeight: 600 }}>{insight}</p>
-                  : !done && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#a8998a' }}>{total - entered} student{total - entered !== 1 ? 's' : ''} remaining</p>
-                }
-              </div>
-            </div>
-          )
-        }
-      )()}
-
-      {/* ── Tabs ── */}
-      {activeExam && (
-        <div style={{ display: 'flex', gap: 0, margin: '14px 16px 0', borderRadius: 12, background: '#F5ECD9', padding: 4 }}>
-          {(['entry', 'analysis'] as const).map(tab => (
-            <button key={tab} onClick={() => setActiveTab(tab)} style={{
-              flex: 1, padding: '8px 0', borderRadius: 10, border: 'none',
-              cursor: 'pointer', fontSize: 13, fontWeight: 600,
-              background: activeTab === tab ? '#fff'    : 'transparent',
-              color:      activeTab === tab ? '#0a0a0a' : '#9ca3af',
-              boxShadow:  activeTab === tab ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-            }}>
-              {tab === 'entry' ? '✏️ Mark Entry' : '📈 Analysis'}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* ════════════════════════════════════
-          MARK ENTRY TAB
-      ════════════════════════════════════ */}
-      {activeTab === 'entry' && (
-        <div style={{ padding: '14px 16px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-
-          {/* No exam selected */}
-          {!activeExam && (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#a8998a', fontSize: 13 }}>
-              <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>📋</span>
-              Create or select an exam above to start entering marks.
-            </div>
-          )}
-
-          {/* Tier 2 & 3: add student button */}
-          {activeExam && tier !== 1 && (
-            <button onClick={() => setShowAddStudent(true)} style={{
-              padding: '10px 0', borderRadius: 12, border: '1.5px dashed #d1d5db',
-              background: '#FFF8EF', color: '#78716c', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            }}>＋ Add student</button>
-          )}
-
-          {/* Student rows */}
-          {activeExam && (loading
-            ? [1,2,3,4].map(i => <Skeleton key={i} h={64} />)
-            : students.length === 0
-              ? (
-                <div style={{ textAlign: 'center', padding: '32px 0', color: '#a8998a', fontSize: 13 }}>
-                  <span style={{ fontSize: 28, display: 'block', marginBottom: 8 }}>👥</span>
-                  {tier === 1 ? 'No students enrolled in this class.' : 'No students yet. Tap + Add student above.'}
-                </div>
-              )
-              : students.map(student => {
-                  const result   = results.find(r => r.student_id === student.id)
-                  const isAbsent = result?.is_absent ?? false
-                  const draft    = draftMarks[student.id] ?? ''
-                  const marks    = parseFloat(draft)
-                  const grade    = (!isAbsent && !isNaN(marks) && marks >= 0) ? getGrade(marks) : null
-                  const gc       = grade ? gradeColor(grade) : null
-                  const isSaving = savingId === student.id
-                  const locked   = activeExam.is_locked
-
-                  return (
-                    <div key={student.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 12,
-                      padding: '12px 14px', borderRadius: 14, background: '#FFFBF5',
-                      border: `1.5px solid ${isAbsent ? '#fca5a5' : result ? '#C8A84B44' : '#EDE0CE'}`,
-                      opacity: locked ? 0.75 : 1,
-                    }}>
-
-                      {/* Grade badge */}
-                      <div style={{
-                        width: 44, height: 44, borderRadius: 12, flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: gc ? gc.bg   : '#f3f4f6',
-                        color:      gc ? gc.color : '#9ca3af',
-                        fontSize: 13, fontWeight: 800,
-                      }}>
-                        {isAbsent ? 'ABS' : grade ?? '—'}
-                      </div>
-
-                      {/* Name */}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1c1917', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {student.name}
-                        </p>
-                        {student.class_name && (
-                          <p style={{ margin: '2px 0 0', fontSize: 11, color: '#a8998a' }}>{student.class_name}</p>
-                        )}
-                        {activeExam && (
-                          <a href={`/teacher/results/report-card/${student.id}?examId=${activeExam.id}`} style={{ fontSize: 11, color: '#6366f1', fontWeight: 700, textDecoration: 'none' }}>📄 Report Card →</a>
-                        )}
-                        {!isAbsent && marks >= 0 && !isNaN(marks) && (
-                          <p style={{ margin: '2px 0 0', fontSize: 11, color: marks >= passM ? '#065f46' : '#991b1b', fontWeight: 600 }}>
-                            {marks >= passM ? '✓ Pass' : '✗ Below pass mark'}
-                          </p>
-                        )}
-                        {!isAbsent && !isNaN(marks) && (() => {
-                          const prev = prevResults.find(r => r.student_id === student.id)
-                          if (!prev || prev.is_absent) return null
-                          const diff = marks - prev.marks
-                          if (diff === 0) return null
-                          return (
-                            <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 700, color: diff > 0 ? '#065f46' : '#991b1b' }}>
-                              {diff > 0 ? `↑ +${diff}` : `↓ ${diff}`} from last exam
-                            </p>
-                          )
-                        })()}
-                      </div>
-
-                      {/* Mark input */}
-                      {!locked && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                          <input
-                            type="number"
-                            min={0} max={100}
-                            placeholder="—"
-                            value={isAbsent ? '' : draft}
-                            disabled={isAbsent || locked}
-                            onChange={e => setDraftMarks(prev => ({ ...prev, [student.id]: e.target.value }))}
-                            onBlur={() => saveMark(student)}
-                            style={{
-                              width: 64, padding: '8px 10px', borderRadius: 10,
-                              border: '1.5px solid #EDE0CE', fontSize: 15, fontWeight: 700,
-                              textAlign: 'center', color: '#1c1917', background: isAbsent ? '#f9fafb' : '#fff',
-                              outline: 'none',
-                            }}
-                          />
-                          {/* Absent toggle */}
-                          <button
-                            onClick={() => {
-                              if (isAbsent) {
-                                setResults(prev => prev.map(r => r.student_id === student.id ? { ...r, is_absent: false } : r))
-                              } else {
-                                saveMark(student, true)
-                              }
-                            }}
-                            style={{
-                              width: 36, height: 36, borderRadius: 10, border: 'none',
-                              cursor: 'pointer', fontSize: 13, fontWeight: 700,
-                              background: isAbsent ? '#fee2e2' : '#f3f4f6',
-                              color:      isAbsent ? '#991b1b' : '#9ca3af',
-                            }}
-                            title="Mark absent"
-                          >
-                            {isSaving ? '…' : savedId === student.id ? '✓' : isAbsent ? 'ABS' : '○'}
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Locked: show mark only */}
-                      {locked && (
-                        <div style={{
-                          padding: '6px 14px', borderRadius: 10, fontSize: 15, fontWeight: 800,
-                          background: gc ? gc.bg : '#f3f4f6',
-                          color:      gc ? gc.color : '#9ca3af',
-                        }}>
-                          {isAbsent ? 'ABS' : draft || '—'}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })
-          )}
-        </div>
-      )}
-
-      {/* ════════════════════════════════════
-          ANALYSIS TAB
-      ════════════════════════════════════ */}
-      {activeTab === 'analysis' && (
-        <div style={{ padding: '14px 16px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {!analysis
-            ? (
-              <div style={{ textAlign: 'center', padding: '40px 0', color: '#a8998a', fontSize: 13 }}>
-                <span style={{ fontSize: 32, display: 'block', marginBottom: 8 }}>📈</span>
-                Enter marks first to see analysis.
-              </div>
-            )
-            : (
-              <>
-                {/* ── Podium Leaderboard ── */}
-                {(() => {
-                  const ranked = students
-                    .map(s => ({ s, r: results.find(x => x.student_id === s.id) }))
-                    .filter(x => x.r && !x.r.is_absent)
-                    .sort((a, b) => b.r!.marks - a.r!.marks)
-                    .slice(0, 3)
-                  if (ranked.length === 0) return null
-                  const medals = ['🥇','🥈','🥉']
-                  const heights = ['80px','64px','52px']
-                  const borders = ['#C8A84B','#9ca3af','#cd7f32']
-                  return (
-                    <div style={{ borderRadius: 16, background: '#0a0a0a', padding: '16px', marginBottom: 4 }}>
-                      <p style={{ margin: '0 0 14px', fontSize: 12, fontWeight: 700, color: '#C8A84B', letterSpacing: 2, textTransform: 'uppercase' }}>🏆 Class Leaderboard</p>
-                      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10 }}>
-                        {[1,0,2].map(i => {
-                          const item = ranked[i]
-                          if (!item) return <div key={i} style={{ flex: 1 }} />
-                          return (
-                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: i === 0 ? 28 : 22 }}>{medals[i]}</span>
-                              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#fff', textAlign: 'center', lineHeight: 1.2 }}>{item.s.name.split(' ')[0]}</p>
-                              <div style={{ width: '100%', background: borders[i], borderRadius: '8px 8px 0 0', height: heights[i], display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-                                <span style={{ fontSize: 18, fontWeight: 800, color: '#1c1917' }}>{item.r!.marks}</span>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: '#1c1917' }}>{getGrade(item.r!.marks)}</span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })()}
-
-                {/* ── Stats row ── */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {[
-                    { label: 'Average',  value: analysis.avg.toFixed(1), icon: '📊', bg: '#1e1e2e', color: '#C8A84B' },
-                    { label: 'Highest',  value: String(analysis.highest), icon: '🏆', bg: '#f0fdf4', color: '#065f46' },
-                    { label: 'Lowest',   value: String(analysis.lowest),  icon: '📉', bg: '#fff7f7', color: '#991b1b' },
-                    { label: 'Absent',   value: String(analysis.absent),  icon: '🚫', bg: '#f3f4f6', color: '#78716c' },
-                  ].map(c => (
-                    <div key={c.label} style={{ padding: '14px 12px', borderRadius: 14, background: c.bg, border: '1px solid rgba(0,0,0,0.06)' }}>
-                      <p style={{ margin: 0, fontSize: 11, color: c.color, fontWeight: 600 }}>{c.icon} {c.label}</p>
-                      <p style={{ margin: '4px 0 0', fontSize: 26, fontWeight: 800, color: c.color }}>{c.value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                {/* ── Smart Insight ── */}
-                {(() => {
-                  const pct = Math.round((analysis.passed / analysis.total) * 100)
-                  let msg = ''
-                  if (pct === 100) msg = '🌟 Outstanding! Every student passed.'
-                  else if (pct >= 75) msg = `💪 Strong class — ${pct}% passed. Focus on the ${analysis.failed} below pass mark.`
-                  else if (pct >= 50) msg = `⚠️ Half the class needs support — only ${pct}% passed.`
-                  else msg = `🚨 Urgent: ${analysis.failed} students failed. Consider a revision lesson.`
-                  return (
-                    <div style={{ padding: '14px', borderRadius: 14, background: '#fffbeb', border: '1.5px solid #C8A84B' }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#92400e' }}>💡 Teacher Insight</p>
-                      <p style={{ margin: '6px 0 0', fontSize: 13, color: '#78350f', lineHeight: 1.5 }}>{msg}</p>
-                    </div>
-                  )
-                })()}
-                {/* Pass/fail bar */}
-                <div style={{ padding: '14px', borderRadius: 14, background: '#FFFBF5', border: '1px solid #EDE0CE' }}>
-                  <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: '#78716c' }}>
-                    Pass vs Fail · pass mark {passM}
-                  </p>
-                  <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', height: 24 }}>
-                    <div style={{ flex: analysis.passed, background: '#10b981' }} />
-                    <div style={{ flex: analysis.failed, background: '#ef4444' }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6 }}>
-                    <span style={{ fontSize: 12, color: '#065f46', fontWeight: 600 }}>✓ {analysis.passed} passed</span>
-                    <span style={{ fontSize: 12, color: '#991b1b', fontWeight: 600 }}>✗ {analysis.failed} failed</span>
-                  </div>
-                </div>
-
-                {/* Grade distribution */}
-                <div style={{ padding: '14px', borderRadius: 14, background: '#FFFBF5', border: '1px solid #EDE0CE' }}>
-                  <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#78716c' }}>Grade distribution</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {['EE','ME','AE','BE'].map(g => {
-                      const count = analysis.grades[g] ?? 0
-                      if (count === 0) return null
-                      const gc    = gradeColor(g)
-                      const pct   = Math.round((count / analysis.total) * 100)
-                      return (
-                        <div key={g} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ width: 28, fontSize: 12, fontWeight: 800, color: gc.color, textAlign: 'right' }}>{g}</span>
-                          <div style={{ flex: 1, height: 16, borderRadius: 6, background: '#F5ECD9', overflow: 'hidden' }}>
-                            <div style={{ width: `${pct}%`, height: '100%', background: gc.color, borderRadius: 6 }} />
-                          </div>
-                          <span style={{ width: 28, fontSize: 12, color: '#78716c', fontWeight: 600 }}>{count}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Below pass mark list */}
-                {analysis.failed > 0 && (
-                  <div style={{ padding: '14px', borderRadius: 14, background: '#fff7f7', border: '1px solid #fca5a5' }}>
-                    <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: '#991b1b' }}>⚠️ Below pass mark</p>
-                    {students
-                      .filter(s => {
-                        const r = results.find(x => x.student_id === s.id)
-                        return r && !r.is_absent && r.marks < passM
-                      })
-                      .map(s => {
-                        const r  = results.find(x => x.student_id === s.id)!
-                        const gc = gradeColor(getGrade(r.marks))
-                        return (
-                          <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #fee2e2' }}>
-                            <span style={{ fontSize: 13, color: '#1c1917' }}>{s.name}</span>
-                            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>{r.marks}</span>
-                              <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 800, background: gc.bg, color: gc.color }}>{getGrade(r.marks)}</span>
-                            </div>
-                          </div>
-                        )
-                      })
-                    }
-                  </div>
-                )}
-              </>
-            )
-          }
-        </div>
-      )}
-
-      {/* ════════════════════════════════════
-          CREATE EXAM SHEET
-      ════════════════════════════════════ */}
-      {showExamSheet && (
-        <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) { setShowExamSheet(false); setEditingExam(false) } }}>
-          <div style={sheetStyle}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
-            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#1c1917' }}>{editingExam ? '✏️ Edit Exam' : '📋 New Exam'}</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={labelStyle}>Exam name *</label>
-                <input placeholder="e.g. End Term 1 Exam" value={newExamName} onChange={e => setNewExamName(e.target.value)} style={inputStyle} />
-              </div>
-
-              <div>
-                <label style={labelStyle}>Type</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {EXAM_TYPES.map(t => (
-                    <button key={t} onClick={() => setNewExamType(t)} style={{
-                      padding: '6px 12px', borderRadius: 16, border: '1.5px solid',
-                      cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                      borderColor: newExamType === t ? '#10b981' : '#e5e7eb',
-                      background:  newExamType === t ? '#d1fae5' : '#fafafa',
-                      color:       newExamType === t ? '#065f46' : '#6b7280',
-                    }}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 10 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Term</label>
-                  <select value={newExamTerm} onChange={e => setNewExamTerm(Number(e.target.value))} style={selectStyle}>
-                    {[1,2,3].map(t => <option key={t} value={t}>Term {t}</option>)}
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={labelStyle}>Year</label>
-                  <input type="number" value={newExamYear} onChange={e => setNewExamYear(Number(e.target.value))} style={inputStyle} />
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Pass mark (default 50)</label>
-                <input type="number" min={0} max={100} value={newExamPass} onChange={e => setNewExamPass(Number(e.target.value))} style={inputStyle} />
-              </div>
-
-              {examError && <p style={{ color: '#991b1b', fontSize: 12, margin: 0 }}>⚠️ {examError}</p>}
-
-              <button onClick={createExam} disabled={creatingExam} style={{ ...btnPrimary, background: creatingExam ? '#d1d5db' : '#10b981' }}>
-                {creatingExam ? (editingExam ? 'Saving…' : 'Creating…') : (editingExam ? 'Save Changes' : 'Create Exam')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ════════════════════════════════════
-          ADD STUDENT SHEET (Tier 2 & 3)
-      ════════════════════════════════════ */}
-      {showAddStudent && (
-        <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) setShowAddStudent(false) }}>
-          <div style={sheetStyle}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
-            <p style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 700, color: '#1c1917' }}>👤 Add Student</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div>
-                <label style={labelStyle}>Student name *</label>
-                <input placeholder="Full name" value={newStudentName} onChange={e => setNewStudentName(e.target.value)} style={inputStyle} />
-              </div>
-              <div>
-                <label style={labelStyle}>Class / stream (optional)</label>
-                <input placeholder="e.g. Grade 6 Mango" value={newStudentClass} onChange={e => setNewStudentClass(e.target.value)} style={inputStyle} />
-              </div>
-              <button onClick={addManualStudent} disabled={addingStudent || !newStudentName.trim()} style={{ ...btnPrimary, background: (!newStudentName.trim() || addingStudent) ? '#d1d5db' : '#10b981' }}>
-                {addingStudent ? 'Adding…' : 'Add Student'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style>
+    <div style={{padding:'12px 16px 0',display:'flex',gap:8,alignItems:'center'}}>
+      <div style={{flex:1,overflowX:'auto',display:'flex',gap:8}}>{exams.length===0?<span style={{fontSize:13,color:W.textMuted}}>No exams yet</span>:exams.map(e=><button key={e.id} onClick={()=>setActiveExam(e)} style={pill(activeExam?.id===e.id,'#0a0a0a')}>{e.name}{e.is_locked?' 🔒':''}</button>)}</div>
+      <button onClick={()=>setShowExamSheet(true)} style={{padding:'6px 14px',borderRadius:20,border:'1px solid #EDE0CE',background:'#fff',fontWeight:700}}>＋ Exam</button>
     </div>
-  )
+
+    {activeExam && students.length>0 && <div style={{margin:'12px 16px 0',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
+      {[['Students',students.length],['Recorded',results.length],['Class mean',analysis?`${analysis.avg.toFixed(1)}%`:'—'],['Need support',analysis?analysis.failed:'—']].map(([label,value])=><div key={String(label)} style={{padding:'12px',background:'#fff',border:'1px solid #E7E5E4',borderRadius:14}}><div style={{fontSize:11,color:W.textSoft,fontWeight:700}}>{label}</div><div style={{fontSize:20,fontWeight:800,marginTop:3}}>{value}</div></div>)}
+    </div>}
+
+    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Markbook':'Analysis'}</button>)}</div>}
+
+    {activeTab==='entry' && <div style={{padding:'14px 16px 0'}}>
+      {!activeExam?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Create or select an exam to open the markbook.</div>
+      : tier!==1?<div style={{padding:24,border:'1px solid #fde68a',background:'#fffbeb',borderRadius:14,color:'#92400e'}}>Professional marks entry requires a school class and subject assignment. This prevents unscoped exam records.</div>
+      : loading?<Skeleton h={220}/>
+      : students.length===0?<div style={{padding:32,textAlign:'center',color:W.textMuted}}>No students enrolled in this class.</div>
+      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} locked={activeExam.is_locked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} />}
+    </div>}
+
+    {activeTab==='analysis' && <div style={{padding:'14px 16px 0',display:'grid',gap:10}}>
+      {!analysis?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Enter marks first to see analysis.</div>:<>
+        <div style={{padding:16,borderRadius:16,background:'#111827',color:'#fff'}}><div style={{fontSize:12,color:'#d1d5db'}}>Class decision summary</div><div style={{fontSize:18,fontWeight:800,marginTop:5}}>{analysis.failed===0?'Whole class is at or above the pass mark.':`${analysis.failed} learner${analysis.failed===1?'':'s'} need attention before the next assessment.`}</div></div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:8}}>{[['Average',analysis.avg.toFixed(1)],['Highest',analysis.highest],['Lowest',analysis.lowest],['Absent',analysis.absent]].map(([l,v])=><div key={String(l)} style={{background:'#fff',border:'1px solid #e7e5e4',borderRadius:14,padding:14}}><div style={{fontSize:11,color:W.textSoft}}>{l}</div><div style={{fontSize:22,fontWeight:800,marginTop:3}}>{v}</div></div>)}</div>
+      </>}
+    </div>}
+
+    {showExamSheet && <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'flex-end'}} onClick={e=>{if(e.target===e.currentTarget)setShowExamSheet(false)}}><div style={{width:'100%',background:W.bg,borderRadius:'22px 22px 0 0',padding:'18px 16px 32px'}}><h2 style={{margin:'0 0 16px',fontSize:18}}>Create exam</h2><label style={labelStyle}>Exam name</label><input style={inputStyle} value={newExamName} onChange={e=>setNewExamName(e.target.value)} placeholder="e.g. Term 2 Midterm"/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:12}}><div><label style={labelStyle}>Type</label><select style={inputStyle} value={newExamType} onChange={e=>setNewExamType(e.target.value)}>{['summative','cat','midterm','opener','endterm'].map(t=><option key={t} value={t}>{t}</option>)}</select></div><div><label style={labelStyle}>Pass mark</label><input type="number" min={0} max={100} style={inputStyle} value={newExamPass} onChange={e=>setNewExamPass(Number(e.target.value))}/></div><div><label style={labelStyle}>Term</label><select style={inputStyle} value={newExamTerm} onChange={e=>setNewExamTerm(Number(e.target.value))}>{[1,2,3].map(t=><option key={t} value={t}>Term {t}</option>)}</select></div><div><label style={labelStyle}>Year</label><input type="number" style={inputStyle} value={newExamYear} onChange={e=>setNewExamYear(Number(e.target.value))}/></div></div>{examError&&<p style={{color:'#b91c1c',fontSize:12,fontWeight:700}}>{examError}</p>}<button onClick={()=>void createExam()} disabled={creatingExam} style={{...btnPrimary,marginTop:16,opacity:creatingExam?.6:1}}>{creatingExam?'Creating…':'Create exam'}</button></div></div>}
+  </div>
 }
 
-// ─── Export ────────────────────────────────────────────────────────────────────
-
-export default function ResultsPage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 24 }}>Loading…</div>}>
-      <ResultsInner />
-    </Suspense>
-  )
-}
+export default function ResultsPage(){ return <Suspense fallback={<div style={{padding:24}}>Loading results…</div>}><ResultsInner/></Suspense> }
