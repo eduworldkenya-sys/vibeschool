@@ -12,8 +12,8 @@ export const HQ_THEME = {
 type NavItem = readonly [string,string,string]
 type NavGroup = {label:string;items:readonly NavItem[]}
 const navGroups: readonly NavGroup[] = [
-  {label:"Company",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Operations","/hq/intelligence","◈"]]},
-  {label:"Product",items:[["Product","/hq/analytics","◎"],["Schools","/hq/schools","⌂"],["Users","/hq/users","♙"]]},
+  {label:"Company",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Company Intelligence","/hq/intelligence","◈"]]},
+  {label:"Product",items:[["Product & Schools","/hq/product","◎"],["Users","/hq/users","♙"],["Executive metrics","/hq/analytics","↗"]]},
   {label:"Content",items:[["Content","/hq/content","▣"],["Curriculum Authority","/hq/curriculum-authority","A"],["Content Factory","/hq/curriculum-intelligence/engine","✦"]]},
   {label:"Company systems",items:[["Revenue","/hq/billing","$"],["System","/hq/security","◇"],["Workforce","/hq/workforce","⚙"],["Commissioning","/hq/workforce/readiness","✓"]]},
 ]

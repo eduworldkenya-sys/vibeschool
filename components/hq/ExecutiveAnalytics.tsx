@@ -3,101 +3,17 @@
 import { useEffect, useMemo, useState } from "react"
 import { loadHQExecutiveAnalytics, type HQExecutiveAnalytics } from "@/lib/hq/operating"
 
-const C = {
-  panel: "#0d1b2f",
-  border: "rgba(255,255,255,.08)",
-  muted: "rgba(255,255,255,.46)",
-}
-
-function Card({ title, value }: { title: string; value: string | number }) {
-  return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 13 }}>
-      <div style={{ fontSize: 21, fontWeight: 900 }}>{value}</div>
-      <div style={{ fontSize: 11, fontWeight: 800, marginTop: 5 }}>{title}</div>
-    </div>
-  )
-}
-
-function Breakdown({ title, rows }: { title: string; rows: Array<{ name: string; value: number }> }) {
-  const total = Math.max(1, rows.reduce((sum, row) => sum + row.value, 0))
-  return (
-    <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 13 }}>
-      <div style={{ fontSize: 11, fontWeight: 900, marginBottom: 8 }}>{title}</div>
-      {rows.map((row) => (
-        <div key={row.name} style={{ display: "flex", gap: 8, fontSize: 10.5, marginTop: 7 }}>
-          <span style={{ flex: 1 }}>{row.name}</span>
-          <strong>{row.value}</strong>
-          <span style={{ width: 40, textAlign: "right", color: C.muted }}>
-            {Math.round((row.value / total) * 100)}%
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-export default function HQExecutiveAnalytics() {
-  const [analytics, setAnalytics] = useState<HQExecutiveAnalytics | null>(null)
-  const [error, setError] = useState("")
-
-  useEffect(() => {
-    loadHQExecutiveAnalytics()
-      .then(setAnalytics)
-      .catch((reason) => setError(reason instanceof Error ? reason.message : "Analytics unavailable"))
-  }, [])
-
-  const roles = useMemo(
-    () => analytics?.roles.map((row) => ({ name: row.role, value: row.count })) ?? [],
-    [analytics],
-  )
-  const schools = useMemo(
-    () => analytics?.schools.map((row) => ({ name: row.status, value: row.count })) ?? [],
-    [analytics],
-  )
-
-  if (error) return <div style={{ color: "#fca5a5", fontSize: 11 }}>{error}</div>
-  if (!analytics) return <div style={{ color: C.muted, fontSize: 11 }}>Loading executive analytics…</div>
-
-  return (
-    <div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 9 }}>
-        <Card title="30d payments" value={`KES ${analytics.finance.payments_30d.toLocaleString("en-KE")}`} />
-        <Card title="30d expenses" value={`KES ${analytics.finance.expenses_30d.toLocaleString("en-KE")}`} />
-        <Card title="Marking backlog" value={analytics.operations.marking_backlog} />
-        <Card title="Open incidents" value={analytics.operations.open_incidents} />
-        <Card title="Publication reads" value={analytics.content.publication_reads} />
-        <Card title="Parent messages · 30d" value={analytics.communications.parent_messages_30d} />
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))", gap: 10, marginTop: 10 }}>
-        <Breakdown title="User composition" rows={roles} />
-        <Breakdown title="School operating status" rows={schools} />
-      </div>
-
-      <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 13, marginTop: 10 }}>
-        <div style={{ fontSize: 11, fontWeight: 900, marginBottom: 8 }}>14-day operating activity</div>
-        {analytics.daily.map((row) => (
-          <div
-            key={row.date}
-            style={{
-              display: "grid",
-              gridTemplateColumns: "80px repeat(4,1fr)",
-              gap: 8,
-              fontSize: 10,
-              padding: "5px 0",
-              borderTop: `1px solid ${C.border}`,
-            }}
-          >
-            <span style={{ color: C.muted }}>
-              {new Date(`${row.date}T00:00:00`).toLocaleDateString("en-KE", { month: "short", day: "numeric" })}
-            </span>
-            <span>Users {row.signups}</span>
-            <span>Plans {row.lesson_plans}</span>
-            <span>HW {row.homework}</span>
-            <span>Subs {row.submissions}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+const C = { panel: "#0d1b2f", border: "rgba(255,255,255,.08)", muted: "rgba(255,255,255,.46)" }
+function Card({ title, value }: { title: string; value: string | number }) { return <div style={{ background: C.panel, border: `1px solid ${C.border}`, borderRadius: 14, padding: 13 }}><div style={{ fontSize: 21, fontWeight: 900 }}>{value}</div><div style={{ fontSize: 11, fontWeight: 800, marginTop: 5 }}>{title}</div></div> }
+function Breakdown({ title, rows }: { title: string; rows: Array<{ name: string; value: number }> }) { const safeRows=Array.isArray(rows)?rows:[]; const total=Math.max(1,safeRows.reduce((sum,row)=>sum+Number(row.value||0),0)); return <div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:13}}><div style={{fontSize:11,fontWeight:900,marginBottom:8}}>{title}</div>{safeRows.length===0?<div style={{color:C.muted,fontSize:10.5}}>No trustworthy breakdown is available yet.</div>:safeRows.map(row=><div key={row.name} style={{display:"flex",gap:8,fontSize:10.5,marginTop:7}}><span style={{flex:1}}>{row.name}</span><strong>{row.value}</strong><span style={{width:40,textAlign:"right",color:C.muted}}>{Math.round((row.value/total)*100)}%</span></div>)}</div> }
+export default function HQExecutiveAnalytics(){
+ const [analytics,setAnalytics]=useState<HQExecutiveAnalytics|null>(null);const [error,setError]=useState("")
+ useEffect(()=>{loadHQExecutiveAnalytics().then(value=>setAnalytics(value??null)).catch(()=>setError("Executive analytics could not be loaded. Nothing was changed. Try again."))},[])
+ const roles=useMemo(()=>Array.isArray(analytics?.roles)?analytics!.roles.map(row=>({name:row.role,value:row.count})):[],[analytics])
+ const schools=useMemo(()=>Array.isArray(analytics?.schools)?analytics!.schools.map(row=>({name:row.status,value:row.count})):[],[analytics])
+ const daily=Array.isArray(analytics?.daily)?analytics!.daily:[]
+ if(error)return <div role="alert" style={{color:"#fca5a5",fontSize:11}}>{error}</div>
+ if(!analytics)return <div style={{color:C.muted,fontSize:11}}>Loading executive analytics…</div>
+ const finance=analytics.finance??({payments_30d:0,expenses_30d:0} as HQExecutiveAnalytics["finance"]);const operations=analytics.operations??({marking_backlog:0,open_incidents:0} as HQExecutiveAnalytics["operations"]);const content=analytics.content??({publication_reads:0} as HQExecutiveAnalytics["content"]);const communications=analytics.communications??({parent_messages_30d:0} as HQExecutiveAnalytics["communications"])
+ return <div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9}}><Card title="30d payments" value={`KES ${Number(finance.payments_30d||0).toLocaleString("en-KE")}`}/><Card title="30d expenses" value={`KES ${Number(finance.expenses_30d||0).toLocaleString("en-KE")}`}/><Card title="Marking backlog" value={Number(operations.marking_backlog||0)}/><Card title="Open incidents" value={Number(operations.open_incidents||0)}/><Card title="Publication reads" value={Number(content.publication_reads||0)}/><Card title="Parent messages · 30d" value={Number(communications.parent_messages_30d||0)}/></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:10,marginTop:10}}><Breakdown title="User composition" rows={roles}/><Breakdown title="School operating status" rows={schools}/></div><div style={{background:C.panel,border:`1px solid ${C.border}`,borderRadius:14,padding:13,marginTop:10}}><div style={{fontSize:11,fontWeight:900,marginBottom:8}}>14-day operating activity</div>{daily.length===0?<div style={{color:C.muted,fontSize:10.5}}>No daily operating series is available yet.</div>:daily.map(row=><div key={row.date} style={{display:"grid",gridTemplateColumns:"80px repeat(4,1fr)",gap:8,fontSize:10,padding:"5px 0",borderTop:`1px solid ${C.border}`}}><span style={{color:C.muted}}>{new Date(`${row.date}T00:00:00`).toLocaleDateString("en-KE",{month:"short",day:"numeric"})}</span><span>Users {row.signups}</span><span>Plans {row.lesson_plans}</span><span>HW {row.homework}</span><span>Subs {row.submissions}</span></div>)}</div></div>
 }
