@@ -28,12 +28,16 @@ mustContain(flow, "Prepare Next Lesson", "Teacher daily flow");
 mustContain(notes, ".from(\"lesson_plans\")", "Lesson notes workspace");
 mustContain(notes, "parseLessonPlanBody", "Lesson notes workspace");
 mustContain(notes, "list_teaching_resources", "Lesson notes workspace");
-mustContain(notes, "typedPlan.strand_id ?? null", "Lesson notes workspace");
+mustContain(notes, "let subStrandId: string | null = null", "Lesson notes workspace");
 mustContain(notes, "typedPlan.curriculum_id ?? null", "Lesson notes workspace");
+mustContain(notes, ".select(\"curriculum_id,sub_strand_id\")", "Lesson notes workspace");
 mustContain(notes, ".eq(\"sub_strand_id\", subStrandId)", "Lesson notes workspace");
 mustContain(notes, ".eq(\"curriculum_id\", curriculumId as string)", "Lesson notes workspace");
 mustContain(notes, ".eq(\"status\", \"published\")", "Lesson notes workspace");
 mustContain(notes, "These chapters carry the same curriculum identity as this lesson.", "Lesson notes workspace");
+if (notes.includes("typedPlan.strand_id")) {
+  throw new Error("A curriculum strand id must never be treated as a sub-strand id.");
+}
 
 mustContain(rules, "function classHomeworkHref", "Pulse next action");
 mustContain(rules, "/teacher/classhub/", "Pulse next action");
