@@ -34,6 +34,13 @@ insert into public.schools (
   ('40000000-0000-0000-0000-000000000001','VibeSchool Synthetic Pilot A','synthetic-pilot-a','Africa/Nairobi','active','KE',true,'10000000-0000-0000-0000-000000000001','secondary','synthetic_certification'),
   ('40000000-0000-0000-0000-000000000002','VibeSchool Synthetic Isolation B','synthetic-isolation-b','Africa/Nairobi','active','KE',true,null,'secondary','synthetic_certification');
 
+-- Membership must exist before assigning teacher profile.school_id because the
+-- canonical teacher-onboarding trigger verifies that membership first.
+insert into public.school_members (school_id,profile_id,role) values
+  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','admin'),
+  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','teacher'),
+  ('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000003','teacher');
+
 update public.profiles
 set school_id = case
   when id in ('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000004')
@@ -46,26 +53,30 @@ where id in (
   '10000000-0000-0000-0000-000000000005'
 );
 
-insert into public.school_members (school_id,profile_id,role) values
-  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','admin'),
-  ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','teacher'),
-  ('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000003','teacher');
-
+-- Teacher onboarding may already have created the minimal role-extension row.
+-- Enrich deterministically instead of assuming a blank teacher_profiles table.
 insert into public.teacher_profiles (profile_id,school_id,employment_type,subjects_taught,designation) values
   ('10000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000001','synthetic',array['Chemistry'],'Chemistry Teacher'),
-  ('10000000-0000-0000-0000-000000000003','40000000-0000-0000-0000-000000000002','synthetic',array['Chemistry'],'Isolation Teacher');
+  ('10000000-0000-0000-0000-000000000003','40000000-0000-0000-0000-000000000002','synthetic',array['Chemistry'],'Isolation Teacher')
+on conflict (profile_id) do update
+set school_id=excluded.school_id,
+    employment_type=excluded.employment_type,
+    subjects_taught=excluded.subjects_taught,
+    designation=excluded.designation;
 
 insert into public.classes (id,teacher_id,name,stream,subject,school_id) values
   ('50000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','Grade 10','A','Chemistry','40000000-0000-0000-0000-000000000001'),
   ('50000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000003','Grade 10','B','Chemistry','40000000-0000-0000-0000-000000000002');
 
-insert into public.subjects (id,school_id,name) values
-  ('60000000-0000-0000-0000-000000000001','40000000-0000-0000-0000-000000000001','Chemistry'),
-  ('60000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','Chemistry');
+-- One synthetic global subject is sufficient for both tenant-isolation classes.
+-- School-scoped subjects require a canonical global_subject_id link, so using a
+-- global fixture avoids manufacturing a second subject identity domain.
+insert into public.subjects (id,school_id,name,global_subject_id) values
+  ('60000000-0000-0000-0000-000000000001',null,'Synthetic Chemistry',null);
 
 insert into public.teacher_classes (school_id,teacher_id,class_id,subject_id,is_class_teacher) values
   ('40000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001',true),
-  ('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000003','50000000-0000-0000-0000-000000000002','60000000-0000-0000-0000-000000000002',true);
+  ('40000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000003','50000000-0000-0000-0000-000000000002','60000000-0000-0000-0000-000000000001',true);
 
 -- Twenty Grade 10 Chemistry learners in School A plus one adversarial learner
 -- in School B. Every learner has both Auth/profile and canonical student IDs.
@@ -176,7 +187,7 @@ set local role authenticated;
 insert into public.exams (id,school_id,name,term,academic_year,exam_type,pass_mark,is_locked,created_by)
 values ('70000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','Isolation Chemistry CAT',2,2026,'cat',50,false,'10000000-0000-0000-0000-000000000003');
 insert into public.exam_results (id,exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,is_absent)
-values ('71000000-0000-0000-0000-000000000021','70000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000002','60000000-0000-0000-0000-000000000002','30000000-0000-0000-0000-000000000021','10000000-0000-0000-0000-000000000003',88,false);
+values ('71000000-0000-0000-0000-000000000021','70000000-0000-0000-0000-000000000002','40000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000002','60000000-0000-0000-0000-000000000001','30000000-0000-0000-0000-000000000021','10000000-0000-0000-0000-000000000003',88,false);
 reset role;
 
 -- Parent A may read only the explicitly linked child's result.
