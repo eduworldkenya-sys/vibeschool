@@ -1,5 +1,6 @@
 "use client"
 
+// Runtime-validate every collection-shaped analytics payload before iteration.
 import { useEffect, useMemo, useState } from "react"
 import { loadHQExecutiveAnalytics, type HQExecutiveAnalytics } from "@/lib/hq/operating"
 
