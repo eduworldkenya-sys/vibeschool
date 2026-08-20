@@ -311,7 +311,7 @@ function LessonNotesInner() {
       {exactChapters.length > 0 && resources.length === 0 && (
         <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
           <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 4 }}>Verified material for this curriculum area</div>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>No lesson-specific resource is verified yet. These chapters have the exact verified curriculum identity.</div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>These chapters carry the same curriculum identity as this lesson. VibeSchool shows them only after verified alignment and publication checks.</div>
           <div style={{ display: "grid", gap: 8 }}>
             {exactChapters.map((chapter) => (
               <button key={chapter.id} type="button" disabled={!chapter.canRead}
