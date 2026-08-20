@@ -168,7 +168,7 @@ function LessonNotesInner() {
 
       if (payload?.ok === false) throw new Error("This lesson's resources are not available to your account.");
 
-      const linked = (await Promise.all((payload?.resources ?? []).flatMap((item) => {
+      const linked = await Promise.all((payload?.resources ?? []).flatMap((item) => {
         if (!item.link_id || !item.resource_id) return [];
         return [async (): Promise<ResourceRow> => ({
           linkId: item.link_id!,
@@ -180,7 +180,7 @@ function LessonNotesInner() {
           pageStart: item.page_start ?? null,
           canRead: item.publication_id ? await chapterCanRead(item.publication_id, item.chapter_id ?? null) : true,
         })];
-      }).map((build) => build())));
+      }).map((build) => build()));
 
       if (linked.length > 0) {
         setResources(linked);
@@ -218,7 +218,7 @@ function LessonNotesInner() {
         return;
       }
 
-      const publicationIds = [...new Set(candidates.map((chapter) => chapter.publication_id))];
+      const publicationIds = Array.from(new Set(candidates.map((chapter) => chapter.publication_id)));
       const { data: publications, error: publicationError } = await supabase
         .from("vibe_publications")
         .select("id,status")
