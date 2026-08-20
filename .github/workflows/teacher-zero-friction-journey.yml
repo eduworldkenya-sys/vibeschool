@@ -1,0 +1,25 @@
+name: Teacher Zero-Friction Journey
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/lesson-notes/**'
+      - 'components/teacher/LessonFlowCard.tsx'
+      - 'lib/pulse/rules.ts'
+      - 'scripts/test-teacher-zero-friction-journey.mjs'
+      - '.github/workflows/teacher-zero-friction-journey.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  journey-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify teacher zero-friction journey contract
+        run: node scripts/test-teacher-zero-friction-journey.mjs

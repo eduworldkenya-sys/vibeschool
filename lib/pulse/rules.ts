@@ -26,6 +26,18 @@ function firstCurrentSlot(slots: Slot[]): Slot | null {
   );
 }
 
+function classHomeworkHref(slot: Slot): string {
+  const query = new URLSearchParams({
+    subjectId: slot.subject_id,
+    subject: slot.subject,
+  });
+  if (slot.lesson_plan_id) query.set("lessonPlanId", slot.lesson_plan_id);
+  if (slot.teaching_workspace?.occurrenceId) {
+    query.set("occurrenceId", slot.teaching_workspace.occurrenceId);
+  }
+  return `/teacher/classhub/${encodeURIComponent(slot.class_id)}/homework?${query.toString()}`;
+}
+
 function nextTaskForSlot(slot: Slot): PriorityTask | null {
   if (!slot.lesson_plan_id) {
     return {
@@ -57,7 +69,7 @@ function nextTaskForSlot(slot: Slot): PriorityTask | null {
       label: "Assign learner work",
       detail: `Give ${slot.class_name} a task connected to this lesson.`,
       severity: "calm",
-      href: `/teacher/homework?classId=${slot.class_id}&subjectId=${slot.subject_id}`,
+      href: classHomeworkHref(slot),
     };
   }
 
@@ -67,7 +79,7 @@ function nextTaskForSlot(slot: Slot): PriorityTask | null {
       label: `Mark ${slot.submission_count} submission${slot.submission_count === 1 ? "" : "s"}`,
       detail: `${slot.class_name} has learner work waiting for marking.`,
       severity: "critical",
-      href: `/teacher/assessment?classId=${slot.class_id}&subjectId=${slot.subject_id}`,
+      href: `/teacher/classhub/${encodeURIComponent(slot.class_id)}/homework`,
     };
   }
 
@@ -102,7 +114,7 @@ function noLessonTasks(snap: PulseSnapshot): PriorityTask[] {
       label: `Mark ${first.count} homework submission${first.count === 1 ? "" : "s"}`,
       detail: first.title,
       severity: "urgent",
-      href: `/teacher/assessment?classId=${first.class_id}`,
+      href: `/teacher/classhub/${encodeURIComponent(first.class_id)}/homework/${encodeURIComponent(first.homework_id)}`,
     });
   }
 
@@ -138,11 +150,6 @@ function noLessonTasks(snap: PulseSnapshot): PriorityTask[] {
 }
 
 function computeConfidence(snap: PulseSnapshot, isFallback: boolean, taskCount: number): number {
-  // Confidence = how completely the deterministic rule output already
-  // covers what's worth saying. It drops when there are richer signals
-  // (named at-risk students, a notable streak) that only the Twin's
-  // narrated message surfaces, or when there's no active lesson to
-  // anchor a clear single instruction.
   let score = 100;
   if (isFallback) score -= 40;
   if ((snap.atRisk?.length ?? 0) > 0) score -= 20;
@@ -190,7 +197,7 @@ export function runRules(snap: PulseSnapshot): RuleResult {
       label: `Mark ${homework.count} homework submission${homework.count === 1 ? "" : "s"}`,
       detail: `${homework.title}${homework.subject ? ` · ${homework.subject}` : ""}`,
       severity: "urgent",
-      href: `/teacher/assessment?classId=${homework.class_id}`,
+      href: `/teacher/classhub/${encodeURIComponent(homework.class_id)}/homework/${encodeURIComponent(homework.homework_id)}`,
     });
   }
 
