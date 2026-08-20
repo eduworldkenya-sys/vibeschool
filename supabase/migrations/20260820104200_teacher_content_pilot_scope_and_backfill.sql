@@ -22,16 +22,16 @@ where lr.curriculum_id is not null
     where r.resource_id=lr.id and r.target_type='curriculum' and r.target_id=lr.curriculum_id and r.state='PROPOSED'
   );
 
--- Deterministically materialize only resources whose chapter alignment was human-verified,
--- whose publication/chapter is published, and whose exact immutable resource version is certified.
--- Exact lesson-plan curriculum identity is required. Nothing inferred from text participates.
+-- Deterministically materialize only resources whose chapter alignment was human-verified
+-- by a platform owner, whose publication/chapter is published, and whose exact immutable
+-- resource version is certified. Exact curriculum IDs are required; text is never authority.
 insert into public.teaching_resource_links(
   resource_id,resource_version_id,target_type,lesson_plan_id,usage_role,sequence,
   created_by,curriculum_id,sub_strand_id,mapping_method,verification_state,provenance,
   reviewed_by,reviewed_at,lifecycle_status
 )
 select lr.id,rv.id,'lesson_plan',lp.id,'source',1,
-       lp.teacher_id,lp.curriculum_id,coalesce(lr.sub_strand_id,vc.sub_strand_id),
+       vc.verified_by,lp.curriculum_id,coalesce(lr.sub_strand_id,vc.sub_strand_id),
        'exact_curriculum_id','VERIFIED',
        jsonb_build_object(
          'source','deterministic_backfill',
@@ -50,6 +50,7 @@ where lp.curriculum_id is not null
   and vc.status='published'
   and vc.alignment_status='verified'
   and vc.verified_by is not null and vc.verified_at is not null
+  and exists(select 1 from public.platform_owners po where po.profile_id=vc.verified_by)
   and vp.status='published'
   and not exists (
     select 1 from public.teaching_resource_links t
@@ -80,6 +81,7 @@ begin
     from public.teaching_resource_links t
     join public.learning_resources lr on lr.id=t.resource_id and lr.status='active'
     join public.learning_resource_versions rv on rv.id=t.resource_version_id and rv.resource_id=lr.id and rv.lifecycle_status='certified'
+    join public.platform_owners po on po.profile_id=t.reviewed_by
     where t.verification_state='VERIFIED' and t.lifecycle_status='active' and t.curriculum_id is not null
   ), candidate as (
     select distinct lr.curriculum_id
