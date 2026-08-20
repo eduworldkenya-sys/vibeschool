@@ -1,10 +1,10 @@
 import fs from 'node:fs'
 
 const files = {
-  founder: fs.readFileSync('supabase/migrations/20260819133000_hq_founder_os_control_plane.sql','utf8'),
-  readiness: fs.readFileSync('supabase/migrations/20260819135000_hq_worker_runtime_readiness_schema_fix.sql','utf8'),
-  stop: fs.readFileSync('supabase/migrations/20260819142000_hq_worker_emergency_stop.sql','utf8'),
-  business: fs.readFileSync('supabase/migrations/20260819144500_hq_founder_os_business_health.sql','utf8'),
+  founder: fs.readFileSync('supabase/migrations/20260819101701_hq_founder_os_control_plane.sql','utf8'),
+  readiness: fs.readFileSync('supabase/migrations/20260819102035_hq_worker_runtime_readiness_schema_fix.sql','utf8'),
+  stop: fs.readFileSync('supabase/migrations/20260819102816_hq_worker_emergency_stop.sql','utf8'),
+  business: fs.readFileSync('supabase/migrations/20260819103207_hq_founder_os_business_health.sql','utf8'),
   page: fs.readFileSync('app/hq/operations/page.tsx','utf8')
 }
 
