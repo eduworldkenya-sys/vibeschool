@@ -1,0 +1,21 @@
+name: HQ Content Release OS
+
+on:
+  pull_request:
+    paths:
+      - 'app/hq/content/**'
+      - 'scripts/validate-hq-content-release-os.py'
+      - '.github/workflows/hq-content-release-os.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-hq-content-release-os.py
