@@ -1,0 +1,31 @@
+name: Task 9 Founder OS Final
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/hq/**'
+      - 'components/hq/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-task9-founder-os-final.mjs'
+      - '.github/workflows/task9-founder-os-final.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  task9-founder-os-final:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Founder OS contract + canonical production build certification
+        uses: ./.github/actions/production-build-contract
+        with:
+          prebuild_command: |
+            node scripts/test-task9-founder-os-final.mjs
+            npm run typecheck
+            npm run lint
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
