@@ -1,21 +1,158 @@
-/* Safety net for HQ pages that have not yet migrated to HQPage.
-   The persistent desktop sidebar must never cover page content. */
-@media (min-width: 981px) {
+/* Canonical HQ shell safety contract.
+   Legacy HQ pages must never sit under persistent navigation.
+   Touch devices use the mobile shell even when browser zoom / desktop-like
+   effective viewport makes CSS width larger than the physical phone. */
+
+@media (min-width: 1025px) and (hover: hover) and (pointer: fine) {
   .hq-sidebar ~ main:not(.hq-page) {
     margin-left: 248px !important;
   }
 }
 
-@media (min-width: 721px) and (max-width: 980px) {
-  .hq-sidebar ~ main:not(.hq-page) {
-    margin-left: 220px !important;
+/* Tablet and every coarse-pointer device get a content-first shell.
+   The pointer clauses deliberately protect Android devices whose effective
+   CSS viewport can exceed the ordinary phone breakpoint because of browser
+   zoom, accessibility scaling or desktop-like viewport behaviour. */
+@media (max-width: 1024px), (hover: none), (pointer: coarse) {
+  html, body {
+    max-width: 100%;
+    overflow-x: hidden !important;
   }
-}
 
-@media (max-width: 720px) {
+  body {
+    overscroll-behavior-y: none;
+    background: var(--hq-bg, #06101d);
+  }
+
+  .hq-sidebar {
+    display: none !important;
+  }
+
+  .hq-page,
   .hq-sidebar ~ main:not(.hq-page) {
+    width: 100% !important;
+    max-width: 100% !important;
     margin-left: 0 !important;
     padding-top: 60px !important;
     padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+    overflow-x: clip !important;
   }
+
+  .hq-mobile-topbar {
+    position: fixed !important;
+    z-index: 120 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 60px !important;
+    padding: 0 13px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: rgba(6,16,29,.97) !important;
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--hq-border, rgba(148,163,184,.13));
+    font-family: Inter,system-ui,sans-serif;
+  }
+
+  .hq-mobile-brand {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    min-width: 0;
+    color: #fff !important;
+    text-decoration: none !important;
+  }
+
+  .hq-mobile-brand .hq-side-logo {
+    width: 32px !important;
+    height: 32px !important;
+    flex: 0 0 32px;
+    font-size: 14px !important;
+  }
+
+  .hq-mobile-brand strong { font-size: 14px !important; white-space: nowrap; }
+  .hq-mobile-brand i { font-style: normal; color: var(--hq-green,#22c55e); font-size: 10px; }
+
+  .hq-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 16px 12px calc(94px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .hq-page-header { display: block !important; margin-bottom: 14px !important; }
+  .hq-page-header h1 { font-size: 23px !important; }
+  .hq-page-header p { font-size: 12px !important; }
+  .hq-page-actions {
+    margin-top: 13px !important;
+    justify-content: flex-start !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    max-width: 100%;
+    overflow-x: auto !important;
+    padding-bottom: 3px;
+    scrollbar-width: none;
+  }
+  .hq-page-actions::-webkit-scrollbar { display: none; }
+  .hq-page-actions button { flex: 0 0 auto; min-height: 44px; }
+  .hq-mobile-stack { grid-template-columns: minmax(0,1fr) !important; }
+  .hq-panel { max-width: 100%; border-radius: 13px !important; }
+
+  .hq-bottom-nav {
+    position: fixed !important;
+    z-index: 125 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5,minmax(0,1fr)) !important;
+    gap: 2px !important;
+    padding: 6px 7px calc(6px + env(safe-area-inset-bottom)) !important;
+    background: rgba(6,16,29,.98) !important;
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--hq-border, rgba(148,163,184,.13));
+  }
+
+  .hq-bottom-link {
+    min-width: 0;
+    min-height: 56px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    color: #8799b0;
+    text-decoration: none;
+    font-size: 10px;
+    font-weight: 800;
+    border-radius: 11px;
+  }
+
+  /* Generic containment for older HQ screens and artifact review dialogs. */
+  .hq-page img,
+  .hq-page video,
+  .hq-page canvas,
+  .hq-page svg,
+  .hq-sidebar ~ main:not(.hq-page) img,
+  .hq-sidebar ~ main:not(.hq-page) video,
+  .hq-sidebar ~ main:not(.hq-page) canvas,
+  .hq-sidebar ~ main:not(.hq-page) svg { max-width: 100%; height: auto; }
+
+  .hq-page pre,
+  .hq-sidebar ~ main:not(.hq-page) pre {
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .hq-page table,
+  .hq-sidebar ~ main:not(.hq-page) table { max-width: 100%; }
+}
+
+/* Very narrow phones: preserve readable content and reachable controls. */
+@media (max-width: 420px) {
+  .hq-container { padding-left: 10px !important; padding-right: 10px !important; }
+  .hq-mobile-brand i { display: none !important; }
+  .hq-bottom-link { font-size: 9px !important; }
 }
