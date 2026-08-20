@@ -60,10 +60,6 @@ const SUBJECT_ACTIONS = [
   { id: 'exercises',  label: 'Exercises',    icon: '📐', bg: '#0369a1', route: '' },
 ]
 
-function generateCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
-}
-
 function ClassPageInner() {
   const router       = useRouter()
   const params       = useParams()
@@ -93,8 +89,6 @@ function ClassPageInner() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/'); return }
 
-    // Fix 19c: teacher_classes is the ONLY assignment truth. The old
-    // classes.teacher_id fallback silently acted as a second truth.
     if (!isSubject) {
       const { data: ownRow } = await supabase
         .from('teacher_classes')
@@ -120,13 +114,12 @@ function ClassPageInner() {
     setStudents(loadedStudents)
     setJoinRequests(requestsRes.data?.length ?? 0)
 
-
     const today = nairobiDateStr()
     const ids = loadedStudents.map(s => s.id)
 
     const [codesRes, attRes, assessRes, grpRes] = await Promise.all([
       loadedStudents.length > 0
-        ? supabase.from('student_claim_codes').select('student_id, code').eq('claimed', false).in('student_id', ids)
+        ? supabase.from('student_claim_codes').select('student_id, code').eq('claimed', false).eq('role', 'shared').is('revoked_at', null).gt('expires_at', new Date().toISOString()).in('student_id', ids)
         : Promise.resolve({ data: [] }),
       supabase.from('attendance').select('status').eq('class_id', classId).gte('timestamp', today + 'T00:00:00').lte('timestamp', today + 'T23:59:59'),
       supabase.from('cbc_assessments').select('performance').eq('class_id', classId),
@@ -192,11 +185,13 @@ function ClassPageInner() {
 
   async function handleGenerateCode(studentId: string) {
     setGenerating(studentId)
-    const code = generateCode()
-    await supabase.from('student_claim_codes').delete().eq('student_id', studentId).eq('claimed', false)
-    const { error: insErr } = await supabase.from('student_claim_codes').insert({ student_id: studentId, code, claimed: false })
-    if (!insErr) {
-      setClaimCodes(prev => ({ ...prev, [studentId]: code }))
+    setError('')
+    const { data, error: rpcError } = await supabase.rpc('teacher_generate_shared_claim_code', { p_student_id: studentId })
+    const nextCode = data && typeof data === 'object' && !Array.isArray(data) && typeof data.code === 'string' ? data.code : null
+    if (rpcError || !nextCode) {
+      setError(rpcError?.message ?? 'Could not generate a learner code.')
+    } else {
+      setClaimCodes(prev => ({ ...prev, [studentId]: nextCode }))
     }
     setGenerating(null)
   }
@@ -253,274 +248,57 @@ function ClassPageInner() {
         @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
       `}</style>
 
-      {/* HERO */}
       <div style={{ background: heroGradient, padding: '20px 16px 28px', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
         <div style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <button onClick={() => router.push(backRoute)} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontSize: 18 }}>←</button>
-
-          {/* FIX: settings button wired to class settings, join requests badge shown when pending */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!isSubject && joinRequests > 0 && (
-              <button
-                onClick={() => router.push('/teacher/classhub/' + classId + '/requests')}
-                style={{ position: 'relative', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}
-              >
+              <button onClick={() => router.push('/teacher/classhub/' + classId + '/requests')} style={{ position: 'relative', background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 10, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>
                 🔔
                 <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.error, color: '#fff', fontSize: 9, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{joinRequests}</span>
               </button>
             )}
-            {isSubject && (
-              <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>Subject View</div>
-            )}
+            {isSubject && <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.18)', fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: 0.5 }}>Subject View</div>}
           </div>
         </div>
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Skeleton h={28} w="60%" />
-            <Skeleton h={14} w="40%" />
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              <Skeleton h={36} w="30%" />
-              <Skeleton h={36} w="30%" />
-              <Skeleton h={36} w="30%" />
-            </div>
-          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><Skeleton h={28} w="60%" /><Skeleton h={14} w="40%" /><div style={{ display: 'flex', gap: 8, marginTop: 8 }}><Skeleton h={36} w="30%" /><Skeleton h={36} w="30%" /><Skeleton h={36} w="30%" /></div></div>
         ) : (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>
-                {isSubject ? '📚' : '🏫'}
-              </div>
-              <div>
-                <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>
-                  {isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}
-                </h1>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '3px 0 0' }}>
-                  {isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}
-                </p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              {[
-                { label: 'Students',  value: students.length },
-                { label: 'Claimed',   value: students.filter(s => s.profile_id).length },
-                { label: 'Avg Score', value: avgScore },
-              ].map(s => (
-                <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.value}</div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: 600, marginTop: 2 }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}><div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{isSubject ? '📚' : '🏫'}</div><div><h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>{isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}</h1><p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', margin: '3px 0 0' }}>{isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}</p></div></div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>{[{ label: 'Students', value: students.length },{ label: 'Claimed', value: students.filter(s => s.profile_id).length },{ label: 'Avg Score', value: avgScore }].map(s => <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.value}</div><div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}</div>
           </>
         )}
       </div>
 
-      {/* CLASS TOOLS */}
-      <div style={{ margin: '16px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>
-          {isSubject ? 'Subject Tools' : 'Class Tools'}
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 10 }}>
-          {actions.map(a => (
-            <button key={a.id} onClick={() => handleAction(a)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 4px', borderRadius: 14, border: 'none', cursor: 'pointer', background: a.bg, fontFamily: 'inherit' }}>
-              <span style={{ fontSize: 22 }}>{a.icon}</span>
-              <span style={{ fontSize: 9, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3 }}>{a.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      <div style={{ margin: '16px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}><p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>{isSubject ? 'Subject Tools' : 'Class Tools'}</p><div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 10 }}>{actions.map(a => <button key={a.id} onClick={() => handleAction(a)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 4px', borderRadius: 14, border: 'none', cursor: 'pointer', background: a.bg, fontFamily: 'inherit' }}><span style={{ fontSize: 22 }}>{a.icon}</span><span style={{ fontSize: 9, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3 }}>{a.label}</span></button>)}</div></div>
 
-      {/* STUDENT ROSTER */}
       {(isSubject || showRoster) && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', animation: 'slideDown 0.2s ease' }}>
-          <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}>
-            <div>
-              <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>{isSubject ? 'Class Students' : 'Student Roster'}</p>
-              <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>{students.length} enrolled</p>
-            </div>
-            {!isSubject && (
-              <button onClick={() => setShowForm(v => !v)} style={{ padding: '8px 14px', borderRadius: 10, background: showForm ? '#f3f4f6' : C.dark, color: showForm ? C.textPrimary : '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                {showForm ? 'Cancel' : '+ Add'}
-              </button>
-            )}
-          </div>
+          <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f3f4f6' }}><div><p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0 }}>{isSubject ? 'Class Students' : 'Student Roster'}</p><p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>{students.length} enrolled</p></div>{!isSubject && <button onClick={() => setShowForm(v => !v)} style={{ padding: '8px 14px', borderRadius: 10, background: showForm ? '#f3f4f6' : C.dark, color: showForm ? C.textPrimary : '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>{showForm ? 'Cancel' : '+ Add'}</button>}</div>
 
-          {!isSubject && showForm && (
-            <div style={{ padding: '16px', borderBottom: '1px solid #f3f4f6' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Full Name *</label>
-                  <input style={inputStyle} placeholder="e.g. Amara Osei" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Admission Number (optional)</label>
-                  <input style={inputStyle} placeholder="e.g. ADM/2024/001" value={form.admission_number} onChange={e => setForm(f => ({ ...f, admission_number: e.target.value }))} />
-                </div>
-              </div>
-              {error && <p style={{ color: C.error, fontSize: 12, marginTop: 8 }}>{error}</p>}
-              <button onClick={handleAdd} disabled={saving} style={{ marginTop: 14, width: '100%', padding: '11px', borderRadius: 10, background: saving ? C.accentLight : C.accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-                {saving ? 'Saving…' : 'Add Student'}
-              </button>
-            </div>
-          )}
+          {!isSubject && showForm && <div style={{ padding: '16px', borderBottom: '1px solid #f3f4f6' }}><div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}><div><label style={labelStyle}>Full Name *</label><input style={inputStyle} placeholder="e.g. Amara Osei" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></div><div><label style={labelStyle}>Admission Number (optional)</label><input style={inputStyle} placeholder="e.g. ADM/2024/001" value={form.admission_number} onChange={e => setForm(f => ({ ...f, admission_number: e.target.value }))} /></div></div>{error && <p style={{ color: C.error, fontSize: 12, marginTop: 8 }}>{error}</p>}<button onClick={handleAdd} disabled={saving} style={{ marginTop: 14, width: '100%', padding: '11px', borderRadius: 10, background: saving ? C.accentLight : C.accent, color: '#fff', fontWeight: 700, fontSize: 14, border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{saving ? 'Saving…' : 'Add Student'}</button></div>}
 
-          {loading ? (
-            <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[1, 2, 3].map(i => (
-                <div key={i} style={{ height: 44, borderRadius: 8, background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-              ))}
-            </div>
-          ) : students.length === 0 ? (
-            <div style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 28 }}>🎒</span>
-              <p style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', margin: 0 }}>
-                {isSubject ? 'No students enrolled in this class.' : 'No students yet. Tap + Add to enrol.'}
-              </p>
-            </div>
-          ) : (
-            <div>
-              {students.map((s, i) => {
-                const code    = claimCodes[s.id]
-                const claimed = !!s.profile_id
-                return (
-                  <div key={s.id} style={{ padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid #f3f4f6' }}>
-                    <button
-                      onClick={() => router.push('/teacher/classhub/' + classId + '/student/' + s.id)}
-                      style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div style={{ width: 40, height: 40, borderRadius: '50%', background: claimed ? C.accentLight : '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: claimed ? '#065f46' : C.dark, flexShrink: 0 }}>
-                            {s.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, margin: 0 }}>{s.name}</p>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                              {s.admission_number && <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>{s.admission_number}</p>}
-                              {studentGroups[s.id] && (
-                                <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: studentGroups[s.id].color + '22', color: studentGroups[s.id].color, border: '1px solid ' + studentGroups[s.id].color + '44' }}>
-                                  {studentGroups[s.id].name.split(' ')[0]}
-                                </span>
-                              )}
-                              <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>
-                                {claimed ? 'Claimed ✓' : 'Unclaimed'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                        <span style={{ fontSize: 16, color: C.textMuted }}>›</span>
-                      </div>
-                    </button>
-
-                    {!isSubject && !claimed && (
-                      <div style={{ marginTop: 10, padding: '10px 12px', background: C.surface, borderRadius: 10, border: '1px solid #e5e7eb' }}>
-                        {code ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                            <div>
-                              <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Claim Code</p>
-                              <p style={{ fontSize: 18, fontWeight: 900, color: C.dark, margin: 0, letterSpacing: 3, fontFamily: 'monospace' }}>{code}</p>
-                            </div>
-                            <div style={{ display: 'flex', gap: 6 }}>
-                              <button onClick={() => handleCopyCode(s.id, code)} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #10b981', background: copiedId === s.id ? C.accentLight : 'transparent', color: C.accent, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                {copiedId === s.id ? 'Copied!' : 'Copy'}
-                              </button>
-                              <button onClick={() => handleGenerateCode(s.id)} disabled={generating === s.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid #e5e7eb', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
-                                {generating === s.id ? '…' : 'New'}
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>No claim code yet</p>
-                            <button onClick={() => handleGenerateCode(s.id)} disabled={generating === s.id} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
-                              {generating === s.id ? 'Generating…' : 'Generate Code'}
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
+          {loading ? <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>{[1,2,3].map(i => <div key={i} style={{ height: 44, borderRadius: 8, background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />)}</div> : students.length === 0 ? <div style={{ padding: '28px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 28 }}>🎒</span><p style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', margin: 0 }}>{isSubject ? 'No students enrolled in this class.' : 'No students yet. Tap + Add to enrol.'}</p></div> : <div>{students.map((s,i) => { const code=claimCodes[s.id]; const claimed=!!s.profile_id; return <div key={s.id} style={{ padding: '12px 16px', borderTop: i===0?'none':'1px solid #f3f4f6' }}><button onClick={() => router.push('/teacher/classhub/' + classId + '/student/' + s.id)} style={{ width:'100%',background:'none',border:'none',padding:0,cursor:'pointer',fontFamily:'inherit',textAlign:'left' }}><div style={{ display:'flex',alignItems:'center',justifyContent:'space-between' }}><div style={{ display:'flex',alignItems:'center',gap:12 }}><div style={{ width:40,height:40,borderRadius:'50%',background:claimed?C.accentLight:'#ede9fe',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:14,color:claimed?'#065f46':C.dark,flexShrink:0 }}>{s.name.charAt(0).toUpperCase()}</div><div><p style={{ fontSize:14,fontWeight:700,color:C.textPrimary,margin:0 }}>{s.name}</p><div style={{ display:'flex',alignItems:'center',gap:6,marginTop:2 }}>{s.admission_number && <p style={{fontSize:11,color:C.textMuted,margin:0}}>{s.admission_number}</p>}{studentGroups[s.id] && <span style={{fontSize:10,fontWeight:700,padding:'1px 7px',borderRadius:20,background:studentGroups[s.id].color+'22',color:studentGroups[s.id].color,border:'1px solid '+studentGroups[s.id].color+'44'}}>{studentGroups[s.id].name.split(' ')[0]}</span>}<span style={{fontSize:10,fontWeight:700,padding:'1px 7px',borderRadius:20,background:claimed?C.accentLight:'#fef3c7',color:claimed?'#065f46':'#92400e'}}>{claimed?'Claimed ✓':'Unclaimed'}</span></div></div></div><span style={{fontSize:16,color:C.textMuted}}>›</span></div></button>{!isSubject && !claimed && <div style={{ marginTop:10,padding:'10px 12px',background:C.surface,borderRadius:10,border:'1px solid #e5e7eb' }}>{code ? <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8}}><div><p style={{fontSize:10,fontWeight:700,color:C.textMuted,margin:'0 0 2px',textTransform:'uppercase',letterSpacing:.5}}>Learner Code</p><p style={{fontSize:18,fontWeight:900,color:C.dark,margin:0,letterSpacing:3,fontFamily:'monospace'}}>{code}</p></div><div style={{display:'flex',gap:6}}><button onClick={() => handleCopyCode(s.id,code)} style={{padding:'6px 12px',borderRadius:8,border:'1.5px solid #10b981',background:copiedId===s.id?C.accentLight:'transparent',color:C.accent,fontWeight:700,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>{copiedId===s.id?'Copied!':'Copy'}</button><button onClick={() => handleGenerateCode(s.id)} disabled={generating===s.id} style={{padding:'6px 12px',borderRadius:8,border:'1.5px solid #e5e7eb',background:'transparent',color:C.textMuted,fontWeight:700,fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>{generating===s.id?'…':'New'}</button></div></div> : <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}><p style={{fontSize:12,color:C.textMuted,margin:0}}>No active learner code</p><button onClick={() => handleGenerateCode(s.id)} disabled={generating===s.id} style={{padding:'6px 14px',borderRadius:8,border:'none',background:C.dark,color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>{generating===s.id?'Generating…':'Generate Code'}</button></div>}</div>}</div> })}</div>}
         </div>
       )}
 
-      {!isSubject && !showRoster && (
-        <div style={{ margin: '14px 16px 0' }}>
-          <button onClick={() => setShowRoster(true)} style={{ width: '100%', padding: '13px', borderRadius: 14, border: '1.5px dashed #d1d5db', background: 'transparent', color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-            👥 View Student Roster ({students.length})
-          </button>
-        </div>
-      )}
+      {!isSubject && !showRoster && <div style={{ margin:'14px 16px 0' }}><button onClick={() => setShowRoster(true)} style={{ width:'100%',padding:'13px',borderRadius:14,border:'1.5px dashed #d1d5db',background:'transparent',color:C.textMuted,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>👥 View Student Roster ({students.length})</button></div>}
 
-      {/* CLASS ACTIVITY */}
-      <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Class Activity</p>
-        </div>
-        {students.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '12px 0' }}>
-            <span style={{ fontSize: 28 }}>🎒</span>
-            <p style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', margin: 0 }}>No students yet — add your first student to get started</p>
-            <button onClick={() => { setShowRoster(true); setShowForm(true) }} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>+ Add First Student</button>
-          </div>
-        ) : students.filter(s => s.profile_id).length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '12px 0' }}>
-            <span style={{ fontSize: 28 }}>📲</span>
-            <p style={{ fontSize: 13, color: C.textMuted, textAlign: 'center', margin: 0 }}>{students.length} student{students.length > 1 ? 's' : ''} unclaimed — share claim codes to activate accounts</p>
-            <button onClick={() => setShowRoster(true)} style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: C.dark, color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>View Claim Codes →</button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
-            <div style={{ width: 38, height: 38, borderRadius: 12, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>📋</div>
-            <div>
-              <p style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, margin: 0 }}>No recent activity</p>
-              <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>Class updates will appear here</p>
-            </div>
-          </div>
-        )}
-      </div>
+      <div style={{ margin:'14px 16px 0',background:'#fff',borderRadius:20,padding:'16px',boxShadow:'0 1px 4px rgba(0,0,0,0.06)' }}><div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}><p style={{ fontSize:10,fontWeight:800,color:C.textMuted,letterSpacing:1.4,textTransform:'uppercase',margin:0 }}>Class Activity</p></div>{students.length===0 ? <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10,padding:'12px 0'}}><span style={{fontSize:28}}>🎒</span><p style={{fontSize:13,color:C.textMuted,textAlign:'center',margin:0}}>No students yet — add your first student to get started</p><button onClick={() => {setShowRoster(true);setShowForm(true)}} style={{padding:'8px 16px',borderRadius:10,border:'none',background:C.accent,color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>+ Add First Student</button></div> : students.filter(s=>s.profile_id).length===0 ? <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:10,padding:'12px 0'}}><span style={{fontSize:28}}>📲</span><p style={{fontSize:13,color:C.textMuted,textAlign:'center',margin:0}}>{students.length} student{students.length>1?'s':''} unclaimed — share learner codes to activate accounts</p><button onClick={() => setShowRoster(true)} style={{padding:'8px 16px',borderRadius:10,border:'none',background:C.dark,color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>View Learner Codes →</button></div> : <div style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0'}}><div style={{width:38,height:38,borderRadius:12,background:'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>📋</div><div><p style={{fontSize:13,fontWeight:700,color:C.textPrimary,margin:0}}>No recent activity</p><p style={{fontSize:11,color:C.textMuted,margin:'2px 0 0'}}>Class updates will appear here</p></div></div>}</div>
 
-      {/* PERFORMANCE */}
-      <div style={{ margin: '14px 16px 0', background: isSubject ? 'linear-gradient(135deg, #075985 0%, #0ea5e9 100%)' : 'linear-gradient(135deg, #065f46 0%, #10b981 100%)', borderRadius: 20, padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-        <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 14px' }}>
-          {isSubject ? 'Subject Performance' : 'Performance'}
-        </p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {[
-            { label: 'Attendance Rate', value: attendanceRate, icon: '📊' },
-            { label: isSubject ? 'Subject Avg' : 'Avg Score', value: avgScore, icon: '🏆' },
-            { label: 'Homework Done', value: '—', icon: '📝' },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.15)', borderRadius: 14, padding: '12px 8px', textAlign: 'center' }}>
-              <div style={{ fontSize: 16 }}>{s.icon}</div>
-              <div style={{ fontSize: 18, fontWeight: 900, color: '#fff', marginTop: 4 }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: 600, marginTop: 3, lineHeight: 1.3 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
+      <div style={{ margin:'14px 16px 0',background:isSubject?'linear-gradient(135deg, #075985 0%, #0ea5e9 100%)':'linear-gradient(135deg, #065f46 0%, #10b981 100%)',borderRadius:20,padding:'20px',boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }}><p style={{fontSize:10,fontWeight:800,color:'rgba(255,255,255,0.7)',letterSpacing:1.4,textTransform:'uppercase',margin:'0 0 14px'}}>{isSubject?'Subject Performance':'Performance'}</p><div style={{display:'flex',gap:10}}>{[{label:'Attendance Rate',value:attendanceRate,icon:'📊'},{label:isSubject?'Subject Avg':'Avg Score',value:avgScore,icon:'🏆'},{label:'Homework Done',value:'—',icon:'📝'}].map(s => <div key={s.label} style={{flex:1,background:'rgba(255,255,255,0.15)',borderRadius:14,padding:'12px 8px',textAlign:'center'}}><div style={{fontSize:16}}>{s.icon}</div><div style={{fontSize:18,fontWeight:900,color:'#fff',marginTop:4}}>{s.value}</div><div style={{fontSize:9,color:'rgba(255,255,255,0.7)',fontWeight:600,marginTop:3,lineHeight:1.3}}>{s.label}</div></div>)}</div></div>
     </div>
   )
 }
 
 export default function ClassPage() {
   return (
-    <Suspense fallback={
-      <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} style={{ height: 56, borderRadius: 12, background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
-        ))}
-      </div>
-    }>
+    <Suspense fallback={<div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}><style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>{[1,2,3,4].map(i => <div key={i} style={{ height:56,borderRadius:12,background:'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',backgroundSize:'200% 100%',animation:'shimmer 1.4s infinite' }} />)}</div>}>
       <ClassPageInner />
     </Suspense>
   )
