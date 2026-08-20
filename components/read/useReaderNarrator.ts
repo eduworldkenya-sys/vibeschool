@@ -28,7 +28,7 @@ function collectSegments(rootId:string):Segment[]{
   const root=document.getElementById(rootId)
   if(!root)return[]
   const title=root.querySelector('h1')?.textContent?.trim()
-  const content=[...root.querySelectorAll<HTMLElement>('[data-reader-block-id]')]
+  const content=Array.from(root.querySelectorAll<HTMLElement>('[data-reader-block-id]'))
   const segments:Segment[]=[]
   if(title)segments.push({text:normalizeNarrationText(title),elementId:null})
   for(const element of content){
