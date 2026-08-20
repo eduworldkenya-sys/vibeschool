@@ -12,13 +12,13 @@ export const HQ_THEME = {
 type NavItem = readonly [string,string,string]
 type NavGroup = {label:string;items:readonly NavItem[]}
 export const HQ_NAV_GROUPS: readonly NavGroup[] = [
-  {label:"Overview",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Operations","/hq/intelligence","◈"],["Alerts","/hq/notifications","!"]]},
+  {label:"Overview",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Operations","/hq/operations","◈"],["Alerts","/hq/notifications","!"]]},
   {label:"Business",items:[["Product","/hq/analytics","◎"],["Schools","/hq/schools","⌂"],["Users","/hq/users","♙"],["HQ Team","/hq/team","♟"],["Marketing","/hq/marketing","↗"],["Geography","/hq/geography","⌖"],["Support","/hq/support","?"]]},
   {label:"Learning",items:[["Content","/hq/content","▣"],["Curriculum Authority","/hq/curriculum-authority","A"],["Content Factory","/hq/curriculum-intelligence/engine","✦"],["Studio","/hq/studio","✎"]]},
   {label:"Operations",items:[["Departments","/hq/departments","▦"],["Workroom","/hq/workroom","□"],["Workforce","/hq/workforce","⚙"],["Revenue","/hq/billing","$"],["System","/hq/security","◇"],["Commissioning","/hq/workforce/readiness","✓"]]},
 ]
 
-const mobileLinks: readonly NavItem[] = [["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Alerts","/hq/notifications","!"],["Operations","/hq/intelligence","◈"]]
+const mobileLinks: readonly NavItem[] = [["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Alerts","/hq/notifications","!"],["Operations","/hq/operations","◈"]]
 const allItems=HQ_NAV_GROUPS.flatMap(group=>group.items.map(item=>({group:group.label,item})))
 function isActive(pathname:string,href:string){return href==="/hq"?pathname===href:pathname===href||pathname.startsWith(`${href}/`)}
 
