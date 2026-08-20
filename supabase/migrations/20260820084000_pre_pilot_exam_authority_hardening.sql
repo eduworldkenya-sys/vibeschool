@@ -1,7 +1,8 @@
 -- P0 pre-pilot exam authority hardening.
 -- Exams are consequential school records. A teacher may manage only exams they
--- created inside an active school where they are an active teacher member.
--- School administrators retain school-scoped authority; other members read only.
+-- created inside an active school where they are an active school member and
+-- their canonical Auth journey role is teacher.
+-- School administrators retain school-scoped authority; other active members read only.
 -- Anonymous clients have no table privileges.
 -- access: school-scoped public.exams
 -- authorization-test: public.exams
@@ -19,21 +20,21 @@ drop policy if exists "School members view exams" on public.exams;
 drop policy if exists exams_admin on public.exams;
 drop policy if exists exams_member_read on public.exams;
 drop policy if exists exams_teacher on public.exams;
+drop policy if exists exams_admin_manage on public.exams;
+drop policy if exists exams_teacher_insert on public.exams;
+drop policy if exists exams_teacher_update on public.exams;
+drop policy if exists exams_teacher_delete on public.exams;
 
+-- Do not query school_members directly from RLS policy expressions. The table is
+-- intentionally not readable by ordinary authenticated clients. Reuse the
+-- canonical SECURITY DEFINER predicates that expose only boolean authorization
+-- truth and already fail closed for anonymous callers.
 create policy exams_member_read
 on public.exams
 for select
 to authenticated
 using (
-  exists (
-    select 1
-    from public.school_members sm
-    join public.schools s on s.id = sm.school_id
-    where sm.school_id = exams.school_id
-      and sm.profile_id = (select auth.uid())
-      and s.status = 'active'::public.school_status
-      and s.deleted_at is null
-  )
+  public.is_active_school_member(exams.school_id)
 );
 
 create policy exams_admin_manage
@@ -53,16 +54,8 @@ for insert
 to authenticated
 with check (
   exams.created_by = (select auth.uid())
-  and exists (
-    select 1
-    from public.school_members sm
-    join public.schools s on s.id = sm.school_id
-    where sm.school_id = exams.school_id
-      and sm.profile_id = (select auth.uid())
-      and sm.role = 'teacher'::public.member_role
-      and s.status = 'active'::public.school_status
-      and s.deleted_at is null
-  )
+  and public.get_my_role() = 'teacher'
+  and public.is_active_school_member(exams.school_id)
 );
 
 create policy exams_teacher_update
@@ -71,29 +64,13 @@ for update
 to authenticated
 using (
   exams.created_by = (select auth.uid())
-  and exists (
-    select 1
-    from public.school_members sm
-    join public.schools s on s.id = sm.school_id
-    where sm.school_id = exams.school_id
-      and sm.profile_id = (select auth.uid())
-      and sm.role = 'teacher'::public.member_role
-      and s.status = 'active'::public.school_status
-      and s.deleted_at is null
-  )
+  and public.get_my_role() = 'teacher'
+  and public.is_active_school_member(exams.school_id)
 )
 with check (
   exams.created_by = (select auth.uid())
-  and exists (
-    select 1
-    from public.school_members sm
-    join public.schools s on s.id = sm.school_id
-    where sm.school_id = exams.school_id
-      and sm.profile_id = (select auth.uid())
-      and sm.role = 'teacher'::public.member_role
-      and s.status = 'active'::public.school_status
-      and s.deleted_at is null
-  )
+  and public.get_my_role() = 'teacher'
+  and public.is_active_school_member(exams.school_id)
 );
 
 create policy exams_teacher_delete
@@ -102,14 +79,6 @@ for delete
 to authenticated
 using (
   exams.created_by = (select auth.uid())
-  and exists (
-    select 1
-    from public.school_members sm
-    join public.schools s on s.id = sm.school_id
-    where sm.school_id = exams.school_id
-      and sm.profile_id = (select auth.uid())
-      and sm.role = 'teacher'::public.member_role
-      and s.status = 'active'::public.school_status
-      and s.deleted_at is null
-  )
+  and public.get_my_role() = 'teacher'
+  and public.is_active_school_member(exams.school_id)
 );
