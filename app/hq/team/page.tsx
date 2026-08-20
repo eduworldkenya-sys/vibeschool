@@ -4,101 +4,40 @@ import { useCallback, useEffect, useState } from "react"
 import { HQPage, HQPanel, hqButtonStyle } from "@/components/hq/HQShell"
 import { hqSupabase } from "@/lib/hq/supabase"
 
-type Member = {
-  id: string
-  email: string | null
-  role: string
-  status: string
-  createdAt: string
-}
+type Member = { id:string; email:string|null; role:string; status:string; createdAt:string }
 
 export default function HQTeamPage() {
-  const [email, setEmail] = useState("")
-  const [members, setMembers] = useState<Member[]>([])
-  const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState("")
-  const [message, setMessage] = useState("")
+  const [email,setEmail]=useState(""); const [members,setMembers]=useState<Member[]>([])
+  const [loading,setLoading]=useState(true); const [sending,setSending]=useState(false)
+  const [error,setError]=useState(""); const [message,setMessage]=useState("")
 
-  const authorizedFetch = useCallback(async (input: RequestInfo | URL, init: RequestInit = {}) => {
-    const { data } = await hqSupabase.auth.getSession()
-    const token = data.session?.access_token
-    if (!token) throw new Error("Your HQ session has expired. Sign in again.")
-    return fetch(input, {
-      ...init,
-      headers: {
-        ...(init.headers || {}),
-        Authorization: `Bearer ${token}`,
-      },
-    })
-  }, [])
+  const authorizedFetch=useCallback(async(input:RequestInfo|URL,init:RequestInit={})=>{
+    const {data}=await hqSupabase.auth.getSession(); const token=data.session?.access_token
+    if(!token) throw new Error("Your HQ session has expired. Sign in again.")
+    return fetch(input,{...init,headers:{...(init.headers||{}),Authorization:`Bearer ${token}`}})
+  },[])
 
-  const loadMembers = useCallback(async () => {
-    try {
-      const response = await authorizedFetch("/api/hq/invite-member")
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || "HQ members could not be loaded")
-      setMembers(payload.members || [])
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "HQ members could not be loaded")
-    } finally {
-      setLoading(false)
-    }
-  }, [authorizedFetch])
+  const loadMembers=useCallback(async()=>{try{const response=await authorizedFetch("/api/hq/invite-member");const payload=await response.json();if(!response.ok)throw new Error(payload.error||"HQ members could not be loaded");setMembers(payload.members||[])}catch(e){setError(e instanceof Error?e.message:"HQ members could not be loaded")}finally{setLoading(false)}},[authorizedFetch])
+  useEffect(()=>{void loadMembers()},[loadMembers])
 
-  useEffect(() => { void loadMembers() }, [loadMembers])
+  async function invite(){setError("");setMessage("");const normalized=email.trim().toLowerCase();if(!normalized)return setError("Enter the Partner/Admin email address.");setSending(true);try{const response=await authorizedFetch("/api/hq/invite-member",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:normalized})});const payload=await response.json();if(!response.ok)throw new Error(payload.error||"Invitation could not be sent");setMessage(payload.message||"HQ access granted.");setEmail("");await loadMembers()}catch(e){setError(e instanceof Error?e.message:"Invitation could not be sent")}finally{setSending(false)}}
 
-  async function invite() {
-    setError("")
-    setMessage("")
-    const normalized = email.trim().toLowerCase()
-    if (!normalized) return setError("Enter the Partner/Admin email address.")
-
-    setSending(true)
-    try {
-      const response = await authorizedFetch("/api/hq/invite-member", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalized }),
-      })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || "Invitation could not be sent")
-      setMessage(payload.message || "HQ access granted.")
-      setEmail("")
-      await loadMembers()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Invitation could not be sent")
-    } finally {
-      setSending(false)
-    }
-  }
-
-  return <HQPage title="HQ Team" description="Manage trusted people who can enter the VibeSchool company operating system.">
+  return <HQPage title="HQ Team" description="Humans who operate VibeSchool HQ. This is separate from the digital Workforce.">
     <div style={{display:"grid",gap:16,maxWidth:920}}>
-      <HQPanel title="Invite Partner / Admin" description="This creates or authorizes the VibeSchool Auth identity and sends a secure invitation when the email is new.">
+      <HQPanel title="Invite Partner / Admin" description="Enter their email. If they are new to VibeSchool, they receive a secure email and choose their own password. You never create or know their password.">
         <div style={{padding:16,display:"grid",gap:12}}>
-          <div style={{padding:12,border:"1px solid rgba(245,158,11,.24)",borderRadius:10,background:"rgba(245,158,11,.07)",fontSize:12,lineHeight:1.55,color:"#fcd34d"}}>
-            Partner/Admin access is for the HQ frontend and HQ operational controls. It does not provide GitHub, Supabase Dashboard, Vercel, source-code, database-console, secret-key, or deployment access.
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:8}}>
+            {[['1','Invite','You enter their email and send the invitation.'],['2','Accept','They open the secure email and choose their own password.'],['3','Active','They sign in to HQ with their own identity.']].map(([n,t,d])=><div key={n} style={{padding:12,border:"1px solid rgba(148,163,184,.14)",borderRadius:10,background:"rgba(255,255,255,.025)"}}><strong style={{fontSize:12}}>{n}. {t}</strong><p style={{margin:"5px 0 0",fontSize:11,lineHeight:1.45,color:"#8fa2ba"}}>{d}</p></div>)}
           </div>
-          {error && <div role="alert" style={{padding:12,borderRadius:10,background:"rgba(239,68,68,.09)",border:"1px solid rgba(239,68,68,.22)",color:"#fecaca",fontSize:12}}>{error}</div>}
-          {message && <div role="status" style={{padding:12,borderRadius:10,background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.22)",color:"#bbf7d0",fontSize:12}}>{message}</div>}
+          <div style={{padding:12,border:"1px solid rgba(245,158,11,.24)",borderRadius:10,background:"rgba(245,158,11,.07)",fontSize:12,lineHeight:1.55,color:"#fcd34d"}}>Partner/Admin access is HQ frontend access. It does not provide GitHub, Supabase Dashboard, Vercel, source code, database console, secret keys or deployment access.</div>
+          {error&&<div role="alert" style={{padding:12,borderRadius:10,background:"rgba(239,68,68,.09)",border:"1px solid rgba(239,68,68,.22)",color:"#fecaca",fontSize:12}}>{error}</div>}
+          {message&&<div role="status" style={{padding:12,borderRadius:10,background:"rgba(34,197,94,.08)",border:"1px solid rgba(34,197,94,.22)",color:"#bbf7d0",fontSize:12}}>{message}</div>}
           <label htmlFor="hq-member-email" style={{fontSize:12,fontWeight:850,color:"#cbd5e1"}}>Email address</label>
-          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:10}}>
-            <input id="hq-member-email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" value={email} onChange={event=>setEmail(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"&&!sending) void invite()}} placeholder="partner@example.com" disabled={sending} style={{minHeight:44,borderRadius:10,border:"1px solid rgba(148,163,184,.18)",background:"rgba(255,255,255,.035)",color:"#f8fafc",padding:"0 13px",fontSize:14,outline:"none"}} />
-            <button type="button" onClick={()=>void invite()} disabled={sending} style={{...hqButtonStyle,background:sending?"rgba(34,197,94,.35)":"#22c55e",color:"#04120a",borderColor:"rgba(34,197,94,.4)",minWidth:130}}>{sending?"Sending…":"Send invite"}</button>
-          </div>
+          <div style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:10}}><input id="hq-member-email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!sending)void invite()}} placeholder="partner@example.com" disabled={sending} style={{minHeight:44,borderRadius:10,border:"1px solid rgba(148,163,184,.18)",background:"rgba(255,255,255,.035)",color:"#f8fafc",padding:"0 13px",fontSize:14,outline:"none"}}/><button type="button" onClick={()=>void invite()} disabled={sending} style={{...hqButtonStyle,background:sending?"rgba(34,197,94,.35)":"#22c55e",color:"#04120a",borderColor:"rgba(34,197,94,.4)",minWidth:130}}>{sending?"Sending…":"Send invite"}</button></div>
         </div>
       </HQPanel>
-
-      <HQPanel title="People with HQ access" description="HQ access remains tied to each person's authenticated VibeSchool identity.">
-        <div style={{padding:16}}>
-          {loading ? <p style={{margin:0,color:"#8fa2ba",fontSize:12}}>Loading HQ team…</p> : members.length === 0 ? <p style={{margin:0,color:"#8fa2ba",fontSize:12}}>No HQ members found.</p> : <div style={{display:"grid",gap:8}}>
-            {members.map(member => <div key={member.id} style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:12,alignItems:"center",padding:"12px 13px",border:"1px solid rgba(148,163,184,.12)",borderRadius:10,background:"rgba(255,255,255,.025)"}}>
-              <div style={{minWidth:0}}><strong style={{display:"block",fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{member.email || "Pending identity"}</strong><span style={{display:"block",marginTop:4,fontSize:11,color:"#8fa2ba"}}>{member.role}</span></div>
-              <span style={{fontSize:10,fontWeight:900,textTransform:"uppercase",letterSpacing:".06em",padding:"5px 8px",borderRadius:999,border:"1px solid rgba(34,197,94,.2)",color:member.status==="active"?"#86efac":"#fcd34d",background:member.status==="active"?"rgba(34,197,94,.07)":"rgba(245,158,11,.07)"}}>{member.status}</span>
-            </div>)}
-          </div>}
-        </div>
+      <HQPanel title="People with HQ access" description="Invited means the person still needs to complete their secure email invitation. Active means their VibeSchool identity is ready for HQ sign-in.">
+        <div style={{padding:16}}>{loading?<p style={{margin:0,color:"#8fa2ba",fontSize:12}}>Loading HQ team…</p>:members.length===0?<p style={{margin:0,color:"#8fa2ba",fontSize:12}}>No HQ members found.</p>:<div style={{display:"grid",gap:8}}>{members.map(member=><div key={member.id} style={{display:"grid",gridTemplateColumns:"minmax(0,1fr) auto",gap:12,alignItems:"center",padding:"12px 13px",border:"1px solid rgba(148,163,184,.12)",borderRadius:10,background:"rgba(255,255,255,.025)"}}><div style={{minWidth:0}}><strong style={{display:"block",fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{member.email||"Pending identity"}</strong><span style={{display:"block",marginTop:4,fontSize:11,color:"#8fa2ba"}}>{member.role} · Added {new Date(member.createdAt).toLocaleDateString()}</span></div><span style={{fontSize:10,fontWeight:900,textTransform:"uppercase",letterSpacing:".06em",padding:"5px 8px",borderRadius:999,border:"1px solid rgba(34,197,94,.2)",color:member.status==="active"?"#86efac":"#fcd34d",background:member.status==="active"?"rgba(34,197,94,.07)":"rgba(245,158,11,.07)"}}>{member.status}</span></div>)}</div>}</div>
       </HQPanel>
     </div>
   </HQPage>
