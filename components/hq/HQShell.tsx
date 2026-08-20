@@ -9,7 +9,7 @@ export const HQ_THEME = {bg:"#06101d",panel:"#0b1728",panelSoft:"#0e1d31",border
 type NavItem = readonly [string,string,string];type NavGroup={label:string;items:readonly NavItem[]}
 const navGroups:readonly NavGroup[]=[
  {label:"Company",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Company Intelligence","/hq/intelligence","◈"]]},
- {label:"Product",items:[["Product & Schools","/hq/schools","◎"],["Users","/hq/users","♙"],["Executive metrics","/hq/analytics","↗"]]},
+ {label:"Product",items:[["Product & Schools","/hq/product","◎"],["Users","/hq/users","♙"],["Executive metrics","/hq/analytics","↗"]]},
  {label:"Content",items:[["Content","/hq/content","▣"],["Curriculum Authority","/hq/curriculum-authority","A"],["Content Factory","/hq/curriculum-intelligence/engine","✦"]]},
  {label:"Company systems",items:[["Revenue","/hq/billing","$"],["System","/hq/security","◇"],["Workforce","/hq/workforce","⚙"],["Commissioning","/hq/workforce/readiness","✓"]]},
 ]
