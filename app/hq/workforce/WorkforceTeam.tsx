@@ -1,0 +1,82 @@
+"use client"
+
+import {useMemo,useState} from "react"
+import {HQPanel,HQ_THEME as C,hqButtonStyle} from "@/components/hq/HQShell"
+import {WORKER_IDENTITIES,humanWorkerStatus,identityRegistryState,workerIdentity} from "@/lib/hq/workforceIdentity"
+import {supabase} from "@/lib/supabase"
+
+type Obj=Record<string,any>
+type Props={workers:Obj[];jobs:Obj[];assignments:Obj[];collaborations:Obj[];authority:Obj[];evidence:Obj[];decisions:Obj[];failures:{anomalies:Obj[];dead_letters:Obj[]};onRefresh:()=>Promise<void>|void;onError:(message:string)=>void}
+const sb=supabase as any
+const when=(v:any)=>v?new Date(String(v)).toLocaleString("en-KE"):"—"
+const compact=(v:any,n=110)=>{const s=typeof v==="string"?v:JSON.stringify(v??{});return s.length>n?s.slice(0,n)+"…":s}
+const box:React.CSSProperties={border:`1px solid ${C.border}`,borderRadius:14,background:C.panelSoft,padding:12}
+const statusKind=(s:string)=>s==="Blocked"||s==="Stopped"?C.red:s==="Waiting for review"?C.amber:s==="Working"?C.blue:C.green
+
+function Status({value}:{value:string}){return <span style={{display:"inline-flex",fontSize:10,fontWeight:900,border:`1px solid ${statusKind(value)}55`,color:statusKind(value),borderRadius:999,padding:"4px 7px"}}>{value}</span>}
+
+export function WorkerDirectory({workers,jobs,assignments,collaborations,authority,evidence,decisions,failures}:{workers:Obj[];jobs:Obj[];assignments:Obj[];collaborations:Obj[];authority:Obj[];evidence:Obj[];decisions:Obj[];failures:Props["failures"]}){
+ const [selected,setSelected]=useState<string|null>(null)
+ const grouped=useMemo(()=>Object.values(WORKER_IDENTITIES).map(identity=>{
+   const technical=workers.filter(w=>workerIdentity(w.worker_key,w.title).key===identity.key)
+   const keys=technical.map(w=>w.worker_key)
+   const ownAssignments=assignments.filter(a=>keys.includes(a.worker_key))
+   const statuses=[...ownAssignments.map(a=>a.status),...jobs.filter(j=>keys.some(k=>String(j.route??"")===`worker:${k}`)).map(j=>j.status)]
+   return {identity,technical,ownAssignments,status:humanWorkerStatus(technical[0]?.status,statuses)}
+ }),[workers,jobs,assignments])
+ const selectedRow=grouped.find(x=>x.identity.key===selected)??null
+ return <div style={{display:"grid",gap:12}}>
+  <HQPanel title="Your digital team" description="Tap a person to see their real governed work, authority, evidence, failures and collaborators.">
+   <div style={{padding:12,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:9}}>{grouped.map(row=><button key={row.identity.key} onClick={()=>setSelected(row.identity.key)} style={{...box,textAlign:"left",color:C.text,cursor:"pointer"}}><div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"center"}}><strong>{row.identity.name}</strong><Status value={row.status}/></div><div style={{fontSize:11,marginTop:5}}>{row.identity.role}</div><div style={{fontSize:10.5,color:C.muted,marginTop:4}}>{row.identity.purpose}</div><div style={{fontSize:9.5,color:C.muted,marginTop:7}}>{row.technical.length} governed system {row.technical.length===1?"identity":"identities"}</div></button>)}</div>
+  </HQPanel>
+  {selectedRow&&<WorkerProfile row={selectedRow} collaborations={collaborations} authority={authority} evidence={evidence} decisions={decisions} failures={failures} onClose={()=>setSelected(null)}/>} 
+ </div>
+}
+
+function WorkerProfile({row,collaborations,authority,evidence,decisions,failures,onClose}:{row:any;collaborations:Obj[];authority:Obj[];evidence:Obj[];decisions:Obj[];failures:Props["failures"];onClose:()=>void}){
+ const keys=row.technical.map((x:Obj)=>x.worker_key)
+ const collabs=collaborations.filter(c=>keys.includes(c.from_worker_key)||keys.includes(c.to_worker_key)).slice(0,12)
+ const auth=authority.filter(a=>keys.includes(a.worker_key)).slice(0,10)
+ const ev=evidence.filter(e=>!e.worker_key||keys.includes(e.worker_key)).slice(0,8)
+ const fails=failures.dead_letters.filter(x=>keys.includes(x.worker_key)).slice(0,8)
+ const relatedDecisions=decisions.filter(d=>keys.includes(d.worker_key)).slice(0,6)
+ return <HQPanel title={`${row.identity.name} · ${row.identity.role}`} description={row.identity.purpose}>
+  <div style={{padding:12,display:"grid",gap:10}}>
+   <div style={{display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}><Status value={row.status}/><button onClick={onClose} style={hqButtonStyle}>Close profile</button></div>
+   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}><div style={box}><strong>Responsibilities</strong><div style={{fontSize:10.5,color:C.muted,marginTop:5}}>{row.identity.purpose}</div></div><div style={box}><strong>Current work</strong><div style={{fontSize:10.5,color:C.muted,marginTop:5}}>{row.ownAssignments.filter((a:Obj)=>!["completed","cancelled"].includes(a.status)).map((a:Obj)=>a.work_title).join(" · ")||"No active founder assignment"}</div></div><div style={box}><strong>System identities</strong><div style={{fontSize:10.5,color:C.muted,marginTop:5}}>{keys.join(" · ")||"No production identity currently bound"}</div></div></div>
+   <ProfileSection title="Recent work" rows={row.ownAssignments.slice(0,8)} render={(x:Obj)=><>{x.work_title} · {x.status} · {when(x.updated_at)}</>}/>
+   <ProfileSection title="Collaboration" rows={collabs} render={(x:Obj)=>{const from=workerIdentity(x.from_worker_key).name,to=workerIdentity(x.to_worker_key).name;return <>{from} → {to} · {x.collaboration_type} · {x.status} · {when(x.updated_at)}</>}}/>
+   <ProfileSection title="Authority" rows={auth} render={(x:Obj)=><>{x.decision} · {x.reason_code??x.scope_type} · {when(x.occurred_at??x.created_at)}</>}/>
+   <ProfileSection title="Evidence / decisions" rows={[...ev,...relatedDecisions].slice(0,10)} render={(x:Obj)=><>{x.evidence_kind??x.decision_key??"Record"} · {x.state??x.source_type??"evidence"} · {when(x.created_at??x.updated_at)}</>}/>
+   <ProfileSection title="Failures" rows={fails} render={(x:Obj)=><>{x.error_code} · {compact(x.error_detail)} · {when(x.created_at)}</>}/>
+  </div>
+ </HQPanel>
+}
+function ProfileSection({title,rows,render}:{title:string;rows:Obj[];render:(x:Obj)=>React.ReactNode}){return <div style={box}><strong>{title}</strong><div style={{display:"grid",gap:6,marginTop:7}}>{rows.length?rows.map((x,i)=><div key={String(x.id??i)} style={{fontSize:10.5,color:C.muted}}>{render(x)}</div>):<div style={{fontSize:10.5,color:C.muted}}>No records.</div>}</div></div>}
+
+export function OrganizationView({workers}:{workers:Obj[]}){
+ const roster=Object.values(WORKER_IDENTITIES)
+ const laban=WORKER_IDENTITIES.laban
+ return <HQPanel title="How the team is organized" description="Laban coordinates; specialist authority remains bounded to each governed technical worker."><div style={{padding:12}}><div style={{...box,maxWidth:360,margin:"0 auto",textAlign:"center"}}><strong>{laban.name}</strong><div style={{fontSize:10.5,color:C.muted}}>{laban.role}</div></div><div style={{height:18,width:1,background:C.border,margin:"0 auto"}}/><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>{roster.filter(x=>x.key!=="laban").map(x=>{const count=workers.filter(w=>workerIdentity(w.worker_key,w.title).key===x.key).length;return <div key={x.key} style={{...box,textAlign:"center"}}><strong>{x.name}</strong><div style={{fontSize:10,color:C.muted}}>{x.role}</div><div style={{fontSize:9.5,color:C.muted,marginTop:4}}>{count?`${count} governed identity${count===1?"":"ies"}`:"No bound production identity"}</div></div>})}</div></div></HQPanel>
+}
+
+export function AssignmentBoard({workers,jobs,assignments,onRefresh,onError}:{workers:Obj[];jobs:Obj[];assignments:Obj[];onRefresh:Props["onRefresh"];onError:Props["onError"]}){
+ const [jobId,setJobId]=useState("")
+ const [workerKey,setWorkerKey]=useState("")
+ const [note,setNote]=useState("")
+ const [busy,setBusy]=useState(false)
+ const assignable=workers.filter(w=>["active","probation","restricted"].includes(String(w.status)))
+ async function assign(){if(!jobId||!workerKey)return;setBusy(true);const r=await sb.rpc("hq_workforce_assign_work_item",{p_work_item_id:jobId,p_worker_key:workerKey,p_note:note||null});setBusy(false);if(r.error){onError(r.error.message);return}setJobId("");setWorkerKey("");setNote("");await onRefresh()}
+ async function status(id:string,s:string){setBusy(true);const verification=s==="completed"?{completion_claim_source:"hq_founder",accepted:false}:{ };const r=await sb.rpc("hq_workforce_update_founder_assignment",{p_assignment_id:id,p_status:s,p_verification:verification});setBusy(false);if(r.error){onError(r.error.message);return}await onRefresh()}
+ return <div style={{display:"grid",gap:12}}><HQPanel title="Assign work" description="Founder assignments persist against real HQ work items. Assignment does not grant new authority."><div style={{padding:12,display:"grid",gap:8}}><select value={jobId} onChange={e=>setJobId(e.target.value)} style={{...box,color:C.text}}><option value="">Choose work item</option>{jobs.map(j=><option key={j.id} value={j.id}>{j.priority} · {j.title}</option>)}</select><select value={workerKey} onChange={e=>setWorkerKey(e.target.value)} style={{...box,color:C.text}}><option value="">Choose worker</option>{assignable.map(w=>{const id=workerIdentity(w.worker_key,w.title);return <option key={w.worker_key} value={w.worker_key}>{id.name} · {id.role} ({w.worker_key})</option>})}</select><input value={note} onChange={e=>setNote(e.target.value)} placeholder="Optional instruction or context" style={{...box,color:C.text}}/><button disabled={busy||!jobId||!workerKey} onClick={()=>void assign()} style={hqButtonStyle}>{busy?"Saving…":"Assign work"}</button></div></HQPanel><HQPanel title="Assignment lifecycle" description="Assigned → working → review → completion claim. Verification remains independent and evidence-backed."><div style={{padding:12,display:"grid",gap:8}}>{assignments.length?assignments.map(a=>{const id=workerIdentity(a.worker_key,a.technical_title);return <div key={a.id} style={box}><div style={{display:"flex",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}><strong>{a.work_title}</strong><Status value={humanWorkerStatus("active",[a.status])}/></div><div style={{fontSize:10.5,color:C.muted,marginTop:4}}>{id.name} · {id.role} · {a.worker_key}</div><div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>{!['completed','cancelled'].includes(a.status)&&<><button disabled={busy} onClick={()=>void status(a.id,"working")} style={hqButtonStyle}>Working</button><button disabled={busy} onClick={()=>void status(a.id,"waiting_review")} style={hqButtonStyle}>Send to review</button><button disabled={busy} onClick={()=>void status(a.id,"blocked")} style={hqButtonStyle}>Blocked</button><button disabled={busy} onClick={()=>void status(a.id,"completed")} style={hqButtonStyle}>Mark complete claim</button></>}</div></div>}):<div style={{fontSize:11,color:C.muted}}>No founder assignments yet.</div>}</div></HQPanel></div>
+}
+
+export function CompletionProof({assignments,evidence,collaborations}:{assignments:Obj[];evidence:Obj[];collaborations:Obj[]}){
+ return <HQPanel title="Completion proof" description="A completion claim is not verification. HQ accepts completion only when the stored verification explicitly records an independent verifier and acceptance."><div style={{padding:12,display:"grid",gap:8}}>{assignments.length?assignments.map(a=>{const traces=collaborations.filter(c=>c.from_worker_key===a.worker_key||c.to_worker_key===a.worker_key);const verification=a.verification??{};const independentlyVerified=verification.accepted===true&&typeof verification.verifier_worker_key==="string"&&verification.verifier_worker_key!==a.worker_key;const proofCount=evidence.filter(e=>String(e.trace_id??"")&&traces.some(t=>String(t.evidence??"").includes(String(e.trace_id)))).length;const accepted=a.status==="completed"&&independentlyVerified;return <div key={a.id} style={box}><div style={{display:"flex",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}><strong>{a.work_title}</strong><Status value={accepted?"Verified":a.status==="blocked"?"Blocked":"Waiting for review"}/></div><div style={{fontSize:10.5,color:C.muted,marginTop:5}}>Claim: {a.status} · independent verifier: {independentlyVerified?workerIdentity(verification.verifier_worker_key).name:"not recorded"} · linked collaboration: {traces.length} · linked evidence: {proofCount}</div><div style={{fontSize:10.5,marginTop:5,color:accepted?C.green:C.amber}}>{accepted?"Verified and accepted. The completion record names an independent verifier.":a.status==="completed"?"Completion is claimed, but independent verification is still missing.":"Work has not reached a completion claim."}</div></div>}):<div style={{fontSize:11,color:C.muted}}>No assignment completion claims yet.</div>}</div></HQPanel>
+}
+
+export function IdentityRegistry({workers}:{workers:Obj[]}){
+ const rows=workers.map(w=>({...w,...identityRegistryState(w.worker_key,w.title,w.status)}))
+ const gaps=rows.filter(r=>r.needsMapping)
+ return <HQPanel title="Worker identity registry" description="Permanent workers cannot silently masquerade as named people. Unmapped workers are explicitly flagged until intentionally mapped."><div style={{padding:12}}>{gaps.length>0&&<div role="alert" style={{...box,borderColor:`${C.amber}66`,color:C.amber,marginBottom:9}}>{gaps.length} permanent worker {gaps.length===1?"needs":"need"} a human-facing mapping.</div>}<div style={{display:"grid",gap:7}}>{rows.map(r=><div key={r.worker_key} style={box}><div style={{display:"flex",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}><strong>{r.identity.name}</strong><span style={{fontSize:10,color:r.needsMapping?C.amber:C.muted}}>{r.label}</span></div><div style={{fontSize:10,color:C.muted,marginTop:3}}>{r.worker_key} · {r.title} · technical state {r.status}</div></div>)}</div></div></HQPanel>
+}
