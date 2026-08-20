@@ -15,7 +15,7 @@ export const HQ_NAV_GROUPS: readonly NavGroup[] = [
   {label:"Overview",items:[["Home","/hq","⌂"],["Decisions","/hq/decisions","✓"],["Operations","/hq/intelligence","◈"],["Alerts","/hq/notifications","!"]]},
   {label:"Business",items:[["Product","/hq/analytics","◎"],["Schools","/hq/schools","⌂"],["Users","/hq/users","♙"],["Marketing","/hq/marketing","↗"],["Geography","/hq/geography","⌖"],["Support","/hq/support","?"]]},
   {label:"Learning",items:[["Content","/hq/content","▣"],["Curriculum Authority","/hq/curriculum-authority","A"],["Content Factory","/hq/curriculum-intelligence/engine","✦"],["Studio","/hq/studio","✎"]]},
-  {label:"Operations",items:[["Departments","/hq/departments","▦"],["Workroom","/hq/workroom","□"],["Workforce","/hq/workforce","⚙"],["Revenue","/hq/billing","$"],["System & Security","/hq/security","◇"],["Commissioning","/hq/workforce/readiness","✓"]]},
+  {label:"Operations",items:[["Departments","/hq/departments","▦"],["Workroom","/hq/workroom","□"],["Workforce","/hq/workforce","⚙"],["Revenue","/hq/billing","$"],["System","/hq/security","◇"],["Commissioning","/hq/workforce/readiness","✓"]]},
 ]
 
 const mobileLinks: readonly NavItem[] = [
