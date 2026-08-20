@@ -1,0 +1,21 @@
+/* Safety net for HQ pages that have not yet migrated to HQPage.
+   The persistent desktop sidebar must never cover page content. */
+@media (min-width: 981px) {
+  .hq-sidebar ~ main:not(.hq-page) {
+    margin-left: 248px !important;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 980px) {
+  .hq-sidebar ~ main:not(.hq-page) {
+    margin-left: 220px !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .hq-sidebar ~ main:not(.hq-page) {
+    margin-left: 0 !important;
+    padding-top: 60px !important;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom)) !important;
+  }
+}
