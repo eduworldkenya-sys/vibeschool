@@ -5,7 +5,7 @@ import React from "react";
 type Student = {
   id: string;
   name: string;
-  source?: "db" | "manual";
+  source: "db" | "manual";
   class_name?: string;
 };
 
