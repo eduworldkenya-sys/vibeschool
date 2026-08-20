@@ -2,7 +2,7 @@ import Link from "next/link"
 import { HQPage, HQPanel } from "@/components/hq/HQShell"
 
 const domains = [
-  ["Product & Schools", "/hq/schools", "Schools, adoption, activity, learning signals and school intelligence."],
+  ["Product & Schools", "/hq/product", "Schools, adoption, activity, users and evidence-backed school intelligence."],
   ["Company Intelligence", "/hq/intelligence", "Activation, retention, product usage and founder operating intelligence."],
   ["Content", "/hq/content", "Publishing, curriculum, quality and Content Factory operations."],
   ["Revenue", "/hq/billing", "Commerce, M-Pesa, subscriptions, reconciliation and finance."],
