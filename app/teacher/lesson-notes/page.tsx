@@ -133,6 +133,9 @@ function LessonNotesInner() {
         }
       }
 
+      let subStrandId: string | null = typedPlan.strand_id ?? null;
+      let curriculumId: string | null = typedPlan.curriculum_id ?? null;
+
       if (typedPlan.scheme_id) {
         const { data: schemeData } = await supabase
           .from("scheme_of_work")
@@ -140,23 +143,23 @@ function LessonNotesInner() {
           .eq("id", typedPlan.scheme_id)
           .maybeSingle();
 
-        const subStrandId = schemeData?.sub_strand_id ?? null;
-        const curriculumId = schemeData?.curriculum_id ?? typedPlan.curriculum_id ?? null;
+        subStrandId = schemeData?.sub_strand_id ?? subStrandId;
+        curriculumId = schemeData?.curriculum_id ?? curriculumId;
+      }
 
-        if (subStrandId || curriculumId) {
-          let chapterQuery = supabase
-            .from("vibe_chapters")
-            .select("id,title,publication_id")
-            .eq("status", "published")
-            .limit(4);
+      if (subStrandId || curriculumId) {
+        let chapterQuery = supabase
+          .from("vibe_chapters")
+          .select("id,title,publication_id")
+          .eq("status", "published")
+          .limit(4);
 
-          chapterQuery = subStrandId
-            ? chapterQuery.eq("sub_strand_id", subStrandId)
-            : chapterQuery.eq("curriculum_id", curriculumId as string);
+        chapterQuery = subStrandId
+          ? chapterQuery.eq("sub_strand_id", subStrandId)
+          : chapterQuery.eq("curriculum_id", curriculumId as string);
 
-          const { data: chapterData } = await chapterQuery;
-          setExactChapters((chapterData ?? []) as ExactChapterRow[]);
-        }
+        const { data: chapterData } = await chapterQuery;
+        setExactChapters((chapterData ?? []) as ExactChapterRow[]);
       }
     } catch (loadError) {
       console.error("[lesson-notes] load", loadError);
