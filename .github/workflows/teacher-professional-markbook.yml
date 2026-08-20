@@ -1,0 +1,20 @@
+name: Teacher Professional Markbook
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/results/page.tsx'
+      - 'components/teacher/ProfessionalMarkbook.tsx'
+      - 'supabase/migrations/20260820083000_teacher_markbook_marks_range.sql'
+      - 'scripts/validate-teacher-professional-markbook.py'
+      - '.github/workflows/teacher-professional-markbook.yml'
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-teacher-professional-markbook.py

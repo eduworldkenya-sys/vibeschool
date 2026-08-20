@@ -1,0 +1,82 @@
+name: Pre-Pilot Synthetic School Core
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "app/teacher/results/page.tsx"
+      - "components/teacher/ProfessionalMarkbook.tsx"
+      - "supabase/migrations/**"
+      - "scripts/sql/prepilot_synthetic_school_core.sql"
+      - ".github/workflows/prepilot-synthetic-school-core.yml"
+
+concurrency:
+  group: prepilot-synthetic-school-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-school-core:
+    name: Disposable Kenyan school authority journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Start isolated local Supabase
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase start \
+            -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+
+      - name: Reconstruct exact schema
+        shell: bash
+        run: |
+          set -o pipefail
+          if [ -f supabase/seed.sql ]; then mv supabase/seed.sql /tmp/vibeschool-seed.sql.disabled; fi
+          supabase db reset --local --no-seed
+
+      - name: Execute synthetic school authority journey
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .prepilot-artifacts
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f scripts/sql/prepilot_synthetic_school_core.sql \
+            2>&1 | tee .prepilot-artifacts/synthetic-school-core.log
+          grep -q "PREPILOT_SYNTHETIC_SCHOOL_CORE_PASS" .prepilot-artifacts/synthetic-school-core.log
+
+      - name: Prove fixture rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          COUNT="$(PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -Atqc "select count(*) from public.schools where directory_source='synthetic_certification'")"
+          test "$COUNT" = "0"
+
+      - name: Upload certification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prepilot-synthetic-school-${{ github.run_id }}
+          path: .prepilot-artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Destroy isolated database
+        if: always()
+        shell: bash
+        run: supabase stop --no-backup > /dev/null 2>&1 || true
