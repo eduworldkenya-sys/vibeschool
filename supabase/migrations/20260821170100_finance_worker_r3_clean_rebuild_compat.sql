@@ -1,6 +1,6 @@
 -- Repository/production parity for Priority 4.
--- Production had an extra finance_mpesa_statements relation not reconstructible from
--- canonical migrations. Qualification evidence now uses only canonical finance tables.
+-- Production contains additional legacy finance relations not reconstructible from
+-- canonical migrations. Qualification evidence uses only the canonical payment spine.
 -- NON-ACTIVATING: no authority or financial data mutation.
 
 create or replace function public.hq_workforce_finance_readonly_snapshot()
@@ -33,11 +33,7 @@ returns text language sql security definer set search_path=public,pg_temp stable
     (select coalesce(sum(expected_amount_kes),0) from public.commerce_payment_attempts),
     (select count(*) from public.commerce_payment_callback_events),
     (select count(*) from public.finance_payments),
-    (select coalesce(sum(amount),0) from public.finance_payments),
-    (select count(*) from public.finance_transactions),
-    (select count(*) from public.finance_credit_notes),
-    (select count(*) from public.finance_expenses),
-    (select count(*) from public.finance_pocket_money)
+    (select coalesce(sum(amount),0) from public.finance_payments)
   ));
 $$;
 revoke all on function public.hq_workforce_finance_state_digest() from public,anon,authenticated;
