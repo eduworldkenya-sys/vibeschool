@@ -10,6 +10,7 @@ function adminClient() {
 }
 
 function requiredPermission(surface: string): string {
+  if (surface.startsWith("/hq/workroom")) return "workroom.view"
   if (surface.startsWith("/hq/team")) return "team.manage"
   if (surface.startsWith("/hq/publishing") || surface.startsWith("/hq/content") || surface.startsWith("/hq/curriculum")) return "content.approve"
   if (surface.startsWith("/hq/users")) return "users.manage"
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (member.status !== "active") return NextResponse.json({ allowed: false, reason: "setup_required", role: member.role }, { status: 403 })
-  if (["founder", "partner_admin", "hq_admin"].includes(member.role)) {
+  if (member.role === "founder") {
     return NextResponse.json({ allowed: true, role: member.role, permission: "operator.full" })
   }
 
