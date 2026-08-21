@@ -36,29 +36,30 @@ for token in ["p_fixture_key<>'known_good_control'","p_fixture_key='known_good_c
 
 cross=(root/'supabase/migrations/20260821155000_quality_worker_cross_archetype_reverification.sql').read_text()
 for token in [
-    'hq_workforce_quality_examine_worker',
-    'quality_self_examination_forbidden',
-    'quality_cross_archetype_examiner_v1',
-    'cross_archetype_examination',
-    'repair_evidence',
-    'fresh_reverification',
-    'v_cross_archetypes<4',
-    'expired_certification',
-    "qe.suite_version='professional-server-shadow-v1'",
-    "sr.execution_method='professional_server_shadow_v1'",
-    "p_target_worker_key='content-factory-r2-canary-01'",
-    "qe.suite_version='existing-server-shadow-v2'",
-    'target_latest_repair_at',
-    "'side_effects_applied',false",
-    "'authority_changed',false",
+    'hq_workforce_quality_examine_worker','quality_self_examination_forbidden','quality_cross_archetype_examiner_v1',
+    'cross_archetype_examination','repair_evidence','fresh_reverification','v_cross_archetypes<4',
+    'expired_certification',"qe.suite_version='professional-server-shadow-v1'","sr.execution_method='professional_server_shadow_v1'",
+    "p_target_worker_key='content-factory-r2-canary-01'","qe.suite_version='existing-server-shadow-v2'",
+    'target_latest_repair_at',"'side_effects_applied',false","'authority_changed',false",
 ]:
     assert token in cross, token
 
-combined='\n'.join([sql,observed,good,cross])
+integrity=(root/'supabase/migrations/20260821160000_quality_worker_evidence_integrity.sql').read_text()
+for token in [
+    'revoke insert on table public.hq_workforce_quality_examinations from service_role',
+    'revoke insert on table public.hq_workforce_quality_fixture_results from service_role',
+    'grant execute on function public.hq_workforce_quality_examine_worker(text,text) to service_role',
+    'grant execute on function public.hq_workforce_quality_execute_lab_fixture(text,text[],jsonb,text) to service_role',
+    'service_role direct insert into public.hq_workforce_quality_examinations denied',
+    'service_role direct insert into public.hq_workforce_quality_fixture_results denied',
+]:
+    assert token in integrity, token
+
+combined='\n'.join([sql,observed,good,cross,integrity])
 for forbidden in [
     'factory_enabled=true','heartbeat_enabled=true',"autonomy_level=",
     'insert into public.hq_workforce_capability_grants','insert into public.hq_workforce_capability_authority_grants',
     "runtime_execution_enabled=true","shadow_global_stop=false",
 ]:
     assert forbidden not in combined, forbidden
-print('Quality Worker professionalization + observed lab + cross-archetype/reverification regression: PASS')
+print('Quality Worker professionalization + observed lab + cross-archetype/reverification + evidence integrity: PASS')
