@@ -1,0 +1,18 @@
+name: Finance Worker R3 Certification
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260821165900_finance_shadow_handler_contract.sql'
+      - 'supabase/migrations/20260821170000_finance_worker_r3_certification.sql'
+      - 'scripts/validate-finance-worker-r3.py'
+      - 'docs/FINANCE_WORKER_R3_CERTIFICATION_20260821.md'
+      - '.github/workflows/finance-worker-r3.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-finance-worker-r3.py
