@@ -1,0 +1,114 @@
+.parent-learn-page {
+  min-height: 100vh;
+  max-width: 36rem;
+  margin: 0 auto;
+  padding: 1rem 1rem 7rem;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.parent-learn-hero,
+.parent-learn-card,
+.parent-learn-tabs,
+.parent-learn-empty,
+.parent-learn-alert {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.parent-learn-hero {
+  border: 0;
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
+}
+
+.parent-learn-eyebrow {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #6ee7b7;
+}
+
+.parent-learn-hero-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: .5rem;
+}
+
+.parent-learn-title {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+}
+
+.parent-learn-subtitle {
+  margin-top: .25rem;
+  font-size: .875rem;
+  color: #cbd5e1;
+}
+
+.parent-learn-refresh {
+  min-height: 2.5rem;
+  border: 1px solid rgb(255 255 255 / .2);
+  border-radius: .75rem;
+  padding: .5rem .75rem;
+  background: transparent;
+  color: #fff;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.parent-learn-refresh:disabled { opacity: .5; cursor: default; }
+
+.parent-learn-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .25rem;
+  margin-top: 1rem;
+  padding: .25rem;
+}
+
+.parent-learn-tab {
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: .75rem;
+  padding: .65rem .5rem;
+  background: transparent;
+  color: #475569;
+  font-size: .875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.parent-learn-tab[aria-selected="true"] {
+  background: #0f172a;
+  color: #fff;
+}
+
+.parent-learn-content {
+  display: grid;
+  gap: .75rem;
+  margin-top: 1rem;
+}
+
+.parent-learn-card { padding: 1rem; box-shadow: 0 1px 2px rgb(15 23 42 / .06); }
+.parent-learn-empty { padding: 1.25rem; text-align: center; }
+.parent-learn-empty-title { font-weight: 700; color: #0f172a; }
+.parent-learn-empty-body { margin-top: .25rem; font-size: .875rem; line-height: 1.5rem; color: #64748b; }
+.parent-learn-alert { margin-top: 1rem; padding: 1rem; border-color: #fde68a; background: #fffbeb; color: #78350f; font-size: .875rem; line-height: 1.5rem; }
+
+@media (max-width: 420px) {
+  .parent-learn-page { padding-inline: .75rem; }
+  .parent-learn-hero-row { gap: .75rem; }
+  .parent-learn-title { font-size: 1.35rem; }
+}
