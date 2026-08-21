@@ -19,6 +19,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -26,4 +28,4 @@ jobs:
       - run: python scripts/validate-chemistry-stage-executor.py
       - run: python scripts/test-supabase-migration-contract.py
       - run: python scripts/test-worker-engine-authority-plane-contract.py
-      - run: python scripts/validate-supabase-migration-contract.py --changed-from HEAD^ || python scripts/validate-supabase-migration-contract.py
+      - run: python scripts/validate-supabase-migration-contract.py --changed-from origin/main
