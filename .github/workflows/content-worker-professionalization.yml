@@ -7,6 +7,7 @@ on:
       - 'supabase/migrations/**content_worker_quality_review**'
       - 'supabase/migrations/**content_worker_execution_binding**'
       - 'supabase/migrations/**content_worker_performance_telemetry**'
+      - 'supabase/migrations/**content_worker_teacher_guide_success_gate**'
       - 'supabase/functions/content-authoring-worker/**'
       - 'scripts/sql/content_worker_professionalization_verify.sql'
       - '.github/workflows/content-worker-professionalization.yml'
