@@ -127,7 +127,7 @@ declare v_id uuid; v_fixture_hash text; v_expected_hash text;
 begin
   if nullif(trim(p_evaluator_key),'') is null or nullif(trim(p_evaluator_version),'') is null then raise exception 'versioned_evaluator_required'; end if;
   if p_source_incident_id is null and not p_positive_control then raise exception 'negative_case_requires_incident'; end if;
-  v_fixture_hash:=encode(digest(p_fixture::text,'sha256'),'hex'); v_expected_hash:=encode(digest(p_expected_result::text,'sha256'),'hex');
+  v_fixture_hash:=encode(extensions.digest(p_fixture::text,'sha256'),'hex'); v_expected_hash:=encode(extensions.digest(p_expected_result::text,'sha256'),'hex');
   insert into public.hq_workforce_regression_cases(case_key,case_version,source_incident_id,scope_type,scope_key,positive_control,evaluator_key,evaluator_version,fixture_hash,expected_hash,fixture,expected_result)
   values(p_case_key,p_case_version,p_source_incident_id,p_scope_type,p_scope_key,p_positive_control,p_evaluator_key,p_evaluator_version,v_fixture_hash,v_expected_hash,p_fixture,p_expected_result)
   returning id into v_id; return v_id;
