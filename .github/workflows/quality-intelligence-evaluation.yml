@@ -1,0 +1,68 @@
+name: Quality Intelligence Evaluation
+on:
+  pull_request:
+    paths:
+      - 'quality-intelligence/**'
+      - 'scripts/quality_intelligence_evaluate.py'
+      - '.github/workflows/quality-intelligence-evaluation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-evaluator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile evaluator
+        run: python -m py_compile scripts/quality_intelligence_evaluate.py
+      - name: Calibrate against sealed gold suite
+        run: python scripts/quality_intelligence_evaluate.py --calibrate
+      - name: Verify frozen production baseline
+        run: python scripts/quality_intelligence_evaluate.py --verify-baseline
+      - name: Verify append-only evidence hash chain
+        run: python scripts/quality_intelligence_evaluate.py --verify-ledger
+      - name: Verify independence contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('quality-intelligence/rubrics/teacher-guide-v1.json').read_text())
+          i=r['independence']
+          assert i['content_worker_may_modify'] is False
+          assert i['content_worker_self_score_is_authoritative'] is False
+          assert i['worker_preflight_is_input_evidence_only'] is True
+          assert i['certification_requires_independent_evaluation'] is True
+          print('independence contract: PASS')
+          PY
+      - name: Enforce sealed V1 rubric and gold labels after first merge
+        shell: bash
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          for file in quality-intelligence/rubrics/teacher-guide-v1.json quality-intelligence/fixtures/teacher-guide-gold-v1.json; do
+            if git cat-file -e "origin/main:$file" 2>/dev/null; then
+              git show "origin/main:$file" > /tmp/base-file
+              cmp --silent /tmp/base-file "$file" || { echo "sealed V1 changed in place: $file"; exit 1; }
+            fi
+          done
+      - name: Enforce evaluation ledger append-only semantics
+        shell: bash
+        run: |
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          ledger=quality-intelligence/evidence/evaluation-runs.jsonl
+          if git cat-file -e "origin/main:$ledger" 2>/dev/null; then
+            git show "origin/main:$ledger" > /tmp/base-ledger
+            python - <<'PY'
+          from pathlib import Path
+          old=Path('/tmp/base-ledger').read_bytes()
+          new=Path('quality-intelligence/evidence/evaluation-runs.jsonl').read_bytes()
+          if not new.startswith(old):
+              raise SystemExit('evaluation ledger history was modified or deleted')
+          print('append-only ledger: PASS')
+          PY
+          fi
