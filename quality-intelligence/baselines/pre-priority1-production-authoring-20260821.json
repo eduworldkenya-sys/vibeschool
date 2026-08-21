@@ -1,0 +1,57 @@
+{
+  "baseline_key": "pre-priority1-production-authoring",
+  "version": 1,
+  "frozen_at": "2026-08-21T07:40:00+03:00",
+  "source": {"system": "production_supabase", "project_ref": "yauqsxggtuxuykcbrtzf", "table": "curriculum_authoring_drafts", "read_only_capture": true},
+  "purpose": "Exact pre-Priority-1 authoring artifacts and lineage for controlled before/after Quality Intelligence comparison.",
+  "artifacts": [
+    {
+      "id": "3f3fec58-e2c2-4071-8a95-92bd92892b6a",
+      "task_id": "798c0c12-4ebc-4705-8606-6ba4c3b69d43",
+      "proposal_id": "ac199081-c05a-4d5e-b733-4f2df3438df1",
+      "authoring_version": "source_grounded_authoring_v1",
+      "model_key": "openai/gpt-oss-120b",
+      "evidence_packet_sha256": "4e43db9e214736a3273d7e3c8f24cb5009e824d62b164c78d0169590a2815b68",
+      "structured_output_sha256": "8b96b75bd1256b31825f89330aecedcca84b1643f1801d2de919779ef2d6f6f0",
+      "current_content_sha256": "b7d71b50b50c084fbc58da63b882a911dac95d65dfacc406a265c63827dbc2af",
+      "captured_content_sha256": "0cc42abbcaf70c2c51803db205bd0d65ca26f0d57426d62f05336417a5f77ea2",
+      "target_chapter_id": "139eb920-70e6-4d10-a037-eba5043b9062",
+      "target_block_id": "d4e4038b-8f65-43f5-8797-08aa4971f739",
+      "target_sequence": 7,
+      "draft_content": "Chromosomes occur in the nucleus and contain DNA. A gene is a segment of DNA that provides the cell with instructions for making a specific protein, which then carries out a particular function in your body. An allele is an alternative form of a gene. Human body cells normally contain 46 chromosomes while normal gametes contain 23. Meiosis reduces chromosome number before fertilisation and separates alleles into gametes.",
+      "created_at": "2026-08-18T21:12:30.692786+00:00"
+    },
+    {
+      "id": "913fc012-8d91-42a7-aedb-b1c1690ce665",
+      "task_id": "2b4a60c2-3a56-488e-8824-f3eec40eacb2",
+      "proposal_id": "41e2e906-83f9-4ffc-a343-51a4d2233ff1",
+      "authoring_version": "source_grounded_authoring_v1",
+      "model_key": "openai/gpt-oss-120b",
+      "evidence_packet_sha256": "213f06b44c4513bcc1ef90838eb66b0e051265001d0013b68d77d36c1e51a26b",
+      "structured_output_sha256": "8932bbc0fa0168b5594e3510a77d95397bbe0990b8f4ce99256534f8534344d7",
+      "current_content_sha256": "b7d71b50b50c084fbc58da63b882a911dac95d65dfacc406a265c63827dbc2af",
+      "captured_content_sha256": "3f3c74f8f2ae1d7fb43aeaa97bad3a4a0943f38def2100a05250d0f69fe3e9ba",
+      "target_chapter_id": "139eb920-70e6-4d10-a037-eba5043b9062",
+      "target_block_id": "d4e4038b-8f65-43f5-8797-08aa4971f739",
+      "target_sequence": 7,
+      "draft_content": "A gene is a segment of DNA that provides the cell with instructions for making a specific protein, which then carries out a particular function in your body.",
+      "created_at": "2026-08-18T21:24:49.599594+00:00"
+    },
+    {
+      "id": "a6d40bdf-01dc-4904-b47a-6903939a5a56",
+      "task_id": "76a3e5a7-7d4e-4f02-acfd-0843f646974c",
+      "proposal_id": "dc9b75bc-e4f7-4661-b7b3-8da8a887723b",
+      "authoring_version": "source_grounded_authoring_v1",
+      "model_key": "openai/gpt-oss-120b",
+      "evidence_packet_sha256": "d1bc8d2aa78e304bec99d7ed08a901d5aeed6391ded277ac889c8e654d644100",
+      "structured_output_sha256": "2aadca3df36ba19a422539d454259b20053a9685898053324bbd2aa3a9595b62",
+      "current_content_sha256": "b7d71b50b50c084fbc58da63b882a911dac95d65dfacc406a265c63827dbc2af",
+      "captured_content_sha256": "3f3c74f8f2ae1d7fb43aeaa97bad3a4a0943f38def2100a05250d0f69fe3e9ba",
+      "target_chapter_id": "139eb920-70e6-4d10-a037-eba5043b9062",
+      "target_block_id": "d4e4038b-8f65-43f5-8797-08aa4971f739",
+      "target_sequence": 7,
+      "draft_content": "A gene is a segment of DNA that provides the cell with instructions for making a specific protein, which then carries out a particular function in your body.",
+      "created_at": "2026-08-18T21:25:46.467639+00:00"
+    }
+  ]
+}
