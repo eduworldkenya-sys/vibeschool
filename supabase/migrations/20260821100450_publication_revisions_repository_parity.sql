@@ -1,6 +1,7 @@
 -- Repository parity prerequisite for Priority 5 content convergence.
 -- Production already contains this relation; clean reconstruction must create it
 -- before content_convergence_versions binds optional revision lineage.
+-- authorization-test: public.publication_revisions author-scoped SELECT only; direct writes denied to authenticated/anon
 
 create table if not exists public.publication_revisions (
   id uuid primary key default gen_random_uuid(),
@@ -14,6 +15,12 @@ create table if not exists public.publication_revisions (
 );
 
 alter table public.publication_revisions enable row level security;
+
+-- Fail closed at the relation privilege boundary. Authenticated authors receive
+-- only SELECT; revision writes remain governed by the existing server-side flow.
+revoke all on table public.publication_revisions from public, anon, authenticated;
+grant select on table public.publication_revisions to authenticated;
+grant all on table public.publication_revisions to service_role;
 
 drop policy if exists publication_revisions_owner_read on public.publication_revisions;
 create policy publication_revisions_owner_read
