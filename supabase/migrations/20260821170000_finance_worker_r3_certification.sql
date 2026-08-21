@@ -68,8 +68,6 @@ returns jsonb language sql security definer set search_path=public,pg_temp stabl
     'payment_attempt_settled_count',(select count(*) from public.commerce_payment_attempts where settled_at is not null),
     'finance_payment_count',(select count(*) from public.finance_payments where deleted_at is null),
     'finance_payment_total',(select coalesce(sum(amount),0) from public.finance_payments where deleted_at is null),
-    'mpesa_statement_count',(select count(*) from public.finance_mpesa_statements),
-    'mpesa_unmatched_count',(select count(*) from public.finance_mpesa_statements where matched_payment_id is null),
     'decision','reconcile_and_escalate_only',
     'financial_mutation',false,
     'spend_authority',false,
@@ -96,7 +94,6 @@ returns text language sql security definer set search_path=public,pg_temp stable
     (select count(*) from public.finance_transactions),
     (select count(*) from public.finance_credit_notes),
     (select count(*) from public.finance_expenses),
-    (select count(*) from public.finance_mpesa_statements),
     (select count(*) from public.finance_pocket_money)
   ));
 $$;
