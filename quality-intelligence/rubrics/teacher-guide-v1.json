@@ -1,0 +1,41 @@
+{
+  "rubric_key": "teacher-guide-independent-quality",
+  "version": 1,
+  "purpose": "Independent evaluation of classroom-ready teacher-guide artifacts. This rubric is not owned or editable by the Content Worker runtime.",
+  "score_scale": {"minimum": 0, "maximum": 100, "certification_threshold": 85},
+  "dimensions": [
+    {"key": "curriculum_fidelity", "weight": 16, "minimum_certified_score": 4, "description": "Displayed curriculum outcomes and content are faithful to authoritative curriculum evidence."},
+    {"key": "subject_accuracy", "weight": 16, "minimum_certified_score": 4, "description": "Scientific/factual explanations, terminology, examples, equations and expected results are correct."},
+    {"key": "outcome_teachability", "weight": 12, "minimum_certified_score": 4, "description": "Every claimed outcome has explanation, learner experience, teacher check and observable learner evidence."},
+    {"key": "pedagogy_and_sequence", "weight": 10, "minimum_certified_score": 3, "description": "Teaching progresses coherently from prerequisites through explanation, activity, checking and consolidation."},
+    {"key": "classroom_readiness", "weight": 10, "minimum_certified_score": 3, "description": "A teacher can execute the lesson with explicit preparation, resources, prompts, timing/flow and expected outcomes."},
+    {"key": "assessment_quality", "weight": 10, "minimum_certified_score": 3, "description": "Assessment samples intended outcomes and includes usable answer/marking guidance."},
+    {"key": "safety_and_practical_integrity", "weight": 8, "minimum_certified_score": 4, "description": "Practical work is executable, safe, correctly controlled and includes observations, interpretation and cleanup where relevant."},
+    {"key": "source_grounding", "weight": 7, "minimum_certified_score": 4, "description": "Material claims are traceable to approved evidence; uncertainty is declared rather than invented."},
+    {"key": "kenyan_context_and_feasibility", "weight": 5, "minimum_certified_score": 3, "description": "Examples/resources fit Kenyan classrooms without fabricating local claims or assuming unrealistic equipment."},
+    {"key": "inclusion_and_differentiation", "weight": 3, "minimum_certified_score": 2, "description": "The guide provides meaningful support/extension and inclusive access rather than generic labels."},
+    {"key": "teacher_usability", "weight": 3, "minimum_certified_score": 3, "description": "The guide is navigable, unambiguous and operational rather than a content summary."}
+  ],
+  "hard_blockers": [
+    "unsupported_curriculum_claim",
+    "material_subject_error",
+    "unsafe_practical",
+    "fabricated_source_or_citation",
+    "required_outcome_not_teachable",
+    "assessment_answer_materially_wrong",
+    "contradictory_authoritative_evidence_unresolved"
+  ],
+  "severity": {
+    "blocker": "Certification is impossible until resolved.",
+    "critical": "Material correctness/safety/curriculum defect requiring correction before editorial acceptance.",
+    "major": "Substantial teaching-quality defect; artifact is not classroom-ready.",
+    "minor": "Localized quality/usability weakness that does not invalidate the artifact."
+  },
+  "independence": {
+    "content_worker_may_read": false,
+    "content_worker_may_modify": false,
+    "content_worker_self_score_is_authoritative": false,
+    "worker_preflight_is_input_evidence_only": true,
+    "certification_requires_independent_evaluation": true
+  }
+}
