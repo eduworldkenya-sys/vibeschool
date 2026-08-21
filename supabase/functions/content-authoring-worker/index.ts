@@ -224,6 +224,7 @@ async function authorFromEvidence(
     "After drafting, switch from authoring mode to inspection mode. Inspect the candidate against the supplied professional and quality contracts before returning it.",
     "You may make at most one bounded targeted correction to an obvious defect during that inspection. Do not silently rewrite repeatedly.",
     "If evidence is insufficient, sources conflict, scientific correctness is uncertain, safety is unresolved, or a required constraint cannot be satisfied, set self_review.blocking_uncertainty=true instead of inventing certainty.",
+    "Any unresolved major or critical inspection finding blocks quality-candidate promotion.",
     "Return exactly one JSON object with keys content, rationale, citations, self_review.",
     "self_review must contain mode='inspection', findings[], blocking_uncertainty boolean, repair_applied boolean. Each finding needs code and severity minor|major|critical.",
     "citations must be an array of objects with source_id and quote.",
@@ -343,29 +344,31 @@ Deno.serve(async (req: Request) => {
 
     professional = await beginProfessionalExecution(claim)
     const authored = await authorFromEvidence(claim, professional)
-    const { data: completion, error: completionError } = await db.rpc("hq_content_authoring_complete", {
-      p_task_id: claim.task_id,
-      p_proposal_id: claim.proposal_id,
-      p_model_invocation_id: claim.model_invocation_id,
-      p_draft_content: authored.output.content,
-      p_rationale: authored.output.rationale,
-      p_citations: authored.output.citations,
-      p_structured_output: authored.raw,
-    })
-    if (completionError) throw new Error(`authoring_complete_failed:${completionError.message}`)
-
-    await finishProfessionalExecution(
-      professional.execution_context_id,
-      "quality_candidate",
-      authored.output.self_review,
-      [],
+    const { data: completion, error: completionError } = await db.rpc(
+      "content_worker_complete_professional_authoring",
+      {
+        p_execution_context_id: professional.execution_context_id,
+        p_task_id: claim.task_id,
+        p_proposal_id: claim.proposal_id,
+        p_model_invocation_id: claim.model_invocation_id,
+        p_draft_content: authored.output.content,
+        p_rationale: authored.output.rationale,
+        p_citations: authored.output.citations,
+        p_structured_output: authored.raw,
+        p_self_review: authored.output.self_review,
+      },
     )
-    return reply({ ok: true, authoring: completion, execution_context_id: professional.execution_context_id })
+    if (completionError) throw new Error(`authoring_complete_failed:${completionError.message}`)
+    return reply({
+      ok: true,
+      authoring: (completion as Record<string, unknown> | null)?.authoring ?? completion,
+      execution_context_id: professional.execution_context_id,
+    })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error(message)
     if (professional?.execution_context_id) {
-      const blocker = message.startsWith("authoring_self_review_")
+      const blocker = message.startsWith("authoring_self_review_") || message.startsWith("content_worker_self_review_")
         ? "self_review_blocked"
         : message.startsWith("content_worker_")
         ? "professional_context_blocked"
