@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vibeschool://quality-intelligence/evaluation-run-v1",
+  "title": "Quality Intelligence Evaluation Run V1",
+  "type": "object",
+  "required": ["run_id","run_kind","evaluated_at","evaluator_version","rubric_sha256","disposition","dimension_scores","hard_blockers","previous_chain_sha256","chain_sha256"],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "run_kind": {"enum": ["evaluator_calibration","artifact_evaluation","before_after_comparison","regression_check"]},
+    "evaluated_at": {"type": "string", "format": "date-time"},
+    "evaluator_version": {"type": "string"},
+    "rubric_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "suite_sha256": {"type": ["string","null"]},
+    "artifact_sha256": {"type": ["string","null"]},
+    "evidence_packet_sha256": {"type": ["string","null"]},
+    "worker_key": {"type": ["string","null"]},
+    "worker_profile_version": {"type": ["integer","null"]},
+    "disposition": {"type": "string"},
+    "overall_score": {"type": ["number","null"], "minimum": 0, "maximum": 100},
+    "dimension_scores": {"type": "object"},
+    "hard_blockers": {"type": "array", "items": {"type": "string"}},
+    "metrics": {"type": "object"},
+    "previous_chain_sha256": {"type": "string"},
+    "chain_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "additionalProperties": true
+}
