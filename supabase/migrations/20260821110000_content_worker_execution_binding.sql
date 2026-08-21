@@ -136,4 +136,65 @@ end $$;
 revoke all on function public.content_worker_finish_execution(uuid,text,jsonb,jsonb) from public,anon,authenticated;
 grant execute on function public.content_worker_finish_execution(uuid,text,jsonb,jsonb) to service_role;
 
+create or replace function public.content_worker_complete_professional_authoring(
+  p_execution_context_id uuid,
+  p_task_id uuid,
+  p_proposal_id uuid,
+  p_model_invocation_id uuid,
+  p_draft_content text,
+  p_rationale text,
+  p_citations jsonb,
+  p_structured_output jsonb,
+  p_self_review jsonb
+)
+returns jsonb
+language plpgsql
+security invoker
+set search_path=public,pg_temp
+as $$
+declare
+  ctx public.content_worker_execution_contexts%rowtype;
+  completion jsonb;
+  finished jsonb;
+begin
+  if current_user not in ('service_role','postgres') then
+    raise exception 'service_role_required';
+  end if;
+
+  select * into ctx
+  from public.content_worker_execution_contexts
+  where id=p_execution_context_id
+  for update;
+  if not found then raise exception 'content_worker_execution_context_not_found'; end if;
+  if ctx.status<>'planned' then raise exception 'content_worker_execution_not_planned'; end if;
+  if ctx.task_id is distinct from p_task_id or ctx.proposal_id is distinct from p_proposal_id then
+    raise exception 'content_worker_execution_identity_mismatch';
+  end if;
+  if coalesce((p_self_review->>'blocking_uncertainty')::boolean,true) then
+    raise exception 'content_worker_self_review_blocking_uncertainty';
+  end if;
+  if exists(
+    select 1 from jsonb_array_elements(coalesce(p_self_review->'findings','[]'::jsonb)) f
+    where f->>'severity' in ('major','critical')
+  ) then
+    raise exception 'content_worker_self_review_unresolved_blocking_finding';
+  end if;
+
+  completion:=public.hq_content_authoring_complete(
+    p_task_id,p_proposal_id,p_model_invocation_id,
+    p_draft_content,p_rationale,p_citations,p_structured_output
+  );
+  finished:=public.content_worker_finish_execution(
+    p_execution_context_id,'quality_candidate',p_self_review,'[]'::jsonb
+  );
+
+  return jsonb_build_object(
+    'authoring',completion,
+    'execution_context',finished,
+    'publication_authority',false
+  );
+end $$;
+revoke all on function public.content_worker_complete_professional_authoring(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb,jsonb) from public,anon,authenticated;
+grant execute on function public.content_worker_complete_professional_authoring(uuid,uuid,uuid,uuid,text,text,jsonb,jsonb,jsonb) to service_role;
+
 commit;
