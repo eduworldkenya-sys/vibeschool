@@ -1,0 +1,41 @@
+name: Worker Creator Professionalization
+on:
+  pull_request:
+    paths:
+      - 'worker-creator/**'
+      - 'scripts/validate-worker-creator-professionalization.py'
+      - 'supabase/migrations/20260821130000_worker_creator_professionalization.sql'
+      - 'docs/WORKER_CREATOR_PROFESSIONALIZATION.md'
+      - '.github/workflows/worker-creator-professionalization.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile certification harness
+        run: python -m py_compile scripts/validate-worker-creator-professionalization.py
+      - name: Certify Worker Creator contract
+        run: python scripts/validate-worker-creator-professionalization.py
+      - name: Validate professional standard JSON
+        run: python -m json.tool worker-creator/professional-worker-standard-v1.json >/dev/null
+      - name: Preserve P4 governed Repair boundary
+        run: |
+          test -f docs/PRIORITY4_GOVERNED_REPAIR.md
+          test -f repair/governed-repair-v1.json
+          grep -q 'fresh_p2_p3_verification_required' repair/governed-repair-v1.json
+      - name: Reject autonomous activation in this priority
+        run: |
+          if grep -Eqi "factory_enabled[[:space:]]*=[[:space:]]*true|heartbeat_enabled[[:space:]]*=[[:space:]]*true|status[[:space:]]*=[[:space:]]*'active'" supabase/migrations/20260821130000_worker_creator_professionalization.sql; then
+            echo 'Creator professionalization must not activate runtime' >&2
+            exit 1
+          fi
