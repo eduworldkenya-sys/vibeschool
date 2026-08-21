@@ -11,6 +11,7 @@ const authenticatedPrivilegeMigration = read('supabase/migrations/20260819033000
 const twinHelperMigration = read('supabase/migrations/20260819034500_task8_twin_privileged_helper_boundary.sql')
 const defaultPrivilegeMigration = read('supabase/migrations/20260819040000_task8_public_default_privilege_hardening.sql')
 const storagePolicyCleanupMigration = read('supabase/migrations/20260819041500_task8_storage_permissive_policy_cleanup.sql')
+const activationMigration = read('supabase/migrations/20260820224500_learner_activation_parent_decoupling.sql')
 const resetPin = read('app/api/reset-student-pin/route.ts')
 const createStudent = read('app/api/create-student-account/route.ts')
 const generateLesson = read('app/api/generate-lesson-plan/route.ts')
@@ -62,8 +63,15 @@ mustContain(resetPin, ".from('school_members')", 'PIN reset must verify admin sc
 mustContain(resetPin, 'if (!teacherAuthorized && !adminAuthorized)', 'PIN reset must deny unscoped callers')
 mustNotContain(resetPin, "['teacher', 'admin'].includes(profile.role)", 'role label alone must never authorize PIN reset')
 
-mustContain(createStudent, ".eq('school_id', klass.school_id)", 'learner provisioning guardian relationship must match current school')
-mustContain(createStudent, ".neq('access_level', 'none')", 'learner provisioning must reject revoked guardian links')
+// Learner activation is authorized by a school-issued shared claim, not by a
+// family relationship. Parent access remains separately governed by parent RLS.
+mustContain(createStudent, "rpc('lookup_student_claim'", 'learner provisioning must resolve an authoritative school claim')
+mustContain(createStudent, ".eq('id', schoolId)", 'learner provisioning must resolve the school returned by the claim')
+mustContain(activationMigration, 'sc.is_current=true', 'learner activation must require a current enrollment')
+mustContain(activationMigration, "'class_not_found'", 'learner activation must fail closed without a current class')
+mustContain(activationMigration, "'school_not_found'", 'learner activation must fail closed without a school')
+mustContain(activationMigration, "current_user not in ('postgres','service_role')", 'learner finalization must remain service-role only')
+mustNotContain(createStudent, ".from('parent_student_links')", 'learner activation must not inherit parent authority as an account prerequisite')
 
 for (const [name, source] of [
   ['app lesson generator', generateLesson],

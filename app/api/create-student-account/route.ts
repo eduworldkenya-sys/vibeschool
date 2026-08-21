@@ -4,12 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 function getAdminSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
   if (!supabaseUrl || !serviceRoleKey) throw new Error('Supabase server credentials are not configured')
-
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  return createClient(supabaseUrl, serviceRoleKey, { auth: { autoRefreshToken: false, persistSession: false } })
 }
 
 function safeSlug(value: string) {
@@ -19,15 +15,14 @@ function safeSlug(value: string) {
 
 function provisioningError(status: string) {
   switch (status) {
-    case 'not_found': return { error: 'Learner code not found. Ask your teacher for a new code.', status: 404 }
+    case 'not_found': return { error: 'Learner code not found. Check the full code or ask your teacher for a new one.', status: 404 }
     case 'replaced': return { error: 'This learner code was replaced. Ask your teacher for the current code.', status: 410 }
     case 'already_claimed': return { error: 'A learner account already exists. Sign in instead.', status: 409 }
     case 'expired': return { error: 'This learner code has expired. Ask your teacher for a new one.', status: 410 }
-    case 'student_not_found': return { error: 'Learner record not found.', status: 404 }
-    case 'class_not_found': return { error: 'Current class enrollment could not be found.', status: 409 }
-    case 'enrollment_conflict': return { error: 'Your school enrollment needs correction before this account can be created. Ask your teacher to review the learner record.', status: 409 }
-    case 'guardian_required': return { error: 'A parent or guardian must connect to this learner before the learner account can be created.', status: 403, code: 'guardian_required' }
-    case 'school_not_found': return { error: 'School assignment not found.', status: 409 }
+    case 'student_not_found': return { error: 'Learner record not found. Ask the school to review the learner record.', status: 404 }
+    case 'class_not_found': return { error: 'This learner is not currently assigned to a class. Ask the school to complete class enrollment first.', status: 409, code: 'class_required' }
+    case 'enrollment_conflict': return { error: 'Your school enrollment needs correction before this account can be created. Ask the school to review the learner record.', status: 409 }
+    case 'school_not_found': return { error: 'This learner is not attached to a school. School-issued learner codes can only activate school learners.', status: 409, code: 'school_required' }
     case 'profile_missing': return { error: 'Learner identity setup is incomplete.', status: 409 }
     case 'profile_role_conflict': return { error: 'This identity is already assigned to another account type.', status: 409 }
     default: return { error: 'Could not finish learner account setup.', status: 500 }
@@ -41,9 +36,9 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const password = typeof body.password === 'string' ? body.password : ''
-    const claimCode = typeof body.claim_code === 'string' ? body.claim_code.trim().toUpperCase() : ''
+    const claimCode = typeof body.claim_code === 'string' ? body.claim_code.trim().toUpperCase().replace(/[^A-Z0-9]/g, '') : ''
 
-    if (!/^\d{4,6}$/.test(password) || claimCode.length < 4) {
+    if (!/^\d{4,6}$/.test(password) || claimCode.length < 4 || claimCode.length > 12) {
       return NextResponse.json({ error: 'Invalid learner setup details.' }, { status: 400 })
     }
 
@@ -69,36 +64,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Learner identity setup is incomplete.' }, { status: 409 })
     }
 
-    const klass = { school_id: schoolId }
-
-    // Defense in depth: the API independently verifies the active same-school
-    // guardian relationship. The database finalizer repeats this check atomically.
-    const { data: parentLink } = await adminSupabase
-      .from('parent_student_links')
-      .select('parent_id')
-      .eq('student_id', studentId)
-      .eq('school_id', klass.school_id)
-      .neq('access_level', 'none')
-      .limit(1)
-      .maybeSingle()
-
-    if (!lookup.guardian_linked || !parentLink?.parent_id) {
-      return NextResponse.json({
-        error: 'A parent or guardian must connect to this learner before the learner account can be created.',
-        code: 'guardian_required',
-      }, { status: 403 })
-    }
-
+    // A school-issued claim is the learner activation authority. Parent linking is
+    // an independent family-access relationship and must not block learner access.
+    // Class + school enrollment still fail closed because the school claim is scoped
+    // to an existing school learner identity.
     const { data: school } = await adminSupabase
       .from('schools')
       .select('id, subdomain')
-      .eq('id', klass.school_id)
+      .eq('id', schoolId)
       .single()
 
     if (!school) return NextResponse.json({ error: 'School not found.' }, { status: 404 })
 
     const internalEmail = `${safeSlug(school.subdomain || school.id)}_${admission}@vs.internal`
-
     const { data: created, error: createError } = await adminSupabase.auth.admin.createUser({
       email: internalEmail,
       password,
@@ -114,7 +92,6 @@ export async function POST(req: NextRequest) {
     }
 
     createdUserId = created.user.id
-
     const { data: finalized, error: finalizeError } = await adminSupabase.rpc('finalize_student_provisioning', {
       p_code: claimCode,
       p_user_id: createdUserId,
@@ -133,7 +110,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: mapped.error, ...(mapped.code ? { code: mapped.code } : {}) }, { status: mapped.status })
     }
 
-    return NextResponse.json({ user_id: createdUserId, email: internalEmail, student_name: studentName })
+    return NextResponse.json({
+      user_id: createdUserId,
+      email: internalEmail,
+      student_name: studentName,
+      guardian_linked: lookup.guardian_linked === true,
+    })
   } catch (e: unknown) {
     if (createdUserId) {
       try { await adminSupabase.auth.admin.deleteUser(createdUserId) } catch {}
