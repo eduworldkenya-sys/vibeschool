@@ -1,0 +1,21 @@
+name: Worker Creator Qualification
+on:
+  pull_request:
+    paths:
+      - 'worker-creator/**'
+      - 'supabase/migrations/*worker_creator*'
+      - 'scripts/validate-worker-creator-*'
+      - 'docs/WORKER_CREATOR_*'
+      - '.github/workflows/worker-creator-*'
+permissions:
+  contents: read
+jobs:
+  qualification-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-worker-creator-professionalization.py
+      - run: python scripts/validate-worker-creator-qualification.py
