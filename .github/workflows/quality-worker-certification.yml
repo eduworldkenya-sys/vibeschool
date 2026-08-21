@@ -1,0 +1,21 @@
+name: Quality Worker Certification
+on:
+  pull_request:
+    paths:
+      - 'quality-worker/**'
+      - 'supabase/migrations/*quality_worker*'
+      - 'scripts/validate-quality-worker-*'
+      - '.github/workflows/quality-worker-*'
+permissions:
+  contents: read
+jobs:
+  professional-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-worker-creator-professionalization.py
+      - run: python scripts/validate-worker-creator-qualification.py
+      - run: python scripts/validate-quality-worker-professionalization.py
