@@ -1,0 +1,22 @@
+name: Remaining Worker Fleet Certification
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260821204500_remaining_worker_fleet_qualification.sql'
+      - 'scripts/validate-remaining-worker-fleet.py'
+      - '.github/workflows/remaining-worker-fleet.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: remaining-worker-fleet-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Validate non-activating fleet qualification
+        run: python scripts/validate-remaining-worker-fleet.py
