@@ -73,8 +73,8 @@ jobs:
             echo 'sealed P2 gold answers leaked into normal Critic runtime' >&2
             exit 1
           fi
-          if grep -Eqi 'publish_publication|approve.*publication|\.insert\(|\.update\(|\.delete\(' "$file"; then
-            echo 'Critic runtime contains forbidden mutation or publication authority' >&2
+          if grep -Eqi 'createClient\(|db\.rpc\(|publish_publication|\.insert\(|\.update\(|\.delete\(' "$file"; then
+            echo 'Critic runtime contains an executable database/content/publication mutation path' >&2
             exit 1
           fi
       - name: Verify calibrated discrimination thresholds
