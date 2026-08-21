@@ -1,4 +1,6 @@
 -- Evidence-backed Worker Creator qualification closure. No activation or authority grants.
+-- access: service-only public.hq_workforce_qualification_evidence
+-- authorization-test: public.hq_workforce_qualification_evidence anon/authenticated denied; service_role select/insert only.
 create table if not exists public.hq_workforce_qualification_evidence (
  id uuid primary key default gen_random_uuid(), worker_key text not null references public.hq_workforce_workers(worker_key) on delete restrict,
  worker_version text not null, standard_key text not null default 'vibeschool-professional-worker', standard_version integer not null default 1,
@@ -24,13 +26,7 @@ begin
  v_arch:=case when w.department_key='finance' then 'finance' when w.department_key='security' then 'security_sensitive' when w.department_key='support' then 'support' when w.department_key='content' then 'author' when w.department_key='product' then 'critic' else 'operational' end;
  v_ver:=md5(concat_ws('|',w.worker_key,w.mission,w.competencies::text,w.permissions::text,w.reasoning_mode));
  insert into public.hq_workforce_worker_assurance(worker_key,standard_key,standard_version,archetype,risk_class,competency_profile,required_skills,context_contract,memory_contract,guardrails,assurance_contract,assessment,certification_state,legacy_recertification_required,assessed_at,qualification_state,worker_version)
- values(w.worker_key,'vibeschool-professional-worker',1,v_arch,v_risk,
- jsonb_build_object('declared',coalesce(w.competencies,'[]'::jsonb)),coalesce(w.competencies,'[]'::jsonb),
- jsonb_build_object('scope','worker_and_authorized_lane','cross_lane','deny'),jsonb_build_object('scope','worker','retention','governed'),
- jsonb_build_object('least_privilege_required',true,'global_stop_required',true,'creation_does_not_grant_authority',true,'fail_closed',true),
- jsonb_build_object('independent_assurance_required',true,'adversarial_evidence_required',true,'fresh_verification_after_repair',true,'creator_may_self_certify',false),
- jsonb_build_object('professional_dimensions_complete',coalesce(trim(w.mission),'')<>'' and jsonb_array_length(coalesce(w.competencies,'[]'::jsonb))>0 and jsonb_array_length(coalesce(w.permissions,'[]'::jsonb))>0),
- 'PROVISIONAL',true,clock_timestamp(),'BASELINE_READY',v_ver)
+ values(w.worker_key,'vibeschool-professional-worker',1,v_arch,v_risk,jsonb_build_object('declared',coalesce(w.competencies,'[]'::jsonb)),coalesce(w.competencies,'[]'::jsonb),jsonb_build_object('scope','worker_and_authorized_lane','cross_lane','deny'),jsonb_build_object('scope','worker','retention','governed'),jsonb_build_object('least_privilege_required',true,'global_stop_required',true,'creation_does_not_grant_authority',true,'fail_closed',true),jsonb_build_object('independent_assurance_required',true,'adversarial_evidence_required',true,'fresh_verification_after_repair',true,'creator_may_self_certify',false),jsonb_build_object('professional_dimensions_complete',coalesce(trim(w.mission),'')<>'' and jsonb_array_length(coalesce(w.competencies,'[]'::jsonb))>0 and jsonb_array_length(coalesce(w.permissions,'[]'::jsonb))>0),'PROVISIONAL',true,clock_timestamp(),'BASELINE_READY',v_ver)
  on conflict(worker_key,standard_key,standard_version) do update set archetype=excluded.archetype,risk_class=excluded.risk_class,competency_profile=excluded.competency_profile,required_skills=excluded.required_skills,context_contract=excluded.context_contract,memory_contract=excluded.memory_contract,guardrails=excluded.guardrails,assurance_contract=excluded.assurance_contract,assessment=excluded.assessment,assessed_at=excluded.assessed_at,worker_version=excluded.worker_version,qualification_state=case when hq_workforce_worker_assurance.worker_version is distinct from excluded.worker_version then 'UNASSESSED' else hq_workforce_worker_assurance.qualification_state end,certification_state=case when hq_workforce_worker_assurance.worker_version is distinct from excluded.worker_version then 'SUSPENDED' else hq_workforce_worker_assurance.certification_state end;
  return jsonb_build_object('worker_key',w.worker_key,'worker_version',v_ver,'archetype',v_arch,'risk_class',v_risk,'authority_changed',false);
 end $$;
@@ -68,5 +64,4 @@ begin
 end $$;
 revoke all on function public.hq_workforce_decide_professional_certification(text,text) from public,anon,authenticated; grant execute on function public.hq_workforce_decide_professional_certification(text,text) to service_role;
 
--- Professionalize every current worker without certifying or changing runtime authority.
 do $$ declare r record; begin for r in select worker_key from public.hq_workforce_workers loop perform public.hq_workforce_professional_baseline(r.worker_key); end loop; end $$;
