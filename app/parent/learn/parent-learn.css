@@ -1,10 +1,29 @@
 .parent-learn-page {
-  min-height: 100vh;
-  max-width: 36rem;
+  width: 100%;
+  max-width: 60rem;
+  min-width: 0;
   margin: 0 auto;
-  padding: 1rem 1rem 7rem;
-  background: #f8fafc;
+  padding: 0;
+  background: transparent;
   color: #0f172a;
+}
+
+/* The parent layout already owns viewport padding and the fixed navigation.
+   Override its legacy narrow 768px shell only while this route is mounted so
+   browser desktop-mode, tablets and landscape phones do not collapse the page
+   into a thin centred column. */
+body:has(.parent-learn-page) {
+  overflow-x: hidden;
+  background: #f0f2f5;
+}
+
+body:has(.parent-learn-page) > main {
+  width: 100% !important;
+  max-width: 74rem !important;
+  min-height: calc(100dvh - 56px) !important;
+  margin: 0 auto !important;
+  padding: clamp(.75rem, 2.5vw, 1.25rem) clamp(.75rem, 3vw, 1.5rem) calc(5.5rem + env(safe-area-inset-bottom)) !important;
+  background: #f0f2f5 !important;
 }
 
 .parent-learn-hero,
@@ -12,6 +31,7 @@
 .parent-learn-tabs,
 .parent-learn-empty,
 .parent-learn-alert {
+  min-width: 0;
   border: 1px solid #e2e8f0;
   border-radius: 1rem;
   background: #fff;
@@ -19,15 +39,15 @@
 
 .parent-learn-hero {
   border: 0;
-  border-radius: 1.5rem;
-  padding: 1.25rem;
+  border-radius: clamp(1rem, 3vw, 1.5rem);
+  padding: clamp(1rem, 3vw, 1.5rem);
   background: #0f172a;
   color: #fff;
   box-shadow: 0 1px 2px rgb(15 23 42 / 0.12);
 }
 
 .parent-learn-eyebrow {
-  font-size: .75rem;
+  font-size: clamp(.68rem, 1.6vw, .78rem);
   font-weight: 700;
   letter-spacing: .08em;
   text-transform: uppercase;
@@ -36,35 +56,41 @@
 
 .parent-learn-hero-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-top: .5rem;
 }
 
+.parent-learn-hero-row > div { min-width: 0; }
+
 .parent-learn-title {
   margin: 0;
-  font-size: 1.5rem;
-  line-height: 2rem;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.35rem, 4vw, 2rem);
+  line-height: 1.15;
   font-weight: 700;
 }
 
 .parent-learn-subtitle {
-  margin-top: .25rem;
-  font-size: .875rem;
+  margin-top: .4rem;
+  overflow-wrap: anywhere;
+  font-size: clamp(.82rem, 2.2vw, 1rem);
   color: #cbd5e1;
 }
 
 .parent-learn-refresh {
-  min-height: 2.5rem;
+  min-height: 2.75rem;
+  flex: 0 0 auto;
   border: 1px solid rgb(255 255 255 / .2);
-  border-radius: .75rem;
-  padding: .5rem .75rem;
+  border-radius: .85rem;
+  padding: .55rem .9rem;
   background: transparent;
   color: #fff;
-  font-size: .75rem;
+  font-size: .8rem;
   font-weight: 700;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .parent-learn-refresh:disabled { opacity: .5; cursor: default; }
@@ -74,20 +100,24 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .25rem;
   margin-top: 1rem;
-  padding: .25rem;
+  padding: .3rem;
+  overflow: hidden;
 }
 
 .parent-learn-tab {
+  width: 100%;
+  min-width: 0;
   min-height: 2.75rem;
   border: 0;
   border-radius: .75rem;
-  padding: .65rem .5rem;
+  padding: .65rem .35rem;
   background: transparent;
   color: #475569;
-  font-size: .875rem;
+  font-size: clamp(.78rem, 2vw, .9rem);
   font-weight: 700;
   text-transform: capitalize;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .parent-learn-tab[aria-selected="true"] {
@@ -97,18 +127,86 @@
 
 .parent-learn-content {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: .75rem;
   margin-top: 1rem;
 }
 
-.parent-learn-card { padding: 1rem; box-shadow: 0 1px 2px rgb(15 23 42 / .06); }
-.parent-learn-empty { padding: 1.25rem; text-align: center; }
-.parent-learn-empty-title { font-weight: 700; color: #0f172a; }
-.parent-learn-empty-body { margin-top: .25rem; font-size: .875rem; line-height: 1.5rem; color: #64748b; }
-.parent-learn-alert { margin-top: 1rem; padding: 1rem; border-color: #fde68a; background: #fffbeb; color: #78350f; font-size: .875rem; line-height: 1.5rem; }
+.parent-learn-card {
+  padding: clamp(.9rem, 2.5vw, 1.1rem);
+  overflow-wrap: anywhere;
+  box-shadow: 0 1px 2px rgb(15 23 42 / .06);
+}
+
+.parent-learn-card h2 { margin-top: .3rem; line-height: 1.3; }
+.parent-learn-card p + p,
+.parent-learn-card h2 + p { margin-top: .45rem; }
+
+.parent-learn-empty {
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: clamp(1.1rem, 4vw, 1.75rem);
+  text-align: center;
+}
+
+.parent-learn-empty-title {
+  font-size: clamp(1rem, 3vw, 1.2rem);
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.parent-learn-empty-body {
+  max-width: 38rem;
+  margin: .4rem auto 0;
+  font-size: clamp(.82rem, 2.2vw, .95rem);
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.parent-learn-alert {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #78350f;
+  font-size: .875rem;
+  line-height: 1.5rem;
+}
 
 @media (max-width: 420px) {
-  .parent-learn-page { padding-inline: .75rem; }
+  body:has(.parent-learn-page) > main {
+    padding-inline: .65rem !important;
+  }
+
   .parent-learn-hero-row { gap: .75rem; }
-  .parent-learn-title { font-size: 1.35rem; }
+  .parent-learn-refresh { min-height: 2.5rem; padding-inline: .7rem; }
+  .parent-learn-tabs { margin-top: .8rem; }
+  .parent-learn-content { margin-top: .8rem; }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+  body:has(.parent-learn-page) > main {
+    min-height: calc(100dvh - 48px) !important;
+    padding: .55rem .8rem calc(4.75rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .parent-learn-page { max-width: none; }
+  .parent-learn-hero { padding: .85rem 1rem; border-radius: 1rem; }
+  .parent-learn-eyebrow { font-size: .65rem; }
+  .parent-learn-title { font-size: 1.2rem; }
+  .parent-learn-subtitle { margin-top: .2rem; font-size: .78rem; }
+  .parent-learn-refresh { min-height: 2.25rem; padding: .4rem .7rem; }
+  .parent-learn-tabs { margin-top: .65rem; }
+  .parent-learn-tab { min-height: 2.35rem; padding-block: .45rem; }
+  .parent-learn-content { margin-top: .65rem; }
+  .parent-learn-empty { max-width: 52rem; padding: .85rem 1rem; }
+  .parent-learn-empty-body { line-height: 1.45; }
+}
+
+@media (min-width: 900px) {
+  .parent-learn-page { max-width: 68rem; }
+  .parent-learn-content:has(.parent-learn-card:nth-child(2)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
