@@ -1,75 +1,33 @@
 "use client"
-
+import Link from "next/link"
 import {useEffect,useMemo,useRef,useState} from "react"
 import {workerIdentity} from "@/lib/hq/workforceIdentity"
+import {hqSupabase} from "@/lib/hq/supabase"
 import styles from "./LiveWorkerEngineMap.module.css"
-
-type Row=Record<string,any>
+export type WorkerTruth=Record<string,any>
+export type CommandSnapshot={generated_at:string;refresh_after_seconds?:number;engine?:Record<string,any>;fleet?:Record<string,any>;workers:WorkerTruth[]}
 type Readiness="ready"|"repair"|"stopped"
-
-const zoneConfig={
-  ready:{title:"READY TO WORK",symbol:"✓",className:styles.ready,color:"#22c55e",top:"rgba(22,101,52,.46)"},
-  repair:{title:"NEEDS REPAIR",symbol:"⚒",className:styles.repair,color:"#f59e0b",top:"rgba(146,91,8,.43)"},
-  stopped:{title:"NOT READY",symbol:"×",className:styles.stopped,color:"#94a3b8",top:"rgba(71,85,105,.38)"},
-} as const
-
-function readiness(row:Row):Readiness{
-  if(row.certification_state==="CERTIFIED"&&row.qualification_state==="CERTIFIED"&&!row.legacy_recertification_required)return "ready"
-  if(row.certification_state==="NEEDS_REPAIR"||row.qualification_state==="FAILED_QUALIFICATION")return "repair"
-  return "stopped"
+const zoneConfig={ready:{title:"PROFESSIONALLY READY",symbol:"✓",className:styles.ready,color:"#22c55e",top:"rgba(22,101,52,.46)"},repair:{title:"REPAIR REQUIRED",symbol:"⚒",className:styles.repair,color:"#f59e0b",top:"rgba(146,91,8,.43)"},stopped:{title:"NOT PROFESSIONALLY READY",symbol:"×",className:styles.stopped,color:"#94a3b8",top:"rgba(71,85,105,.38)"}} as const
+function readiness(row:WorkerTruth):Readiness{if(row.certification_state==="CERTIFIED"&&row.qualification_state==="CERTIFIED"&&!row.legacy_recertification_required)return "ready";if(row.certification_state==="NEEDS_REPAIR"||row.qualification_state==="FAILED_QUALIFICATION"||row.certification_state==="EXPIRED")return "repair";return "stopped"}
+const readable=(value:unknown)=>String(value??"—").replaceAll("_"," ")
+const date=(value:unknown)=>value?new Date(String(value)).toLocaleString("en-KE"):"—"
+const expiry=(value:unknown)=>{if(!value)return null;const days=Math.ceil((new Date(String(value)).getTime()-Date.now())/86400000);return days<0?"Expired":days<=7?`Expires in ${days} day${days===1?"":"s"}`:null}
+export default function LiveWorkerEngineMap({snapshot,workers:legacyWorkers,generatedAt:legacyGeneratedAt,onRefresh,onNavigate}:{snapshot?:CommandSnapshot;workers?:WorkerTruth[];generatedAt?:string;onRefresh?:()=>void;onNavigate?:(target:"Assign"|"Worker Room"|"Evidence"|"Failures")=>void}){
+ const[live,setLive]=useState<CommandSnapshot|null>(snapshot??null);const active=snapshot??live;const workers=useMemo(()=>active?.workers??legacyWorkers??[],[active,legacyWorkers]),generatedAt=active?.generated_at??legacyGeneratedAt,engine=active?.engine??{},fleet=active?.fleet??{};const[selected,setSelected]=useState<WorkerTruth|null>(null);const closeRef=useRef<HTMLButtonElement>(null);const groups=useMemo(()=>({ready:workers.filter(r=>readiness(r)==="ready"),repair:workers.filter(r=>readiness(r)==="repair"),stopped:workers.filter(r=>readiness(r)==="stopped")}),[workers])
+ useEffect(()=>{if(snapshot){setLive(snapshot);return}let alive=true;const refresh=async()=>{const{data,error}=await(hqSupabase as any).rpc("hq_workforce_get_live_readiness_map");if(alive&&!error&&data)setLive(data as CommandSnapshot)};void refresh();const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh()},15000);return()=>{alive=false;window.clearInterval(timer)}},[snapshot])
+ useEffect(()=>{if(!selected)return;closeRef.current?.focus();const onKey=(e:KeyboardEvent)=>{if(e.key==="Escape")setSelected(null)};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected])
+ return <section className={styles.shell} aria-labelledby="worker-engine-map-title"><header className={styles.header}><h2 id="worker-engine-map-title">FOUNDER WORKFORCE COMMAND CENTRE</h2><p>Professional readiness · live work · bounded authority</p><span className={styles.live}>PRODUCTION TRUTH · AUTO-UPDATES</span></header>
+ <section className={styles.commandStrip} aria-label="Fleet command state"><Truth label="Global Stop" value={engine.global_stop?"APPLIED":"NOT APPLIED"} tone={engine.global_stop?"safe":"danger"}/><Truth label="Runtime" value={engine.runtime_enabled?`L${engine.runtime_level} · R${engine.max_risk}`:"L0 · OFF"} tone={engine.runtime_enabled?"warn":"safe"}/><Truth label="Working now" value={fleet.working_now??0}/><Truth label="Blocked" value={fleet.blocked??0} tone={fleet.blocked?"danger":"safe"}/><Truth label="Awaiting review" value={fleet.waiting_review??0} tone={fleet.waiting_review?"warn":"safe"}/><Truth label="Expiring ≤7d" value={fleet.expiring_soon??0} tone={fleet.expiring_soon?"warn":"safe"}/></section>
+ <div className={styles.truthLegend}><span><i className={styles.professional}/>Professional</span><span><i className={styles.operational}/>Operational</span><span><i className={styles.authority}/>Authority</span></div>
+ <div className={styles.layout}><div className={styles.hubWrap}><div className={styles.hub}><div><strong>Governed<br/>Worker<br/>Engine</strong><span className={styles.gear} aria-hidden>⚙</span><small>{workers.length} TECHNICAL WORKERS</small></div></div></div>{(Object.keys(zoneConfig) as Readiness[]).map(key=><Zone key={key} kind={key} rows={groups[key]} onSelect={setSelected}/>)}</div>
+ <footer className={styles.footer}>Certification is competence—not activation. Operational state and authority are shown independently. Updated {date(generatedAt)}.{onRefresh&&<button onClick={onRefresh}>Refresh now</button>}</footer>{selected&&<WorkerDialog row={selected} onClose={()=>setSelected(null)} closeRef={closeRef} onNavigate={onNavigate}/>}</section>
 }
-
-function readable(value:unknown){return String(value??"—").replaceAll("_"," ")}
-function date(value:unknown){return value?new Date(String(value)).toLocaleString("en-KE"):"—"}
-
-export default function LiveWorkerEngineMap({workers,generatedAt}:{workers:Row[];generatedAt?:string}){
-  const [selected,setSelected]=useState<Row|null>(null)
-  const closeRef=useRef<HTMLButtonElement>(null)
-  const groups=useMemo(()=>({
-    ready:workers.filter(row=>readiness(row)==="ready"),
-    repair:workers.filter(row=>readiness(row)==="repair"),
-    stopped:workers.filter(row=>readiness(row)==="stopped"),
-  }),[workers])
-
-  useEffect(()=>{
-    if(!selected)return
-    closeRef.current?.focus()
-    const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape")setSelected(null)}
-    window.addEventListener("keydown",onKey)
-    return()=>window.removeEventListener("keydown",onKey)
-  },[selected])
-
-  return <section className={styles.shell} aria-labelledby="worker-engine-map-title">
-    <header className={styles.header}>
-      <h2 id="worker-engine-map-title">VIBESCHOOL WORKER ENGINE</h2>
-      <p>Governed. Reliable. Built for Kenyan education.</p>
-      <span className={styles.live}>LIVE PRODUCTION READINESS</span>
-    </header>
-    <div className={styles.layout}>
-      <div className={styles.hubWrap}><div className={styles.hub}><div><strong>Governed<br/>Worker<br/>Engine</strong><span className={styles.gear} aria-hidden>⚙</span><small>{workers.length} TECHNICAL WORKERS</small></div></div></div>
-      {(Object.keys(zoneConfig) as Readiness[]).map(key=><Zone key={key} kind={key} rows={groups[key]} onSelect={setSelected}/>) }
-    </div>
-    <footer className={styles.footer}>Created does not mean certified. Authority remains governed. Updated {date(generatedAt)}.</footer>
-    {selected&&<WorkerDialog row={selected} onClose={()=>setSelected(null)} closeRef={closeRef}/>} 
-  </section>
-}
-
-function Zone({kind,rows,onSelect}:{kind:Readiness;rows:Row[];onSelect:(row:Row)=>void}){
-  const config=zoneConfig[kind]
-  return <section className={`${styles.zone} ${config.className}`} style={{"--zone-border":`${config.color}88`,"--zone-text":config.color,"--zone-top":config.top} as React.CSSProperties} aria-label={`${config.title}, ${rows.length} workers`}>
-    <header className={styles.zoneHeader}><span aria-hidden>{config.symbol}</span><h3>{config.title} — {rows.length}</h3></header>
-    <div className={styles.list}>{rows.length?rows.map(row=>{const identity=workerIdentity(row.worker_key,row.title);return <button className={styles.worker} key={row.worker_key} onClick={()=>onSelect(row)} aria-label={`Open ${identity.name}, ${row.title}`}><span className={styles.avatar}>{identity.name.slice(0,1)}</span><span className={styles.copy}><strong>{identity.name}</strong><small>{row.title} · {row.department_key}</small></span><span className={styles.risk}>{row.risk_class??"—"}</span></button>}):<div className={styles.empty}>No workers in this state.</div>}</div>
-  </section>
-}
-
-function WorkerDialog({row,onClose,closeRef}:{row:Row;onClose:()=>void;closeRef:React.RefObject<HTMLButtonElement>}){
-  const identity=workerIdentity(row.worker_key,row.title)
-  return <div className={styles.modalLayer} role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}><section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="worker-readiness-title">
-    <div className={styles.modalTop}><div><h3 id="worker-readiness-title">{identity.name}</h3><p>{identity.purpose}</p></div><button ref={closeRef} className={styles.close} onClick={onClose} aria-label="Close worker details">×</button></div>
-    <div className={styles.facts}>
-      <Fact label="Technical worker" value={row.worker_key}/><Fact label="Department" value={row.department_key}/><Fact label="Certification" value={readable(row.certification_state)}/><Fact label="Qualification" value={readable(row.qualification_state)}/><Fact label="Risk class" value={row.risk_class}/><Fact label="Registry state" value={readable(row.registry_status)}/><Fact label="Certified" value={date(row.certified_at)}/><Fact label="Expires" value={date(row.expires_at)}/>
-    </div>
-  </section></div>
-}
-
+function Truth({label,value,tone="neutral"}:{label:string;value:unknown;tone?:"neutral"|"safe"|"warn"|"danger"}){return <div className={`${styles.truth} ${styles[tone]}`}><small>{label}</small><strong>{String(value)}</strong></div>}
+function Zone({kind,rows,onSelect}:{kind:Readiness;rows:WorkerTruth[];onSelect:(row:WorkerTruth)=>void}){const config=zoneConfig[kind];return <section className={`${styles.zone} ${config.className}`} style={{"--zone-border":`${config.color}88`,"--zone-text":config.color,"--zone-top":config.top} as React.CSSProperties} aria-label={`${config.title}, ${rows.length} workers`}><header className={styles.zoneHeader}><span aria-hidden>{config.symbol}</span><h3>{config.title} — {rows.length}</h3></header><div className={styles.list}>{rows.length?rows.map(row=>{const identity=workerIdentity(row.worker_key,row.title),warn=expiry(row.expires_at);return <button className={styles.worker} key={row.worker_key} onClick={()=>onSelect(row)} aria-label={`Open ${identity.name}, ${row.title}`}><span className={styles.avatar}>{identity.name.slice(0,1)}</span><span className={styles.copy}><strong>{identity.name}</strong><small>{row.title} · {row.department_key}</small><em>{readable(row.operational_state)} · L{row.authority?.runtime_level??0}{warn?` · ${warn}`:""}</em></span><span className={styles.risk}>{row.risk_class??"—"}</span></button>}):<div className={styles.empty}>No workers in this state.</div>}</div></section>}
+function WorkerDialog({row,onClose,closeRef,onNavigate}:{row:WorkerTruth;onClose:()=>void;closeRef:React.RefObject<HTMLButtonElement>;onNavigate?:(target:"Assign"|"Worker Room"|"Evidence"|"Failures")=>void}){const identity=workerIdentity(row.worker_key,row.title),warn=expiry(row.expires_at),assessment=row.assessment??{},authority=row.authority??{};const go=(target:"Assign"|"Worker Room"|"Evidence"|"Failures")=>{onClose();if(onNavigate)onNavigate(target);else window.dispatchEvent(new CustomEvent("workforce:navigate",{detail:target}))};return <div className={styles.modalLayer} role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="worker-readiness-title"><div className={styles.modalTop}><div><h3 id="worker-readiness-title">{identity.name}</h3><p>{row.mission||identity.purpose}</p></div><button ref={closeRef} className={styles.close} onClick={onClose} aria-label="Close worker details">×</button></div>
+ <div className={styles.tripleTruth}><Truth label="Professional" value={readable(row.certification_state)} tone={row.certification_state==="CERTIFIED"?"safe":row.certification_state==="NEEDS_REPAIR"?"warn":"danger"}/><Truth label="Operational" value={readable(row.operational_state)} tone={row.operational_state==="blocked"?"danger":"neutral"}/><Truth label="Authority" value={`L${authority.runtime_level??0} · R${authority.risk_limit??0}`} tone={(authority.runtime_level??0)>0?"warn":"safe"}/></div>{warn&&<div className={styles.warning} role="status">{warn}. Independent recertification is required before continued readiness.</div>}
+ <div className={styles.facts}><Fact label="Technical worker" value={row.worker_key}/><Fact label="Department" value={row.department_key}/><Fact label="Qualification" value={row.qualification_state}/><Fact label="Registry state" value={row.registry_status}/><Fact label="Risk class" value={row.risk_class}/><Fact label="Global Stop applies" value={authority.global_stop_applies?"Yes":"No"}/><Fact label="Certification evidence" value={`${row.evidence_count??0} records`}/><Fact label="Expires" value={date(row.expires_at)}/></div>
+ {row.assignment&&<Panel title="Current assignment"><strong>{row.assignment.title}</strong><p>{readable(row.assignment.status)} · priority {readable(row.assignment.priority)} · updated {date(row.assignment.updated_at)}</p></Panel>}<Panel title="Why this state"><p>{row.repair_action||assessment.summary||assessment.decision||`${row.evidence_count??0} certification evidence records support the current state.`}</p>{row.latest_failure&&<p className={styles.failure}>Latest issue: {readable(row.latest_failure.severity)} · {readable(row.latest_failure.root_cause)} · {date(row.latest_failure.detected_at)}</p>}</Panel><Panel title="Boundaries"><p>{authority.active_grants??0} active grants. Capabilities: {(authority.capabilities??[]).join(", ")||"none"}. Registry identity never grants authority.</p></Panel>
+ <div className={styles.actions}><button onClick={()=>go("Assign")}>Assign Work</button><button onClick={()=>go("Worker Room")}>Open Worker Room</button><button onClick={()=>go("Evidence")}>View Evidence</button>{row.repair_action&&<button onClick={()=>go("Failures")}>Open Repair Plan</button>}<Link href="/hq/workforce/readiness">Commissioning Evidence</Link></div></section></div>}
+function Panel({title,children}:{title:string;children:React.ReactNode}){return <section className={styles.panel}><h4>{title}</h4>{children}</section>}
 function Fact({label,value}:{label:string;value:unknown}){return <div className={styles.fact}><small>{label}</small><strong>{readable(value)}</strong></div>}
