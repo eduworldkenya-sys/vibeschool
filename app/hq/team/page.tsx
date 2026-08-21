@@ -9,7 +9,7 @@ type Assignment={id:string;assignee_id:string;title:string;kind:string;status:st
 type Approval={id:string;action_key:string;subject_id:string;requested_by:string;required_approvals:number;approvals:Array<{actor_id:string;decision:string;at:string}>;status:string;expires_at:string|null;created_at:string}
 type Prefs=Record<string,boolean>
 const roleNames:Record<string,string>={founder:"Founder/Owner",partner_admin:"Partner/Admin",hq_admin:"HQ Admin",reviewer:"Reviewer",support:"Support",finance:"Finance",viewer:"Viewer"}
-const permissions=["hq.view","content.approve","users.manage","schools.manage","finance.view","finance.approve","workforce.operate","team.manage","support.manage"]
+const permissions=["hq.view","workroom.view","workroom.update","workroom.coordinate","workroom.verify","workroom.authorize","workroom.cancel","content.approve","users.manage","schools.manage","finance.view","finance.approve","workforce.operate","team.manage","support.manage"]
 const controlStyle={minHeight:38,borderRadius:8,border:"1px solid rgba(148,163,184,.2)",background:"#111827",color:"white",padding:"0 9px"}
 
 export default function HQTeamPage(){

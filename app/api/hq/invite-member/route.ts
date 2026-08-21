@@ -4,8 +4,9 @@ import { createClient } from "@supabase/supabase-js"
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://vibeschool.co.ke"
 const ORIGINS = new Set([SITE_URL,"https://vibeschool.co.ke","https://www.vibeschool.co.ke","https://hq.vibeschool.co.ke","http://localhost:3000"])
 const ROLES = new Set(["partner_admin","hq_admin","reviewer","support","finance","viewer"])
-const BROAD_OPERATOR_ROLES = new Set(["partner_admin","hq_admin"])
-const DEFAULT_PERMISSIONS: Record<string,string[]> = {partner_admin:[],hq_admin:[],reviewer:["content.approve"],support:["support.manage"],finance:["finance.view"],viewer:["hq.view"]}
+// Human HQ roles never become legacy platform owners. Authority is permission-bound.
+const BROAD_OPERATOR_ROLES = new Set<string>()
+const DEFAULT_PERMISSIONS: Record<string,string[]> = {partner_admin:["hq.view","workroom.view","workroom.update","workroom.coordinate","workroom.verify"],hq_admin:["hq.view","workroom.view","workroom.update","workroom.coordinate","workroom.verify"],reviewer:["hq.view","workroom.view","workroom.update","workroom.verify","content.approve"],support:["hq.view","workroom.view","workroom.update","workroom.coordinate","support.manage"],finance:["hq.view","workroom.view","workroom.update","finance.view"],viewer:["hq.view","workroom.view"]}
 function admin(){return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false}})}
 function publicAuth(){return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,{auth:{autoRefreshToken:false,persistSession:false,detectSessionInUrl:false}})}
 async function memberActor(req:NextRequest){const token=(req.headers.get("authorization")||"").replace(/^Bearer\s+/,"");if(!token)return null;const s=admin();const{data}=await s.auth.getUser(token);if(!data.user)return null;const{data:member}=await s.from("hq_human_members").select("role,status,permissions,access_expires_at").eq("profile_id",data.user.id).maybeSingle();const valid=member?.status==="active"&&(!member.access_expires_at||new Date(member.access_expires_at).getTime()>Date.now());return valid?{s,user:data.user,member}:null}
