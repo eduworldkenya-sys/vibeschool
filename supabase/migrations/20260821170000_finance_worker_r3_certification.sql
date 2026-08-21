@@ -38,6 +38,8 @@ insert into public.hq_workforce_tool_contracts(
   status='approved',approved_at=coalesce(public.hq_workforce_tool_contracts.approved_at,clock_timestamp()),
   approval_reason=excluded.approval_reason;
 
+-- access: service-only public.hq_workforce_finance_r3_canary_runs
+-- authorization-test: public.hq_workforce_finance_r3_canary_runs anon/authenticated denied; service_role select/insert only.
 create table if not exists public.hq_workforce_finance_r3_canary_runs (
   id uuid primary key default gen_random_uuid(),
   worker_key text not null references public.hq_workforce_workers(worker_key) on delete restrict,
