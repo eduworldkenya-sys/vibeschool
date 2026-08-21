@@ -3,6 +3,10 @@ begin;
 -- Canonicalize the already-implemented Chemistry Critic and governed Repair
 -- identities inside Worker Engine. This is non-activating: no scheduler,
 -- publication authority, runtime autonomy, or content mutation is enabled.
+-- access: service-only public.chemistry_worker_missions
+-- authorization-test: public.chemistry_worker_missions denies anon/authenticated and permits service_role only
+-- access: service-only public.chemistry_worker_mission_items
+-- authorization-test: public.chemistry_worker_mission_items denies anon/authenticated and permits service_role only
 insert into public.hq_workforce_workers(
   worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,
   paid_ai_allowed,competencies,permissions,approval_boundaries,kpis
