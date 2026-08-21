@@ -1,0 +1,48 @@
+name: Independent Critic Evaluation
+on:
+  pull_request:
+    paths:
+      - 'critic/**'
+      - 'scripts/critic_evaluate.py'
+      - '.github/workflows/independent-critic-evaluation.yml'
+      - 'docs/PRIORITY3_INDEPENDENT_CRITIC.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  critic-examination:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile critic examination harness
+        run: python -m py_compile scripts/critic_evaluate.py
+      - name: Run Chemistry adversarial examination
+        run: python scripts/critic_evaluate.py --suite critic/fixtures/chemistry-adversarial-v1.json
+      - name: Verify independence and authority boundary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('critic/independent-critic-v1.json').read_text())
+          i=p['independence']
+          assert i['content_worker_identity_reuse'] is False
+          assert i['author_self_score_authoritative'] is False
+          assert i['critic_may_repair'] is False
+          assert i['critic_may_publish'] is False
+          assert i['critic_may_approve_publication'] is False
+          assert i['critic_may_clear_p2_blockers'] is False
+          assert i['fresh_execution_required_after_repair'] is True
+          assert p['success_function']=='correct_defect_discrimination'
+          assert p['sealed_expected_answers_visible_to_runtime'] is False
+          assert 'critic_self_check' in p['review_plan']
+          print('critic independence: PASS')
+          PY
+      - name: Reject hidden author self-review coupling
+        run: |
+          ! grep -RqiE 'content_worker_teacher_guide_self_review.*authoritative|critic_may_publish.*true|critic_may_repair.*true' critic scripts/critic_evaluate.py
