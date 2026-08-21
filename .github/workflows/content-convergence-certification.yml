@@ -1,0 +1,28 @@
+name: Content Convergence Certification
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/*content_convergence*'
+      - 'scripts/content_convergence_certify.py'
+      - 'docs/PRIORITY5_CONTENT_CONVERGENCE.md'
+      - '.github/workflows/content-convergence-certification.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*content_convergence*'
+      - 'scripts/content_convergence_certify.py'
+      - 'docs/PRIORITY5_CONTENT_CONVERGENCE.md'
+      - '.github/workflows/content-convergence-certification.yml'
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run adversarial convergence suite
+        run: python scripts/content_convergence_certify.py
+      - name: Assert publication authority remains separate
+        run: |
+          ! grep -Eiq 'update[[:space:]]+public\.vibe_publications.*published|set[[:space:]]+status[[:space:]]*=[[:space:]]*['\''"]published' supabase/migrations/*content_convergence*.sql
