@@ -1,7 +1,7 @@
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
-handler = (root / 'supabase/migrations/20260821171000_security_shadow_handler_contract.sql').read_text()
+handler = (root / 'supabase/migrations/20260821171050_security_shadow_handler_contract.sql').read_text()
 main = (root / 'supabase/migrations/20260821171100_security_worker_r3_certification.sql').read_text()
 repair = (root / 'supabase/migrations/20260821171200_security_worker_r3_permission_semantics.sql').read_text()
 combined = handler + main + repair

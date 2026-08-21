@@ -2,7 +2,7 @@ name: Security Worker R3 Certification
 on:
   pull_request:
     paths:
-      - 'supabase/migrations/20260821171000_security_shadow_handler_contract.sql'
+      - 'supabase/migrations/20260821171050_security_shadow_handler_contract.sql'
       - 'supabase/migrations/20260821171100_security_worker_r3_certification.sql'
       - 'supabase/migrations/20260821171200_security_worker_r3_permission_semantics.sql'
       - 'scripts/validate-security-worker-r3.py'

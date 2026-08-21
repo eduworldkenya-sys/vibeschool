@@ -2,7 +2,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 handler = (root / 'supabase/migrations/20260821165900_finance_shadow_handler_contract.sql').read_text()
-main = (root / 'supabase/migrations/20260821170000_finance_worker_r3_certification.sql').read_text()
+main = (root / 'supabase/migrations/20260821170050_finance_worker_r3_certification.sql').read_text()
 combined = handler + main
 
 required = [
