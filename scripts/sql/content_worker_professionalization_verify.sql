@@ -7,6 +7,8 @@ do $$ declare suite jsonb; begin
  if has_table_privilege('anon','public.content_worker_profiles','select') or has_table_privilege('authenticated','public.content_worker_profiles','select') then raise exception 'professional memory exposed'; end if;
  if has_function_privilege('anon','public.content_worker_preflight(jsonb,jsonb,text)','execute') or has_function_privilege('authenticated','public.content_worker_preflight(jsonb,jsonb,text)','execute') then raise exception 'preflight authority exposed'; end if;
  if has_function_privilege('anon','public.content_worker_teacher_guide_self_review(jsonb,jsonb)','execute') or has_function_privilege('authenticated','public.content_worker_teacher_guide_self_review(jsonb,jsonb)','execute') then raise exception 'self review authority exposed'; end if;
+ if has_function_privilege('anon','public.content_worker_begin_execution(jsonb)','execute') or has_function_privilege('authenticated','public.content_worker_begin_execution(jsonb)','execute') then raise exception 'execution-context authority exposed'; end if;
+ if has_function_privilege('anon','public.content_worker_finish_execution(uuid,text,jsonb,jsonb)','execute') or has_function_privilege('authenticated','public.content_worker_finish_execution(uuid,text,jsonb,jsonb)','execute') then raise exception 'execution-finalization authority exposed'; end if;
  select specification into suite from public.content_worker_profiles where profile_key='chemistry-content-worker-evaluation' and version=2;
  if jsonb_array_length(suite->'production_regression_cases')<>7 then raise exception 'seven chemistry production regressions not captured'; end if;
 end $$;
@@ -65,6 +67,29 @@ do $$ declare d jsonb; begin
  if d->>'decision'<>'blocked' then raise exception 'self review failure incorrectly promoted'; end if;
  d:=public.content_worker_quality_candidate_decision(jsonb_build_object('passed',true),jsonb_build_object('passed',true),true);
  if d->>'decision'<>'blocked' then raise exception 'uncertainty incorrectly promoted'; end if;
+end $$;
+
+-- Existing executor receives governed professional context and persists an inspectable plan.
+do $$ declare e jsonb; eid uuid; finished jsonb; begin
+ e:=public.content_worker_begin_execution(jsonb_build_object(
+   'worker_key','content-factory-r2-canary-01',
+   'subject','Chemistry','grade','10',
+   'title','Synthetic professionalization examination',
+   'claim','Explain a verified chemistry concept',
+   'curriculum_relevance','Grade 10 Chemistry examination fixture',
+   'claim_sha256','claim-sha',
+   'evidence_packet_sha256','evidence-sha',
+   'evidence_packet',jsonb_build_object('sources',jsonb_build_array(jsonb_build_object('source_id','s1'))),
+   'curriculum_outcomes',jsonb_build_array('O1'),
+   'target',jsonb_build_object('current_content_sha256','content-sha','block_type','paragraph')
+ ));
+ eid:=(e->>'execution_context_id')::uuid;
+ if eid is null then raise exception 'inspectable execution context not created'; end if;
+ if e->'subject_profile'->>'profile_key'<>'chemistry-grade10-author' then raise exception 'chemistry subject profile not resolved'; end if;
+ if not (e->'plan'->'stages' ? 'deterministic_preflight') or not (e->'plan'->'stages' ? 'self_review') then raise exception 'professional plan stages missing'; end if;
+ if (select status from public.content_worker_execution_contexts where id=eid)<>'planned' then raise exception 'execution not persisted as planned'; end if;
+ finished:=public.content_worker_finish_execution(eid,'quality_candidate',jsonb_build_object('mode','inspection','findings','[]'::jsonb,'blocking_uncertainty',false,'repair_applied',false),'[]'::jsonb);
+ if finished->>'status'<>'quality_candidate' then raise exception 'execution cannot reach governed quality candidate'; end if;
 end $$;
 
 -- Existing worker remains non-publisher and gets professional v2 contract.
