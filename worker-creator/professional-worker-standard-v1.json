@@ -1,0 +1,35 @@
+{
+  "standard_key": "vibeschool-professional-worker",
+  "version": 1,
+  "principle": "competence_does_not_imply_authority",
+  "required_dimensions": [
+    "identity", "mission_boundaries", "archetype", "competency_profile", "certified_skills",
+    "context_contract", "memory_contract", "tool_contracts", "risk_class", "guardrails",
+    "failure_semantics", "independent_assurance", "adversarial_evidence", "provenance",
+    "shadow_evidence", "canary_evidence", "runtime_telemetry", "recertification"
+  ],
+  "archetypes": [
+    "research", "author", "curriculum", "critic", "assessment", "repair", "operational",
+    "support", "finance", "security_sensitive", "orchestrator", "monitoring", "decision_support"
+  ],
+  "risk_classes": {
+    "R0": "observation_or_recommendation_only",
+    "R1": "bounded_reversible_internal_action",
+    "R2": "consequential_scoped_action_with_independent_verification",
+    "R3": "high_consequence_action_requiring_explicit_human_authority"
+  },
+  "lifecycle": ["DRAFT", "TEST", "INDEPENDENT_EVALUATION", "SHADOW", "CANARY", "CERTIFIED", "COMMISSIONED", "DEGRADED", "SUSPENDED", "REVOKED", "RETIRED"],
+  "assurance_invariants": {
+    "creator_may_self_certify": false,
+    "skill_claim_is_evidence": false,
+    "creation_grants_production_authority": false,
+    "independent_evaluation_required": true,
+    "fresh_verification_after_repair": true,
+    "global_stop_must_be_respected": true,
+    "stale_certification_must_fail_closed": true
+  },
+  "skill_contract_required_fields": ["skill_key", "version", "purpose", "prerequisites", "inputs", "outputs", "tools", "constraints", "tests", "failure_cases", "certification_evidence"],
+  "context_layers": ["worker_identity", "professional_context", "task_context", "retrieved_evidence", "policy", "temporary_state", "durable_memory"],
+  "failure_classes": ["RETRYABLE", "EVIDENCE_INSUFFICIENT", "TOOL_FAILURE", "AUTHORITY_FAILURE", "POLICY_PROHIBITION", "HUMAN_DECISION_REQUIRED", "UNSAFE_AMBIGUITY", "SYSTEM_INCIDENT"],
+  "recertification_triggers": ["tool_schema_change", "policy_change", "authority_change", "dependency_change", "repeated_failure", "new_adversarial_failure", "skill_version_change", "certification_expiry"]
+}
