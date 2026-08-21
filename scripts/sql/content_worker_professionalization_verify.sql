@@ -20,7 +20,10 @@ end $$;
 
 -- Legacy seven-guide shape must be recognized as a summary, not classroom-ready.
 do $$ declare r jsonb; begin
- r:=public.content_worker_teacher_guide_self_review(jsonb_build_object('purpose','summary','sequence',jsonb_build_array('step 1','step 2'),'misconceptions',jsonb_build_array('m1'),'answer_guidance',jsonb_build_object('q1','a1','q2','a2'),'assessment_guidance','brief'),'formal_assessment_items',6);
+ r:=public.content_worker_teacher_guide_self_review(
+   jsonb_build_object('purpose','summary','sequence',jsonb_build_array('step 1','step 2'),'misconceptions',jsonb_build_array('m1'),'answer_guidance',jsonb_build_object('q1','a1','q2','a2'),'assessment_guidance','brief'),
+   jsonb_build_object('formal_assessment_items',6)
+ );
  if coalesce((r->>'passed')::boolean,true) then raise exception 'legacy summary guide incorrectly passed self review'; end if;
  if not exists(select 1 from jsonb_array_elements(r->'findings') f where f->>'code'='summary_not_classroom_ready') then raise exception 'summary defect not detected'; end if;
  if not exists(select 1 from jsonb_array_elements(r->'findings') f where f->>'code'='incomplete_assessment_treatment') then raise exception 'assessment mismatch not detected'; end if;
