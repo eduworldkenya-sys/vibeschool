@@ -1,0 +1,93 @@
+name: Independent Critic Evaluation
+on:
+  pull_request:
+    paths:
+      - 'critic/**'
+      - 'scripts/critic_evaluate.py'
+      - 'supabase/functions/content-critic-worker/**'
+      - 'docs/PRIORITY3_INDEPENDENT_CRITIC.md'
+      - '.github/workflows/independent-critic-evaluation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  critic-examination:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Compile examination harness
+        run: python -m py_compile scripts/critic_evaluate.py
+      - name: Run Chemistry adversarial calibration and P1/P2/P3 comparison
+        run: python scripts/critic_evaluate.py --suite critic/fixtures/chemistry-adversarial-v1.json --report /tmp/critic-report.json
+      - name: Type-check independent Critic runtime
+        run: deno check supabase/functions/content-critic-worker/index.ts
+      - name: Verify merged Priority 2 binding and independence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f quality-intelligence/rubrics/teacher-guide-v1.json
+          test -f quality-intelligence/fixtures/teacher-guide-gold-v1.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('critic/independent-critic-v1.json').read_text())
+          i=p['independence']; q=p['quality_intelligence_binding']
+          assert p['success_function']=='correct_defect_discrimination'
+          assert i['content_worker_identity_reuse'] is False
+          assert i['content_worker_prompt_reuse'] is False
+          assert i['author_self_score_authoritative'] is False
+          assert i['author_self_review_visible_during_primary_judgment'] is False
+          assert i['critic_may_repair'] is False
+          assert i['critic_may_publish'] is False
+          assert i['critic_may_approve_publication'] is False
+          assert i['fresh_execution_required_after_repair'] is True
+          assert q['critic_may_clear_existing_hard_blocker'] is False
+          assert p['normal_runtime_may_read_gold_suite'] is False
+          print('independence: PASS')
+          PY
+      - name: Verify runtime authority and anti-anchoring boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=supabase/functions/content-critic-worker/index.ts
+          grep -q 'critic_service_only' "$file"
+          grep -q 'author self-review is intentionally withheld' "$file"
+          grep -q 'p1_self_review: packet.p1.self_review' "$file"
+          grep -q 'compared_after_primary_judgment: true' "$file"
+          grep -q 'may_repair: false' "$file"
+          grep -q 'may_publish: false' "$file"
+          grep -q 'may_approve_publication: false' "$file"
+          grep -q 'may_clear_p2_blocker: false' "$file"
+          grep -q 'critic_p2_rubric_identity_mismatch' "$file"
+          if grep -Eqi 'teacher-guide-gold-v1|gold-strong-classroom-ready|gold-plausible-chemistry-error' "$file"; then
+            echo 'sealed P2 gold answers leaked into normal Critic runtime' >&2
+            exit 1
+          fi
+          if grep -Eqi 'from\(["'"'](vibe_publications|vibe_chapters|publication_release_approvals)["'"']\).*\.(insert|update|delete)|publish_publication|approve.*publication' "$file"; then
+            echo 'Critic runtime contains forbidden content/publication mutation authority' >&2
+            exit 1
+          fi
+      - name: Verify calibrated discrimination thresholds
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/critic-report.json'))
+          c=r['calibration']
+          assert c['defect_recall'] == 1.0
+          assert c['false_negative_rate'] == 0.0
+          assert c['false_positive_rate'] == 0.0
+          assert c['severity_accuracy'] == 1.0
+          assert r['p3_unique_value_demonstrated'] is True
+          assert len(r['p3_unique_reasoning_cases']) >= 5
+          print('critic calibration: PASS', r['p3_unique_reasoning_cases'])
+          PY
