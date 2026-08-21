@@ -3,6 +3,7 @@
 from __future__ import annotations
 import hashlib, json
 from dataclasses import dataclass, field
+from pathlib import Path
 
 LEGAL = {
 "DRAFT":{"AUTHORED"},"AUTHORED":{"MEASURING"},"MEASURING":{"MEASURED","ESCALATED"},
@@ -10,8 +11,7 @@ LEGAL = {
 "REPAIR_REQUIRED":{"REPAIRING","ESCALATED","REJECTED"},"REPAIRING":{"REPAIRED","ESCALATED"},
 "REPAIRED":{"REVERIFYING"},"REVERIFYING":{"REPAIR_REQUIRED","CONVERGED","ESCALATED","REJECTED"},
 "CONVERGED":{"RELEASE_CANDIDATE","ESCALATED","REJECTED"},
-"RELEASE_CANDIDATE":{"RELEASE_APPROVED","ESCALATED","REJECTED","SUPERSEDED"},
-"RELEASE_APPROVED":{"PUBLISHED","SUPERSEDED"},
+"RELEASE_CANDIDATE":{"ESCALATED","REJECTED","SUPERSEDED"},
 }
 ZERO_TOLERANCE={"scientific_correctness","learner_safety","curriculum_identity","assessment_correctness","fabricated_evidence","provenance","authorization"}
 
@@ -120,6 +120,18 @@ def tests():
     ok("independently_verified_resolution_allows_gate",resolved)
     assert ZERO_TOLERANCE=={"scientific_correctness","learner_safety","curriculum_identity","assessment_correctness","fabricated_evidence","provenance","authorization"}
     out.append("regression_budget_explicit")
+    root=Path(__file__).resolve().parents[1]
+    controller=(root/'supabase/migrations/20260821100505_content_convergence_controller.sql').read_text()
+    hardening=(root/'supabase/migrations/20260821101148_content_convergence_hardening.sql').read_text()
+    for token in ['STALE_ARTIFACT_HASH','CURRICULUM_IDENTITY_MUTATION_BLOCKED','REPAIR_ATTEMPT_LIMIT_REACHED','human_publication_approval_required','WORKER_ENGINE_GLOBAL_STOP_OR_RUNTIME_OFF']:
+        assert token in controller, token
+    out.append('controller_fail_closed_contract')
+    for token in ['INDEPENDENT_P3_VERIFICATION_REQUIRED','REPAIR_WORKER_CANNOT_SELF_VERIFY','CONVERGENCE_LEASE_HELD','LEASE_NOT_OWNED_OR_EXPIRED','severe_regression','hq_content_convergence_decision_packet','hq_content_convergence_metrics']:
+        assert token in hardening, token
+    out.append('hardening_contract')
+    for forbidden in ["when p_expected_state='RELEASE_CANDIDATE' and p_to_state='RELEASE_APPROVED'","when p_expected_state='RELEASE_APPROVED' and p_to_state='PUBLISHED'"]:
+        assert forbidden not in controller
+    out.append('publication_authority_separation')
     return out
 
 if __name__=="__main__":
