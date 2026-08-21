@@ -1,0 +1,20 @@
+name: Worker Engine Continuous Improvement
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/*continuous_improvement*'
+      - 'supabase/tests/worker_engine_continuous_improvement.sql'
+      - 'scripts/validate-worker-engine-continuous-improvement.py'
+      - 'docs/WORKER_ENGINE_CONTINUOUS_IMPROVEMENT.md'
+      - '.github/workflows/worker-engine-continuous-improvement.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-worker-engine-continuous-improvement.py
