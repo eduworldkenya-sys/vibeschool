@@ -1,1 +1,1 @@
-Quality Worker professionalization is reconciled against main through PR #418 real server-bound shadow evidence. This marker is non-functional and records the convergence boundary for exact-head review.
+Quality Worker professionalization is converging with PR #418 real server-bound shadow evidence. This marker is non-functional; exact-head reconciliation is enforced by the branch history and CI, not by this file.
