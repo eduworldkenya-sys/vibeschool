@@ -30,7 +30,7 @@ jobs:
       - name: Run Chemistry adversarial calibration and P1/P2/P3 comparison
         run: python scripts/critic_evaluate.py --suite critic/fixtures/chemistry-adversarial-v1.json --report /tmp/critic-report.json
       - name: Type-check independent Critic runtime
-        run: deno check supabase/functions/content-critic-worker/index.ts
+        run: deno check --node-modules-dir=auto supabase/functions/content-critic-worker/index.ts
       - name: Verify merged Priority 2 binding and independence
         shell: bash
         run: |
@@ -73,8 +73,8 @@ jobs:
             echo 'sealed P2 gold answers leaked into normal Critic runtime' >&2
             exit 1
           fi
-          if grep -Eqi 'from\(["'"'](vibe_publications|vibe_chapters|publication_release_approvals)["'"']\).*\.(insert|update|delete)|publish_publication|approve.*publication' "$file"; then
-            echo 'Critic runtime contains forbidden content/publication mutation authority' >&2
+          if grep -Eqi 'publish_publication|approve.*publication|\.insert\(|\.update\(|\.delete\(' "$file"; then
+            echo 'Critic runtime contains forbidden mutation or publication authority' >&2
             exit 1
           fi
       - name: Verify calibrated discrimination thresholds
