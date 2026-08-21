@@ -1,5 +1,9 @@
 -- Worker Creator professionalization. Additive governance only.
 -- Does not activate the factory, heartbeat, workers, or consequential authority.
+-- access: service-only public.hq_workforce_professional_standards
+-- authorization-test: public.hq_workforce_professional_standards anon/authenticated denied; service_role only.
+-- access: service-only public.hq_workforce_worker_assurance
+-- authorization-test: public.hq_workforce_worker_assurance anon/authenticated denied; service_role only.
 
 create table if not exists public.hq_workforce_professional_standards (
   standard_key text not null,
@@ -36,7 +40,7 @@ create table if not exists public.hq_workforce_worker_assurance (
 
 alter table public.hq_workforce_professional_standards enable row level security;
 alter table public.hq_workforce_worker_assurance enable row level security;
-revoke all on table public.hq_workforce_professional_standards, public.hq_workforce_worker_assurance from public, anon, authenticated;
+revoke all on table public.hq_workforce_professional_standards, public.hq_workforce_worker_assurance from public, anon, authenticated, service_role;
 grant select, insert, update on table public.hq_workforce_professional_standards, public.hq_workforce_worker_assurance to service_role;
 
 insert into public.hq_workforce_professional_standards(standard_key,version,standard,status,approved_at)
