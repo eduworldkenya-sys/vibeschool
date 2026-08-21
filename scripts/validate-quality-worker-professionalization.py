@@ -18,38 +18,27 @@ for table in ['hq_workforce_quality_examinations','hq_workforce_quality_findings
 
 observed=(root/'supabase/migrations/20260821153000_quality_worker_observed_assurance_capability.sql').read_text()
 for token in [
-    'workforce.quality.assess_fixture',
-    'worker_quality_fixture',
-    'quality_case_id_required',
-    'quality_fixture_contract_incomplete',
-    'mutation_denied',
-    'independence_boundary',
-    'evidence_missing',
-    'not_reproducible',
-    'severity_invalid',
-    'quality_contract_satisfied',
-    'hq_workforce_quality_detect_fixture',
-    'hq_workforce_quality_execute_lab_fixture',
-    'quality_fixture_evaluator_v1',
-    "evidence->>'execution_method'='quality_fixture_evaluator_v1'",
-    "qe.suite_version='professional-server-shadow-v1'",
-    "'side_effects_applied',false",
-    "'authority_changed',false",
+    'workforce.quality.assess_fixture','worker_quality_fixture','quality_case_id_required',
+    'quality_fixture_contract_incomplete','mutation_denied','independence_boundary','evidence_missing',
+    'not_reproducible','severity_invalid','quality_contract_satisfied','hq_workforce_quality_detect_fixture',
+    'hq_workforce_quality_execute_lab_fixture','quality_fixture_evaluator_v1',
+    "evidence->>'execution_method'='quality_fixture_evaluator_v1'","qe.suite_version='professional-server-shadow-v1'",
+    "'side_effects_applied',false","'authority_changed',false",
     "select public.hq_workforce_professional_baseline('quality-worker-01')",
 ]:
     assert token in observed, token
-
 for category in std['required_defective_fixture_categories']:
     assert category in observed, f'missing detector for {category}'
 
-combined=sql+'\n'+observed
+good=(root/'supabase/migrations/20260821154000_quality_worker_known_good_control.sql').read_text()
+for token in ["p_fixture_key<>'known_good_control'","p_fixture_key='known_good_control'","array_length(v_detected,1)","'known_good_control',p_fixture_key='known_good_control'","'side_effects_applied',false","'authority_changed',false"]:
+    assert token in good, token
+
+combined='\n'.join([sql,observed,good])
 for forbidden in [
     'factory_enabled=true','heartbeat_enabled=true',"autonomy_level=",
-    'insert into public.hq_workforce_capability_grants',
-    'insert into public.hq_workforce_capability_authority_grants',
-    "runtime_execution_enabled=true",
-    "shadow_global_stop=false",
+    'insert into public.hq_workforce_capability_grants','insert into public.hq_workforce_capability_authority_grants',
+    "runtime_execution_enabled=true","shadow_global_stop=false",
 ]:
     assert forbidden not in combined, forbidden
-
-print('Quality Worker professionalization + execution-derived observed assurance regression: PASS')
+print('Quality Worker professionalization + execution-derived adversarial/known-good regression: PASS')
