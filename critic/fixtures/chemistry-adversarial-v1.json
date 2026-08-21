@@ -1,0 +1,17 @@
+{
+  "suite":"chemistry-critic-adversarial-v1",
+  "cases":[
+    {"id":"strong_valid","content":"Classroom-ready Chemistry lesson with explanation, learner work, checks and valid assessment.","expected_block":false},
+    {"id":"keywords_no_teaching","content":"Outcome keywords are repeated.","curriculum_linked":true,"teachable_chain":false,"outcome":"CHEM-O1","expected_block":true,"expected_severity":"MAJOR"},
+    {"id":"polished_science_wrong","content":"In polished prose, mass number is found by adding protons and electrons.","expected_block":true,"expected_severity":"CRITICAL"},
+    {"id":"long_shallow","content":"A long summary of chemistry facts.","polished_shallow":true,"requires_teaching":true,"expected_block":true,"expected_severity":"MAJOR"},
+    {"id":"busy_activity","content":"Learners perform many activities.","activity_without_learning":true,"expected_block":true,"expected_severity":"MAJOR"},
+    {"id":"wrong_answer","content":"Question is plausible but answer key is wrong.","assessment_answer_wrong":true,"expected_block":true,"expected_severity":"CRITICAL"},
+    {"id":"wrong_question_pair","content":"Correct answer is attached to another question.","answer_question_mismatch":true,"expected_block":true,"expected_severity":"CRITICAL"},
+    {"id":"subtle_safety","content":"Practical procedure omits a material control.","unsafe_practical":true,"expected_block":true,"expected_severity":"CRITICAL"},
+    {"id":"plausible_fake_source","content":"The prose cites a plausible-looking authority.","fabricated_evidence":true,"expected_block":true,"expected_severity":"CRITICAL"},
+    {"id":"valid_style","content":"Valid artifact uses a less preferred heading style.","style_only":true,"expected_block":false,"expected_severity":"MINOR"},
+    {"id":"source_conflict","content":"Two authoritative sources conflict materially.","contradictory_sources":true,"expected_block":true,"expected_severity":"CRITICAL"},
+    {"id":"repaired_stale","content":"Previously shallow section is now repaired with complete instruction.","polished_shallow":true,"requires_teaching":true,"repaired":true,"repaired_categories":["teaching_depth"],"expected_block":false}
+  ]
+}
