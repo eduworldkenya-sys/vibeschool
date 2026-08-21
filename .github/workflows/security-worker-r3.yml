@@ -1,0 +1,20 @@
+name: Security Worker R3 Certification
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20260821171000_security_shadow_handler_contract.sql'
+      - 'supabase/migrations/20260821171100_security_worker_r3_certification.sql'
+      - 'supabase/migrations/20260821171200_security_worker_r3_permission_semantics.sql'
+      - 'scripts/validate-security-worker-r3.py'
+      - 'docs/SECURITY_WORKER_R3_CERTIFICATION_20260821.md'
+      - 'docs/SECURITY_WORKER_R3_AUTHORITY_MATRIX.md'
+      - '.github/workflows/security-worker-r3.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-security-worker-r3.py
