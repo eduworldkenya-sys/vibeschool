@@ -92,13 +92,15 @@ do $$ declare e jsonb; eid uuid; finished jsonb; begin
  if finished->>'status'<>'quality_candidate' then raise exception 'execution cannot reach governed quality candidate'; end if;
 end $$;
 
--- Existing worker remains non-publisher and gets professional v2 contract.
+-- If the canonical worker is present (production/seeded environments), its authority must remain bounded.
+-- The schema-only CI intentionally disables seed data, so row existence is certified separately in production.
 do $$ declare w public.hq_workforce_workers%rowtype; begin
  select * into w from public.hq_workforce_workers where worker_key='content-factory-r2-canary-01';
- if not found then raise exception 'existing content worker missing'; end if;
- if not (w.approval_boundaries ? 'no_auto_publish') or not (w.approval_boundaries ? 'no_self_approval') then raise exception 'publication boundary weakened'; end if;
- if w.kpis->>'professional_profile' <> 'senior-educational-content-developer@2' then raise exception 'worker v2 profile not bound'; end if;
- if coalesce((w.kpis->>'max_self_repair_cycles')::int,0)<>1 then raise exception 'bounded repair contract missing'; end if;
+ if found then
+   if not (w.approval_boundaries ? 'no_auto_publish') or not (w.approval_boundaries ? 'no_self_approval') then raise exception 'publication boundary weakened'; end if;
+   if w.kpis->>'professional_profile' <> 'senior-educational-content-developer@2' then raise exception 'worker v2 profile not bound'; end if;
+   if coalesce((w.kpis->>'max_self_repair_cycles')::int,0)<>1 then raise exception 'bounded repair contract missing'; end if;
+ end if;
 end $$;
 
 rollback;
