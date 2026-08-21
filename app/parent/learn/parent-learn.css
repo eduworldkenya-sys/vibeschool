@@ -8,6 +8,24 @@
   color: #0f172a;
 }
 
+/* The parent layout already owns viewport padding and the fixed navigation.
+   Override its legacy narrow 768px shell only while this route is mounted so
+   browser desktop-mode, tablets and landscape phones do not collapse the page
+   into a thin centred column. */
+body:has(.parent-learn-page) {
+  overflow-x: hidden;
+  background: #f0f2f5;
+}
+
+body:has(.parent-learn-page) > main {
+  width: 100% !important;
+  max-width: 74rem !important;
+  min-height: calc(100dvh - 56px) !important;
+  margin: 0 auto !important;
+  padding: clamp(.75rem, 2.5vw, 1.25rem) clamp(.75rem, 3vw, 1.5rem) calc(5.5rem + env(safe-area-inset-bottom)) !important;
+  background: #f0f2f5 !important;
+}
+
 .parent-learn-hero,
 .parent-learn-card,
 .parent-learn-tabs,
@@ -157,6 +175,10 @@
 }
 
 @media (max-width: 420px) {
+  body:has(.parent-learn-page) > main {
+    padding-inline: .65rem !important;
+  }
+
   .parent-learn-hero-row { gap: .75rem; }
   .parent-learn-refresh { min-height: 2.5rem; padding-inline: .7rem; }
   .parent-learn-tabs { margin-top: .8rem; }
@@ -164,6 +186,11 @@
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
+  body:has(.parent-learn-page) > main {
+    min-height: calc(100dvh - 48px) !important;
+    padding: .55rem .8rem calc(4.75rem + env(safe-area-inset-bottom)) !important;
+  }
+
   .parent-learn-page { max-width: none; }
   .parent-learn-hero { padding: .85rem 1rem; border-radius: 1rem; }
   .parent-learn-eyebrow { font-size: .65rem; }
@@ -173,11 +200,12 @@
   .parent-learn-tabs { margin-top: .65rem; }
   .parent-learn-tab { min-height: 2.35rem; padding-block: .45rem; }
   .parent-learn-content { margin-top: .65rem; }
-  .parent-learn-empty { padding: .85rem 1rem; }
+  .parent-learn-empty { max-width: 52rem; padding: .85rem 1rem; }
   .parent-learn-empty-body { line-height: 1.45; }
 }
 
 @media (min-width: 900px) {
+  .parent-learn-page { max-width: 68rem; }
   .parent-learn-content:has(.parent-learn-card:nth-child(2)) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
