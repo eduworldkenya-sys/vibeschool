@@ -13,13 +13,14 @@ do $$ declare x jsonb; f uuid; impact uuid;
 begin
   x:=public.hq_workforce_record_dependency_interruption(
     'fixture-checkpoint','priority-2','P2','candidate-sha',
-    '["gate-a"]','[]','{"action":"resume"}','["dependency certified"]','{}',array['e:checkpoint'],'executor',
+    '["gate-a"]','[]','{"action":"resume"}','[{"key":"dependency-certified","expected":"PASS"}]','{}',array['e:checkpoint'],'executor',
     'fixture-finding',null,'mission','priority-2','component','priority-1','blocking_dependency',0.95,
     '{"cause":"contract"}','{"consumers":["priority-2"]}','{"runtime":"off"}',array['e:finding'],'investigator');
   f:=(x->>'finding_id')::uuid;
   impact:=public.hq_workforce_record_dependency_impact(f,'certificate','priority-1','CERTIFIED','at_risk',array['certification'], '["fresh assurance"]');
   if impact is null then raise exception 'dependency impact not recorded'; end if;
-  if public.hq_workforce_record_dependency_revalidation(impact,'repair-sha','[{"gate":"fresh-assurance","passed":true}]',array['e:revalidation'],'independent-assurance',true) is null then raise exception 'dependency revalidation not recorded'; end if;
+  perform public.hq_workforce_record_dependency_gate_evidence(impact,'repair-sha','fresh-assurance','PASS',true,'digest:fresh-assurance',array['e:gate'],'quality-worker-01');
+  if public.hq_workforce_record_dependency_revalidation(impact,'repair-sha','[{"gate":"fresh-assurance","observed":"PASS","passed":true}]',array['e:revalidation'],'quality-worker-01',true) is null then raise exception 'dependency revalidation not recorded'; end if;
   begin
     perform public.hq_workforce_record_dependency_impact(f,'certificate','bad-impact','CERTIFIED','at_risk','{}','[]');
     raise exception 'at-risk impact accepted without revalidation';

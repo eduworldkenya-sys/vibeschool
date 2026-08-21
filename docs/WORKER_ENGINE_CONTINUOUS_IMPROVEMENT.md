@@ -20,6 +20,21 @@ The engine records every affected worker, certificate, content artifact, commiss
 
 Recursive dependency repair is evidence-bound and must be cycle-detected by the orchestrator. This schema deliberately records the repair stack without granting workers authority to switch priorities, invalidate certificates, resume runtime, or promote themselves.
 
+### Operational proof hardening
+
+The first controlled production proof uses the existing Grade 10 Chemistry shadow convergence record as a non-consequential checkpoint. Its bootstrap author key was not a registered Worker Engine identity, while the canonical content author had current independent assurance. The finding therefore blocks only that artifact's evaluation eligibility; it does not invalidate unrelated content, workers, tenants, or missions.
+
+`20260821223000_dependency_integrity_operational_proof.sql` closes the two canonical gaps exposed by that case:
+
+- append-only checkpoint events provide deterministic `interrupted -> resume_ready -> resumed -> closed` lineage without mutating evidence snapshots;
+- resume requires exact interrupted and repaired revisions, a resolved repair record, fresh passing revalidation for every affected impact, and the unchanged fail-closed runtime posture;
+- revalidation rejects implementer/self evidence and contradictory pass claims;
+- content convergence rejects unregistered, uncertified, expired, wrong-archetype, or unversioned authors and records evaluator identity separately from the artifact author;
+- the legacy evaluation RPC is no longer directly executable by `service_role`; the governed wrapper requires distinct certified evaluator identity and evidence;
+- an owner-protected HQ packet explains the checkpoint, finding, blast radius, repair, revalidation, and resume chain.
+
+The proof is control-plane only. It does not publish the Chemistry artifact or activate workers, schedulers, runtime, payments, or authority grants. The pre-repair Chemistry version remains preserved as negative evidence and is not eligible for a fresh score merely because the control plane was repaired.
+
 Evidence tables are append-only. Product roles have no access. The service role can read them and invoke governed functions, but cannot directly forge incidents, regression cases, health events, or candidate transitions.
 
 ## Operational example
