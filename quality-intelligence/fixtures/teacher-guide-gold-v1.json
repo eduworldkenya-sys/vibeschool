@@ -49,7 +49,7 @@
     {
       "case_key": "gold-threshold-pass",
       "expected_disposition": "certify",
-      "scores": {"curriculum_fidelity":4,"subject_accuracy":4,"outcome_teachability":4,"pedagogy_and_sequence":4,"classroom_readiness":4,"assessment_quality":4,"safety_and_practical_integrity":4,"source_grounding":4,"kenyan_context_and_feasibility":4,"inclusion_and_differentiation":4,"teacher_usability":4},
+      "scores": {"curriculum_fidelity":5,"subject_accuracy":5,"outcome_teachability":4,"pedagogy_and_sequence":4,"classroom_readiness":4,"assessment_quality":4,"safety_and_practical_integrity":4,"source_grounding":4,"kenyan_context_and_feasibility":4,"inclusion_and_differentiation":4,"teacher_usability":4},
       "blockers": []
     }
   ]
