@@ -12,12 +12,15 @@ set search_path=public,pg_temp
 as $$
 declare
   professional jsonb;
-  chemistry jsonb;
+  subject_profile jsonb;
   quality_contract jsonb;
   evaluation_suite jsonb;
   plan jsonb;
+  effective_claim jsonb;
   execution_id uuid;
   blockers jsonb;
+  resolved_subject text;
+  resolved_grade text;
 begin
   if current_user not in ('service_role','postgres') then
     raise exception 'service_role_required';
@@ -26,15 +29,31 @@ begin
     raise exception 'content_worker_claim_required';
   end if;
 
+  select vp.cbc_subject, vp.cbc_grade::text
+    into resolved_subject,resolved_grade
+  from public.vibe_chapters vc
+  join public.vibe_publications vp on vp.id=vc.publication_id
+  where vc.id=nullif(p_claim->'target'->>'chapter_id','')::uuid
+  limit 1;
+
+  resolved_subject:=coalesce(nullif(p_claim->>'subject',''),resolved_subject,'');
+  resolved_grade:=coalesce(nullif(p_claim->>'grade',''),resolved_grade,'');
+  effective_claim:=p_claim||jsonb_build_object('subject',resolved_subject,'grade',resolved_grade);
+
   professional:=public.content_worker_active_profile('senior-educational-content-developer');
-  chemistry:=public.content_worker_active_profile('chemistry-grade10-author');
   quality_contract:=public.content_worker_active_profile('teacher-guide-quality-contract');
   evaluation_suite:=public.content_worker_active_profile('chemistry-content-worker-evaluation');
+  if lower(resolved_subject)='chemistry' and resolved_grade ~ '10' then
+    subject_profile:=public.content_worker_active_profile('chemistry-grade10-author');
+  end if;
   if professional is null or quality_contract is null or evaluation_suite is null then
     raise exception 'content_worker_professional_context_incomplete';
   end if;
+  if lower(resolved_subject)='chemistry' and resolved_grade ~ '10' and subject_profile is null then
+    raise exception 'content_worker_chemistry_subject_context_incomplete';
+  end if;
 
-  plan:=public.content_worker_build_plan(p_claim);
+  plan:=public.content_worker_build_plan(effective_claim);
   blockers:=coalesce(plan->'blockers','[]'::jsonb);
   if jsonb_array_length(blockers)>0 then
     raise exception 'content_worker_plan_blocked:%', blockers::text;
@@ -48,28 +67,30 @@ begin
     evaluation_suite_version,
     mission_context,evidence_packet_sha256,plan,status,blockers
   ) values (
-    nullif(p_claim->>'task_id','')::uuid,
-    nullif(p_claim->>'proposal_id','')::uuid,
-    coalesce(nullif(p_claim->>'worker_key',''),'content-authoring-worker'),
+    nullif(effective_claim->>'task_id','')::uuid,
+    nullif(effective_claim->>'proposal_id','')::uuid,
+    coalesce(nullif(effective_claim->>'worker_key',''),'content-authoring-worker'),
     professional->>'profile_key',(professional->>'version')::int,
-    chemistry->>'profile_key',(chemistry->>'version')::int,
+    subject_profile->>'profile_key',nullif(subject_profile->>'version','')::int,
     quality_contract->>'profile_key',(quality_contract->>'version')::int,
     (evaluation_suite->>'version')::int,
     jsonb_build_object(
-      'title',p_claim->>'title',
-      'claim',p_claim->>'claim',
-      'curriculum_relevance',p_claim->>'curriculum_relevance',
-      'target',p_claim->'target',
-      'claim_sha256',p_claim->>'claim_sha256',
-      'current_content_sha256',p_claim->'target'->>'current_content_sha256'
+      'title',effective_claim->>'title',
+      'claim',effective_claim->>'claim',
+      'curriculum_relevance',effective_claim->>'curriculum_relevance',
+      'subject',resolved_subject,
+      'grade',resolved_grade,
+      'target',effective_claim->'target',
+      'claim_sha256',effective_claim->>'claim_sha256',
+      'current_content_sha256',effective_claim->'target'->>'current_content_sha256'
     ),
-    p_claim->>'evidence_packet_sha256',plan,'planned',blockers
+    effective_claim->>'evidence_packet_sha256',plan,'planned',blockers
   ) returning id into execution_id;
 
   return jsonb_build_object(
     'execution_context_id',execution_id,
     'professional_profile',professional,
-    'subject_profile',chemistry,
+    'subject_profile',subject_profile,
     'quality_contract',quality_contract,
     'evaluation_suite_version',evaluation_suite->>'version',
     'plan',plan
