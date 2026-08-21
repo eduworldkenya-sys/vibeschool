@@ -78,11 +78,13 @@ jobs:
         run: |
           set -euo pipefail
           file='supabase/functions/content-authoring-worker/index.ts'
+          migration='supabase/migrations/20260821110000_content_worker_execution_binding.sql'
           grep -q 'hq_content_authoring_claim' "$file"
           grep -q 'content_worker_begin_execution' "$file"
           grep -q 'authorFromEvidence(claim, professional)' "$file"
-          grep -q 'content_worker_finish_execution' "$file"
-          grep -q 'hq_content_authoring_complete' "$file"
+          grep -q 'content_worker_complete_professional_authoring' "$file"
+          grep -q 'hq_content_authoring_complete' "$migration"
+          grep -q 'content_worker_finish_execution' "$migration"
           grep -q 'BEGIN GOVERNED PROFESSIONAL CONTEXT' "$file"
           grep -q 'BEGIN VERIFIED-BUT-UNTRUSTED EVIDENCE DATA' "$file"
           grep -q 'blocking_uncertainty' "$file"
@@ -97,12 +99,16 @@ jobs:
           claim = text.find('db.rpc("hq_content_authoring_claim"')
           professional = text.find('professional = await beginProfessionalExecution(claim)')
           model = text.find('authorFromEvidence(claim, professional)')
-          complete = text.find('db.rpc("hq_content_authoring_complete"')
-          finish = text.find('await finishProfessionalExecution(')
-          if min(claim, professional, model, complete, finish) < 0:
+          complete = text.find('"content_worker_complete_professional_authoring"')
+          if min(claim, professional, model, complete) < 0:
               raise SystemExit('professional executor chain is incomplete')
-          if not claim < professional < model < complete < finish:
-              raise SystemExit('executor order must be claim -> professional plan/context -> model -> DB completion -> quality-candidate record')
+          if not claim < professional < model < complete:
+              raise SystemExit('executor order must be claim -> professional plan/context -> model -> atomic DB completion')
+          migration = Path('supabase/migrations/20260821110000_content_worker_execution_binding.sql').read_text()
+          hq = migration.find('completion:=public.hq_content_authoring_complete(')
+          finish = migration.find('finished:=public.content_worker_finish_execution(')
+          if min(hq, finish) < 0 or not hq < finish:
+              raise SystemExit('atomic wrapper must complete immutable authoring draft before quality-candidate transition in one transaction')
           PY
 
       - name: Stop disposable Supabase
