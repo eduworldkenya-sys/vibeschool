@@ -1,27 +1,67 @@
 name: Content Worker Professionalization
+
 on:
   pull_request:
     paths:
       - 'supabase/migrations/**content_worker_professionalization**'
+      - 'supabase/migrations/**content_worker_quality_review**'
       - 'scripts/sql/content_worker_professionalization_verify.sql'
       - '.github/workflows/content-worker-professionalization.yml'
   workflow_dispatch:
+
+concurrency:
+  group: content-worker-professionalization-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
 jobs:
   contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
         with:
-          version: latest
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Set up pinned Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.114.0
+
+      - name: Disable seed for schema-only certification
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f supabase/seed.sql ]; then
+            mv supabase/seed.sql /tmp/content-worker-seed.sql.disabled
+          fi
+
       - name: Start disposable Supabase
-        run: supabase start
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase start \
+            -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor
+
       - name: Rebuild migration chain
-        run: supabase db reset
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db reset --local --no-seed
+
       - name: Run professionalization adversarial contract
-        run: psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f scripts/sql/content_worker_professionalization_verify.sql
-        env:
-          POSTGRES_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f scripts/sql/content_worker_professionalization_verify.sql
+
+      - name: Stop disposable Supabase
+        if: always()
+        shell: bash
+        run: supabase stop --no-backup > /dev/null 2>&1 || true
