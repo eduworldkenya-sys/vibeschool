@@ -153,7 +153,7 @@ revoke all on function public.hq_workforce_verify_remaining_baseline(text,text) 
 grant execute on function public.hq_workforce_verify_remaining_baseline(text,text) to service_role;
 
 -- access: service-only public.hq_workforce_operations_r2_canary_runs
--- authorization-test: anon/authenticated denied; service_role select/insert only.
+-- authorization-test: public.hq_workforce_operations_r2_canary_runs anon/authenticated denied; service_role select/insert only.
 create table if not exists public.hq_workforce_operations_r2_canary_runs(
  id uuid primary key default gen_random_uuid(),worker_key text not null check(worker_key='ops-worker-01'),worker_version text not null,
  shadow_run_id uuid not null references public.hq_workforce_professional_shadow_runs(id) on delete restrict,
@@ -181,4 +181,3 @@ begin
 end $$;
 revoke all on function public.hq_workforce_run_operations_r2_canary(uuid,text) from public,anon,authenticated;
 grant execute on function public.hq_workforce_run_operations_r2_canary(uuid,text) to service_role;
-
