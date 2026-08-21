@@ -55,10 +55,11 @@ jobs:
           from pathlib import Path
           text = Path('supabase/functions/content-authoring-worker/index.ts').read_text()
           claim = text.find('db.rpc("hq_content_authoring_claim"')
-          model = text.find('authorFromEvidence(claim)')
+          professional = text.find('professional = await beginProfessionalExecution(claim)')
+          model = text.find('authorFromEvidence(claim, professional)')
           complete = text.find('db.rpc("hq_content_authoring_complete"')
-          if min(claim, model, complete) < 0 or not claim < model < complete:
-              raise SystemExit('executor order must be governed claim -> evidence-only model draft -> database completion')
+          if min(claim, professional, model, complete) < 0 or not claim < professional < model < complete:
+              raise SystemExit('executor order must be governed claim -> professional context/plan -> evidence-only model draft -> database completion')
           PY
       - name: Stop disposable Supabase
         if: always()
