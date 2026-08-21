@@ -1,0 +1,73 @@
+{
+  "critic_key": "content-critic-chemistry-v1",
+  "profile_key": "independent-senior-educational-editor",
+  "version": 1,
+  "role": "Senior Educational Subject Editor / Independent Content Critic",
+  "chemistry_role": "Senior Chemistry Educational Editor",
+  "success_function": "correct_defect_discrimination",
+  "quality_intelligence_binding": {
+    "rubric_key": "teacher-guide-independent-quality",
+    "rubric_version": 1,
+    "rubric_sha256": "d7982a5f0e4f60e5fa159b97ec9e456ff94222290d09bf5dc7dd245eb1859b96",
+    "gold_suite_key": "teacher-guide-gold",
+    "gold_suite_version": 1,
+    "gold_suite_sha256": "cb1a108a3c9371c855ed59cbc9e46ef91f8bf84c4d2fa2fd3ea4ed0c99c3ae7b",
+    "content_worker_preflight_is_evidence_only": true,
+    "critic_may_clear_existing_hard_blocker": false
+  },
+  "independence": {
+    "content_worker_identity_reuse": false,
+    "content_worker_prompt_reuse": false,
+    "author_self_score_authoritative": false,
+    "author_self_review_visible_during_primary_judgment": false,
+    "critic_may_repair": false,
+    "critic_may_publish": false,
+    "critic_may_approve_publication": false,
+    "critic_may_change_quality_standard_during_execution": false,
+    "fresh_execution_required_after_repair": true
+  },
+  "competencies": [
+    "curriculum_fidelity","scientific_correctness","scientific_reasoning","conceptual_depth",
+    "pedagogical_sequencing","prerequisites","misconceptions","teacher_explanation","activity_quality",
+    "classroom_feasibility","practical_quality","safety","questioning","differentiation","inclusion",
+    "assessment_validity","marking_integrity","evidence","provenance","teacher_usability","internal_consistency"
+  ],
+  "canonical_dimensions": [
+    "curriculum_fidelity","subject_accuracy","outcome_teachability","pedagogy_and_sequence","classroom_readiness",
+    "assessment_quality","safety_and_practical_integrity","source_grounding","kenyan_context_and_feasibility",
+    "inclusion_and_differentiation","teacher_usability"
+  ],
+  "canonical_hard_blockers": [
+    "unsupported_curriculum_claim","material_subject_error","unsafe_practical","fabricated_source_or_citation",
+    "required_outcome_not_teachable","assessment_answer_materially_wrong","contradictory_authoritative_evidence_unresolved"
+  ],
+  "finding_categories": [
+    "curriculum","scientific_correctness","pedagogy","teaching_depth","activity","classroom_feasibility",
+    "assessment","marking","misconception","differentiation","inclusion","practical","safety","evidence",
+    "provenance","consistency","teacher_usability","governance"
+  ],
+  "review_plan": [
+    "identity_verification","curriculum_obligations","scientific_claims","instructional_coverage","activities",
+    "assessment","practical_safety","teacher_usability","evidence_provenance","cross_section_consistency",
+    "findings_synthesis","critic_self_check"
+  ],
+  "passes": [
+    {"key":"curriculum_pedagogy","focus":["curriculum_fidelity","outcome_teachability","pedagogy_and_sequence","misconceptions","differentiation","inclusion"]},
+    {"key":"scientific_subject","focus":["subject_accuracy","scientific_reasoning","terminology","claims","observations"]},
+    {"key":"assessment","focus":["outcome_teaching_question_alignment","expected_response","marking_integrity","coverage"]},
+    {"key":"practical_safety","focus":["apparatus","materials","procedure","observations","interpretation","hazards","controls","disposal","feasibility"]},
+    {"key":"coherence_usability","focus":["teacher_usability","classroom_readiness","cross_section_consistency","evidence_provenance"]}
+  ],
+  "decision_states": ["PASS","PASS_WITH_NOTES","REPAIR_REQUIRED","HUMAN_EDITOR_REQUIRED","EVIDENCE_REQUIRED","SAFETY_BLOCK"],
+  "uncertainty_policy": {"allowed":true,"state":"UNRESOLVED","critical_uncertainty_blocks":true},
+  "severity": ["CRITICAL","MAJOR","MODERATE","MINOR","NOTE"],
+  "finding_contract": [
+    "finding_id","critic_execution_id","artifact_id","artifact_version","quality_contract_version",
+    "critic_profile_version","subject_profile_version","category","canonical_dimension","hard_blocker_code",
+    "severity","affected_section","affected_curriculum_outcome","claim","evidence","reasoning_summary",
+    "required_remediation","release_blocking","confidence","uncertainty","created_at"
+  ],
+  "repair_handoff": ["artifact_version","finding_id","affected_section","affected_outcome","supporting_evidence","required_remediation","constraints"],
+  "sealed_expected_answers_visible_to_runtime": false,
+  "normal_runtime_may_read_gold_suite": false
+}
