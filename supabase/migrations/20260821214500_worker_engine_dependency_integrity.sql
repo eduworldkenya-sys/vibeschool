@@ -1,6 +1,14 @@
 -- Worker Engine dependency integrity: checkpoint, repair, revalidate, resume.
 -- Architecture only. This migration does not enable runtime, schedulers, shadow,
 -- publishing, payments, authority grants, or autonomous mission switching.
+-- access: service-only public.hq_workforce_mission_checkpoints
+-- authorization-test: public.hq_workforce_mission_checkpoints denies product roles and direct service writes
+-- access: service-only public.hq_workforce_dependency_findings
+-- authorization-test: public.hq_workforce_dependency_findings denies product roles and direct service writes
+-- access: service-only public.hq_workforce_dependency_impacts
+-- authorization-test: public.hq_workforce_dependency_impacts denies product roles and direct service writes
+-- access: service-only public.hq_workforce_dependency_revalidations
+-- authorization-test: public.hq_workforce_dependency_revalidations denies product roles and direct service writes
 
 create table public.hq_workforce_mission_checkpoints (
   id uuid primary key default gen_random_uuid(),

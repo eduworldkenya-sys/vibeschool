@@ -4,7 +4,7 @@ from pathlib import Path
 root=Path(__file__).resolve().parents[1]
 sql=(root/'supabase/migrations/20260821170000_worker_engine_continuous_improvement.sql').read_text()
 test=(root/'supabase/tests/worker_engine_continuous_improvement.sql').read_text()
-dependency_sql=(root/'supabase/migrations/20260821210000_worker_engine_dependency_integrity.sql').read_text()
+dependency_sql=(root/'supabase/migrations/20260821214500_worker_engine_dependency_integrity.sql').read_text()
 dependency_test=(root/'supabase/tests/worker_engine_dependency_integrity.sql').read_text()
 
 for token in [
