@@ -28,11 +28,19 @@ for token in [
     'not_reproducible',
     'severity_invalid',
     'quality_contract_satisfied',
+    'hq_workforce_quality_detect_fixture',
+    'hq_workforce_quality_execute_lab_fixture',
+    'quality_fixture_evaluator_v1',
+    "evidence->>'execution_method'='quality_fixture_evaluator_v1'",
+    "qe.suite_version='professional-server-shadow-v1'",
     "'side_effects_applied',false",
     "'authority_changed',false",
     "select public.hq_workforce_professional_baseline('quality-worker-01')",
 ]:
     assert token in observed, token
+
+for category in std['required_defective_fixture_categories']:
+    assert category in observed, f'missing detector for {category}'
 
 combined=sql+'\n'+observed
 for forbidden in [
@@ -44,4 +52,4 @@ for forbidden in [
 ]:
     assert forbidden not in combined, forbidden
 
-print('Quality Worker professionalization + observed assurance regression: PASS')
+print('Quality Worker professionalization + execution-derived observed assurance regression: PASS')
