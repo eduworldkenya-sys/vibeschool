@@ -1,4 +1,10 @@
 -- Priority 2: professional Quality Worker. Governance/evaluation only; no runtime activation or authority grants.
+-- access: service-only public.hq_workforce_quality_examinations
+-- authorization-test: public.hq_workforce_quality_examinations anon/authenticated denied; service_role select/insert only.
+-- access: service-only public.hq_workforce_quality_findings
+-- authorization-test: public.hq_workforce_quality_findings anon/authenticated denied; service_role select/insert plus update(state,verified_at) only.
+-- access: service-only public.hq_workforce_quality_fixture_results
+-- authorization-test: public.hq_workforce_quality_fixture_results anon/authenticated denied; service_role select/insert only.
 create table if not exists public.hq_workforce_quality_examinations (
  id uuid primary key default gen_random_uuid(), target_worker_key text not null references public.hq_workforce_workers(worker_key) on delete restrict,
  target_worker_version text not null, quality_worker_key text not null default 'quality-worker-01', quality_worker_version text not null,
