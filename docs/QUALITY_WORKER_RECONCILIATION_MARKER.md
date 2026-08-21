@@ -1,1 +1,1 @@
-Quality Worker professionalization is converging with PR #418 real server-bound shadow evidence. This marker is non-functional; exact-head reconciliation is enforced by the branch history and CI, not by this file.
+Quality Worker reconciliation is enforced by branch history, exact-head CI, migration evidence, and production verification.
