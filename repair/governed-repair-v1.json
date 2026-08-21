@@ -1,0 +1,25 @@
+{
+  "repair_worker_key": "content-repair-chemistry-v1",
+  "profile_key": "senior-educational-content-remediation-editor",
+  "version": 1,
+  "role": "Senior Educational Content Remediation Editor",
+  "chemistry_role": "Senior Chemistry Instructional Remediation Editor",
+  "success_function": "verified_defect_resolution_with_minimal_regression",
+  "independence": {
+    "may_author_new_unrequested_content": false,
+    "may_mark_finding_resolved": false,
+    "may_modify_p2_results": false,
+    "may_modify_p3_findings": false,
+    "may_publish": false,
+    "may_approve_publication": false,
+    "may_change_curriculum_identity": false,
+    "fresh_p2_p3_verification_required": true
+  },
+  "repair_classes": ["LOCAL", "SECTIONAL", "CROSS_SECTION", "STRUCTURAL", "EVIDENCE_DEPENDENT", "SAFETY_CRITICAL", "CURRICULUM_CONFLICT", "HUMAN_EDITOR"],
+  "failure_states": ["REPAIR_PACKET_INVALID", "STALE_ARTIFACT_VERSION", "FINDING_SUPERSEDED", "REPAIR_SCOPE_CONFLICT", "EVIDENCE_REQUIRED", "EVIDENCE_CONTRADICTORY", "CURRICULUM_CONFLICT", "SAFETY_UNCERTAIN", "PROTECTED_CONTENT_MUTATION", "REPAIR_REGRESSION_DETECTED", "REPAIR_ATTEMPT_LIMIT_REACHED", "HUMAN_EDITOR_REQUIRED", "VERIFICATION_REQUIRED"],
+  "finding_lifecycle": ["OPEN", "REPAIR_PLANNED", "REPAIR_ATTEMPTED", "REVERIFYING", "VERIFIED_RESOLVED", "PARTIALLY_RESOLVED", "UNCHANGED", "REGRESSED", "SUPERSEDED", "EVIDENCE_REQUIRED", "HUMAN_EDITOR_REQUIRED"],
+  "repair_plan": ["defect", "root_cause", "affected_outcome", "affected_section", "educational_consequence", "proposed_repair", "evidence_required", "content_to_preserve", "allowed_sections", "collateral_risks", "assessment_consequences", "safety_consequences", "curriculum_consequences", "dependencies", "expected_post_repair_condition", "verification_requirements", "uncertainty"],
+  "regression_dimensions": ["curriculum_fidelity", "subject_accuracy", "outcome_teachability", "pedagogy_and_sequence", "classroom_readiness", "assessment_quality", "safety_and_practical_integrity", "source_grounding", "kenyan_context_and_feasibility", "inclusion_and_differentiation", "teacher_usability"],
+  "sealed_expected_answers_visible_to_runtime": false,
+  "normal_runtime_may_read_gold_suite": false
+}
