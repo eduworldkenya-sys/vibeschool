@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import "./parent-learn.css"
 
 type Child = {
   id: string
@@ -67,9 +68,9 @@ function statusLabel(status: Homework["status"]) {
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 text-center">
-      <p className="font-semibold text-slate-900">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-slate-500">{body}</p>
+    <div className="parent-learn-empty">
+      <p className="parent-learn-empty-title">{title}</p>
+      <p className="parent-learn-empty-body">{body}</p>
     </div>
   )
 }
@@ -147,9 +148,6 @@ export default function ParentLearnPage() {
 
   const loadChild = useCallback(async (child: Child) => {
     const version = ++requestVersion.current
-
-    // Privacy invariant: clear every child-scoped value before any network
-    // request. Child A must never remain visible under Child B's heading.
     setState(EMPTY)
     setError(null)
     setLoadingChild(true)
@@ -269,25 +267,21 @@ export default function ParentLearnPage() {
 
   if (loadingChildren) {
     return (
-      <main className="mx-auto min-h-screen max-w-xl bg-slate-50 p-4">
-        <div className="h-20 animate-pulse rounded-2xl bg-slate-200" />
-        <div className="mt-4 h-40 animate-pulse rounded-2xl bg-slate-200" />
+      <main className="parent-learn-page">
+        <div className="parent-learn-card">Loading children…</div>
       </main>
     )
   }
 
   if (children.length === 0) {
     return (
-      <main className="mx-auto flex min-h-screen max-w-xl items-center bg-slate-50 p-4">
-        <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm">
-          <h1 className="text-xl font-bold text-slate-900">Connect a child first</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+      <main className="parent-learn-page">
+        <div className="parent-learn-empty">
+          <h1 className="parent-learn-title">Connect a child first</h1>
+          <p className="parent-learn-empty-body">
             No active verified child relationship is available on this parent account. A pending, revoked or unverified relationship does not grant learner access.
           </p>
-          <button
-            onClick={() => router.push("/parent/connect-child")}
-            className="mt-5 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white"
-          >
+          <button onClick={() => router.push("/parent/connect-child")} className="parent-learn-tab" aria-selected="true">
             Connect a child
           </button>
         </div>
@@ -296,88 +290,57 @@ export default function ParentLearnPage() {
   }
 
   return (
-    <main className="mx-auto min-h-screen max-w-xl bg-slate-50 px-4 pb-28 pt-4 text-slate-900">
-      <section className="rounded-3xl bg-slate-900 p-5 text-white shadow-sm">
-        <p className="text-xs font-semibold uppercase tracking-wider text-emerald-300">Learning & progress</p>
-        <div className="mt-2 flex items-start justify-between gap-4">
+    <main className="parent-learn-page">
+      <section className="parent-learn-hero">
+        <p className="parent-learn-eyebrow">Learning & progress</p>
+        <div className="parent-learn-hero-row">
           <div>
-            <h1 className="text-2xl font-bold">{activeChild?.name ?? "Child"}</h1>
-            <p className="mt-1 text-sm text-slate-300">{activeChild?.className}</p>
+            <h1 className="parent-learn-title">{activeChild?.name ?? "Child"}</h1>
+            <p className="parent-learn-subtitle">{activeChild?.className}</p>
           </div>
-          <button
-            onClick={refresh}
-            disabled={loadingChild}
-            className="rounded-xl border border-white/20 px-3 py-2 text-xs font-semibold disabled:opacity-50"
-          >
+          <button onClick={refresh} disabled={loadingChild} className="parent-learn-refresh">
             {loadingChild ? "Loading…" : "Refresh"}
           </button>
         </div>
       </section>
 
       {children.length > 1 && (
-        <section className="mt-4" aria-label="Choose child">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Viewing child</p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {children.map(child => (
-              <button
-                key={child.id}
-                onClick={() => switchChild(child.id)}
-                aria-pressed={child.id === activeChildId}
-                className={`min-w-32 rounded-2xl border px-4 py-3 text-left ${
-                  child.id === activeChildId
-                    ? "border-emerald-500 bg-emerald-50"
-                    : "border-slate-200 bg-white"
-                }`}
-              >
-                <span className="block text-sm font-semibold">{child.name.split(" ")[0]}</span>
-                <span className="mt-1 block text-xs text-slate-500">{child.className}</span>
-              </button>
-            ))}
-          </div>
+        <section className="parent-learn-content" aria-label="Choose child">
+          {children.map(child => (
+            <button key={child.id} onClick={() => switchChild(child.id)} aria-pressed={child.id === activeChildId} className="parent-learn-card">
+              <strong>{child.name.split(" ")[0]}</strong> · {child.className}
+            </button>
+          ))}
         </section>
       )}
 
-      <nav className="mt-4 grid grid-cols-3 rounded-2xl border border-slate-200 bg-white p-1" aria-label="Learning sections">
+      <nav className="parent-learn-tabs" aria-label="Learning sections">
         {(["homework", "progress", "results"] as const).map(item => (
-          <button
-            key={item}
-            onClick={() => setTab(item)}
-            className={`rounded-xl px-2 py-3 text-sm font-semibold capitalize ${tab === item ? "bg-slate-900 text-white" : "text-slate-600"}`}
-          >
+          <button key={item} onClick={() => setTab(item)} className="parent-learn-tab" aria-selected={tab === item}>
             {item}
           </button>
         ))}
       </nav>
 
-      {error && (
-        <div role="alert" className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-          {error}
-        </div>
-      )}
+      {error && <div role="alert" className="parent-learn-alert">{error}</div>}
 
       {loadingChild ? (
-        <section className="mt-4 space-y-3" aria-label="Loading selected child">
-          <div className="h-28 animate-pulse rounded-2xl bg-slate-200" />
-          <div className="h-28 animate-pulse rounded-2xl bg-slate-200" />
+        <section className="parent-learn-content" aria-label="Loading selected child">
+          <div className="parent-learn-card">Loading learning information…</div>
         </section>
       ) : (
-        <section className="mt-4 space-y-3">
+        <section className="parent-learn-content">
           {tab === "homework" && (
             state.homework.length ? state.homework.map(item => (
-              <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{item.subject}</p>
-                    <h2 className="mt-1 font-semibold text-slate-900">{item.title}</h2>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">{statusLabel(item.status)}</span>
-                </div>
-                <p className="mt-2 text-sm text-slate-600">Due {dateLabel(item.dueDate)}</p>
-                {item.instructions && <p className="mt-3 text-sm leading-6 text-slate-700">{item.instructions}</p>}
+              <article key={item.id} className="parent-learn-card">
+                <p><strong>{item.subject}</strong></p>
+                <h2>{item.title}</h2>
+                <p>Due {dateLabel(item.dueDate)} · {statusLabel(item.status)}</p>
+                {item.instructions && <p>{item.instructions}</p>}
                 {item.status === "marked" && (
-                  <div className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-900">
-                    {item.mark !== null && <p className="font-semibold">Mark: {item.mark}</p>}
-                    {item.feedback && <p className="mt-1">{item.feedback}</p>}
+                  <div>
+                    {item.mark !== null && <p><strong>Mark: {item.mark}</strong></p>}
+                    {item.feedback && <p>{item.feedback}</p>}
                   </div>
                 )}
               </article>
@@ -386,41 +349,23 @@ export default function ParentLearnPage() {
 
           {tab === "progress" && (
             state.progress.length ? state.progress.map(item => (
-              <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  {dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}
-                </p>
-                {item.strengths.length > 0 && (
-                  <div className="mt-3">
-                    <h2 className="text-sm font-semibold text-slate-900">Doing well</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">{item.strengths.join(" · ")}</p>
-                  </div>
-                )}
-                {item.focusAreas.length > 0 && (
-                  <div className="mt-3">
-                    <h2 className="text-sm font-semibold text-slate-900">Focus next</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">{item.focusAreas.join(" · ")}</p>
-                  </div>
-                )}
-                {item.teacherComment && <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">{item.teacherComment}</p>}
+              <article key={item.id} className="parent-learn-card">
+                <p>{dateLabel(item.periodStart)} – {dateLabel(item.periodEnd)}</p>
+                {item.strengths.length > 0 && <p><strong>Doing well:</strong> {item.strengths.join(" · ")}</p>}
+                {item.focusAreas.length > 0 && <p><strong>Focus next:</strong> {item.focusAreas.join(" · ")}</p>}
+                {item.teacherComment && <p>{item.teacherComment}</p>}
               </article>
             )) : <EmptyState title="No published progress summary yet" body="Progress appears after the school or teacher publishes a family-facing learning summary." />
           )}
 
           {tab === "results" && (
             state.assessments.length ? state.assessments.map(item => (
-              <article key={item.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">{item.subject}</p>
-                    <h2 className="mt-1 font-semibold text-slate-900">{item.title}</h2>
-                  </div>
-                  {item.percentage !== null && <span className="text-lg font-bold text-slate-900">{Math.round(item.percentage)}%</span>}
-                </div>
-                <p className="mt-2 text-sm text-slate-600">
-                  Released {new Date(item.releasedAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                </p>
-                {item.score !== null && item.maxScore !== null && <p className="mt-2 text-sm font-medium text-slate-700">Score {item.score} / {item.maxScore}</p>}
+              <article key={item.id} className="parent-learn-card">
+                <p><strong>{item.subject}</strong></p>
+                <h2>{item.title}</h2>
+                {item.percentage !== null && <p><strong>{Math.round(item.percentage)}%</strong></p>}
+                <p>Released {new Date(item.releasedAt).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}</p>
+                {item.score !== null && item.maxScore !== null && <p>Score {item.score} / {item.maxScore}</p>}
               </article>
             )) : <EmptyState title="No released results" body="Draft or unreleased assessment results are never shown here. Published results will appear when the teacher releases them." />
           )}
