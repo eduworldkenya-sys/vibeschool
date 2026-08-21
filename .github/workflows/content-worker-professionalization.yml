@@ -5,6 +5,8 @@ on:
     paths:
       - 'supabase/migrations/**content_worker_professionalization**'
       - 'supabase/migrations/**content_worker_quality_review**'
+      - 'supabase/migrations/**content_worker_execution_binding**'
+      - 'supabase/functions/content-authoring-worker/**'
       - 'scripts/sql/content_worker_professionalization_verify.sql'
       - '.github/workflows/content-worker-professionalization.yml'
   workflow_dispatch:
@@ -30,6 +32,11 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 2.114.0
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
 
       - name: Disable seed for schema-only certification
         shell: bash
@@ -60,6 +67,41 @@ jobs:
             "postgresql://postgres@127.0.0.1:54322/postgres" \
             -v ON_ERROR_STOP=1 \
             -f scripts/sql/content_worker_professionalization_verify.sql
+
+      - name: Type-check existing authoring executor
+        run: deno check --node-modules-dir=auto supabase/functions/content-authoring-worker/index.ts
+
+      - name: Verify professional execution ordering and evidence boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          file='supabase/functions/content-authoring-worker/index.ts'
+          grep -q 'hq_content_authoring_claim' "$file"
+          grep -q 'content_worker_begin_execution' "$file"
+          grep -q 'authorFromEvidence(claim, professional)' "$file"
+          grep -q 'content_worker_finish_execution' "$file"
+          grep -q 'hq_content_authoring_complete' "$file"
+          grep -q 'BEGIN GOVERNED PROFESSIONAL CONTEXT' "$file"
+          grep -q 'BEGIN VERIFIED-BUT-UNTRUSTED EVIDENCE DATA' "$file"
+          grep -q 'blocking_uncertainty' "$file"
+          grep -q 'authoring_self_review_critical_finding' "$file"
+          if grep -Eqi 'tavily|serpapi|googleapis\.com/customsearch|bing\.com/search|search\.brave\.com' "$file"; then
+            echo 'Existing authoring worker must consume authorized evidence; hidden research is forbidden' >&2
+            exit 1
+          fi
+          python - <<'PY'
+          from pathlib import Path
+          text = Path('supabase/functions/content-authoring-worker/index.ts').read_text()
+          claim = text.find('db.rpc("hq_content_authoring_claim"')
+          professional = text.find('professional = await beginProfessionalExecution(claim)')
+          model = text.find('authorFromEvidence(claim, professional)')
+          complete = text.find('db.rpc("hq_content_authoring_complete"')
+          finish = text.find('await finishProfessionalExecution(')
+          if min(claim, professional, model, complete, finish) < 0:
+              raise SystemExit('professional executor chain is incomplete')
+          if not claim < professional < model < complete < finish:
+              raise SystemExit('executor order must be claim -> professional plan/context -> model -> DB completion -> quality-candidate record')
+          PY
 
       - name: Stop disposable Supabase
         if: always()
