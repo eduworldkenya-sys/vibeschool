@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vibeschool://critic/review-packet-v1",
+  "title": "Independent Critic Review Packet V1",
+  "type": "object",
+  "required": ["artifact","curriculum","author_trace","production_evidence","p1","p2"],
+  "properties": {
+    "artifact": {
+      "type":"object",
+      "required":["artifact_id","artifact_type","version","content"],
+      "properties": {
+        "artifact_id":{"type":"string","minLength":1},
+        "artifact_type":{"type":"string","minLength":1},
+        "version":{"type":"string","minLength":1},
+        "content":{"type":["string","object"]},
+        "content_sha256":{"type":["string","null"]}
+      }
+    },
+    "curriculum": {
+      "type":"object",
+      "required":["canonical_identity","mapped_outcomes","evidence"],
+      "properties": {
+        "canonical_identity":{"type":"object"},
+        "mapped_outcomes":{"type":"array"},
+        "evidence":{"type":"array"}
+      }
+    },
+    "author_trace": {
+      "type":"object",
+      "required":["worker_key","worker_version","professional_profile_version","subject_profile_version","artifact_contract_version"]
+    },
+    "production_evidence": {
+      "type":"object",
+      "required":["provenance","instructional_coverage_plan"],
+      "properties": {
+        "provenance":{"type":"array"},
+        "instructional_coverage_plan":{"type":["array","object"]},
+        "planning_outputs":{"type":["array","object","null"]}
+      }
+    },
+    "p1": {
+      "type":"object",
+      "required":["preflight","self_review","unresolved_uncertainty"],
+      "description":"Author-side evidence. self_review is withheld from the primary Critic model judgment and reconciled only afterward."
+    },
+    "p2": {
+      "type":"object",
+      "required":["rubric_key","rubric_version","rubric_sha256","dimension_scores","hard_blockers","evidence"],
+      "properties": {
+        "rubric_key":{"const":"teacher-guide-independent-quality"},
+        "rubric_version":{"const":1},
+        "rubric_sha256":{"const":"d7982a5f0e4f60e5fa159b97ec9e456ff94222290d09bf5dc7dd245eb1859b96"},
+        "dimension_scores":{"type":"object"},
+        "hard_blockers":{"type":"array","items":{"type":"string"}},
+        "evidence":{"type":["object","array"]}
+      }
+    }
+  },
+  "additionalProperties": true
+}
