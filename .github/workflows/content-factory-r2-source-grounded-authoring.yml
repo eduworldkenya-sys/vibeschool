@@ -34,8 +34,10 @@ jobs:
         run: |
           set -euo pipefail
           file='supabase/functions/content-authoring-worker/index.ts'
+          professional_migration='supabase/migrations/20260821110000_content_worker_execution_binding.sql'
           grep -q 'hq_content_authoring_claim' "$file"
-          grep -q 'hq_content_authoring_complete' "$file"
+          grep -q 'content_worker_complete_professional_authoring' "$file"
+          grep -q 'hq_content_authoring_complete' "$professional_migration"
           grep -q 'hq_content_authoring_fail' "$file"
           grep -q 'evidence_packet_sha256' "$file"
           grep -q 'BEGIN VERIFIED-BUT-UNTRUSTED EVIDENCE DATA' "$file"
@@ -57,9 +59,12 @@ jobs:
           claim = text.find('db.rpc("hq_content_authoring_claim"')
           professional = text.find('professional = await beginProfessionalExecution(claim)')
           model = text.find('authorFromEvidence(claim, professional)')
-          complete = text.find('db.rpc("hq_content_authoring_complete"')
+          complete = text.find('"content_worker_complete_professional_authoring"')
           if min(claim, professional, model, complete) < 0 or not claim < professional < model < complete:
-              raise SystemExit('executor order must be governed claim -> professional context/plan -> evidence-only model draft -> database completion')
+              raise SystemExit('executor order must be governed claim -> professional context/plan -> evidence-only model draft -> atomic database completion')
+          migration = Path('supabase/migrations/20260821110000_content_worker_execution_binding.sql').read_text()
+          if 'completion:=public.hq_content_authoring_complete(' not in migration:
+              raise SystemExit('professional completion wrapper must preserve R2 database completion authority')
           PY
       - name: Stop disposable Supabase
         if: always()
