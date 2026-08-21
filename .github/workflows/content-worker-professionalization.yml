@@ -1,0 +1,27 @@
+name: Content Worker Professionalization
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**content_worker_professionalization**'
+      - 'scripts/sql/content_worker_professionalization_verify.sql'
+      - '.github/workflows/content-worker-professionalization.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start disposable Supabase
+        run: supabase start
+      - name: Rebuild migration chain
+        run: supabase db reset
+      - name: Run professionalization adversarial contract
+        run: psql "$POSTGRES_URL" -v ON_ERROR_STOP=1 -f scripts/sql/content_worker_professionalization_verify.sql
+        env:
+          POSTGRES_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
