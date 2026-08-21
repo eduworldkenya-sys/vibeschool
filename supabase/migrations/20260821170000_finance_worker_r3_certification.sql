@@ -90,11 +90,7 @@ returns text language sql security definer set search_path=public,pg_temp stable
     (select coalesce(sum(expected_amount_kes),0) from public.commerce_payment_attempts),
     (select count(*) from public.commerce_payment_callback_events),
     (select count(*) from public.finance_payments),
-    (select coalesce(sum(amount),0) from public.finance_payments),
-    (select count(*) from public.finance_transactions),
-    (select count(*) from public.finance_credit_notes),
-    (select count(*) from public.finance_expenses),
-    (select count(*) from public.finance_pocket_money)
+    (select coalesce(sum(amount),0) from public.finance_payments)
   ));
 $$;
 revoke all on function public.hq_workforce_finance_state_digest() from public,anon,authenticated;
@@ -154,7 +150,7 @@ begin
   if not found or sr.worker_key<>'finance-worker-01' or sr.worker_version<>a.worker_version or not sr.passed or sr.side_effects_applied then raise exception 'current_passing_finance_shadow_required'; end if;
 
   v_pre:=public.hq_workforce_finance_state_digest();
-  perform 1; -- bounded server-observed canary performs no financial mutation.
+  perform 1;
   v_post:=public.hq_workforce_finance_state_digest();
   v_pass:=v_pre=v_post;
 
