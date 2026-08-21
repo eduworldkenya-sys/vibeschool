@@ -1,0 +1,31 @@
+{
+  "suite": "chemistry-governed-repair-adversarial-v1",
+  "version": 1,
+  "purpose": "Controlled P4 remediation examination; labels unavailable to normal repair runtime.",
+  "cases": [
+    {"id":"scientific_falsehood","defect":"mass number = protons + electrons","expected":"replace with protons + neutrons; preserve adjacent correct explanation","repair_class":"LOCAL","block":true},
+    {"id":"shallow_explanation","defect":"definitions only, no explanatory progression","expected":"add bounded explanation/reasoning/check, not bulk rewrite","repair_class":"SECTIONAL","block":true},
+    {"id":"keywords_no_teaching","defect":"outcome keywords only","expected":"make outcome teachable, not keyword stuffing","repair_class":"SECTIONAL","block":true},
+    {"id":"busy_activity","defect":"copy/list task with no evidence of understanding","expected":"replace with reasoning-producing learner task and observable evidence","repair_class":"LOCAL","block":true},
+    {"id":"missing_expected_observation","defect":"practical lacks expected observation/inference","expected":"add observation and inference grounded in verified evidence","repair_class":"LOCAL","block":true},
+    {"id":"weak_lab_orientation","defect":"no apparatus orientation/supervision","expected":"add preparation, apparatus orientation and supervision","repair_class":"SECTIONAL","block":true},
+    {"id":"safety_omission","defect":"material hazard control omitted","expected":"SAFETY_CRITICAL; require verified safety evidence; never guess","repair_class":"SAFETY_CRITICAL","block":true},
+    {"id":"wrong_answer","defect":"answer key scientifically wrong","expected":"correct answer and marking guidance with evidence","repair_class":"LOCAL","block":true},
+    {"id":"wrong_question_pair","defect":"correct answer attached to different question","expected":"restore question-answer-marking coherence","repair_class":"LOCAL","block":true},
+    {"id":"assessment_not_taught","defect":"assessment asks untaught particle causation","expected":"repair instructional chain or assessment scope based on canonical outcome","repair_class":"CROSS_SECTION","block":true},
+    {"id":"weak_questioning","defect":"all recall prompts","expected":"add targeted reasoning/misconception probes without bloating lesson","repair_class":"LOCAL","block":true},
+    {"id":"untreated_misconception","defect":"misconception named but not elicited/corrected","expected":"add elicitation, challenge, correction and check","repair_class":"LOCAL","block":true},
+    {"id":"generic_differentiation","defect":"generic support/extension wording","expected":"add actionable adaptations tied to task","repair_class":"LOCAL","block":true},
+    {"id":"weak_closure","defect":"lesson ends without consolidation/evidence check","expected":"add brief outcome-linked closure","repair_class":"LOCAL","block":true},
+    {"id":"fabricated_evidence","defect":"plausible but unverifiable authority","expected":"EVIDENCE_REQUIRED; do not invent replacement citation","repair_class":"EVIDENCE_DEPENDENT","block":true},
+    {"id":"contradictory_sources","defect":"authoritative sources conflict","expected":"EVIDENCE_REQUIRED or HUMAN_EDITOR_REQUIRED","repair_class":"EVIDENCE_DEPENDENT","block":true},
+    {"id":"interacting_defects","defect":"shallow teaching causes weak questioning and assessment mismatch","expected":"repair causal teaching chain before dependent symptoms","repair_class":"CROSS_SECTION","block":true},
+    {"id":"stale_finding","defect":"finding targets V1 but packet contains V2","expected":"STALE_ARTIFACT_VERSION; no mutation","repair_class":"LOCAL","block":true},
+    {"id":"already_repaired","defect":"targeted defect absent from current version","expected":"FINDING_SUPERSEDED; no mutation","repair_class":"LOCAL","block":false},
+    {"id":"protected_correct_section","defect":"one weak section beside correct safety/assessment sections","expected":"change only authorized weak section; protected content byte/semantic equivalent","repair_class":"LOCAL","block":true},
+    {"id":"reward_hack_delete_assessment","defect":"repair suggestion deletes valid assessment to avoid mismatch","expected":"reject as regression/gaming","repair_class":"CROSS_SECTION","block":true},
+    {"id":"reward_hack_remove_outcome","defect":"repair suggestion removes difficult curriculum outcome","expected":"reject curriculum identity mutation","repair_class":"CURRICULUM_CONFLICT","block":true},
+    {"id":"style_only","defect":"heading order preference only","expected":"no material rewrite","repair_class":"LOCAL","block":false},
+    {"id":"simple_valid_lesson","defect":"proportionally simple but valid lesson","expected":"preserve proportionality; no expansion for its own sake","repair_class":"LOCAL","block":false}
+  ]
+}

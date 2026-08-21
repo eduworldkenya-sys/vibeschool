@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "vibeschool://repair/repair-result-v1",
+  "title": "Governed Repair Result V1",
+  "type": "object",
+  "required": ["repair_execution_id", "worker_profile", "source_artifact", "new_candidate", "targeted_finding_ids", "repair_class", "repair_plan", "changed_sections", "preserved_sections", "impact", "repair_preflight", "status", "required_independent_verification"],
+  "properties": {
+    "repair_execution_id": {"type": "string", "minLength": 1},
+    "worker_profile": {"const": "senior-educational-content-remediation-editor:v1"},
+    "source_artifact": {"type": "object", "required": ["artifact_id", "version", "content_sha256"]},
+    "new_candidate": {"type": ["object", "null"]},
+    "targeted_finding_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "repair_class": {"enum": ["LOCAL", "SECTIONAL", "CROSS_SECTION", "STRUCTURAL", "EVIDENCE_DEPENDENT", "SAFETY_CRITICAL", "CURRICULUM_CONFLICT", "HUMAN_EDITOR"]},
+    "repair_plan": {"type": "object"},
+    "changed_sections": {"type": "array", "items": {"type": "string"}},
+    "preserved_sections": {"type": "array", "items": {"type": "string"}},
+    "impact": {"type": "object", "required": ["curriculum", "assessment", "safety", "provenance", "new_risks"]},
+    "repair_preflight": {"type": "object", "required": ["targeted_change_implemented", "protected_sections_unchanged", "curriculum_identity_unchanged", "release_state_unchanged", "provenance_preserved", "no_self_certification"]},
+    "status": {"enum": ["REPAIR_ATTEMPTED", "EVIDENCE_REQUIRED", "HUMAN_EDITOR_REQUIRED", "REPAIR_SCOPE_CONFLICT", "STALE_ARTIFACT_VERSION", "FINDING_SUPERSEDED", "SAFETY_UNCERTAIN", "CURRICULUM_CONFLICT"]},
+    "required_independent_verification": {"const": true}
+  },
+  "additionalProperties": true
+}
