@@ -1,0 +1,31 @@
+name: Chemistry Governed Stage Executor
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/*chemistry_stage_executor*'
+      - 'supabase/migrations/*chemistry_worker_execution*'
+      - 'scripts/validate-chemistry-stage-executor.py'
+      - 'scripts/validate-chemistry-worker-execution.py'
+      - 'docs/CHEMISTRY_GOVERNED_EXECUTION_CLOSURE.md'
+      - '.github/workflows/chemistry-governed-stage-executor.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python scripts/validate-chemistry-worker-execution.py
+      - run: python scripts/validate-chemistry-stage-executor.py
+      - run: python scripts/test-supabase-migration-contract.py
+      - run: python scripts/test-worker-engine-authority-plane-contract.py
+      - run: python scripts/validate-supabase-migration-contract.py --changed-from origin/main
