@@ -3,6 +3,12 @@ begin;
 -- Priority 1: professionalize the existing Content Factory authoring worker in-place.
 -- This adds governed professional context, inspectable planning, quality/evaluation evidence,
 -- and fail-closed preflight contracts. It does not add a competing author/critic/publisher.
+-- access: service-only public.content_worker_profiles
+-- authorization-test: public.content_worker_profiles
+-- access: service-only public.content_worker_execution_contexts
+-- authorization-test: public.content_worker_execution_contexts
+-- access: service-only public.content_worker_evaluations
+-- authorization-test: public.content_worker_evaluations
 
 create table if not exists public.content_worker_profiles (
   profile_key text not null,
