@@ -10,6 +10,15 @@ This change extends the canonical `hq_workforce_*` control plane. It does not cr
 4. The state machine permits only `candidate → testing → assurance_pending → shadow → canary → promoted`, with rejection from every pre-promotion stage and rollback after promotion.
 5. The proposer cannot act as the evaluator for assurance, shadow, canary, or promotion. Every consequential transition is evidence-bound.
 6. Versioned health events preserve the metric contract, window, thresholds, evaluator, and source evidence used to classify engine, worker, skill, or lane health.
+7. A confirmed earlier-priority gap creates an immutable mission checkpoint, typed dependency edge, blast-radius record, affected-decision inventory, repair lineage, regression and positive-control requirements, fresh revalidation, and explicit resume conditions.
+
+## Dependency Integrity Loop
+
+When later work exposes an earlier or shared defect, the engine classifies it as `blocking_dependency`, `certification_at_risk`, `security_or_data_integrity`, `non_blocking_debt`, or `not_a_defect`. Only the first three require interruption. The active mission is checkpointed before repair; unaffected work may continue.
+
+The engine records every affected worker, certificate, content artifact, commissioning stage, or mission gate. At-risk claims remain at risk until the canonical dependency is repaired and fresh evidence satisfies the recorded revalidation requirements. Resolution requires both a protected regression and a positive control. The checkpoint supplies deterministic resume conditions so the interrupted priority is resumed instead of forgotten.
+
+Recursive dependency repair is evidence-bound and must be cycle-detected by the orchestrator. This schema deliberately records the repair stack without granting workers authority to switch priorities, invalidate certificates, resume runtime, or promote themselves.
 
 Evidence tables are append-only. Product roles have no access. The service role can read them and invoke governed functions, but cannot directly forge incidents, regression cases, health events, or candidate transitions.
 
@@ -23,5 +32,6 @@ If a Chemistry teacher guide fails review, preserve the exact guide and worker v
 - `python scripts/validate-supabase-migration-contract.py --changed-from origin/main`
 - `python scripts/test-worker-engine-authority-plane-contract.py`
 - `supabase/tests/worker_engine_continuous_improvement.sql` in the database contract test environment
+- `supabase/tests/worker_engine_dependency_integrity.sql` in the database contract test environment
 
 The migration is architecture-only until reviewed and applied through the governed migration path. Runtime activation remains an explicit later owner gate.
