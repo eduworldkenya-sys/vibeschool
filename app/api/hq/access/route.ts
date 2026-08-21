@@ -9,17 +9,6 @@ function adminClient() {
   )
 }
 
-function requiredPermission(surface: string): string {
-  if (surface.startsWith("/hq/team")) return "team.manage"
-  if (surface.startsWith("/hq/publishing") || surface.startsWith("/hq/content") || surface.startsWith("/hq/curriculum")) return "content.approve"
-  if (surface.startsWith("/hq/users")) return "users.manage"
-  if (surface.startsWith("/hq/schools") || surface.startsWith("/hq/geography")) return "schools.manage"
-  if (surface.startsWith("/hq/support")) return "support.manage"
-  if (surface.startsWith("/hq/revenue") || surface.startsWith("/hq/finance")) return "finance.view"
-  if (surface.startsWith("/hq/workforce")) return "workforce.operate"
-  return "hq.view"
-}
-
 export async function GET(req: NextRequest) {
   const authorization = req.headers.get("authorization") || ""
   const token = authorization.startsWith("Bearer ") ? authorization.slice(7).trim() : ""
@@ -47,11 +36,17 @@ export async function GET(req: NextRequest) {
   }
 
   if (member.status !== "active") return NextResponse.json({ allowed: false, reason: "setup_required", role: member.role }, { status: 403 })
-  if (["founder", "partner_admin", "hq_admin"].includes(member.role)) {
-    return NextResponse.json({ allowed: true, role: member.role, permission: "operator.full" })
-  }
 
-  const permission = requiredPermission(surface)
-  const allowed = Array.isArray(member.permissions) && member.permissions.includes(permission)
-  return NextResponse.json({ allowed, role: member.role, permission, reason: allowed ? null : "permission_denied" }, { status: allowed ? 200 : 403 })
+  const permissions = Array.isArray(member.permissions) ? member.permissions : []
+  const isFounder = member.role === "founder"
+  const canView = isFounder || member.role === "partner_admin" || member.role === "hq_admin" || permissions.includes("hq.view")
+  if (!canView) return NextResponse.json({ allowed: false, role: member.role, reason: "permission_denied" }, { status: 403 })
+
+  return NextResponse.json({
+    allowed: true,
+    role: member.role,
+    visibility: "hq.full",
+    authority: isFounder ? "founder" : "bounded",
+    permissions,
+  })
 }
