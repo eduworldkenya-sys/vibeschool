@@ -2,6 +2,8 @@
 -- NON-ACTIVATING. This adds a current-version, side-effect-free shadow ledger for
 -- legacy canonical workers that do not have Worker Creator creation contracts.
 -- It does not grant capabilities, authority, autonomy, budget, identity, or activation.
+-- access: service-only public.hq_workforce_professional_shadow_runs
+-- authorization-test: public.hq_workforce_professional_shadow_runs anon/authenticated denied; service_role select/insert only.
 
 create table if not exists public.hq_workforce_professional_shadow_runs (
   id uuid primary key default gen_random_uuid(),
@@ -131,8 +133,6 @@ begin
   where id=p_tool_contract_id and status='approved';
   if not found then raise exception 'approved_shadow_tool_required'; end if;
 
-  -- A legacy worker may be professionally tested without granting runtime authority, but
-  -- its certified competency must cover the tool's required capability.
   if not exists (
     select 1
     from public.hq_workforce_capabilities c
@@ -184,9 +184,6 @@ end $$;
 revoke all on function public.hq_workforce_run_professional_shadow(text,uuid,jsonb,jsonb,text) from public,anon,authenticated;
 grant execute on function public.hq_workforce_run_professional_shadow(text,uuid,jsonb,jsonb,text) to service_role;
 
--- Tighten professional certification: a shadow evidence row must point to a real,
--- successful current-version professional shadow run (or the pre-existing content canary
--- evidence suite, which remains independently governed).
 create or replace function public.hq_workforce_decide_professional_certification(
   p_worker_key text,
   p_decider text
