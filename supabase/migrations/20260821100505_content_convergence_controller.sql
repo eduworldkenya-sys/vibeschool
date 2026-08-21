@@ -1,5 +1,19 @@
 -- Priority 5: closed-loop content convergence controller.
 -- Service-only orchestration. No publication authority is granted here.
+-- access: service-only public.content_convergence_versions
+-- authorization-test: public.content_convergence_versions anon/authenticated denied; service_role only.
+-- access: service-only public.content_convergence_runs
+-- authorization-test: public.content_convergence_runs anon/authenticated denied; service_role only.
+-- access: service-only public.content_convergence_findings
+-- authorization-test: public.content_convergence_findings anon/authenticated denied; service_role only.
+-- access: service-only public.content_convergence_evaluations
+-- authorization-test: public.content_convergence_evaluations anon/authenticated denied; service_role only.
+-- access: service-only public.content_convergence_deltas
+-- authorization-test: public.content_convergence_deltas anon/authenticated denied; service_role only.
+-- access: service-only public.content_convergence_release_decisions
+-- authorization-test: public.content_convergence_release_decisions anon/authenticated denied; service_role only.
+-- access: service-only public.content_convergence_events
+-- authorization-test: public.content_convergence_events anon/authenticated denied; service_role only.
 
 create table if not exists public.content_convergence_versions (
   id uuid primary key default gen_random_uuid(),
