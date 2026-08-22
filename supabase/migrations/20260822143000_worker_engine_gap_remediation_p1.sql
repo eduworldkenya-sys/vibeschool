@@ -1,149 +1,109 @@
--- Worker Engine P1 hardening.
--- Extends the existing workforce tables; no parallel execution system.
+-- Worker Engine P1 hardening against the actual R1.4 production architecture.
+-- Existing controls already provide fail-closed context scopes, deterministic-first
+-- model authorization, certification checks, paid-AI gating, runtime budgets and
+-- worker performance telemetry. This migration adds the missing explicit fallback
+-- decision contract instead of introducing the superseded hq_worker_* schema.
 
-alter table public.hq_worker_messages
-  drop constraint if exists hq_worker_messages_message_type_check;
+alter table public.hq_workforce_model_invocations
+  add column if not exists original_risk_class smallint,
+  add column if not exists fallback_risk_class smallint,
+  add column if not exists fallback_depth integer,
+  add column if not exists fallback_decision text;
 
-alter table public.hq_worker_messages
-  add constraint hq_worker_messages_message_type_check
-  check (message_type in ('assign','request','consult','request_missing_data','review','escalate','approve','reject','inform','handoff','verify'));
+alter table public.hq_workforce_model_invocations
+  drop constraint if exists hq_workforce_model_invocations_fallback_decision_check;
 
-alter table public.hq_worker_messages
-  add column if not exists expires_at timestamptz;
+alter table public.hq_workforce_model_invocations
+  add constraint hq_workforce_model_invocations_fallback_decision_check
+  check (fallback_decision is null or fallback_decision in ('allow','approval_required','blocked'));
 
-create index if not exists hq_worker_messages_expiry_idx
-  on public.hq_worker_messages(status, expires_at)
-  where expires_at is not null;
+alter table public.hq_workforce_model_invocations
+  add constraint hq_workforce_model_invocations_fallback_depth_check
+  check (fallback_depth is null or fallback_depth > 0);
 
-create table if not exists public.hq_worker_fallback_admissions (
-  id uuid primary key default gen_random_uuid(),
-  worker_id uuid not null references public.hq_workers(id) on delete cascade,
-  work_item_id uuid references public.hq_work_items(id) on delete set null,
-  workflow_key text not null,
-  original_mode text not null check (original_mode in ('deterministic','local_ai','human','external_ai')),
-  fallback_mode text not null check (fallback_mode in ('deterministic','local_ai','human','external_ai')),
-  original_risk text not null check (original_risk in ('low','normal','high','critical')),
-  fallback_risk text not null check (fallback_risk in ('low','normal','high','critical')),
-  fallback_depth integer not null check (fallback_depth > 0),
-  decision text not null check (decision in ('allow','approval_required','blocked')),
-  reason text not null,
-  created_at timestamptz not null default clock_timestamp()
-);
+create index if not exists hq_workforce_model_invocations_fallback_idx
+  on public.hq_workforce_model_invocations(worker_key, created_at desc)
+  where fallback_depth is not null;
 
-create index if not exists hq_worker_fallback_admissions_worker_idx
-  on public.hq_worker_fallback_admissions(worker_id, created_at desc);
-
-alter table public.hq_worker_fallback_admissions enable row level security;
-revoke all on table public.hq_worker_fallback_admissions from public,anon,authenticated,service_role;
-
-create or replace function public.hq_workforce_record_fallback_admission(
-  p_worker_id uuid,
-  p_work_item_id uuid,
-  p_workflow_key text,
-  p_original_mode text,
-  p_fallback_mode text,
-  p_original_risk text,
-  p_fallback_risk text,
-  p_fallback_depth integer,
-  p_require_approval_on_risk_increase boolean default true,
+create or replace function public.hq_workforce_authorize_model_fallback(
+  p_worker_key text,
+  p_task_id uuid,
+  p_reason_code text,
+  p_failure_evidence jsonb,
+  p_model_key text,
+  p_token_budget bigint,
+  p_original_risk_class smallint,
+  p_fallback_risk_class smallint,
+  p_fallback_depth integer default 1,
   p_max_fallback_depth integer default 1,
-  p_allowed_fallback_modes text[] default null
-) returns text
+  p_require_approval_on_risk_increase boolean default true
+) returns uuid
 language plpgsql
 security definer
 set search_path=public,pg_temp
 as $$
 declare
+  v_id uuid;
   v_decision text := 'allow';
-  v_reason text := 'fallback_authorized';
-  v_original_rank integer;
-  v_fallback_rank integer;
 begin
-  if p_fallback_depth is null or p_fallback_depth < 1 then
-    v_decision := 'blocked'; v_reason := 'fallback_depth_invalid';
-  elsif p_fallback_depth > coalesce(p_max_fallback_depth,1) then
-    v_decision := 'blocked'; v_reason := 'fallback_depth_exceeded';
-  elsif p_allowed_fallback_modes is not null and not (p_fallback_mode = any(p_allowed_fallback_modes)) then
-    v_decision := 'blocked'; v_reason := 'fallback_mode_not_allowed';
-  else
-    v_original_rank := case p_original_risk when 'low' then 0 when 'normal' then 1 when 'high' then 2 when 'critical' then 3 else 99 end;
-    v_fallback_rank := case p_fallback_risk when 'low' then 0 when 'normal' then 1 when 'high' then 2 when 'critical' then 3 else 99 end;
-    if v_fallback_rank > v_original_rank and coalesce(p_require_approval_on_risk_increase,true) then
-      v_decision := 'approval_required'; v_reason := 'fallback_risk_increased';
-    end if;
+  perform public.hq_workforce_assert_identity(p_worker_key);
+  perform public.hq_workforce_assert_certification(p_worker_key);
+  if public.hq_workforce_current_lifecycle_state(p_worker_key) <> 'active' then
+    raise exception 'worker_not_active';
+  end if;
+  if p_reason_code not in ('semantic_ambiguity','unstructured_synthesis','novel_classification') then
+    raise exception 'model_reason_not_allowlisted';
+  end if;
+  if coalesce(p_failure_evidence,'{}'::jsonb) = '{}'::jsonb then
+    raise exception 'deterministic_failure_evidence_required';
+  end if;
+  if p_token_budget < 1 then
+    raise exception 'model_token_budget_required';
+  end if;
+  if p_original_risk_class is null or p_fallback_risk_class is null then
+    raise exception 'fallback_risk_class_required';
+  end if;
+  if p_fallback_depth < 1 or p_fallback_depth > coalesce(p_max_fallback_depth,1) then
+    v_decision := 'blocked';
+  elsif p_fallback_risk_class > p_original_risk_class and coalesce(p_require_approval_on_risk_increase,true) then
+    v_decision := 'approval_required';
   end if;
 
-  insert into public.hq_worker_fallback_admissions(
-    worker_id,work_item_id,workflow_key,original_mode,fallback_mode,
-    original_risk,fallback_risk,fallback_depth,decision,reason
+  if v_decision = 'approval_required' then
+    insert into public.hq_workforce_model_invocations(
+      worker_key,task_id,reason_code,deterministic_attempted,deterministic_failure_evidence,
+      model_key,token_budget,status,original_risk_class,fallback_risk_class,fallback_depth,fallback_decision
+    ) values (
+      p_worker_key,p_task_id,p_reason_code,true,p_failure_evidence,
+      p_model_key,p_token_budget,'denied',p_original_risk_class,p_fallback_risk_class,p_fallback_depth,v_decision
+    ) returning id into v_id;
+    return v_id;
+  end if;
+
+  if v_decision = 'blocked' then
+    insert into public.hq_workforce_model_invocations(
+      worker_key,task_id,reason_code,deterministic_attempted,deterministic_failure_evidence,
+      model_key,token_budget,status,original_risk_class,fallback_risk_class,fallback_depth,fallback_decision
+    ) values (
+      p_worker_key,p_task_id,p_reason_code,true,p_failure_evidence,
+      p_model_key,p_token_budget,'denied',p_original_risk_class,p_fallback_risk_class,p_fallback_depth,v_decision
+    ) returning id into v_id;
+    return v_id;
+  end if;
+
+  perform public.hq_workforce_reserve_budget(p_worker_key,'model_tokens',p_token_budget);
+  insert into public.hq_workforce_model_invocations(
+    worker_key,task_id,reason_code,deterministic_attempted,deterministic_failure_evidence,
+    model_key,token_budget,status,original_risk_class,fallback_risk_class,fallback_depth,fallback_decision
   ) values (
-    p_worker_id,p_work_item_id,p_workflow_key,p_original_mode,p_fallback_mode,
-    p_original_risk,p_fallback_risk,p_fallback_depth,v_decision,v_reason
-  );
-
-  return v_decision;
+    p_worker_key,p_task_id,p_reason_code,true,p_failure_evidence,
+    p_model_key,p_token_budget,'authorized',p_original_risk_class,p_fallback_risk_class,p_fallback_depth,v_decision
+  ) returning id into v_id;
+  return v_id;
 end;
 $$;
 
-revoke all on function public.hq_workforce_record_fallback_admission(uuid,uuid,text,text,text,text,text,integer,boolean,integer,text[])
-  from public,anon,authenticated,service_role;
-grant execute on function public.hq_workforce_record_fallback_admission(uuid,uuid,text,text,text,text,text,integer,boolean,integer,text[])
+revoke all on function public.hq_workforce_authorize_model_fallback(text,uuid,text,jsonb,text,bigint,smallint,smallint,integer,integer,boolean)
+  from public,anon,authenticated;
+grant execute on function public.hq_workforce_authorize_model_fallback(text,uuid,text,jsonb,text,bigint,smallint,smallint,integer,integer,boolean)
   to service_role;
-
-create or replace function public.hq_workforce_metric_is_fresh(
-  p_worker_id uuid,
-  p_metric_key text,
-  p_max_age_seconds integer default 900
-) returns boolean
-language sql
-security definer
-set search_path=public,pg_temp
-stable
-as $$
-  select exists (
-    select 1
-    from public.hq_worker_kpis k
-    where k.worker_id = p_worker_id
-      and k.metric_key = p_metric_key
-      and k.current_value is not null
-      and k.measured_at is not null
-      and k.measured_at >= clock_timestamp() - make_interval(secs => greatest(0,coalesce(p_max_age_seconds,900)))
-  );
-$$;
-
-revoke all on function public.hq_workforce_metric_is_fresh(uuid,text,integer)
-  from public,anon,authenticated,service_role;
-grant execute on function public.hq_workforce_metric_is_fresh(uuid,text,integer)
-  to service_role;
-
-create or replace function public.hq_workforce_expire_stale_consultations()
-returns integer
-language plpgsql
-security definer
-set search_path=public,pg_temp
-as $$
-declare v_count integer := 0;
-begin
-  update public.hq_worker_messages
-  set status='failed'
-  where status in ('pending','claimed')
-    and expires_at is not null
-    and expires_at < clock_timestamp();
-  get diagnostics v_count = row_count;
-  return v_count;
-end;
-$$;
-
-revoke all on function public.hq_workforce_expire_stale_consultations() from public,anon,authenticated;
-grant execute on function public.hq_workforce_expire_stale_consultations() to service_role;
-
-do $block$
-begin
-  if not exists(select 1 from cron.job where jobname='worker-engine-consultation-expiry') then
-    perform cron.schedule(
-      'worker-engine-consultation-expiry',
-      '*/15 * * * *',
-      $job$select public.hq_workforce_expire_stale_consultations()$job$
-    );
-  end if;
-end $block$;
