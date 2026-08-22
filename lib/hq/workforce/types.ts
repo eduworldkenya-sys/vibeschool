@@ -1,7 +1,7 @@
 export type WorkerExecutionMode = "deterministic" | "local_ai" | "human" | "external_ai"
 export type WorkerStatus = "draft" | "probation" | "active" | "restricted" | "suspended" | "retired"
 export type WorkerRisk = "low" | "normal" | "high" | "critical"
-export type WorkMessageType = "assign" | "request" | "consult" | "review" | "escalate" | "approve" | "reject" | "inform" | "handoff" | "verify"
+export type WorkMessageType = "assign" | "request" | "consult" | "request_missing_data" | "review" | "escalate" | "approve" | "reject" | "inform" | "handoff" | "verify"
 
 export interface WorkerKpiDefinition {
   key: string
@@ -38,7 +38,7 @@ export interface WorkerTriggerDefinition {
   cooldownSeconds?: number
   /** Stable logical key used to collapse repeated evaluations of the same work. */
   deduplicationKey?: string
-  /** Optional ceiling for repeated admissions in a future windowed policy. */
+  /** Maximum successful admissions in the rolling enforcement window. */
   maxFiresPerWindow?: number
 }
 
@@ -46,6 +46,16 @@ export interface WorkerFallbackPolicy {
   requireApprovalOnRiskIncrease: boolean
   allowedFallbackModes?: WorkerExecutionMode[]
   maxFallbackDepth: number
+}
+
+export interface WorkerFallbackDecision {
+  status: "allow" | "approval_required" | "blocked"
+  reason: string
+}
+
+export interface WorkerContextPolicy {
+  allowedKeys: string[]
+  maxSerializedBytes: number
 }
 
 export interface DigitalWorkerDefinition {
@@ -58,6 +68,7 @@ export interface DigitalWorkerDefinition {
   competencies: string[]
   executionOrder: WorkerExecutionMode[]
   fallbackPolicy?: WorkerFallbackPolicy
+  contextPolicy?: WorkerContextPolicy
   authority: WorkerAuthorityRule[]
   triggers: WorkerTriggerDefinition[]
   kpis: WorkerKpiDefinition[]
