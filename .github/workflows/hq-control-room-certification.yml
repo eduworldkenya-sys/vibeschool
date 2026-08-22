@@ -25,5 +25,23 @@ jobs:
         run: node scripts/test-hq-control-room-ui.mjs
       - name: TypeScript
         run: npm run typecheck
+      - name: Worker Engine governed adversarial proof
+        run: |
+          rm -rf .tmp/hq-governed-proof
+          npx --no-install tsc lib/hq/workforce/governed-runtime.test.ts \
+            --outDir .tmp/hq-governed-proof \
+            --module commonjs \
+            --target es2022 \
+            --moduleResolution node \
+            --esModuleInterop \
+            --skipLibCheck \
+            --types node
+          node --test .tmp/hq-governed-proof/governed-runtime.test.js
+      - name: Proof escape-hatch audit
+        run: |
+          if grep -nE 'as[[:space:]]+(any|unknown)|@ts-ignore|@ts-nocheck|eslint-disable|\.skip\(' lib/hq/workforce/governed-runtime.test.ts; then
+            echo 'Certification proof contains a forbidden type/test escape hatch.' >&2
+            exit 1
+          fi
       - name: Lint
         run: npm run lint
