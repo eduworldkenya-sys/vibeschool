@@ -1,11 +1,13 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 import { claimGovernedTrigger, executeGovernedWorker, persistGovernedClarification } from "./governed-runtime"
+import type { GovernedRuntimePersistence } from "./governed-runtime"
 import type {
+  ClarificationPayload,
   DigitalWorkerDefinition,
-  GovernedRuntimePersistence,
-} from "./governed-runtime"
-import type { WorkEnvelope, WorkerExecutionResult } from "./types"
+  WorkEnvelope,
+  WorkerExecutionResult,
+} from "./types"
 
 const now = new Date().toISOString()
 
@@ -219,13 +221,18 @@ test("persistence failure fails closed", async () => {
 })
 
 test("clarification must be structured", async () => {
-  const bad: WorkEnvelope<Record<string, unknown>> = {
+  const bad: WorkEnvelope<ClarificationPayload & Record<string, unknown>> = {
     ...envelope(),
     type: "clarify",
-    payload: { questionKey: "", requiredFields: [], reason: "Missing data", responseToEnvelopeId: "env-parent" },
+    payload: {
+      questionKey: "",
+      requiredFields: [],
+      reason: "Missing data",
+      responseToEnvelopeId: "env-parent",
+    },
   }
   await assert.rejects(
-    () => persistGovernedClarification(persistence(), "clarify:bad", bad as WorkEnvelope<any>),
+    () => persistGovernedClarification(persistence(), "clarify:bad", bad),
     /INVALID_STRUCTURED_CLARIFICATION/,
   )
 })
