@@ -1,0 +1,6 @@
+{
+  "state": "NOT_CERTIFIED",
+  "reason": "replacement pull request exact-head CI has not executed yet",
+  "may_merge": false,
+  "may_close_445": false
+}
