@@ -1,33 +1,38 @@
 {
-  "version": 2,
+  "version": 3,
   "mandatoryForAllAgents": true,
+  "ownership": {
+    "owner": "vibeschool-cyborg-executor",
+    "policy": "All registered engineering skills are subordinate modules governed, selected, sequenced, evaluated and certified only through the Cyborg executor."
+  },
   "orchestrator": {
     "id": "vibeschool-cyborg-executor",
     "path": "docs/ai-governance/CYBORG_EXECUTOR.md",
     "mandatory": true,
-    "purpose": "Canonical vendor-neutral execution orchestrator that selects and sequences mandatory skills, controls dependency repair, exact-head evidence, CI repair, certification, merge admission, post-merge verification and regression learning."
+    "authoritativeSkillOwner": true,
+    "purpose": "Canonical vendor-neutral owner and execution orchestrator of the VibeSchool engineering skill system."
   },
   "core": [
-    {"id":"repo-truth-first","purpose":"Inspect current code, types, tests, migrations, workflows, PR state and CI before changing anything."},
-    {"id":"contract-integrity","purpose":"Validate fixtures, mocks, payloads, interfaces, DB schemas, RPCs and API shapes against current canonical definitions; forbid stale remembered shapes."},
-    {"id":"preflight-before-ci","purpose":"Require narrow tests, typecheck, lint, relevant build and changed-file validation before claiming ready for CI."},
-    {"id":"test-the-test","purpose":"Prove new tests fail when protected behavior is deliberately broken; reject decorative tests."},
-    {"id":"ci-failure-repair-loop","purpose":"Fetch the exact failed job/log, classify root cause, repair the canonical cause, rerun and repeat until green or genuinely blocked."},
-    {"id":"evidence-and-certification","purpose":"Enforce exact-head evidence and strict meanings for IMPLEMENTED, VERIFIED, CERTIFIED, MERGED and BLOCKED."},
-    {"id":"dependency-integrity-loop","purpose":"When later work reveals an earlier defect, repair the earlier canonical layer first, invalidate stale certification and re-certify dependents."},
-    {"id":"escape-hatch-auditor","purpose":"Scan for unsafe type escapes, ignored diagnostics, skipped tests, disabled lint, swallowed errors, weakened assertions, bypass mocks and unsafe feature flags."},
-    {"id":"security-authority-gate","purpose":"Verify RLS, tenant isolation, authz, service-role use, capability grants, owner gates, secrets, destructive operations and fail-closed behavior."},
-    {"id":"merge-certification-gate","purpose":"Forbid merge until required checks are green on current head, review obligations are satisfied and merge result is verified."},
-    {"id":"regression-learning","purpose":"Turn preventable failure classes into permanent regression cases or preflight rules whenever practical."},
-    {"id":"resource-conservation","purpose":"Avoid unnecessary deploys, paid AI, destructive DB actions and expensive external calls when cheaper proof is sufficient."}
+    {"id":"repo-truth-first","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Inspect current code, types, tests, migrations, workflows, PR state and CI before changing anything."},
+    {"id":"contract-integrity","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Validate fixtures, mocks, payloads, interfaces, DB schemas, RPCs and API shapes against current canonical definitions; forbid stale remembered shapes."},
+    {"id":"preflight-before-ci","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Require narrow tests, typecheck, lint, relevant build and changed-file validation before claiming ready for CI."},
+    {"id":"test-the-test","owner":"vibeschool-cyborg-executor","activation":"triggered","purpose":"Prove new tests fail when protected behavior is deliberately broken; reject decorative tests."},
+    {"id":"ci-failure-repair-loop","owner":"vibeschool-cyborg-executor","activation":"triggered","purpose":"Fetch the exact failed job/log, classify root cause, repair the canonical cause, rerun and repeat until green or genuinely blocked."},
+    {"id":"evidence-and-certification","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Enforce exact-head evidence and strict meanings for IMPLEMENTED, VERIFIED, CERTIFIED, MERGED and BLOCKED."},
+    {"id":"dependency-integrity-loop","owner":"vibeschool-cyborg-executor","activation":"always-armed","purpose":"When later work reveals an earlier defect, repair the earlier canonical layer first, invalidate stale certification and re-certify dependents."},
+    {"id":"escape-hatch-auditor","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Scan for unsafe type escapes, ignored diagnostics, skipped tests, disabled lint, swallowed errors, weakened assertions, bypass mocks and unsafe feature flags."},
+    {"id":"security-authority-gate","owner":"vibeschool-cyborg-executor","activation":"triggered","purpose":"Verify RLS, tenant isolation, authz, service-role use, capability grants, owner gates, secrets, destructive operations and fail-closed behavior."},
+    {"id":"merge-certification-gate","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Forbid merge until required checks are green on current head, review obligations are satisfied and merge result is verified."},
+    {"id":"regression-learning","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Turn preventable failure classes into permanent regression cases or preflight rules whenever practical."},
+    {"id":"resource-conservation","owner":"vibeschool-cyborg-executor","activation":"continuous","purpose":"Avoid unnecessary deploys, paid AI, destructive DB actions and expensive external calls when cheaper proof is sufficient."}
   ],
   "vibeschoolDomains": [
-    {"id":"worker-engine-governance","purpose":"Govern worker authority, runtime admission, approvals, watchdogs, retries, clarification, fallback and commissioning."},
-    {"id":"supabase-rls-security","purpose":"Protect schema, migrations, RLS, grants, tenant isolation, service-role boundaries, auth and data integrity."},
-    {"id":"content-factory-quality","purpose":"Protect curriculum identity, source fidelity, quality gates, independent review, publishing state and learner-facing content integrity."},
-    {"id":"hq-ux-operational-truth","purpose":"Ensure HQ states reflect real commissioned, authorized, available, working, blocked and certified truth with usable evidence."},
-    {"id":"journey-integrity","purpose":"Protect end-to-end Teacher, Student, Parent and School Admin journeys and shared identity/data contracts."},
-    {"id":"production-readiness","purpose":"Require safe rollout, rollback, environment verification, migration safety, exact-head deployment evidence and post-release checks."},
-    {"id":"observability-watchdog-reliability","purpose":"Require telemetry freshness, heartbeat health, failure visibility, watchdog independence and recovery evidence."}
+    {"id":"worker-engine-governance","owner":"vibeschool-cyborg-executor","activation":"domain-match","purpose":"Govern worker authority, runtime admission, approvals, watchdogs, retries, clarification, fallback and commissioning."},
+    {"id":"supabase-rls-security","owner":"vibeschool-cyborg-executor","activation":"domain-match","purpose":"Protect schema, migrations, RLS, grants, tenant isolation, service-role boundaries, auth and data integrity."},
+    {"id":"content-factory-quality","owner":"vibeschool-cyborg-executor","activation":"domain-match","purpose":"Protect curriculum identity, source fidelity, quality gates, independent review, publishing state and learner-facing content integrity."},
+    {"id":"hq-ux-operational-truth","owner":"vibeschool-cyborg-executor","activation":"domain-match","purpose":"Ensure HQ states reflect real commissioned, authorized, available, working, blocked and certified truth with usable evidence."},
+    {"id":"journey-integrity","owner":"vibeschool-cyborg-executor","activation":"domain-match","purpose":"Protect end-to-end Teacher, Student, Parent and School Admin journeys and shared identity/data contracts."},
+    {"id":"production-readiness","owner":"vibeschool-cyborg-executor","activation":"domain-match","purpose":"Require safe rollout, rollback, environment verification, migration safety, exact-head deployment evidence and post-release checks."},
+    {"id":"observability-watchdog-reliability","owner":"vibeschool-cyborg-executor","activation":"domain-match","purpose":"Require telemetry freshness, heartbeat health, failure visibility, watchdog independence and recovery evidence."}
   ]
 }
