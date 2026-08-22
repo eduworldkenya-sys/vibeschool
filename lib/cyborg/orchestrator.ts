@@ -38,7 +38,7 @@ export function blastRadius(changed:string[], dependencyMap:Record<string,string
 
 export async function executeRollback(sideEffects:SideEffect[], executor:(rollback:string,sideEffect:SideEffect)=>Promise<void>):Promise<string[]> {
   const completed:string[]=[];
-  for(const effect of [...sideEffects].reverse()) {
+  for(const effect of sideEffects.slice().reverse()) {
     if(effect.risk==='read') continue;
     if(!effect.rollback) throw new Error(`ROLLBACK_PLAN_MISSING:${effect.id}`);
     await executor(effect.rollback,effect); completed.push(effect.id);
@@ -63,7 +63,7 @@ export function adversarialCompletionCritic(m:CyborgMission):string[] {
   if(!m.checkpoint) failures.push('RECOVERY_CHECKPOINT_MISSING');
   if(!m.lease) failures.push('MISSION_LEASE_MISSING');
   if(m.confidence==null||m.confidence<0.9) failures.push('CONFIDENCE_BELOW_CERTIFICATION_THRESHOLD');
-  return [...new Set(failures)];
+  return Array.from(new Set(failures));
 }
 
 export function executeCycle(m:CyborgMission, progressFingerprint:string):CyborgMission {
