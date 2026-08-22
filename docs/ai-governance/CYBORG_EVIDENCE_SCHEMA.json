@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "owner": "vibeschool-cyborg-executor",
+  "requiredEvidenceFields": ["id","kind","result","headSha","producer","independent","createdAt"],
+  "results": ["PASS","FAIL","BLOCKED","NOT_APPLICABLE"],
+  "certification": {
+    "requiredFields": ["headSha","baseSha","cyborgVersion","registryVersion","routingVersion","engineVersion","evidenceDigest","independentAssurance","createdAt"],
+    "staleWhen": ["headSha changes","governance version changes","required evidence fails or is contradicted","dependency is invalidated"]
+  }
+}
