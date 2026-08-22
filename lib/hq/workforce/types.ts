@@ -11,11 +11,19 @@ export interface WorkerKpiDefinition {
   unit?: string
 }
 
+export interface WorkerApprovalEscalationPolicy {
+  escalateAfterHours: number
+  backupApprovalRole?: string
+  finalEscalationRole: string
+  notifyOnEscalate: boolean
+}
+
 export interface WorkerAuthorityRule {
   action: string
   risk: WorkerRisk
   mode: "allow" | "deny" | "approval_required"
   approvalRole?: string
+  escalationPolicy?: WorkerApprovalEscalationPolicy
 }
 
 export interface WorkerTriggerDefinition {
@@ -26,6 +34,18 @@ export interface WorkerTriggerDefinition {
   operator?: "lt" | "lte" | "eq" | "gte" | "gt"
   threshold?: number
   workflowKey: string
+  /** Minimum time between successful admissions for this trigger. */
+  cooldownSeconds?: number
+  /** Stable logical key used to collapse repeated evaluations of the same work. */
+  deduplicationKey?: string
+  /** Optional ceiling for repeated admissions in a future windowed policy. */
+  maxFiresPerWindow?: number
+}
+
+export interface WorkerFallbackPolicy {
+  requireApprovalOnRiskIncrease: boolean
+  allowedFallbackModes?: WorkerExecutionMode[]
+  maxFallbackDepth: number
 }
 
 export interface DigitalWorkerDefinition {
@@ -37,6 +57,7 @@ export interface DigitalWorkerDefinition {
   responsibilities: string[]
   competencies: string[]
   executionOrder: WorkerExecutionMode[]
+  fallbackPolicy?: WorkerFallbackPolicy
   authority: WorkerAuthorityRule[]
   triggers: WorkerTriggerDefinition[]
   kpis: WorkerKpiDefinition[]
