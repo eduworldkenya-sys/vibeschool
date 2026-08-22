@@ -8,11 +8,20 @@ Before proposing, editing, testing, certifying, merging, deploying, or mutating 
 
 1. Read this file completely.
 2. Read `docs/ai-governance/OPERATING_DOCTRINE.md`.
-3. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
-4. Inspect current repository truth before relying on prior chat, handover, PR, CI, or certification claims.
-5. Identify affected shared domains, dependencies, production risk, and required certification class.
+3. Read `docs/ai-governance/MANDATORY_SKILLS.md` and `docs/ai-governance/SKILL_REGISTRY.json`.
+4. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
+5. Inspect current repository truth before relying on prior chat, handover, PR, CI, or certification claims.
+6. Identify affected shared domains, dependencies, production risk, required certification class, and all applicable mandatory skill modules.
 
 If these steps are not complete, the task is not in an executable state.
+
+## Mandatory skill application
+
+The twelve core modules in `docs/ai-governance/SKILL_REGISTRY.json` apply to every engineering mission:
+
+`repo-truth-first`, `contract-integrity`, `preflight-before-ci`, `test-the-test`, `ci-failure-repair-loop`, `evidence-and-certification`, `dependency-integrity-loop`, `escape-hatch-auditor`, `security-authority-gate`, `merge-certification-gate`, `regression-learning`, and `resource-conservation`.
+
+All matching VibeSchool domain modules also apply. An agent may not opt out because a model lacks a similarly named built-in skill; the repository definition is the required behavior.
 
 ## Non-negotiable engineering law
 
@@ -33,7 +42,7 @@ If these steps are not complete, the task is not in an executable state.
 
 ## Required lifecycle
 
-`READ GOVERNANCE -> INVESTIGATE -> MAP DEPENDENCIES/RISK -> PLAN -> IMPLEMENT -> TEST -> SECURITY/DATA CHECK -> ADVERSARIAL VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> INDEPENDENT CERTIFICATION WHEN REQUIRED -> MERGE -> POST-MERGE VERIFY`
+`READ GOVERNANCE -> APPLY MANDATORY SKILLS -> INVESTIGATE -> MAP DEPENDENCIES/RISK -> PLAN -> IMPLEMENT -> PREFLIGHT -> TEST THE TEST WHEN APPLICABLE -> SECURITY/DATA CHECK -> ESCAPE-HATCH AUDIT -> ADVERSARIAL VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> REPAIR LOOP UNTIL GREEN/BLOCKED -> INDEPENDENT CERTIFICATION WHEN REQUIRED -> MERGE GATE -> MERGE -> POST-MERGE VERIFY -> REGRESSION LEARNING`
 
 Skipping a stage requires a written, evidence-based reason and must not weaken a required gate.
 
@@ -54,4 +63,4 @@ These rules apply equally to ChatGPT, Codex, Claude, Gemini, Copilot, Cursor, lo
 
 ## Enforcement
 
-`.github/workflows/agent-governance.yml` and `scripts/validate-agent-governance.mjs` validate the presence and integrity of the governance entrypoints. Branch protection should require the resulting `Agent Governance` check before merge.
+`.github/workflows/agent-governance.yml` and `scripts/validate-agent-governance.mjs` validate the presence and integrity of the governance entrypoints and mandatory skill registry. Branch protection should require the resulting `Agent Governance` check before merge.
