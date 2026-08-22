@@ -1,0 +1,9 @@
+{
+  "name": "worker-engine-governed-proof",
+  "version": 1,
+  "source_pr": 445,
+  "canonical_lineage": "cyborg-main-after-448",
+  "test_file": "lib/hq/workforce/governed-runtime.test.ts",
+  "non_activating": true,
+  "certification": "exact-head-ci-required"
+}
