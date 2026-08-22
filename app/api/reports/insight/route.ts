@@ -1,9 +1,7 @@
+import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
+import { createAnthropicMessagesAdapter, invokeCyborgModel } from '@/lib/cyborg/gateway'
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,10 +12,15 @@ export async function POST(req: NextRequest) {
     }
 
     const summary = JSON.stringify(data).slice(0, 3000)
+    const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
+    const adapter = createAnthropicMessagesAdapter(apiKey)
+    const missionId = req.headers.get('x-cyborg-mission-id')?.trim() || `report-insight:${randomUUID()}`
 
-    const message = await anthropic.messages.create({
+    const response = await invokeCyborgModel(adapter, {
+      provider: 'anthropic',
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 150,
+      missionId,
+      metadata: { maxTokens: 150, feature: 'report-insight' },
       messages: [
         {
           role: 'user',
@@ -29,8 +32,11 @@ Data: ${summary}`,
       ],
     })
 
-    const insight = (message.content[0] as { type: string; text: string }).text.trim()
-    return NextResponse.json({ insight })
+    const payload = response.output as { content?: Array<{ type?: string; text?: string }> }
+    const insight = payload.content?.find((item) => item.type === 'text')?.text?.trim()
+    if (!insight) throw new Error('CYBORG_PROVIDER_EMPTY_OUTPUT')
+
+    return NextResponse.json({ insight, missionId })
   } catch (err) {
     console.error('AI insight error:', err)
     return NextResponse.json({ insight: 'Unable to generate insight at this time.' }, { status: 200 })

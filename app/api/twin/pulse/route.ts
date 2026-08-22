@@ -1,3 +1,5 @@
+import { createAnthropicMessagesAdapter, invokeCyborgModel } from '@/lib/cyborg/gateway';
+
 export const runtime = "edge";
 
 export async function POST(req: Request) {
@@ -27,23 +29,18 @@ Rules:
 - No greeting. No punctuation flourishes. No emojis.
 - If streak >= 5, acknowledge it warmly in the message.`;
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": process.env.ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 60,
-        messages: [{ role: "user", content: prompt }],
-      }),
+    const adapter = createAnthropicMessagesAdapter(process.env.ANTHROPIC_API_KEY ?? '');
+    const missionId = req.headers.get('x-cyborg-mission-id')?.trim() || `twin-pulse:${crypto.randomUUID()}`;
+    const response = await invokeCyborgModel(adapter, {
+      provider: 'anthropic',
+      model: 'claude-haiku-4-5-20251001',
+      missionId,
+      metadata: { maxTokens: 60, feature: 'twin-pulse' },
+      messages: [{ role: 'user', content: prompt }],
     });
-
-    const data = await res.json();
+    const data = response.output as { content?: Array<{ text?: string }> };
     const message = data.content?.[0]?.text?.trim() ?? "";
-    return Response.json({ message });
+    return Response.json({ message, missionId });
   } catch {
     return Response.json({ message: "" }, { status: 500 });
   }

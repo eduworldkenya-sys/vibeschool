@@ -14,6 +14,8 @@
     "lib/cyborg/kernel.ts",
     "lib/cyborg/policy.ts",
     "lib/cyborg/orchestrator.ts",
+    "lib/cyborg/runtime.ts",
+    "lib/cyborg/gateway.ts",
     "scripts/cyborg-behavior-proof.ts"
   ]
 }
