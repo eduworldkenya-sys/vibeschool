@@ -7,17 +7,24 @@ This file is the mandatory first-read instruction for any AI coding agent or LLM
 Before proposing, editing, testing, certifying, merging, deploying, or mutating production:
 
 1. Read this file completely.
-2. Read `docs/ai-governance/OPERATING_DOCTRINE.md`.
-3. Read `docs/ai-governance/MANDATORY_SKILLS.md` and `docs/ai-governance/SKILL_REGISTRY.json`.
-4. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
-5. Inspect current repository truth before relying on prior chat, handover, PR, CI, or certification claims.
-6. Identify affected shared domains, dependencies, production risk, required certification class, and all applicable mandatory skill modules.
+2. Read `docs/ai-governance/CYBORG_EXECUTOR.md` and operate through the `vibeschool-cyborg-executor` orchestration contract.
+3. Read `docs/ai-governance/OPERATING_DOCTRINE.md`.
+4. Read `docs/ai-governance/MANDATORY_SKILLS.md` and `docs/ai-governance/SKILL_REGISTRY.json`.
+5. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
+6. Inspect current repository truth before relying on prior chat, handover, PR, CI, or certification claims.
+7. Identify affected shared domains, dependencies, production risk, required certification class, and all applicable mandatory skill modules.
 
 If these steps are not complete, the task is not in an executable state.
 
+## Mandatory Cyborg orchestration
+
+`vibeschool-cyborg-executor` is the canonical model-agnostic execution orchestrator. It selects and sequences mandatory skills, controls dependency interruption/resume, exact-head evidence, CI repair, certification semantics, merge admission, post-merge verification, and regression learning.
+
+No agent may replace it with remembered chat instructions, a vendor-specific agent mode, or a weaker built-in skill. Vendor-specific capabilities may assist execution but must remain subordinate to the repository Cyborg contract.
+
 ## Mandatory skill application
 
-The twelve core modules in `docs/ai-governance/SKILL_REGISTRY.json` apply to every engineering mission:
+The twelve core modules in `docs/ai-governance/SKILL_REGISTRY.json` apply according to the Cyborg selection law:
 
 `repo-truth-first`, `contract-integrity`, `preflight-before-ci`, `test-the-test`, `ci-failure-repair-loop`, `evidence-and-certification`, `dependency-integrity-loop`, `escape-hatch-auditor`, `security-authority-gate`, `merge-certification-gate`, `regression-learning`, and `resource-conservation`.
 
@@ -42,7 +49,7 @@ All matching VibeSchool domain modules also apply. An agent may not opt out beca
 
 ## Required lifecycle
 
-`READ GOVERNANCE -> APPLY MANDATORY SKILLS -> INVESTIGATE -> MAP DEPENDENCIES/RISK -> PLAN -> IMPLEMENT -> PREFLIGHT -> TEST THE TEST WHEN APPLICABLE -> SECURITY/DATA CHECK -> ESCAPE-HATCH AUDIT -> ADVERSARIAL VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> REPAIR LOOP UNTIL GREEN/BLOCKED -> INDEPENDENT CERTIFICATION WHEN REQUIRED -> MERGE GATE -> MERGE -> POST-MERGE VERIFY -> REGRESSION LEARNING`
+`READ GOVERNANCE -> ENTER CYBORG EXECUTOR -> APPLY MANDATORY SKILLS -> INVESTIGATE -> MAP DEPENDENCIES/RISK -> PLAN -> IMPLEMENT -> PREFLIGHT -> TEST THE TEST WHEN APPLICABLE -> SECURITY/DATA CHECK -> ESCAPE-HATCH AUDIT -> ADVERSARIAL VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> REPAIR LOOP UNTIL GREEN/BLOCKED -> INDEPENDENT CERTIFICATION WHEN REQUIRED -> MERGE GATE -> MERGE -> POST-MERGE VERIFY -> REGRESSION LEARNING`
 
 Skipping a stage requires a written, evidence-based reason and must not weaken a required gate.
 
@@ -50,7 +57,7 @@ Skipping a stage requires a written, evidence-based reason and must not weaken a
 
 1. Current production/repository evidence and executable gates
 2. Current exact-head CI/test evidence
-3. Repository governance and control-plane policy
+3. Repository governance, Cyborg executor and control-plane policy
 4. Current task/PR evidence
 5. Handover documents
 6. Conversation claims or historical summaries
@@ -59,8 +66,8 @@ When sources conflict, investigate and reconcile; never choose the more convenie
 
 ## Vendor-neutral rule
 
-These rules apply equally to ChatGPT, Codex, Claude, Gemini, Copilot, Cursor, local models, autonomous agents, and VibeSchool workers. Model-specific instruction files may point here but may not weaken this file.
+These rules apply equally to ChatGPT, Codex, Claude, Gemini, Copilot, Cursor, local models, autonomous agents, and VibeSchool workers. Model-specific instruction files may point here but may not weaken this file or `docs/ai-governance/CYBORG_EXECUTOR.md`.
 
 ## Enforcement
 
-`.github/workflows/agent-governance.yml` and `scripts/validate-agent-governance.mjs` validate the presence and integrity of the governance entrypoints and mandatory skill registry. Branch protection should require the resulting `Agent Governance` check before merge.
+`.github/workflows/agent-governance.yml` and `scripts/validate-agent-governance.mjs` validate the presence and integrity of the governance entrypoints, Cyborg executor, and mandatory skill registry. Branch protection should require the resulting `Agent Governance` check before merge.
