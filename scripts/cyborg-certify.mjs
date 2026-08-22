@@ -11,10 +11,15 @@ const current=process.env.CYBORG_HEAD_SHA||process.env.GITHUB_SHA
 if(!current||current!==state.headSha)throw new Error('Certification refused: exact head mismatch')
 const blocking=state.selectedSkills.filter(s=>!['PASS','NOT_APPLICABLE'].includes(s.result))
 if(blocking.length)throw new Error(`Certification refused: unresolved skills ${blocking.map(s=>s.id).join(', ')}`)
-const ci=state.evidence.filter(e=>e.kind==='exact-head-ci'&&e.headSha===state.headSha&&e.result==='PASS')
+const fresh=e=>!e.invalidatedAt&&e.fresh!==false
+const ci=state.evidence.filter(e=>e.kind==='exact-head-ci'&&e.headSha===state.headSha&&e.result==='PASS'&&fresh(e))
 if(!ci.length)throw new Error('Certification refused: exact-head CI PASS missing')
-const independent=state.evidence.filter(e=>e.independent===true&&e.headSha===state.headSha&&e.result==='PASS')
+const independent=state.evidence.filter(e=>e.independent===true&&e.headSha===state.headSha&&e.result==='PASS'&&fresh(e))
 if(!independent.length)throw new Error('Certification refused: independent assurance PASS missing')
-const digest=crypto.createHash('sha256').update(JSON.stringify(state.evidence)).digest('hex')
-const cert={schemaVersion:schema.version,headSha:state.headSha,baseSha:state.baseSha,cyborgVersion:'repo-native-v1',registryVersion:registry.version,routingVersion:routing.version,engineVersion:engine.version,evidenceDigest:digest,independentAssurance:independent.map(e=>e.id||e.kind),createdAt:new Date().toISOString(),valid:true}
+const badIndependent=independent.filter(e=>!e.producer||!e.source||e.producer===e.implementedBy)
+if(badIndependent.length)throw new Error('Certification refused: independent assurance provenance/separation invalid')
+const unresolved=(state.contradictions||[]).filter(c=>!c.resolvedAt)
+if(unresolved.length)throw new Error('Certification refused: unresolved contradictions')
+const digest=crypto.createHash('sha256').update(JSON.stringify(state.evidence.filter(fresh))).digest('hex')
+const cert={schemaVersion:schema.version,headSha:state.headSha,baseSha:state.baseSha,cyborgVersion:'repo-native-v2',registryVersion:registry.version,routingVersion:routing.version,engineVersion:engine.version,evidenceDigest:digest,independentAssurance:independent.map(e=>({id:e.id||e.kind,producer:e.producer,source:e.source})),createdAt:new Date().toISOString(),valid:true}
 fs.mkdirSync('.cyborg',{recursive:true});fs.writeFileSync(outPath,JSON.stringify(cert,null,2)+'\n');console.log(JSON.stringify(cert,null,2))
