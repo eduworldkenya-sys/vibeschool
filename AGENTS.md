@@ -7,28 +7,29 @@ This file is the mandatory first-read instruction for any AI coding agent or LLM
 Before proposing, editing, testing, certifying, merging, deploying, or mutating production:
 
 1. Read this file completely.
-2. Read `docs/ai-governance/CYBORG_EXECUTOR.md` and operate through the `vibeschool-cyborg-executor` orchestration contract.
+2. Read `docs/ai-governance/CYBORG_EXECUTOR.md` and enter the `vibeschool-cyborg-executor` orchestration contract.
 3. Read `docs/ai-governance/OPERATING_DOCTRINE.md`.
-4. Read `docs/ai-governance/MANDATORY_SKILLS.md` and `docs/ai-governance/SKILL_REGISTRY.json`.
+4. Allow Cyborg to load/select the skill inventory in `docs/ai-governance/SKILL_REGISTRY.json` and definitions in `docs/ai-governance/MANDATORY_SKILLS.md`.
 5. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
 6. Inspect current repository truth before relying on prior chat, handover, PR, CI, or certification claims.
-7. Identify affected shared domains, dependencies, production risk, required certification class, and all applicable mandatory skill modules.
 
 If these steps are not complete, the task is not in an executable state.
 
-## Mandatory Cyborg orchestration
+## Mandatory Cyborg ownership
 
-`vibeschool-cyborg-executor` is the canonical model-agnostic execution orchestrator. It selects and sequences mandatory skills, controls dependency interruption/resume, exact-head evidence, CI repair, certification semantics, merge admission, post-merge verification, and regression learning.
+`vibeschool-cyborg-executor` is the authoritative model-agnostic owner and orchestrator of the repository engineering skill system.
 
-No agent may replace it with remembered chat instructions, a vendor-specific agent mode, or a weaker built-in skill. Vendor-specific capabilities may assist execution but must remain subordinate to the repository Cyborg contract.
+All core skills and VibeSchool domain skills are subordinate modules owned by Cyborg. Cyborg selects them, orders them, evaluates their evidence, propagates failures, controls state transitions, determines when independent assurance is required, and admits or rejects merge progression.
 
-## Mandatory skill application
+No agent may independently opt out of a Cyborg-selected skill, invoke a repository skill as a way to bypass Cyborg, self-certify from a subordinate skill result, or replace Cyborg with remembered chat instructions or a vendor-specific agent mode. Vendor capabilities may assist execution but remain subordinate to Cyborg and repository gates.
 
-The twelve core modules in `docs/ai-governance/SKILL_REGISTRY.json` apply according to the Cyborg selection law:
+## Skill inventory
 
-`repo-truth-first`, `contract-integrity`, `preflight-before-ci`, `test-the-test`, `ci-failure-repair-loop`, `evidence-and-certification`, `dependency-integrity-loop`, `escape-hatch-auditor`, `security-authority-gate`, `merge-certification-gate`, `regression-learning`, and `resource-conservation`.
+Cyborg owns these core modules: `repo-truth-first`, `contract-integrity`, `preflight-before-ci`, `test-the-test`, `ci-failure-repair-loop`, `evidence-and-certification`, `dependency-integrity-loop`, `escape-hatch-auditor`, `security-authority-gate`, `merge-certification-gate`, `regression-learning`, and `resource-conservation`.
 
-All matching VibeSchool domain modules also apply. An agent may not opt out because a model lacks a similarly named built-in skill; the repository definition is the required behavior.
+Cyborg also owns and selects applicable VibeSchool domain modules: `worker-engine-governance`, `supabase-rls-security`, `content-factory-quality`, `hq-ux-operational-truth`, `journey-integrity`, `production-readiness`, and `observability-watchdog-reliability`.
+
+The machine-readable ownership and activation contract is `docs/ai-governance/SKILL_REGISTRY.json`; detailed definitions are in `docs/ai-governance/MANDATORY_SKILLS.md`.
 
 ## Non-negotiable engineering law
 
@@ -38,7 +39,7 @@ All matching VibeSchool domain modules also apply. An agent may not opt out beca
 - If later work exposes a defect in an earlier dependency, verify it, repair the canonical root cause, invalidate stale evidence, re-certify affected work, then resume.
 - Never hide, downgrade, or leave a discovered material defect merely because it is outside the current priority.
 - Never self-certify high-risk work. Independent evidence or an independent reviewer/evaluator is required where the control plane requires it.
-- Never perform destructive production SQL, migration-history repair, auth/RLS/grant weakening, payment activation, publishing activation, scheduler activation, runtime activation, or consequential authority expansion without explicit current authorization and the required repository gates.
+- Never perform destructive production SQL, migration-history repair, auth/RLS/grant weakening, payment activation, publishing activation, scheduler activation, runtime activation, or consequential authority expansion without explicit current authorization and required repository gates.
 - Runtime, schedulers, automatic publishing, payments, and consequential worker authority are OFF unless separately and explicitly commissioned.
 - Prefer read-only investigation before mutation.
 - Preserve unrelated concurrent work. Do not overwrite or bundle unrelated changes.
@@ -49,7 +50,7 @@ All matching VibeSchool domain modules also apply. An agent may not opt out beca
 
 ## Required lifecycle
 
-`READ GOVERNANCE -> ENTER CYBORG EXECUTOR -> APPLY MANDATORY SKILLS -> INVESTIGATE -> MAP DEPENDENCIES/RISK -> PLAN -> IMPLEMENT -> PREFLIGHT -> TEST THE TEST WHEN APPLICABLE -> SECURITY/DATA CHECK -> ESCAPE-HATCH AUDIT -> ADVERSARIAL VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> REPAIR LOOP UNTIL GREEN/BLOCKED -> INDEPENDENT CERTIFICATION WHEN REQUIRED -> MERGE GATE -> MERGE -> POST-MERGE VERIFY -> REGRESSION LEARNING`
+`READ GOVERNANCE -> ENTER CYBORG -> CYBORG SELECTS/ORDERS SKILLS -> INVESTIGATE -> MAP DEPENDENCIES/RISK -> PLAN -> IMPLEMENT -> PREFLIGHT -> TEST INTEGRITY -> SECURITY/DATA CHECK -> ESCAPE-HATCH AUDIT -> ADVERSARIAL VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> REPAIR LOOP UNTIL GREEN/BLOCKED -> INDEPENDENT ASSURANCE WHEN REQUIRED -> CYBORG CERTIFICATION DECISION -> MERGE GATE -> MERGE -> POST-MERGE VERIFY -> REGRESSION LEARNING`
 
 Skipping a stage requires a written, evidence-based reason and must not weaken a required gate.
 
@@ -70,4 +71,4 @@ These rules apply equally to ChatGPT, Codex, Claude, Gemini, Copilot, Cursor, lo
 
 ## Enforcement
 
-`.github/workflows/agent-governance.yml` and `scripts/validate-agent-governance.mjs` validate the presence and integrity of the governance entrypoints, Cyborg executor, and mandatory skill registry. Branch protection should require the resulting `Agent Governance` check before merge.
+`.github/workflows/agent-governance.yml` and `scripts/validate-agent-governance.mjs` validate the governance entrypoints, authoritative Cyborg ownership, per-skill ownership/activation metadata, and mandatory skill inventory. Branch protection should require the resulting `Agent Governance` check before merge.
