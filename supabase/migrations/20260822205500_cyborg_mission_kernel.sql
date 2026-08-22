@@ -1,5 +1,7 @@
 begin;
 
+-- access: service-only public.hq_cyborg_missions
+-- authorization-test: public.hq_cyborg_missions
 create table if not exists public.hq_cyborg_missions (
   id uuid primary key default gen_random_uuid(), objective text not null,
   state text not null check (state in ('received','investigating','planned','executing','verifying','repairing','certifying','complete','blocked','aborted')),
@@ -10,14 +12,20 @@ create table if not exists public.hq_cyborg_missions (
   cycle integer not null default 0 check (cycle >= 0), no_progress_cycles integer not null default 0 check (no_progress_cycles >= 0),
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
+-- access: service-only public.hq_cyborg_mission_events
+-- authorization-test: public.hq_cyborg_mission_events
 create table if not exists public.hq_cyborg_mission_events (
   id bigint generated always as identity primary key, mission_id uuid not null references public.hq_cyborg_missions(id),
   event_type text not null, payload jsonb not null default '{}'::jsonb, evidence_hash text not null, created_at timestamptz not null default now()
 );
+-- access: service-only public.hq_cyborg_mission_leases
+-- authorization-test: public.hq_cyborg_mission_leases
 create table if not exists public.hq_cyborg_mission_leases (
   mission_id uuid primary key references public.hq_cyborg_missions(id), holder text not null, base_revision text not null,
   acquired_at timestamptz not null default now(), expires_at timestamptz not null, generation bigint not null default 1 check (generation > 0)
 );
+-- access: service-only public.hq_cyborg_slo_events
+-- authorization-test: public.hq_cyborg_slo_events
 create table if not exists public.hq_cyborg_slo_events (
   id bigint generated always as identity primary key, mission_id uuid references public.hq_cyborg_missions(id),
   metric text not null check (metric in ('false_complete','unauthorized_action','stale_evidence','recovery','regression_leakage','idempotency_violation','completion_accuracy','tool_failure','model_replacement')),
