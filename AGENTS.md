@@ -1,0 +1,57 @@
+# VibeSchool Agent Governance Kernel
+
+This file is the mandatory first-read instruction for any AI coding agent or LLM working in this repository.
+
+## Mandatory startup
+
+Before proposing, editing, testing, certifying, merging, deploying, or mutating production:
+
+1. Read this file completely.
+2. Read `docs/ai-governance/OPERATING_DOCTRINE.md`.
+3. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
+4. Inspect current repository truth before relying on prior chat, handover, PR, CI, or certification claims.
+5. Identify affected shared domains, dependencies, production risk, and required certification class.
+
+If these steps are not complete, the task is not in an executable state.
+
+## Non-negotiable engineering law
+
+- Never claim `DONE`, `READY`, `CERTIFIED`, `MERGE READY`, `MERGED`, or equivalent without current evidence for the exact candidate SHA.
+- Historical green CI is not evidence for a changed head.
+- Contrary evidence invalidates dependent completion/certification immediately.
+- If later work exposes a defect in an earlier dependency, verify it, repair the canonical root cause, invalidate stale evidence, re-certify affected work, then resume.
+- Never hide, downgrade, or leave a discovered material defect merely because it is outside the current priority.
+- Never self-certify high-risk work. Independent evidence or an independent reviewer/evaluator is required where the control plane requires it.
+- Never perform destructive production SQL, migration-history repair, auth/RLS/grant weakening, payment activation, publishing activation, scheduler activation, runtime activation, or consequential authority expansion without explicit current authorization and the required repository gates.
+- Runtime, schedulers, automatic publishing, payments, and consequential worker authority are OFF unless separately and explicitly commissioned.
+- Prefer read-only investigation before mutation.
+- Preserve unrelated concurrent work. Do not overwrite or bundle unrelated changes.
+- Use isolated branches. Do not develop directly on `main`.
+- Merge only the exact head that was verified.
+- Every material failure should become a regression test or executable guard when practical.
+- Leave a clear handover/evidence trail for unfinished or blocked work.
+
+## Required lifecycle
+
+`READ GOVERNANCE -> INVESTIGATE -> MAP DEPENDENCIES/RISK -> PLAN -> IMPLEMENT -> TEST -> SECURITY/DATA CHECK -> ADVERSARIAL VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> INDEPENDENT CERTIFICATION WHEN REQUIRED -> MERGE -> POST-MERGE VERIFY`
+
+Skipping a stage requires a written, evidence-based reason and must not weaken a required gate.
+
+## Source of truth hierarchy
+
+1. Current production/repository evidence and executable gates
+2. Current exact-head CI/test evidence
+3. Repository governance and control-plane policy
+4. Current task/PR evidence
+5. Handover documents
+6. Conversation claims or historical summaries
+
+When sources conflict, investigate and reconcile; never choose the more convenient source.
+
+## Vendor-neutral rule
+
+These rules apply equally to ChatGPT, Codex, Claude, Gemini, Copilot, Cursor, local models, autonomous agents, and VibeSchool workers. Model-specific instruction files may point here but may not weaken this file.
+
+## Enforcement
+
+`.github/workflows/agent-governance.yml` and `scripts/validate-agent-governance.mjs` validate the presence and integrity of the governance entrypoints. Branch protection should require the resulting `Agent Governance` check before merge.
