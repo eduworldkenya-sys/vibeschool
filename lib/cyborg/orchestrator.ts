@@ -1,4 +1,4 @@
-import { CyborgMission, SkillBinding } from './contracts';
+import { CyborgMission, SideEffect, SkillBinding } from './contracts';
 import { actionDisposition } from './policy';
 import { mayComplete, nextCycle, transition } from './kernel';
 
@@ -6,6 +6,7 @@ export type ToolFailureKind = 'permission'|'transient'|'validation'|'stale_state
 export interface ToolCapability { id:string; actions:string[]; risk:'read'|'local_mutation'|'remote_mutation'|'production_mutation'|'owner_only'|'forbidden'; fallbackIds?:string[]; }
 export interface SkillDefinition { id:string; version:string; dependencies:string[]; conflicts?:string[]; applies:(m:CyborgMission)=>boolean; }
 export interface ChangeImpact { target:string; reason:string; requiredChecks:string[]; rollback?:string; }
+export interface TruthSnapshot { revision:string; environment:string; assertions:Record<string,string|number|boolean|null>; }
 
 export function resolveSkills(m:CyborgMission, registry:SkillDefinition[]): SkillBinding[] {
   const selected = registry.filter(s=>s.applies(m)); const ids = new Set(selected.map(s=>s.id));
@@ -33,6 +34,25 @@ export function blastRadius(changed:string[], dependencyMap:Record<string,string
   const seen=new Set<string>(); const q=[...changed]; const out:ChangeImpact[]=[];
   while(q.length){const x=q.shift()!; if(seen.has(x)) continue; seen.add(x); out.push({target:x,reason:changed.includes(x)?'direct_change':'dependency',requiredChecks:[`verify:${x}`],rollback:`restore:${x}`}); for(const d of dependencyMap[x]||[]) q.push(d);}
   return out;
+}
+
+export async function executeRollback(sideEffects:SideEffect[], executor:(rollback:string,sideEffect:SideEffect)=>Promise<void>):Promise<string[]> {
+  const completed:string[]=[];
+  for(const effect of [...sideEffects].reverse()) {
+    if(effect.risk==='read') continue;
+    if(!effect.rollback) throw new Error(`ROLLBACK_PLAN_MISSING:${effect.id}`);
+    await executor(effect.rollback,effect); completed.push(effect.id);
+  }
+  return completed;
+}
+
+export function reconcileTruth(before:TruthSnapshot,intended:TruthSnapshot,actual:TruthSnapshot):string[] {
+  const failures:string[]=[];
+  if(actual.environment!==intended.environment) failures.push('ENVIRONMENT_IDENTITY_MISMATCH');
+  if(actual.revision!==intended.revision) failures.push('REVISION_MISMATCH');
+  for(const [key,value] of Object.entries(intended.assertions)) if(actual.assertions[key]!==value) failures.push(`OUTCOME_MISMATCH:${key}`);
+  for(const key of Object.keys(before.assertions)) if(!(key in intended.assertions) && actual.assertions[key]!==before.assertions[key]) failures.push(`UNPLANNED_SIDE_EFFECT:${key}`);
+  return failures;
 }
 
 export function adversarialCompletionCritic(m:CyborgMission):string[] {
