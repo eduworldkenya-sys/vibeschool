@@ -1,10 +1,29 @@
 {
-  "version": 1,
+  "version": 2,
   "owner": "vibeschool-cyborg-executor",
-  "requiredEvidenceFields": ["id","kind","result","headSha","producer","independent","createdAt"],
+  "requiredEvidenceFields": ["id","kind","result","grade","source","headSha","producer","independent","createdAt","fresh","provenance"],
   "results": ["PASS","FAIL","BLOCKED","NOT_APPLICABLE"],
+  "grades": ["E0","E1","E2","E3","E4","E5","E6","E7"],
+  "gradeMeanings": {
+    "E0":"unsupported claim",
+    "E1":"static inspection",
+    "E2":"unit or static executable proof",
+    "E3":"integration proof",
+    "E4":"adversarial or negative-path proof",
+    "E5":"exact-head required CI",
+    "E6":"independent assurance",
+    "E7":"production or runtime verification"
+  },
+  "provenanceFields": ["repository","sha","path","test","workflowRun","databaseQueryDigest","runtimeObservation","artifact"],
+  "rules": {
+    "passMustMeetRequirementMinimumGrade": true,
+    "notApplicableRequiresReason": true,
+    "arbitraryConfidenceForbidden": true,
+    "staleEvidenceCannotCertify": true,
+    "contradictedEvidenceMustBeInvalidated": true
+  },
   "certification": {
     "requiredFields": ["headSha","baseSha","cyborgVersion","registryVersion","routingVersion","engineVersion","evidenceDigest","independentAssurance","createdAt"],
-    "staleWhen": ["headSha changes","governance version changes","required evidence fails or is contradicted","dependency is invalidated"]
+    "staleWhen": ["headSha changes","governance version changes","required evidence fails or is contradicted","dependency is invalidated","freshness policy expires"]
   }
 }
