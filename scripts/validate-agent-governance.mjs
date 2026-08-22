@@ -3,10 +3,37 @@ import fs from 'node:fs'
 const requiredFiles = [
   'AGENTS.md',
   'docs/ai-governance/OPERATING_DOCTRINE.md',
+  'docs/ai-governance/MANDATORY_SKILLS.md',
+  'docs/ai-governance/SKILL_REGISTRY.json',
   '.github/control-plane/policy.json',
   'CLAUDE.md',
   '.github/copilot-instructions.md',
   'GEMINI.md',
+]
+
+const requiredCoreSkills = [
+  'repo-truth-first',
+  'contract-integrity',
+  'preflight-before-ci',
+  'test-the-test',
+  'ci-failure-repair-loop',
+  'evidence-and-certification',
+  'dependency-integrity-loop',
+  'escape-hatch-auditor',
+  'security-authority-gate',
+  'merge-certification-gate',
+  'regression-learning',
+  'resource-conservation',
+]
+
+const requiredDomainSkills = [
+  'worker-engine-governance',
+  'supabase-rls-security',
+  'content-factory-quality',
+  'hq-ux-operational-truth',
+  'journey-integrity',
+  'production-readiness',
+  'observability-watchdog-reliability',
 ]
 
 const failures = []
@@ -27,14 +54,45 @@ function requireText(file, fragments) {
 
 requireText('AGENTS.md', [
   'docs/ai-governance/OPERATING_DOCTRINE.md',
+  'docs/ai-governance/MANDATORY_SKILLS.md',
+  'docs/ai-governance/SKILL_REGISTRY.json',
   '.github/control-plane/policy.json',
   'exact candidate SHA',
   'Runtime, schedulers, automatic publishing, payments',
   'Vendor-neutral rule',
+  'repo-truth-first',
+  'contract-integrity',
+  'preflight-before-ci',
+  'ci-failure-repair-loop',
+  'evidence-and-certification',
 ])
 
 for (const adapter of ['CLAUDE.md', '.github/copilot-instructions.md', 'GEMINI.md']) {
   requireText(adapter, ['AGENTS.md', 'OPERATING_DOCTRINE.md'])
+}
+
+requireText('docs/ai-governance/MANDATORY_SKILLS.md', [
+  ...requiredCoreSkills,
+  ...requiredDomainSkills,
+])
+
+if (fs.existsSync('docs/ai-governance/SKILL_REGISTRY.json')) {
+  try {
+    const registry = JSON.parse(fs.readFileSync('docs/ai-governance/SKILL_REGISTRY.json', 'utf8'))
+    if (registry.mandatoryForAllAgents !== true) {
+      failures.push('SKILL_REGISTRY.json must set mandatoryForAllAgents=true')
+    }
+    const coreIds = new Set((registry.core ?? []).map((skill) => skill.id))
+    const domainIds = new Set((registry.vibeschoolDomains ?? []).map((skill) => skill.id))
+    for (const id of requiredCoreSkills) {
+      if (!coreIds.has(id)) failures.push(`Skill registry missing mandatory core skill: ${id}`)
+    }
+    for (const id of requiredDomainSkills) {
+      if (!domainIds.has(id)) failures.push(`Skill registry missing VibeSchool domain skill: ${id}`)
+    }
+  } catch (error) {
+    failures.push(`Skill registry is invalid JSON: ${error.message}`)
+  }
 }
 
 if (fs.existsSync('.github/control-plane/policy.json')) {
@@ -56,3 +114,4 @@ if (failures.length) {
 
 console.log('Agent governance validation PASSED')
 console.log(`Validated ${requiredFiles.length} mandatory governance entrypoints.`)
+console.log(`Validated ${requiredCoreSkills.length} mandatory core skills and ${requiredDomainSkills.length} VibeSchool domain skills.`)
