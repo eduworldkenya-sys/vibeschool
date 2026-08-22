@@ -1,0 +1,42 @@
+name: Agent Governance
+
+on:
+  pull_request:
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'GEMINI.md'
+      - '.github/copilot-instructions.md'
+      - 'docs/ai-governance/**'
+      - '.github/control-plane/**'
+      - 'scripts/validate-agent-governance.mjs'
+      - '.github/workflows/agent-governance.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'AGENTS.md'
+      - 'CLAUDE.md'
+      - 'GEMINI.md'
+      - '.github/copilot-instructions.md'
+      - 'docs/ai-governance/**'
+      - '.github/control-plane/**'
+      - 'scripts/validate-agent-governance.mjs'
+      - '.github/workflows/agent-governance.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  agent-governance:
+    name: Agent Governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate governance kernel
+        run: node scripts/validate-agent-governance.mjs
