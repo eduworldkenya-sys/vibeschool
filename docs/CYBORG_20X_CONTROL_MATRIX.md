@@ -62,3 +62,7 @@ Implementation does not authorize consequential runtime. Runtime activation, sch
 ## Release condition
 
 The PR is certifiable only when its exact head passes the Cyborg contract, Supabase migration security, TypeScript/production build and applicable repository integration gates, and when the rows marked `PROOF PENDING` have their stated evidence. A failed, missing, stale or pending exact-head check keeps release certification pending.
+
+## Reconciliation provenance
+
+PR #448 was reconciled after certified PR #446 by preserving #448's exact mission-kernel delta on top of main merge commit `1ae83afddb28ae173c6150f6c4c6c2682b28f887`. The reconciliation commit was `6dafc71536713b04858bbddd0115b88b2e255013`; this record does not itself constitute certification, and the resulting exact head must pass fresh CI before merge.
