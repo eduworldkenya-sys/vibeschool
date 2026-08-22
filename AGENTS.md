@@ -8,12 +8,14 @@ Before proposing, editing, testing, certifying, merging, deploying, answering a 
 
 1. Read this file completely.
 2. Read `docs/ai-governance/CYBORG_EXECUTOR.md` and enter the `vibeschool-cyborg-executor` orchestration contract.
-3. Read `docs/ai-governance/CYBORG_AGENT_KERNEL.json`, `CYBORG_MISSION_SCHEMA.json`, `CYBORG_MISSION_TEMPLATES.json`, `CYBORG_MEMORY_POLICY.json`, and `ARCHITECTURE_INVARIANTS.json`.
+3. Read `docs/ai-governance/CYBORG_AGENT_KERNEL.json`, `CYBORG_MISSION_SCHEMA.json`, `CYBORG_MISSION_TEMPLATES.json`, `CYBORG_PROMPT_ENTRY.json`, `CYBORG_MEMORY_POLICY.json`, and `ARCHITECTURE_INVARIANTS.json`.
 4. Read `docs/ai-governance/OPERATING_DOCTRINE.md`.
 5. Allow Cyborg to load/select the skill inventory in `docs/ai-governance/SKILL_REGISTRY.json` and definitions in `docs/ai-governance/MANDATORY_SKILLS.md`.
 6. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
 7. Inspect current repository truth before relying on prior chat, memory, handover, PR, CI, or certification claims.
-8. For significant repository missions, compile typed durable mission state through `scripts/cyborg-mission-compiler.mjs` or resume it through `scripts/cyborg-supervisor.mjs`; keep the requirement ledger and journal current.
+8. Treat a normal repository/VibeSchool user prompt as Cyborg mission intent. Hosts should route it through `scripts/cyborg-prompt-entry.mjs`; the user does not need to say "use Cyborg", "loop", "continue", or equivalent.
+9. For significant repository missions, compile typed durable mission state through the prompt entrypoint / `scripts/cyborg-mission-compiler.mjs` or resume it through `scripts/cyborg-supervisor.mjs`; keep the requirement ledger and journal current.
+10. When a governed model/tool adapter is available, execute `scripts/cyborg-loop.mjs` until `COMPLETE` or a typed `BLOCKED_*` terminal boundary.
 
 If these steps are not complete, the task is not in an executable state.
 
@@ -23,7 +25,17 @@ If these steps are not complete, the task is not in an executable state.
 
 All engineering core, higher-order agent core and VibeSchool domain skills are subordinate modules owned by Cyborg. Cyborg selects them, orders them, evaluates evidence, propagates failures, controls state transitions, determines assurance, owns completion decisions and admits or rejects merge progression.
 
-No agent may independently opt out of a Cyborg-selected skill, invoke a repository skill to bypass Cyborg, self-certify from a subordinate result, override the completion ledger with narrative confidence, or replace Cyborg with remembered chat instructions or a vendor-specific mode.
+No agent may independently opt out of a Cyborg-selected skill, invoke a repository skill to bypass Cyborg, self-certify from a subordinate result, override the completion ledger with narrative confidence, replace Cyborg with remembered chat instructions or a vendor-specific mode, or answer a repository prompt directly merely because it arrived as ordinary conversational text.
+
+## Automatic prompt entry law
+
+- Repository/VibeSchool prompts are mission intent by default, not one-shot answer requests.
+- The canonical host entrypoint is `scripts/cyborg-prompt-entry.mjs` governed by `docs/ai-governance/CYBORG_PROMPT_ENTRY.json`.
+- `auto` mode promotes repository/VibeSchool work and passes clearly unrelated chat through.
+- `repo` mode fails toward mission compilation for ambiguous prompts and is the preferred mode for dedicated VibeSchool engineering hosts.
+- `passthrough` is an explicit host mode for work known to be outside repository execution; it must not be used to bypass a repository mission.
+- Once promoted, the mission proceeds through the terminal loop until `COMPLETE` or a genuine typed blocker. Ordinary technical failure means repair/reverify/continue, not return control to the user prematurely.
+- Prompt text can express intent but cannot grant production, payment, publishing, scheduler, database, security or authority capabilities.
 
 ## Skill inventory
 
@@ -59,7 +71,7 @@ The machine-readable ownership/activation contract is `docs/ai-governance/SKILL_
 
 ## Required lifecycle
 
-`READ GOVERNANCE -> ENTER/RESUME CYBORG -> COMPILE TYPED MISSION/REQUIREMENTS -> TRUTH -> SCOPE/LEASE -> DEPENDENCY + BLAST-RADIUS MAP -> SELECT/ORDER SKILLS -> EXECUTE -> JOURNAL -> PREFLIGHT -> TEST/NEGATIVE PATHS -> SECURITY/DATA -> ADVERSARIAL VERIFY -> EXACT-HEAD CI -> REPAIR/REVERIFY LOOP -> INDEPENDENT ASSURANCE WHEN REQUIRED -> COMPLETION/CERTIFICATION GATE -> MERGE WHEN APPLICABLE -> POST-MERGE VERIFY -> LEARN/MEMORY RECONCILE -> COMPLETE`
+`USER PROMPT -> PROMPT ENTRY/CLASSIFY -> ENTER/RESUME CYBORG -> COMPILE TYPED MISSION/REQUIREMENTS -> TRUTH -> SCOPE/LEASE -> DEPENDENCY + BLAST-RADIUS MAP -> SELECT/ORDER SKILLS -> EXECUTE -> JOURNAL -> PREFLIGHT -> TEST/NEGATIVE PATHS -> SECURITY/DATA -> ADVERSARIAL VERIFY -> EXACT-HEAD CI -> REPAIR/REVERIFY LOOP -> INDEPENDENT ASSURANCE WHEN REQUIRED -> COMPLETION/CERTIFICATION GATE -> MERGE WHEN APPLICABLE -> POST-MERGE VERIFY -> LEARN/MEMORY RECONCILE -> COMPLETE`
 
 Skipping a stage requires a written evidence-based NOT_APPLICABLE reason and must not weaken a required gate.
 
@@ -81,4 +93,4 @@ These rules apply equally to ChatGPT, Codex, Claude, Gemini, Copilot, Cursor, lo
 
 ## Enforcement
 
-`.github/workflows/agent-governance.yml`, `scripts/validate-agent-governance.mjs`, `scripts/cyborg-mission-compiler.mjs`, `scripts/cyborg-engine.mjs`, `scripts/cyborg-supervisor.mjs` and their adversarial tests enforce the governance entrypoint, typed mission compilation, durable mission state, evidence/completion gates, scope concurrency, journaling and mandatory skill inventory. Branch protection should require the resulting `Agent Governance` check before merge.
+`.github/workflows/agent-governance.yml`, `scripts/validate-agent-governance.mjs`, `scripts/cyborg-prompt-entry.mjs`, `scripts/cyborg-mission-compiler.mjs`, `scripts/cyborg-loop.mjs`, `scripts/cyborg-engine.mjs`, `scripts/cyborg-supervisor.mjs` and their adversarial tests enforce automatic prompt promotion, governance entry, typed mission compilation, durable mission state, terminal looping, evidence/completion gates, scope concurrency, journaling and mandatory skill inventory. Branch protection should require the resulting `Agent Governance` check before merge.
