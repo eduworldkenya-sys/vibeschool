@@ -1,7 +1,11 @@
 import fs from 'node:fs'
 
+const CYBORG_ID = 'vibeschool-cyborg-executor'
+const CYBORG_PATH = 'docs/ai-governance/CYBORG_EXECUTOR.md'
+
 const requiredFiles = [
   'AGENTS.md',
+  CYBORG_PATH,
   'docs/ai-governance/OPERATING_DOCTRINE.md',
   'docs/ai-governance/MANDATORY_SKILLS.md',
   'docs/ai-governance/SKILL_REGISTRY.json',
@@ -46,13 +50,13 @@ function requireText(file, fragments) {
   if (!fs.existsSync(file)) return
   const text = fs.readFileSync(file, 'utf8')
   for (const fragment of fragments) {
-    if (!text.includes(fragment)) {
-      failures.push(`${file} must contain: ${JSON.stringify(fragment)}`)
-    }
+    if (!text.includes(fragment)) failures.push(`${file} must contain: ${JSON.stringify(fragment)}`)
   }
 }
 
 requireText('AGENTS.md', [
+  CYBORG_PATH,
+  CYBORG_ID,
   'docs/ai-governance/OPERATING_DOCTRINE.md',
   'docs/ai-governance/MANDATORY_SKILLS.md',
   'docs/ai-governance/SKILL_REGISTRY.json',
@@ -67,6 +71,23 @@ requireText('AGENTS.md', [
   'evidence-and-certification',
 ])
 
+requireText(CYBORG_PATH, [
+  CYBORG_ID,
+  'Canonical execution loop',
+  'Skill selection law',
+  'Dependency integrity',
+  'CI repair loop',
+  'Test integrity',
+  'Evidence states',
+  'Authority and production safety',
+  'Merge law',
+  'Resource conservation',
+  'Learning loop',
+  'Handover contract',
+  'exact base SHA',
+  'exact head',
+])
+
 for (const adapter of ['CLAUDE.md', '.github/copilot-instructions.md', 'GEMINI.md']) {
   requireText(adapter, ['AGENTS.md', 'OPERATING_DOCTRINE.md'])
 }
@@ -79,9 +100,11 @@ requireText('docs/ai-governance/MANDATORY_SKILLS.md', [
 if (fs.existsSync('docs/ai-governance/SKILL_REGISTRY.json')) {
   try {
     const registry = JSON.parse(fs.readFileSync('docs/ai-governance/SKILL_REGISTRY.json', 'utf8'))
-    if (registry.mandatoryForAllAgents !== true) {
-      failures.push('SKILL_REGISTRY.json must set mandatoryForAllAgents=true')
-    }
+    if (registry.mandatoryForAllAgents !== true) failures.push('SKILL_REGISTRY.json must set mandatoryForAllAgents=true')
+    if (registry.orchestrator?.id !== CYBORG_ID) failures.push(`Skill registry orchestrator must be ${CYBORG_ID}`)
+    if (registry.orchestrator?.path !== CYBORG_PATH) failures.push(`Skill registry orchestrator path must be ${CYBORG_PATH}`)
+    if (registry.orchestrator?.mandatory !== true) failures.push('Cyborg orchestrator must be mandatory=true')
+
     const coreIds = new Set((registry.core ?? []).map((skill) => skill.id))
     const domainIds = new Set((registry.vibeschoolDomains ?? []).map((skill) => skill.id))
     for (const id of requiredCoreSkills) {
@@ -113,5 +136,6 @@ if (failures.length) {
 }
 
 console.log('Agent governance validation PASSED')
+console.log(`Validated mandatory Cyborg orchestrator: ${CYBORG_ID}`)
 console.log(`Validated ${requiredFiles.length} mandatory governance entrypoints.`)
 console.log(`Validated ${requiredCoreSkills.length} mandatory core skills and ${requiredDomainSkills.length} VibeSchool domain skills.`)
