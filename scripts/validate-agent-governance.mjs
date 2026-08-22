@@ -13,7 +13,7 @@ for(const a of ['CLAUDE.md','.github/copilot-instructions.md','GEMINI.md'])req(a
 req('docs/ai-governance/MANDATORY_SKILLS.md',[...core,...agentCore,...domains,'capability-based permissions','no-silent-weakness'])
 req('scripts/cyborg-engine.mjs',['CYBORG_DAG.json','Required Cyborg DAG missing','STALE_EVIDENCE','validPass','invalidatedAt','CERTIFY requires fresh, non-invalidated PASS exact-head-ci evidence','MERGE requires valid certification'])
 req('scripts/cyborg-engine-test.mjs',['Expected stale-head rejection','Cyborg engine adversarial tests PASSED'])
-req('scripts/cyborg-supervisor.mjs',['COMPLETION_DENIED','SCOPE_COLLISION','STAGNATION_DETECTED','JOURNAL_CHAIN_BROKEN','BLOCKED_OWNER','institutional-memory.ndjson','CAPABILITY_DENIED'])
+req('scripts/cyborg-supervisor.mjs',['COMPLETION_DENIED','SCOPE_COLLISION','STAGNATION_DETECTED','JOURNAL_CHAIN_BROKEN','BLOCKED_OWNER','institutional-memory.ndjson','BLOCKED_AUTHORITY'])
 req('scripts/cyborg-supervisor-test.mjs',['Cyborg supervisor adversarial tests PASSED','leaseCollisionProtected','stagnationEscalated','authorityDefaultDeny'])
 req('scripts/cyborg-action-gate.mjs',['ACTION_GATE_DENIED','BLOCKED_OWNER','plaintext secret exposure forbidden'])
 req('scripts/cyborg-action-gate-test.mjs',['Cyborg action-gate adversarial tests PASSED'])
