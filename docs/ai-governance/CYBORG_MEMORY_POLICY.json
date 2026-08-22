@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "owner": "vibeschool-cyborg-executor",
+  "sourceHierarchy": ["current_repository_or_production_truth","current_exact_head_executable_evidence","governance_and_control_plane","current_mission_evidence","verified_institutional_memory","handover","conversation_or_historical_summary"],
+  "recordTypes": ["KNOWLEDGE","DECISION","INCIDENT","REGRESSION","TECH_DEBT","CONTRADICTION"],
+  "requiredFields": ["id","type","claim","source","headSha","createdAt","freshnessRule","confidenceBasis"],
+  "confidencePolicy": "Confidence is derived from coverage, evidence grade, freshness, contradictions and independent assurance; arbitrary percentage confidence is forbidden.",
+  "reconciliation": {
+    "contraryCurrentEvidenceWins": true,
+    "staleRecordsAreInvalidatedNotDeleted": true,
+    "decisionSupersessionMustBeExplicit": true,
+    "materialWeaknessDispositionRequired": ["REPAIRED","OWNER_ACCEPTED","TRACKED","PROVEN_IRRELEVANT"]
+  },
+  "knowledgeGraph": {
+    "enabled": true,
+    "edgeTypes": ["DEPENDS_ON","IMPLEMENTS","SECURED_BY","VERIFIED_BY","INVALIDATES","SUPERSEDES","AFFECTS"],
+    "changePropagationRequired": true
+  }
+}

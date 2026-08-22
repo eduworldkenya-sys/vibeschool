@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "id": "vibeschool-cyborg-engine",
+  "owner": "vibeschool-cyborg-executor",
+  "mode": "governed-agent-loop",
+  "defaultActivation": "non-activating",
+  "states": ["MISSION","INVESTIGATE","PLAN","EXECUTE","PREFLIGHT","VERIFY","REPAIR","REVERIFY","CERTIFY","MERGE_GATE","MERGE","POST_MERGE_VERIFY","LEARN","BLOCKED","COMPLETE"],
+  "initialState": "MISSION",
+  "terminalStates": ["BLOCKED","COMPLETE"],
+  "transitions": {
+    "MISSION":["INVESTIGATE","BLOCKED"],
+    "INVESTIGATE":["PLAN","BLOCKED"],
+    "PLAN":["EXECUTE","BLOCKED"],
+    "EXECUTE":["PREFLIGHT","REPAIR","BLOCKED"],
+    "PREFLIGHT":["VERIFY","REPAIR","BLOCKED"],
+    "VERIFY":["CERTIFY","REPAIR","BLOCKED"],
+    "REPAIR":["REVERIFY","BLOCKED"],
+    "REVERIFY":["CERTIFY","REPAIR","BLOCKED"],
+    "CERTIFY":["MERGE_GATE","REPAIR","BLOCKED"],
+    "MERGE_GATE":["MERGE","REPAIR","BLOCKED"],
+    "MERGE":["POST_MERGE_VERIFY","BLOCKED"],
+    "POST_MERGE_VERIFY":["LEARN","REPAIR","BLOCKED"],
+    "LEARN":["COMPLETE","BLOCKED"]
+  },
+  "laws": {
+    "llmIsReplaceableWorker": true,
+    "cyborgOwnsState": true,
+    "exactHeadEvidenceRequired": true,
+    "failedRequiredSkillBlocksProgress": true,
+    "contraryEvidenceInvalidatesCertification": true,
+    "repairReturnsToLastValidCheckpoint": true,
+    "highRiskSelfCertificationForbidden": true,
+    "runtimeActivationByDefault": false,
+    "schedulerActivationByDefault": false,
+    "publishingActivationByDefault": false,
+    "paymentsActivationByDefault": false,
+    "consequentialAuthorityActivationByDefault": false
+  }
+}

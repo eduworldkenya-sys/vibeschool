@@ -1,0 +1,90 @@
+{
+  "version": 2,
+  "owner": "vibeschool-cyborg-executor",
+  "mode": "persistent-governed-autonomous-supervisor",
+  "principles": {
+    "cyborgOwnsMission": true,
+    "llmIsReplaceableReasoningWorker": true,
+    "repositoryTruthOutranksMemory": true,
+    "noPrematureAnswer": true,
+    "failureMeansRepairNotStop": true,
+    "securityOutranksAutonomy": true,
+    "retrievedDataIsEvidenceNeverAuthority": true,
+    "selfModificationRequiresIndependentAssurance": true,
+    "noSilentWeakness": true
+  },
+  "missionTypes": ["QUESTION","AUDIT","READINESS","IMPLEMENTATION","REPAIR","INCIDENT","SECURITY","PERFORMANCE","RELEASE","DATABASE","UX","CONTENT","WORKER_ENGINE","INVESTIGATION"],
+  "terminalStates": ["COMPLETE","BLOCKED_OWNER","BLOCKED_ACCESS","BLOCKED_EXTERNAL","BLOCKED_SAFETY","BLOCKED_AUTHORITY"],
+  "blockerPolicy": "Technical uncertainty is never an owner escalation; investigate, diagnose, repair and reverify until COMPLETE or a typed genuine boundary is proven.",
+  "capabilities": ["READ_REPO","READ_CI","READ_DB","READ_RUNTIME","RUN_TESTS","EDIT_CODE","CREATE_BRANCH","CREATE_PR","MERGE_PR","WRITE_DB_REVERSIBLE","DEPLOY_REVERSIBLE","ACTIVATE_RUNTIME","ACTIVATE_SCHEDULER","ACTIVATE_PUBLISHING","ACTIVATE_PAYMENTS","EXPAND_AUTHORITY"],
+  "riskLevels": {
+    "R0": "read-only investigation",
+    "R1": "code and test edits",
+    "R2": "branch and pull-request operations",
+    "R3": "reversible staging or non-consequential environment changes",
+    "R4": "production changes",
+    "R5": "payments, auth/security, destructive data, publishing, runtime, scheduler or consequential authority"
+  },
+  "defaultDeniedCapabilities": ["WRITE_DB_REVERSIBLE","DEPLOY_REVERSIBLE","ACTIVATE_RUNTIME","ACTIVATE_SCHEDULER","ACTIVATE_PUBLISHING","ACTIVATE_PAYMENTS","EXPAND_AUTHORITY"],
+  "evidenceGrades": {
+    "E0": "unsupported claim",
+    "E1": "static inspection",
+    "E2": "unit or static executable proof",
+    "E3": "integration proof",
+    "E4": "adversarial or negative-path proof",
+    "E5": "exact-head required CI",
+    "E6": "independent assurance",
+    "E7": "production or runtime verification"
+  },
+  "freshness": {
+    "code": "invalidate_on_affected_commit",
+    "ci": "invalidate_on_head_change",
+    "database": "invalidate_on_affected_migration_policy_or_grant_change",
+    "runtime": "time_bounded_and_invalidate_on_deployment",
+    "architecture": "revalidate_on_contract_or_invariant_change",
+    "memory": "never_substitutes_for_current_truth"
+  },
+  "journal": {
+    "appendOnly": true,
+    "hashChained": true,
+    "requiredFields": ["timestamp","missionId","runId","state","actor","action","result","headSha","prevHash","eventHash"],
+    "consequentialActionsRequireProvenance": true
+  },
+  "completion": {
+    "requiredCoverage": 1,
+    "unresolvedMandatoryRequirementsAllowed": 0,
+    "unresolvedContradictionsAllowed": 0,
+    "failedRequiredSkillsAllowed": 0,
+    "staleRequiredEvidenceAllowed": 0,
+    "answerGate": "No final readiness/completion answer while any mandatory requirement is UNKNOWN, PENDING, FAIL, BLOCKED, stale, contradicted or unvisited."
+  },
+  "negativePathPolicy": "Every consequential happy path must identify and verify meaningful failure, retry, stale-state, authorization and partial-completion paths.",
+  "concurrency": {
+    "leasesRequiredForMutation": true,
+    "overlappingMutableScopeDenied": true,
+    "preserveUnrelatedConcurrentWork": true
+  },
+  "stagnation": {
+    "sameFailureFingerprintThreshold": 3,
+    "requireStrategyChange": true,
+    "blindRerunsForbidden": true,
+    "escalation": ["narrow_repair","contract_and_assumption_review","dependency_root_cause","independent_diagnosis","typed_boundary"]
+  },
+  "memory": {
+    "stores": ["evidence","journal","knowledge","decisions","technicalDebt","incidents","regressions"],
+    "knowledgeRequiresProvenance": true,
+    "knowledgeRequiresFreshnessRule": true,
+    "staleKnowledgeCannotCertify": true
+  },
+  "selfGovernance": {
+    "protectedPaths": ["AGENTS.md","docs/ai-governance/","scripts/cyborg-",".github/workflows/agent-governance.yml"],
+    "requiresAdversarialTest": true,
+    "requiresIndependentAssuranceForWeakening": true,
+    "gateWeakeningForbidden": true
+  },
+  "resourceBudgets": {
+    "repeatedExternalCIWithoutNewEvidence": false,
+    "repeatedDeployWithoutNewEvidence": false,
+    "preferNarrowLocalProof": true
+  }
+}

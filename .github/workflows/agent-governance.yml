@@ -1,0 +1,58 @@
+name: Agent Governance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  agent-governance:
+    name: Agent Governance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate with base history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate governance kernel
+        run: node scripts/validate-agent-governance.mjs
+      - name: Cyborg governance health
+        run: node scripts/cyborg-health.mjs
+      - name: Adversarial governance proof
+        run: node scripts/cyborg-adversarial-test.mjs
+      - name: Adversarial Cyborg state-engine proof
+        run: node scripts/cyborg-engine-test.mjs
+      - name: Cyborg mission-template compiler proof
+        run: node scripts/cyborg-mission-compiler-test.mjs
+      - name: Automatic prompt-to-Cyborg entry proof
+        run: node scripts/cyborg-prompt-entry-test.mjs
+      - name: Cyborg autonomous terminal-loop proof
+        run: node scripts/cyborg-loop-test.mjs
+      - name: Adversarial Cyborg autonomous-supervisor proof
+        run: node scripts/cyborg-supervisor-test.mjs
+      - name: Adversarial Cyborg action-gate proof
+        run: node scripts/cyborg-action-gate-test.mjs
+      - name: Cyborg self-watchdog
+        run: node scripts/cyborg-watchdog.mjs
+      - name: Cyborg operational metrics
+        run: node scripts/cyborg-metrics.mjs
+      - name: Generate exact-head Cyborg mission manifest
+        if: github.event_name == 'pull_request'
+        env:
+          CYBORG_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CYBORG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/cyborg-governance-preflight.mjs
+      - name: Upload Cyborg mission evidence
+        if: github.event_name == 'pull_request' && hashFiles('.cyborg/mission-manifest.json') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyborg-mission-${{ github.event.pull_request.head.sha }}
+          path: .cyborg/mission-manifest.json
+          if-no-files-found: error

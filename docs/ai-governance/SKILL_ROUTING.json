@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "owner": "vibeschool-cyborg-executor",
+  "defaultCore": ["repo-truth-first","contract-integrity","preflight-before-ci","evidence-and-certification","dependency-integrity-loop","escape-hatch-auditor","merge-certification-gate","regression-learning","resource-conservation"],
+  "routes": [
+    {"patterns":["supabase/**","**/migrations/**"],"skills":["supabase-rls-security","security-authority-gate","production-readiness"]},
+    {"patterns":["lib/hq/workforce/**","app/**/workforce/**","**/worker-engine/**"],"skills":["worker-engine-governance","observability-watchdog-reliability","security-authority-gate"]},
+    {"patterns":["app/hq/**","lib/hq/**"],"skills":["hq-ux-operational-truth"]},
+    {"patterns":["**/content/**","**/curriculum/**","**/publishing/**","**/content-factory/**"],"skills":["content-factory-quality"]},
+    {"patterns":["app/teacher/**","app/student/**","app/parent/**","app/admin/**","**/teacher/**","**/student/**","**/parent/**","**/school-admin/**"],"skills":["journey-integrity"]},
+    {"patterns":[".github/workflows/**","vercel.json","next.config.*","package.json","package-lock.json"],"skills":["production-readiness"]},
+    {"patterns":["**/*test*","**/*spec*","tests/**","__tests__/**"],"skills":["test-the-test"]},
+    {"patterns":["**/auth/**","**/authorization/**","**/payments/**","**/publishing/**"],"skills":["security-authority-gate"]},
+    {"patterns":["**/telemetry/**","**/observability/**","**/watchdog*","**/heartbeat*"],"skills":["observability-watchdog-reliability"]}
+  ],
+  "failureTriggers": {"requiredCiFailure":["ci-failure-repair-loop"]}
+}

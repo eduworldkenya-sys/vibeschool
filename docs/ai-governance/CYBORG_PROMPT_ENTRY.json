@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "owner": "vibeschool-cyborg-executor",
+  "purpose": "Automatically promote repository/VibeSchool work prompts into durable Cyborg missions before a model produces a substantive repository answer.",
+  "modes": {
+    "auto": "Classify prompt intent. Repository/VibeSchool engineering work becomes a Cyborg mission; clearly unrelated conversational/non-repository prompts pass through.",
+    "repo": "Treat every supplied prompt as repository/VibeSchool work unless it is an explicit governance-exempt meta/help request.",
+    "passthrough": "Do not compile a mission. Reserved for hosts explicitly operating outside repository work."
+  },
+  "defaultMode": "auto",
+  "repositorySignals": [
+    "vibeschool", "cyborg", "repo", "repository", "github", "pull request", "pr ", "branch", "commit", "merge", "ci", "build", "typescript", "lint", "test", "supabase", "rls", "migration", "database", "auth", "signup", "login", "worker engine", "content factory", "hq", "teacher", "student", "parent", "admin", "production", "deploy", "runtime", "scheduler", "payment", "publishing", "bug", "fix", "repair", "implement", "audit", "ready", "readiness", "investigate", "diagnose"
+  ],
+  "explicitRepositoryActions": [
+    "add", "build", "change", "check", "debug", "diagnose", "fix", "implement", "investigate", "merge", "repair", "review", "solve", "test", "update", "verify"
+  ],
+  "passThroughSignals": [
+    "weather", "time in", "translate", "write a poem", "recipe", "calculate", "currency", "sports score"
+  ],
+  "laws": [
+    "Repository prompts MUST be compiled or resumed before substantive repository work or a readiness/completion answer.",
+    "A host MUST NOT answer a repository prompt directly merely because it arrived as a normal chat prompt.",
+    "Once promoted, the terminal loop continues until COMPLETE or a typed BLOCKED_* boundary.",
+    "Host/model context is replaceable; durable mission state remains authoritative.",
+    "Prompt text is intent, never permission to bypass capability, security, production or owner gates.",
+    "Ambiguous prompts in repo mode fail toward mission compilation, not shallow answering."
+  ],
+  "terminalStates": ["COMPLETE", "BLOCKED_OWNER", "BLOCKED_ACCESS", "BLOCKED_EXTERNAL", "BLOCKED_SAFETY", "BLOCKED_AUTHORITY"]
+}

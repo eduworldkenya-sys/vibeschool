@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "owner": "vibeschool-cyborg-executor",
+  "required": ["missionId","runId","missionType","intent","baseSha","headSha","riskLevel","capabilities","scope","requirements","selectedSkills","state","journalPath"],
+  "requirementStates": ["UNKNOWN","PENDING","PASS","FAIL","BLOCKED","NOT_APPLICABLE"],
+  "requirement": {
+    "requiredFields": ["id","description","mandatory","state","minimumEvidenceGrade","evidenceIds","dependencies","negativePaths"],
+    "notApplicableRequiresReason": true,
+    "passRequiresFreshEvidence": true
+  },
+  "scope": {
+    "requiredFields": ["mission","affectedDependencies","excluded"],
+    "mutationRequiresLease": true
+  },
+  "completionContract": {
+    "allMandatoryRequirementsResolved": true,
+    "allPassEvidenceFresh": true,
+    "minimumEvidenceGradesMet": true,
+    "noUnresolvedContradictions": true,
+    "noFailedRequiredSkills": true,
+    "allConsequentialActionsJournaled": true,
+    "learningClosureRequired": true,
+    "finalAnswerRequiresTerminalState": true
+  },
+  "readinessDefaultRequirements": [
+    "repository_truth",
+    "user_visible_entrypoint",
+    "input_validation",
+    "canonical_data_contract",
+    "authorization_and_tenant_isolation",
+    "happy_path",
+    "negative_paths",
+    "retry_and_idempotency",
+    "error_recovery",
+    "observability",
+    "mobile_or_runtime_when_applicable",
+    "production_configuration_when_claiming_production_ready"
+  ],
+  "implementationDefaultRequirements": [
+    "repository_truth",
+    "dependency_map",
+    "contract_integrity",
+    "implementation",
+    "preflight",
+    "test_integrity",
+    "negative_paths",
+    "security_and_data",
+    "escape_hatch_audit",
+    "exact_head_ci",
+    "independent_assurance_when_required",
+    "merge_gate",
+    "post_merge_verification_when_required",
+    "learning_closure"
+  ]
+}
