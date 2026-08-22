@@ -1,6 +1,12 @@
 -- Worker Engine audit-gap runtime closure. NON-ACTIVATING.
 -- Wires watchdog persistence, cooldown/dedupe state, fallback approval, context sanitization,
 -- structured clarification, and approval escalation into service-only database contracts.
+-- access: service-only public.hq_workforce_trigger_firings
+-- authorization-test: public.hq_workforce_trigger_firings anon/authenticated denied; service_role only.
+-- access: service-only public.hq_workforce_clarification_requests
+-- authorization-test: public.hq_workforce_clarification_requests anon/authenticated denied; service_role only.
+-- access: service-only public.hq_workforce_approval_requests
+-- authorization-test: public.hq_workforce_approval_requests anon/authenticated denied; service_role only.
 
 begin;
 
