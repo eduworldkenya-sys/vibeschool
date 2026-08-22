@@ -1,269 +1,65 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import { HQPage, HQPanel, HQ_THEME, hqButtonStyle } from "@/components/hq/HQShell"
 import { supabase } from "@/lib/supabase"
 
-interface Case {
-  id: string
-  case_no: number
-  category: string
-  severity: string
-  status: string
-  title: string
-  description: string
-  owner_id: string | null
-  sla_due_at: string | null
-  created_at: string
-  first_response_at: string | null
-  resolved_at: string | null
+interface Case { id:string; case_no:number; category:string; severity:string; status:string; title:string; description:string; owner_id:string|null; sla_due_at:string|null; created_at:string; first_response_at:string|null; resolved_at:string|null }
+interface Note { id:string; case_id:string; author_id:string; body:string; created_at:string }
+
+type Filter = "all" | "critical" | "overdue" | "unassigned"
+
+function slaState(value:string|null){
+  if(!value) return {label:"No SLA",tone:"muted"}
+  const diff=new Date(value).getTime()-Date.now(); const mins=Math.round(Math.abs(diff)/60000)
+  if(diff<0) return {label:`Overdue ${mins<60?`${mins}m`:`${Math.round(mins/60)}h`}`,tone:"danger"}
+  return {label:`Due in ${mins<60?`${mins}m`:`${Math.round(mins/60)}h`}`,tone:mins<=60?"warning":"good"}
 }
+function statusLabel(value:string){return value.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase())}
 
-interface Note {
-  id: string
-  case_id: string
-  author_id: string
-  body: string
-  created_at: string
-}
+export default function HQSupportPage(){
+  const[cases,setCases]=useState<Case[]>([]); const[selected,setSelected]=useState<Case|null>(null); const[notes,setNotes]=useState<Note[]>([])
+  const[body,setBody]=useState(""); const[error,setError]=useState(""); const[loading,setLoading]=useState(true); const[saving,setSaving]=useState(false)
+  const[query,setQuery]=useState(""); const[filter,setFilter]=useState<Filter>("all"); const[mobileDetail,setMobileDetail]=useState(false)
 
-export default function HQSupportPage() {
-  const [cases, setCases] = useState<Case[]>([])
-  const [selected, setSelected] = useState<Case | null>(null)
-  const [notes, setNotes] = useState<Note[]>([])
-  const [body, setBody] = useState("")
-  const [error, setError] = useState("")
-  const [loading, setLoading] = useState(true)
+  async function load(){setError("");const{data,error}=await supabase.from("hq_support_cases").select("id,case_no,category,severity,status,title,description,owner_id,sla_due_at,created_at,first_response_at,resolved_at").order("created_at",{ascending:false});if(error)setError(error.message);else setCases((data||[]) as Case[]);setLoading(false)}
+  async function loadNotes(id:string){const{data,error}=await supabase.from("hq_support_messages").select("id,case_id,author_id,body,created_at").eq("case_id",id).order("created_at",{ascending:true});if(error)setError(error.message);else setNotes((data||[]) as Note[])}
+  useEffect(()=>{void load()},[]); useEffect(()=>{if(selected)void loadNotes(selected.id)},[selected])
 
-  async function load() {
-    setError("")
-    const { data, error } = await supabase
-      .from("hq_support_cases")
-      .select("id,case_no,category,severity,status,title,description,owner_id,sla_due_at,created_at,first_response_at,resolved_at")
-      .order("created_at", { ascending: false })
+  async function patch(values:Record<string,unknown>){if(!selected||saving)return;setSaving(true);setError("");const{error}=await supabase.from("hq_support_cases").update({...values,updated_at:new Date().toISOString()}).eq("id",selected.id);if(error)setError(error.message);else{const next={...selected,...values} as Case;setSelected(next);setCases(items=>items.map(item=>item.id===next.id?next:item))}setSaving(false)}
+  async function addNote(){if(!selected||!body.trim()||saving)return;setSaving(true);setError("");const{data:{user}}=await supabase.auth.getUser();if(!user){setError("Sign in required.");setSaving(false);return}const{error}=await supabase.from("hq_support_messages").insert({case_id:selected.id,author_id:user.id,body:body.trim()});if(error)setError(error.message);else{setBody("");if(selected.status==="open")await patch({status:"in_progress",first_response_at:new Date().toISOString()});await loadNotes(selected.id)}setSaving(false)}
 
-    if (error) setError(error.message)
-    else setCases((data || []) as Case[])
-    setLoading(false)
-  }
+  const visible=useMemo(()=>cases.filter(c=>{const q=query.trim().toLowerCase();if(q&&!`${c.case_no} ${c.title} ${c.category} ${c.severity} ${c.status}`.toLowerCase().includes(q))return false;if(filter==="critical"&&!/critical|high/i.test(c.severity))return false;if(filter==="overdue"&&(!c.sla_due_at||new Date(c.sla_due_at).getTime()>=Date.now()))return false;if(filter==="unassigned"&&c.owner_id)return false;return true}),[cases,query,filter])
+  const overdue=cases.filter(c=>c.sla_due_at&&new Date(c.sla_due_at).getTime()<Date.now()&&!/resolved|closed/.test(c.status)).length
+  const critical=cases.filter(c=>/critical|high/i.test(c.severity)&&!/resolved|closed/.test(c.status)).length
 
-  async function loadNotes(id: string) {
-    const { data, error } = await supabase
-      .from("hq_support_messages")
-      .select("id,case_id,author_id,body,created_at")
-      .eq("case_id", id)
-      .order("created_at", { ascending: true })
+  function choose(c:Case){setSelected(c);setMobileDetail(true)}
 
-    if (error) setError(error.message)
-    else setNotes((data || []) as Note[])
-  }
+  return <HQPage title="Support" description="SLA-aware case investigation and resolution workspace" actions={<button onClick={()=>void load()} disabled={loading||saving} style={hqButtonStyle}>Refresh</button>}>
+    <div className="support-metrics" aria-label="Support queue summary"><div><strong>{cases.filter(c=>!/resolved|closed/.test(c.status)).length}</strong><span>Open</span></div><div><strong>{overdue}</strong><span>Overdue</span></div><div><strong>{critical}</strong><span>High priority</span></div><div><strong>{cases.filter(c=>!c.owner_id).length}</strong><span>Unassigned</span></div></div>
+    {error&&<div className="support-error" role="alert">{error}</div>}
+    <div className={`support-workspace${mobileDetail?" show-detail":""}`}>
+      <HQPanel className="support-queue">
+        <div className="support-tools"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search case, title, category…" aria-label="Search support cases"/><div className="support-filters">{(["all","critical","overdue","unassigned"] as Filter[]).map(f=><button key={f} onClick={()=>setFilter(f)} className={filter===f?"active":""}>{statusLabel(f)}</button>)}</div></div>
+        <div className="support-list" aria-busy={loading}>{loading?<div className="support-empty">Loading support queue…</div>:visible.length===0?<div className="support-empty">No cases match this view.</div>:visible.map(c=>{const sla=slaState(c.sla_due_at);return <button key={c.id} onClick={()=>choose(c)} className={`support-case${selected?.id===c.id?" active":""}`}><div className="support-case-top"><span>#{c.case_no}</span><span className={`sla ${sla.tone}`}>{sla.label}</span></div><strong>{c.title}</strong><div className="support-case-meta"><span>{c.category}</span><span>{statusLabel(c.severity)}</span><span>{statusLabel(c.status)}</span></div></button>})}</div>
+      </HQPanel>
 
-  useEffect(() => {
-    void load()
-  }, [])
-
-  useEffect(() => {
-    if (selected) void loadNotes(selected.id)
-  }, [selected])
-
-  async function patch(patchValues: Record<string, unknown>) {
-    if (!selected) return
-
-    const { error } = await supabase
-      .from("hq_support_cases")
-      .update({ ...patchValues, updated_at: new Date().toISOString() })
-      .eq("id", selected.id)
-
-    if (error) {
-      setError(error.message)
-      return
-    }
-
-    const next = { ...selected, ...patchValues } as Case
-    setSelected(next)
-    await load()
-  }
-
-  async function addNote() {
-    if (!selected || !body.trim()) return
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      setError("Sign in required.")
-      return
-    }
-
-    const { error } = await supabase.from("hq_support_messages").insert({
-      case_id: selected.id,
-      author_id: user.id,
-      body: body.trim(),
-    })
-
-    if (error) {
-      setError(error.message)
-      return
-    }
-
-    setBody("")
-    if (selected.status === "open") {
-      await patch({
-        status: "in_progress",
-        first_response_at: new Date().toISOString(),
-      })
-    }
-    await loadNotes(selected.id)
-  }
-
-  return (
-    <main style={{ minHeight: "100vh", background: "#07111f", color: "#e5e7eb", padding: 24 }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <div>
-            <h1 style={{ margin: 0 }}>HQ Support Operations</h1>
-            <p style={{ color: "#94a3b8" }}>Authorized platform-owner queue · SLA-aware case handling</p>
-          </div>
-          <button onClick={() => void load()} style={btn}>Refresh</button>
-        </div>
-
-        {error && (
-          <div style={{ margin: "12px 0", padding: 12, borderRadius: 9, background: "#3f172a", color: "#fecdd3" }}>
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <p>Loading…</p>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(340px,1fr)", gap: 16 }}>
-            <section style={panel}>
-              <h2>Queue · {cases.length}</h2>
-              {cases.map((c) => (
-                <button
-                  key={c.id}
-                  onClick={() => setSelected(c)}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    textAlign: "left",
-                    padding: 14,
-                    marginBottom: 8,
-                    border: selected?.id === c.id ? "2px solid #818cf8" : "1px solid #243244",
-                    borderRadius: 10,
-                    background: "#0b1727",
-                    color: "#e5e7eb",
-                  }}
-                >
-                  <strong>#{c.case_no} · {c.title}</strong>
-                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 5 }}>
-                    {c.category} · {c.severity} · {c.status}
-                  </div>
-                  <div style={{ fontSize: 11, color: "#64748b", marginTop: 4 }}>
-                    SLA: {c.sla_due_at ? new Date(c.sla_due_at).toLocaleString("en-KE") : "—"}
-                  </div>
-                </button>
-              ))}
-              {cases.length === 0 && <p style={{ color: "#94a3b8" }}>No support cases.</p>}
-            </section>
-
-            <section style={panel}>
-              {!selected ? (
-                <p style={{ color: "#94a3b8" }}>Select a case to investigate.</p>
-              ) : (
-                <>
-                  <h2>#{selected.case_no} · {selected.title}</h2>
-                  <div style={{ color: "#94a3b8", lineHeight: 1.6 }}>{selected.description}</div>
-
-                  <div style={{ display: "flex", gap: 7, flexWrap: "wrap", margin: "16px 0" }}>
-                    {["open", "in_progress", "resolved", "closed"].map((status) => (
-                      <button
-                        key={status}
-                        onClick={() =>
-                          void patch({
-                            status,
-                            ...(status === "resolved" ? { resolved_at: new Date().toISOString() } : {}),
-                          })
-                        }
-                        style={btn}
-                      >
-                        {status}
-                      </button>
-                    ))}
-                  </div>
-
-                  <label style={label}>
-                    Owner UUID
-                    <input
-                      defaultValue={selected.owner_id || ""}
-                      onBlur={(event) => void patch({ owner_id: event.target.value || null })}
-                      style={input}
-                    />
-                  </label>
-
-                  <h3>Case notes</h3>
-                  {notes.map((note) => (
-                    <div key={note.id} style={{ padding: 10, borderTop: "1px solid #243244", fontSize: 12 }}>
-                      <div style={{ color: "#64748b", marginBottom: 4 }}>
-                        {new Date(note.created_at).toLocaleString("en-KE")}
-                      </div>
-                      {note.body}
-                    </div>
-                  ))}
-
-                  <textarea
-                    value={body}
-                    onChange={(event) => setBody(event.target.value)}
-                    rows={5}
-                    placeholder="Internal support note / investigation result"
-                    style={{ ...input, resize: "vertical" }}
-                  />
-                  <button
-                    onClick={() => void addNote()}
-                    style={{ ...btn, background: "#4f46e5", borderColor: "#6366f1" }}
-                  >
-                    Add note
-                  </button>
-                </>
-              )}
-            </section>
-          </div>
-        )}
-      </div>
-    </main>
-  )
-}
-
-const panel = {
-  background: "#0b1727",
-  border: "1px solid #243244",
-  borderRadius: 14,
-  padding: 18,
-}
-
-const btn = {
-  padding: "9px 12px",
-  border: "1px solid #334155",
-  borderRadius: 8,
-  background: "#101d2d",
-  color: "#e5e7eb",
-  fontWeight: 700,
-}
-
-const label = {
-  display: "block",
-  fontSize: 12,
-  color: "#94a3b8",
-}
-
-const input = {
-  display: "block",
-  width: "100%",
-  boxSizing: "border-box" as const,
-  marginTop: 6,
-  padding: 10,
-  border: "1px solid #334155",
-  borderRadius: 8,
-  background: "#07111f",
-  color: "#e5e7eb",
+      <HQPanel className="support-detail">
+        {!selected?<div className="support-empty detail-empty"><strong>Select a case</strong><span>Choose a support case to investigate its context, timeline and resolution state.</span></div>:<div className="support-case-detail">
+          <button className="support-back" onClick={()=>setMobileDetail(false)}>← Back to queue</button>
+          <header><div><span className="eyebrow">CASE #{selected.case_no}</span><h2>{selected.title}</h2></div><span className={`sla ${slaState(selected.sla_due_at).tone}`}>{slaState(selected.sla_due_at).label}</span></header>
+          <div className="support-badges"><span>{statusLabel(selected.severity)}</span><span>{statusLabel(selected.status)}</span><span>{selected.category}</span></div>
+          <section><h3>Problem</h3><p>{selected.description}</p></section>
+          <section><h3>Case control</h3><div className="status-actions">{["open","in_progress","resolved","closed"].map(status=><button key={status} disabled={saving||selected.status===status} className={selected.status===status?"current":""} onClick={()=>void patch({status,...(status==="resolved"?{resolved_at:new Date().toISOString()}: {})})}>{statusLabel(status)}</button>)}</div><label>Owner ID<input value={selected.owner_id||""} onChange={e=>setSelected({...selected,owner_id:e.target.value||null})} onBlur={e=>void patch({owner_id:e.target.value||null})} placeholder="Unassigned"/></label></section>
+          <section><h3>Timeline</h3><div className="timeline"><div><time>{new Date(selected.created_at).toLocaleString("en-KE")}</time><p>Case created</p></div>{notes.map(note=><div key={note.id}><time>{new Date(note.created_at).toLocaleString("en-KE")}</time><p>{note.body}</p></div>)}</div></section>
+          <section><h3>Internal note</h3><textarea value={body} onChange={e=>setBody(e.target.value)} rows={4} placeholder="Investigation result, handoff or resolution evidence"/><button className="primary-action" disabled={!body.trim()||saving} onClick={()=>void addNote()}>{saving?"Saving…":"Add internal note"}</button></section>
+        </div>}
+      </HQPanel>
+    </div>
+    <style jsx global>{`
+      .support-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}.support-metrics>div{padding:14px 16px;border:1px solid var(--hq-border);border-radius:12px;background:rgba(255,255,255,.025)}.support-metrics strong,.support-metrics span{display:block}.support-metrics strong{font-size:22px}.support-metrics span{margin-top:3px;color:var(--hq-muted);font-size:11px}.support-error{margin-bottom:12px;padding:12px 14px;border:1px solid rgba(239,68,68,.25);border-radius:10px;background:rgba(239,68,68,.1);color:#fecaca;font-size:12px}.support-workspace{display:grid;grid-template-columns:minmax(280px,.78fr) minmax(0,1.45fr);gap:14px;align-items:start;min-width:0}.support-workspace .hq-panel{min-width:0}.support-tools{padding:12px;border-bottom:1px solid var(--hq-border)}.support-tools input,.support-case-detail input,.support-case-detail textarea{width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--hq-border);border-radius:10px;background:#071321;color:var(--hq-text);font:inherit;outline:none}.support-tools input:focus,.support-case-detail input:focus,.support-case-detail textarea:focus{border-color:rgba(59,130,246,.7);box-shadow:0 0 0 3px rgba(59,130,246,.1)}.support-filters{display:flex;gap:6px;overflow-x:auto;margin-top:9px;scrollbar-width:none}.support-filters button,.status-actions button{min-height:38px;white-space:nowrap;padding:0 10px;border:1px solid var(--hq-border);border-radius:9px;background:rgba(255,255,255,.025);color:var(--hq-muted);font-size:11px;font-weight:800}.support-filters button.active,.status-actions button.current{background:rgba(59,130,246,.16);border-color:rgba(59,130,246,.38);color:#dbeafe}.support-list{max-height:calc(100dvh - 300px);overflow:auto}.support-case{display:block;width:100%;padding:14px;text-align:left;border:0;border-bottom:1px solid var(--hq-border);background:transparent;color:var(--hq-text);cursor:pointer}.support-case:hover,.support-case.active{background:rgba(59,130,246,.07)}.support-case.active{box-shadow:inset 3px 0 #3b82f6}.support-case-top,.support-case-meta{display:flex;align-items:center;gap:7px}.support-case-top{justify-content:space-between;margin-bottom:7px;color:var(--hq-muted);font-size:10px;font-weight:900}.support-case>strong{display:block;font-size:13px;line-height:1.4}.support-case-meta{flex-wrap:wrap;margin-top:8px;color:var(--hq-muted);font-size:10px}.support-case-meta span:not(:last-child)::after{content:"·";margin-left:7px}.sla{display:inline-flex!important;align-items:center;min-height:25px;padding:0 8px;border-radius:999px;font-size:10px!important;font-weight:900}.sla.good{background:rgba(34,197,94,.1);color:#86efac}.sla.warning{background:rgba(245,158,11,.12);color:#fcd34d}.sla.danger{background:rgba(239,68,68,.12);color:#fca5a5}.sla.muted{background:rgba(148,163,184,.1);color:var(--hq-muted)}.support-empty{padding:28px 18px;text-align:center;color:var(--hq-muted);font-size:12px}.detail-empty{min-height:300px;display:grid;place-content:center;gap:6px}.detail-empty strong{color:var(--hq-text);font-size:15px}.support-case-detail{padding:18px;min-width:0}.support-case-detail>header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.support-case-detail .eyebrow{color:var(--hq-muted);font-size:10px;font-weight:900;letter-spacing:.08em}.support-case-detail h2{margin:5px 0 0;font-size:20px}.support-badges{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 4px}.support-badges span{padding:5px 8px;border:1px solid var(--hq-border);border-radius:999px;color:var(--hq-muted);font-size:10px;font-weight:800}.support-case-detail section{padding:16px 0;border-top:1px solid var(--hq-border)}.support-case-detail section:first-of-type{margin-top:12px}.support-case-detail h3{margin:0 0 9px;font-size:11px;text-transform:uppercase;letter-spacing:.05em}.support-case-detail p{margin:0;color:#cbd5e1;font-size:13px;line-height:1.65}.status-actions{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:13px}.status-actions button:disabled{cursor:default;opacity:.7}.support-case-detail label{display:block;color:var(--hq-muted);font-size:11px;font-weight:800}.support-case-detail label input{margin-top:6px}.timeline{border-left:1px solid var(--hq-border);margin-left:5px;padding-left:15px}.timeline>div{position:relative;padding:0 0 14px}.timeline>div::before{content:"";position:absolute;width:7px;height:7px;border-radius:50%;background:#3b82f6;left:-19px;top:4px}.timeline time{color:var(--hq-muted);font-size:10px}.timeline p{margin-top:3px!important;font-size:12px!important}.support-case-detail textarea{resize:vertical;min-height:100px}.primary-action{min-height:44px;margin-top:9px;padding:0 14px;border:1px solid #2563eb;border-radius:10px;background:#2563eb;color:#fff;font-weight:900}.primary-action:disabled{opacity:.45}.support-back{display:none}.support-case button,.support-case-detail button{touch-action:manipulation;cursor:pointer}
+      @media(max-width:900px){.support-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.support-workspace{display:block}.support-detail{display:none}.support-workspace.show-detail .support-queue{display:none}.support-workspace.show-detail .support-detail{display:block}.support-list{max-height:none}.support-back{display:inline-flex;min-height:44px;align-items:center;margin:-4px 0 12px;padding:0;border:0;background:transparent;color:#93c5fd;font-weight:800}.support-case{min-height:88px}.support-case-detail{padding:15px}.support-case-detail>header{display:block}.support-case-detail>header>.sla{margin-top:10px}.status-actions button{min-height:44px}}
+      @media(max-width:420px){.support-metrics{gap:7px}.support-metrics>div{padding:11px 12px}.support-case-detail h2{font-size:18px}}
+    `}</style>
+  </HQPage>
 }
