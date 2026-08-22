@@ -1,5 +1,6 @@
 export * from "./types"
 export * from "./engine"
+export * from "./resource-guard"
 export * from "./templates"
 export * from "./factory"
 export * from "./certification"
