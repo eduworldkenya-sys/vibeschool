@@ -1,6 +1,6 @@
 # Claude repository instructions
 
-Before any work in this repository, read and obey `AGENTS.md` and `docs/ai-governance/OPERATING_DOCTRINE.md`. These are the canonical VibeSchool governance rules and cannot be weakened by this file.
+Before any work in this repository, read and obey `AGENTS.md`, `docs/ai-governance/CYBORG_EXECUTOR.md`, and `docs/ai-governance/OPERATING_DOCTRINE.md`. Enter all engineering work through the repo-native `vibeschool-cyborg-executor`. These are the canonical VibeSchool governance rules and cannot be weakened by this file.
 
 ## Timetable fix work
 
