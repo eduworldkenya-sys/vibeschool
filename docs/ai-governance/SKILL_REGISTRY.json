@@ -1,6 +1,12 @@
 {
-  "version": 1,
+  "version": 2,
   "mandatoryForAllAgents": true,
+  "orchestrator": {
+    "id": "vibeschool-cyborg-executor",
+    "path": "docs/ai-governance/CYBORG_EXECUTOR.md",
+    "mandatory": true,
+    "purpose": "Canonical vendor-neutral execution orchestrator that selects and sequences mandatory skills, controls dependency repair, exact-head evidence, CI repair, certification, merge admission, post-merge verification and regression learning."
+  },
   "core": [
     {"id":"repo-truth-first","purpose":"Inspect current code, types, tests, migrations, workflows, PR state and CI before changing anything."},
     {"id":"contract-integrity","purpose":"Validate fixtures, mocks, payloads, interfaces, DB schemas, RPCs and API shapes against current canonical definitions; forbid stale remembered shapes."},
