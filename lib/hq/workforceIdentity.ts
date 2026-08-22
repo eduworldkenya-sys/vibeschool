@@ -5,23 +5,24 @@ export type WorkerIdentity = {
   role: string
   purpose: string
   reportsTo: string | null
+  escalatesTo: string | null
   mapped: boolean
 }
 
 type IdentitySeed = Omit<WorkerIdentity,"key"|"mapped">
 
 const IDENTITY_SEEDS: Record<string,IdentitySeed> = {
-  laban: { name: "Laban", role: "Chief Coordinator", purpose: "Coordinates company work, delegates to specialists, consolidates evidence and escalates founder decisions.", reportsTo: null },
-  travis: { name: "Travis", role: "Content & Publishing", purpose: "Builds, improves and publishes teaching and learning content.", reportsTo: "laban" },
-  david: { name: "David", role: "Operations", purpose: "Coordinates operational execution, support and follow-through.", reportsTo: "laban" },
-  mykphyl: { name: "Mykphyl", role: "Intelligence & Planning", purpose: "Turns company and workforce signals into plans, priorities and next actions.", reportsTo: "laban" },
-  luca: { name: "Luca", role: "QA & Verification", purpose: "Independently verifies work and rejects unsupported completion claims.", reportsTo: "laban" },
-  damian: { name: "Damian", role: "Platform & Reliability", purpose: "Protects platform reliability, recovery and operational health.", reportsTo: "laban" },
-  nina: { name: "Nina", role: "Research & Evidence", purpose: "Investigates curriculum and product questions and produces source-bound evidence.", reportsTo: "laban" },
-  michael: { name: "Michael", role: "Security & Reconciliation", purpose: "Protects authorization boundaries and reconciles system truth.", reportsTo: "laban" },
-  phyllys: { name: "Phyllys", role: "School Success", purpose: "Tracks school and teacher success and surfaces adoption risks.", reportsTo: "laban" },
-  brian: { name: "Brian", role: "Engineering & Delivery", purpose: "Turns approved product and operational requirements into reliable implementation and delivery.", reportsTo: "laban" },
-  chloe: { name: "Chloe", role: "Growth & Learning Experience", purpose: "Protects product clarity and usability while improving healthy teacher and learner adoption.", reportsTo: "laban" },
+  laban: { name: "Laban", role: "Chief Coordinator", purpose: "Coordinates company work, delegates to specialists, consolidates evidence and escalates founder decisions.", reportsTo: null, escalatesTo: "founder_ceo" },
+  travis: { name: "Travis", role: "Content & Publishing", purpose: "Builds, improves and publishes teaching and learning content.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  david: { name: "David", role: "Operations", purpose: "Coordinates operational execution, support and follow-through.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  mykphyl: { name: "Mykphyl", role: "Intelligence & Planning", purpose: "Turns company and workforce signals into plans, priorities and next actions.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  luca: { name: "Luca", role: "QA & Verification", purpose: "Independently verifies work and rejects unsupported completion claims.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  damian: { name: "Damian", role: "Platform & Reliability", purpose: "Protects platform reliability, recovery and operational health.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  nina: { name: "Nina", role: "Research & Evidence", purpose: "Investigates curriculum and product questions and produces source-bound evidence.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  michael: { name: "Michael", role: "Security & Reconciliation", purpose: "Protects authorization boundaries and reconciles system truth.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  phyllys: { name: "Phyllys", role: "School Success", purpose: "Tracks school and teacher success and surfaces adoption risks.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  brian: { name: "Brian", role: "Engineering & Delivery", purpose: "Turns approved product and operational requirements into reliable implementation and delivery.", reportsTo: "laban", escalatesTo: "founder_ceo" },
+  chloe: { name: "Chloe", role: "Growth & Learning Experience", purpose: "Protects product clarity and usability while improving healthy teacher and learner adoption.", reportsTo: "laban", escalatesTo: "founder_ceo" },
 }
 
 export const WORKER_IDENTITIES: Record<string,WorkerIdentity> = Object.fromEntries(
@@ -54,7 +55,7 @@ export function workerIdentity(workerKey?: string | null, title?: string | null)
   for (const [key, identity] of Object.entries(WORKER_IDENTITIES)) {
     if (raw === key || raw.startsWith(`${key}-`) || raw.includes(`-${key}-`)) return identity
   }
-  return { key: raw||"unmapped", name: title || workerKey || "System worker", role: "Temporary / system worker", purpose: "Governed technical worker that has not been promoted into the permanent named team.", reportsTo: null, mapped:false }
+  return { key: raw||"unmapped", name: title || workerKey || "System worker", role: "Temporary / system worker", purpose: "Governed technical worker that has not been promoted into the permanent named team.", reportsTo: null, escalatesTo: "founder_ceo", mapped:false }
 }
 
 export function humanWorkerStatus(workerStatus?:string|null,workStatuses:string[]=[]): string {
