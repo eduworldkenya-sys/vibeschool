@@ -1,0 +1,22 @@
+name: Worker Engine Proof Contract
+
+on:
+  pull_request:
+    paths:
+      - 'lib/hq/workforce/governed-runtime.test.ts'
+      - 'docs/worker-engine-proof-scope.json'
+      - 'scripts/worker-engine-governed-proof-contract.mjs'
+      - 'scripts/validate-worker-engine-governed-proof.mjs'
+      - '.github/workflows/worker-engine-proof-contract.yml'
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/worker-engine-governed-proof-contract.mjs
+      - run: node scripts/validate-worker-engine-governed-proof.mjs
