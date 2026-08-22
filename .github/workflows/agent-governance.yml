@@ -36,7 +36,7 @@ jobs:
           CYBORG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: node scripts/cyborg-governance-preflight.mjs
       - name: Upload Cyborg mission evidence
-        if: github.event_name == 'pull_request' && always()
+        if: github.event_name == 'pull_request' && hashFiles('.cyborg/mission-manifest.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: cyborg-mission-${{ github.event.pull_request.head.sha }}
