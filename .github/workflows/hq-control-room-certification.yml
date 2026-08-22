@@ -26,7 +26,17 @@ jobs:
       - name: TypeScript
         run: npm run typecheck
       - name: Worker Engine governed adversarial proof
-        run: node --test lib/hq/workforce/governed-runtime.test.ts
+        run: |
+          rm -rf .tmp/hq-governed-proof
+          npx --no-install tsc lib/hq/workforce/governed-runtime.test.ts \
+            --outDir .tmp/hq-governed-proof \
+            --module commonjs \
+            --target es2022 \
+            --moduleResolution node \
+            --esModuleInterop \
+            --skipLibCheck \
+            --types node
+          node --test .tmp/hq-governed-proof/governed-runtime.test.js
       - name: Proof escape-hatch audit
         run: |
           if grep -nE 'as[[:space:]]+(any|unknown)|@ts-ignore|@ts-nocheck|eslint-disable|\.skip\(' lib/hq/workforce/governed-runtime.test.ts; then
