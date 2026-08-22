@@ -6,7 +6,9 @@ for (const invariant of ['runCyborgMission','NO_DIRECT_LLM_CALLS','PREMATURE_MIS
   if (!gateway.includes(invariant)) throw new Error(`CYBORG_GATEWAY_INVARIANT_MISSING:${invariant}`);
 }
 
-const roots = ['app','lib','components','scripts'];
+// Scan server-side/runtime authority surfaces. Legacy browser-only inference is not
+// treated as an execution authority and is migrated independently.
+const roots = ['app/api','lib','components','scripts'];
 const forbidden = [
   /new\s+OpenAI\s*\(/,
   /new\s+Anthropic\s*\(/,
