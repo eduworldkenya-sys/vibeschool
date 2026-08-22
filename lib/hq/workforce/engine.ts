@@ -14,23 +14,80 @@ const DEFAULT_EXECUTION_ORDER: WorkerExecutionMode[] = [
   "external_ai",
 ]
 
+const QA_LOCKED_WORKER_KEYS = new Set(["qa_reliability", "quality-worker-01"])
+const QA_EXECUTION_ORDER: WorkerExecutionMode[] = ["deterministic", "human"]
+
+export function validateExecutionPolicy(worker: Pick<DigitalWorkerDefinition, "key" | "executionOrder" | "fallbackPolicy">) {
+  if (worker.executionOrder.length === 0) {
+    throw new Error(`Worker ${worker.key} must define at least one execution mode`)
+  }
+
+  const policy = worker.fallbackPolicy
+  if (!policy) return
+
+  if (policy.maxFallbackDepth < 0) {
+    throw new Error(`Worker ${worker.key} has an invalid maxFallbackDepth`)
+  }
+
+  const fallbackModes = worker.executionOrder.slice(1)
+  if (fallbackModes.length > policy.maxFallbackDepth) {
+    throw new Error(`Worker ${worker.key} exceeds its allowed fallback depth`)
+  }
+
+  const disallowed = fallbackModes.filter((mode) => !policy.allowedFallbackModes.includes(mode))
+  if (disallowed.length > 0) {
+    throw new Error(`Worker ${worker.key} contains disallowed fallback modes: ${disallowed.join(", ")}`)
+  }
+}
+
 export function createWorkerDefinition(
   input: Omit<DigitalWorkerDefinition, "executionOrder" | "status" | "version"> & {
     executionOrder?: WorkerExecutionMode[]
   },
 ): DigitalWorkerDefinition {
-  return {
+  const qaLocked = QA_LOCKED_WORKER_KEYS.has(input.key)
+  const worker: DigitalWorkerDefinition = {
     ...input,
-    executionOrder: input.executionOrder ?? DEFAULT_EXECUTION_ORDER,
+    executionOrder: qaLocked ? [...QA_EXECUTION_ORDER] : (input.executionOrder ?? DEFAULT_EXECUTION_ORDER),
+    fallbackPolicy: qaLocked
+      ? {
+          requireApprovalOnFallback: true,
+          allowedFallbackModes: ["human"],
+          maxFallbackDepth: 1,
+        }
+      : input.fallbackPolicy,
     status: "draft",
     version: 1,
   }
+
+  validateExecutionPolicy(worker)
+  return worker
 }
 
 export function evaluateAuthority(rules: WorkerAuthorityRule[], action: string) {
   const exact = rules.find((rule) => rule.action === action)
   const wildcard = rules.find((rule) => rule.action === "*")
-  return exact ?? wildcard ?? { action, risk: "high" as const, mode: "approval_required" as const, approvalRole: "founder_ceo" }
+  return exact ?? wildcard ?? {
+    action,
+    risk: "high" as const,
+    mode: "approval_required" as const,
+    approvalRole: "founder_ceo",
+    escalationPolicy: {
+      escalateAfterHours: 24,
+      backupApprovalRole: "founder_ceo",
+      finalEscalationRole: "founder_ceo",
+      notifyOnEscalate: true,
+    },
+  }
+}
+
+export function fallbackRequiresApproval(
+  worker: Pick<DigitalWorkerDefinition, "executionOrder" | "fallbackPolicy">,
+  mode: WorkerExecutionMode,
+) {
+  const modeIndex = worker.executionOrder.indexOf(mode)
+  if (modeIndex <= 0) return false
+  return worker.fallbackPolicy?.requireApprovalOnFallback === true
 }
 
 export function triggerMatches(

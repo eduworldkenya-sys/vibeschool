@@ -16,6 +16,12 @@ export interface WorkerAuthorityRule {
   risk: WorkerRisk
   mode: "allow" | "deny" | "approval_required"
   approvalRole?: string
+  escalationPolicy?: {
+    escalateAfterHours: number
+    backupApprovalRole: string
+    finalEscalationRole: string
+    notifyOnEscalate: boolean
+  }
 }
 
 export interface WorkerTriggerDefinition {
@@ -28,6 +34,12 @@ export interface WorkerTriggerDefinition {
   workflowKey: string
 }
 
+export interface WorkerFallbackPolicy {
+  requireApprovalOnFallback: boolean
+  allowedFallbackModes: WorkerExecutionMode[]
+  maxFallbackDepth: number
+}
+
 export interface DigitalWorkerDefinition {
   key: string
   title: string
@@ -37,6 +49,7 @@ export interface DigitalWorkerDefinition {
   responsibilities: string[]
   competencies: string[]
   executionOrder: WorkerExecutionMode[]
+  fallbackPolicy?: WorkerFallbackPolicy
   authority: WorkerAuthorityRule[]
   triggers: WorkerTriggerDefinition[]
   kpis: WorkerKpiDefinition[]
