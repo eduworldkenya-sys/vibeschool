@@ -14,9 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - run: node scripts/validate-cyborg-mission-kernel.mjs
       - run: node scripts/cyborg-adversarial-proof.mjs
       - run: python scripts/validate-supabase-migration-contract.py --changed-from origin/main
