@@ -1,62 +1,135 @@
 # VibeSchool Cyborg Executor
 
-`vibeschool-cyborg-executor` is the mandatory vendor-neutral execution orchestrator for AI-assisted engineering in this repository.
+`vibeschool-cyborg-executor` is the mandatory vendor-neutral execution orchestrator and **authoritative owner of the VibeSchool engineering skill system**.
 
-It does not replace the mandatory skills. It decides which skills apply, in what order, what evidence is required, when work must stop, when an earlier dependency must be repaired first, and when a claim such as VERIFIED or CERTIFIED is permitted.
+All repository engineering skills operate under Cyborg authority. Individual skill modules remain modular definitions, but they do not independently control mission execution, sequencing, certification, escalation, or merge admission.
+
+## Ownership model
+
+Cyborg owns:
+
+- the mandatory skill inventory and registry contract;
+- skill discovery and applicability classification;
+- skill selection, ordering and invocation;
+- skill dependencies, prerequisites and conflict resolution;
+- required evidence and pass/fail interpretation;
+- failure routing and repair/resume behavior;
+- certification-state transitions;
+- authority escalation and owner-only boundaries;
+- merge admission and post-merge verification;
+- regression learning and permanent guard creation;
+- resource-conservation decisions.
+
+`docs/ai-governance/SKILL_REGISTRY.json` is the machine-readable inventory controlled by Cyborg. `docs/ai-governance/MANDATORY_SKILLS.md` contains modular skill definitions controlled by Cyborg. Neither may weaken or bypass this executor.
+
+The control hierarchy is:
+
+`LLM / AGENT / HUMAN+AI -> CYBORG -> SKILL MODULES -> EVIDENCE + EXECUTABLE GATES -> CI / CONTROL PLANE -> MERGE / RELEASE`
+
+No skill may self-certify, self-promote, bypass another required skill, or authorize production activation outside this hierarchy.
 
 ## Mandatory entry
 
 Any LLM, coding agent, autonomous worker, or human+AI workflow that proposes or performs engineering work must:
 
 1. Read `AGENTS.md`.
-2. Read this file.
-3. Read `docs/ai-governance/SKILL_REGISTRY.json` and `docs/ai-governance/MANDATORY_SKILLS.md`.
+2. Enter through this Cyborg executor.
+3. Load `docs/ai-governance/SKILL_REGISTRY.json` and applicable definitions from `docs/ai-governance/MANDATORY_SKILLS.md`.
 4. Read `.github/control-plane/policy.json`.
 5. Inspect current repository and CI truth before acting.
 
-Model-specific files may point to this executor but may not weaken it.
+Model-specific files may point to this executor but may not weaken it or invoke repository skills outside Cyborg governance.
 
 ## Execution contract
 
-For every mission, the executor MUST establish:
+For every mission, Cyborg MUST establish and record:
 
 - mission and bounded scope;
 - exact base SHA and current candidate head SHA;
 - changed and potentially affected shared contracts;
 - upstream/downstream dependencies;
 - production and authority risk;
-- required core skills and VibeSchool domain skills;
-- preflight evidence;
+- selected core and VibeSchool domain skills plus selection reasons;
+- execution order and prerequisites;
+- evidence required from each selected skill;
+- pass/fail/blocking result from each selected skill;
+- unresolved findings and dependency consequences;
 - independent assurance requirement;
 - completion state using the canonical state meanings below.
 
+## Mandatory skill execution record
+
+Every significant engineering mission must maintain an execution record logically equivalent to:
+
+`skill -> trigger/reason -> prerequisites -> evidence -> result(PASS|FAIL|BLOCKED|NOT_APPLICABLE) -> unresolved findings -> next action`
+
+A skill name appearing in a prompt or checklist is not proof that the skill ran. Evidence is required.
+
+Cyborg may mark a conditional skill `NOT_APPLICABLE` only with a concrete reason. Mandatory universal skills cannot be opted out of by a model.
+
 ## Canonical execution loop
 
-`BOOT -> TRUTH -> CLASSIFY -> DEPENDENCY MAP -> SELECT SKILLS -> PLAN -> IMPLEMENT -> PREFLIGHT -> ADVERSARIAL VERIFY -> SECURITY/DATA VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> INDEPENDENT ASSURANCE WHEN REQUIRED -> MERGE GATE -> MERGE -> POST-MERGE VERIFY -> LEARN`
+`BOOT -> TRUTH -> CLASSIFY -> DEPENDENCY MAP -> SELECT SKILLS -> ORDER SKILLS -> PLAN -> IMPLEMENT -> PREFLIGHT -> TEST INTEGRITY -> SECURITY/DATA VERIFY -> ESCAPE-HATCH AUDIT -> ADVERSARIAL VERIFY -> UI/RUNTIME VERIFY WHEN APPLICABLE -> EXACT-HEAD CI -> CI REPAIR LOOP IF NEEDED -> INDEPENDENT ASSURANCE WHEN REQUIRED -> CERTIFICATION DECISION -> MERGE GATE -> MERGE -> POST-MERGE VERIFY -> LEARN`
 
 A stage may only be skipped when it is demonstrably inapplicable and the reason is recorded. A skipped stage must never weaken a required repository gate.
 
-## Skill selection law
+## Cyborg-owned skill execution matrix
 
-The following core skills are mandatory for every engineering mission:
+### Universal core — always selected
 
-- `repo-truth-first`
-- `contract-integrity`
-- `preflight-before-ci`
-- `evidence-and-certification`
-- `dependency-integrity-loop`
-- `escape-hatch-auditor`
-- `merge-certification-gate`
-- `regression-learning`
-- `resource-conservation`
+- `repo-truth-first` — runs first and establishes current truth.
+- `contract-integrity` — validates canonical interfaces/contracts before implementation and again when changed contracts require it.
+- `preflight-before-ci` — runs after implementation and before expensive/external CI.
+- `evidence-and-certification` — owns evidence semantics throughout the mission and evaluates state transitions.
+- `dependency-integrity-loop` — remains armed throughout the mission and activates on verified upstream contradiction.
+- `escape-hatch-auditor` — runs before certification on changed/affected paths.
+- `merge-certification-gate` — runs only after all prerequisite evidence is current.
+- `regression-learning` — runs after material failures/repairs and before mission closure.
+- `resource-conservation` — applies continuously to execution choices.
 
-The following are mandatory when their trigger applies:
+### Triggered core
 
-- `test-the-test` for newly added or materially changed behavioral/regression tests.
-- `ci-failure-repair-loop` whenever any required CI/check fails, cancels unexpectedly, or produces contradictory evidence.
-- `security-authority-gate` whenever auth, authorization, RLS, grants, service role, secrets, destructive operations, tenant boundaries, payments, publishing, runtime or consequential authority may be affected.
+- `test-the-test` — mandatory for new or materially changed behavioral/regression tests.
+- `ci-failure-repair-loop` — mandatory when a required CI/check fails, unexpectedly cancels, or contradicts other evidence.
+- `security-authority-gate` — mandatory for auth, authorization, RLS, grants, service-role, secrets, tenant boundaries, destructive operations, payments, publishing, runtime, scheduler, worker authority, or other consequential authority impact.
 
-Applicable VibeSchool domain modules from `SKILL_REGISTRY.json` are also mandatory.
+### VibeSchool domains
+
+Cyborg MUST select every matching domain module from the registry. Multiple domains may run in one mission; choosing one does not suppress another.
+
+- `worker-engine-governance` — Worker Engine/runtime/authority/commissioning/watchdog/retry/fallback work.
+- `supabase-rls-security` — schema/migration/RLS/grant/auth/data-boundary work.
+- `content-factory-quality` — curriculum/content/publication/quality/review work.
+- `hq-ux-operational-truth` — HQ state, control-room, operational evidence and UX work.
+- `journey-integrity` — Teacher/Student/Parent/Admin end-to-end journeys and shared identity/data contracts.
+- `production-readiness` — deployment, rollout, rollback, environment, migration or release work.
+- `observability-watchdog-reliability` — telemetry, heartbeat, watchdog, failure visibility and recovery work.
+
+## Skill conflict and precedence law
+
+When skill recommendations conflict, Cyborg resolves them using this precedence:
+
+1. Safety, security, tenant isolation and owner-authority boundaries.
+2. Current production/repository truth and executable control-plane gates.
+3. Canonical contract/dependency integrity.
+4. Exact-head verification and independent assurance requirements.
+5. Functional implementation goals.
+6. Resource conservation and optimization.
+
+A lower-precedence skill cannot weaken a higher-precedence requirement. Cyborg must record material conflicts and their resolution.
+
+## Failure propagation law
+
+A failed required skill blocks every downstream state that depends on it. Cyborg must not continue toward certification merely because unrelated skills passed.
+
+On failure Cyborg must:
+
+1. preserve the failure evidence;
+2. identify affected dependencies and stale states;
+3. select the appropriate repair skill/loop;
+4. repair the canonical cause;
+5. rerun the failed skill and all invalidated dependent skills;
+6. resume only from the last still-valid checkpoint.
 
 ## Dependency integrity
 
@@ -101,19 +174,20 @@ Forbidden shortcuts include unreviewed `as any`, `as unknown`, `@ts-ignore`, ski
 - `POST-MERGE VERIFIED`: required checks on resulting main/production state passed.
 - `BLOCKED`: a specific unresolved boundary prevents progression; evidence and next owner/action are recorded.
 
-Never infer one state from another.
+Only Cyborg may determine these repository mission states from the collected evidence. A subordinate skill or model response cannot promote itself.
 
 ## Authority and production safety
 
-The executor is non-activating by default. Runtime, schedulers, automatic publishing, payments and consequential worker authority remain OFF unless separately and explicitly commissioned through the repository's owner/control-plane gates.
+Cyborg is non-activating by default. Runtime, schedulers, automatic publishing, payments and consequential worker authority remain OFF unless separately and explicitly commissioned through the repository's owner/control-plane gates.
 
 Destructive production SQL, migration-history repair, RLS/grant weakening, secret exposure, cross-tenant access, payment activation, publishing activation, scheduler activation or authority expansion require explicit current authorization and the applicable security/production gates.
 
 ## Merge law
 
-Do not merge merely because implementation looks correct. The executor must verify:
+Do not merge merely because implementation looks correct. Cyborg must verify:
 
 - exact PR head has not moved since evidence was collected;
+- every required selected skill is PASS or legitimately NOT_APPLICABLE;
 - all required checks for that exact head are green;
 - required reviews/independent assurance are satisfied;
 - no unresolved blocking review thread or contradiction remains;
@@ -127,7 +201,7 @@ Prefer repository inspection, narrow tests, local/static verification and target
 
 ## Learning loop
 
-Every preventable failure must be assessed for permanent prevention. When practical, add or strengthen one or more of:
+Every preventable failure must be assessed for permanent prevention. When practical, Cyborg must add or strengthen one or more of:
 
 - regression test;
 - contract validator;
@@ -147,10 +221,11 @@ If work ends before POST-MERGE VERIFIED, record at minimum:
 - branch/PR;
 - exact head SHA;
 - current state;
+- selected skills and their PASS/FAIL/BLOCKED/NOT_APPLICABLE states;
 - checks and evidence already obtained;
 - checks still pending/failed;
 - unresolved findings and dependency impact;
 - production/runtime activation state;
 - exact next action.
 
-A new agent must re-check current truth rather than trusting the handover blindly.
+A new agent must re-enter through Cyborg and re-check current truth rather than trusting the handover blindly.
