@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "owner": "vibeschool-cyborg-executor",
+  "actions": {
+    "DEPENDENCY_CHANGE": {
+      "capability": "EDIT_CODE",
+      "requiredEvidence": ["package_provenance","lockfile_review","install_script_review","vulnerability_review","dependency_confusion_review","license_review_when_applicable"]
+    },
+    "DATABASE_MUTATION": {
+      "capability": "WRITE_DB_REVERSIBLE",
+      "requiredEvidence": ["schema_impact","rls_grant_impact","backward_compatibility","data_migration_plan","rollback_or_recovery","dry_or_read_only_verification","security_gate"],
+      "ownerAuthorizationRequired": true
+    },
+    "PRODUCTION_CHANGE": {
+      "capability": "DEPLOY_REVERSIBLE",
+      "requiredEvidence": ["blast_radius","rollback_or_recovery","observability","exact_head_evidence","security_gate_when_applicable"],
+      "ownerAuthorizationRequired": true
+    },
+    "SECRET_USE": {
+      "capability": "READ_RUNTIME",
+      "requiredEvidence": ["secret_reference_not_plaintext","least_privilege","no_log_or_model_exposure"],
+      "plaintextSecretInModelContextForbidden": true
+    },
+    "CONSEQUENTIAL_RETRYABLE_ACTION": {
+      "capability": "EDIT_CODE",
+      "requiredEvidence": ["idempotency_key_or_duplicate_guard","retry_semantics","partial_failure_recovery","audit_event"]
+    },
+    "GOVERNANCE_SELF_MODIFICATION": {
+      "capability": "EDIT_CODE",
+      "requiredEvidence": ["adversarial_governance_test","no_gate_weakening","independent_assurance_when_policy_or_authority_changes"],
+      "protected": true
+    }
+  }
+}

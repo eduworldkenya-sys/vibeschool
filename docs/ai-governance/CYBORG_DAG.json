@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "owner": "vibeschool-cyborg-executor",
+  "nodes": {
+    "truth":{"dependsOn":[]},
+    "contracts":{"dependsOn":["truth"]},
+    "implementation":{"dependsOn":["contracts"]},
+    "preflight":{"dependsOn":["implementation"]},
+    "test-integrity":{"dependsOn":["preflight"]},
+    "security":{"dependsOn":["preflight"]},
+    "exact-head-ci":{"dependsOn":["test-integrity","security"]},
+    "independent-assurance":{"dependsOn":["exact-head-ci"]},
+    "certification":{"dependsOn":["independent-assurance"]},
+    "merge":{"dependsOn":["certification"]},
+    "post-merge":{"dependsOn":["merge"]},
+    "learning":{"dependsOn":["post-merge"]}
+  },
+  "invalidation":"Failure or contradiction invalidates the failed node and every transitive dependent node."
+}

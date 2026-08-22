@@ -2,6 +2,14 @@
 
 <!-- State the bounded engineering mission. -->
 
+## Agent Governance Attestation
+
+- [ ] I read `AGENTS.md` before implementation.
+- [ ] I read `docs/ai-governance/OPERATING_DOCTRINE.md` and `.github/control-plane/policy.json`.
+- [ ] Current repository truth was inspected; no completion claim relies only on chat/history.
+- [ ] Any newly discovered dependency defect was either repaired/re-certified or explicitly recorded as a blocker.
+- [ ] No production runtime, scheduler, publishing, payment, or consequential authority activation occurred without separate authorization.
+
 ## Engineering Control Plane Manifest
 
 - Base SHA: `REQUIRED`
