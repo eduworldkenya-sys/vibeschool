@@ -14,12 +14,15 @@ export interface MissionGate { id: string; description: string; required: boolea
 export interface SideEffect { id: string; target: string; action: string; idempotencyKey: string; risk: CyborgRisk; rollback?: string; evidenceIds: string[]; }
 export interface SkillBinding { id: string; version: string; required: boolean; dependencies: string[]; evidenceIds: string[]; }
 export interface MissionBudget { maxCycles: number; maxRepeatedFailure: number; maxNoProgressCycles: number; maxToolCalls?: number; }
+export interface MissionLease {
+  holder: string; baseRevision: string; generation: number; acquiredAt: string; expiresAt: string;
+}
 export interface CyborgMission {
   id: string; objective: string; state: CyborgMissionState; baseRevision: string;
   successCriteria: string[]; constraints: string[]; ownerGates: string[]; forbiddenActions: string[];
   gates: MissionGate[]; evidence: EvidenceRef[]; hypotheses: Hypothesis[]; skills: SkillBinding[];
   sideEffects: SideEffect[]; budget: MissionBudget; cycle: number; noProgressCycles: number;
-  lastProgressFingerprint?: string; lease?: { holder: string; acquiredAt: string; expiresAt: string };
+  lastProgressFingerprint?: string; lease?: MissionLease;
   parentMissionId?: string; checkpoint?: string; confidence?: number;
 }
 
