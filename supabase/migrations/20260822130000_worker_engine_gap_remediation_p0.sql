@@ -20,8 +20,6 @@ create index if not exists hq_workforce_trigger_fires_latest_idx
 alter table public.hq_workforce_trigger_fires enable row level security;
 revoke all on table public.hq_workforce_trigger_fires from public,anon,authenticated,service_role;
 
--- Atomic trigger admission. The advisory lock closes the classic race where
--- two schedulers both observe an expired cooldown before either records a fire.
 create or replace function public.hq_workforce_claim_trigger(
   p_trigger_key text,
   p_deduplication_key text,
@@ -38,15 +36,9 @@ declare
   v_cooldown interval;
   v_inserted integer := 0;
 begin
-  if nullif(btrim(p_trigger_key),'') is null then
-    raise exception 'trigger_key_required';
-  end if;
-  if nullif(btrim(p_deduplication_key),'') is null then
-    raise exception 'deduplication_key_required';
-  end if;
-  if coalesce(p_cooldown_seconds,0) < 0 then
-    raise exception 'cooldown_seconds_invalid';
-  end if;
+  if nullif(btrim(p_trigger_key),'') is null then raise exception 'trigger_key_required'; end if;
+  if nullif(btrim(p_deduplication_key),'') is null then raise exception 'deduplication_key_required'; end if;
+  if coalesce(p_cooldown_seconds,0) < 0 then raise exception 'cooldown_seconds_invalid'; end if;
 
   v_cooldown := make_interval(secs => coalesce(p_cooldown_seconds,0));
   perform pg_advisory_xact_lock(hashtextextended('worker-trigger:' || p_trigger_key,0));
@@ -55,9 +47,7 @@ begin
   from public.hq_workforce_trigger_fires
   where trigger_key=p_trigger_key;
 
-  if v_last is not null and v_last + v_cooldown > v_now then
-    return false;
-  end if;
+  if v_last is not null and v_last + v_cooldown > v_now then return false; end if;
 
   insert into public.hq_workforce_trigger_fires(trigger_key,deduplication_key,fired_at,metadata)
   values(p_trigger_key,p_deduplication_key,v_now,coalesce(p_metadata,'{}'::jsonb))
@@ -73,8 +63,6 @@ revoke all on function public.hq_workforce_claim_trigger(text,text,integer,jsonb
 grant execute on function public.hq_workforce_claim_trigger(text,text,integer,jsonb)
   to service_role;
 
--- P0 approval escalation. This deliberately uses the existing work-item and
--- notification control planes. It never auto-approves or changes authority.
 create or replace function public.hq_workforce_escalate_waiting_approvals(
   p_after_hours numeric default 24
 ) returns integer
@@ -88,9 +76,7 @@ declare
   v_count integer := 0;
   v_fingerprint text;
 begin
-  if coalesce(p_after_hours,24) <= 0 then
-    raise exception 'approval_escalation_window_invalid';
-  end if;
+  if coalesce(p_after_hours,24) <= 0 then raise exception 'approval_escalation_window_invalid'; end if;
 
   for r in
     select id,department_key,priority,title,summary,created_at,due_at,evidence
@@ -109,8 +95,7 @@ begin
       'approval_escalated_at',clock_timestamp(),
       'approval_escalation_reason','approval_required exceeded configured SLA',
       'approval_escalation_owner','founder'
-    ),
-    updated_at=clock_timestamp()
+    ), updated_at=clock_timestamp()
     where id=r.id;
 
     v_fingerprint := 'workforce:approval-escalation:' || r.id::text;
@@ -122,18 +107,9 @@ begin
       'Approval is overdue: ' || r.title,
       coalesce(r.summary,'Work is waiting for human approval.') ||
         ' Approval has exceeded the ' || p_after_hours || '-hour SLA; escalation level ' || v_level || '.',
-      '/hq',
-      'Review approval',
-      'hq_work_item',
-      r.id::text,
-      jsonb_build_object(
-        'work_item_id',r.id,
-        'department',r.department_key,
-        'priority',r.priority,
-        'approval_escalation_level',v_level,
-        'due_at',r.due_at,
-        'created_at',r.created_at
-      )
+      '/hq', 'Review approval', 'hq_work_item', r.id::text,
+      jsonb_build_object('work_item_id',r.id,'department',r.department_key,'priority',r.priority,
+        'approval_escalation_level',v_level,'due_at',r.due_at,'created_at',r.created_at)
     );
 
     v_count := v_count + 1;
@@ -150,16 +126,13 @@ grant execute on function public.hq_workforce_escalate_waiting_approvals(numeric
 
 -- Run alongside the existing internal HQ alert cycle. Do not create a second
 -- worker scheduler or modify the established bounded-runtime scheduler.
-do $$
+do $block$
 begin
   if not exists(select 1 from cron.job where jobname='worker-engine-approval-escalation') then
     perform cron.schedule(
       'worker-engine-approval-escalation',
       '0 * * * *',
-      $$select public.hq_workforce_escalate_waiting_approvals(24)$$
+      $job$select public.hq_workforce_escalate_waiting_approvals(24)$job$
     );
   end if;
-end $$;
-
--- Installation is non-activating: the function only acts on already waiting
--- approval work and the trigger primitive only admits explicitly requested fires.
+end $block$;
