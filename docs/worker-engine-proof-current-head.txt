@@ -1,0 +1,1 @@
+Use GitHub PR metadata as authoritative exact head; this file is informational only.
