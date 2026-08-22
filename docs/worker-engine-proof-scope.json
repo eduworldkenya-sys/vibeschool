@@ -1,0 +1,24 @@
+{
+  "supersedes_pr": 445,
+  "canonical_base": "main",
+  "proofs": [
+    "lifecycle_fail_closed",
+    "execution_mode_admission",
+    "envelope_recipient_validation",
+    "watchdog_fail_closed",
+    "authority_deny",
+    "authority_approval",
+    "fallback_approval",
+    "context_sanitization",
+    "durable_metric_trigger_admission",
+    "persistence_failure_fail_closed",
+    "structured_clarification"
+  ],
+  "activation": {
+    "runtime": false,
+    "schedulers": false,
+    "automatic_publishing": false,
+    "payments": false,
+    "consequential_authority": false
+  }
+}
