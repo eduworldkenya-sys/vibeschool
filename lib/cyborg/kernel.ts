@@ -11,7 +11,7 @@ export function validateMission(m: CyborgMission): string[] {
   if (!m.successCriteria.length) errors.push("SUCCESS_CRITERIA_MISSING");
   if (!m.gates.length) errors.push("COMPLETION_GATES_MISSING");
   if (m.cycle > m.budget.maxCycles) errors.push("CYCLE_BUDGET_EXCEEDED");
-  if (m.noProgressCycles > m.budget.maxNoProgressCycles) errors.push("STAGNATION_DETECTED");
+  if (m.budget.maxNoProgressCycles >= 0 && m.noProgressCycles >= m.budget.maxNoProgressCycles && m.noProgressCycles > 0) errors.push("STAGNATION_DETECTED");
   const ids = new Set(m.evidence.map(e => e.id));
   for (const g of m.gates) for (const id of g.evidenceIds) if (!ids.has(id)) errors.push(`MISSING_EVIDENCE:${g.id}:${id}`);
   for (const s of m.sideEffects) if (!s.idempotencyKey) errors.push(`NON_IDEMPOTENT_SIDE_EFFECT:${s.id}`);
