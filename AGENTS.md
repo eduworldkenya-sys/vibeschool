@@ -8,12 +8,12 @@ Before proposing, editing, testing, certifying, merging, deploying, answering a 
 
 1. Read this file completely.
 2. Read `docs/ai-governance/CYBORG_EXECUTOR.md` and enter the `vibeschool-cyborg-executor` orchestration contract.
-3. Read `docs/ai-governance/CYBORG_AGENT_KERNEL.json`, `CYBORG_MISSION_SCHEMA.json`, `CYBORG_MEMORY_POLICY.json`, and `ARCHITECTURE_INVARIANTS.json`.
+3. Read `docs/ai-governance/CYBORG_AGENT_KERNEL.json`, `CYBORG_MISSION_SCHEMA.json`, `CYBORG_MISSION_TEMPLATES.json`, `CYBORG_MEMORY_POLICY.json`, and `ARCHITECTURE_INVARIANTS.json`.
 4. Read `docs/ai-governance/OPERATING_DOCTRINE.md`.
 5. Allow Cyborg to load/select the skill inventory in `docs/ai-governance/SKILL_REGISTRY.json` and definitions in `docs/ai-governance/MANDATORY_SKILLS.md`.
 6. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
 7. Inspect current repository truth before relying on prior chat, memory, handover, PR, CI, or certification claims.
-8. For significant repository missions, compile or resume durable mission state through `scripts/cyborg-supervisor.mjs` and keep the requirement ledger/journal current.
+8. For significant repository missions, compile typed durable mission state through `scripts/cyborg-mission-compiler.mjs` or resume it through `scripts/cyborg-supervisor.mjs`; keep the requirement ledger and journal current.
 
 If these steps are not complete, the task is not in an executable state.
 
@@ -59,7 +59,7 @@ The machine-readable ownership/activation contract is `docs/ai-governance/SKILL_
 
 ## Required lifecycle
 
-`READ GOVERNANCE -> ENTER/RESUME CYBORG -> COMPILE MISSION/REQUIREMENTS -> TRUTH -> SCOPE/LEASE -> DEPENDENCY + BLAST-RADIUS MAP -> SELECT/ORDER SKILLS -> EXECUTE -> JOURNAL -> PREFLIGHT -> TEST/NEGATIVE PATHS -> SECURITY/DATA -> ADVERSARIAL VERIFY -> EXACT-HEAD CI -> REPAIR/REVERIFY LOOP -> INDEPENDENT ASSURANCE WHEN REQUIRED -> COMPLETION/CERTIFICATION GATE -> MERGE WHEN APPLICABLE -> POST-MERGE VERIFY -> LEARN/MEMORY RECONCILE -> COMPLETE`
+`READ GOVERNANCE -> ENTER/RESUME CYBORG -> COMPILE TYPED MISSION/REQUIREMENTS -> TRUTH -> SCOPE/LEASE -> DEPENDENCY + BLAST-RADIUS MAP -> SELECT/ORDER SKILLS -> EXECUTE -> JOURNAL -> PREFLIGHT -> TEST/NEGATIVE PATHS -> SECURITY/DATA -> ADVERSARIAL VERIFY -> EXACT-HEAD CI -> REPAIR/REVERIFY LOOP -> INDEPENDENT ASSURANCE WHEN REQUIRED -> COMPLETION/CERTIFICATION GATE -> MERGE WHEN APPLICABLE -> POST-MERGE VERIFY -> LEARN/MEMORY RECONCILE -> COMPLETE`
 
 Skipping a stage requires a written evidence-based NOT_APPLICABLE reason and must not weaken a required gate.
 
@@ -81,4 +81,4 @@ These rules apply equally to ChatGPT, Codex, Claude, Gemini, Copilot, Cursor, lo
 
 ## Enforcement
 
-`.github/workflows/agent-governance.yml`, `scripts/validate-agent-governance.mjs`, `scripts/cyborg-engine.mjs`, `scripts/cyborg-supervisor.mjs` and their adversarial tests enforce the governance entrypoint, durable mission state, evidence/completion gates, scope concurrency, journaling and mandatory skill inventory. Branch protection should require the resulting `Agent Governance` check before merge.
+`.github/workflows/agent-governance.yml`, `scripts/validate-agent-governance.mjs`, `scripts/cyborg-mission-compiler.mjs`, `scripts/cyborg-engine.mjs`, `scripts/cyborg-supervisor.mjs` and their adversarial tests enforce the governance entrypoint, typed mission compilation, durable mission state, evidence/completion gates, scope concurrency, journaling and mandatory skill inventory. Branch protection should require the resulting `Agent Governance` check before merge.
