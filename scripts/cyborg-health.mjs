@@ -1,0 +1,5 @@
+import fs from 'node:fs'
+const required=['AGENTS.md','docs/ai-governance/CYBORG_EXECUTOR.md','docs/ai-governance/CYBORG_ENGINE.json','docs/ai-governance/CYBORG_DAG.json','docs/ai-governance/CYBORG_EVIDENCE_SCHEMA.json','docs/ai-governance/SKILL_REGISTRY.json','docs/ai-governance/SKILL_ROUTING.json','scripts/cyborg-engine.mjs','scripts/cyborg-certify.mjs']
+const missing=required.filter(f=>!fs.existsSync(f));const registry=JSON.parse(fs.readFileSync('docs/ai-governance/SKILL_REGISTRY.json','utf8'));const state=fs.existsSync('.cyborg/engine-state.json')?JSON.parse(fs.readFileSync('.cyborg/engine-state.json','utf8')):null
+const report={healthy:missing.length===0,missing,cyborg:'vibeschool-cyborg-executor',skills:(registry.core?.length||0)+(registry.vibeschoolDomains?.length||0),mission:state?{state:state.state,headSha:state.headSha,certificationValid:state.certification?.valid??false}:null,activation:{runtime:false,schedulers:false,publishing:false,payments:false,consequentialAuthority:false}}
+console.log(JSON.stringify(report,null,2));if(!report.healthy)process.exit(1)
