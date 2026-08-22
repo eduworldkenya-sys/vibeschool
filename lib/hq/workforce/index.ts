@@ -1,6 +1,7 @@
 export * from "./types"
 export * from "./engine"
 export * from "./watchdog"
+export * from "./governed-runtime"
 export * from "./templates"
 export * from "./factory"
 export * from "./certification"
