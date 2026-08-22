@@ -27,8 +27,10 @@ jobs:
         run: node scripts/cyborg-health.mjs
       - name: Adversarial governance proof
         run: node scripts/cyborg-adversarial-test.mjs
-      - name: Adversarial Cyborg agent-loop proof
+      - name: Adversarial Cyborg state-engine proof
         run: node scripts/cyborg-engine-test.mjs
+      - name: Adversarial Cyborg autonomous-supervisor proof
+        run: node scripts/cyborg-supervisor-test.mjs
       - name: Generate exact-head Cyborg mission manifest
         if: github.event_name == 'pull_request'
         env:
