@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { execFileSync } from 'node:child_process'
+import { findEscapeHatches } from './cyborg-escape-hatch-detector.mjs'
 const routing=JSON.parse(fs.readFileSync('docs/ai-governance/SKILL_ROUTING.json','utf8'))
 const registry=JSON.parse(fs.readFileSync('docs/ai-governance/SKILL_REGISTRY.json','utf8'))
 const base=process.env.CYBORG_BASE_SHA || process.env.GITHUB_BASE_SHA
@@ -15,7 +16,10 @@ const known=new Set([...(registry.core??[]),...(registry.vibeschoolDomains??[])]
 for(const skill of selected) if(!known.has(skill)) throw new Error(`Routing selected unknown skill: ${skill}`)
 const escapes=[]
 const textExt=/\.(ts|tsx|js|jsx|mjs|cjs)$/
-for(const file of files.filter(f=>textExt.test(f)&&fs.existsSync(f))){const t=fs.readFileSync(file,'utf8'); for(const token of ['@ts-ignore','.skip(','as any','as unknown']) if(t.includes(token)) escapes.push({file,token})}
+for(const file of files.filter(f=>textExt.test(f)&&fs.existsSync(f))){
+  const text=fs.readFileSync(file,'utf8')
+  for(const token of findEscapeHatches(text)) escapes.push({file,token})
+}
 const manifest={schemaVersion:1,cyborg:'vibeschool-cyborg-executor',governance:{registryVersion:registry.version,routingVersion:routing.version},baseSha:base,headSha:head,changedFiles:files,selectedSkills:[...selected].sort().map(id=>({id,reasons:reasons[id]})),escapeHatchFindings:escapes,certificationState:'PREFLIGHT_GENERATED'}
 fs.mkdirSync('.cyborg',{recursive:true}); fs.writeFileSync('.cyborg/mission-manifest.json',JSON.stringify(manifest,null,2)+'\n')
 console.log(JSON.stringify(manifest,null,2))
