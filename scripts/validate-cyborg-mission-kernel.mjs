@@ -12,7 +12,7 @@ const invariants = [
   'hq_cyborg_missions','hq_cyborg_mission_events','hq_cyborg_mission_leases','hq_cyborg_slo_events','SKILL_CONFLICT','CAPABILITY_MISSING',
   'ROLLBACK_PLAN_MISSING','RECOVERY_CHECKPOINT_MISSING','MISSION_LEASE_HELD','classifyToolFailure','blastRadius','adversarialCompletionCritic',
   'executeRollback','reconcileTruth','ENVIRONMENT_IDENTITY_MISMATCH','UNPLANNED_SIDE_EFFECT','CyborgPersistencePort','CyborgExecutionPort',
-  'acquireLease','completion_rejected','completion_accuracy','mission replay must be deterministic','Production persistence proof | DONE','CI enforcement | DONE'
+  'acquireLease','completion_rejected','completion_accuracy','mission replay must be deterministic','Production persistence proof | PROOF PENDING','CI enforcement | IMPLEMENTED'
 ];
 for (const x of invariants) if (!all.toLowerCase().includes(x.toLowerCase())) throw new Error(`missing invariant: ${x}`);
 console.log('CYBORG_MISSION_KERNEL_CONTRACT_PASS');
