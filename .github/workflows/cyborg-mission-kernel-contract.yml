@@ -1,0 +1,29 @@
+name: Cyborg Mission Kernel Contract
+on:
+  pull_request:
+    paths:
+      - 'lib/cyborg/**'
+      - 'docs/CYBORG_OPERATING_CONSTITUTION.md'
+      - 'docs/CYBORG_20X_CONTROL_MATRIX.md'
+      - 'scripts/validate-cyborg-mission-kernel.mjs'
+      - 'scripts/cyborg-adversarial-proof.mjs'
+      - 'scripts/cyborg-behavior-proof.ts'
+      - 'tsconfig.cyborg-proof.json'
+      - 'supabase/migrations/20260822205500_cyborg_mission_kernel.sql'
+      - '.github/workflows/cyborg-mission-kernel-contract.yml'
+  workflow_dispatch:
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - run: node scripts/validate-cyborg-mission-kernel.mjs
+      - run: node scripts/cyborg-adversarial-proof.mjs
+      - run: npx tsc -p tsconfig.cyborg-proof.json && node /tmp/cyborg-proof/scripts/cyborg-behavior-proof.js
+      - run: python scripts/validate-supabase-migration-contract.py --changed-from origin/main
