@@ -14,6 +14,9 @@ const DEFAULT_EXECUTION_ORDER: WorkerExecutionMode[] = [
   "external_ai",
 ]
 
+const QA_LOCKED_WORKER_KEYS = new Set(["qa_reliability", "quality-worker-01"])
+const QA_EXECUTION_ORDER: WorkerExecutionMode[] = ["deterministic", "human"]
+
 export function validateExecutionPolicy(worker: Pick<DigitalWorkerDefinition, "key" | "executionOrder" | "fallbackPolicy">) {
   if (worker.executionOrder.length === 0) {
     throw new Error(`Worker ${worker.key} must define at least one execution mode`)
@@ -42,9 +45,17 @@ export function createWorkerDefinition(
     executionOrder?: WorkerExecutionMode[]
   },
 ): DigitalWorkerDefinition {
+  const qaLocked = QA_LOCKED_WORKER_KEYS.has(input.key)
   const worker: DigitalWorkerDefinition = {
     ...input,
-    executionOrder: input.executionOrder ?? DEFAULT_EXECUTION_ORDER,
+    executionOrder: qaLocked ? [...QA_EXECUTION_ORDER] : (input.executionOrder ?? DEFAULT_EXECUTION_ORDER),
+    fallbackPolicy: qaLocked
+      ? {
+          requireApprovalOnFallback: true,
+          allowedFallbackModes: ["human"],
+          maxFallbackDepth: 1,
+        }
+      : input.fallbackPolicy,
     status: "draft",
     version: 1,
   }
