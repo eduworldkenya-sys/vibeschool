@@ -62,6 +62,8 @@ export function adversarialCompletionCritic(m:CyborgMission):string[] {
   if(m.sideEffects.some(s=>s.risk!=='read'&&!s.rollback)) failures.push('ROLLBACK_PLAN_MISSING');
   if(!m.checkpoint) failures.push('RECOVERY_CHECKPOINT_MISSING');
   if(!m.lease) failures.push('MISSION_LEASE_MISSING');
+  if(m.lease && m.lease.baseRevision!==m.baseRevision) failures.push('LEASE_REVISION_MISMATCH');
+  if(m.lease && m.lease.generation<=0) failures.push('LEASE_FENCING_INVALID');
   if(m.confidence==null||m.confidence<0.9) failures.push('CONFIDENCE_BELOW_CERTIFICATION_THRESHOLD');
   return Array.from(new Set(failures));
 }
@@ -74,7 +76,8 @@ export function executeCycle(m:CyborgMission, progressFingerprint:string):Cyborg
 
 export function resumeMission(m:CyborgMission, holder:string, now=new Date()):CyborgMission {
   if(!m.lease) throw new Error('MISSION_LEASE_MISSING');
+  if(m.lease.baseRevision!==m.baseRevision) throw new Error('LEASE_REVISION_MISMATCH');
   if(new Date(m.lease.expiresAt).getTime()>now.getTime() && m.lease.holder!==holder) throw new Error('MISSION_LEASE_HELD');
   if(!m.checkpoint) throw new Error('RECOVERY_CHECKPOINT_MISSING');
-  return {...m, lease:{holder,acquiredAt:now.toISOString(),expiresAt:new Date(now.getTime()+15*60_000).toISOString()}};
+  return {...m, lease:{holder,baseRevision:m.baseRevision,generation:m.lease.generation+1,acquiredAt:now.toISOString(),expiresAt:new Date(now.getTime()+15*60_000).toISOString()}};
 }
