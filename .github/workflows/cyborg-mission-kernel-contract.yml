@@ -6,6 +6,8 @@ on:
       - 'docs/CYBORG_OPERATING_CONSTITUTION.md'
       - 'scripts/validate-cyborg-mission-kernel.mjs'
       - 'scripts/cyborg-adversarial-proof.mjs'
+      - 'scripts/cyborg-behavior-proof.ts'
+      - 'tsconfig.cyborg-proof.json'
       - 'supabase/migrations/20260822205500_cyborg_mission_kernel.sql'
       - '.github/workflows/cyborg-mission-kernel-contract.yml'
   workflow_dispatch:
@@ -19,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - run: npm ci --ignore-scripts
       - run: node scripts/validate-cyborg-mission-kernel.mjs
       - run: node scripts/cyborg-adversarial-proof.mjs
+      - run: npx tsc -p tsconfig.cyborg-proof.json && node /tmp/cyborg-proof/scripts/cyborg-behavior-proof.js
       - run: python scripts/validate-supabase-migration-contract.py --changed-from origin/main
