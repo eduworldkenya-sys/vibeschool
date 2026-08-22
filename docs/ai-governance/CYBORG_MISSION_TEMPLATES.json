@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "owner": "vibeschool-cyborg-executor",
+  "templates": {
+    "QUESTION": ["repository_truth","claim_decomposition","authoritative_sources","contradiction_resolution","answer_coverage"],
+    "AUDIT": ["repository_truth","scope_map","contract_truth","security_and_data","negative_paths","operational_truth","findings_disposition","learning_closure"],
+    "READINESS": ["repository_truth","user_visible_entrypoint","input_validation","canonical_data_contract","authorization_and_tenant_isolation","happy_path","negative_paths","retry_and_idempotency","error_recovery","observability","mobile_or_runtime_when_applicable","production_configuration_when_claiming_production_ready"],
+    "IMPLEMENTATION": ["repository_truth","dependency_map","contract_integrity","implementation","preflight","test_integrity","negative_paths","security_and_data","escape_hatch_audit","exact_head_ci","independent_assurance_when_required","merge_gate","post_merge_verification_when_required","learning_closure"],
+    "REPAIR": ["repository_truth","failure_reproduction","root_cause","dependency_impact","canonical_repair","regression_proof","reverification","exact_head_ci","learning_closure"],
+    "INCIDENT": ["current_runtime_truth","containment","impact_scope","root_cause","safe_recovery","negative_paths","observability","regression_prevention","post_recovery_verification","learning_closure"],
+    "SECURITY": ["repository_truth","threat_model","authority_boundary","tenant_isolation","negative_abuse_cases","secret_handling","auditability","independent_assurance","exact_head_ci","learning_closure"],
+    "PERFORMANCE": ["baseline","bottleneck_evidence","resource_budget","implementation_or_tuning","regression_guard","representative_measurement","learning_closure"],
+    "RELEASE": ["exact_candidate","required_checks","configuration_truth","migration_compatibility","security_gate","rollback_or_recovery","observability","deployment_evidence","post_release_verification","learning_closure"],
+    "DATABASE": ["schema_truth","dependency_map","rls_grant_impact","backward_compatibility","data_migration_plan","rollback_or_recovery","dry_or_read_only_verification","security_gate","exact_head_ci","learning_closure"],
+    "UX": ["user_goal","current_runtime_or_render_truth","responsive_behavior","accessibility","failure_states","data_operational_truth","regression_proof","learning_closure"],
+    "CONTENT": ["curriculum_identity","source_fidelity","coverage","semantic_quality","learner_safety","independent_review","rendered_artifact","publishing_gate","learning_closure"],
+    "WORKER_ENGINE": ["repository_truth","worker_identity","capability_authority","trigger_admission","context_safety","retry_idempotency","watchdog_observability","failure_recovery","stop_rollback","shadow_or_adversarial_proof","exact_head_ci","learning_closure"],
+    "INVESTIGATION": ["current_truth","hypotheses","evidence_collection","contradiction_resolution","root_cause_or_answer","affected_dependencies","findings_disposition","learning_closure"]
+  },
+  "dependencyRules": {
+    "repository_truth": [],
+    "dependency_map": ["repository_truth"],
+    "contract_integrity": ["repository_truth","dependency_map"],
+    "implementation": ["contract_integrity"],
+    "preflight": ["implementation"],
+    "test_integrity": ["preflight"],
+    "negative_paths": ["test_integrity"],
+    "security_and_data": ["preflight"],
+    "exact_head_ci": ["test_integrity","security_and_data"],
+    "independent_assurance_when_required": ["exact_head_ci"],
+    "merge_gate": ["exact_head_ci","independent_assurance_when_required"],
+    "post_merge_verification_when_required": ["merge_gate"],
+    "learning_closure": []
+  }
+}
