@@ -31,6 +31,12 @@ jobs:
         run: node scripts/cyborg-engine-test.mjs
       - name: Adversarial Cyborg autonomous-supervisor proof
         run: node scripts/cyborg-supervisor-test.mjs
+      - name: Adversarial Cyborg action-gate proof
+        run: node scripts/cyborg-action-gate-test.mjs
+      - name: Cyborg self-watchdog
+        run: node scripts/cyborg-watchdog.mjs
+      - name: Cyborg operational metrics
+        run: node scripts/cyborg-metrics.mjs
       - name: Generate exact-head Cyborg mission manifest
         if: github.event_name == 'pull_request'
         env:
