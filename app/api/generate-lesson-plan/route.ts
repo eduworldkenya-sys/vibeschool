@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+import { createAnthropicMessagesAdapter, invokeCyborgModel } from '@/lib/cyborg/gateway'
 import { parseGeneratedLessonPlan } from '@/lib/teaching/lessonPlanCodec'
 
 function getAdminSupabase() {
@@ -32,20 +33,9 @@ export async function POST(req: NextRequest) {
 
     const teacherId = user.id
 
-    // This endpoint uses service-role writes. Verify current teacher authority
-    // before creating wallets, spending credits, or calling the model.
     const [{ data: profile }, { data: teacherAssignment }] = await Promise.all([
-      supabaseAdmin
-        .from('profiles')
-        .select('role')
-        .eq('id', teacherId)
-        .maybeSingle(),
-      supabaseAdmin
-        .from('teacher_classes')
-        .select('id')
-        .eq('teacher_id', teacherId)
-        .limit(1)
-        .maybeSingle(),
+      supabaseAdmin.from('profiles').select('role').eq('id', teacherId).maybeSingle(),
+      supabaseAdmin.from('teacher_classes').select('id').eq('teacher_id', teacherId).limit(1).maybeSingle(),
     ])
 
     if (profile?.role !== 'teacher' || !teacherAssignment) {
@@ -61,12 +51,7 @@ export async function POST(req: NextRequest) {
     if (!wallet) {
       const { data: newWallet } = await supabaseAdmin
         .from('vibe_credits')
-        .insert({
-          teacher_id: teacherId,
-          balance: FREE_CREDITS,
-          total_earned: FREE_CREDITS,
-          total_spent: 0,
-        })
+        .insert({ teacher_id: teacherId, balance: FREE_CREDITS, total_earned: FREE_CREDITS, total_spent: 0 })
         .select('balance, total_earned, total_spent')
         .single()
       wallet = newWallet
@@ -93,53 +78,31 @@ export async function POST(req: NextRequest) {
     const { prompt } = await req.json()
     if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 })
 
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY ?? '',
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const missionId = req.headers.get('x-cyborg-mission-id')?.trim() || `lesson-plan:${teacherId}:${crypto.randomUUID()}`
+    const adapter = createAnthropicMessagesAdapter(process.env.ANTHROPIC_API_KEY ?? '')
+    const response = await invokeCyborgModel(adapter, {
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-6',
+      missionId,
+      metadata: { maxTokens: 2000, feature: 'lesson-plan', teacherId },
+      messages: [{ role: 'user', content: prompt }],
     })
+    const anthropicData = response.output as { content?: Array<{ type: string; text?: string }> }
 
-    const anthropicData = await anthropicRes.json()
-    if (!anthropicRes.ok) {
-      return NextResponse.json({
-        error: anthropicData.error?.message ?? 'AI generation failed',
-      }, { status: 500 })
-    }
-
-    const text = anthropicData.content
-      ?.map((b: { type: string; text?: string }) => b.text ?? '')
-      .join('') ?? ''
+    const text = anthropicData.content?.map((b) => b.text ?? '').join('') ?? ''
     const clean = text.replace(/```json|```/g, '').trim()
 
     const parsed: unknown = JSON.parse(clean)
     const plan = parseGeneratedLessonPlan(parsed)
 
     if (!plan) {
-      return NextResponse.json({
-        error: 'invalid_lesson_plan_contract',
-        message: 'The generator returned an invalid lesson-plan format.',
-      }, { status: 502 })
+      return NextResponse.json({ error: 'invalid_lesson_plan_contract', message: 'The generator returned an invalid lesson-plan format.' }, { status: 502 })
     }
 
     const newBalance = wallet.balance - CREDIT_COST
     const newTotalSpent = wallet.total_spent + CREDIT_COST
 
-    await supabaseAdmin
-      .from('vibe_credits')
-      .update({
-        balance: newBalance,
-        total_spent: newTotalSpent,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('teacher_id', teacherId)
+    await supabaseAdmin.from('vibe_credits').update({ balance: newBalance, total_spent: newTotalSpent, updated_at: new Date().toISOString() }).eq('teacher_id', teacherId)
 
     await supabaseAdmin.from('vibe_credit_transactions').insert({
       teacher_id: teacherId,
@@ -150,13 +113,8 @@ export async function POST(req: NextRequest) {
       notes: 'Generated lesson plan',
     })
 
-    return NextResponse.json({
-      plan,
-      credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance },
-    })
+    return NextResponse.json({ plan, missionId, credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance } })
   } catch (e: unknown) {
-    return NextResponse.json({
-      error: e instanceof Error ? e.message : 'Unknown error',
-    }, { status: 500 })
+    return NextResponse.json({ error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })
   }
 }
