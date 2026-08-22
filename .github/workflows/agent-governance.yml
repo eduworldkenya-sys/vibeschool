@@ -23,6 +23,8 @@ jobs:
           node-version: '22'
       - name: Validate governance kernel
         run: node scripts/validate-agent-governance.mjs
+      - name: Cyborg governance health
+        run: node scripts/cyborg-health.mjs
       - name: Adversarial governance proof
         run: node scripts/cyborg-adversarial-test.mjs
       - name: Adversarial Cyborg agent-loop proof
