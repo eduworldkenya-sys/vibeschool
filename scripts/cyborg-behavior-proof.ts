@@ -18,7 +18,7 @@ async function main(){
     checkpoint:'cp-1',confidence:.99,lease:{holder:'agent-a',acquiredAt:now,expiresAt:'2099-01-01T00:00:00.000Z'}
   };
   assert(mayComplete(base).ok,'valid mission must complete');
-  assert(!mayComplete({...base,evidence:base.evidence.map(e=>({...e,expiresAt:'2020-01-01T00:00:00.000Z'))}).ok,'stale evidence must fail');
+  assert(!mayComplete({...base,evidence:base.evidence.map(e=>({...e,expiresAt:'2020-01-01T00:00:00.000Z'}))}).ok,'stale evidence must fail');
   assert(!mayComplete({...base,evidence:[...base.evidence,{id:'contradiction',quality:'production',source:'prod',observedAt:now,contradicts:['correct'],supports:[]}]}).ok,'contradiction must fail');
   let stagnant=nextCycle({...base,state:'executing'},'same'); stagnant=nextCycle(stagnant,'same'); assert(stagnant.state==='blocked','stagnation must block');
   throws(()=>resolveSkills(base,[{id:'a',version:'1',dependencies:['b'],applies:()=>true}]),'SKILL_DEPENDENCY_MISSING');
