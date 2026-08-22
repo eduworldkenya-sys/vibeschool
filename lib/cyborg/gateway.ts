@@ -31,6 +31,34 @@ export interface MissionIntake {
   createOrResume(input: { objective: string; conversationId?: string; requestedProvider?: LlmProvider }): Promise<CyborgMission>;
 }
 
+export async function invokeCyborgModel(adapter: CyborgModelAdapter, request: CyborgModelRequest): Promise<CyborgModelResponse> {
+  if (!request.missionId?.trim()) throw new Error('CYBORG_MISSION_REQUIRED');
+  if (adapter.provider !== request.provider) throw new Error(`CYBORG_PROVIDER_MISMATCH:${request.provider}`);
+  return adapter.invoke(request);
+}
+
+export function createAnthropicMessagesAdapter(apiKey: string): CyborgModelAdapter {
+  if (!apiKey) throw new Error('CYBORG_PROVIDER_CREDENTIAL_REQUIRED:anthropic');
+  return {
+    provider: 'anthropic',
+    async invoke(request) {
+      const maxTokens = typeof request.metadata?.maxTokens === 'number' ? request.metadata.maxTokens : 1024;
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({ model: request.model, max_tokens: maxTokens, messages: request.messages }),
+      });
+      const payload = await response.json() as Record<string, unknown>;
+      if (!response.ok) throw new Error(`CYBORG_PROVIDER_FAILURE:anthropic:${response.status}`);
+      return { provider: 'anthropic', model: request.model, output: payload };
+    },
+  };
+}
+
 export class CyborgUniversalGateway {
   constructor(
     private readonly intake: MissionIntake,
@@ -44,10 +72,9 @@ export class CyborgUniversalGateway {
   }
 
   async invokeModel(request: CyborgModelRequest): Promise<CyborgModelResponse> {
-    if (!request.missionId) throw new Error('CYBORG_MISSION_REQUIRED');
     const adapter = this.adapters.get(request.provider);
     if (!adapter) throw new Error(`CYBORG_PROVIDER_NOT_REGISTERED:${request.provider}`);
-    return adapter.invoke(request);
+    return invokeCyborgModel(adapter, request);
   }
 
   assertReturnAllowed(mission: CyborgMission): void {
