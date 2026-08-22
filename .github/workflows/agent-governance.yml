@@ -2,27 +2,8 @@ name: Agent Governance
 
 on:
   pull_request:
-    paths:
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
-      - 'GEMINI.md'
-      - '.github/copilot-instructions.md'
-      - 'docs/ai-governance/**'
-      - '.github/control-plane/**'
-      - 'scripts/validate-agent-governance.mjs'
-      - '.github/workflows/agent-governance.yml'
   push:
-    branches:
-      - main
-    paths:
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
-      - 'GEMINI.md'
-      - '.github/copilot-instructions.md'
-      - 'docs/ai-governance/**'
-      - '.github/control-plane/**'
-      - 'scripts/validate-agent-governance.mjs'
-      - '.github/workflows/agent-governance.yml'
+    branches: [main]
 
 permissions:
   contents: read
@@ -32,11 +13,28 @@ jobs:
     name: Agent Governance
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout exact candidate
+      - name: Checkout exact candidate with base history
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Validate governance kernel
         run: node scripts/validate-agent-governance.mjs
+      - name: Adversarial governance proof
+        run: node scripts/cyborg-adversarial-test.mjs
+      - name: Generate exact-head Cyborg mission manifest
+        if: github.event_name == 'pull_request'
+        env:
+          CYBORG_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CYBORG_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/cyborg-governance-preflight.mjs
+      - name: Upload Cyborg mission evidence
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cyborg-mission-${{ github.event.pull_request.head.sha }}
+          path: .cyborg/mission-manifest.json
+          if-no-files-found: error
