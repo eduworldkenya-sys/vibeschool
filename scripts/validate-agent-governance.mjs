@@ -89,7 +89,7 @@ requireText(CYBORG_PATH, [
 ])
 
 for (const adapter of ['CLAUDE.md', '.github/copilot-instructions.md', 'GEMINI.md']) {
-  requireText(adapter, ['AGENTS.md', 'OPERATING_DOCTRINE.md'])
+  requireText(adapter, ['AGENTS.md', 'CYBORG_EXECUTOR.md', CYBORG_ID, 'OPERATING_DOCTRINE.md'])
 }
 
 requireText('docs/ai-governance/MANDATORY_SKILLS.md', [
