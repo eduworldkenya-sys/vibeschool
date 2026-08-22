@@ -29,6 +29,8 @@ jobs:
         run: node scripts/cyborg-adversarial-test.mjs
       - name: Adversarial Cyborg state-engine proof
         run: node scripts/cyborg-engine-test.mjs
+      - name: Cyborg mission-template compiler proof
+        run: node scripts/cyborg-mission-compiler-test.mjs
       - name: Adversarial Cyborg autonomous-supervisor proof
         run: node scripts/cyborg-supervisor-test.mjs
       - name: Adversarial Cyborg action-gate proof
