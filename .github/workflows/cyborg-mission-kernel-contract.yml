@@ -4,6 +4,7 @@ on:
     paths:
       - 'lib/cyborg/**'
       - 'docs/CYBORG_OPERATING_CONSTITUTION.md'
+      - 'docs/CYBORG_20X_CONTROL_MATRIX.md'
       - 'scripts/validate-cyborg-mission-kernel.mjs'
       - 'scripts/cyborg-adversarial-proof.mjs'
       - 'scripts/cyborg-behavior-proof.ts'
