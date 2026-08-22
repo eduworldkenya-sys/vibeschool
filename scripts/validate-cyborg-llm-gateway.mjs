@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const gateway = fs.readFileSync('lib/cyborg/gateway.ts', 'utf8');
-for (const invariant of ['runCyborgMission','NO_DIRECT_LLM_CALLS','PREMATURE_MISSION_RETURN','CYBORG_MISSION_REQUIRED','CyborgUniversalGateway']) {
+for (const invariant of ['runCyborgMission','NO_DIRECT_LLM_CALLS','PREMATURE_MISSION_RETURN','CYBORG_MISSION_REQUIRED','CyborgUniversalGateway','invokeCyborgModel']) {
   if (!gateway.includes(invariant)) throw new Error(`CYBORG_GATEWAY_INVARIANT_MISSING:${invariant}`);
 }
 
@@ -13,6 +13,9 @@ const forbidden = [
   /new\s+GoogleGenerativeAI\s*\(/,
   /openai\.responses\.create\s*\(/,
   /anthropic\.messages\.create\s*\(/,
+  /api\.anthropic\.com\/v1\/messages/,
+  /api\.openai\.com\/v1\//,
+  /generativelanguage\.googleapis\.com\//,
 ];
 const allow = new Set(['lib/cyborg/gateway.ts','scripts/validate-cyborg-llm-gateway.mjs']);
 const violations = [];
