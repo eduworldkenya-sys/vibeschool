@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "noEmit": false,
+    "outDir": "/tmp/cyborg-proof"
+  },
+  "files": [
+    "lib/cyborg/contracts.ts",
+    "lib/cyborg/kernel.ts",
+    "lib/cyborg/policy.ts",
+    "lib/cyborg/orchestrator.ts",
+    "scripts/cyborg-behavior-proof.ts"
+  ]
+}
