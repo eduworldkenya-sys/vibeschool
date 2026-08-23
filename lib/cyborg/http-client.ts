@@ -17,6 +17,10 @@ export async function invokeCyborgBoundary(input:CyborgBoundaryInvocationInput):
   if(!capability||!missionId||!missionRevision||!chatId||!invocationId)throw new Error('CYBORG_ADMISSION_CONTRACT_INVALID')
   const gatewayResponse=await fetch(urls.gateway,{method:'POST',headers:{'content-type':'application/json','authorization':`Cyborg ${capability}`,'x-cyborg-caller-id':input.callerServiceId},body:JSON.stringify({missionId,missionRevision,chatId,invocationId,callerServiceId:input.callerServiceId,provider:input.provider,model:input.model,operation,maxTokens:input.maxTokens,messages:input.messages,metadata})})
   const raw=await gatewayResponse.json().catch(()=>({})) as Record<string,unknown>;if(!gatewayResponse.ok)throw new Error(`CYBORG_GATEWAY_FAILED:${String(raw.error??gatewayResponse.status)}`)
-  const admitted=await assertCyborgResponseAdmission(raw as unknown as CyborgAdmittedResponse<{provider:string;model:string;output:unknown;usage?:Record<string,number>}>)
+  if(!raw.output||typeof raw.output!=='object'||Array.isArray(raw.output)||!raw.lineage||typeof raw.lineage!=='object'||Array.isArray(raw.lineage))throw new Error('CYBORG_GATEWAY_RESPONSE_INVALID')
+  const outputRow=raw.output as Record<string,unknown>,provider=typeof outputRow.provider==='string'?outputRow.provider:'',model=typeof outputRow.model==='string'?outputRow.model:''
+  if(!provider||!model)throw new Error('CYBORG_GATEWAY_RESPONSE_INVALID')
+  const usage=outputRow.usage&&typeof outputRow.usage==='object'&&!Array.isArray(outputRow.usage)?outputRow.usage as Record<string,number>:undefined
+  const admitted=await assertCyborgResponseAdmission({output:{provider,model,output:outputRow.output,usage},lineage:raw.lineage as CyborgInvocationLineage} satisfies CyborgAdmittedResponse<{provider:string;model:string;output:unknown;usage?:Record<string,number>}>)
   return{missionId,missionRevision,chatId,invocationId,provider:admitted.output.provider,model:admitted.output.model,output:admitted.output.output,usage:admitted.output.usage,lineage:admitted.lineage}
 }
