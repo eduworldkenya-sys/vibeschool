@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-import { createAnthropicMessagesAdapter, invokeCyborgModel } from '@/lib/cyborg/gateway'
+import { invokeCyborgBoundary } from '@/lib/cyborg/http-client'
 import { parseGeneratedLessonPlan } from '@/lib/teaching/lessonPlanCodec'
 
 function getAdminSupabase() {
@@ -78,14 +78,19 @@ export async function POST(req: NextRequest) {
     const { prompt } = await req.json()
     if (!prompt) return NextResponse.json({ error: 'Missing prompt' }, { status: 400 })
 
-    const missionId = req.headers.get('x-cyborg-mission-id')?.trim() || `lesson-plan:${teacherId}:${crypto.randomUUID()}`
-    const adapter = createAnthropicMessagesAdapter(process.env.ANTHROPIC_API_KEY ?? '')
-    const response = await invokeCyborgModel(adapter, {
+    const requestedMissionId = req.headers.get('x-cyborg-mission-id')?.trim() || undefined
+    const response = await invokeCyborgBoundary({
+      actorKey: `teacher:${teacherId}`,
+      externalChatId: requestedMissionId || `lesson-plan:${teacherId}:${crypto.randomUUID()}`,
+      objective: 'Generate one governed teacher lesson plan',
+      missionId: requestedMissionId,
+      callerServiceId: 'app.lesson-plan',
       provider: 'anthropic',
       model: 'claude-sonnet-4-6',
-      missionId,
-      metadata: { maxTokens: 2000, feature: 'lesson-plan', teacherId },
+      maxTokens: 2000,
       messages: [{ role: 'user', content: prompt }],
+      metadata: { feature: 'lesson-plan', teacherId },
+      dataClassification: 'confidential',
     })
     const anthropicData = response.output as { content?: Array<{ type: string; text?: string }> }
 
@@ -113,7 +118,7 @@ export async function POST(req: NextRequest) {
       notes: 'Generated lesson plan',
     })
 
-    return NextResponse.json({ plan, missionId, credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance } })
+    return NextResponse.json({ plan, missionId: response.missionId, lineage: response.lineage, credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance } })
   } catch (e: unknown) {
     return NextResponse.json({ error: e instanceof Error ? e.message : 'Unknown error' }, { status: 500 })
   }
