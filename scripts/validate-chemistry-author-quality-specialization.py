@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 from pathlib import Path
 
-MIGRATION = Path('supabase/migrations/20260823194500_content_worker_professionalization_chemistry_author_quality_specialization.sql')
+BASE = Path('supabase/migrations/20260823194500_content_worker_professionalization_chemistry_author_quality_specialization.sql')
+HOTFIX = Path('supabase/migrations/20260823195500_content_worker_professionalization_chemistry_author_quality_runtime_fix.sql')
 STAGE_GATE = Path('supabase/migrations/20260823193500_chemistry_specialization_admission_enforcement.sql')
 
-migration = MIGRATION.read_text()
+base = BASE.read_text()
+hotfix = HOTFIX.read_text()
 stage_gate = STAGE_GATE.read_text()
 
-required = [
+for needle in [
     "perform public.hq_assert_owner();",
     "content-factory-r2-canary-01",
     "quality-worker-01",
     "a.certification_state<>'CERTIFIED'",
     "a.qualification_state<>'CERTIFIED'",
     "a.expires_at<=clock_timestamp()",
-    "a.worker_version is distinct from w.version",
+    "nullif(trim(a.worker_version),'') is null",
+    "w.status in ('suspended','retired')",
     "CHEMISTRY_AUTHOR_QUALITY_PERMISSION_BOUNDARY_INVALID",
     "CHEMISTRY_QUALIFICATION_REQUIRES_RUNTIME_OFF_GLOBAL_STOP_ON",
     "specialization_key='chemistry.grade10'",
@@ -38,13 +41,16 @@ required = [
     "shadow_enabled,false",
     "shadow_scheduler_enabled,false",
     "shadow_global_stop,true",
-]
+]:
+    if needle not in hotfix:
+        raise SystemExit(f'Chemistry Author/Quality runtime contract missing: {needle}')
 
-missing = [needle for needle in required if needle not in migration]
-if missing:
-    raise SystemExit(f'Chemistry Author/Quality qualification contract missing: {missing}')
-
+# This specifically guards the production bug found after PR #498: the generic worker
+# table has no version column and draft/probation are lifecycle states, not professional
+# certification failures. Professional version/eligibility come from assurance.
 for forbidden in [
+    'w.version',
+    "w.status not in ('restricted','active')",
     "content-critic-chemistry-v1",
     "content-repair-chemistry-v1",
     "update public.hq_workforce_worker_assurance",
@@ -56,11 +62,16 @@ for forbidden in [
     "shadow_scheduler_enabled=true",
     "shadow_global_stop=false",
 ]:
-    if forbidden in migration:
-        raise SystemExit(f'Forbidden qualification expansion detected: {forbidden}')
+    if forbidden in hotfix:
+        raise SystemExit(f'Forbidden qualification/runtime assumption detected: {forbidden}')
 
-# Validate observable fail-closed behavior in the already-merged admission gate rather
-# than depending on an internal exception string owned by the specialization assertion.
+# Preserve the historical base migration for reconstruction while ensuring the latest
+# function definition supersedes its runtime-only assumptions.
+if 'create or replace function public.hq_workforce_qualify_chemistry_author_quality' not in base:
+    raise SystemExit('Base Chemistry qualification migration missing')
+if hotfix.find('create or replace function public.hq_workforce_qualify_chemistry_author_quality') < 0:
+    raise SystemExit('Runtime repair must replace the qualification function')
+
 for needle in [
     "s:=public.hq_workforce_assert_worker_specialization(",
     "v_spec:=public.hq_workforce_assert_worker_specialization(",
@@ -72,10 +83,10 @@ for needle in [
     if needle not in stage_gate:
         raise SystemExit(f'Chemistry admission gate invariant missing: {needle}')
 
-evidence_pos = migration.find('hq_workforce_record_qualification_evidence')
-qualify_pos = migration.find("set qualification_state='qualified'")
-assert_pos = migration.rfind('perform public.hq_workforce_assert_worker_specialization(')
+evidence_pos = hotfix.find('hq_workforce_record_qualification_evidence')
+qualify_pos = hotfix.find("set qualification_state='qualified'")
+assert_pos = hotfix.rfind('perform public.hq_workforce_assert_worker_specialization(')
 if min(evidence_pos, qualify_pos, assert_pos) < 0 or not evidence_pos < qualify_pos < assert_pos:
     raise SystemExit('Required ordering is evidence -> qualify specialization -> canonical fail-closed assertion')
 
-print('Chemistry Author/Quality specialization qualification contract: PASS')
+print('Chemistry Author/Quality specialization qualification runtime contract: PASS')

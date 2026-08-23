@@ -75,6 +75,126 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f scripts/sql/content_worker_professionalization_verify.sql
 
+      - name: Prove Chemistry Author/Quality qualification at runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+
+          -- hq_access_log is explicitly documented by the historical migration train
+          -- as a pretracked production object that blank replay does not create. Model
+          -- only the columns consumed by hq_assert_owner inside this rolled-back test.
+          create table if not exists public.hq_access_log (
+            id uuid primary key default gen_random_uuid(),
+            attempted_email text,
+            profile_id uuid,
+            outcome text not null,
+            ip_address inet,
+            user_agent text,
+            created_at timestamptz not null default now()
+          );
+
+          -- Schema-only reconstruction deliberately has no production seed rows. Build
+          -- the minimum governed Author identity needed to exercise the production
+          -- qualifier. This entire fixture is transaction-local and rolled back.
+          insert into public.hq_workforce_workers(
+            worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,
+            paid_ai_allowed,competencies,permissions,approval_boundaries,kpis
+          ) values (
+            'content-factory-r2-canary-01','digital','CI Chemistry Author','content',
+            'Produce governed Grade 10 Chemistry authoring candidates for qualification proof.',
+            'draft','deterministic',false,
+            '["curriculum interpretation","chemistry authoring","laboratory safety"]'::jsonb,
+            '["read_curriculum_evidence"]'::jsonb,
+            '["no_auto_publish","no_self_approval","no_authority_change"]'::jsonb,
+            '{}'::jsonb
+          ) on conflict(worker_key) do nothing;
+
+          -- Use the canonical professional-baseline function rather than fabricating a
+          -- worker_version. Then model the already-certified production prerequisite
+          -- for both workers inside this isolated proof transaction.
+          select public.hq_workforce_professional_baseline('content-factory-r2-canary-01');
+          select public.hq_workforce_professional_baseline('quality-worker-01');
+          update public.hq_workforce_worker_assurance
+          set certification_state='CERTIFIED',
+              qualification_state='CERTIFIED',
+              legacy_recertification_required=false,
+              certified_at=clock_timestamp(),
+              expires_at=clock_timestamp()+interval '1 day'
+          where worker_key in ('content-factory-r2-canary-01','quality-worker-01')
+            and standard_key='vibeschool-professional-worker'
+            and standard_version=1;
+
+          -- The specialization migration only seeds rows for workers present during
+          -- replay. Ensure both production identities have their canonical capability
+          -- sets so this proof tests the qualifier rather than seed-data availability.
+          insert into public.hq_workforce_worker_specializations(
+            worker_key,specialization_key,subject_key,grade_key,specialization_version,
+            capabilities,qualification_state,evidence
+          ) values
+          ('content-factory-r2-canary-01','chemistry.grade10','chemistry','10',1,array[
+            'curriculum_chemistry_grade10','chemistry_scientific_accuracy','chemistry_instructional_authoring',
+            'chemistry_equations_units','chemistry_lab_safety','kenyan_classroom_context'
+          ]::text[],'candidate',jsonb_build_object('source','ci-runtime-contract-proof')),
+          ('quality-worker-01','chemistry.grade10','chemistry','10',1,array[
+            'curriculum_chemistry_grade10','chemistry_scientific_accuracy','chemistry_quality_rubric',
+            'chemistry_equations_units','chemistry_lab_safety','chemistry_assessment_integrity'
+          ]::text[],'candidate',jsonb_build_object('source','ci-runtime-contract-proof'))
+          on conflict(worker_key,specialization_key,specialization_version) do update set
+            capabilities=excluded.capabilities,
+            qualification_state='candidate',
+            qualified_at=null,
+            qualified_until=null,
+            updated_at=clock_timestamp();
+
+          -- Reproduce the production lifecycle condition that exposed PR #498's
+          -- runtime-only bug. Draft is intentionally not activation.
+          update public.hq_workforce_workers
+          set status='draft'
+          where worker_key='content-factory-r2-canary-01';
+
+          select public.hq_workforce_qualify_chemistry_author_quality(
+            'content-factory-r2-canary-01',
+            'ci-independent-chemistry-author-quality-verifier'
+          );
+          select public.hq_workforce_qualify_chemistry_author_quality(
+            'quality-worker-01',
+            'ci-independent-chemistry-author-quality-verifier'
+          );
+
+          do $$
+          declare v_count integer; ec public.hq_workforce_engine_contract%rowtype;
+          begin
+            select count(*) into v_count
+            from public.hq_workforce_worker_specializations
+            where worker_key in ('content-factory-r2-canary-01','quality-worker-01')
+              and specialization_key='chemistry.grade10'
+              and specialization_version=1
+              and qualification_state='qualified'
+              and qualified_until>clock_timestamp();
+            if v_count<>2 then
+              raise exception 'CHEMISTRY_AUTHOR_QUALITY_RUNTIME_QUALIFICATION_PROOF_FAILED';
+            end if;
+
+            select * into ec from public.hq_workforce_engine_contract where singleton=true;
+            if coalesce(ec.runtime_execution_enabled,false)
+               or coalesce(ec.heartbeat_enabled,false)
+               or coalesce(ec.factory_enabled,false)
+               or coalesce(ec.runtime_autonomy_level,0)<>0
+               or coalesce(ec.runtime_max_risk,0)<>0
+               or coalesce(ec.shadow_enabled,false)
+               or coalesce(ec.shadow_scheduler_enabled,false)
+               or not coalesce(ec.shadow_global_stop,true) then
+              raise exception 'CHEMISTRY_QUALIFICATION_CHANGED_EXECUTION_POSTURE';
+            end if;
+          end $$;
+
+          rollback;
+          SQL
+
       - name: Type-check existing authoring executor
         run: deno check --node-modules-dir=auto supabase/functions/content-authoring-worker/index.ts
 
