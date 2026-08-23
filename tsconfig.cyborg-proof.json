@@ -19,7 +19,9 @@
     "lib/cyborg/lineage.ts",
     "lib/cyborg/policy-engine.ts",
     "lib/cyborg/gateway.ts",
+    "lib/hq/workforce/labanCommand.ts",
     "scripts/cyborg-behavior-proof.ts",
-    "scripts/cyborg-hard-enforcement-proof.ts"
+    "scripts/cyborg-hard-enforcement-proof.ts",
+    "scripts/laban-cyborg-binding-proof.ts"
   ]
 }
