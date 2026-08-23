@@ -1,4 +1,4 @@
-# Exact-head certification trigger: Chemistry Author/Quality specialization P0.
+# Exact-head certification trigger: Chemistry Author/Quality specialization + learning quality P0.
 name: Content Worker Professionalization
 
 on:
@@ -11,7 +11,9 @@ on:
       - 'supabase/migrations/**content_worker_teacher_guide_success_gate**'
       - 'supabase/functions/content-authoring-worker/**'
       - 'scripts/sql/content_worker_professionalization_verify.sql'
+      - 'scripts/sql/chemistry_learning_quality_contract_verify.sql'
       - 'scripts/validate-chemistry-author-quality-specialization.py'
+      - 'scripts/validate-chemistry-learning-quality-contract.py'
       - '.github/workflows/content-worker-professionalization.yml'
   workflow_dispatch:
 
@@ -45,6 +47,9 @@ jobs:
       - name: Validate Chemistry Author/Quality specialization contract
         run: python scripts/validate-chemistry-author-quality-specialization.py
 
+      - name: Validate Chemistry learning-quality contract
+        run: python scripts/validate-chemistry-learning-quality-contract.py
+
       - name: Disable seed for schema-only certification
         shell: bash
         run: |
@@ -75,6 +80,15 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f scripts/sql/content_worker_professionalization_verify.sql
 
+      - name: Prove Chemistry learning-quality contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f scripts/sql/chemistry_learning_quality_contract_verify.sql
+
       - name: Prove Chemistry Author/Quality qualification at runtime
         shell: bash
         run: |
@@ -84,9 +98,6 @@ jobs:
             -v ON_ERROR_STOP=1 <<'SQL'
           begin;
 
-          -- hq_access_log is explicitly documented by the historical migration train
-          -- as a pretracked production object that blank replay does not create. Model
-          -- only the columns consumed by hq_assert_owner inside this rolled-back test.
           create table if not exists public.hq_access_log (
             id uuid primary key default gen_random_uuid(),
             attempted_email text,
@@ -97,9 +108,6 @@ jobs:
             created_at timestamptz not null default now()
           );
 
-          -- Schema-only reconstruction deliberately has no production seed rows. Build
-          -- the minimum governed Author identity needed to exercise the production
-          -- qualifier. This entire fixture is transaction-local and rolled back.
           insert into public.hq_workforce_workers(
             worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,
             paid_ai_allowed,competencies,permissions,approval_boundaries,kpis
@@ -113,9 +121,6 @@ jobs:
             '{}'::jsonb
           ) on conflict(worker_key) do nothing;
 
-          -- Use the canonical professional-baseline function rather than fabricating a
-          -- worker_version. Then model the already-certified production prerequisite
-          -- for both workers inside this isolated proof transaction.
           select public.hq_workforce_professional_baseline('content-factory-r2-canary-01');
           select public.hq_workforce_professional_baseline('quality-worker-01');
           update public.hq_workforce_worker_assurance
@@ -128,9 +133,6 @@ jobs:
             and standard_key='vibeschool-professional-worker'
             and standard_version=1;
 
-          -- The specialization migration only seeds rows for workers present during
-          -- replay. Ensure both production identities have their canonical capability
-          -- sets so this proof tests the qualifier rather than seed-data availability.
           insert into public.hq_workforce_worker_specializations(
             worker_key,specialization_key,subject_key,grade_key,specialization_version,
             capabilities,qualification_state,evidence
@@ -150,8 +152,6 @@ jobs:
             qualified_until=null,
             updated_at=clock_timestamp();
 
-          -- Reproduce the production lifecycle condition that exposed PR #498's
-          -- runtime-only bug. Draft is intentionally not activation.
           update public.hq_workforce_workers
           set status='draft'
           where worker_key='content-factory-r2-canary-01';
