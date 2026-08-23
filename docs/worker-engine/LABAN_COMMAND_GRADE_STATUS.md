@@ -26,7 +26,7 @@ Status: IMPLEMENTED ON PR BRANCH / NOT YET CERTIFIED
 | Post-mission learning contract | DONE | terminal mission + root cause + mandatory regression-test reference |
 | Architecture drift registry | DONE | permanent critical invariants table |
 | Executable architecture drift check | DONE | database assertion proves legacy bridge + canonical authorization |
-| CI execution proof | DONE IN WORKFLOW | disposable local Supabase runs Laban command SQL suites at exact PR head |
+| Laban SQL proof in CI | WIRED | disposable local Supabase workflow runs command assurance suites |
 | Legacy gateway reconciliation | DONE IN REPOSITORY | legacy entrypoint delegates to R1.4 consequential gateway |
 | Runtime activation | OFF | migrations assert fail-closed runtime |
 | Authority activation | OFF | migrations assert zero active grants |
@@ -42,4 +42,4 @@ Laban cannot self-grant authority, self-certify, serve as a human two-key approv
 
 ## Certification gate
 
-This branch is not certified until exact-head required checks pass and protected-main merge succeeds. The disposable-local R1.4 acceptance workflow executes the Laban command suites, including gateway convergence, authority expiry, role separation, two-key gates, independent failover, war-room/learning surfaces, architecture-drift assertions, runtime OFF and zero active authority grants. TypeScript/production-build gates also validate the Cyborg binding.
+This branch is not certified until exact-head required checks pass and protected-main merge succeeds. The disposable-local R1.4 acceptance workflow is wired to execute the Laban command suites, including gateway convergence, authority expiry, role separation, two-key gates, independent failover, war-room/learning surfaces, architecture-drift assertions, runtime OFF and zero active authority grants. TypeScript/production-build gates also validate the Cyborg binding.
