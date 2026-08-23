@@ -64,7 +64,7 @@ jobs:
             echo 'Text strand matching cannot establish canonical identity' >&2
             exit 1
           fi
-      - name: Verify spend ordering, crash recovery and privacy boundary
+      - name: Verify spend ordering, Cyborg boundary, crash recovery and privacy boundary
         run: |
           set -euo pipefail
           file='supabase/functions/generate-canonical-lesson-plan/index.ts'
@@ -77,6 +77,8 @@ jobs:
           grep -q 'status === "hit"' "$file"
           grep -q 'status === "pending"' "$file"
           grep -q 'status !== "claimed"' "$file"
+          grep -q 'invokeCyborgEdgeModel' "$file"
+          grep -q "provider_gateway:\"cyborg\"" "$file"
           python - <<'PY'
           from pathlib import Path
 
@@ -85,17 +87,19 @@ jobs:
           claim = text.find('db.rpc("cla_claim_learning_resource_gap"')
           reserve = text.find('"cla_reserve_learning_resource_credit"')
           tavily = text.find('https://api.tavily.com/search')
-          groq = text.find('https://api.groq.com/openai/v1/chat/completions')
+          model = text.find('invokeCyborgEdgeModel')
           deposit = text.find('db.rpc("cla_complete_learning_resource_claim"')
           refund = text.find('"cla_refund_learning_resource_credit"')
-          if min(recover, claim, reserve, tavily, groq, deposit, refund) < 0:
-              raise SystemExit('missing governed generation/credit recovery stages')
-          if not recover < claim < reserve < tavily < groq < deposit:
-              raise SystemExit('required order is recovery -> claim -> credit reserve -> research -> model -> candidate deposit')
+          if min(recover, claim, reserve, tavily, model, deposit, refund) < 0:
+              raise SystemExit('missing governed generation/credit recovery/Cyborg stages')
+          if not recover < claim < reserve < tavily < model < deposit:
+              raise SystemExit('required order is recovery -> claim -> credit reserve -> research -> Cyborg model -> candidate deposit')
           if refund < deposit:
               raise SystemExit('refund authority must remain on the failure path after candidate-deposit code')
           if 'getOrCreateWallet' in text or 'spendCredit(' in text:
               raise SystemExit('legacy check-then-spend wallet path must not remain')
+          if 'api.groq.com/openai/v1/chat/completions' in text or 'GROQ_API_KEY' in text:
+              raise SystemExit('canonical generator must not bypass the Cyborg provider gateway')
 
           prompt_start = text.find('const prompt = [')
           prompt_end = text.find('].filter(Boolean).join', prompt_start)
