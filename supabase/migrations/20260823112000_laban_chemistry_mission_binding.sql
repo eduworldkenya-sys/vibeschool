@@ -4,7 +4,7 @@ begin;
 -- NON-ACTIVATING: this migration does not enable Worker runtime, shadow scheduler,
 -- publishing, payments, consequential authority, or release Global Stop.
 -- access: service-only public.chemistry_laban_command_bindings
--- authorization-test: direct public/anon/authenticated access is denied.
+-- authorization-test: public.chemistry_laban_command_bindings denies public/anon/authenticated direct access and permits only the explicit service_role contract.
 create table if not exists public.chemistry_laban_command_bindings (
   chemistry_mission_id uuid primary key references public.chemistry_worker_missions(id) on delete restrict,
   command_mission_id uuid not null unique references public.hq_workforce_command_missions(id) on delete restrict,
@@ -122,10 +122,6 @@ begin
   );
 end $$;
 
--- Owner-gated canonical entry point: instantiate/refresh the bounded Chemistry
--- mission using its existing readiness proof, then bind Laban to it. It leaves
--- the Laban command mission PLANNED and the Chemistry mission READY; execution
--- remains impossible while Global Stop is on and runtime/shadow are off.
 create or replace function public.hq_start_laban_chemistry_mission(p_publication_id uuid)
 returns jsonb
 language plpgsql
