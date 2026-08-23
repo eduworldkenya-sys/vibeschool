@@ -6,6 +6,8 @@ on:
       - 'lib/hq/workforce/labanCommand.ts'
       - 'lib/hq/workforce/labanCommander.ts'
       - 'lib/hq/workforce/labanCommander.test.ts'
+      - 'lib/hq/workforce/governed-runtime.ts'
+      - 'lib/hq/workforce/governed-runtime.test.ts'
       - 'lib/hq/workforce/index.ts'
       - '.github/workflows/laban-commander-proof.yml'
   workflow_dispatch:
@@ -13,7 +15,7 @@ on:
 jobs:
   laban-commander-proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,6 +23,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Repository typecheck
+        run: npm run typecheck
+      - name: Repository lint
+        run: npm run lint
       - name: Compile Laban commander proof
         run: |
           rm -rf .tmp/laban-commander-proof
@@ -34,6 +40,19 @@ jobs:
             --types node
       - name: Run Laban commander proof
         run: node --test .tmp/laban-commander-proof/labanCommander.test.js
+      - name: Compile existing governed Worker proof
+        run: |
+          rm -rf .tmp/worker-engine-governed-proof
+          npx --no-install tsc lib/hq/workforce/governed-runtime.test.ts \
+            --outDir .tmp/worker-engine-governed-proof \
+            --module commonjs \
+            --target es2022 \
+            --moduleResolution node \
+            --esModuleInterop \
+            --skipLibCheck \
+            --types node
+      - name: Run existing governed Worker proof
+        run: node --test .tmp/worker-engine-governed-proof/governed-runtime.test.js
       - name: Reject command escape hatches
         run: |
           grep -q 'LABAN_RUNTIME_NOT_COMMISSIONED' lib/hq/workforce/labanCommander.ts
