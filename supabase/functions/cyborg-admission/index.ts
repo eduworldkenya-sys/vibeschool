@@ -1,27 +1,18 @@
 import { CYBORG_POLICY_VERSION, CapabilityClaims, hashValue, signCapability } from '../_shared/cyborg-capability.ts'
+import { getCyborgCallerPolicy } from '../_shared/cyborg-caller-policy.ts'
 import { requireServiceCaller, rpc } from '../_shared/cyborg-service.ts'
 
 const SIGNING_KEY=Deno.env.get('CYBORG_CAPABILITY_SIGNING_KEY')??''
-const GROQ_TWIN_MODEL=Deno.env.get('GROQ_TWIN_MODEL')??'llama-3.3-70b-versatile'
-const POLICY:Record<string,{provider:string;model:string;maxTokens:number}>={
-  'twin-chat':{provider:'groq',model:GROQ_TWIN_MODEL,maxTokens:1024},
-  'app.twin-pulse':{provider:'anthropic',model:'claude-haiku-4-5-20251001',maxTokens:80},
-  'app.report-insight':{provider:'anthropic',model:'claude-sonnet-4-20250514',maxTokens:200},
-  'app.lesson-plan':{provider:'anthropic',model:'claude-sonnet-4-6',maxTokens:2400},
-  'app.vibevoice':{provider:'groq',model:'llama-3.3-70b-versatile',maxTokens:700},
-  'app.subject-insight':{provider:'groq',model:'llama-3.3-70b-versatile',maxTokens:500},
-  'app.exam-generate':{provider:'groq',model:'llama-3.3-70b-versatile',maxTokens:4096},
-}
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 function json(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}})}
 function strings(value:unknown){return Array.isArray(value)&&value.every(v=>typeof v==='string')?value as string[]:[]}
 Deno.serve(async(req)=>{try{
   if(req.method!=='POST')return json({error:'method_not_allowed'},405)
-  const body=await req.json() as Record<string,unknown>;const caller=typeof body.callerServiceId==='string'?body.callerServiceId:'';requireServiceCaller(req,caller)
+  const body=await req.json() as Record<string,unknown>,caller=typeof body.callerServiceId==='string'?body.callerServiceId:'';requireServiceCaller(req,caller)
   if(!SIGNING_KEY||SIGNING_KEY.length<32)throw new Error('CYBORG_CAPABILITY_SIGNING_KEY_REQUIRED')
-  const policy=POLICY[caller];if(!policy)throw new Error('CYBORG_CALLER_NOT_REGISTERED')
+  const policy=getCyborgCallerPolicy(caller);if(!policy)throw new Error('CYBORG_CALLER_NOT_REGISTERED')
   const provider=typeof body.provider==='string'?body.provider:'',model=typeof body.model==='string'?body.model:'',operation=typeof body.operation==='string'?body.operation:'model.generate',requestHash=typeof body.requestHash==='string'?body.requestHash:'',maxTokens=Number(body.maxTokens)
-  if(provider!==policy.provider)throw new Error('CYBORG_CAPABILITY_PROVIDER_MISMATCH');if(model!==policy.model)throw new Error('CYBORG_CAPABILITY_MODEL_MISMATCH');if(operation!=='model.generate')throw new Error('CYBORG_CAPABILITY_OPERATION_MISMATCH');if(!requestHash)throw new Error('CYBORG_REQUEST_HASH_REQUIRED');if(!Number.isInteger(maxTokens)||maxTokens<1||maxTokens>policy.maxTokens)throw new Error('CYBORG_CAPABILITY_TOKEN_BUDGET_EXCEEDED')
+  if(provider!==policy.provider)throw new Error('CYBORG_CAPABILITY_PROVIDER_MISMATCH');if(!policy.models.includes(model))throw new Error('CYBORG_CAPABILITY_MODEL_MISMATCH');if(operation!=='model.generate')throw new Error('CYBORG_CAPABILITY_OPERATION_MISMATCH');if(!requestHash)throw new Error('CYBORG_REQUEST_HASH_REQUIRED');if(!Number.isInteger(maxTokens)||maxTokens<1||maxTokens>policy.maxTokens)throw new Error('CYBORG_CAPABILITY_TOKEN_BUDGET_EXCEEDED')
   const riskClass=typeof body.riskClass==='string'?body.riskClass:'read';if(riskClass==='owner_only'||riskClass==='production_mutation')throw new Error('CYBORG_OWNER_APPROVAL_REQUIRED')
   const authorityScope=strings(body.authorityScope),toolScope=strings(body.toolScope);if(authorityScope.length||toolScope.length)throw new Error('CYBORG_SCOPE_ESCALATION_DENIED')
   const actorKey=typeof body.actorKey==='string'?body.actorKey.trim().slice(0,240):'',externalChatId=typeof body.externalChatId==='string'?body.externalChatId.trim().slice(0,240):'',objective=typeof body.objective==='string'?body.objective.trim().slice(0,4000):''
