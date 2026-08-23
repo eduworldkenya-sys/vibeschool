@@ -26,9 +26,30 @@ export interface DigitalWorkerDefinition {
   contextPolicy?: WorkerContextPolicy; authority: WorkerAuthorityRule[]; triggers: WorkerTriggerDefinition[]; kpis: WorkerKpiDefinition[]
   status: WorkerStatus; version: number
 }
+
+/** Exact curriculum/publication lineage. Workers must never infer or guess these bindings. */
+export interface CurriculumWorkBinding {
+  traceId: string
+  missionId: string
+  publicationId: string
+  publicationRevisionId: string
+  strandId?: string
+  chapterId?: string
+  parentAttemptId?: string
+  iteration: number
+}
+
+/** Mission-local budget carried with the envelope in addition to the durable worker budget. */
+export interface WorkEnvelopeBudget {
+  tokenBudgetRemaining: number
+  computeBudgetRemaining: number
+}
+
 export interface WorkEnvelope<TPayload = Record<string, unknown>> {
   id: string; type: WorkMessageType; fromWorkerKey: string; toWorkerKey: string; workItemId?: string
   priority: "low" | "normal" | "high" | "critical"; payload: TPayload; classification?: ContextClassification; createdAt: string
+  curriculum?: CurriculumWorkBinding
+  budget?: WorkEnvelopeBudget
 }
 export interface ClarificationPayload { questionKey: string; requiredFields: string[]; reason: string; responseToEnvelopeId: string }
 export interface WorkerExecutionResult<T = Record<string, unknown>> {
