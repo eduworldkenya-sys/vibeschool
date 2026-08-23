@@ -1,0 +1,49 @@
+name: Laban Commander Proof
+
+on:
+  pull_request:
+    paths:
+      - 'lib/hq/workforce/labanCommand.ts'
+      - 'lib/hq/workforce/labanCommander.ts'
+      - 'lib/hq/workforce/labanCommander.test.ts'
+      - 'lib/hq/workforce/index.ts'
+      - '.github/workflows/laban-commander-proof.yml'
+  workflow_dispatch:
+
+jobs:
+  laban-commander-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Compile Laban commander proof
+        run: |
+          rm -rf .tmp/laban-commander-proof
+          npx --no-install tsc lib/hq/workforce/labanCommander.test.ts \
+            --outDir .tmp/laban-commander-proof \
+            --module commonjs \
+            --target es2022 \
+            --moduleResolution node \
+            --esModuleInterop \
+            --skipLibCheck \
+            --types node
+      - name: Run Laban commander proof
+        run: node --test .tmp/laban-commander-proof/labanCommander.test.js
+      - name: Reject command escape hatches
+        run: |
+          grep -q 'LABAN_RUNTIME_NOT_COMMISSIONED' lib/hq/workforce/labanCommander.ts
+          grep -q 'LABAN_GLOBAL_STOP_ACTIVE' lib/hq/workforce/labanCommander.ts
+          grep -q 'LABAN_AUTHORITY_REQUIRED' lib/hq/workforce/labanCommander.ts
+          grep -q 'LABAN_VERIFIER_REUSED_AUTHOR_EVIDENCE_ONLY' lib/hq/workforce/labanCommander.ts
+          grep -q 'deriveLabanConfidence' lib/hq/workforce/labanCommander.ts
+          grep -q 'detectLabanResourceConflicts' lib/hq/workforce/labanCommander.ts
+          grep -q 'selectLabanStrategicMemory' lib/hq/workforce/labanCommander.ts
+          if grep -nE 'as[[:space:]]+(any|unknown)|@ts-ignore|@ts-nocheck|eslint-disable|\.skip\(' lib/hq/workforce/labanCommander.ts lib/hq/workforce/labanCommander.test.ts; then
+            echo 'Laban commander proof contains a forbidden escape hatch.' >&2
+            exit 1
+          fi
