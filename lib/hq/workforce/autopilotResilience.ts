@@ -218,8 +218,8 @@ export function buildStructuredModelBoundary(input: {
     trustedPolicy: Object.freeze({
       workerKey: input.workerKey,
       workflowKey: input.workflowKey,
-      allowedTools: [...new Set(input.allowedTools)],
-      authorityScope: [...new Set(input.authorityScope)],
+      allowedTools: Array.from(new Set(input.allowedTools)),
+      authorityScope: Array.from(new Set(input.authorityScope)),
     }),
     untrustedInput,
   })
