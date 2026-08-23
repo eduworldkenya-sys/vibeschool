@@ -3,6 +3,7 @@ name: Worker Engine Governed Proof
 on:
   pull_request:
     paths:
+      - 'lib/hq/workforce/engine.ts'
       - 'lib/hq/workforce/governed-runtime.ts'
       - 'lib/hq/workforce/governed-runtime.test.ts'
       - 'lib/hq/workforce/watchdog.ts'
@@ -41,6 +42,11 @@ jobs:
           grep -q 'status: "active"' lib/hq/workforce/governed-runtime.test.ts
           grep -q 'status: "probation"' lib/hq/workforce/governed-runtime.test.ts
           grep -q 'watchdog fail-closes before execution' lib/hq/workforce/governed-runtime.test.ts
+          grep -q 'curriculum work fails closed without exact revision binding' lib/hq/workforce/governed-runtime.test.ts
+          grep -q 'curriculum work carries exact mission and publication revision to executor' lib/hq/workforce/governed-runtime.test.ts
+          grep -q 'mission-local model budget blocks before durable budget or execution' lib/hq/workforce/governed-runtime.test.ts
+          grep -q 'model execution fails closed when durable budget checker is absent' lib/hq/workforce/governed-runtime.test.ts
+          grep -q 'durable worker budget denial blocks model execution' lib/hq/workforce/governed-runtime.test.ts
           grep -q 'authority deny blocks execution' lib/hq/workforce/governed-runtime.test.ts
           grep -q 'fallback requires approval' lib/hq/workforce/governed-runtime.test.ts
           grep -q 'context is sanitized before executor' lib/hq/workforce/governed-runtime.test.ts

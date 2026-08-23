@@ -48,7 +48,17 @@ const envelope = (payload: Record<string, unknown> = {}): WorkEnvelope<Record<st
   priority: "normal",
   createdAt: now,
   payload,
+  budget: { tokenBudgetRemaining: 5000, computeBudgetRemaining: 10 },
 })
+
+const curriculum = {
+  traceId: "trace-proof",
+  missionId: "mission-proof",
+  publicationId: "publication-proof",
+  publicationRevisionId: "revision-proof",
+  chapterId: "chapter-proof",
+  iteration: 0,
+}
 
 const persistence = (
   overrides: Partial<GovernedRuntimePersistence> = {},
@@ -56,6 +66,7 @@ const persistence = (
   claimTrigger: async () => true,
   requestApproval: async () => "approval-proof",
   persistClarification: async () => "clarification-proof",
+  checkBudget: async () => ({ allowed: true, remainingTokens: 5000, remainingCompute: 10 }),
   ...overrides,
 })
 
@@ -113,6 +124,100 @@ test("watchdog fail-closes before execution", async () => {
   assert.equal(called, false)
 })
 
+test("curriculum work fails closed without exact revision binding", async () => {
+  let called = false
+  const result = await executeGovernedWorker({
+    worker,
+    workflowKey: "chemistry.author",
+    action: "read",
+    envelope: envelope(),
+    mode: "deterministic",
+    watchdogSnapshot: healthy,
+    persistence: persistence(),
+    requireCurriculumBinding: true,
+    execute: async () => { called = true; return execute() },
+  })
+  assert.equal(result.status, "blocked")
+  assert.equal(result.reason, "CURRICULUM_BINDING_REQUIRED")
+  assert.equal(called, false)
+})
+
+test("curriculum work carries exact mission and publication revision to executor", async () => {
+  let seenRevision: string | undefined
+  const result = await executeGovernedWorker({
+    worker,
+    workflowKey: "chemistry.author",
+    action: "read",
+    envelope: { ...envelope(), curriculum },
+    mode: "deterministic",
+    watchdogSnapshot: healthy,
+    persistence: persistence(),
+    requireCurriculumBinding: true,
+    execute: async safeEnvelope => { seenRevision = safeEnvelope.curriculum?.publicationRevisionId; return execute() },
+  })
+  assert.equal(result.status, "completed")
+  assert.equal(seenRevision, "revision-proof")
+})
+
+test("mission-local model budget blocks before durable budget or execution", async () => {
+  let budgetChecks = 0
+  let called = false
+  const result = await executeGovernedWorker({
+    worker,
+    workflowKey: "proof",
+    action: "read",
+    envelope: { ...envelope(), budget: { tokenBudgetRemaining: 100, computeBudgetRemaining: 1 } },
+    mode: "local_ai",
+    estimatedTokens: 101,
+    estimatedCompute: 1,
+    watchdogSnapshot: healthy,
+    persistence: persistence({ checkBudget: async () => { budgetChecks += 1; return { allowed: true } } }),
+    execute: async () => { called = true; return execute() },
+  })
+  assert.equal(result.status, "blocked")
+  assert.equal(result.reason, "WORK_ENVELOPE_BUDGET_EXCEEDED")
+  assert.equal(budgetChecks, 0)
+  assert.equal(called, false)
+})
+
+test("model execution fails closed when durable budget checker is absent", async () => {
+  let called = false
+  const result = await executeGovernedWorker({
+    worker,
+    workflowKey: "proof",
+    action: "read",
+    envelope: envelope(),
+    mode: "local_ai",
+    estimatedTokens: 100,
+    estimatedCompute: 1,
+    watchdogSnapshot: healthy,
+    persistence: persistence({ checkBudget: undefined }),
+    execute: async () => { called = true; return execute() },
+  })
+  assert.equal(result.status, "blocked")
+  assert.equal(result.reason, "WORKER_BUDGET_CHECK_REQUIRED")
+  assert.equal(called, false)
+})
+
+test("durable worker budget denial blocks model execution", async () => {
+  let called = false
+  const result = await executeGovernedWorker({
+    worker,
+    workflowKey: "proof",
+    action: "read",
+    envelope: envelope(),
+    mode: "local_ai",
+    estimatedTokens: 100,
+    estimatedCompute: 1,
+    watchdogSnapshot: healthy,
+    persistence: persistence({ checkBudget: async () => ({ allowed: false, reason: "WORKER_HOURLY_BUDGET_EXCEEDED", remainingTokens: 50, remainingCompute: 0 }) }),
+    execute: async () => { called = true; return execute() },
+  })
+  assert.equal(result.status, "blocked")
+  assert.equal(result.reason, "WORKER_HOURLY_BUDGET_EXCEEDED")
+  assert.equal(called, false)
+})
+
 test("authority deny blocks execution", async () => {
   let called = false
   const result = await executeGovernedWorker({ worker, workflowKey: "proof", action: "publish", envelope: envelope(), mode: "deterministic", watchdogSnapshot: healthy, persistence: persistence(), execute: async () => { called = true; return execute() } })
@@ -131,7 +236,7 @@ test("authority approval persists and stops", async () => {
 
 test("fallback requires approval", async () => {
   let called = false
-  const result = await executeGovernedWorker({ worker, workflowKey: "proof", action: "read", envelope: envelope(), mode: "local_ai", watchdogSnapshot: healthy, persistence: persistence(), execute: async () => { called = true; return execute() } })
+  const result = await executeGovernedWorker({ worker, workflowKey: "proof", action: "read", envelope: envelope(), mode: "local_ai", estimatedTokens: 100, estimatedCompute: 1, watchdogSnapshot: healthy, persistence: persistence(), execute: async () => { called = true; return execute() } })
   assert.equal(result.status, "approval_required")
   assert.equal(called, false)
 })

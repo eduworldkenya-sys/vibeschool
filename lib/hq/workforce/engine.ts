@@ -1,4 +1,4 @@
-import type { ClarificationPayload, ContextClassification, DigitalWorkerDefinition, WorkEnvelope, WorkerAuthorityRule, WorkerExecutionMode, WorkerExecutionResult, WorkerTriggerDefinition } from "./types"
+import type { ClarificationPayload, ContextClassification, CurriculumWorkBinding, DigitalWorkerDefinition, WorkEnvelope, WorkerAuthorityRule, WorkerExecutionMode, WorkerExecutionResult, WorkerTriggerDefinition } from "./types"
 
 const DEFAULT_EXECUTION_ORDER: WorkerExecutionMode[] = ["deterministic", "local_ai", "human", "external_ai"]
 const QA_LOCKED_WORKER_KEYS = new Set(["qa_reliability", "quality-worker-01"])
@@ -65,7 +65,28 @@ export function sanitizeEnvelopeForWorker<T extends Record<string, unknown>>(env
   return { ...envelope, payload: sanitizeValue(envelope.payload, forbidden) as Record<string, unknown> }
 }
 
+function hasText(value: unknown): value is string { return typeof value === "string" && value.trim().length > 0 }
+
+/** Fail-closed validation for curriculum/content lineage. No worker may guess a publication revision. */
+export function validateCurriculumWorkBinding(binding: CurriculumWorkBinding | undefined): string | null {
+  if (!binding) return "CURRICULUM_BINDING_REQUIRED"
+  if (!hasText(binding.traceId)) return "CURRICULUM_TRACE_ID_REQUIRED"
+  if (!hasText(binding.missionId)) return "CURRICULUM_MISSION_ID_REQUIRED"
+  if (!hasText(binding.publicationId)) return "CURRICULUM_PUBLICATION_ID_REQUIRED"
+  if (!hasText(binding.publicationRevisionId)) return "CURRICULUM_PUBLICATION_REVISION_ID_REQUIRED"
+  if (!Number.isInteger(binding.iteration) || binding.iteration < 0) return "CURRICULUM_ITERATION_INVALID"
+  if (binding.strandId != null && !hasText(binding.strandId)) return "CURRICULUM_STRAND_ID_INVALID"
+  if (binding.chapterId != null && !hasText(binding.chapterId)) return "CURRICULUM_CHAPTER_ID_INVALID"
+  if (binding.parentAttemptId != null && !hasText(binding.parentAttemptId)) return "CURRICULUM_PARENT_ATTEMPT_ID_INVALID"
+  return null
+}
+
 export function makeWorkEnvelope<T extends Record<string, unknown>>(input: Omit<WorkEnvelope<T>, "id" | "createdAt">): WorkEnvelope<T> { return { ...input, id: crypto.randomUUID(), createdAt: new Date().toISOString() } }
+export function makeCurriculumWorkEnvelope<T extends Record<string, unknown>>(input: Omit<WorkEnvelope<T>, "id" | "createdAt" | "curriculum"> & { curriculum: CurriculumWorkBinding }): WorkEnvelope<T> {
+  const error = validateCurriculumWorkBinding(input.curriculum)
+  if (error) throw new Error(error)
+  return makeWorkEnvelope(input)
+}
 export function makeClarificationEnvelope(input: { fromWorkerKey: string; toWorkerKey: string; workItemId?: string; priority: WorkEnvelope["priority"]; responseToEnvelopeId: string; questionKey: string; requiredFields: string[]; reason: string }): WorkEnvelope<ClarificationPayload & Record<string, unknown>> { if (!input.questionKey.trim() || input.requiredFields.length === 0 || !input.reason.trim()) throw new Error("INVALID_STRUCTURED_CLARIFICATION"); return makeWorkEnvelope({ type: "clarify", fromWorkerKey: input.fromWorkerKey, toWorkerKey: input.toWorkerKey, workItemId: input.workItemId, priority: input.priority, classification: "internal", payload: { questionKey: input.questionKey, requiredFields: Array.from(new Set(input.requiredFields)), reason: input.reason, responseToEnvelopeId: input.responseToEnvelopeId } }) }
 export function approvalRequired(workerKey: string, workflowKey: string, reason: string, evidence: Record<string, unknown> = {}): WorkerExecutionResult { return { status: "approval_required", workerKey, workflowKey, reason, evidence } }
-export const WORKFORCE_POLICY = Object.freeze({ paidAiEnabledByDefault: false, workerToWorkerNaturalLanguage: false, structuredWorkEnvelopesOnly: true, structuredClarificationEnabled: true, metricTriggerDefaultCooldownSeconds: 3600, unknownActionRequiresApproval: true, defaultExecutionOrder: DEFAULT_EXECUTION_ORDER })
+export const WORKFORCE_POLICY = Object.freeze({ paidAiEnabledByDefault: false, workerToWorkerNaturalLanguage: false, structuredWorkEnvelopesOnly: true, structuredClarificationEnabled: true, metricTriggerDefaultCooldownSeconds: 3600, unknownActionRequiresApproval: true, curriculumRevisionBindingFailClosed: true, nonDeterministicBudgetFailClosed: true, defaultExecutionOrder: DEFAULT_EXECUTION_ORDER })
