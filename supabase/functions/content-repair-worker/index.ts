@@ -1,9 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
+import { groqText, invokeCyborgEdgeModel } from "../_shared/cyborg-model-client.ts"
 
 const JSON_HEADERS = { "Content-Type": "application/json" }
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: JSON_HEADERS })
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY") ?? ""
 const MODEL_KEY = Deno.env.get("CONTENT_REPAIR_MODEL") ?? "openai/gpt-oss-120b"
 const WORKER_PROFILE = "senior-educational-content-remediation-editor:v1"
 const REPAIR_CLASSES = new Set(["LOCAL","SECTIONAL","CROSS_SECTION","STRUCTURAL","EVIDENCE_DEPENDENT","SAFETY_CRITICAL","CURRICULUM_CONFLICT","HUMAN_EDITOR"])
@@ -18,11 +18,7 @@ type RepairPacket = {
   authorization:{authorized:true;scope:"repair_candidate_only";expires_at:string}
   prior_attempts?:unknown[]
 }
-type ModelResult={
-  repair_class:string;repair_plan:Record<string,unknown>;candidate_content:string|Record<string,unknown>|null;changed_sections:string[];preserved_sections:string[];
-  impact:{curriculum:string;assessment:string;safety:string;provenance:string;new_risks:string[]};unresolved_uncertainty:string[];status:string;
-  repair_preflight:{targeted_change_implemented:boolean;protected_sections_unchanged:boolean;curriculum_identity_unchanged:boolean;release_state_unchanged:boolean;provenance_preserved:boolean;no_self_certification:boolean}
-}
+type ModelResult={repair_class:string;repair_plan:Record<string,unknown>;candidate_content:string|Record<string,unknown>|null;changed_sections:string[];preserved_sections:string[];impact:{curriculum:string;assessment:string;safety:string;provenance:string;new_risks:string[]};unresolved_uncertainty:string[];status:string;repair_preflight:{targeted_change_implemented:boolean;protected_sections_unchanged:boolean;curriculum_identity_unchanged:boolean;release_state_unchanged:boolean;provenance_preserved:boolean;no_self_certification:boolean}}
 function obj(value:unknown,code:string):Record<string,unknown>{if(!value||typeof value!=="object"||Array.isArray(value))throw new Error(code);return value as Record<string,unknown>}
 function strs(value:unknown,code:string):string[]{if(!Array.isArray(value)||value.some(v=>typeof v!=="string"))throw new Error(code);return value as string[]}
 async function sha256(value:unknown):Promise<string>{const bytes=new TextEncoder().encode(typeof value==="string"?value:JSON.stringify(value));const digest=await crypto.subtle.digest("SHA-256",bytes);return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")}
@@ -55,8 +51,7 @@ function validateModelResult(value:unknown,packet:RepairPacket):ModelResult{
   if(packet.finding.severity==="CRITICAL"&&packet.finding.category==="safety"&&r.repair_class!=="SAFETY_CRITICAL")throw new Error("safety_repair_class_required")
   return r as ModelResult
 }
-async function runRepair(packet:RepairPacket):Promise<ModelResult>{
-  if(!GROQ_API_KEY)throw new Error("repair_model_key_missing")
+async function runRepair(packet:RepairPacket):Promise<{result:ModelResult;lineage:unknown;missionId:string}>{
   const system=[
     "You are VibeSchool's governed Senior Educational Content Remediation Editor and Senior Chemistry Instructional Remediation Editor.",
     "You repair only the authorized independent Critic finding. You are not the author, Critic, quality evaluator, curriculum authority, publisher, or release approver.",
@@ -68,15 +63,15 @@ async function runRepair(packet:RepairPacket):Promise<ModelResult>{
     "Only changed_sections listed in constraints.allowed_sections may change; every protected section must be listed in preserved_sections.",
     "Return one JSON object with repair_class, repair_plan, candidate_content, changed_sections, preserved_sections, impact, unresolved_uncertainty, status, repair_preflight. Allowed status after actual candidate repair is REPAIR_ATTEMPTED. Never return VERIFIED_RESOLVED. Fresh independent P2/P3 verification is mandatory."
   ].join(" ")
-  const response=await fetch("https://api.groq.com/openai/v1/chat/completions",{method:"POST",headers:{"Authorization":`Bearer ${GROQ_API_KEY}`,"Content-Type":"application/json"},body:JSON.stringify({model:MODEL_KEY,temperature:0.05,response_format:{type:"json_object"},messages:[{role:"system",content:system},{role:"user",content:JSON.stringify(packet)}]})})
-  if(!response.ok)throw new Error(`repair_model_failed:${response.status}`)
-  const body=await response.json() as {choices?:Array<{message?:{content?:string}}>};const content=body.choices?.[0]?.message?.content;if(!content)throw new Error("repair_model_empty")
-  let parsed:unknown;try{parsed=JSON.parse(content)}catch{throw new Error("repair_non_json_model_output")};return validateModelResult(parsed,packet)
+  const governed=await invokeCyborgEdgeModel({callerServiceId:"edge.content-repair-worker",actorKey:"system:content-repair-worker",externalChatId:`repair:${packet.artifact.artifact_id}:${packet.artifact.version}:${packet.finding.finding_id}`,objective:"Produce one governed bounded content repair candidate",provider:"groq",model:MODEL_KEY,maxTokens:6000,messages:[{role:"system",content:system},{role:"user",content:JSON.stringify(packet)}],metadata:{feature:"content-repair-worker",temperature:0.05,responseFormat:"json_object"},dataClassification:"restricted"})
+  const content=groqText(governed.output);if(!content)throw new Error("repair_model_empty")
+  let parsed:unknown;try{parsed=JSON.parse(content)}catch{throw new Error("repair_non_json_model_output")}
+  return{result:validateModelResult(parsed,packet),lineage:governed.lineage,missionId:governed.missionId}
 }
 Deno.serve(async(req)=>{try{
   if(req.method!=="POST")return reply({error:"method_not_allowed"},405)
   const auth=req.headers.get("authorization")??"";if(!SERVICE_ROLE_KEY||auth!==`Bearer ${SERVICE_ROLE_KEY}`)return reply({error:"critic_service_only"},401)
   const body=await req.json();const packet=await parsePacket(body?.repair_packet);const max=packet.constraints.max_attempts??3;if((packet.prior_attempts?.length??0)>=max)return reply({error:"REPAIR_ATTEMPT_LIMIT_REACHED"},409)
-  const result=await runRepair(packet);const candidateHash=result.candidate_content===null?null:await sha256(result.candidate_content)
-  return reply({repair_execution_id:crypto.randomUUID(),worker_profile:WORKER_PROFILE,source_artifact:{artifact_id:packet.artifact.artifact_id,version:packet.artifact.version,content_sha256:packet.artifact.content_sha256},new_candidate:result.candidate_content===null?null:{version:`candidate-after-${packet.artifact.version}`,content:result.candidate_content,content_sha256:candidateHash},targeted_finding_ids:[packet.finding.finding_id],repair_class:result.repair_class,repair_plan:result.repair_plan,changed_sections:result.changed_sections,preserved_sections:result.preserved_sections,impact:result.impact,unresolved_uncertainty:result.unresolved_uncertainty,repair_preflight:result.repair_preflight,status:result.status,authority:{may_mark_finding_resolved:false,may_modify_p2:false,may_modify_p3:false,may_publish:false,may_approve_publication:false,may_change_curriculum_identity:false},required_independent_verification:true,verification_handoff:{fresh_p2:true,fresh_p3:true,old_finding_status_may_only_be_reconciled_after_fresh_primary_judgment:true}})
+  const governed=await runRepair(packet);const result=governed.result;const candidateHash=result.candidate_content===null?null:await sha256(result.candidate_content)
+  return reply({repair_execution_id:crypto.randomUUID(),worker_profile:WORKER_PROFILE,source_artifact:{artifact_id:packet.artifact.artifact_id,version:packet.artifact.version,content_sha256:packet.artifact.content_sha256},new_candidate:result.candidate_content===null?null:{version:`candidate-after-${packet.artifact.version}`,content:result.candidate_content,content_sha256:candidateHash},targeted_finding_ids:[packet.finding.finding_id],repair_class:result.repair_class,repair_plan:result.repair_plan,changed_sections:result.changed_sections,preserved_sections:result.preserved_sections,impact:result.impact,unresolved_uncertainty:result.unresolved_uncertainty,repair_preflight:result.repair_preflight,status:result.status,cyborg:{mission_id:governed.missionId,lineage:governed.lineage},authority:{may_mark_finding_resolved:false,may_modify_p2:false,may_modify_p3:false,may_publish:false,may_approve_publication:false,may_change_curriculum_identity:false},required_independent_verification:true,verification_handoff:{fresh_p2:true,fresh_p3:true,old_finding_status_may_only_be_reconciled_after_fresh_primary_judgment:true}})
 }catch(e){const message=e instanceof Error?e.message:"repair_unknown_error";const status=["STALE_ARTIFACT_VERSION","REPAIR_SCOPE_CONFLICT","REPAIR_ATTEMPT_LIMIT_REACHED"].includes(message)?409:400;return reply({error:message},status)}})
