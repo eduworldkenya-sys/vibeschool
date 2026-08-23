@@ -14,3 +14,4 @@ jobs:
       - run: npm ci
       - run: node scripts/validate-cyborg-llm-gateway.mjs
       - run: npx tsc -p tsconfig.cyborg-proof.json
+      - run: node /tmp/cyborg-proof/scripts/cyborg-economic-proof.js

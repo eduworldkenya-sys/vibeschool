@@ -6,6 +6,33 @@ for (const invariant of ['runCyborgMission','NO_DIRECT_LLM_CALLS','PREMATURE_MIS
   if (!gateway.includes(invariant)) throw new Error(`CYBORG_GATEWAY_INVARIANT_MISSING:${invariant}`);
 }
 
+const economics = fs.readFileSync('lib/cyborg/economics.ts', 'utf8');
+for (const invariant of [
+  'BLOCKED_ECONOMIC',
+  'CyborgEconomicLedger',
+  'CyborgExactResponseCache',
+  'CYBORG_ASSURANCE_BYPASS_DENIED',
+  'CYBORG_DETERMINISTIC_RESULT_NOT_AUTHORIZED',
+  'certification',
+  'adversarial_review',
+  'security_review',
+  'CYBORG_CACHE_SCOPE_SHA_REQUIRED',
+]) {
+  if (!economics.includes(invariant)) throw new Error(`CYBORG_ECONOMIC_INVARIANT_MISSING:${invariant}`);
+}
+for (const invariant of [
+  'getMissionEconomics',
+  'deterministicResult',
+  'exactCacheKey',
+  'cacheScopeSha',
+  'economicBudget',
+  'estimateInputTokens',
+  'normalizeUsage',
+  'recommendedModelTier',
+]) {
+  if (!gateway.includes(invariant)) throw new Error(`CYBORG_GATEWAY_ECONOMIC_WIRING_MISSING:${invariant}`);
+}
+
 // Scan server-side/runtime authority surfaces. Legacy browser-only inference is not
 // treated as an execution authority and is migrated independently.
 const roots = ['app/api','lib','components','scripts'];
