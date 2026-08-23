@@ -75,6 +75,66 @@ jobs:
             -v ON_ERROR_STOP=1 \
             -f scripts/sql/content_worker_professionalization_verify.sql
 
+      - name: Prove Chemistry Author/Quality qualification at runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PGPASSWORD=postgres psql \
+            "postgresql://postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+
+          -- Reproduce the production lifecycle condition that exposed PR #498's
+          -- runtime-only bug. Draft is intentionally not activation.
+          update public.hq_workforce_workers
+          set status='draft'
+          where worker_key='content-factory-r2-canary-01';
+
+          update public.hq_workforce_worker_specializations
+          set qualification_state='candidate', qualified_at=null, qualified_until=null
+          where worker_key in ('content-factory-r2-canary-01','quality-worker-01')
+            and specialization_key='chemistry.grade10'
+            and specialization_version=1;
+
+          select public.hq_workforce_qualify_chemistry_author_quality(
+            'content-factory-r2-canary-01',
+            'ci-independent-chemistry-author-quality-verifier'
+          );
+          select public.hq_workforce_qualify_chemistry_author_quality(
+            'quality-worker-01',
+            'ci-independent-chemistry-author-quality-verifier'
+          );
+
+          do $$
+          declare v_count integer; ec public.hq_workforce_engine_contract%rowtype;
+          begin
+            select count(*) into v_count
+            from public.hq_workforce_worker_specializations
+            where worker_key in ('content-factory-r2-canary-01','quality-worker-01')
+              and specialization_key='chemistry.grade10'
+              and specialization_version=1
+              and qualification_state='qualified'
+              and qualified_until>clock_timestamp();
+            if v_count<>2 then
+              raise exception 'CHEMISTRY_AUTHOR_QUALITY_RUNTIME_QUALIFICATION_PROOF_FAILED';
+            end if;
+
+            select * into ec from public.hq_workforce_engine_contract where singleton=true;
+            if coalesce(ec.runtime_execution_enabled,false)
+               or coalesce(ec.heartbeat_enabled,false)
+               or coalesce(ec.factory_enabled,false)
+               or coalesce(ec.runtime_autonomy_level,0)<>0
+               or coalesce(ec.runtime_max_risk,0)<>0
+               or coalesce(ec.shadow_enabled,false)
+               or coalesce(ec.shadow_scheduler_enabled,false)
+               or not coalesce(ec.shadow_global_stop,true) then
+              raise exception 'CHEMISTRY_QUALIFICATION_CHANGED_EXECUTION_POSTURE';
+            end if;
+          end $$;
+
+          rollback;
+          SQL
+
       - name: Type-check existing authoring executor
         run: deno check --node-modules-dir=auto supabase/functions/content-authoring-worker/index.ts
 
