@@ -5,19 +5,19 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
 type JsonMap=Record<string,unknown>
-type RpcResult<T>={data:T|null;error:{message:string}|null}
 type Mission={id:string;publication_id:string;state:string;mode:string;readiness_findings:unknown[];created_at:string}
 type Item={id:string;chapter_id:string;chapter_title:string;stage:string;iteration:number;next_action:string;blocker_codes:string[];source_version:string;source_hash:string;attempts:unknown[];latest_evidence:unknown[]}
 type Dashboard={mission:Mission;binding:{commander_key?:string}|null;runtime:{runtime_execution_enabled:boolean;shadow_enabled:boolean;shadow_scheduler_enabled:boolean;global_stop:boolean}|null;items:Item[];command_events:unknown[]}
 type WorkItem={work_type:string;source_type:string;source_id:string;evidence:JsonMap|null;title:string}
-type StartMissionResponse={chemistry?:{mission?:{id?:string;state?:string}}}
-type ClaimStageResponse={worker_key?:string}
-type SbClient={rpc:<T=unknown>(fn:string,args?:JsonMap)=>Promise<RpcResult<T>>}
 
-const sb=supabase as unknown as SbClient
 const queued=new Set(["AUTHOR_QUEUED","P2_QUEUED","P3_QUEUED","REPAIR_QUEUED","FRESH_P2_QUEUED","FRESH_P3_QUEUED"])
 const label=(s:string)=>String(s||"").replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase())
 const C={bg:"#07111f",panel:"#0d1b2f",line:"rgba(255,255,255,.1)",text:"#f8fafc",muted:"rgba(255,255,255,.62)",green:"#34d399",amber:"#f59e0b",red:"#fb7185",blue:"#60a5fa",violet:"#a78bfa"}
+
+function isRecord(value:unknown):value is JsonMap{return typeof value==="object"&&value!==null&&!Array.isArray(value)}
+function asString(value:unknown){return typeof value==="string"?value:""}
+function readMissionStart(value:unknown){if(!isRecord(value)||!isRecord(value.chemistry)||!isRecord(value.chemistry.mission))return{id:"",state:"UNKNOWN"};return{id:asString(value.chemistry.mission.id),state:asString(value.chemistry.mission.state)||"UNKNOWN"}}
+function readWorkerKey(value:unknown){return isRecord(value)?asString(value.worker_key):""}
 
 export default function ChemistryCommandPage(){
  const router=useRouter()
@@ -26,21 +26,21 @@ export default function ChemistryCommandPage(){
 
  const load=useCallback(async()=>{
   setError("")
-  const[m,w]=await Promise.all([sb.rpc<Mission[]>("hq_list_chemistry_worker_missions",{p_limit:50}),sb.rpc<WorkItem[]>("hq_list_publishing_work",{p_limit:300})])
+  const[m,w]=await Promise.all([supabase.rpc("hq_list_chemistry_worker_missions",{p_limit:50}),supabase.rpc("hq_list_publishing_work",{p_limit:300})])
   if(m.error){setError(m.error.message);return}
-  const ms=Array.isArray(m.data)?m.data:[];setMissions(ms);if(!selectedId&&ms[0]?.id)setSelectedId(ms[0].id)
-  if(!w.error){const map=new Map<string,string>();for(const x of Array.isArray(w.data)?w.data:[]){const publicationId=typeof x.evidence?.publication_id==="string"?x.evidence.publication_id:"";const id=String(publicationId||((x.work_type==="publication_release"&&x.source_type==="vibe_publication")?x.source_id:"")||"");if(id&&x.title.toLowerCase().includes("chemistry"))map.set(id,x.title.replace(/^Publication release blocked:\s*/i,""))}setChemistryPubs([...map].map(([id,title])=>({id,title})))}
+  const ms=(Array.isArray(m.data)?m.data:[]).filter((x):x is Mission=>isRecord(x)&&typeof x.id==="string"&&typeof x.state==="string"&&typeof x.mode==="string"&&typeof x.publication_id==="string"&&Array.isArray(x.readiness_findings)&&typeof x.created_at==="string");setMissions(ms);if(!selectedId&&ms[0]?.id)setSelectedId(ms[0].id)
+  if(!w.error){const map=new Map<string,string>();for(const raw of Array.isArray(w.data)?w.data:[]){if(!isRecord(raw))continue;const x:WorkItem={work_type:asString(raw.work_type),source_type:asString(raw.source_type),source_id:asString(raw.source_id),evidence:isRecord(raw.evidence)?raw.evidence:null,title:asString(raw.title)};const publicationId=typeof x.evidence?.publication_id==="string"?x.evidence.publication_id:"";const id=String(publicationId||((x.work_type==="publication_release"&&x.source_type==="vibe_publication")?x.source_id:"")||"");if(id&&x.title.toLowerCase().includes("chemistry"))map.set(id,x.title.replace(/^Publication release blocked:\s*/i,""))}setChemistryPubs([...map].map(([id,title])=>({id,title})))}
  },[selectedId])
 
- const loadDashboard=useCallback(async(id:string)=>{if(!id){setDashboard(null);return}const{data,error:e}=await sb.rpc<Dashboard>("hq_get_laban_chemistry_mission_dashboard",{p_mission_id:id});if(e)setError(e.message);else setDashboard(data)},[])
+ const loadDashboard=useCallback(async(id:string)=>{if(!id){setDashboard(null);return}const{data,error:e}=await supabase.rpc("hq_get_laban_chemistry_mission_dashboard",{p_mission_id:id});if(e){setError(e.message);return}if(!isRecord(data)||!isRecord(data.mission)||!Array.isArray(data.items)){setError("Chemistry command dashboard returned an invalid contract");return}setDashboard(data as Dashboard)},[])
  useEffect(()=>{void load()},[load])
  useEffect(()=>{void loadDashboard(selectedId)},[selectedId,loadDashboard])
 
  const safe=dashboard?.runtime&&!dashboard.runtime.runtime_execution_enabled&&!dashboard.runtime.shadow_enabled&&!dashboard.runtime.shadow_scheduler_enabled&&dashboard.runtime.global_stop===true
  const counts=useMemo(()=>{const r={human:0,blocked:0,active:0};for(const i of dashboard?.items||[]){if(i.stage==="HUMAN_REVIEW")r.human++;if(i.stage==="BLOCKED_READINESS"||i.stage==="ESCALATED"||i.stage==="PAUSED")r.blocked++;if(!["HUMAN_REVIEW","CONVERGED","BLOCKED_READINESS","ESCALATED","PAUSED"].includes(i.stage))r.active++}return r},[dashboard])
 
- async function start(publicationId:string){if(!publicationId)return;setBusy("start");setError("");setMessage("");const{data,error:e}=await sb.rpc<StartMissionResponse>("hq_start_laban_chemistry_mission",{p_publication_id:publicationId});if(e)setError(e.message);else{const id=String(data?.chemistry?.mission?.id||"");const state=String(data?.chemistry?.mission?.state||"UNKNOWN");setMessage(state==="READY"?"Laban command mission created in shadow mode. Runtime remains OFF and Global Stop remains ON.":`Mission created but ${label(state)}. Readiness evidence is shown below.`);await load();if(id)setSelectedId(id)}setBusy("")}
- async function delegate(item:Item){if(!queued.has(item.stage))return;setBusy(item.id);setError("");const{data,error:e}=await sb.rpc<ClaimStageResponse>("hq_laban_claim_chemistry_stage",{p_item_id:item.id,p_expected_queued_stage:item.stage,p_lease_seconds:120});if(e)setError(e.message);else{setMessage(`Laban delegated ${label(item.stage)} to ${String(data?.worker_key||"the certified worker")}. The handoff is lease-bound and evidence-bound.`);await loadDashboard(selectedId)}setBusy("")}
+ async function start(publicationId:string){if(!publicationId)return;setBusy("start");setError("");setMessage("");const{data,error:e}=await supabase.rpc("hq_start_laban_chemistry_mission",{p_publication_id:publicationId});if(e)setError(e.message);else{const parsed=readMissionStart(data);setMessage(parsed.state==="READY"?"Laban command mission created in shadow mode. Runtime remains OFF and Global Stop remains ON.":`Mission created but ${label(parsed.state)}. Readiness evidence is shown below.`);await load();if(parsed.id)setSelectedId(parsed.id)}setBusy("")}
+ async function delegate(item:Item){if(!queued.has(item.stage))return;setBusy(item.id);setError("");const{data,error:e}=await supabase.rpc("hq_laban_claim_chemistry_stage",{p_item_id:item.id,p_expected_queued_stage:item.stage,p_lease_seconds:120});if(e)setError(e.message);else{setMessage(`Laban delegated ${label(item.stage)} to ${readWorkerKey(data)||"the certified worker"}. The handoff is lease-bound and evidence-bound.`);await loadDashboard(selectedId)}setBusy("")}
 
  return <main style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,sans-serif",paddingBottom:80}}>
   <header style={{position:"sticky",top:0,zIndex:20,background:"rgba(7,17,31,.97)",borderBottom:`1px solid ${C.line}`,padding:"12px 16px"}}><div style={wrap}><button onClick={()=>router.push("/hq/content")} style={link}>← Content Release</button><h1 style={{margin:"7px 0 2px",fontSize:24}}>Chemistry Command</h1><div style={hint}>Commander: Laban · governed shadow mission · human release authority preserved.</div></div></header>
