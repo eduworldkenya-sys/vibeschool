@@ -6,7 +6,7 @@ on:
       - 'app/api/**'
       - 'supabase/functions/**'
       - 'supabase/migrations/*cyborg*'
-      - 'scripts/validate-cyborg-*'
+      - 'scripts/*cyborg*'
       - '.github/workflows/cyborg-capability-lineage.yml'
 jobs:
   contract:
@@ -17,4 +17,5 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/validate-cyborg-capability-lineage.mjs
+      - run: node scripts/cyborg-capability-adversarial-proof.mjs
       - run: node scripts/validate-cyborg-llm-gateway.mjs
