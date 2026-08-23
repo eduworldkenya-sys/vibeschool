@@ -1,4 +1,4 @@
-# Exact-head certification trigger: Chemistry Author/Quality specialization P0.
+# Exact-head certification trigger: Chemistry learning-quality contract P0.
 name: Content Worker Professionalization
 
 on:
@@ -12,6 +12,7 @@ on:
       - 'supabase/functions/content-authoring-worker/**'
       - 'scripts/sql/content_worker_professionalization_verify.sql'
       - 'scripts/validate-chemistry-author-quality-specialization.py'
+      - 'scripts/validate-chemistry-learning-quality-contract.py'
       - '.github/workflows/content-worker-professionalization.yml'
   workflow_dispatch:
 
@@ -44,6 +45,9 @@ jobs:
 
       - name: Validate Chemistry Author/Quality specialization contract
         run: python scripts/validate-chemistry-author-quality-specialization.py
+
+      - name: Validate Chemistry learning-quality contract
+        run: python scripts/validate-chemistry-learning-quality-contract.py
 
       - name: Disable seed for schema-only certification
         shell: bash
