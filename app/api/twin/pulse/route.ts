@@ -1,4 +1,4 @@
-import { createAnthropicMessagesAdapter, invokeCyborgModel } from '@/lib/cyborg/gateway';
+import { invokeCyborgBoundary } from '@/lib/cyborg/http-client';
 
 export const runtime = "edge";
 
@@ -29,18 +29,23 @@ Rules:
 - No greeting. No punctuation flourishes. No emojis.
 - If streak >= 5, acknowledge it warmly in the message.`;
 
-    const adapter = createAnthropicMessagesAdapter(process.env.ANTHROPIC_API_KEY ?? '');
-    const missionId = req.headers.get('x-cyborg-mission-id')?.trim() || `twin-pulse:${crypto.randomUUID()}`;
-    const response = await invokeCyborgModel(adapter, {
+    const requestedMissionId = req.headers.get('x-cyborg-mission-id')?.trim() || undefined;
+    const response = await invokeCyborgBoundary({
+      actorKey: 'service:app.twin-pulse',
+      externalChatId: requestedMissionId || `twin-pulse:${crypto.randomUUID()}`,
+      objective: 'Generate one governed teacher pulse insight',
+      missionId: requestedMissionId,
+      callerServiceId: 'app.twin-pulse',
       provider: 'anthropic',
       model: 'claude-haiku-4-5-20251001',
-      missionId,
-      metadata: { maxTokens: 60, feature: 'twin-pulse' },
+      maxTokens: 60,
       messages: [{ role: 'user', content: prompt }],
+      metadata: { feature: 'twin-pulse' },
+      dataClassification: 'confidential',
     });
     const data = response.output as { content?: Array<{ text?: string }> };
     const message = data.content?.[0]?.text?.trim() ?? "";
-    return Response.json({ message, missionId });
+    return Response.json({ message, missionId: response.missionId, lineage: response.lineage });
   } catch {
     return Response.json({ message: "" }, { status: 500 });
   }

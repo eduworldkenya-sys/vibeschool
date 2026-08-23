@@ -1,0 +1,34 @@
+name: Cyborg LLM Boundary
+on:
+  pull_request:
+    paths:
+      - 'app/api/**'
+      - 'lib/cyborg/**'
+      - 'supabase/functions/**'
+      - 'supabase/migrations/**'
+      - 'scripts/cyborg-*.mjs'
+      - 'scripts/cyborg-*.ts'
+      - 'tsconfig.cyborg-proof.json'
+      - '.github/workflows/**'
+  workflow_dispatch:
+jobs:
+  boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - name: Reject direct provider bypasses
+        run: node scripts/cyborg-boundary-scan.mjs
+      - name: Validate mission kernel
+        run: node scripts/validate-cyborg-mission-kernel.mjs
+      - name: Run adversarial kernel proof
+        run: node scripts/cyborg-adversarial-proof.mjs
+      - name: Run capability and lineage behavior proof
+        run: npx tsc -p tsconfig.cyborg-proof.json && node /tmp/cyborg-proof/scripts/cyborg-behavior-proof.js
+      - name: Validate migration contract
+        run: python scripts/validate-supabase-migration-contract.py --changed-from origin/main
