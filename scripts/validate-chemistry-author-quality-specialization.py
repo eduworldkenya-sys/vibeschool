@@ -2,7 +2,7 @@
 from pathlib import Path
 
 MIGRATION = Path('supabase/migrations/20260823194500_content_worker_professionalization_chemistry_author_quality_specialization.sql')
-STAGE_GATE = Path('supabase/migrations/20260823181100_chemistry_specialization_admission_gate.sql')
+STAGE_GATE = Path('supabase/migrations/20260823193500_chemistry_specialization_admission_enforcement.sql')
 
 migration = MIGRATION.read_text()
 stage_gate = STAGE_GATE.read_text()
@@ -44,7 +44,6 @@ missing = [needle for needle in required if needle not in migration]
 if missing:
     raise SystemExit(f'Chemistry Author/Quality qualification contract missing: {missing}')
 
-# Qualification is deliberately narrow: only the two already-certified stage owners.
 for forbidden in [
     "content-critic-chemistry-v1",
     "content-repair-chemistry-v1",
@@ -60,7 +59,6 @@ for forbidden in [
     if forbidden in migration:
         raise SystemExit(f'Forbidden qualification expansion detected: {forbidden}')
 
-# The admission gate merged immediately before this qualification must remain fail closed.
 for needle in [
     "hq_workforce_assert_worker_specialization",
     "chemistry_claim_stage",
@@ -70,8 +68,6 @@ for needle in [
     if needle not in stage_gate:
         raise SystemExit(f'Chemistry admission gate invariant missing: {needle}')
 
-# Evidence must be written before the specialization becomes qualified, and the canonical
-# assertion must run after mutation so any contract mismatch rolls the transaction back.
 evidence_pos = migration.find('hq_workforce_record_qualification_evidence')
 qualify_pos = migration.find("set qualification_state='qualified'")
 assert_pos = migration.rfind('perform public.hq_workforce_assert_worker_specialization(')
