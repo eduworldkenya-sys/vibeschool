@@ -66,7 +66,8 @@ export default function MediaFactoryPage(){
 
   return <HQPage title="Media Factory" description="Create high-performing media from trusted VibeSchool content, then hand approved assets to Growth. Live evidence, simple controls, no authority bypass." actions={<>
     <button onClick={()=>void load()} disabled={loading} style={hqButtonStyle}>{loading?"Refreshing…":"Refresh live state"}</button>
-    <Link href="/hq/studio/editor" style={{...hqButtonStyle,textDecoration:"none",display:"inline-flex",alignItems:"center",background:"linear-gradient(135deg,#2563eb,#7c3aed)",border:"1px solid rgba(129,140,248,.42)"}}>Create source asset</Link>
+    <Link href="/hq/studio/editor" style={{...hqButtonStyle,textDecoration:"none",display:"inline-flex",alignItems:"center"}}>Create source publication</Link>
+    <Link href="/hq/studio/media-factory/editor" style={{...hqButtonStyle,textDecoration:"none",display:"inline-flex",alignItems:"center",background:"linear-gradient(135deg,#2563eb,#7c3aed)",border:"1px solid rgba(129,140,248,.42)"}}>Open media editor</Link>
   </>}>
     <style jsx>{`
       .hero{position:relative;overflow:hidden;border:1px solid rgba(96,165,250,.18);border-radius:22px;padding:22px;background:radial-gradient(circle at 88% 8%,rgba(124,58,237,.28),transparent 28rem),radial-gradient(circle at 5% 0%,rgba(14,165,233,.2),transparent 24rem),linear-gradient(145deg,#0a1930,#091423 68%);box-shadow:0 26px 70px rgba(0,0,0,.28)}
@@ -100,9 +101,9 @@ export default function MediaFactoryPage(){
     </div>
 
     <div style={{height:12}}/>
-    <HQPanel title="Start from a format" description="Production presets inspired by modern design tools: obvious intent, obvious canvas, minimal friction."><div className="formats">{formats.map(([title,desc,ratio,duration,icon])=><Link href="/hq/studio/editor" className="format" key={title}><div className="icon">{icon}</div><h3>{title}</h3><p>{desc}</p><div className="meta"><span className="chip">{ratio}</span><span className="chip">{duration}</span></div></Link>)}</div></HQPanel>
+    <HQPanel title="Start from a format" description="Production presets inspired by modern design tools: obvious intent, obvious canvas, minimal friction."><div className="formats">{formats.map(([title,desc,ratio,duration,icon])=><Link href="/hq/studio/media-factory/editor" className="format" key={title}><div className="icon">{icon}</div><h3>{title}</h3><p>{desc}</p><div className="meta"><span className="chip">{ratio}</span><span className="chip">{duration}</span></div></Link>)}</div></HQPanel>
 
     <div style={{height:12}}/>
-    <HQPanel title="Work the loop" description="Every action continues through a canonical VibeSchool surface."><div className="actions"><Link href="/hq/studio/editor" className="action"><span className="mark">✦</span><span><b>Create from Studio</b><small>Build the trusted source or rich media brief.</small></span></Link><Link href="/hq/content" className="action"><span className="mark">✓</span><span><b>Review & release</b><small>Use hardened publishing and human approval.</small></span></Link><Link href="/hq/growth" className="action"><span className="mark">↗</span><span><b>Hand off to Growth</b><small>Inspect channels, campaigns, creators and conversion evidence.</small></span></Link></div></HQPanel>
+    <HQPanel title="Work the loop" description="Every action continues through a canonical VibeSchool surface."><div className="actions"><Link href="/hq/studio/media-factory/editor" className="action"><span className="mark">✦</span><span><b>Create media</b><small>Turn Growth evidence into a governed media brief and production canvas.</small></span></Link><Link href="/hq/content" className="action"><span className="mark">✓</span><span><b>Review & release</b><small>Use hardened publishing and human approval.</small></span></Link><Link href="/hq/growth" className="action"><span className="mark">↗</span><span><b>Hand off to Growth</b><small>Inspect channels, campaigns, creators and conversion evidence.</small></span></Link></div></HQPanel>
   </HQPage>
 }
