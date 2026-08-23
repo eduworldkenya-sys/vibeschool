@@ -5,7 +5,7 @@ import { requireServiceCaller, rpc } from '../_shared/cyborg-service.ts'
 const SIGNING_KEY=Deno.env.get('CYBORG_CAPABILITY_SIGNING_KEY')??''
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const WORKER_MODEL_CALLERS=new Set(['edge.content-authoring-worker','edge.content-semantic-verifier'])
-const CHEMISTRY_STAGE_CALLERS=new Set(['edge.content-critic-worker','edge.content-repair-worker'])
+const CHEMISTRY_STAGE_CALLERS=new Set(['edge.content-critic-worker','edge.content-repair-worker','edge.chemistry-stage-executor'])
 function json(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}})}
 function strings(value:unknown){return Array.isArray(value)&&value.every(v=>typeof v==='string')?value as string[]:[]}
 function record(value:unknown){return value&&typeof value==='object'&&!Array.isArray(value)?value as Record<string,unknown>:null}
