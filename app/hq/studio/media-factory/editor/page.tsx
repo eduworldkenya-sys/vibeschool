@@ -3,7 +3,7 @@
 import Link from "next/link"
 import {useMemo,useState} from "react"
 import {hqSupabase} from "@/lib/hq/supabase"
-import {HQPage,HQPanel,HQ_THEME as C,hqButtonStyle} from "@/components/hq/HQShell"
+import {HQPage,HQPanel,hqButtonStyle} from "@/components/hq/HQShell"
 
 type Tab="brief"|"production"|"review"
 type Brief={id:string;title:string;hook:string;message:string;cta:string;format:string;duration:string}
@@ -67,7 +67,7 @@ export default function MediaFactoryEditorPage(){
    const version=await hqSupabase.rpc("hq_library_add_version",{p_artifact_id:id,p_structured_content:structuredContent(),p_storage_bucket:null,p_storage_path:null,p_mime_type:"application/vnd.vibeschool.media-factory+json",p_byte_size:null,p_content_hash:null,p_change_summary:versionId?"Media Factory draft update":"Initial Media Factory draft",p_worker_id:null,p_source_run_id:null,p_promote:true})
    if(version.error)throw version.error
    const nextVersion=version.data as string
-   setVersionId(nextVersion);setDirty(false);setSavedAt(new Date());return{artifactId:id,versionId:nextVersion}
+   setVersionId(nextVersion);setDirty(false);setSubmitted(false);setSavedAt(new Date());return{artifactId:id,versionId:nextVersion}
   }catch(e){setError(e instanceof Error?e.message:"Media draft could not be saved");return null}finally{setSaving(false)}
  }
  async function submitForReview(){
