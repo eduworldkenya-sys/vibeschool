@@ -8,9 +8,6 @@ export type WorkerTruth=Record<string,unknown>
 export type CommandSnapshot={generated_at:string;refresh_after_seconds?:number;engine?:Record<string,unknown>;fleet?:Record<string,unknown>;workers:WorkerTruth[]}
 type Readiness="ready"|"repair"|"stopped"
 type NavigateTarget="Assign"|"Worker Room"|"Evidence"|"Failures"
-type RpcError={message?:string}|null
-type WorkforceRpcClient={rpc:(name:string)=>PromiseLike<{data:unknown;error:RpcError}>}
-const workforceRpc=hqSupabase as unknown as WorkforceRpcClient
 const zoneConfig={ready:{title:"PROFESSIONALLY READY",plain:"Ready to be assigned",symbol:"✓",className:styles.ready,color:"#22c55e",top:"rgba(22,101,52,.46)"},repair:{title:"REPAIR REQUIRED",plain:"Needs repair before trust",symbol:"⚒",className:styles.repair,color:"#f59e0b",top:"rgba(146,91,8,.43)"},stopped:{title:"NOT PROFESSIONALLY READY",plain:"Stopped or not cleared",symbol:"×",className:styles.stopped,color:"#94a3b8",top:"rgba(71,85,105,.38)"}} as const
 const GUIDE=[
  {term:"Global Stop",plain:"Emergency brake",meaning:"When it is applied, governed consequential worker actions must stop. It does not erase work or certification."},
@@ -22,7 +19,16 @@ const GUIDE=[
  {term:"Authority",plain:"What the worker is allowed to do",meaning:"Authority stays separate from identity and certification. A worker can be capable but still have zero execution authority."},
 ]
 const field=(row:WorkerTruth,key:string)=>row[key]
-const record=(value:unknown):Record<string,unknown>=>value&&typeof value==="object"?value as Record<string,unknown>:{}
+const record=(value:unknown):Record<string,unknown>=>{
+ if(!value||typeof value!=="object"||Array.isArray(value))return {}
+ return Object.fromEntries(Object.entries(value))
+}
+const isWorkerTruth=(value:unknown):value is WorkerTruth=>Boolean(value&&typeof value==="object"&&!Array.isArray(value))
+const isCommandSnapshot=(value:unknown):value is CommandSnapshot=>{
+ if(!value||typeof value!=="object"||Array.isArray(value))return false
+ const entries=Object.fromEntries(Object.entries(value))
+ return typeof entries.generated_at==="string"&&Array.isArray(entries.workers)&&entries.workers.every(isWorkerTruth)
+}
 function readiness(row:WorkerTruth):Readiness{if(field(row,"certification_state")==="CERTIFIED"&&field(row,"qualification_state")==="CERTIFIED"&&!field(row,"legacy_recertification_required"))return "ready";if(field(row,"certification_state")==="NEEDS_REPAIR"||field(row,"qualification_state")==="FAILED_QUALIFICATION"||field(row,"certification_state")==="EXPIRED")return "repair";return "stopped"}
 const readable=(value:unknown)=>String(value??"—").replaceAll("_"," ")
 const date=(value:unknown)=>value?new Date(String(value)).toLocaleString("en-KE"):"—"
@@ -35,7 +41,7 @@ export default function LiveWorkerEngineMap({snapshot,workers:legacyWorkers,gene
  const globalStop=Boolean(engine.global_stop??engine.shadow_global_stop);const runtimeEnabled=Boolean(engine.runtime_enabled??engine.runtime_execution_enabled);const runtimeLevel=engine.runtime_level??engine.runtime_autonomy_level??0
  const ownerSummary=globalStop?`Your workforce is under the emergency brake. ${working} worker${working===1?" is":"s are"} visible as working, but consequential execution remains stopped by policy.`:runtimeEnabled?`${working} worker${working===1?" is":"s are"} working. ${blocked} blocked and ${waiting} waiting for review.`:`The workforce is visible and governable, but autonomous consequential execution is OFF. ${working} worker${working===1?" is":"s are"} currently showing active work.`
  const go=(target:NavigateTarget)=>{if(onNavigate)onNavigate(target);else window.dispatchEvent(new CustomEvent("workforce:navigate",{detail:target}))}
- useEffect(()=>{if(snapshot){setLive(snapshot);return}let alive=true;const refresh=async()=>{const{data,error}=await workforceRpc.rpc("hq_workforce_get_live_readiness_map");if(alive&&!error&&data)setLive(data as CommandSnapshot)};void refresh();const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh()},15000);return()=>{alive=false;window.clearInterval(timer)}},[snapshot])
+ useEffect(()=>{if(snapshot){setLive(snapshot);return}let alive=true;const refresh=async()=>{const{data,error}=await hqSupabase.rpc("hq_workforce_get_live_readiness_map");if(alive&&!error&&isCommandSnapshot(data))setLive(data)};void refresh();const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh()},15000);return()=>{alive=false;window.clearInterval(timer)}},[snapshot])
  useEffect(()=>{if(!selected)return;closeRef.current?.focus();const onKey=(e:KeyboardEvent)=>{if(e.key==="Escape")setSelected(null)};window.addEventListener("keydown",onKey);return()=>window.removeEventListener("keydown",onKey)},[selected])
  return <section className={styles.shell} aria-labelledby="worker-engine-map-title"><header className={styles.header}><div className={styles.headerRow}><div><div className={styles.eyebrow}>HQ · WORKFORCE</div><h2 id="worker-engine-map-title">FOUNDER WORKFORCE COMMAND CENTRE</h2><p>{plainMode?"See what your digital team is doing, what is safe, what is blocked and what needs you.":"Professional readiness · live work · bounded authority"}</p></div><div className={styles.headerActions}><button type="button" onClick={()=>setPlainMode(v=>!v)}>{plainMode?"Show technical terms":"Use simple language"}</button><button type="button" className={styles.helpButton} onClick={()=>setGuideOpen(v=>!v)} aria-expanded={guideOpen}>? Worker manual</button></div></div><span className={styles.live}>PRODUCTION TRUTH · AUTO-UPDATES</span></header>
  <section className={styles.ownerBrief} aria-label="Owner briefing"><div><small>WHAT THIS MEANS NOW</small><strong>{ownerSummary}</strong></div><div className={styles.quickActions}><button type="button" onClick={()=>go("Assign")}>Assign work</button><button type="button" onClick={()=>go("Worker Room")}>Mission room</button><button type="button" onClick={()=>go("Evidence")}>See proof</button><button type="button" onClick={()=>go("Failures")}>Problems & repair</button></div></section>
