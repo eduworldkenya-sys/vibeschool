@@ -9,13 +9,15 @@ Production Supabase project observed: `yauqsxggtuxuykcbrtzf`
 
 ## Purpose
 
-Reconcile the historically valid PR #448 repository-kernel certification with the materially newer current `main`, record the live `twin-chat` security-gate proof required by PR #452, and prevent either result from being misrepresented as full production/autonomous-runtime certification.
+Reconcile the historically valid PR #448 repository-kernel exact-head certification record with the materially newer current `main`, record the live `twin-chat` security-gate proof required by PR #452, and prevent either result from being misrepresented as full production/autonomous-runtime or independent certification.
 
 This document does not activate runtime, schedulers, publishing, payments, authority grants, or any consequential Worker Engine path.
 
 ## 1. Historical certification remains valid but revision-bound
 
-PR #448 received explicit exact-head certification at `e1a7148f4a859d2a838687a4ae6b90c029eb653a` for the repository kernel/runtime-gate scope. That certification covered the Cyborg Mission Kernel and its triggered repository gates. It explicitly excluded production persistence/execution adapters, applied-production migration proof, schedulers, automatic publishing, payments, consequential authority, and runtime activation.
+PR #448 contains an explicit `CYBORG EXACT-HEAD CERTIFICATION` review at `e1a7148f4a859d2a838687a4ae6b90c029eb653a` for the repository kernel/runtime-gate scope. The review states that the listed exact-head repository gates passed and explicitly excludes production persistence/execution adapters, applied-production migration proof, schedulers, automatic publishing, payments, consequential authority, and runtime activation.
+
+GitHub records that review as `COMMENTED` by the repository owner account `eduworldkenya-sys`. Therefore it is valid evidence of an **owner-issued exact-head certification record** for the stated bounded scope, but it does **not** by itself prove independent certification by a distinct evaluator identity.
 
 The certification is evidence about that exact revision. It does not float forward to later `main` commits.
 
@@ -98,7 +100,7 @@ Therefore the current truthful state is:
 
 ## 6. Exact-head gates for this reconciliation
 
-This evidence/governance-only reconciliation is eligible for repository-scope certification only if its final exact PR head passes all triggered applicable gates, including at minimum:
+This evidence/governance-only reconciliation is eligible for an owner-issued repository-scope exact-head certification record only if its final PR head passes all triggered applicable gates, including at minimum:
 
 - Cyborg Mission Kernel Contract;
 - Cyborg Universal LLM Gateway;
@@ -108,13 +110,13 @@ This evidence/governance-only reconciliation is eligible for repository-scope ce
 - TypeScript / production build / engineering integration and control-plane gates;
 - Supabase migration/security gates where triggered.
 
-Independent review must bind any certification to that final exact head.
+No unresolved review thread may remain. A separate **independent certification** claim requires distinct evaluator/reviewer evidence and is not created by the owner certification record.
 
 ## 7. Certification boundaries
 
-A green reconciliation may support this statement:
+A green reconciliation may support this owner-issued statement:
 
-> **Cyborg current-main repository/kernel/chat-security reconciliation — CERTIFIED at exact PR head, subject to recorded gate evidence.**
+> **Cyborg current-main repository/kernel/chat-security reconciliation — EXACT-HEAD CERTIFIED at the final PR head, subject to recorded gate evidence.**
 
 It may also preserve the narrower production finding:
 
@@ -122,6 +124,7 @@ It may also preserve the narrower production finding:
 
 It must not be expanded into any of these statements without separate evidence:
 
+- independent certification;
 - full production Cyborg persistence certification;
 - runtime persistence adapter certification;
 - runtime execution adapter certification;
