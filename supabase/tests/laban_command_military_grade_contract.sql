@@ -1,11 +1,12 @@
 -- Structural/adversarial proof for Laban command controls.
--- Safe to run only after the two Laban command migrations; performs no runtime activation.
+-- Safe to run only after the Laban command migrations; performs no runtime activation.
 
 do $$
 declare
   ec public.hq_workforce_engine_contract%rowtype;
   fn text;
   n integer;
+  invariant_result jsonb;
 begin
   -- Required command surfaces exist.
   if to_regclass('public.hq_workforce_command_missions') is null then raise exception 'missing command missions'; end if;
@@ -20,10 +21,12 @@ begin
   if to_regclass('public.hq_workforce_command_learning_cases') is null then raise exception 'missing learning cases'; end if;
   if to_regclass('public.hq_workforce_architecture_invariants') is null then raise exception 'missing architecture invariants'; end if;
 
-  -- Permanent architecture invariants are present and enabled.
+  -- Permanent architecture invariants are present and executable.
   select count(*) into n from public.hq_workforce_architecture_invariants
    where enabled and invariant_key in ('single_consequential_gateway','no_self_authority','no_self_certification','scheduler_no_authority','contradiction_reopens');
   if n<>5 then raise exception 'military_grade_architecture_invariants_incomplete:%',n; end if;
+  invariant_result:=public.hq_workforce_command_assert_architecture_invariants();
+  if invariant_result->>'decision'<>'pass' then raise exception 'architecture_invariant_runtime_assertion_failed'; end if;
 
   -- Legacy entrypoint must be a compatibility bridge, never another mutation implementation.
   select pg_get_functiondef('public.hq_workforce_tool_gateway_execute(uuid)'::regprocedure) into fn;
@@ -51,9 +54,18 @@ begin
   if position('command_role_separation_violation' in fn)=0 then raise exception 'role_separation_gate_missing'; end if;
   if position('command_security_observer_not_independent' in fn)=0 then raise exception 'security_observer_independence_missing'; end if;
 
-  -- Failover must require a third-party activation event.
+  -- Two-key approval and failover cannot be performed by a Worker Engine worker identity.
+  select pg_get_functiondef('public.hq_workforce_command_approve_two_key(uuid,text)'::regprocedure) into fn;
+  if position('worker_cannot_serve_as_human_two_key_approver' in fn)=0 then raise exception 'two_key_worker_exclusion_missing'; end if;
   select pg_get_functiondef('public.hq_workforce_command_activate_failover(uuid,text,text)'::regprocedure) into fn;
   if position('failover_requires_independent_activation' in fn)=0 then raise exception 'failover_not_independently_gated'; end if;
+  if position('worker_cannot_activate_command_failover' in fn)=0 then raise exception 'failover_worker_exclusion_missing'; end if;
+
+  -- Operational assurance surfaces must exist and learning must require a terminal mission plus regression reference.
+  if to_regprocedure('public.hq_workforce_command_war_room_snapshot(uuid)') is null then raise exception 'war_room_snapshot_missing'; end if;
+  select pg_get_functiondef('public.hq_workforce_command_record_learning_case(uuid,text,text,text,jsonb,text,text,text)'::regprocedure) into fn;
+  if position('learning_requires_terminal_mission' in fn)=0 then raise exception 'learning_terminal_gate_missing'; end if;
+  if position('learning_regression_test_required' in fn)=0 then raise exception 'learning_regression_requirement_missing'; end if;
 
   -- Command infrastructure must leave execution fully fail-closed.
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
