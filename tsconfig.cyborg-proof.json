@@ -15,9 +15,11 @@
     "lib/cyborg/policy.ts",
     "lib/cyborg/orchestrator.ts",
     "lib/cyborg/runtime.ts",
+    "lib/cyborg/economics.ts",
     "lib/cyborg/gateway.ts",
     "lib/hq/workforce/labanCommand.ts",
     "scripts/cyborg-behavior-proof.ts",
+    "scripts/cyborg-economic-proof.ts",
     "scripts/laban-cyborg-binding-proof.ts"
   ]
 }
