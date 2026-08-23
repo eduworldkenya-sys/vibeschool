@@ -5,6 +5,7 @@ on:
     paths:
       - 'supabase/migrations/20260818150000_content_factory_r2_source_grounded_authoring.sql'
       - 'supabase/functions/content-authoring-worker/**'
+      - 'supabase/functions/_shared/cyborg-model-client.ts'
       - 'scripts/sql/content_factory_r2_source_grounded_authoring_verify.sql'
       - 'docs/CONTENT_FACTORY_R2_SOURCE_GROUNDED_AUTHORING_HANDOVER.md'
       - '.github/workflows/content-factory-r2-source-grounded-authoring.yml'
@@ -44,7 +45,12 @@ jobs:
           grep -q 'Do not browse, search, use outside knowledge' "$file"
           grep -q 'authoring_citation_not_in_authorized_excerpt' "$file"
           grep -q 'service_role_required' "$file"
-          grep -q 'api.groq.com/openai/v1/chat/completions' "$file"
+          grep -q 'invokeCyborgEdgeModel' "$file"
+          grep -q 'callerServiceId:"edge.content-authoring-worker"' "$file"
+          if grep -Eqi 'api\.groq\.com|api\.openai\.com|api\.anthropic\.com' "$file"; then
+            echo 'Authoring worker must not call model providers directly; Cyborg is the exclusive model boundary' >&2
+            exit 1
+          fi
           if grep -Eqi 'tavily|serpapi|googleapis\.com/customsearch|bing\.com/search|search\.brave\.com' "$file"; then
             echo 'Authoring worker must consume verified evidence; hidden research is forbidden' >&2
             exit 1
@@ -54,14 +60,17 @@ jobs:
             exit 1
           fi
           python - <<'PY'
+          import re
           from pathlib import Path
           text = Path('supabase/functions/content-authoring-worker/index.ts').read_text()
           claim = text.find('db.rpc("hq_content_authoring_claim"')
-          professional = text.find('professional = await beginProfessionalExecution(claim)')
-          model = text.find('authorFromEvidence(claim, professional)')
+          professional_match = re.search(r'professional\s*=\s*await\s+beginProfessionalExecution\(claim\)', text)
+          professional = professional_match.start() if professional_match else -1
+          model_match = re.search(r'authorFromEvidence\(claim,\s*professional\)', text)
+          model = model_match.start() if model_match else -1
           complete = text.find('"content_worker_complete_professional_authoring"')
           if min(claim, professional, model, complete) < 0 or not claim < professional < model < complete:
-              raise SystemExit('executor order must be governed claim -> professional context/plan -> evidence-only model draft -> atomic database completion')
+              raise SystemExit('executor order must be governed claim -> professional context/plan -> evidence-only Cyborg model draft -> atomic database completion')
           migration = Path('supabase/migrations/20260821110000_content_worker_execution_binding.sql').read_text()
           if 'completion:=public.hq_content_authoring_complete(' not in migration:
               raise SystemExit('professional completion wrapper must preserve R2 database completion authority')
