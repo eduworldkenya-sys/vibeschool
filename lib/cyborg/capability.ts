@@ -88,7 +88,14 @@ function validateClaimsShape(value: unknown): CyborgCapabilityClaims {
   if (!Array.isArray(row.authorityScope) || !row.authorityScope.every((item) => typeof item === 'string')) throw new Error(CYBORG_CAPABILITY_INVALID);
   if (!Array.isArray(row.toolScope) || !row.toolScope.every((item) => typeof item === 'string')) throw new Error(CYBORG_CAPABILITY_INVALID);
   if (row.parentInvocationId !== undefined && typeof row.parentInvocationId !== 'string') throw new Error(CYBORG_CAPABILITY_INVALID);
-  return row as unknown as CyborgCapabilityClaims;
+  const riskClass=row.riskClass;if(!['read','local_mutation','remote_mutation','production_mutation','owner_only'].includes(String(riskClass)))throw new Error(CYBORG_CAPABILITY_INVALID);
+  const dataClassification=row.dataClassification;if(!['public','internal','confidential','restricted'].includes(String(dataClassification)))throw new Error(CYBORG_CAPABILITY_INVALID);
+  return {
+    version:CYBORG_CAPABILITY_VERSION,
+    missionId:String(row.missionId),missionRevision:String(row.missionRevision),chatId:String(row.chatId),invocationId:String(row.invocationId),callerServiceId:String(row.callerServiceId),provider:String(row.provider),model:String(row.model),operation:String(row.operation),requestHash:String(row.requestHash),
+    riskClass:riskClass as CyborgInvocationRisk,authorityScope:[...row.authorityScope],maxTokens:Number(row.maxTokens),toolScope:[...row.toolScope],dataClassification:dataClassification as CyborgDataClassification,
+    ...(typeof row.parentInvocationId==='string'?{parentInvocationId:row.parentInvocationId}:{}),policyVersion:String(row.policyVersion),issuedAt:Number(row.issuedAt),notBefore:Number(row.notBefore),expiresAt:Number(row.expiresAt),nonce:String(row.nonce)
+  };
 }
 export async function hashCyborgValue(value: string): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', encoder.encode(value)));
