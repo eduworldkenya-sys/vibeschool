@@ -8,7 +8,7 @@ Before proposing, editing, testing, certifying, merging, deploying, answering a 
 
 1. Read this file completely.
 2. Read `docs/ai-governance/CYBORG_EXECUTOR.md` and enter the `vibeschool-cyborg-executor` orchestration contract.
-3. Read `docs/ai-governance/CYBORG_AGENT_KERNEL.json`, `CYBORG_MISSION_SCHEMA.json`, `CYBORG_MISSION_TEMPLATES.json`, `CYBORG_PROMPT_ENTRY.json`, `CYBORG_MEMORY_POLICY.json`, and `ARCHITECTURE_INVARIANTS.json`.
+3. Read `docs/ai-governance/CYBORG_AGENT_KERNEL.json`, `CYBORG_MISSION_SCHEMA.json`, `CYBORG_MISSION_TEMPLATES.json`, `CYBORG_PROMPT_ENTRY.json`, `CYBORG_MEMORY_POLICY.json`, `ARCHITECTURE_INVARIANTS.json`, and `docs/ai-governance/CANONICAL_AGENT_GUARDRAILS.md`.
 4. Read `docs/ai-governance/OPERATING_DOCTRINE.md`.
 5. Allow Cyborg to load/select the skill inventory in `docs/ai-governance/SKILL_REGISTRY.json` and definitions in `docs/ai-governance/MANDATORY_SKILLS.md`.
 6. Read `.github/control-plane/policy.json` and any more specific `AGENTS.md` in the working subtree.
@@ -39,13 +39,24 @@ No agent may independently opt out of a Cyborg-selected skill, invoke a reposito
 
 ## Skill inventory
 
-Cyborg owns engineering core modules for repository truth, contracts, preflight, test integrity, CI repair, evidence, dependency integrity, escape-hatch auditing, security/authority, merge certification, regression learning and resource conservation.
+Cyborg owns engineering core modules for repository truth, contracts, canonical architecture protection, exact-head PR/certification discipline, activation authority, evidence-backed status, preflight, test integrity, CI repair, evidence, dependency integrity, escape-hatch auditing, security/authority, merge certification, regression learning and resource conservation.
 
 Cyborg also owns the higher-order agent modules `mission-decomposition`, `completion-coverage-gate`, `autonomous-repair-until-terminal`, `execution-journal-integrity`, `knowledge-reconciliation`, `tool-failure-recovery`, `idempotency-and-resume`, and `concurrency-and-ownership`.
 
 Cyborg selects applicable VibeSchool domain modules for Worker Engine, Supabase/RLS, Content Factory, HQ operational UX, end-to-end journeys, production readiness and observability/watchdog reliability.
 
 The machine-readable ownership/activation contract is `docs/ai-governance/SKILL_REGISTRY.json`.
+
+## Canonical agent guardrails
+
+The mandatory guardrails `canonical-architecture-guardrail`, `exact-head-pr-certification-guardrail`, `activation-authority-guardrail`, and `evidence-status-guardrail` apply to every repository mission.
+
+- **Canonical architecture:** inspect current canonical repository/production truth before creating authority, admission, execution, evidence, certification, model gateway, runtime, budget or stop-control mechanisms. Extend or repair the canonical component; do not fork authority into a parallel path without an explicit governed replacement decision.
+- **Exact-head PR/certification:** use current main -> isolated branch -> implementation/preflight -> PR -> exact-head required CI -> freshness check -> exact verified-head merge -> post-merge verification. Base/head movement invalidates affected stale evidence.
+- **Activation authority:** coding, testing, review, repair and merge permissions do not grant commissioning. Runtime, schedulers, automatic publishing, payments and consequential authority remain default-denied unless explicitly authorized and commissioned; fail-closed stop controls may not be silently weakened.
+- **Evidence-backed status:** `IMPLEMENTED`, `VERIFIED`, `CERTIFIED`, `MERGE READY`, `MERGED`, `POST-MERGE VERIFIED`, `PRODUCTION READY` and equivalent claims must be limited to fresh evidence for the exact scope/SHA. Missing, stale, contradictory or narrower evidence requires the narrower proven claim.
+
+The normative guardrail contract is `docs/ai-governance/CANONICAL_AGENT_GUARDRAILS.md`.
 
 ## Non-negotiable engineering law
 
