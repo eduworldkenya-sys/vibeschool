@@ -201,7 +201,7 @@ export function detectLabanResourceConflicts(missions: LabanPortfolioMission[]):
   for (const mission of missions.filter((item) => !item.blocked)) {
     for (const worker of mission.requiredWorkers) assignments.set(worker, [...(assignments.get(worker) ?? []), mission.missionId])
   }
-  return Object.fromEntries([...assignments.entries()].filter(([, missionIds]) => missionIds.length > 1))
+  return Object.fromEntries(Array.from(assignments.entries()).filter(([, missionIds]) => missionIds.length > 1))
 }
 
 export interface LabanCommandStep {
