@@ -17,6 +17,7 @@ export type EdgeCyborgInput = {
   messages: unknown[]
   metadata?: Record<string, unknown>
   dataClassification?: 'public' | 'internal' | 'confidential' | 'restricted'
+  stageLease?: { attemptId: string; leaseToken: string }
 }
 
 export type EdgeCyborgResult = {
@@ -69,6 +70,7 @@ export async function invokeCyborgEdgeModel(input: EdgeCyborgInput): Promise<Edg
       dataClassification: input.dataClassification ?? 'internal',
       authorityScope: [],
       toolScope: [],
+      stageLease: input.stageLease,
     }),
   })
   const admission = record(await admissionResponse.json().catch(() => ({}))) ?? {}
