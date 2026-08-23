@@ -4,9 +4,9 @@ begin;
 -- NON-ACTIVATING: no Worker runtime, heartbeat, factory, shadow scheduler, publishing,
 -- payments, autonomy, risk budget, or Global Stop state is changed.
 -- access: service-only public.chemistry_stage_execution_receipts
--- authorization-test: anon/authenticated have no table privileges; writes are service-only and append-only.
+-- authorization-test: public.chemistry_stage_execution_receipts denies public/anon/authenticated writes and permits service_role select/insert only; append-only trigger denies update/delete.
 -- access: service-only public.chemistry_worker_artifacts
--- authorization-test: anon/authenticated have no table privileges; writes are service-only and append-only.
+-- authorization-test: public.chemistry_worker_artifacts denies public/anon/authenticated writes and permits service_role select/insert only; append-only trigger denies update/delete.
 
 create table public.chemistry_stage_execution_receipts (
   attempt_id uuid primary key references public.chemistry_worker_stage_attempts(id) on delete restrict,
