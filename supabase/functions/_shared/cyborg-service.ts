@@ -1,5 +1,5 @@
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
-const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+const SUPABASE_URL = Deno.env.get('CYBORG_CONTROL_PLANE_SUPABASE_URL') ?? Deno.env.get('SUPABASE_URL') ?? ''
+const SERVICE_ROLE = Deno.env.get('CYBORG_CONTROL_PLANE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
 export function requireServiceConfiguration() { if(!SUPABASE_URL||!SERVICE_ROLE) throw new Error('CYBORG_SERVICE_CONFIGURATION_REQUIRED') }
 export function requireServiceCaller(req:Request, callerId:string) {
