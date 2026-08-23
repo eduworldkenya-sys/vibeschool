@@ -3,6 +3,7 @@ import {
   CYBORG_CAPABILITY_MISSION_MISMATCH,
   CYBORG_CAPABILITY_MODEL_MISMATCH,
   CYBORG_CAPABILITY_PROVIDER_MISMATCH,
+  CYBORG_CAPABILITY_REQUEST_MISMATCH,
   CYBORG_CAPABILITY_REQUIRED,
   CYBORG_CAPABILITY_REPLAYED,
   CYBORG_POLICY_VERSION,
@@ -23,13 +24,14 @@ async function rejects(fn: () => Promise<unknown>, needle: string) {
 async function main() {
   const secret = '0123456789abcdef0123456789abcdef-supervisor';
   const now = 1787461200;
+  const requestHash = await hashCyborgValue('request');
   const base: CyborgCapabilityClaims = {
     version: 'cyb1', missionId: 'm-1', missionRevision: 'rev-1', chatId: 'chat-1', invocationId: 'inv-1', callerServiceId: 'test-caller',
-    provider: 'anthropic', model: 'model-a', operation: 'model.generate', riskClass: 'read', authorityScope: [], maxTokens: 100,
+    provider: 'anthropic', model: 'model-a', operation: 'model.generate', requestHash, riskClass: 'read', authorityScope: [], maxTokens: 100,
     toolScope: [], dataClassification: 'internal', policyVersion: CYBORG_POLICY_VERSION, issuedAt: now - 1, notBefore: now - 1, expiresAt: now + 60, nonce: 'nonce-1',
   };
   const token = await signCyborgCapability(base, secret);
-  const expected = { missionId:'m-1', chatId:'chat-1', callerServiceId:'test-caller', provider:'anthropic', model:'model-a', operation:'model.generate', requestedMaxTokens:100, nowEpochSeconds:now };
+  const expected = { missionId:'m-1', chatId:'chat-1', callerServiceId:'test-caller', provider:'anthropic', model:'model-a', operation:'model.generate', requestHash, requestedMaxTokens:100, nowEpochSeconds:now };
   const verified = await verifyCyborgCapability(token, secret, expected);
   assert(verified.nonce === 'nonce-1', 'valid capability must verify');
 
@@ -40,6 +42,7 @@ async function main() {
   await rejects(() => verifyCyborgCapability(token, secret, { ...expected, missionId:'m-2' }), CYBORG_CAPABILITY_MISSION_MISMATCH);
   await rejects(() => verifyCyborgCapability(token, secret, { ...expected, provider:'groq' }), CYBORG_CAPABILITY_PROVIDER_MISMATCH);
   await rejects(() => verifyCyborgCapability(token, secret, { ...expected, model:'model-b' }), CYBORG_CAPABILITY_MODEL_MISMATCH);
+  await rejects(() => verifyCyborgCapability(token, secret, { ...expected, requestHash:'tampered-request' }), CYBORG_CAPABILITY_REQUEST_MISMATCH);
 
   const consumed = new Set<string>();
   const consume = (nonce: string) => { if (consumed.has(nonce)) throw new Error(CYBORG_CAPABILITY_REPLAYED); consumed.add(nonce); };
@@ -55,7 +58,7 @@ async function main() {
   const policyDecisionHash = await hashCyborgValue('ALLOW');
   const unsigned = {
     invocationId:'inv-1', missionId:'m-1', missionRevision:'rev-1', chatId:'chat-1', rootMissionId:'m-1', callerServiceId:'test-caller', provider:'anthropic', model:'model-a', operation:'model.generate',
-    requestHash:await hashCyborgValue('request'), responseHash, capabilityHash:await hashCyborgValue(token), policyDecision:'ALLOW' as const,
+    requestHash, responseHash, capabilityHash:await hashCyborgValue(token), policyDecision:'ALLOW' as const,
     policyDecisionHash, startedAt:'2026-08-23T05:00:00.000Z', completedAt:'2026-08-23T05:00:01.000Z',
   };
   const receiptHash = await createCyborgReceiptHash(unsigned);
@@ -63,6 +66,6 @@ async function main() {
   assert(admitted.lineage.receiptHash === receiptHash, 'valid lineage must be admitted');
   await rejects(() => assertCyborgResponseAdmission({ output:{ok:true}, lineage:{...unsigned,receiptHash:'forged',lineageVerified:true} }), 'CYBORG_LINEAGE_HASH_MISMATCH');
 
-  console.log(JSON.stringify({ status:'PASS', cases:13, negativeCases:9, validCapability:'PASS', lineage:'PASS' }));
+  console.log(JSON.stringify({ status:'PASS', cases:14, negativeCases:10, validCapability:'PASS', requestBinding:'PASS', lineage:'PASS' }));
 }
 main().catch((error) => { console.error(error); process.exit(1); });
