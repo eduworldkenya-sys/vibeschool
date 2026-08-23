@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { invokeCyborgBoundary } from '@/lib/cyborg/http-client'
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,13 +17,10 @@ export async function POST(req: NextRequest) {
     const { subjectName, lCount, aCount, atCount, rCount, strands, weakStrand, avgPerfPct, coveragePct, masteredPct } = await req.json()
     if (!subjectName) return NextResponse.json({ error: 'Missing subjectName' }, { status: 400 })
 
-    const apiKey = process.env.GROQ_API_KEY
-    if (!apiKey) return NextResponse.json({ fact: null, suggestion: null })
-
-    const strandContext  = strands?.length > 0 ? `Curriculum strands: ${strands.join(', ')}.` : ''
-    const weakContext    = weakStrand ? `Weakest strand: ${weakStrand.name} at ${weakStrand.pct}%.` : ''
-    const perfContext    = avgPerfPct != null ? `Assessment average: ${avgPerfPct}%.` : ''
-    const masteryGap     = coveragePct != null && masteredPct != null && coveragePct - masteredPct > 30
+    const strandContext = strands?.length > 0 ? `Curriculum strands: ${strands.join(', ')}.` : ''
+    const weakContext = weakStrand ? `Weakest strand: ${weakStrand.name} at ${weakStrand.pct}%.` : ''
+    const perfContext = avgPerfPct != null ? `Assessment average: ${avgPerfPct}%.` : ''
+    const masteryGap = coveragePct != null && masteredPct != null && coveragePct - masteredPct > 30
       ? `ALERT: Coverage is ${coveragePct}% but mastery is only ${masteredPct}% — learners are being taught content they are not understanding.`
       : ''
 
@@ -33,28 +31,28 @@ ${strandContext} ${weakContext} ${perfContext} ${masteryGap}
 Respond ONLY with valid JSON in this exact format, no preamble, no markdown:
 {"fact":"one surprising fact about ${subjectName} that makes a teacher proud to teach it. Max 2 sentences.","suggestion":"one specific actionable intervention for this teacher based on the data above. If there is a mastery gap or weak strand, address it directly. Max 2 sentences.","interventionType":"reteach|enrich|assess"}`
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        max_tokens: 400,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const requestedMissionId = req.headers.get('x-cyborg-mission-id')?.trim() || undefined
+    const result = await invokeCyborgBoundary({
+      actorKey: `user:${user.id}`,
+      externalChatId: requestedMissionId || `subject-insight:${user.id}:${crypto.randomUUID()}`,
+      objective: `Generate governed ${String(subjectName).slice(0, 120)} teaching insight`,
+      missionId: requestedMissionId,
+      callerServiceId: 'app.subject-insight',
+      provider: 'groq',
+      model: 'llama-3.3-70b-versatile',
+      maxTokens: 400,
+      messages: [{ role: 'user', content: prompt }],
+      metadata: { feature: 'subject-insight' },
+      dataClassification: 'confidential',
     })
-
-    const data = await res.json()
+    const data = result.output as { choices?: Array<{ message?: { content?: string } }> }
     const text = data.choices?.[0]?.message?.content ?? ''
 
     try {
       const parsed = JSON.parse(text.replace(/```json|```/g, '').trim())
-      return NextResponse.json({
-        fact:             parsed.fact ?? null,
-        suggestion:       parsed.suggestion ?? null,
-        interventionType: parsed.interventionType ?? null,
-      })
+      return NextResponse.json({ fact: parsed.fact ?? null, suggestion: parsed.suggestion ?? null, interventionType: parsed.interventionType ?? null, missionId: result.missionId, lineage: result.lineage })
     } catch {
-      return NextResponse.json({ fact: null, suggestion: text || null, interventionType: null })
+      return NextResponse.json({ fact: null, suggestion: text || null, interventionType: null, missionId: result.missionId, lineage: result.lineage })
     }
   } catch (err) {
     console.error('subject-insight error:', err)
