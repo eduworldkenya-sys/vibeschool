@@ -9,9 +9,9 @@ Status: IMPLEMENTED ON PR BRANCH / NOT YET CERTIFIED
 | Durable mission state | DONE | `hq_workforce_command_missions` |
 | Delegation to specialists | DONE | `hq_workforce_command_delegations` |
 | Canonical R1.4 authority binding | DONE | delegation requires active, unexpired authority grant |
-| Counterfactual planning | DONE | `hq_workforce_command_hypotheses` |
-| Confidence + evidence scoring | DONE | bounded `confidence` + `evidence_quality` |
-| Mission risk allocation | DONE | risk/operation/record/cost/expiry ceilings |
+| Counterfactual planning contract | DONE | `hq_workforce_command_hypotheses` |
+| Confidence + evidence scoring contract | DONE | bounded `confidence` + `evidence_quality` |
+| Mission risk allocation contract | DONE | risk/operation/record/cost/expiry ceilings |
 | Two-key sensitive-action control | DONE | distinct non-worker approvers + expiry state machine |
 | Independent command assurance | DONE | commander/executor/verifier separation |
 | Independent security observer | DONE | optional fourth distinct role |
@@ -19,8 +19,8 @@ Status: IMPLEMENTED ON PR BRANCH / NOT YET CERTIFIED
 | Anti-self-certification | DONE | commander cannot certify own mission |
 | Succession/failover | DONE | independent non-worker activation required |
 | Immutable command evidence | DONE | hash-chained command ledger |
-| Operational war-room snapshot | DONE | mission/delegation/blocker/risk/assurance/failover/learning snapshot RPC |
-| Post-mission learning | DONE | terminal mission + root cause + mandatory regression-test reference |
+| Operational war-room snapshot API | DONE | mission/delegation/blocker/risk/assurance/failover/learning snapshot RPC |
+| Post-mission learning contract | DONE | terminal mission + root cause + mandatory regression-test reference |
 | Architecture drift registry | DONE | permanent critical invariants table |
 | Executable architecture drift check | DONE | database assertion proves legacy bridge + canonical authorization |
 | CI execution proof | DONE IN WORKFLOW | disposable local Supabase runs Laban command SQL suites at exact PR head |
@@ -31,7 +31,9 @@ Status: IMPLEMENTED ON PR BRANCH / NOT YET CERTIFIED
 
 ## Command doctrine
 
-Laban is a high-authority commander, not an unrestricted superuser. Command power includes mission decomposition, counterfactual reasoning, bounded risk allocation, delegation, challenge, replan, escalation, evidence demands, failover, learning and convergence. Consequential mutation remains capability-scoped and must traverse the canonical R1.4 authority/execution/verification chain.
+Laban is a high-authority commander, not an unrestricted superuser. Command power includes durable mission state, counterfactual hypothesis/evidence records, bounded risk allocation, delegation, challenge, escalation, failover, learning evidence and convergence gates. Consequential mutation remains capability-scoped and must traverse the canonical R1.4 authority/execution/verification chain.
+
+These database contracts do not by themselves create an autonomous planner or model reasoning implementation. They provide the governed state, constraints, evidence and assurance surfaces that a Cyborg/agent runtime must use. No claim of live autonomous reasoning is made while runtime remains OFF.
 
 Laban cannot self-grant authority, self-certify, serve as a human two-key approver, activate his own command failover, act as an independent verifier of his own command result, or bypass Global Stop/runtime controls. Scheduler activity creates demand only and never creates authority.
 
