@@ -1,9 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-const GROQ_KEY = Deno.env.get("GROQ_API_KEY") ?? ""
+import { groqText, invokeCyborgEdgeModel } from "../_shared/cyborg-model-client.ts"
 
 const CORS = {
-  "Access-Control-Allow-Origin":  "*",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 }
 
@@ -12,7 +11,6 @@ serve(async (req) => {
 
   try {
     const { teacher, school, subject, className, studentCount, duration, topic, focus, previousTopics } = await req.json()
-
     const prevList = previousTopics?.length
       ? "Previously covered: " + previousTopics.join(", ") + "."
       : "This is the first recorded lesson for this class."
@@ -40,33 +38,28 @@ serve(async (req) => {
       "<differentiation>Higher: extension task. On track: core task. Support: scaffolding strategy.</differentiation>",
       "<student_notes>3-5 plain English bullet points for parents and students. Include CBC strand.</student_notes>",
       "<parent_message>Complete parent message ready to send. Greeting, what was learned, homework numbered, home tip, sign-off with " + teacher + " and " + school + ".</parent_message>",
-    ].join("\n")
+    ].filter(Boolean).join("\n")
 
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + GROQ_KEY,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 4000,
-        temperature: 0.3,
-      }),
+    const governed = await invokeCyborgEdgeModel({
+      callerServiceId: "edge.swift-processor",
+      actorKey: "system:swift-processor",
+      externalChatId: `swift:${crypto.randomUUID()}`,
+      objective: "Generate one governed Swift classroom lesson plan",
+      provider: "groq",
+      model: "llama-3.3-70b-versatile",
+      maxTokens: 4000,
+      messages: [{ role: "user", content: prompt }],
+      metadata: { feature: "swift-processor", temperature: 0.3 },
+      dataClassification: "confidential",
+    })
+    const text = groqText(governed.output)
+    if (!text) return new Response(JSON.stringify({ error: "Empty response from Cyborg gateway" }), {
+      status: 502, headers: { ...CORS, "Content-Type": "application/json" }
     })
 
-    const data = await res.json()
-    const text = data.choices?.[0]?.message?.content ?? ""
-
-    if (!text) return new Response(JSON.stringify({ error: "Empty response from Groq", debug: data }), {
-      status: 500, headers: { ...CORS, "Content-Type": "application/json" }
-    })
-
-    return new Response(JSON.stringify({ plan: text }), {
+    return new Response(JSON.stringify({ plan: text, missionId: governed.missionId, lineage: governed.lineage }), {
       headers: { ...CORS, "Content-Type": "application/json" }
     })
-
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500, headers: { ...CORS, "Content-Type": "application/json" }
