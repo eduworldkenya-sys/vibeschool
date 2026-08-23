@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 
-import { createAnthropicMessagesAdapter, invokeCyborgModel } from '@/lib/cyborg/gateway'
+import { invokeCyborgBoundary } from '@/lib/cyborg/http-client'
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,15 +12,16 @@ export async function POST(req: NextRequest) {
     }
 
     const summary = JSON.stringify(data).slice(0, 3000)
-    const apiKey = process.env.ANTHROPIC_API_KEY ?? ''
-    const adapter = createAnthropicMessagesAdapter(apiKey)
-    const missionId = req.headers.get('x-cyborg-mission-id')?.trim() || `report-insight:${randomUUID()}`
-
-    const response = await invokeCyborgModel(adapter, {
+    const requestedMissionId = req.headers.get('x-cyborg-mission-id')?.trim() || undefined
+    const response = await invokeCyborgBoundary({
+      actorKey: 'service:app.report-insight',
+      externalChatId: requestedMissionId || `report-insight:${randomUUID()}`,
+      objective: `Generate one governed ${String(reportType).slice(0, 120)} report insight`,
+      missionId: requestedMissionId,
+      callerServiceId: 'app.report-insight',
       provider: 'anthropic',
       model: 'claude-sonnet-4-20250514',
-      missionId,
-      metadata: { maxTokens: 150, feature: 'report-insight' },
+      maxTokens: 150,
       messages: [
         {
           role: 'user',
@@ -30,13 +31,15 @@ Focus on the most actionable or concerning pattern. No preamble. Just the insigh
 Data: ${summary}`,
         },
       ],
+      metadata: { feature: 'report-insight' },
+      dataClassification: 'confidential',
     })
 
     const payload = response.output as { content?: Array<{ type?: string; text?: string }> }
     const insight = payload.content?.find((item) => item.type === 'text')?.text?.trim()
     if (!insight) throw new Error('CYBORG_PROVIDER_EMPTY_OUTPUT')
 
-    return NextResponse.json({ insight, missionId })
+    return NextResponse.json({ insight, missionId: response.missionId, lineage: response.lineage })
   } catch (err) {
     console.error('AI insight error:', err)
     return NextResponse.json({ insight: 'Unable to generate insight at this time.' }, { status: 200 })
