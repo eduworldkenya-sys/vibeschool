@@ -5,6 +5,8 @@ begin;
 -- payments, autonomy, or consequential authority. Chemistry is a proving workload,
 -- not an organizational department.
 
+-- access: service-only public.hq_workforce_worker_specializations
+-- authorization-test: public.hq_workforce_worker_specializations denies public/anon/authenticated direct access and uses explicit service_role grants only.
 create table if not exists public.hq_workforce_worker_specializations (
   id uuid primary key default gen_random_uuid(),
   worker_key text not null references public.hq_workforce_workers(worker_key) on delete restrict,
@@ -23,6 +25,8 @@ create table if not exists public.hq_workforce_worker_specializations (
   unique(worker_key, specialization_key, specialization_version)
 );
 
+-- access: service-only public.hq_workforce_mission_capability_requirements
+-- authorization-test: public.hq_workforce_mission_capability_requirements denies public/anon/authenticated direct access and uses explicit service_role grants only.
 create table if not exists public.hq_workforce_mission_capability_requirements (
   id uuid primary key default gen_random_uuid(),
   mission_kind text not null,
@@ -36,6 +40,8 @@ create table if not exists public.hq_workforce_mission_capability_requirements (
   unique(mission_kind, stage_key, specialization_key)
 );
 
+-- access: service-only public.hq_workforce_mission_specialization_bindings
+-- authorization-test: public.hq_workforce_mission_specialization_bindings denies public/anon/authenticated direct access and uses explicit service_role grants only.
 create table if not exists public.hq_workforce_mission_specialization_bindings (
   id uuid primary key default gen_random_uuid(),
   mission_ref text not null,
@@ -73,9 +79,6 @@ grant select,insert,update on public.hq_workforce_worker_specializations,
   public.hq_workforce_mission_specialization_bindings
 to service_role;
 
--- Chemistry G10 is the first subject capability pack. These records are deliberately
--- candidates, not self-certified. Existing professional-worker assurance remains the
--- source of worker-role certification; subject qualification needs separate evidence.
 insert into public.hq_workforce_worker_specializations(
   worker_key,specialization_key,subject_key,grade_key,specialization_version,
   capabilities,qualification_state,evidence
@@ -300,8 +303,6 @@ grant execute on function public.hq_workforce_assert_worker_specialization(text,
   public.hq_workforce_assert_active_specialization_binding(text,text,text,text)
 to service_role;
 
--- Structural safety assertions: never silently invent a Chemistry department and
--- never activate runtime as a side effect of adding subject qualifications.
 do $$
 declare
   ec public.hq_workforce_engine_contract%rowtype;
