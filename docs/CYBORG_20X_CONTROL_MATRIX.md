@@ -1,9 +1,9 @@
 # Cyborg 20x control matrix
 
-This matrix maps identified Cyborg weaknesses to repository-enforced controls and revision-bound proof. `IMPLEMENTED` means executable code or a repository contract exists. `PROOF PENDING` means implementation exists but required exact-head, database, production, chaos, model-replacement, integration, or independent evidence has not yet been demonstrated. `CERTIFIED@<revision>` means the stated scope passed on that exact revision only; certification never floats forward to later commits. `PARTIAL PROOF` means a narrower stated claim has direct evidence but a broader parity/runtime claim remains open. No row may infer production proof from the existence of a migration, contract, historical CI run, or mission identifier alone.
+This matrix maps identified Cyborg weaknesses to repository-enforced controls and revision-bound proof. `IMPLEMENTED` means executable code or a repository contract exists. `PROOF PENDING` means implementation exists but required exact-head, database, production, chaos, model-replacement, integration, or independent evidence has not yet been demonstrated. `CERTIFIED@<revision>` means the stated scope has an explicit certification record bound to that exact revision only; certification never floats forward to later commits. `PARTIAL PROOF` means a narrower stated claim has direct evidence but a broader parity/runtime claim remains open. No row may infer production or independent proof from the existence of a migration, contract, historical CI run, mission identifier, or same-owner certification statement alone.
 
 Current reconciliation baseline: `main` at `0b36e472613dbbb00e36fc00e2f03cb424808ebc` (merge of PR #452).
-Historical repository-kernel certification: PR #448 head `e1a7148f4a859d2a838687a4ae6b90c029eb653a` — valid for that exact bounded scope, not current `main`.
+Historical repository-kernel exact-head certification record: PR #448 head `e1a7148f4a859d2a838687a4ae6b90c029eb653a` — valid for that exact bounded scope, not current `main`.
 Current reconciliation evidence: `docs/CYBORG_CURRENT_MAIN_CERTIFICATION_RECONCILIATION_20260823.md` and `docs/WORKER_ENGINE_CYBORG_PRODUCTION_RECONCILIATION_20260823.md`.
 
 | Weakness | Status | Enforced by | Required proof |
@@ -40,7 +40,7 @@ Current reconciliation evidence: `docs/CYBORG_CURRENT_MAIN_CERTIFICATION_RECONCI
 | Skill version/dependency/conflict resolution | IMPLEMENTED | `resolveSkills()` | behavioral/adversarial proof |
 | Required-skill evidence | IMPLEMENTED | completion gate | kernel contract |
 | Skill regression/qualification policy | IMPLEMENTED | operating constitution + Worker Engine learning chain | integration proof |
-| Mission-specific independent assurance | IMPLEMENTED | independent-assurance completion requirement | independent evaluator proof |
+| Mission-specific independent assurance | IMPLEMENTED | independent-assurance completion requirement | distinct independent evaluator proof |
 | Adversarial completion review | IMPLEMENTED | `adversarialCompletionCritic()` | adversarial/kernel proof |
 | Silent-failure/outcome verification | IMPLEMENTED | gates + truth reconciliation | behavioral proof |
 | User-visible consequence requirement | IMPLEMENTED | operating constitution verification rule | journey/outcome proof |
@@ -56,7 +56,8 @@ Current reconciliation evidence: `docs/CYBORG_CURRENT_MAIN_CERTIFICATION_RECONCI
 | Production persistence proof | PROOF PENDING | mission/event/lease/SLO migration | applied production migration + RLS/grant/RPC smoke proof |
 | Runtime persistence adapter | PROOF PENDING | `CyborgPersistencePort` contract | concrete adapter + restart/recovery proof |
 | Runtime execution adapter | PROOF PENDING | `CyborgExecutionPort` contract | concrete executor integration + bounded mission proof |
-| Repository-kernel independent certification | CERTIFIED@`e1a7148f4a859d2a838687a4ae6b90c029eb653a`; CURRENT PROOF PENDING | PR #448 exact-head independent review + completion assurance requirement | fresh independent exact-head certification on reconciliation PR |
+| Repository-kernel exact-head certification record | CERTIFIED@`e1a7148f4a859d2a838687a4ae6b90c029eb653a`; CURRENT PROOF PENDING | PR #448 exact-head owner review + completion assurance requirement | fresh exact-head certification record on reconciliation head |
+| Independent certification | PROOF PENDING | distinct reviewer/evaluator required | evidence from an evaluator identity/process independent of the implementation/certifying owner |
 | Universal provider gateway contract | IMPLEMENTED | `lib/cyborg/gateway.ts`, `cyborg-universal-llm-gateway.yml` | exact-head CI + complete server/Edge Function enforcement proof |
 | Server/Edge Function provider bypass prevention | PROOF PENDING | universal-gateway validator + chat-session validator | expand proof to every provider surface; current universal validator does not cover `supabase/functions/**` or Groq |
 | Per-call signed Cyborg capability enforcement | PROOF PENDING | target architecture only | admission issuer + expiry/nonce/scope validation at the sole provider gateway + adversarial bypass proof |
@@ -64,6 +65,12 @@ Current reconciliation evidence: `docs/CYBORG_CURRENT_MAIN_CERTIFICATION_RECONCI
 | Worker Engine -> Cyborg model-call enforcement | PROOF PENDING | Worker Engine model authorization + Cyborg gateway contracts | direct worker provider calls must be replaced by signed-capability sole-gateway invocation |
 | Worker Engine R1.4 work-item consequential bridge | PARTIAL PROOF | `hq_workforce_tool_gateway_execute` -> R1.4 canonical gateway; legacy authority closure | production bridge/grants/stop posture observed; retain exact-head regression and broader resource/runtime proof |
 | CI enforcement | IMPLEMENTED | Cyborg mission, universal gateway, chat-session and governance workflows | exact-head CI |
+
+## Historical exact-head certification provenance
+
+PR #448 contains a `CYBORG EXACT-HEAD CERTIFICATION` review at exact head `e1a7148f4a859d2a838687a4ae6b90c029eb653a` after the listed exact-head workflows passed. GitHub records the review author as the repository owner account `eduworldkenya-sys` with review state `COMMENTED`.
+
+That is valid evidence of an explicit owner-issued, revision-bound certification for the bounded repository scope stated in the review. It is **not evidence of independent certification by a distinct reviewer identity**. Independent certification therefore remains proof-pending unless separate evaluator evidence exists.
 
 ## Current production `twin-chat` evidence
 
@@ -91,9 +98,11 @@ Implementation or repository certification does not authorize consequential runt
 
 ## Repository-scope release condition
 
-A reconciliation PR may be certified for **repository/kernel/chat-security scope** when its final exact head passes the Cyborg Mission Kernel, Universal LLM Gateway, Chat Session Gateway, applicable Worker Engine/governance, TypeScript/build, integration, reliability, authorization and other triggered repository gates, and receives independent exact-head review. Historical #448 evidence is provenance only.
+A reconciliation PR may receive an **exact-head owner certification record** for repository/kernel/chat-security scope when its final exact head passes the Cyborg Mission Kernel, Universal LLM Gateway, Chat Session Gateway, applicable Worker Engine/governance, TypeScript/build, integration, reliability, authorization and other triggered repository gates, with no unresolved review threads. Historical #448 evidence is provenance only.
 
-Rows that explicitly require production adapters, restart/recovery, full source parity, cryptographic per-call capabilities, or full Worker Engine runtime integration do **not** need to be falsely marked complete to certify this narrower repository scope; they remain visible as `PROOF PENDING` or `PARTIAL PROOF`.
+A separate **independent certification** claim requires distinct evaluator/reviewer evidence and must not be inferred from the owner certification record.
+
+Rows that explicitly require production adapters, restart/recovery, full source parity, cryptographic per-call capabilities, independent assurance, or full Worker Engine runtime integration do **not** need to be falsely marked complete to certify this narrower repository scope; they remain visible as `PROOF PENDING` or `PARTIAL PROOF`.
 
 ## Full production/runtime release condition
 
@@ -101,4 +110,4 @@ Full autonomous production certification is a higher-level programme and remains
 
 ## Reconciliation provenance
 
-PR #448 was reconciled after certified PR #446 and then independently certified at exact head `e1a7148f4a859d2a838687a4ae6b90c029eb653a`; merge commit `76be882e377c231cb4ebb5b3f25584f14703d1b0` preserves that historical bounded certification. Current `main` later advanced through Worker Engine and Cyborg gateway/chat work to `0b36e472613dbbb00e36fc00e2f03cb424808ebc`. The 2026-08-23 reconciliation starts from that current-main baseline and requires fresh exact-head CI/review before any new certification claim.
+PR #448 was reconciled after certified PR #446 and received an owner-issued exact-head certification record at `e1a7148f4a859d2a838687a4ae6b90c029eb653a`; merge commit `76be882e377c231cb4ebb5b3f25584f14703d1b0` preserves that historical bounded certification. Current `main` later advanced through Worker Engine and Cyborg gateway/chat work to `0b36e472613dbbb00e36fc00e2f03cb424808ebc`. The 2026-08-23 reconciliation starts from that current-main baseline and requires fresh exact-head CI before any new revision-bound certification claim.
