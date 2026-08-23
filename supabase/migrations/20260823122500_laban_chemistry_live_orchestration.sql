@@ -30,6 +30,10 @@ begin
   where b.chemistry_mission_id=v_mission_id;
   if v_command_id is null then raise exception 'LABAN_CHEMISTRY_BINDING_REQUIRED'; end if;
 
+  update public.hq_workforce_command_missions
+  set state='active',updated_at=clock_timestamp()
+  where id=v_command_id and state='planned';
+
   v_claim:=public.chemistry_claim_stage(
     p_item_id,
     p_expected_queued_stage,
@@ -116,8 +120,8 @@ begin
       where i.mission_id=m.id
     ),'[]'::jsonb),
     'command_events',coalesce((
-      select jsonb_agg(to_jsonb(e) order by e.created_at desc)
-      from public.hq_workforce_command_events e
+      select jsonb_agg(to_jsonb(e) order by e.id desc)
+      from public.hq_workforce_command_ledger e
       where e.mission_id=b.command_mission_id
     ),'[]'::jsonb)
   ) into v
