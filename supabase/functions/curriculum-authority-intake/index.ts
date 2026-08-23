@@ -9,45 +9,139 @@ const CORS = {
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: CORS })
 const MAX_ARTIFACT_BYTES = 30 * 1024 * 1024
 const MAX_OBSERVATIONS_PER_REQUEST = 500
+const MAX_REDIRECTS = 8
+const MAX_HTML_BYTES = 512 * 1024
 
 function hex(bytes: Uint8Array) {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("")
 }
 
-function safeArtifactUrl(input: string) {
-  const source = new URL(input)
-  const host = source.hostname.toLowerCase().replace(/^www\./, "")
-  if (host === "drive.google.com") {
-    const match = source.pathname.match(/^\/file\/d\/([^/]+)\/(?:preview|view)$/)
-    if (!match) throw new Error("unsupported_google_drive_url")
-    return `https://drive.usercontent.google.com/download?id=${encodeURIComponent(match[1])}&export=download&confirm=t`
-  }
-  if (host === "kicd.ac.ke" || host === "drive.usercontent.google.com" || host.endsWith(".googleusercontent.com")) {
-    return source.toString()
-  }
-  throw new Error("artifact_host_not_allowed")
+function normalizedHost(url: URL) {
+  return url.hostname.toLowerCase().replace(/^www\./, "")
 }
 
-async function fetchPdf(input: string) {
-  const fetchUrl = safeArtifactUrl(input)
-  const response = await fetch(fetchUrl, {
-    method: "GET",
-    redirect: "follow",
-    headers: { "User-Agent": "VibeSchool-CurriculumAuthority/1.0" },
-  })
-  if (!response.ok) throw new Error(`artifact_fetch_failed:${response.status}`)
-  const finalUrl = new URL(response.url)
-  const finalHost = finalUrl.hostname.toLowerCase().replace(/^www\./, "")
-  if (!(finalHost === "kicd.ac.ke" || finalHost === "drive.usercontent.google.com" || finalHost.endsWith(".googleusercontent.com"))) {
-    throw new Error("artifact_redirect_host_not_allowed")
+function isAllowedArtifactHost(url: URL) {
+  const host = normalizedHost(url)
+  return host === "kicd.ac.ke" ||
+    host === "drive.google.com" ||
+    host === "drive.usercontent.google.com" ||
+    host.endsWith(".googleusercontent.com")
+}
+
+function assertAllowedArtifactUrl(url: URL, code = "artifact_host_not_allowed") {
+  if (url.protocol !== "https:" || !isAllowedArtifactHost(url)) throw new Error(`${code}:${normalizedHost(url)}`)
+}
+
+function googleDriveFileId(input: URL) {
+  if (normalizedHost(input) !== "drive.google.com") return null
+  const match = input.pathname.match(/^\/file\/d\/([^/]+)(?:\/(?:preview|view))?\/?$/)
+  return match?.[1] || null
+}
+
+function safeArtifactUrl(input: string) {
+  const source = new URL(input)
+  assertAllowedArtifactUrl(source)
+  const fileId = googleDriveFileId(source)
+  if (normalizedHost(source) === "drive.google.com" && !fileId) throw new Error("unsupported_google_drive_url")
+  return {
+    source,
+    fileId,
+    fetchUrl: fileId
+      ? new URL(`https://drive.usercontent.google.com/download?id=${encodeURIComponent(fileId)}&export=download&confirm=t`)
+      : source,
   }
+}
+
+async function fetchAllowed(url: URL) {
+  let current = new URL(url)
+  for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
+    assertAllowedArtifactUrl(current, "artifact_redirect_host_not_allowed")
+    const response = await fetch(current, {
+      method: "GET",
+      redirect: "manual",
+      headers: {
+        "User-Agent": "VibeSchool-CurriculumAuthority/1.1",
+        "Accept": "application/pdf,application/octet-stream;q=0.9,text/html;q=0.2,*/*;q=0.1",
+      },
+    })
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location")
+      if (!location) throw new Error(`artifact_redirect_missing_location:${response.status}`)
+      current = new URL(location, current)
+      continue
+    }
+    return { response, finalUrl: current }
+  }
+  throw new Error("artifact_redirect_limit_exceeded")
+}
+
+function htmlInput(html: string, name: string) {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const patterns = [
+    new RegExp(`<input[^>]+name=["']${escaped}["'][^>]+value=["']([^"']+)["']`, "i"),
+    new RegExp(`<input[^>]+value=["']([^"']+)["'][^>]+name=["']${escaped}["']`, "i"),
+  ]
+  for (const pattern of patterns) {
+    const match = html.match(pattern)
+    if (match?.[1]) return match[1].replace(/&amp;/g, "&")
+  }
+  return null
+}
+
+function htmlFormAction(html: string) {
+  return html.match(/<form[^>]+action=["']([^"']+)["']/i)?.[1]?.replace(/&amp;/g, "&") || null
+}
+
+async function resolveGoogleDriveConfirmation(response: Response, finalUrl: URL, fileId: string) {
+  const contentType = (response.headers.get("content-type") || "").toLowerCase()
+  if (!contentType.includes("text/html")) return null
+  const contentLength = Number(response.headers.get("content-length") || 0)
+  if (contentLength > MAX_HTML_BYTES) throw new Error("artifact_confirmation_too_large")
+  const html = await response.text()
+  if (new TextEncoder().encode(html).length > MAX_HTML_BYTES) throw new Error("artifact_confirmation_too_large")
+
+  const confirm = htmlInput(html, "confirm")
+  const uuid = htmlInput(html, "uuid")
+  const id = htmlInput(html, "id") || fileId
+  const action = htmlFormAction(html)
+
+  if (!confirm && !action) return null
+  const next = action ? new URL(action, finalUrl) : new URL("https://drive.usercontent.google.com/download")
+  assertAllowedArtifactUrl(next, "artifact_confirmation_host_not_allowed")
+  if (!next.searchParams.has("id")) next.searchParams.set("id", id)
+  if (!next.searchParams.has("export")) next.searchParams.set("export", "download")
+  if (confirm && !next.searchParams.has("confirm")) next.searchParams.set("confirm", confirm)
+  if (uuid && !next.searchParams.has("uuid")) next.searchParams.set("uuid", uuid)
+  return next
+}
+
+async function responseToPdf(response: Response, finalUrl: URL, fetchUrl: URL) {
+  if (!response.ok) throw new Error(`artifact_fetch_failed:${response.status}:${normalizedHost(finalUrl)}`)
   const length = Number(response.headers.get("content-length") || 0)
   if (length > MAX_ARTIFACT_BYTES) throw new Error("artifact_too_large")
   const bytes = new Uint8Array(await response.arrayBuffer())
   if (!bytes.length || bytes.length > MAX_ARTIFACT_BYTES) throw new Error("artifact_size_invalid")
-  if (bytes.length < 5 || String.fromCharCode(...bytes.slice(0, 5)) !== "%PDF-") throw new Error("artifact_not_pdf")
+  if (bytes.length < 5 || String.fromCharCode(...bytes.slice(0, 5)) !== "%PDF-") {
+    const contentType = response.headers.get("content-type") || "unknown"
+    throw new Error(`artifact_not_pdf:${contentType.split(";")[0]}:${normalizedHost(finalUrl)}`)
+  }
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
-  return { bytes, sha256: hex(digest), fetchUrl, finalUrl: response.url }
+  return { bytes, sha256: hex(digest), fetchUrl: fetchUrl.toString(), finalUrl: finalUrl.toString() }
+}
+
+async function fetchPdf(input: string) {
+  const safe = safeArtifactUrl(input)
+  const first = await fetchAllowed(safe.fetchUrl)
+
+  if (safe.fileId) {
+    const confirmationUrl = await resolveGoogleDriveConfirmation(first.response.clone(), first.finalUrl, safe.fileId)
+    if (confirmationUrl) {
+      const confirmed = await fetchAllowed(confirmationUrl)
+      return responseToPdf(confirmed.response, confirmed.finalUrl, safe.fetchUrl)
+    }
+  }
+
+  return responseToPdf(first.response, first.finalUrl, safe.fetchUrl)
 }
 
 function requiredText(value: unknown, field: string) {
@@ -88,6 +182,7 @@ Deno.serve(async (req: Request) => {
         .maybeSingle()
       if (sourceError) throw sourceError
       if (!source || source.source_status !== "approved") throw new Error("source_not_approved")
+      if (source.source_url !== artifactUrl) throw new Error("artifact_url_must_match_approved_source")
 
       const artifact = await fetchPdf(artifactUrl)
       const path = `${sourceId}/${artifact.sha256}.pdf`
@@ -199,7 +294,9 @@ Deno.serve(async (req: Request) => {
 
     return reply({ error: "unknown_action" }, 400)
   } catch (error) {
-    console.error("curriculum-authority-intake", error)
-    return reply({ error: error instanceof Error ? error.message : String(error) }, 500)
+    const message = error instanceof Error ? error.message : String(error)
+    const safeMessage = message.replace(/[\r\n]/g, " ").slice(0, 500)
+    console.error("curriculum-authority-intake", safeMessage)
+    return reply({ error: safeMessage, code: safeMessage.split(":")[0] }, 500)
   }
 })
