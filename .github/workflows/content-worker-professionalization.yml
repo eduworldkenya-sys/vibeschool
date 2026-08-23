@@ -1,4 +1,4 @@
-# Exact-head certification trigger: PR #490 Laban Chemistry readiness repair. Test logic unchanged.
+# Exact-head certification trigger: Chemistry Author/Quality specialization P0.
 name: Content Worker Professionalization
 
 on:
@@ -11,6 +11,7 @@ on:
       - 'supabase/migrations/**content_worker_teacher_guide_success_gate**'
       - 'supabase/functions/content-authoring-worker/**'
       - 'scripts/sql/content_worker_professionalization_verify.sql'
+      - 'scripts/validate-chemistry-author-quality-specialization.py'
       - '.github/workflows/content-worker-professionalization.yml'
   workflow_dispatch:
 
@@ -40,6 +41,9 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Validate Chemistry Author/Quality specialization contract
+        run: python scripts/validate-chemistry-author-quality-specialization.py
 
       - name: Disable seed for schema-only certification
         shell: bash
