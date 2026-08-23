@@ -5,6 +5,9 @@ do $$
 declare
   ec public.hq_workforce_engine_contract%rowtype;
   fn text;
+  canonical_def text;
+  approval_bound_def text;
+  authorized_inner_def text;
   n integer;
   invariant_result jsonb;
 begin
@@ -33,9 +36,27 @@ begin
   if position('hq_workforce_consequential_execution_gateway' in fn)=0 then raise exception 'legacy_gateway_not_bridged_to_r1_4'; end if;
   if position('update public.hq_work_items' in lower(fn))>0 then raise exception 'legacy_gateway_contains_direct_consequential_mutation'; end if;
 
-  -- Canonical gateway must require R1.4 authorization.
-  select pg_get_functiondef('public.hq_workforce_consequential_execution_gateway(uuid)'::regprocedure) into fn;
-  if position('hq_workforce_assert_consequential_task_authorized' in fn)=0 then raise exception 'canonical_gateway_missing_r1_4_authorization'; end if;
+  -- Canonical gateway must preserve the complete protected R1.4 authorization chain.
+  -- Later certified R1.4 migrations intentionally wrap the original gateway with durable
+  -- breaker denial and owner-approved-plan binding, so authorization is verified at the
+  -- protected inner implementation rather than assumed to live in the outer wrapper.
+  select pg_get_functiondef('public.hq_workforce_consequential_execution_gateway(uuid)'::regprocedure) into canonical_def;
+  select pg_get_functiondef('public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)'::regprocedure) into approval_bound_def;
+  select pg_get_functiondef('public.hq_workforce_consequential_execution_gateway_r14_pre_approval_binding(uuid)'::regprocedure) into authorized_inner_def;
+  if position('hq_workforce_consequential_execution_gateway_r14_approval_bound_internal' in canonical_def)=0 then
+    raise exception 'canonical_gateway_missing_durable_breaker_chain';
+  end if;
+  if position('hq_workforce_assert_approved_plan_binding' in approval_bound_def)=0
+     or position('hq_workforce_consequential_execution_gateway_r14_pre_approval_binding' in approval_bound_def)=0 then
+    raise exception 'canonical_gateway_missing_approval_binding_chain';
+  end if;
+  if position('hq_workforce_assert_consequential_task_authorized' in authorized_inner_def)=0 then
+    raise exception 'canonical_gateway_missing_r1_4_authorization';
+  end if;
+  if has_function_privilege('service_role','public.hq_workforce_consequential_execution_gateway_r14_approval_bound_internal(uuid)','EXECUTE')
+     or has_function_privilege('service_role','public.hq_workforce_consequential_execution_gateway_r14_pre_approval_binding(uuid)','EXECUTE') then
+    raise exception 'canonical_internal_gateway_exposure_detected';
+  end if;
 
   -- Mission completion must enforce independent verifier assignment and optional two-key approval.
   select pg_get_functiondef('public.hq_workforce_command_complete_mission(uuid,text,text)'::regprocedure) into fn;
@@ -71,7 +92,9 @@ begin
   select * into ec from public.hq_workforce_engine_contract where singleton=true;
   if not found then raise exception 'engine_contract_missing'; end if;
   if coalesce(ec.runtime_execution_enabled,false) or coalesce(ec.heartbeat_enabled,false) or coalesce(ec.factory_enabled,false)
-     or coalesce(ec.runtime_autonomy_level,0)<>0 or coalesce(ec.runtime_max_risk,0)<>0 then
+     or coalesce(ec.runtime_autonomy_level,0)<>0 or coalesce(ec.runtime_max_risk,0)<>0
+     or coalesce(ec.shadow_enabled,false) or coalesce(ec.shadow_scheduler_enabled,false)
+     or not coalesce(ec.shadow_global_stop,true) then
     raise exception 'laban_contract_must_not_activate_runtime';
   end if;
 
