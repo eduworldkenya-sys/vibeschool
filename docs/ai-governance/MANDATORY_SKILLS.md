@@ -10,6 +10,18 @@ Inspect current code, types, tests, migrations, workflows, PR state, CI state, p
 ### contract-integrity
 Resolve canonical contracts from current source before constructing fixtures, mocks, payloads, interfaces, SQL, RPC calls, APIs or generated types. Stale remembered shapes must not be preserved for convenience.
 
+### canonical-architecture-guardrail
+Before adding or changing a worker executor, provider/model gateway, admission capability/token, evidence/certification store, mission lease, budget controller, stop control or consequential authority path, discover the current canonical implementation and extend or repair it. Creating a competing authority/execution path is denied unless an explicit architecture replacement decision includes migration, deprecation, reconstruction, rollback and independent assurance. Default: extend canonical truth; do not fork authority.
+
+### exact-head-pr-certification-guardrail
+Repository mutation follows current main -> isolated branch -> implement -> preflight -> negative-path proof -> PR -> exact-head required CI -> freshness check -> merge exact verified head -> resulting-main/post-merge verification. Head/base movement invalidates affected stale evidence; historical green checks cannot authorize current merge or certification.
+
+### activation-authority-guardrail
+Coding, testing, review, repair and merge authority never imply commissioning authority. Worker runtime, schedulers/heartbeat automation, automatic publishing, payments and consequential worker authority remain default-denied unless explicit current owner authorization plus required commissioning gates exist. Global Stop or equivalent fail-closed controls must not be defeated or silently relaxed.
+
+### evidence-status-guardrail
+Status language is evidence-bound. IMPLEMENTED, VERIFIED, CERTIFIED, MERGE READY, MERGED, POST-MERGE VERIFIED and PRODUCTION READY may only be claimed at the exact scope/SHA supported by fresh appropriate evidence. Missing, stale, contradictory or narrower evidence requires the narrower proven state; narrative confidence cannot upgrade status.
+
 ### preflight-before-ci
 Before claiming a branch is ready for CI, run the narrowest relevant tests plus typecheck, lint, relevant build/compile and changed-file validation required by the affected domain.
 
@@ -93,6 +105,8 @@ Verify meaningful telemetry, freshness, heartbeat health, alerting, independent 
 
 Cyborg must also enforce capability-based permissions, scope firewalling, contradiction resolution, evidence quality grading, provenance, freshness, mission-specific definitions of done, negative-path verification, adversarial challenge, prompt-injection resistance, secret isolation, supply-chain review, database mutation planning, blast-radius analysis, rollback, idempotency, checkpoint/resume, mission replay, Cyborg health/watchdog metrics, stagnation detection, repair-strategy escalation, risk-adjusted autonomy, senior escalation rules, decision registry, technical-debt ledger, architecture invariants, no-silent-weakness disposition and governed self-improvement.
 
+The normative detail for the four canonical guardrails is `docs/ai-governance/CANONICAL_AGENT_GUARDRAILS.md`.
+
 ## Application rule
 
-The twelve engineering core modules and eight higher-order agent modules apply as registered. Domain modules apply whenever the mission touches that domain. Multiple matching domains must run together. Repository truth and executable gates remain authoritative.
+The sixteen engineering core modules and eight higher-order agent modules apply as registered. Domain modules apply whenever the mission touches that domain. Multiple matching domains must run together. Repository truth and executable gates remain authoritative.
