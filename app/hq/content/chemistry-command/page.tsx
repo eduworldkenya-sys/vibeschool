@@ -1,0 +1,58 @@
+"use client"
+
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
+
+type Mission={id:string;publication_id:string;state:string;mode:string;readiness_findings:any[];created_at:string}
+type Item={id:string;chapter_id:string;chapter_title:string;stage:string;iteration:number;next_action:string;blocker_codes:string[];source_version:string;source_hash:string;attempts:any[];latest_evidence:any[]}
+type Dashboard={mission:Mission;binding:any;runtime:any;items:Item[];command_events:any[]}
+type WorkItem={work_type:string;source_type:string;source_id:string;evidence:any;title:string}
+
+const sb=supabase as any
+const queued=new Set(["AUTHOR_QUEUED","P2_QUEUED","P3_QUEUED","REPAIR_QUEUED","FRESH_P2_QUEUED","FRESH_P3_QUEUED"])
+const label=(s:string)=>String(s||"").replaceAll("_"," ").replace(/\b\w/g,m=>m.toUpperCase())
+const C={bg:"#07111f",panel:"#0d1b2f",line:"rgba(255,255,255,.1)",text:"#f8fafc",muted:"rgba(255,255,255,.62)",green:"#34d399",amber:"#f59e0b",red:"#fb7185",blue:"#60a5fa",violet:"#a78bfa"}
+
+export default function ChemistryCommandPage(){
+ const router=useRouter()
+ const[missions,setMissions]=useState<Mission[]>([]),[selectedId,setSelectedId]=useState(""),[dashboard,setDashboard]=useState<Dashboard|null>(null),[chemistryPubs,setChemistryPubs]=useState<{id:string;title:string}[]>([])
+ const[busy,setBusy]=useState(""),[error,setError]=useState(""),[message,setMessage]=useState("")
+
+ const load=useCallback(async()=>{
+  setError("")
+  const[m,w]=await Promise.all([sb.rpc("hq_list_chemistry_worker_missions",{p_limit:50}),sb.rpc("hq_list_publishing_work",{p_limit:300})])
+  if(m.error){setError(m.error.message);return}
+  const ms=Array.isArray(m.data)?m.data:[];setMissions(ms);if(!selectedId&&ms[0]?.id)setSelectedId(ms[0].id)
+  if(!w.error){const map=new Map<string,string>();for(const x of (w.data||[]) as WorkItem[]{const id=String(x.evidence?.publication_id||((x.work_type==="publication_release"&&x.source_type==="vibe_publication")?x.source_id:"")||"");if(id&&x.title.toLowerCase().includes("chemistry"))map.set(id,x.title.replace(/^Publication release blocked:\s*/i,""))}setChemistryPubs([...map].map(([id,title])=>({id,title})))}
+ },[selectedId])
+
+ const loadDashboard=useCallback(async(id:string)=>{if(!id){setDashboard(null);return}const{data,error:e}=await sb.rpc("hq_get_laban_chemistry_mission_dashboard",{p_mission_id:id});if(e)setError(e.message);else setDashboard(data as Dashboard)},[])
+ useEffect(()=>{void load()},[load])
+ useEffect(()=>{void loadDashboard(selectedId)},[selectedId,loadDashboard])
+
+ const safe=dashboard?.runtime&&!dashboard.runtime.runtime_execution_enabled&&!dashboard.runtime.shadow_enabled&&!dashboard.runtime.shadow_scheduler_enabled&&dashboard.runtime.global_stop===true
+ const counts=useMemo(()=>{const r={human:0,blocked:0,active:0};for(const i of dashboard?.items||[]){if(i.stage==="HUMAN_REVIEW")r.human++;if(i.stage==="BLOCKED_READINESS"||i.stage==="ESCALATED"||i.stage==="PAUSED")r.blocked++;if(!["HUMAN_REVIEW","CONVERGED","BLOCKED_READINESS","ESCALATED","PAUSED"].includes(i.stage))r.active++}return r},[dashboard])
+
+ async function start(publicationId:string){if(!publicationId)return;setBusy("start");setError("");setMessage("");const{data,error:e}=await sb.rpc("hq_start_laban_chemistry_mission",{p_publication_id:publicationId});if(e)setError(e.message);else{const id=String(data?.chemistry?.mission?.id||"");const state=String(data?.chemistry?.mission?.state||"UNKNOWN");setMessage(state==="READY"?"Laban command mission created in shadow mode. Runtime remains OFF and Global Stop remains ON.":`Mission created but ${label(state)}. Readiness evidence is shown below.`);await load();if(id)setSelectedId(id)}setBusy("")}
+ async function delegate(item:Item){if(!queued.has(item.stage))return;setBusy(item.id);setError("");const{data,error:e}=await sb.rpc("hq_laban_claim_chemistry_stage",{p_item_id:item.id,p_expected_queued_stage:item.stage,p_lease_seconds:120});if(e)setError(e.message);else{setMessage(`Laban delegated ${label(item.stage)} to ${String(data?.worker_key||"the certified worker")}. The handoff is lease-bound and evidence-bound.`);await loadDashboard(selectedId)}setBusy("")}
+
+ return <main style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,sans-serif",paddingBottom:80}}>
+  <header style={{position:"sticky",top:0,zIndex:20,background:"rgba(7,17,31,.97)",borderBottom:`1px solid ${C.line}`,padding:"12px 16px"}}><div style={wrap}><button onClick={()=>router.push("/hq/content")} style={link}>← Content Release</button><h1 style={{margin:"7px 0 2px",fontSize:24}}>Chemistry Command</h1><div style={hint}>Commander: Laban · governed shadow mission · human release authority preserved.</div></div></header>
+  <div style={{...wrap,padding:16}}>
+   {error&&<div style={{...alert,color:"#fecdd3"}}>{error}</div>}{message&&<div style={{...alert,color:"#bbf7d0"}}>{message}</div>}
+   <section style={{...panel,padding:14,marginBottom:12}}><div style={{display:"flex",gap:10,justifyContent:"space-between",flexWrap:"wrap",alignItems:"center"}}><div><strong>Start / open mission</strong><div style={hint}>Starting uses hq_start_laban_chemistry_mission(). It cannot activate runtime, scheduler, publishing or payments.</div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}><select value={selectedId} onChange={e=>setSelectedId(e.target.value)} style={select}><option value="">Select existing mission</option>{missions.map(m=><option key={m.id} value={m.id}>{m.state} · {m.id.slice(0,8)}</option>)}</select>{chemistryPubs.map(p=><button key={p.id} disabled={busy==="start"} onClick={()=>void start(p.id)} style={{...button,color:C.green}}>{busy==="start"?"Starting…":`Start Laban · ${p.title.slice(0,28)}`}</button>)}</div></div></section>
+   {dashboard&&<>
+    <section style={metrics}><Metric title="Mission" value={label(dashboard.mission.state)} tone={dashboard.mission.state==="READY"||dashboard.mission.state==="RUNNING"?C.green:C.amber}/><Metric title="Commander" value={dashboard.binding?.commander_key?"Laban":"Not bound"} tone={dashboard.binding?C.violet:C.red}/><Metric title="Waiting for you" value={String(counts.human)} tone={counts.human?C.amber:C.green}/><Metric title="Blocked" value={String(counts.blocked)} tone={counts.blocked?C.red:C.green}/></section>
+    <section style={{...panel,padding:14,marginBottom:12,borderColor:safe?"rgba(52,211,153,.35)":"rgba(251,113,133,.5)"}}><div style={{display:"flex",gap:9,flexWrap:"wrap",alignItems:"center"}}><strong>{safe?"Safe shadow posture":"Posture drift detected"}</strong><Chip t={`Runtime ${dashboard.runtime?.runtime_execution_enabled?"ON":"OFF"}`} ok={!dashboard.runtime?.runtime_execution_enabled}/><Chip t={`Shadow ${dashboard.runtime?.shadow_enabled?"ON":"OFF"}`} ok={!dashboard.runtime?.shadow_enabled}/><Chip t={`Scheduler ${dashboard.runtime?.shadow_scheduler_enabled?"ON":"OFF"}`} ok={!dashboard.runtime?.shadow_scheduler_enabled}/><Chip t={`Global Stop ${dashboard.runtime?.global_stop?"ON":"OFF"}`} ok={dashboard.runtime?.global_stop===true}/></div></section>
+    {dashboard.mission.readiness_findings?.length>0&&<section style={{...panel,padding:14,marginBottom:12}}><strong>Readiness blockers</strong><pre style={pre}>{JSON.stringify(dashboard.mission.readiness_findings,null,2)}</pre></section>}
+    <section style={panel}><div style={head}><div><strong>Grade 10 Chemistry mission</strong><div style={hint}>Author → Quality → independent Critic → Repair when needed → fresh Quality → fresh Critic → you.</div></div><span style={hint}>{dashboard.items.length} chapters</span></div>{dashboard.items.map((i,idx)=><article key={i.id} style={{padding:14,borderTop:idx?`1px solid ${C.line}`:0}}><div style={{display:"flex",gap:12,justifyContent:"space-between",alignItems:"start",flexWrap:"wrap"}}><div style={{minWidth:0,flex:"1 1 520px"}}><strong>{i.chapter_title}</strong><div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:7}}><Chip t={label(i.stage)} ok={i.stage==="HUMAN_REVIEW"||i.stage==="CONVERGED"}/><span style={hint}>Iteration {i.iteration}/3</span>{i.attempts?.length>0&&<span style={hint}>{i.attempts.length} stage attempts</span>}</div><p style={copy}>{i.next_action}</p>{i.blocker_codes?.length>0&&<div style={{color:C.red,fontSize:11}}>Blockers: {i.blocker_codes.join(", ")}</div>}</div>{queued.has(i.stage)&&<button disabled={!safe||!!busy} onClick={()=>void delegate(i)} style={{...button,color:C.blue}}>{busy===i.id?"Delegating…":`Laban delegate ${label(i.stage)}`}</button>}{i.stage==="HUMAN_REVIEW"&&<button onClick={()=>router.push("/hq/content")} style={{...button,color:C.amber}}>Open human review</button>}</div><details style={{marginTop:9}}><summary style={hint}>Evidence & exact-version history</summary><pre style={pre}>{JSON.stringify({source_version:i.source_version,source_hash:i.source_hash,attempts:i.attempts,evidence:i.latest_evidence},null,2)}</pre></details></article>)}</section>
+    <details style={{...panel,marginTop:12}}><summary style={{padding:14,cursor:"pointer",fontWeight:800}}>Laban command ledger ({dashboard.command_events?.length||0})</summary><pre style={{...pre,padding:14}}>{JSON.stringify(dashboard.command_events,null,2)}</pre></details>
+   </>}
+  </div>
+ </main>
+}
+
+function Chip({t,ok}:{t:string;ok:boolean}){return <span style={{border:`1px solid ${ok?"rgba(52,211,153,.35)":"rgba(245,158,11,.35)"}`,color:ok?C.green:C.amber,borderRadius:999,padding:"3px 8px",fontSize:10,fontWeight:800}}>{t}</span>}
+function Metric({title,value,tone}:{title:string;value:string;tone:string}){return <div style={{...panel,padding:13}}><div style={{fontSize:19,fontWeight:900,color:tone}}>{value}</div><div style={hint}>{title}</div></div>}
+const wrap:React.CSSProperties={maxWidth:1180,margin:"0 auto"},panel:React.CSSProperties={border:`1px solid ${C.line}`,borderRadius:14,background:"rgba(255,255,255,.025)",overflow:"hidden"},metrics:React.CSSProperties={display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:9,marginBottom:12},head:React.CSSProperties={padding:14,borderBottom:`1px solid ${C.line}`,display:"flex",justifyContent:"space-between",gap:10,flexWrap:"wrap"},hint:React.CSSProperties={fontSize:10.5,color:C.muted,lineHeight:1.5},copy:React.CSSProperties={fontSize:12.5,color:"rgba(255,255,255,.8)",lineHeight:1.6},button:React.CSSProperties={border:`1px solid ${C.line}`,background:"rgba(255,255,255,.05)",borderRadius:10,padding:"10px 12px",fontSize:11,fontWeight:850,cursor:"pointer"},link:React.CSSProperties={...button,border:0,background:"transparent",padding:0,color:C.muted},select:React.CSSProperties={...button,color:C.text,minWidth:190},alert:React.CSSProperties={border:`1px solid ${C.line}`,background:"rgba(255,255,255,.035)",borderRadius:11,padding:12,marginBottom:12,fontSize:12},pre:React.CSSProperties={whiteSpace:"pre-wrap",overflowWrap:"anywhere",fontSize:10,color:C.muted,maxHeight:360,overflow:"auto"}
