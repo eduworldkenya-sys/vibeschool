@@ -1,0 +1,25 @@
+name: Teacher Content Coverage
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/lesson-notes/**'
+      - 'app/hq/content/coverage/**'
+      - 'supabase/migrations/*teacher_content*'
+      - 'scripts/test-teacher-content-coverage.mjs'
+      - '.github/workflows/teacher-content-coverage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-content-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Verify deterministic curriculum-to-resource contract
+        run: node scripts/test-teacher-content-coverage.mjs
