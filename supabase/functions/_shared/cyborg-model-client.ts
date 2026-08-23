@@ -5,6 +5,12 @@ const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const ADMISSION_URL = Deno.env.get('CYBORG_ADMISSION_URL') ?? `${SUPABASE_URL}/functions/v1/cyborg-admission`
 const GATEWAY_URL = Deno.env.get('CYBORG_LLM_GATEWAY_URL') ?? `${SUPABASE_URL}/functions/v1/cyborg-llm-gateway`
 
+export type CyborgSourceAuthority = {
+  kind: 'service' | 'worker_model_invocation' | 'chemistry_stage_attempt'
+  ref: string
+  token?: string
+}
+
 export type EdgeCyborgInput = {
   callerServiceId: string
   actorKey: string
@@ -18,6 +24,7 @@ export type EdgeCyborgInput = {
   metadata?: Record<string, unknown>
   dataClassification?: 'public' | 'internal' | 'confidential' | 'restricted'
   stageLease?: { attemptId: string; leaseToken: string }
+  sourceAuthority?: CyborgSourceAuthority
 }
 
 export type EdgeCyborgResult = {
@@ -71,6 +78,7 @@ export async function invokeCyborgEdgeModel(input: EdgeCyborgInput): Promise<Edg
       authorityScope: [],
       toolScope: [],
       stageLease: input.stageLease,
+      sourceAuthority: input.sourceAuthority,
     }),
   })
   const admission = record(await admissionResponse.json().catch(() => ({}))) ?? {}

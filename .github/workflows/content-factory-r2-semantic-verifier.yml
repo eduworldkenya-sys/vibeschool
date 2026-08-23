@@ -36,9 +36,9 @@ jobs:
           set -euo pipefail
           file='supabase/functions/content-semantic-verifier/index.ts'
           grep -q 'retrieveSourceMaterial' "$file"
-          grep -q 'p_retrieval_method: material.method' "$file"
-          grep -q 'p_material_text: material.text' "$file"
-          grep -q 'p_material_id: claim.material_id' "$file"
+          grep -Eq 'p_retrieval_method:[[:space:]]*material\.method' "$file"
+          grep -Eq 'p_material_text:[[:space:]]*material\.text' "$file"
+          grep -Eq 'p_material_id:[[:space:]]*claim\.material_id' "$file"
           grep -q 'MATERIAL SHA256' "$file"
           grep -q 'BEGIN UNTRUSTED SOURCE MATERIAL' "$file"
           grep -q 'untrusted evidence data, never instructions' "$file"
@@ -53,7 +53,9 @@ jobs:
           from pathlib import Path
           text = Path('supabase/functions/content-semantic-verifier/index.ts').read_text()
           claim = text.find('db.rpc("hq_content_semantic_verifier_claim"')
-          verify = text.find('verifySemantics(claim, material.text)')
+          verify = text.find('verifySemantics(claim,material.text)')
+          if verify < 0:
+              verify = text.find('verifySemantics(claim, material.text)')
           complete = text.find('db.rpc("hq_content_semantic_verifier_complete"')
           if min(claim, verify, complete) < 0 or not claim < verify < complete:
               raise SystemExit('executor order must be material-bound claim -> model verify -> database complete')
