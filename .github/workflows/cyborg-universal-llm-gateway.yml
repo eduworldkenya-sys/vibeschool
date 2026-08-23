@@ -17,7 +17,7 @@ jobs:
       - run: npm ci
       - run: node scripts/validate-cyborg-llm-gateway.mjs
       - run: python scripts/validate-chemistry-cyborg-stage-executor.py
-      - run: deno check supabase/functions/chemistry-stage-executor/index.ts
+      - run: deno check --node-modules-dir=auto supabase/functions/chemistry-stage-executor/index.ts
       - run: npx tsc -p tsconfig.cyborg-proof.json
       - run: node /tmp/cyborg-proof/scripts/cyborg-economic-proof.js
       - run: node /tmp/cyborg-proof/scripts/cyborg-economic-optimization-proof.js
