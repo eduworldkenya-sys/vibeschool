@@ -84,6 +84,19 @@ jobs:
             -v ON_ERROR_STOP=1 <<'SQL'
           begin;
 
+          -- hq_access_log is explicitly documented by the historical migration train
+          -- as a pretracked production object that blank replay does not create. Model
+          -- only the columns consumed by hq_assert_owner inside this rolled-back test.
+          create table if not exists public.hq_access_log (
+            id uuid primary key default gen_random_uuid(),
+            attempted_email text,
+            profile_id uuid,
+            outcome text not null,
+            ip_address inet,
+            user_agent text,
+            created_at timestamptz not null default now()
+          );
+
           -- Reproduce the production lifecycle condition that exposed PR #498's
           -- runtime-only bug. Draft is intentionally not activation.
           update public.hq_workforce_workers
