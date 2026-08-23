@@ -1,6 +1,14 @@
 -- Laban Command Kernel v1 — NON-ACTIVATING.
 -- Durable mission command, delegation, challenge and assurance contracts.
 -- Command never confers consequential authority; R1.4 remains the only mutation authority chain.
+-- access: service-only public.hq_workforce_command_missions
+-- authorization-test: public.hq_workforce_command_missions denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_command_delegations
+-- authorization-test: public.hq_workforce_command_delegations denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_command_challenges
+-- authorization-test: public.hq_workforce_command_challenges denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_command_ledger
+-- authorization-test: public.hq_workforce_command_ledger denies public/anon/authenticated direct access.
 
 create table if not exists public.hq_workforce_command_missions (
  id uuid primary key default gen_random_uuid(), commander_key text not null references public.hq_workforce_workers(worker_key) on update cascade on delete restrict,
@@ -46,7 +54,8 @@ declare d public.hq_workforce_command_delegations%rowtype;m public.hq_workforce_
  select * into m from public.hq_workforce_command_missions where id=d.mission_id;if not found or m.state not in('active','verifying') then raise exception 'mission_not_executable';end if;
  if d.commander_key is distinct from m.commander_key then raise exception 'delegation_commander_mismatch';end if;if d.authority_grant_id is null then raise exception 'delegation_authority_required';end if;
  select * into g from public.hq_workforce_capability_authority_grants where id=d.authority_grant_id;
- if not found or g.status<>'active' or g.expires_at<=clock_timestamp() then raise exception 'delegation_authority_inactive';end if;
+ if not found or g.status<>'active' then raise exception 'delegation_authority_inactive';end if;
+ if g.expires_at<=clock_timestamp() then raise exception 'delegation_authority_expired';end if;
  if g.permitted_worker_key is distinct from d.worker_key or g.capability_key is distinct from d.capability_key or g.capability_version is distinct from d.capability_version or g.scope_type is distinct from d.scope_type or g.scope_ref is distinct from d.scope_ref then raise exception 'delegation_authority_mismatch';end if;
  if exists(select 1 from public.hq_workforce_command_challenges c where c.mission_id=d.mission_id and c.status='open' and c.severity in('blocking','critical')) then raise exception 'mission_blocked_by_challenge';end if;
  return jsonb_build_object('decision','allow','mission_id',d.mission_id,'worker_key',d.worker_key,'authority_grant_id',d.authority_grant_id);end$$;
