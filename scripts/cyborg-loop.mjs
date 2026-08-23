@@ -2,6 +2,7 @@ import {spawnSync} from 'node:child_process'
 
 const missionId=process.argv[2]
 const adapter=process.env.CYBORG_AGENT_ADAPTER
+const stagnationCode='CYBORG_LOOP_STAGNATION'
 const maxIterations=boundedNumber('CYBORG_MAX_ITERATIONS',30,1,100)
 const maxSameDirectiveRepeats=boundedNumber('CYBORG_MAX_SAME_DIRECTIVE_REPEATS',3,1,20)
 const maxAdapterFailures=boundedNumber('CYBORG_MAX_ADAPTER_FAILURES',5,1,50)
@@ -26,7 +27,7 @@ for(let iteration=1;iteration<=maxIterations;iteration++){
   previousFingerprint=fingerprint
   if(repeats>=maxSameDirectiveRepeats){
     supervisor(['attempt',missionId,`loop:${Buffer.from(fingerprint).toString('base64url').slice(0,80)}`])
-    blockSafety(`Cyborg stagnation: identical directive repeated ${repeats+1} times`,iteration-1)
+    blockSafety(`${stagnationCode}: identical directive repeated ${repeats+1} times`,iteration-1)
   }
   const env={...process.env,CYBORG_MISSION_ID:missionId,CYBORG_ITERATION:String(iteration),CYBORG_DIRECTIVE_JSON:JSON.stringify(directive.next),CYBORG_STATE_JSON:JSON.stringify(state)}
   const runner=spawnSync(adapter,[],{encoding:'utf8',env,shell:true})
@@ -40,9 +41,9 @@ for(let iteration=1;iteration<=maxIterations;iteration++){
   if(after.updatedAt===state.updatedAt&&after.state===state.state){
     noProgress++
     supervisor(['attempt',missionId,`no-progress:${fingerprint}`])
-    if(noProgress>=maxNoProgress)blockSafety(`Cyborg no-progress budget exhausted after ${noProgress} successful adapter runs without state change`,iteration)
+    if(noProgress>=maxNoProgress)blockSafety(`${stagnationCode}: no-progress budget exhausted after ${noProgress} successful adapter runs without state change`,iteration)
   }else{
     noProgress=0
   }
 }
-blockSafety(`Cyborg iteration budget exhausted after ${maxIterations} iterations`,maxIterations)
+blockSafety(`${stagnationCode}: mission ${missionId} exhausted iteration budget after ${maxIterations} iterations`,maxIterations)
