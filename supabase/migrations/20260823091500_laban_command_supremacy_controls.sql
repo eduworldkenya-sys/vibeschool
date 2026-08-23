@@ -2,6 +2,20 @@
 -- Adds counterfactual planning, evidence confidence, two-key approvals, succession/failover,
 -- role separation, architecture-drift invariants and post-mission learning.
 -- This migration does NOT enable runtime, schedulers, publishing, payments, autonomy, or authority grants.
+-- access: service-only public.hq_workforce_command_hypotheses
+-- authorization-test: public.hq_workforce_command_hypotheses denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_command_risk_allocations
+-- authorization-test: public.hq_workforce_command_risk_allocations denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_command_two_key_approvals
+-- authorization-test: public.hq_workforce_command_two_key_approvals denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_command_assurance_assignments
+-- authorization-test: public.hq_workforce_command_assurance_assignments denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_command_failover
+-- authorization-test: public.hq_workforce_command_failover denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_command_learning_cases
+-- authorization-test: public.hq_workforce_command_learning_cases denies public/anon/authenticated direct access.
+-- access: service-only public.hq_workforce_architecture_invariants
+-- authorization-test: public.hq_workforce_architecture_invariants denies public/anon/authenticated direct access.
 
 create table if not exists public.hq_workforce_command_hypotheses (
   id uuid primary key default gen_random_uuid(),
@@ -153,6 +167,7 @@ begin
     raise exception 'two_key_request_expired';
   end if;
   if p_approver_key=a.requested_by then raise exception 'requester_cannot_approve_two_key'; end if;
+  if exists(select 1 from public.hq_workforce_workers where worker_key=p_approver_key) then raise exception 'worker_cannot_serve_as_human_two_key_approver'; end if;
   if a.approver_one is null then
     update public.hq_workforce_command_two_key_approvals set approver_one=p_approver_key,status='one_approved',updated_at=clock_timestamp() where id=a.id;
   elsif a.approver_one=p_approver_key then
@@ -174,6 +189,7 @@ begin
   select * into m from public.hq_workforce_command_missions where id=p_mission_id for update;
   if not found then raise exception 'command_mission_not_found'; end if;
   if p_activated_by in (f.primary_commander_key,f.successor_commander_key) then raise exception 'failover_requires_independent_activation'; end if;
+  if exists(select 1 from public.hq_workforce_workers where worker_key=p_activated_by) then raise exception 'worker_cannot_activate_command_failover'; end if;
   if char_length(btrim(coalesce(p_reason,'')))<5 then raise exception 'failover_reason_required'; end if;
   if f.status<>'standby' then raise exception 'failover_not_standby'; end if;
   update public.hq_workforce_command_failover set status='activated',activated_by=p_activated_by,activation_reason=p_reason,activated_at=clock_timestamp() where mission_id=p_mission_id;
@@ -182,7 +198,6 @@ begin
   return jsonb_build_object('mission_id',p_mission_id,'commander_key',f.successor_commander_key,'state','reopened');
 end $$;
 
--- Strengthen completion: verifier must be independently assigned; high-risk/two-key missions require an approved two-key record.
 create or replace function public.hq_workforce_command_complete_mission(p_mission_id uuid,p_verifier_key text,p_evidence_hash text)
 returns jsonb language plpgsql security definer set search_path=public,pg_temp as $$
 declare m public.hq_workforce_command_missions%rowtype; v_two_key boolean;
