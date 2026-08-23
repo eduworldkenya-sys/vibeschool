@@ -6,8 +6,10 @@ on:
     paths:
       - "supabase/migrations/*worker_engine_we_r1_4*.sql"
       - "supabase/migrations/*worker_engine_we_r1_3x_production_reconciliation*.sql"
+      - "supabase/migrations/*laban_command*.sql"
       - "supabase/tests/worker_engine_we_r1_4*.sql"
       - "supabase/tests/worker_engine_we_r1_3x_*.sql"
+      - "supabase/tests/laban_command*.sql"
       - ".github/workflows/worker-engine-we-r1-4-acceptance.yml"
       - "docs/WORKER_ENGINE_WE_R1_4*.md"
       - "docs/worker-engine/**"
@@ -53,6 +55,8 @@ jobs:
           migrations='\n'.join(p.read_text() for p in sorted(Path('supabase/migrations').glob('*worker_engine_we_r1_4*.sql')))
           if not migrations: raise SystemExit('WE-R1.4 migrations not found')
           if 'cron.schedule' in migrations.lower(): raise SystemExit('WE-R1.4 engineering branch must not install scheduler cron')
+          laban='\n'.join(p.read_text() for p in sorted(Path('supabase/migrations').glob('*laban_command*.sql')))
+          if laban and 'cron.schedule' in laban.lower(): raise SystemExit('Laban command branch must not install scheduler cron')
           PY
 
       - name: Verify Docker
@@ -146,6 +150,17 @@ jobs:
             PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f "$f"
           done 2>&1 | tee /tmp/we-r1-4-acceptance.log
 
+      - name: Run Laban command assurance suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t tests < <(find supabase/tests -maxdepth 1 -type f -name 'laban_command*.sql' | sort)
+          if [ "${#tests[@]}" -eq 0 ]; then echo 'Laban command assurance tests not found' >&2; exit 1; fi
+          for f in "${tests[@]}"; do
+            echo "=== $f ==="
+            PGPASSWORD=postgres psql "postgresql://postgres@127.0.0.1:54322/postgres" -v ON_ERROR_STOP=1 -f "$f"
+          done 2>&1 | tee /tmp/laban-command-assurance.log
+
       - name: Reassert fail-closed engine state
         shell: bash
         run: |
@@ -164,6 +179,7 @@ jobs:
             /tmp/we-r1-4-shadow-regression.log
             /tmp/we-r1-4-r1-3x-regression.log
             /tmp/we-r1-4-acceptance.log
+            /tmp/laban-command-assurance.log
           if-no-files-found: warn
           retention-days: 30
 
