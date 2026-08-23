@@ -4,13 +4,20 @@ const SUPABASE_URL=Deno.env.get('SUPABASE_URL')??''
 const SERVICE_ROLE=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')??''
 const ADMISSION_URL=Deno.env.get('CYBORG_ADMISSION_URL')??`${SUPABASE_URL}/functions/v1/cyborg-admission`
 const GATEWAY_URL=Deno.env.get('CYBORG_LLM_GATEWAY_URL')??`${SUPABASE_URL}/functions/v1/cyborg-llm-gateway`
-export type EdgeCyborgInput={callerServiceId:string;actorKey:string;externalChatId:string;objective:string;missionId?:string;provider:'groq'|'anthropic'|string;model:string;maxTokens:number;messages:unknown[];metadata?:Record<string,unknown>;dataClassification?:'public'|'internal'|'confidential'|'restricted'}
+
+export type CyborgSourceAuthority={
+  kind:'service'|'worker_model_invocation'|'chemistry_stage_attempt'
+  ref:string
+  token?:string
+}
+export type EdgeCyborgInput={callerServiceId:string;actorKey:string;externalChatId:string;objective:string;missionId?:string;provider:'groq'|'anthropic'|string;model:string;maxTokens:number;messages:unknown[];metadata?:Record<string,unknown>;dataClassification?:'public'|'internal'|'confidential'|'restricted';sourceAuthority?:CyborgSourceAuthority}
 export type EdgeCyborgResult={missionId:string;missionRevision:string;chatId:string;invocationId:string;output:unknown;lineage:Record<string,unknown>}
+
 export async function invokeCyborgEdgeModel(input:EdgeCyborgInput):Promise<EdgeCyborgResult>{
   if(!SUPABASE_URL||!SERVICE_ROLE)throw new Error('CYBORG_ADMISSION_SERVICE_IDENTITY_REQUIRED')
   const operation='model.generate',metadata=input.metadata??{}
   const requestHash=await hashModelRequest({callerServiceId:input.callerServiceId,provider:input.provider,model:input.model,operation,maxTokens:input.maxTokens,messages:input.messages,metadata})
-  const admissionResponse=await fetch(ADMISSION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':`Bearer ${SERVICE_ROLE}`,'x-cyborg-caller-id':input.callerServiceId},body:JSON.stringify({actorKey:input.actorKey,externalChatId:input.externalChatId,objective:input.objective,missionId:input.missionId,callerServiceId:input.callerServiceId,provider:input.provider,model:input.model,operation,requestHash,maxTokens:input.maxTokens,riskClass:'read',dataClassification:input.dataClassification??'internal',authorityScope:[],toolScope:[]})})
+  const admissionResponse=await fetch(ADMISSION_URL,{method:'POST',headers:{'content-type':'application/json','authorization':`Bearer ${SERVICE_ROLE}`,'x-cyborg-caller-id':input.callerServiceId},body:JSON.stringify({actorKey:input.actorKey,externalChatId:input.externalChatId,objective:input.objective,missionId:input.missionId,callerServiceId:input.callerServiceId,provider:input.provider,model:input.model,operation,requestHash,maxTokens:input.maxTokens,riskClass:'read',dataClassification:input.dataClassification??'internal',authorityScope:[],toolScope:[],sourceAuthority:input.sourceAuthority})})
   const admission=await admissionResponse.json().catch(()=>({})) as Record<string,unknown>;if(!admissionResponse.ok)throw new Error(`CYBORG_ADMISSION_FAILED:${String(admission.error??admissionResponse.status)}`)
   const capability=typeof admission.capability==='string'?admission.capability:'';const missionId=typeof admission.missionId==='string'?admission.missionId:'';const missionRevision=typeof admission.missionRevision==='string'?admission.missionRevision:'';const chatId=typeof admission.chatId==='string'?admission.chatId:'';const invocationId=typeof admission.invocationId==='string'?admission.invocationId:''
   if(!capability||!missionId||!missionRevision||!chatId||!invocationId)throw new Error('CYBORG_ADMISSION_CONTRACT_INVALID')
