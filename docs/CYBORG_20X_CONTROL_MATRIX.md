@@ -1,6 +1,6 @@
 # Cyborg 20x control matrix
 
-This matrix maps identified Cyborg weaknesses to repository-enforced controls. `IMPLEMENTED` means executable code or a repository contract exists. `VERIFIED` means the stated bounded proof has been directly observed for the named revision/environment. `PROOF PENDING` means implementation exists but required exact-head, database, production, chaos, model-replacement, or independent evidence has not yet been demonstrated. `CERTIFIED` is reserved for controls whose required evidence has passed on the exact revision and scope named in the evidence. No row may infer full production/runtime proof from the existence of a migration, contract, historical certification, or bounded production parity check alone.
+This matrix maps identified Cyborg weaknesses to repository-enforced controls. `IMPLEMENTED` means executable code or a repository contract exists. `VERIFIED` means the stated bounded proof has been directly observed for the named revision/environment. `PROOF PENDING` means implementation exists but required exact-head, database, production, chaos, model-replacement, or independent evidence has not yet been demonstrated. `CERTIFIED@<revision>` means an explicit certification record exists for the exact named revision and bounded scope; certification never floats forward. No row may infer production or independent proof from the existence of a migration, contract, historical CI run, same-owner certification statement, or bounded parity check alone.
 
 | Weakness | Status | Enforced by | Required proof |
 |---|---|---|---|
@@ -36,11 +36,11 @@ This matrix maps identified Cyborg weaknesses to repository-enforced controls. `
 | Skill version/dependency/conflict resolution | IMPLEMENTED | `resolveSkills()` | behavioral/adversarial proof |
 | Required-skill evidence | IMPLEMENTED | completion gate | kernel contract |
 | Skill regression/qualification policy | IMPLEMENTED | operating constitution + Worker Engine learning chain | integration proof |
-| Mission-specific independent assurance | IMPLEMENTED | independent-assurance completion requirement | independent evaluator proof |
+| Mission-specific independent assurance | IMPLEMENTED | independent-assurance completion requirement | distinct independent evaluator proof |
 | Adversarial completion review | IMPLEMENTED | `adversarialCompletionCritic()` | adversarial/kernel proof |
 | Silent-failure/outcome verification | IMPLEMENTED | gates + truth reconciliation | behavioral proof |
 | User-visible consequence requirement | IMPLEMENTED | operating constitution verification rule | journey/outcome proof |
-| Production/repository parity | VERIFIED — bounded `twin-chat` gate scope on 2026-08-23 | exact revision + truth reconciliation | active function contains Cyborg mission admission and student entitlement gate |
+| Production/repository parity | VERIFIED — bounded `twin-chat` security-gate scope on 2026-08-23 | exact revision + live function inspection | full source parity remains separate proof |
 | Architecture/invariant drift | IMPLEMENTED | CI kernel contract | exact-head CI |
 | Failure learning/promotion | IMPLEMENTED | existing Worker Engine continuous-improvement chain + constitution binding | Worker Engine integration proof |
 | Confidence/uncertainty thresholds | IMPLEMENTED | mission confidence + critic threshold + hypotheses | kernel contract |
@@ -52,24 +52,42 @@ This matrix maps identified Cyborg weaknesses to repository-enforced controls. `
 | Production persistence proof | PROOF PENDING | mission/event/lease/SLO migration | applied production migration + RLS/grant/RPC smoke proof |
 | Runtime persistence adapter | PROOF PENDING | `CyborgPersistencePort` contract | concrete adapter + restart/recovery proof |
 | Runtime execution adapter | PROOF PENDING | `CyborgExecutionPort` contract | concrete executor integration + bounded mission proof |
-| Independent certification | CERTIFIED — PR #448 repository kernel/runtime-gate scope only | exact-head certification review + completion assurance requirement | historical exact head `e1a7148f4a859d2a838687a4ae6b90c029eb653a`; changed heads require fresh exact-head gates |
-| Current-main reconciliation certification | PROOF PENDING | this matrix + exact-head CI + current production parity record | fresh exact-head checks on the reconciliation PR |
-| CI enforcement | IMPLEMENTED | `cyborg-mission-kernel-contract.yml` | exact-head CI |
+| Repository-kernel exact-head certification record | CERTIFIED@`e1a7148f4a859d2a838687a4ae6b90c029eb653a` — PR #448 bounded repository kernel/runtime-gate scope | exact-head owner certification record + passing gates | changed revisions require fresh exact-head gates |
+| Independent certification | PROOF PENDING | distinct evaluator/reviewer required | evidence from an evaluator identity/process independent of implementation/certifying owner |
+| Current-main reconciliation record | CERTIFIED@`c1922c8d492ad3e4e094903a76815656f413a104` — PR #455 governance/evidence scope only | exact-head owner certification + passing gates | does not certify hard provider enforcement or autonomous runtime |
+| Universal provider gateway contract | IMPLEMENTED | `lib/cyborg/gateway.ts`, universal-gateway workflow | complete server/Edge enforcement proof |
+| Server/Edge Function provider bypass prevention | IMPLEMENTED — release proof pending | `scripts/validate-cyborg-llm-gateway.mjs` scans server + Edge provider URLs and credentials | exact-head CI on release PR |
+| Per-call signed Cyborg capability enforcement | IMPLEMENTED — release proof pending | hard-enforcement programme + request-bound signed capability + one-time consumption | exact-head capability/adversarial proof |
+| Worker Engine deterministic-first model authorization | VERIFIED — bounded authoring path | `hq_workforce_authorize_model_call`, durable model-invocation/budget ledger | retain regression proof |
+| Worker Engine shadow-stage model authorization | IMPLEMENTED — release proof pending | Chemistry stage claim + exact stage lease as Cyborg source authority | exact-head stage-binding/replay proof |
+| Worker Engine -> Cyborg model-call enforcement | IMPLEMENTED — release proof pending | Worker authorization/source authority -> Cyborg admission -> sole provider gateway -> lineage | exact-head CI + migration contract proof |
+| Worker Engine R1.4 work-item consequential bridge | VERIFIED — bounded production topology on 2026-08-23 | `hq_workforce_tool_gateway_execute` -> canonical R1.4 gateway + legacy authority closure | retain regression proof; broader resource/runtime proof separate |
+| CI enforcement | IMPLEMENTED | Cyborg mission, universal gateway, chat and governance workflows | exact-head CI |
+
+## Certification identity correction
+
+PR #448 contains an explicit exact-head certification record at `e1a7148f4a859d2a838687a4ae6b90c029eb653a`, but GitHub records the certifying review as `COMMENTED` by the repository owner account `eduworldkenya-sys`. That supports a bounded owner-issued exact-head certification record. It does **not** prove certification by a distinct independent reviewer/evaluator. Independent certification therefore remains `PROOF PENDING` unless separate evidence exists.
+
+PR #455 later received an owner-issued exact-head reconciliation certification at `c1922c8d492ad3e4e094903a76815656f413a104` and merged as `4cff2080be2f40cbcd761eaee9628784ae1b2ab9`. Its bounded governance/evidence certification remains valid; this correction only removes the unsupported independence label. PR #456 merged as `d97ea98bd1a889b739a1784f845e562ca3dcffcb`, preserving that correction on current `main` before the hard-enforcement release.
+
+## Production `twin-chat` boundary
+
+Production inspection on 2026-08-23 verified active `twin-chat` v28 with JWT verification, Cyborg mission admission before model execution, and `student_consume_twin_session` before student model execution. This is the bounded security-gate parity required by PR #452/#455.
+
+The active deployed source is not text-identical to the repository copy in non-gate Twin behavior, so this evidence must not be expanded into full source/byte parity.
+
+## Worker Engine boundary
+
+Fresh production inspection on 2026-08-23 supersedes the older claim that `hq_workforce_tool_gateway_execute(task_id)` is still an independent legacy consequential mutator. It now delegates into `hq_workforce_consequential_execution_gateway(task_id)` and the R1.4 approval-bound chain. Legacy external authority is closed; runtime/heartbeat/Factory/Shadow are off, autonomy/risk are zero, Global Stop is on, and active capability-authority grants are zero.
+
+The hard-enforcement branch now implements the remaining repository-side model boundary: governed Worker model invocations and certified Chemistry stage leases are converted into one-time source authority, admission mints a request-bound signed capability, the sole provider gateway consumes it once, and durable invocation/receipt lineage is returned to callers. Critic/Repair cannot downgrade to generic service authority. Direct model-provider endpoints and provider credentials under server/Edge runtime surfaces are CI-forbidden outside the canonical gateway.
+
+This statement is implementation status only until the release exact head passes all applicable gates. It is not a claim that the migration is applied to production or that autonomous runtime is activated.
 
 ## Safety invariant
 
-Implementation and certification do not authorize consequential runtime. Runtime activation, schedulers, publishing, payments and authority grants remain owner-gated. Cyborg's mission kernel may coordinate governed work, but this remediation cannot be used as authority to cross those boundaries.
+Implementation and certification do not authorize consequential runtime. Runtime activation, schedulers, publishing, payments and authority grants remain owner-gated. This remediation cannot be used as authority to cross those boundaries.
 
-## Scope boundary
+## Full production/runtime release condition
 
-The repository-kernel certification recorded on PR #448 remains historically valid for exact head `e1a7148f4a859d2a838687a4ae6b90c029eb653a`. It does **not** automatically certify later revisions or the unimplemented/unproven production persistence and runtime execution adapters.
-
-On 2026-08-23, the active production Supabase `twin-chat` function was directly inspected. Version 28 is ACTIVE with JWT verification enabled and contains both required bounded parity controls introduced/reconciled by PR #452: Cyborg mission creation/resume before model/provider execution, and `student_consume_twin_session` before student model execution. This closes the specific production-parity evidence gap for those two gates only; it is not evidence that all production Cyborg persistence/execution work is complete.
-
-## Release condition
-
-A changed reconciliation head is certifiable only when its exact head passes the Cyborg contract, Agent Governance, TypeScript/production build and applicable repository integration/control-plane gates. Production persistence and runtime adapter rows remain separately proof-pending until their stated evidence exists. A failed, missing, stale or pending exact-head check keeps the changed reconciliation head uncertified.
-
-## Reconciliation provenance
-
-PR #446 established the persistent governed autonomous agent kernel and merged as `1ae83afddb28ae173c6150f6c4c6c2682b28f887`. PR #448 was reconciled on top of that kernel and certified at exact head `e1a7148f4a859d2a838687a4ae6b90c029eb653a`, then merged as `76be882e377c231cb4ebb5b3f25584f14703d1b0`. PR #447 was closed unmerged and is superseded by the stronger Cyborg kernel contract; it is not a canonical head. Current reconciliation work must branch from current `main`, not replay #447 or reopen #448.
+Full autonomous production certification remains a higher-level programme. It requires fresh proof for production persistence/execution adapters, restart/recovery, bounded real missions, broader consequential-resource proof, independent assurance, applied-production migration/runtime evidence, and appropriate production/repository parity.
