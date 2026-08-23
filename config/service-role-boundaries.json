@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "principle": "service_role_never_implies_caller_authority",
+  "routes": {
+    "app/api/validate-invitation/route.ts": {
+      "authority": "bounded_invitation_capability",
+      "requiredEvidence": ["ALLOWED_ORIGINS", "fn_invitation_attempt", "Code must be exactly 6 digits"]
+    },
+    "app/api/hq/complete-password-setup/route.ts": {
+      "authority": "verified_hq_identity_and_membership",
+      "requiredEvidence": ["auth.getUser(token)", "hq_human_members", "does not have active HQ authorization"]
+    },
+    "app/api/hq/access/route.ts": {
+      "authority": "verified_hq_identity_membership_and_permission",
+      "requiredEvidence": ["auth.getUser(token)", "hq_human_members", "permission_denied"]
+    },
+    "app/api/reset-student-pin/route.ts": {
+      "authority": "verified_teacher_or_school_admin_relationship",
+      "requiredEvidence": ["auth.getUser(token)", "teacher_classes", "school_members", "Forbidden"]
+    },
+    "app/api/cron/tpad-reminders/route.ts": {
+      "authority": "cron_bearer_capability",
+      "requiredEvidence": ["CRON_SECRET", "Bearer ${cronSecret}", "Unauthorized"]
+    },
+    "app/api/cron/invoice-reminders/route.ts": {
+      "authority": "cron_bearer_capability",
+      "requiredEvidence": ["CRON_SECRET", "Bearer ${cronSecret}", "Unauthorized"]
+    },
+    "app/api/cron/homework-reminders/route.ts": {
+      "authority": "cron_bearer_capability",
+      "requiredEvidence": ["CRON_SECRET", "Bearer ${cronSecret}", "Unauthorized"]
+    },
+    "app/api/hq/human-ops/route.ts": {
+      "authority": "verified_active_hq_member_with_action_role",
+      "requiredEvidence": ["auth.getUser(token)", "hq_human_members", "Founder authority required"]
+    },
+    "app/api/generate-lesson-plan/route.ts": {
+      "authority": "verified_teacher_identity_and_assignment",
+      "requiredEvidence": ["auth.getUser(token)", "teacher_classes", "profile?.role !== 'teacher'", "Forbidden"]
+    },
+    "app/api/create-student-account/route.ts": {
+      "authority": "single_use_school_learner_claim_capability",
+      "requiredEvidence": ["lookup_student_claim", "finalize_student_provisioning", "school_id"]
+    },
+    "app/api/hq/invite-member/route.ts": {
+      "authority": "verified_founder_hq_authority",
+      "requiredEvidence": ["auth.getUser(token)", "hq_human_members", "Founder authority required"]
+    }
+  }
+}
