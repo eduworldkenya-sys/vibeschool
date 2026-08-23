@@ -1,0 +1,117 @@
+"use client"
+
+import Link from "next/link"
+import { useEffect, useMemo, useState } from "react"
+import { HQPage, HQPanel, HQ_THEME as C, hqButtonStyle } from "@/components/hq/HQShell"
+import { hqSupabase } from "@/lib/hq/supabase"
+
+type Summary = { open_campaigns:number; active_campaigns:number; touches:number; signups:number; activated:number; returned_day2:number; paid:number; revenue_kes:number; active_agents:number; active_creators:number; schools_in_pipeline:number; school_customers:number }
+type Source = { source:string; touches:number; signups:number; activated:number; returned_day2:number; paid:number; revenue_kes:number }
+type Campaign = { id:string; name:string; campaign_code:string|null; campaign_type:string|null; channel:string; source_key:string|null; territory:string|null; status:string; budget:number|null; currency:string|null; touches:number; signups:number; paid:number; revenue_kes:number }
+type Agent = { id:string; agent_code:string; display_name:string; territory:string; schools_assigned:number; commission_rate:number; status:string; signups:number; activated:number; paid:number; revenue_kes:number }
+type Creator = { id:string; creator_code:string; display_name:string; platform:string; handle:string; commission_rate:number; status:string; signups:number; paid:number; revenue_kes:number }
+type School = { id:string; school_id:string; school_name:string; stage:string; territory:string|null; assigned_agent_id:string|null; agent_name:string|null; updated_at:string }
+type Report = { generated_at:string; window_days:number; summary:Summary; sources:Source[]; campaigns:Campaign[]; agents:Agent[]; creators:Creator[]; schools:School[] }
+
+const empty: Report = {
+  generated_at: "", window_days: 30,
+  summary: { open_campaigns:0, active_campaigns:0, touches:0, signups:0, activated:0, returned_day2:0, paid:0, revenue_kes:0, active_agents:0, active_creators:0, schools_in_pipeline:0, school_customers:0 },
+  sources: [], campaigns: [], agents: [], creators: [], schools: [],
+}
+
+const n = (value:number) => Number(value || 0).toLocaleString()
+const kes = (value:number) => `KES ${Number(value || 0).toLocaleString()}`
+const rate = (numerator:number, denominator:number) => denominator > 0 ? `${Math.round(numerator / denominator * 100)}%` : "—"
+
+function Kpi({ label, value, note }:{ label:string; value:string; note?:string }) {
+  return <article className="growth-kpi"><span>{label}</span><strong>{value}</strong>{note && <small>{note}</small>}</article>
+}
+
+function Stage({ label, value }:{ label:string; value:number }) {
+  return <div className="growth-stage"><span>{label}</span><strong>{n(value)}</strong></div>
+}
+
+export default function HQGrowthCommand() {
+  const [data, setData] = useState<Report>(empty)
+  const [days, setDays] = useState("30")
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  async function load() {
+    setLoading(true)
+    setError("")
+    const { data:result, error:rpcError } = await hqSupabase.rpc("hq_growth_command_overview", { p_days:Number(days) })
+    if (rpcError) setError(rpcError.message)
+    else setData((result ?? empty) as Report)
+    setLoading(false)
+  }
+
+  useEffect(() => { void load() }, [days])
+  const s = data.summary
+  const funnel = useMemo(() => [
+    { label:"Touches", value:s.touches },
+    { label:"Signups", value:s.signups },
+    { label:"Activated", value:s.activated },
+    { label:"D2 return", value:s.returned_day2 },
+    { label:"Paid", value:s.paid },
+  ], [s])
+
+  return <HQPage
+    title="Growth & Distribution Command"
+    description="Founder operating system for acquisition, school-gate distribution, creators, field agents and paid conversion. Evidence is measured here; consequential actions remain governed elsewhere."
+    actions={<>
+      <select value={days} onChange={event => setDays(event.target.value)} style={{ ...hqButtonStyle, background:C.panel }} aria-label="Growth measurement window">
+        <option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option>
+      </select>
+      <button style={hqButtonStyle} onClick={() => void load()} disabled={loading}>Refresh</button>
+    </>}
+  >
+    {error && <div className="growth-error" role="alert">Growth command unavailable: {error}</div>}
+
+    <section className="growth-kpis">
+      <Kpi label="Touches" value={n(s.touches)} note={`${data.window_days}-day attributed visits`} />
+      <Kpi label="Signups" value={n(s.signups)} note={`${rate(s.signups, s.touches)} of touches`} />
+      <Kpi label="Activated" value={n(s.activated)} note={`${rate(s.activated, s.signups)} of signups`} />
+      <Kpi label="Paying learners" value={n(s.paid)} note={`${rate(s.paid, s.activated)} of activated`} />
+      <Kpi label="Attributed revenue" value={kes(s.revenue_kes)} note="Recorded first-payment revenue" />
+      <Kpi label="School customers" value={n(s.school_customers)} note={`${n(s.schools_in_pipeline)} schools in pipeline`} />
+    </section>
+
+    <HQPanel title="Acquisition funnel" description="Canonical evidence sequence: touch, signup, activation, D2 return, first payment. Missing evidence stays zero rather than being estimated.">
+      <div className="growth-funnel">{funnel.map(stage => <Stage key={stage.label} label={stage.label} value={stage.value} />)}</div>
+    </HQPanel>
+
+    <div className="growth-grid">
+      <HQPanel title="Channels" description="Compare TikTok, school-gate, referral, creator and organic acquisition by attributable outcomes.">
+        {data.sources.length ? <div className="growth-table-wrap"><table className="growth-table"><thead><tr><th>Source</th><th>Touches</th><th>Signups</th><th>Activated</th><th>Paid</th><th>Revenue</th></tr></thead><tbody>{data.sources.map(source => <tr key={source.source}><td><strong>{source.source.replaceAll("_", " ")}</strong></td><td>{n(source.touches)}</td><td>{n(source.signups)}</td><td>{n(source.activated)}</td><td>{n(source.paid)}</td><td>{kes(source.revenue_kes)}</td></tr>)}</tbody></table></div> : <div className="growth-empty">No attributed channel evidence in this window.</div>}
+      </HQPanel>
+      <HQPanel title="Operating posture" description="Growth is connected to HQ, but it does not bypass company controls.">
+        <div className="growth-posture"><div><span>Campaigns</span><strong>{s.active_campaigns} active / {s.open_campaigns} open</strong></div><div><span>Field force</span><strong>{s.active_agents} active agents</strong></div><div><span>Creators</span><strong>{s.active_creators} active creators</strong></div><div><span>Authority</span><strong>Owner-authorized read model</strong></div></div>
+        <p className="growth-note">No automatic outreach, commission payout, publishing, payment mutation, or Worker Engine activation is granted by this command surface.</p>
+      </HQPanel>
+    </div>
+
+    <HQPanel title="Campaign performance" description="Campaign codes bridge TikTok videos, flyers, school gates and referrals into measurable acquisition evidence.">
+      {data.campaigns.length ? <div className="growth-table-wrap"><table className="growth-table"><thead><tr><th>Campaign</th><th>Code</th><th>Channel</th><th>Territory</th><th>Status</th><th>Touches</th><th>Signups</th><th>Paid</th><th>Revenue</th></tr></thead><tbody>{data.campaigns.map(campaign => <tr key={campaign.id}><td><strong>{campaign.name}</strong></td><td>{campaign.campaign_code ?? "—"}</td><td>{campaign.source_key ?? campaign.channel}</td><td>{campaign.territory ?? "—"}</td><td>{campaign.status}</td><td>{n(campaign.touches)}</td><td>{n(campaign.signups)}</td><td>{n(campaign.paid)}</td><td>{kes(campaign.revenue_kes)}</td></tr>)}</tbody></table></div> : <div className="growth-empty">No campaigns yet. Existing HQ Marketing remains the canonical campaign register.</div>}
+    </HQPanel>
+
+    <div className="growth-grid">
+      <HQPanel title="Agents & ambassadors" description="School-gate and territory performance without exposing unrestricted learner data.">
+        {data.agents.length ? <div className="growth-cards">{data.agents.map(agent => <article key={agent.id} className="growth-card"><header><div><strong>{agent.display_name}</strong><small>{agent.agent_code} · {agent.territory}</small></div><em>{agent.status}</em></header><div><span>{agent.schools_assigned} schools</span><span>{agent.signups} signups</span><span>{agent.activated} activated</span><span>{agent.paid} paid</span></div><footer>{kes(agent.revenue_kes)} attributed revenue · {(agent.commission_rate * 100).toFixed(0)}% configured rate</footer></article>)}</div> : <div className="growth-empty">No field agents configured.</div>}
+      </HQPanel>
+      <HQPanel title="Creators" description="TikTok, YouTube and social creator acquisition measured on signups and paid conversion, not vanity reach alone.">
+        {data.creators.length ? <div className="growth-cards">{data.creators.map(creator => <article key={creator.id} className="growth-card"><header><div><strong>{creator.display_name}</strong><small>{creator.platform} · @{creator.handle}</small></div><em>{creator.status}</em></header><div><span>{creator.signups} signups</span><span>{creator.paid} paid</span></div><footer>{kes(creator.revenue_kes)} attributed revenue · {(creator.commission_rate * 100).toFixed(0)}% configured rate</footer></article>)}</div> : <div className="growth-empty">No creators configured.</div>}
+      </HQPanel>
+    </div>
+
+    <HQPanel title="School acquisition pipeline" description="Student-led entry can mature into teacher champions and institutional customers without pretending a school is converted before evidence exists.">
+      {data.schools.length ? <div className="growth-table-wrap"><table className="growth-table"><thead><tr><th>School</th><th>Stage</th><th>Territory</th><th>Agent</th><th>Updated</th></tr></thead><tbody>{data.schools.map(school => <tr key={school.id}><td><strong>{school.school_name}</strong></td><td>{school.stage.replaceAll("_", " ")}</td><td>{school.territory ?? "—"}</td><td>{school.agent_name ?? "—"}</td><td>{new Date(school.updated_at).toLocaleDateString()}</td></tr>)}</tbody></table></div> : <div className="growth-empty">No schools have entered the acquisition pipeline yet.</div>}
+      <div className="growth-links"><Link href="/hq/geography">Open National Intelligence →</Link><Link href="/hq/marketing">Open Marketing Intelligence →</Link></div>
+    </HQPanel>
+
+    <div className="growth-foot">Generated {data.generated_at ? new Date(data.generated_at).toLocaleString() : "when evidence becomes available"}. This surface is deterministic HQ evidence, not an AI-generated business claim.</div>
+    <style jsx>{`
+      .growth-error{padding:12px 14px;margin-bottom:12px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.08);border-radius:12px;color:#fecaca}.growth-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:12px}.growth-kpi{padding:15px;border:1px solid ${C.border};background:${C.panel};border-radius:14px;display:grid;gap:5px}.growth-kpi span,.growth-kpi small{color:${C.muted};font-size:11px}.growth-kpi strong{font-size:23px}.growth-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.7fr);gap:12px;margin:12px 0}.growth-funnel{padding:16px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.growth-stage{padding:13px 10px;text-align:center;border:1px solid ${C.border};border-radius:11px;background:rgba(255,255,255,.025)}.growth-stage span{display:block;color:${C.muted};font-size:10px;text-transform:uppercase;letter-spacing:.05em}.growth-stage strong{display:block;margin-top:5px;font-size:20px}.growth-table-wrap{overflow:auto}.growth-table{width:100%;border-collapse:collapse;font-size:12px}.growth-table th,.growth-table td{padding:11px 12px;border-bottom:1px solid ${C.border};text-align:left;white-space:nowrap}.growth-table th{color:${C.muted};font-size:10px;text-transform:uppercase}.growth-posture{display:grid;gap:8px;padding:14px}.growth-posture div{display:flex;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px solid ${C.border}}.growth-posture span{color:${C.muted};font-size:11px}.growth-posture strong{font-size:12px;text-align:right}.growth-note,.growth-empty{padding:14px;color:${C.muted};font-size:12px;line-height:1.55}.growth-cards{display:grid;gap:8px;padding:10px}.growth-card{padding:12px;border:1px solid ${C.border};border-radius:12px;background:rgba(255,255,255,.02)}.growth-card header{display:flex;justify-content:space-between;gap:8px}.growth-card header strong,.growth-card header small{display:block}.growth-card header small,.growth-card footer{color:${C.muted};font-size:10px;margin-top:3px}.growth-card header em{font-size:10px;color:${C.green};font-style:normal}.growth-card>div{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;font-size:11px}.growth-links{display:flex;gap:16px;flex-wrap:wrap;padding:12px}.growth-links a{color:#93c5fd;font-size:12px;font-weight:800;text-decoration:none}.growth-foot{margin-top:12px;color:${C.muted};font-size:10px;text-align:right}@media(max-width:800px){.growth-grid{grid-template-columns:1fr}.growth-funnel{grid-template-columns:repeat(2,1fr)}.growth-stage:last-child{grid-column:1/-1}.growth-table th,.growth-table td{padding:10px 9px}.growth-foot{text-align:left}}
+    `}</style>
+  </HQPage>
+}
