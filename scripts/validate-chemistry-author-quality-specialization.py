@@ -59,11 +59,15 @@ for forbidden in [
     if forbidden in migration:
         raise SystemExit(f'Forbidden qualification expansion detected: {forbidden}')
 
+# Validate observable fail-closed behavior in the already-merged admission gate rather
+# than depending on an internal exception string owned by the specialization assertion.
 for needle in [
-    "hq_workforce_assert_worker_specialization",
+    "s:=public.hq_workforce_assert_worker_specialization(",
+    "v_spec:=public.hq_workforce_assert_worker_specialization(",
+    "v_ready:=false;",
     "chemistry_claim_stage",
-    "chemistry.grade10",
-    "WORKER_SPECIALIZATION_NOT_QUALIFIED",
+    "'chemistry.grade10'",
+    "'worker_specialization',v_spec",
 ]:
     if needle not in stage_gate:
         raise SystemExit(f'Chemistry admission gate invariant missing: {needle}')
