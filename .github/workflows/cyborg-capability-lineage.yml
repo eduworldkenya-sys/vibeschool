@@ -18,4 +18,5 @@ jobs:
           node-version: '22'
       - run: node scripts/validate-cyborg-capability-lineage.mjs
       - run: node scripts/cyborg-capability-adversarial-proof.mjs
+      - run: node scripts/validate-cyborg-secret-isolation.mjs
       - run: node scripts/validate-cyborg-llm-gateway.mjs
