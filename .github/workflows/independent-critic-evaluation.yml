@@ -8,6 +8,7 @@ on:
       - 'docs/PRIORITY3_INDEPENDENT_CRITIC.md'
       - '.github/workflows/independent-critic-evaluation.yml'
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 jobs:
