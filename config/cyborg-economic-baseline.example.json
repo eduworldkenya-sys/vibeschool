@@ -1,0 +1,21 @@
+{
+  "runId": "replace-with-baseline-run-id",
+  "measurements": [
+    {
+      "missionId": "replace-with-mission-id",
+      "missionClass": "chemistry-authoring",
+      "taskClass": "standard",
+      "evidenceSha": "replace-with-evidence-sha",
+      "usage": {
+        "modelCalls": 0,
+        "inputTokens": 0,
+        "outputTokens": 0,
+        "totalTokens": 0,
+        "costUsd": 0,
+        "deterministicHits": 0,
+        "cacheHits": 0
+      },
+      "assurance": "PASS"
+    }
+  ]
+}
