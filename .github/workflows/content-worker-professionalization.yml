@@ -1,4 +1,4 @@
-# Exact-head certification trigger: Chemistry P0 Critic/Repair qualification bridge. Test logic unchanged.
+# Exact-head certification trigger: PR #490 Laban Chemistry readiness repair. Test logic unchanged.
 name: Content Worker Professionalization
 
 on:
