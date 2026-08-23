@@ -28,10 +28,9 @@ with s(specification) as (values ($json$
 }
 $json$::jsonb))
 insert into public.content_worker_profiles(
-  profile_key,version,profile_kind,subject,status,specification,specification_sha256,activated_at
+  profile_key,version,profile_kind,subject,status,specification,activated_at
 )
-select 'teacher-guide-quality-contract',3,'quality_contract',null,'active',specification,
-       pg_catalog.encode(extensions.digest(specification::text,'sha256'::text),'hex'::text),clock_timestamp()
+select 'teacher-guide-quality-contract',3,'quality_contract',null,'active',specification,clock_timestamp()
 from s;
 
 with s(specification) as (values ($json$
@@ -50,10 +49,9 @@ with s(specification) as (values ($json$
 }
 $json$::jsonb))
 insert into public.content_worker_profiles(
-  profile_key,version,profile_kind,subject,status,specification,specification_sha256,activated_at
+  profile_key,version,profile_kind,subject,status,specification,activated_at
 )
-select 'chemistry-grade10-author',3,'subject','Chemistry','active',specification,
-       pg_catalog.encode(extensions.digest(specification::text,'sha256'::text),'hex'::text),clock_timestamp()
+select 'chemistry-grade10-author',3,'subject','Chemistry','active',specification,clock_timestamp()
 from s;
 
 with s(specification) as (values ($json$
@@ -74,10 +72,9 @@ with s(specification) as (values ($json$
 }
 $json$::jsonb))
 insert into public.content_worker_profiles(
-  profile_key,version,profile_kind,subject,status,specification,specification_sha256,activated_at
+  profile_key,version,profile_kind,subject,status,specification,activated_at
 )
-select 'chemistry-content-worker-evaluation',3,'evaluation_suite','Chemistry','active',specification,
-       pg_catalog.encode(extensions.digest(specification::text,'sha256'::text),'hex'::text),clock_timestamp()
+select 'chemistry-content-worker-evaluation',3,'evaluation_suite','Chemistry','active',specification,clock_timestamp()
 from s;
 
 create or replace function public.chemistry_learning_quality_contract()
