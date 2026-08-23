@@ -90,7 +90,7 @@ create policy hq_growth_school_pipeline_owner_only on public.hq_growth_school_pi
 create or replace function public.hq_growth_command_overview(p_days integer default 30)
 returns jsonb language plpgsql security definer set search_path = public, extensions, pg_temp as $$
 declare v_days integer := greatest(1, least(coalesce(p_days, 30), 365));
-        v_since timestamptz := now() - make_interval(days => greatest(1, least(coalesce(p_days, 30), 365));
+        v_since timestamptz := now() - make_interval(days => greatest(1, least(coalesce(p_days, 30), 365)));
 begin
   if auth.uid() is null or not coalesce(public.is_platform_owner(), false) then raise exception 'owner_authorization_required'; end if;
   return jsonb_build_object(
