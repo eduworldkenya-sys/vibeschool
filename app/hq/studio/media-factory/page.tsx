@@ -18,10 +18,10 @@ const lanes=[
   ["Ready","Approved assets waiting for Growth",C.green],
 ] as const
 const formats=[
-  ["Vertical short","TikTok · Reels · Shorts","9:16","15–60 sec","↗"],
-  ["Revision clip","Exam prep · worked answer","9:16 / 16:9","30 sec–3 min","◇"],
-  ["Lesson visual","Explainer · concept animation","16:9","1–8 min","◫"],
-  ["Campaign creative","Flyer · QR · social card","1:1 / A4","Static","⌁"],
+  ["Vertical short","TikTok · Reels · Shorts","9:16","15–60 sec","↗","vertical-short"],
+  ["Revision clip","Exam prep · worked answer","9:16 / 16:9","30 sec–3 min","◇","revision-clip"],
+  ["Lesson visual","Explainer · concept animation","16:9","1–8 min","◫","lesson-visual"],
+  ["Campaign creative","Flyer · QR · social card","1:1 / A4","Static","⌁","campaign-creative"],
 ] as const
 
 export default function MediaFactoryPage(){
@@ -101,7 +101,7 @@ export default function MediaFactoryPage(){
     </div>
 
     <div style={{height:12}}/>
-    <HQPanel title="Start from a format" description="Production presets inspired by modern design tools: obvious intent, obvious canvas, minimal friction."><div className="formats">{formats.map(([title,desc,ratio,duration,icon])=><Link href="/hq/studio/media-factory/editor" className="format" key={title}><div className="icon">{icon}</div><h3>{title}</h3><p>{desc}</p><div className="meta"><span className="chip">{ratio}</span><span className="chip">{duration}</span></div></Link>)}</div></HQPanel>
+    <HQPanel title="Start from a format" description="Production presets inspired by modern design tools: obvious intent, obvious canvas, minimal friction."><div className="formats">{formats.map(([title,desc,ratio,duration,icon,slug])=><Link href={`/hq/studio/media-factory/editor?format=${slug}`} className="format" key={title}><div className="icon">{icon}</div><h3>{title}</h3><p>{desc}</p><div className="meta"><span className="chip">{ratio}</span><span className="chip">{duration}</span></div></Link>)}</div></HQPanel>
 
     <div style={{height:12}}/>
     <HQPanel title="Work the loop" description="Every action continues through a canonical VibeSchool surface."><div className="actions"><Link href="/hq/studio/media-factory/editor" className="action"><span className="mark">✦</span><span><b>Create media</b><small>Turn Growth evidence into a governed media brief and production canvas.</small></span></Link><Link href="/hq/content" className="action"><span className="mark">✓</span><span><b>Review & release</b><small>Use hardened publishing and human approval.</small></span></Link><Link href="/hq/growth" className="action"><span className="mark">↗</span><span><b>Hand off to Growth</b><small>Inspect channels, campaigns, creators and conversion evidence.</small></span></Link></div></HQPanel>
