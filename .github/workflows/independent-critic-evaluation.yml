@@ -62,12 +62,12 @@ jobs:
           file=supabase/functions/content-critic-worker/index.ts
           grep -q 'critic_service_only' "$file"
           grep -q 'author self-review is intentionally withheld' "$file"
-          grep -q 'p1_self_review: packet.p1.self_review' "$file"
-          grep -q 'compared_after_primary_judgment: true' "$file"
-          grep -q 'may_repair: false' "$file"
-          grep -q 'may_publish: false' "$file"
-          grep -q 'may_approve_publication: false' "$file"
-          grep -q 'may_clear_p2_blocker: false' "$file"
+          grep -Eq 'p1_self_review:[[:space:]]*packet\.p1\.self_review' "$file"
+          grep -Eq 'compared_after_primary_judgment:[[:space:]]*true' "$file"
+          grep -Eq 'may_repair:[[:space:]]*false' "$file"
+          grep -Eq 'may_publish:[[:space:]]*false' "$file"
+          grep -Eq 'may_approve_publication:[[:space:]]*false' "$file"
+          grep -Eq 'may_clear_p2_blocker:[[:space:]]*false' "$file"
           grep -q 'critic_p2_rubric_identity_mismatch' "$file"
           if grep -Eqi 'teacher-guide-gold-v1|gold-strong-classroom-ready|gold-plausible-chemistry-error' "$file"; then
             echo 'sealed P2 gold answers leaked into normal Critic runtime' >&2
