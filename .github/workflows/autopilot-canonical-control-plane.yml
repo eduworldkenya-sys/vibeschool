@@ -47,6 +47,7 @@ jobs:
           PSQL='postgresql://postgres@127.0.0.1:54322/postgres'
           run_sql(){ echo "==> $1"; PGPASSWORD=postgres psql "$PSQL" -v ON_ERROR_STOP=1 -f "$1"; }
           run_sql supabase/tests/autopilot_canonical_control_plane_contract.sql
+          run_sql supabase/tests/canonical_workforce_convergence_contract.sql
           run_sql supabase/tests/autopilot_production_commissioning_contract.sql
           run_sql supabase/tests/autopilot_shadow_lineage_contract.sql
           run_sql supabase/tests/worker_engine_we_r1_3_shadow_governance_kernel.sql
