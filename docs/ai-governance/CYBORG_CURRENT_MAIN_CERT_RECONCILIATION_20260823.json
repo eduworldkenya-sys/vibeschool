@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "mission": "cyborg-current-main-certification-reconciliation",
+  "date": "2026-08-23",
+  "base_sha": "0b36e472613dbbb00e36fc00e2f03cb424808ebc",
+  "canonical_branch": "main",
+  "lineage": {
+    "pr_446": "merged_persistent_agent_kernel",
+    "pr_447": "closed_unmerged_superseded",
+    "pr_448": {
+      "status": "merged",
+      "certified_head": "e1a7148f4a859d2a838687a4ae6b90c029eb653a",
+      "scope": "repository_kernel_runtime_gate"
+    },
+    "pr_452": "merged_chat_entitlement_reconciliation"
+  },
+  "production_twin_chat": {
+    "project_ref": "yauqsxggtuxuykcbrtzf",
+    "version": 28,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "cyborg_mission_admission_present": true,
+    "student_consume_twin_session_present": true,
+    "bounded_parity_result": "VERIFIED"
+  },
+  "explicitly_not_certified": [
+    "production_persistence_adapter",
+    "runtime_execution_adapter",
+    "restart_recovery",
+    "schedulers",
+    "automatic_publishing",
+    "payments",
+    "consequential_authority",
+    "runtime_activation"
+  ],
+  "safety": "non_activating"
+}
