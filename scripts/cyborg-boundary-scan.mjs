@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-const roots = ['app', 'lib', 'supabase/functions', '.github/workflows']
+const roots = ['app', 'lib', 'supabase/functions', '.github/workflows', 'seed_curriculum_content.mjs']
 const allowed = new Set([
   'supabase/functions/cyborg-llm-gateway/index.ts',
 ])
