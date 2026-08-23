@@ -7,9 +7,6 @@ text = QUALITY.read_text()
 repair = RUNTIME_REPAIR.read_text()
 
 required = [
-    "content-factory-r2-canary-01",
-    "status='restricted'",
-    "CHEMISTRY_AUTHOR_RESTRICTED_CONVERGENCE_REQUIRES_CURRENT_CERTIFICATION",
     "teacher-guide-quality-contract',3",
     "chemistry-grade10-author',3",
     "chemistry-content-worker-evaluation',3",
@@ -51,17 +48,21 @@ if missing:
 
 runtime_required = [
     "create or replace function public.hq_workforce_qualify_chemistry_author_quality",
+    "content-factory-r2-canary-01",
     "worker_identity_source','hq_workforce_worker_assurance'",
     "nullif(trim(a.worker_version),'') is null",
-    "content_convergence_assert_certified_worker binds into stage attempts",
-    "CHEMISTRY_AUTHOR_STATUS_CONVERGENCE_REQUIRES_RUNTIME_OFF_GLOBAL_STOP_ON",
-    "status='restricted'",
+    "w.status='draft'",
+    "set status='restricted'",
+    "CHEMISTRY_QUALIFICATION_REQUIRES_RUNTIME_OFF_GLOBAL_STOP_ON",
+    "The certified Author's stale draft -> restricted convergence happens only",
 ]
 missing_runtime = [needle for needle in runtime_required if needle not in repair]
 if missing_runtime:
     raise SystemExit(f'Chemistry qualification runtime repair missing invariants: {missing_runtime}')
 if 'w.version' in repair:
     raise SystemExit('Runtime repair must never reference nonexistent hq_workforce_workers.version')
+if "do $$" in repair:
+    raise SystemExit('Runtime repair must be schema-only; production worker data converges only through the owner-gated invocation')
 
 for candidate in (text, repair):
     for forbidden in [
@@ -84,4 +85,4 @@ if bind_pos < 0 or pass_pos < 0 or not bind_pos < pass_pos:
 if text.count("profile_key in (\n  'teacher-guide-quality-contract',") != 1:
     raise SystemExit('Profile retirement must be explicit and singular')
 
-print('Chemistry learning quality contract + runtime qualification repair validation: PASS')
+print('Chemistry learning quality contract + invocation-time qualification repair validation: PASS')
