@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "mandatoryForAllAgents": true,
   "ownership": {
     "owner": "vibeschool-cyborg-executor",
@@ -15,6 +15,10 @@
   "core": [
     {"id":"repo-truth-first","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Inspect current code, types, tests, migrations, workflows, PR state and CI before changing anything."},
     {"id":"contract-integrity","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Validate fixtures, mocks, payloads, interfaces, DB schemas, RPCs and API shapes against current canonical definitions; forbid stale remembered shapes."},
+    {"id":"canonical-architecture-guardrail","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Require agents to discover and extend canonical authority/execution components instead of creating competing gateways, admission paths, evidence stores, certification ledgers or runtime controllers."},
+    {"id":"exact-head-pr-certification-guardrail","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Enforce isolated-branch delivery, exact-head CI, freshness checks, exact verified-head merge and post-merge verification; stale evidence cannot authorize merge or certification."},
+    {"id":"activation-authority-guardrail","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Keep runtime, schedulers, automatic publishing, payments and consequential authority default-denied unless explicitly commissioned; coding or merge authority never implies activation authority."},
+    {"id":"evidence-status-guardrail","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Bind IMPLEMENTED, VERIFIED, CERTIFIED, MERGE READY, MERGED, POST-MERGE VERIFIED and PRODUCTION READY claims to fresh evidence appropriate to their exact scope and SHA."},
     {"id":"preflight-before-ci","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Require narrow tests, typecheck, lint, relevant build and changed-file validation before claiming ready for CI."},
     {"id":"test-the-test","owner":"vibeschool-cyborg-executor","activation":"triggered","purpose":"Prove new tests fail when protected behavior is deliberately broken; reject decorative tests."},
     {"id":"ci-failure-repair-loop","owner":"vibeschool-cyborg-executor","activation":"triggered","purpose":"Fetch the exact failed job/log, classify root cause, repair the canonical cause, rerun and repeat until green or genuinely blocked."},
