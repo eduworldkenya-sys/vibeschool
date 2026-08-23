@@ -59,7 +59,7 @@ const encoder = new TextEncoder();
 
 function toBase64Url(bytes: Uint8Array): string {
   let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
+  for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 function fromBase64Url(value: string): Uint8Array {
@@ -68,6 +68,11 @@ function fromBase64Url(value: string): Uint8Array {
   let binary: string;
   try { binary = atob(padded); } catch { throw new Error(CYBORG_CAPABILITY_INVALID); }
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+}
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
 }
 async function importHmacKey(secret: string, usage: KeyUsage[]): Promise<CryptoKey> {
   if (!secret || secret.length < 32) throw new Error('CYBORG_CAPABILITY_SIGNING_KEY_WEAK');
@@ -104,7 +109,7 @@ export async function verifyCyborgCapability(token: string, secret: string, expe
   if (parts.length !== 3 || parts[0] !== CYBORG_CAPABILITY_VERSION) throw new Error(CYBORG_CAPABILITY_INVALID);
   const [, payload, encodedSignature] = parts;
   const key = await importHmacKey(secret, ['verify']);
-  const valid = await crypto.subtle.verify('HMAC', key, fromBase64Url(encodedSignature), encoder.encode(payload));
+  const valid = await crypto.subtle.verify('HMAC', key, toArrayBuffer(fromBase64Url(encodedSignature)), encoder.encode(payload));
   if (!valid) throw new Error(CYBORG_CAPABILITY_INVALID);
   let decoded: unknown;
   try { decoded = JSON.parse(new TextDecoder().decode(fromBase64Url(payload))); } catch { throw new Error(CYBORG_CAPABILITY_INVALID); }
