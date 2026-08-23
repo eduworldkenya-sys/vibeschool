@@ -3,11 +3,13 @@ on:
   pull_request:
     paths:
       - 'lib/cyborg/**'
+      - 'lib/hq/workforce/labanCommand.ts'
       - 'docs/CYBORG_OPERATING_CONSTITUTION.md'
       - 'docs/CYBORG_20X_CONTROL_MATRIX.md'
       - 'scripts/validate-cyborg-mission-kernel.mjs'
       - 'scripts/cyborg-adversarial-proof.mjs'
       - 'scripts/cyborg-behavior-proof.ts'
+      - 'scripts/laban-cyborg-binding-proof.ts'
       - 'tsconfig.cyborg-proof.json'
       - 'supabase/migrations/20260822205500_cyborg_mission_kernel.sql'
       - '.github/workflows/cyborg-mission-kernel-contract.yml'
@@ -25,5 +27,5 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: node scripts/validate-cyborg-mission-kernel.mjs
       - run: node scripts/cyborg-adversarial-proof.mjs
-      - run: npx tsc -p tsconfig.cyborg-proof.json && node /tmp/cyborg-proof/scripts/cyborg-behavior-proof.js
+      - run: npx tsc -p tsconfig.cyborg-proof.json && node /tmp/cyborg-proof/scripts/cyborg-behavior-proof.js && node /tmp/cyborg-proof/scripts/laban-cyborg-binding-proof.js
       - run: python scripts/validate-supabase-migration-contract.py --changed-from origin/main
