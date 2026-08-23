@@ -9,6 +9,7 @@ const WORKER_PROFILE = "senior-educational-content-remediation-editor:v1"
 const REPAIR_CLASSES = new Set(["LOCAL","SECTIONAL","CROSS_SECTION","STRUCTURAL","EVIDENCE_DEPENDENT","SAFETY_CRITICAL","CURRICULUM_CONFLICT","HUMAN_EDITOR"])
 const STATUSES = new Set(["REPAIR_ATTEMPTED","EVIDENCE_REQUIRED","HUMAN_EDITOR_REQUIRED","REPAIR_SCOPE_CONFLICT","STALE_ARTIFACT_VERSION","FINDING_SUPERSEDED","SAFETY_UNCERTAIN","CURRICULUM_CONFLICT"])
 
+type StageLease={attempt_id:string;lease_token:string}
 type RepairPacket = {
   artifact:{artifact_id:string;artifact_type:string;version:string;content:string|Record<string,unknown>;content_sha256:string}
   finding:{finding_id:string;critic_execution_id:string;artifact_version:string;category:string;canonical_dimension:string;severity:string;affected_section:string;affected_curriculum_outcome?:string|null;claim:string;evidence:unknown;reasoning_summary:string;required_remediation:string;release_blocking:boolean;confidence:number;uncertainty?:string|null}
@@ -16,6 +17,7 @@ type RepairPacket = {
   provenance:{verified_sources:unknown[];semantic_verification_state:string}
   constraints:{allowed_sections:string[];protected_sections:string[];preserve_curriculum_identity:true;preserve_release_state:true;max_attempts?:number}
   authorization:{authorized:true;scope:"repair_candidate_only";expires_at:string}
+  stage_lease:StageLease
   prior_attempts?:unknown[]
 }
 type ModelResult={repair_class:string;repair_plan:Record<string,unknown>;candidate_content:string|Record<string,unknown>|null;changed_sections:string[];preserved_sections:string[];impact:{curriculum:string;assessment:string;safety:string;provenance:string;new_risks:string[]};unresolved_uncertainty:string[];status:string;repair_preflight:{targeted_change_implemented:boolean;protected_sections_unchanged:boolean;curriculum_identity_unchanged:boolean;release_state_unchanged:boolean;provenance_preserved:boolean;no_self_certification:boolean}}
@@ -23,7 +25,7 @@ function obj(value:unknown,code:string):Record<string,unknown>{if(!value||typeof
 function strs(value:unknown,code:string):string[]{if(!Array.isArray(value)||value.some(v=>typeof v!=="string"))throw new Error(code);return value as string[]}
 async function sha256(value:unknown):Promise<string>{const bytes=new TextEncoder().encode(typeof value==="string"?value:JSON.stringify(value));const digest=await crypto.subtle.digest("SHA-256",bytes);return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")}
 async function parsePacket(value:unknown):Promise<RepairPacket>{
-  const p=obj(value,"REPAIR_PACKET_INVALID"),a=obj(p.artifact,"REPAIR_PACKET_INVALID"),f=obj(p.finding,"REPAIR_PACKET_INVALID"),prov=obj(p.provenance,"REPAIR_PACKET_INVALID"),c=obj(p.constraints,"REPAIR_PACKET_INVALID"),auth=obj(p.authorization,"REPAIR_PACKET_INVALID")
+  const p=obj(value,"REPAIR_PACKET_INVALID"),a=obj(p.artifact,"REPAIR_PACKET_INVALID"),f=obj(p.finding,"REPAIR_PACKET_INVALID"),prov=obj(p.provenance,"REPAIR_PACKET_INVALID"),c=obj(p.constraints,"REPAIR_PACKET_INVALID"),auth=obj(p.authorization,"REPAIR_PACKET_INVALID"),stageLease=obj(p.stage_lease,"CHEMISTRY_STAGE_LEASE_REQUIRED")
   for(const k of ["artifact_id","artifact_type","version","content_sha256"])if(typeof a[k]!=="string"||!(a[k] as string).trim())throw new Error("REPAIR_PACKET_INVALID")
   if(typeof a.content!=="string"&&(!a.content||typeof a.content!=="object"||Array.isArray(a.content)))throw new Error("REPAIR_PACKET_INVALID")
   for(const k of ["finding_id","critic_execution_id","artifact_version","category","canonical_dimension","severity","affected_section","claim","reasoning_summary","required_remediation"])if(typeof f[k]!=="string"||!(f[k] as string).trim())throw new Error("REPAIR_PACKET_INVALID")
@@ -32,6 +34,7 @@ async function parsePacket(value:unknown):Promise<RepairPacket>{
   const allowed=strs(c.allowed_sections,"REPAIR_PACKET_INVALID");strs(c.protected_sections,"REPAIR_PACKET_INVALID")
   if(c.preserve_curriculum_identity!==true||c.preserve_release_state!==true)throw new Error("REPAIR_PACKET_INVALID")
   if(auth.authorized!==true||auth.scope!=="repair_candidate_only"||typeof auth.expires_at!=="string")throw new Error("REPAIR_PACKET_INVALID")
+  if(typeof stageLease.attempt_id!=="string"||!stageLease.attempt_id||typeof stageLease.lease_token!=="string"||!stageLease.lease_token)throw new Error("CHEMISTRY_STAGE_LEASE_REQUIRED")
   if(Number.isNaN(Date.parse(auth.expires_at))||Date.parse(auth.expires_at)<=Date.now())throw new Error("REPAIR_PACKET_INVALID")
   if(a.version!==f.artifact_version)throw new Error("STALE_ARTIFACT_VERSION")
   if(await sha256(a.content)!==a.content_sha256)throw new Error("STALE_ARTIFACT_VERSION")
@@ -63,7 +66,7 @@ async function runRepair(packet:RepairPacket):Promise<{result:ModelResult;lineag
     "Only changed_sections listed in constraints.allowed_sections may change; every protected section must be listed in preserved_sections.",
     "Return one JSON object with repair_class, repair_plan, candidate_content, changed_sections, preserved_sections, impact, unresolved_uncertainty, status, repair_preflight. Allowed status after actual candidate repair is REPAIR_ATTEMPTED. Never return VERIFIED_RESOLVED. Fresh independent P2/P3 verification is mandatory."
   ].join(" ")
-  const governed=await invokeCyborgEdgeModel({callerServiceId:"edge.content-repair-worker",actorKey:"system:content-repair-worker",externalChatId:`repair:${packet.artifact.artifact_id}:${packet.artifact.version}:${packet.finding.finding_id}`,objective:"Produce one governed bounded content repair candidate",provider:"groq",model:MODEL_KEY,maxTokens:6000,messages:[{role:"system",content:system},{role:"user",content:JSON.stringify(packet)}],metadata:{feature:"content-repair-worker",temperature:0.05,responseFormat:"json_object"},dataClassification:"restricted"})
+  const governed=await invokeCyborgEdgeModel({callerServiceId:"edge.content-repair-worker",actorKey:"system:content-repair-worker",externalChatId:`repair:${packet.artifact.artifact_id}:${packet.artifact.version}:${packet.finding.finding_id}`,objective:"Produce one governed bounded content repair candidate",provider:"groq",model:MODEL_KEY,maxTokens:6000,messages:[{role:"system",content:system},{role:"user",content:JSON.stringify({...packet,stage_lease:undefined})}],metadata:{feature:"content-repair-worker",temperature:0.05,responseFormat:"json_object"},dataClassification:"restricted",stageLease:{attemptId:packet.stage_lease.attempt_id,leaseToken:packet.stage_lease.lease_token}})
   const content=groqText(governed.output);if(!content)throw new Error("repair_model_empty")
   let parsed:unknown;try{parsed=JSON.parse(content)}catch{throw new Error("repair_non_json_model_output")}
   return{result:validateModelResult(parsed,packet),lineage:governed.lineage,missionId:governed.missionId}
