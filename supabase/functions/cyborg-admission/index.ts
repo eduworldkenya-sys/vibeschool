@@ -8,6 +8,9 @@ const POLICY:Record<string,{provider:string;model:string;maxTokens:number}>={
   'app.twin-pulse':{provider:'anthropic',model:'claude-haiku-4-5-20251001',maxTokens:80},
   'app.report-insight':{provider:'anthropic',model:'claude-sonnet-4-20250514',maxTokens:200},
   'app.lesson-plan':{provider:'anthropic',model:'claude-sonnet-4-6',maxTokens:2400},
+  'app.vibevoice':{provider:'groq',model:'llama-3.3-70b-versatile',maxTokens:700},
+  'app.subject-insight':{provider:'groq',model:'llama-3.3-70b-versatile',maxTokens:500},
+  'app.exam-generate':{provider:'groq',model:'llama-3.3-70b-versatile',maxTokens:4096},
 }
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 function json(data:unknown,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json'}})}
