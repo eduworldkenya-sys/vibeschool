@@ -15,7 +15,11 @@
     "lib/cyborg/policy.ts",
     "lib/cyborg/orchestrator.ts",
     "lib/cyborg/runtime.ts",
+    "lib/cyborg/capability.ts",
+    "lib/cyborg/lineage.ts",
+    "lib/cyborg/policy-engine.ts",
     "lib/cyborg/gateway.ts",
-    "scripts/cyborg-behavior-proof.ts"
+    "scripts/cyborg-behavior-proof.ts",
+    "scripts/cyborg-hard-enforcement-proof.ts"
   ]
 }
