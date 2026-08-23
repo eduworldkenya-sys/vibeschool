@@ -2,6 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -11,7 +12,14 @@ type Context = {
   school_id: string | null;
   state: "ready" | "needs_school" | "needs_class";
   schools: Array<{ id: string; name: string; active: boolean }>;
-  classes: Array<{ class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string; is_class_teacher: boolean }>;
+  classes: Array<{
+    class_id: string;
+    class_name: string;
+    stream: string | null;
+    subject_id: string;
+    subject_name: string;
+    is_class_teacher: boolean;
+  }>;
 };
 
 type FormState = {
@@ -22,10 +30,18 @@ type FormState = {
   dateOfBirth: string;
   avatarUrl: string;
   tscNumber: string;
+  teachingStyle: string;
+};
+
+type InstitutionState = {
   employmentType: string;
   designation: string;
-  teachingStyle: string;
-  notificationPrefs: Record<string, boolean>;
+};
+
+type VerificationState = {
+  tsc_status: string;
+  school_status: string;
+  employment_status: string;
 };
 
 const EMPTY: FormState = {
@@ -36,15 +52,8 @@ const EMPTY: FormState = {
   dateOfBirth: "",
   avatarUrl: "",
   tscNumber: "",
-  employmentType: "",
-  designation: "",
   teachingStyle: "",
-  notificationPrefs: {},
 };
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: "grid", gap: 6 }}><span style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>{label}</span>{children}</label>;
-}
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -58,11 +67,21 @@ const inputStyle: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return <label style={{ display: "grid", gap: 6 }}><span style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>{label}</span>{hint && <small style={{ color: "#94a3b8", lineHeight: 1.4 }}>{hint}</small>}{children}</label>;
+}
+
+function ManagedValue({ label, value }: { label: string; value: string }) {
+  return <div style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 12, background: "#f8fafc" }}><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280" }}>{label}</div><div style={{ marginTop: 5, fontSize: 13, fontWeight: 800, color: "#111827" }}>{value || "Not recorded"}</div><div style={{ marginTop: 4, fontSize: 10, color: "#64748b" }}>Managed by your school</div></div>;
+}
+
 export default function TeacherProfilePage() {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [context, setContext] = useState<Context | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [institution, setInstitution] = useState<InstitutionState>({ employmentType: "", designation: "" });
+  const [verification, setVerification] = useState<VerificationState>({ tsc_status: "unverified", school_status: "unverified", employment_status: "unverified" });
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -88,9 +107,10 @@ export default function TeacherProfilePage() {
         return;
       }
       setEmail(auth.user.email ?? "");
-      const [profileRes, teacherRes, ctx] = await Promise.all([
-        db.from("profiles").select("id,full_name,phone,bio,gender,date_of_birth,avatar_url,notification_prefs").eq("id", auth.user.id).single(),
+      const [profileRes, teacherRes, verificationRes, ctx] = await Promise.all([
+        db.from("profiles").select("id,full_name,phone,bio,gender,date_of_birth,avatar_url").eq("id", auth.user.id).single(),
         db.from("teacher_profiles").select("profile_id,tsc_number,employment_type,designation,teaching_style").eq("profile_id", auth.user.id).maybeSingle(),
+        db.from("teacher_profile_verifications").select("tsc_status,school_status,employment_status").eq("profile_id", auth.user.id).maybeSingle(),
         loadContext(),
       ]);
       if (profileRes.error) throw profileRes.error;
@@ -103,15 +123,14 @@ export default function TeacherProfilePage() {
         gender: profileRes.data?.gender ?? "",
         dateOfBirth: profileRes.data?.date_of_birth ?? "",
         avatarUrl: profileRes.data?.avatar_url ?? "",
-        notificationPrefs: profileRes.data?.notification_prefs && typeof profileRes.data.notification_prefs === "object" ? profileRes.data.notification_prefs : {},
         tscNumber: teacherRes.data?.tsc_number ?? "",
-        employmentType: teacherRes.data?.employment_type ?? "",
-        designation: teacherRes.data?.designation ?? "",
         teachingStyle: teacherRes.data?.teaching_style ?? "",
       });
+      setInstitution({ employmentType: teacherRes.data?.employment_type ?? "", designation: teacherRes.data?.designation ?? "" });
+      if (verificationRes.data) setVerification(verificationRes.data as VerificationState);
     } catch (loadError) {
       console.error("[TeacherProfile] load", loadError);
-      setNotice({ kind: "error", text: "Your professional profile could not be loaded. Check your connection and retry." });
+      setNotice({ kind: "error", text: "Your professional profile could not be loaded. Retry, or use Help if the problem continues." });
     } finally {
       setLoading(false);
     }
@@ -126,50 +145,38 @@ export default function TeacherProfilePage() {
       const { error } = await supabase.rpc("teacher_set_active_school", { p_school_id: schoolId });
       if (error) throw error;
       setContext(await loadContext(schoolId));
-      setNotice({ kind: "success", text: "Active school changed. Your teaching assignments remain school-controlled records." });
+      setNotice({ kind: "success", text: "Active school changed. School records and teaching assignments were not modified." });
     } catch (schoolError) {
       console.error("[TeacherProfile] school", schoolError);
-      setNotice({ kind: "error", text: "That school could not be selected." });
+      setNotice({ kind: "error", text: "That school could not be selected. Your previous school context is unchanged." });
     }
   }
 
   async function save() {
     if (saving) return;
+    const fullName = form.fullName.trim();
+    if (!fullName) {
+      setNotice({ kind: "error", text: "Your professional name is required." });
+      return;
+    }
     setSaving(true);
     setNotice(null);
     try {
-      const { data: auth, error: authError } = await supabase.auth.getUser();
-      if (authError || !auth.user) throw authError ?? new Error("not_authenticated");
-      const fullName = form.fullName.trim();
-      if (!fullName) {
-        setNotice({ kind: "error", text: "Your professional name is required." });
-        return;
-      }
-      const profileUpdate = await db.from("profiles").update({
-        full_name: fullName,
-        phone: form.phone.trim() || null,
-        bio: form.bio.trim() || null,
-        gender: form.gender || null,
-        date_of_birth: form.dateOfBirth || null,
-        notification_prefs: form.notificationPrefs,
-        updated_at: new Date().toISOString(),
-      }).eq("id", auth.user.id);
-      if (profileUpdate.error) throw profileUpdate.error;
-
-      const teacherUpdate = await db.from("teacher_profiles").upsert({
-        profile_id: auth.user.id,
-        school_id: context?.school_id ?? null,
-        tsc_number: form.tscNumber.trim() || null,
-        employment_type: form.employmentType || null,
-        designation: form.designation.trim() || null,
-        teaching_style: form.teachingStyle.trim() || null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "profile_id" });
-      if (teacherUpdate.error) throw teacherUpdate.error;
-      setNotice({ kind: "success", text: "Professional profile saved." });
+      const { error } = await supabase.rpc("teacher_update_my_profile", {
+        p_full_name: fullName,
+        p_phone: form.phone.trim() || null,
+        p_bio: form.bio.trim() || null,
+        p_gender: form.gender || null,
+        p_date_of_birth: form.dateOfBirth || null,
+        p_tsc_number: form.tscNumber.trim() || null,
+        p_teaching_style: form.teachingStyle.trim() || null,
+      });
+      if (error) throw error;
+      setForm((current) => ({ ...current, fullName }));
+      setNotice({ kind: "success", text: "Profile saved. School, role and teaching assignments remain school-managed." });
     } catch (saveError) {
       console.error("[TeacherProfile] save", saveError);
-      setNotice({ kind: "error", text: "Your profile could not be saved. No school assignments were changed." });
+      setNotice({ kind: "error", text: "Your profile could not be saved. Your school membership and assignments were not changed." });
     } finally {
       setSaving(false);
     }
@@ -198,7 +205,7 @@ export default function TeacherProfilePage() {
       setNotice({ kind: "success", text: "Profile photo updated." });
     } catch (avatarError) {
       console.error("[TeacherProfile] avatar", avatarError);
-      setNotice({ kind: "error", text: "Profile photo could not be updated." });
+      setNotice({ kind: "error", text: "Profile photo could not be updated. Your existing photo is unchanged." });
     } finally {
       setUploading(false);
     }
@@ -219,39 +226,47 @@ export default function TeacherProfilePage() {
             {form.avatarUrl ? <img src={form.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (form.fullName.trim()[0]?.toUpperCase() ?? "T")}
           </button>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAvatar(file); event.target.value = ""; }} />
-          <div style={{ minWidth: 0 }}><div style={{ fontSize: 11, fontWeight: 900, opacity: .72, textTransform: "uppercase", letterSpacing: 1 }}>Teacher profile</div><h1 style={{ margin: "4px 0", fontSize: 23 }}>{form.fullName || "Teacher"}</h1><div style={{ fontSize: 12, opacity: .78 }}>{form.designation || "Teacher"} · {activeSchool}</div><div style={{ marginTop: 4, fontSize: 11, opacity: .68 }}>{email}</div></div>
+          <div style={{ minWidth: 0 }}><div style={{ fontSize: 11, fontWeight: 900, opacity: .72, textTransform: "uppercase", letterSpacing: 1 }}>Teacher profile</div><h1 style={{ margin: "4px 0", fontSize: 23 }}>{form.fullName || "Teacher"}</h1><div style={{ fontSize: 12, opacity: .8 }}>{institution.designation || "Teacher"} · {activeSchool}</div><div style={{ marginTop: 4, fontSize: 11, opacity: .68 }}>{email}</div></div>
         </div>
       </section>
 
-      {notice && <div role={notice.kind === "error" ? "alert" : "status"} style={{ borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13, background: notice.kind === "error" ? "#fef2f2" : "#ecfdf5", color: notice.kind === "error" ? "#991b1b" : "#065f46" }}>{notice.text}</div>}
+      {notice && <div role={notice.kind === "error" ? "alert" : "status"} aria-live="polite" style={{ borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13, background: notice.kind === "error" ? "#fef2f2" : "#ecfdf5", color: notice.kind === "error" ? "#991b1b" : "#065f46" }}>{notice.text}</div>}
+
+      {context?.state === "needs_school" && <section role="status" style={{ borderRadius: 16, padding: 14, marginBottom: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412" }}><strong style={{ display: "block", fontSize: 13 }}>School membership required</strong><span style={{ display: "block", marginTop: 4, fontSize: 12, lineHeight: 1.5 }}>Your account is signed in, but no active teacher school relationship is available. Ask your school administrator to restore or confirm your membership.</span></section>}
+      {context?.state === "needs_class" && <section role="status" style={{ borderRadius: 16, padding: 14, marginBottom: 12, background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8" }}><strong style={{ display: "block", fontSize: 13 }}>No teaching assignment yet</strong><span style={{ display: "block", marginTop: 4, fontSize: 12, lineHeight: 1.5 }}>Your school membership is valid, but no classes or subjects are assigned in this school yet.</span></section>}
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
         <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>SCHOOL & TEACHING SCOPE</div>
-        {context && context.schools.length > 1 ? <Field label="Active school"><select value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={inputStyle}>{context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></Field> : <div style={{ fontSize: 14, fontWeight: 900, color: "#111827" }}>{activeSchool}</div>}
+        {context && context.schools.length > 1 ? <Field label="Current school" hint="Switching context changes which school you are working in; it does not change membership."><select value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={inputStyle}>{context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></Field> : <div style={{ fontSize: 14, fontWeight: 900, color: "#111827" }}>{activeSchool}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, marginTop: 12 }}><div style={{ background: "#f8fafc", borderRadius: 12, padding: 11 }}><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280" }}>CLASSES</div><div style={{ marginTop: 5, fontSize: 12, color: "#111827", lineHeight: 1.5 }}>{classes.length ? classes.join(", ") : "No classes assigned"}</div></div><div style={{ background: "#f8fafc", borderRadius: 12, padding: 11 }}><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280" }}>SUBJECTS</div><div style={{ marginTop: 5, fontSize: 12, color: "#111827", lineHeight: 1.5 }}>{subjects.length ? subjects.join(", ") : "No subjects assigned"}</div></div></div>
-        <div style={{ marginTop: 9, fontSize: 11, color: "#6b7280" }}>School membership, classes and subjects are read-only here because they are authoritative school records.</div>
+        <div style={{ marginTop: 9, fontSize: 11, color: "#6b7280" }}>School membership, classes and subjects are authoritative school records and cannot be edited from Profile.</div>
       </section>
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 11 }}>PROFESSIONAL DETAILS</div>
+        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 11 }}>PROFESSIONAL IDENTITY</div>
         <div style={{ display: "grid", gap: 12 }}>
-          <Field label="Professional name"><input value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} style={inputStyle} /></Field>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}><Field label="TSC number"><input value={form.tscNumber} onChange={(event) => setForm((current) => ({ ...current, tscNumber: event.target.value }))} style={inputStyle} /></Field><Field label="Designation"><input value={form.designation} placeholder="e.g. Subject Teacher" onChange={(event) => setForm((current) => ({ ...current, designation: event.target.value }))} style={inputStyle} /></Field></div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}><Field label="Employment type"><select value={form.employmentType} onChange={(event) => setForm((current) => ({ ...current, employmentType: event.target.value }))} style={inputStyle}><option value="">Not specified</option><option value="permanent">Permanent</option><option value="contract">Contract</option><option value="intern">Intern</option><option value="private">Private school</option><option value="other">Other</option></select></Field><Field label="Phone"><input type="tel" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} style={inputStyle} /></Field></div>
-          <Field label="Professional bio"><textarea value={form.bio} onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))} rows={4} style={{ ...inputStyle, resize: "vertical" }} /></Field>
-          <Field label="Teaching style / approach"><textarea value={form.teachingStyle} onChange={(event) => setForm((current) => ({ ...current, teachingStyle: event.target.value }))} rows={4} style={{ ...inputStyle, resize: "vertical" }} /></Field>
+          <Field label="Professional name"><input maxLength={120} value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} style={inputStyle} /></Field>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}><ManagedValue label="Designation" value={institution.designation} /><ManagedValue label="Employment type" value={institution.employmentType} /></div>
+          <Field label="TSC number" hint={`Self-declared profile value. Verification status: ${verification.tsc_status.replaceAll("_", " ")}.`}><input maxLength={40} value={form.tscNumber} onChange={(event) => setForm((current) => ({ ...current, tscNumber: event.target.value }))} style={inputStyle} /></Field>
+          <Field label="Phone"><input type="tel" maxLength={32} value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))} style={inputStyle} /></Field>
+          <Field label="Professional bio"><textarea maxLength={600} value={form.bio} onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))} rows={4} style={{ ...inputStyle, resize: "vertical" }} /></Field>
+          <Field label="Teaching style / approach"><textarea maxLength={1000} value={form.teachingStyle} onChange={(event) => setForm((current) => ({ ...current, teachingStyle: event.target.value }))} rows={4} style={{ ...inputStyle, resize: "vertical" }} /></Field>
         </div>
       </section>
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 11 }}>PERSONAL & PREFERENCES</div>
-        <div style={{ display: "grid", gap: 12 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}><Field label="Gender"><select value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))} style={inputStyle}><option value="">Prefer not to say</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></Field><Field label="Date of birth"><input type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} style={inputStyle} /></Field></div>
-          {[{ key: "school_announcements", label: "School announcements" }, { key: "homework_submissions", label: "Learner homework submissions" }, { key: "attendance_updates", label: "Attendance actions" }].map((pref) => <label key={pref.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, minHeight: 44, border: "1px solid #e5e7eb", borderRadius: 12, padding: "0 12px", fontSize: 13, fontWeight: 800, color: "#374151" }}><span>{pref.label}</span><input type="checkbox" checked={form.notificationPrefs[pref.key] !== false} onChange={(event) => setForm((current) => ({ ...current, notificationPrefs: { ...current.notificationPrefs, [pref.key]: event.target.checked } }))} /></label>)}
-        </div>
+        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 11 }}>PERSONAL DETAILS</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}><Field label="Gender"><select value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))} style={inputStyle}><option value="">Prefer not to say</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></Field><Field label="Date of birth"><input type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} style={inputStyle} /></Field></div>
       </section>
 
-      <button type="button" onClick={() => void save()} disabled={saving} style={{ width: "100%", minHeight: 50, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontSize: 14, fontWeight: 900 }}>{saving ? "Saving…" : "Save profile"}</button>
+      <button type="button" onClick={() => void save()} disabled={saving} style={{ width: "100%", minHeight: 50, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontSize: 14, fontWeight: 900 }}>{saving ? "Saving…" : "Save editable profile details"}</button>
+
+      <section style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, marginTop: 12 }}>
+        <Link href="/teacher/profile/account" style={{ minHeight: 48, borderRadius: 13, border: "1px solid #dbe2ea", background: "#fff", color: "#111827", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900 }}>Account security & privacy</Link>
+        <Link href="/teacher/settings" style={{ minHeight: 48, borderRadius: 13, border: "1px solid #dbe2ea", background: "#fff", color: "#111827", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900 }}>Notification settings</Link>
+        <Link href="/teacher" style={{ minHeight: 48, borderRadius: 13, border: "1px solid #dbe2ea", background: "#fff", color: "#111827", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900 }}>Back to Teacher Home</Link>
+        <Link href="/teacher/help" style={{ minHeight: 48, borderRadius: 13, border: "1px solid #dbe2ea", background: "#fff", color: "#111827", textDecoration: "none", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 900 }}>Help / Report a problem</Link>
+      </section>
     </div>
   );
 }

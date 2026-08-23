@@ -1,0 +1,28 @@
+name: Teacher Profile Task 26
+
+on:
+  pull_request:
+    paths:
+      - "app/teacher/profile/**"
+      - "app/teacher/settings/**"
+      - "supabase/migrations/**teacher_profile**"
+      - "supabase/migrations/**task26_teacher**"
+      - "scripts/test-teacher-profile-task26-contract.mjs"
+      - ".github/workflows/teacher-profile-task26.yml"
+  workflow_dispatch:
+
+jobs:
+  teacher-profile-identity-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Task 26 identity contract
+        run: node scripts/test-teacher-profile-task26-contract.mjs
+      - name: Existing professional profile contract
+        run: node scripts/check-teacher-profile-contract.mjs
+      - name: Existing profile trust contract
+        run: node scripts/check-teacher-profile-trust-contract.mjs

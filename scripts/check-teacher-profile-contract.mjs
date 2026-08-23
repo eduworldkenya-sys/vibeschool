@@ -8,7 +8,7 @@ const checks = [
   ["profile does not delete teacher assignments", !/from\(["']teacher_classes["']\)\s*\.delete\(/s.test(page)],
   ["profile does not insert teacher assignments", !/from\(["']teacher_classes["']\)\s*\.insert\(/s.test(page)],
   ["profile communicates school-owned assignments", page.includes("Managed by your school")],
-  ["avatar uses user-scoped folder", page.includes("`${profile.id}/profile.${extension}`")],
+  ["avatar uses verified auth-user folder", page.includes("`${auth.user.id}/profile.${ext}`") || page.includes("`${profile.id}/profile.${extension}`")],
   ["avatar client enforces 3 MB", page.includes("3 * 1024 * 1024")],
   ["avatar client restricts MIME types", page.includes('"image/jpeg"') && page.includes('"image/png"') && page.includes('"image/webp"')],
   ["migration creates avatars bucket", migration.includes("'avatars'") && migration.includes("3145728")],
