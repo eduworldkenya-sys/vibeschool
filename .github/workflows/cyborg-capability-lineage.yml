@@ -1,0 +1,20 @@
+name: Cyborg Capability Lineage
+on:
+  pull_request:
+    paths:
+      - 'lib/cyborg/**'
+      - 'app/api/**'
+      - 'supabase/functions/**'
+      - 'supabase/migrations/*cyborg*'
+      - 'scripts/validate-cyborg-*'
+      - '.github/workflows/cyborg-capability-lineage.yml'
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/validate-cyborg-capability-lineage.mjs
+      - run: node scripts/validate-cyborg-llm-gateway.mjs
