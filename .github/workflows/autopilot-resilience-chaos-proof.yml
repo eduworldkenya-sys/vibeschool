@@ -1,0 +1,50 @@
+name: Autopilot Resilience Chaos Proof
+
+on:
+  pull_request:
+    paths:
+      - 'lib/hq/workforce/autopilotResilience.ts'
+      - 'lib/hq/workforce/autopilotResilience.test.ts'
+      - 'lib/hq/workforce/index.ts'
+      - '.github/workflows/autopilot-resilience-chaos-proof.yml'
+  workflow_dispatch:
+
+jobs:
+  autopilot-resilience-chaos-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Repository typecheck
+        run: npm run typecheck
+      - name: Repository lint
+        run: npm run lint
+      - name: Compile resilience chaos proof
+        run: |
+          rm -rf .tmp/autopilot-resilience-proof
+          npx --no-install tsc lib/hq/workforce/autopilotResilience.test.ts \
+            --outDir .tmp/autopilot-resilience-proof \
+            --module commonjs \
+            --target es2022 \
+            --moduleResolution node \
+            --esModuleInterop \
+            --skipLibCheck \
+            --types node
+      - name: Run resilience chaos proof
+        run: node --test .tmp/autopilot-resilience-proof/autopilotResilience.test.js
+      - name: Reject unsafe escape hatches
+        run: |
+          grep -q 'AUTOPILOT_GLOBAL_STOP_ACTIVE' lib/hq/workforce/autopilotResilience.ts
+          grep -q 'AUTOPILOT_IDEMPOTENCY_REQUIRED' lib/hq/workforce/autopilotResilience.ts
+          grep -q 'AUTOPILOT_HOSTILE_INPUT_TOOL_DENIED' lib/hq/workforce/autopilotResilience.ts
+          grep -q 'AUTOPILOT_CIRCUIT_OPEN' lib/hq/workforce/autopilotResilience.ts
+          grep -q 'missionRevision' lib/hq/workforce/autopilotResilience.ts
+          if grep -nE 'as[[:space:]]+(any|unknown)|@ts-ignore|@ts-nocheck|eslint-disable|\.skip\(' lib/hq/workforce/autopilotResilience.ts lib/hq/workforce/autopilotResilience.test.ts; then
+            echo 'Autopilot resilience proof contains a forbidden escape hatch.' >&2
+            exit 1
+          fi
