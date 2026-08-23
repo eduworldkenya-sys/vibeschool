@@ -23,6 +23,8 @@ jobs:
           node-version: '22'
       - name: Validate governance kernel
         run: node scripts/validate-agent-governance.mjs
+      - name: Enforce service-role authorization boundaries
+        run: node scripts/validate-service-role-boundaries.mjs
       - name: Cyborg governance health
         run: node scripts/cyborg-health.mjs
       - name: Adversarial governance proof
