@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 from pathlib import Path
 
-MIGRATION = Path('supabase/migrations/20260823201500_content_worker_professionalization_chemistry_learning_quality_contract.sql')
-text = MIGRATION.read_text()
+QUALITY = Path('supabase/migrations/20260823201500_content_worker_professionalization_chemistry_learning_quality_contract.sql')
+RUNTIME_REPAIR = Path('supabase/migrations/20260823201400_chemistry_author_quality_runtime_repair.sql')
+text = QUALITY.read_text()
+repair = RUNTIME_REPAIR.read_text()
 
 required = [
     "content-factory-r2-canary-01",
@@ -43,30 +45,43 @@ required = [
     "shadow_scheduler_enabled,false",
     "shadow_global_stop,true",
 ]
-
 missing = [needle for needle in required if needle not in text]
 if missing:
     raise SystemExit(f'Chemistry learning quality contract missing invariants: {missing}')
 
-for forbidden in [
-    "runtime_execution_enabled=true",
-    "heartbeat_enabled=true",
-    "factory_enabled=true",
-    "shadow_enabled=true",
-    "shadow_scheduler_enabled=true",
-    "shadow_global_stop=false",
-    "paid_ai_allowed=true",
-    "status='active' where worker_key='content-factory-r2-canary-01'",
-]:
-    if forbidden in text:
-        raise SystemExit(f'Forbidden activation/authority expansion detected: {forbidden}')
+runtime_required = [
+    "create or replace function public.hq_workforce_qualify_chemistry_author_quality",
+    "worker_identity_source','hq_workforce_worker_assurance'",
+    "nullif(trim(a.worker_version),'') is null",
+    "content_convergence_assert_certified_worker binds into stage attempts",
+    "CHEMISTRY_AUTHOR_STATUS_CONVERGENCE_REQUIRES_RUNTIME_OFF_GLOBAL_STOP_ON",
+    "status='restricted'",
+]
+missing_runtime = [needle for needle in runtime_required if needle not in repair]
+if missing_runtime:
+    raise SystemExit(f'Chemistry qualification runtime repair missing invariants: {missing_runtime}')
+if 'w.version' in repair:
+    raise SystemExit('Runtime repair must never reference nonexistent hq_workforce_workers.version')
+
+for candidate in (text, repair):
+    for forbidden in [
+        "runtime_execution_enabled=true",
+        "heartbeat_enabled=true",
+        "factory_enabled=true",
+        "shadow_enabled=true",
+        "shadow_scheduler_enabled=true",
+        "shadow_global_stop=false",
+        "paid_ai_allowed=true",
+        "status='active' where worker_key='content-factory-r2-canary-01'",
+    ]:
+        if forbidden in candidate:
+            raise SystemExit(f'Forbidden activation/authority expansion detected: {forbidden}')
 
 bind_pos = text.find('create trigger chemistry_bind_learning_quality_contract')
 pass_pos = text.find('create trigger chemistry_enforce_learning_quality_pass')
 if bind_pos < 0 or pass_pos < 0 or not bind_pos < pass_pos:
     raise SystemExit('Quality contract must be bound to stage input before PASS enforcement is installed')
-
 if text.count("profile_key in (\n  'teacher-guide-quality-contract',") != 1:
     raise SystemExit('Profile retirement must be explicit and singular')
 
-print('Chemistry learning quality contract validation: PASS')
+print('Chemistry learning quality contract + runtime qualification repair validation: PASS')
