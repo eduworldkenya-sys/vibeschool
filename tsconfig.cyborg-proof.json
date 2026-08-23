@@ -16,6 +16,8 @@
     "lib/cyborg/orchestrator.ts",
     "lib/cyborg/runtime.ts",
     "lib/cyborg/gateway.ts",
-    "scripts/cyborg-behavior-proof.ts"
+    "lib/hq/workforce/labanCommand.ts",
+    "scripts/cyborg-behavior-proof.ts",
+    "scripts/laban-cyborg-binding-proof.ts"
   ]
 }
