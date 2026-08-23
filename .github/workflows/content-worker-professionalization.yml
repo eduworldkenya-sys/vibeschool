@@ -97,17 +97,64 @@ jobs:
             created_at timestamptz not null default now()
           );
 
+          -- Schema-only reconstruction deliberately has no production seed rows. Build
+          -- the minimum governed Author identity needed to exercise the production
+          -- qualifier. This entire fixture is transaction-local and rolled back.
+          insert into public.hq_workforce_workers(
+            worker_key,worker_kind,title,department_key,mission,status,reasoning_mode,
+            paid_ai_allowed,competencies,permissions,approval_boundaries,kpis
+          ) values (
+            'content-factory-r2-canary-01','digital','CI Chemistry Author','content',
+            'Produce governed Grade 10 Chemistry authoring candidates for qualification proof.',
+            'draft','deterministic',false,
+            '["curriculum interpretation","chemistry authoring","laboratory safety"]'::jsonb,
+            '["read_curriculum_evidence"]'::jsonb,
+            '["no_auto_publish","no_self_approval","no_authority_change"]'::jsonb,
+            '{}'::jsonb
+          ) on conflict(worker_key) do nothing;
+
+          -- Use the canonical professional-baseline function rather than fabricating a
+          -- worker_version. Then model the already-certified production prerequisite
+          -- for both workers inside this isolated proof transaction.
+          select public.hq_workforce_professional_baseline('content-factory-r2-canary-01');
+          select public.hq_workforce_professional_baseline('quality-worker-01');
+          update public.hq_workforce_worker_assurance
+          set certification_state='CERTIFIED',
+              qualification_state='CERTIFIED',
+              legacy_recertification_required=false,
+              certified_at=clock_timestamp(),
+              expires_at=clock_timestamp()+interval '1 day'
+          where worker_key in ('content-factory-r2-canary-01','quality-worker-01')
+            and standard_key='vibeschool-professional-worker'
+            and standard_version=1;
+
+          -- The specialization migration only seeds rows for workers present during
+          -- replay. Ensure both production identities have their canonical capability
+          -- sets so this proof tests the qualifier rather than seed-data availability.
+          insert into public.hq_workforce_worker_specializations(
+            worker_key,specialization_key,subject_key,grade_key,specialization_version,
+            capabilities,qualification_state,evidence
+          ) values
+          ('content-factory-r2-canary-01','chemistry.grade10','chemistry','10',1,array[
+            'curriculum_chemistry_grade10','chemistry_scientific_accuracy','chemistry_instructional_authoring',
+            'chemistry_equations_units','chemistry_lab_safety','kenyan_classroom_context'
+          ]::text[],'candidate',jsonb_build_object('source','ci-runtime-contract-proof')),
+          ('quality-worker-01','chemistry.grade10','chemistry','10',1,array[
+            'curriculum_chemistry_grade10','chemistry_scientific_accuracy','chemistry_quality_rubric',
+            'chemistry_equations_units','chemistry_lab_safety','chemistry_assessment_integrity'
+          ]::text[],'candidate',jsonb_build_object('source','ci-runtime-contract-proof'))
+          on conflict(worker_key,specialization_key,specialization_version) do update set
+            capabilities=excluded.capabilities,
+            qualification_state='candidate',
+            qualified_at=null,
+            qualified_until=null,
+            updated_at=clock_timestamp();
+
           -- Reproduce the production lifecycle condition that exposed PR #498's
           -- runtime-only bug. Draft is intentionally not activation.
           update public.hq_workforce_workers
           set status='draft'
           where worker_key='content-factory-r2-canary-01';
-
-          update public.hq_workforce_worker_specializations
-          set qualification_state='candidate', qualified_at=null, qualified_until=null
-          where worker_key in ('content-factory-r2-canary-01','quality-worker-01')
-            and specialization_key='chemistry.grade10'
-            and specialization_version=1;
 
           select public.hq_workforce_qualify_chemistry_author_quality(
             'content-factory-r2-canary-01',
