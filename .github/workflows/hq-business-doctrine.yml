@@ -1,0 +1,34 @@
+name: HQ Business Doctrine
+
+on:
+  pull_request:
+    paths:
+      - 'app/hq/company/**'
+      - 'app/hq/marketing/**'
+      - 'docs/strategy/VIBESCHOOL-BUSINESS-OPERATING-DOCTRINE.md'
+      - 'docs/strategy/VIBESCHOOL-MISSION-VISION-LOCK.md'
+      - 'scripts/validate-hq-business-doctrine.mjs'
+      - '.github/workflows/hq-business-doctrine.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/hq/company/**'
+      - 'app/hq/marketing/**'
+      - 'docs/strategy/VIBESCHOOL-BUSINESS-OPERATING-DOCTRINE.md'
+      - 'docs/strategy/VIBESCHOOL-MISSION-VISION-LOCK.md'
+      - 'scripts/validate-hq-business-doctrine.mjs'
+      - '.github/workflows/hq-business-doctrine.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: HQ Business Doctrine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/validate-hq-business-doctrine.mjs
