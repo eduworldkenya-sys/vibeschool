@@ -46,7 +46,7 @@ jobs:
           grep -q 'authoring_citation_not_in_authorized_excerpt' "$file"
           grep -q 'service_role_required' "$file"
           grep -q 'invokeCyborgEdgeModel' "$file"
-          grep -q 'callerServiceId:"edge.content-authoring-worker"' "$file"
+          grep -Eq "callerServiceId:[[:space:]]*['\"]edge\.content-authoring-worker['\"]" "$file"
           if grep -Eqi 'api\.groq\.com|api\.openai\.com|api\.anthropic\.com' "$file"; then
             echo 'Authoring worker must not call model providers directly; Cyborg is the exclusive model boundary' >&2
             exit 1
