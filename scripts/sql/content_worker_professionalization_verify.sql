@@ -1,15 +1,19 @@
 \set ON_ERROR_STOP on
 begin;
 
--- Profiles are versioned, active and authority-safe.
+-- Profiles are versioned, active and authority-safe. The general professional profile
+-- remains v2 while Chemistry-specific author/quality/evaluation contracts advance independently.
 do $$ declare suite jsonb; begin
- if (select count(*) from public.content_worker_profiles where status='active' and version=2 and profile_key in ('senior-educational-content-developer','chemistry-grade10-author','teacher-guide-quality-contract','chemistry-content-worker-evaluation')) <> 4 then raise exception 'professional v2 profiles missing'; end if;
+ if not exists(select 1 from public.content_worker_profiles where status='active' and profile_key='senior-educational-content-developer' and version=2) then raise exception 'professional base profile missing'; end if;
+ if not exists(select 1 from public.content_worker_profiles where status='active' and profile_key='chemistry-grade10-author' and version>=2) then raise exception 'active chemistry author profile missing'; end if;
+ if not exists(select 1 from public.content_worker_profiles where status='active' and profile_key='teacher-guide-quality-contract' and version>=2) then raise exception 'active teacher-guide quality contract missing'; end if;
+ if not exists(select 1 from public.content_worker_profiles where status='active' and profile_key='chemistry-content-worker-evaluation' and version>=2) then raise exception 'active chemistry evaluation profile missing'; end if;
  if has_table_privilege('anon','public.content_worker_profiles','select') or has_table_privilege('authenticated','public.content_worker_profiles','select') then raise exception 'professional memory exposed'; end if;
  if has_function_privilege('anon','public.content_worker_preflight(jsonb,jsonb,text)','execute') or has_function_privilege('authenticated','public.content_worker_preflight(jsonb,jsonb,text)','execute') then raise exception 'preflight authority exposed'; end if;
  if has_function_privilege('anon','public.content_worker_teacher_guide_self_review(jsonb,jsonb)','execute') or has_function_privilege('authenticated','public.content_worker_teacher_guide_self_review(jsonb,jsonb)','execute') then raise exception 'self review authority exposed'; end if;
  if has_function_privilege('anon','public.content_worker_begin_execution(jsonb)','execute') or has_function_privilege('authenticated','public.content_worker_begin_execution(jsonb)','execute') then raise exception 'execution-context authority exposed'; end if;
  if has_function_privilege('anon','public.content_worker_finish_execution(uuid,text,jsonb,jsonb)','execute') or has_function_privilege('authenticated','public.content_worker_finish_execution(uuid,text,jsonb,jsonb)','execute') then raise exception 'execution-finalization authority exposed'; end if;
- select specification into suite from public.content_worker_profiles where profile_key='chemistry-content-worker-evaluation' and version=2;
+ select specification into suite from public.content_worker_profiles where profile_key='chemistry-content-worker-evaluation' and status='active' order by version desc limit 1;
  if jsonb_array_length(suite->'production_regression_cases')<>7 then raise exception 'seven chemistry production regressions not captured'; end if;
 end $$;
 
