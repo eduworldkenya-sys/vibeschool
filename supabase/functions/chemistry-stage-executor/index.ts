@@ -6,6 +6,8 @@ const URL=Deno.env.get("SUPABASE_URL")??""
 const ANON=Deno.env.get("SUPABASE_ANON_KEY")??""
 const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??""
 const MODEL=Deno.env.get("CHEMISTRY_STAGE_MODEL")??"openai/gpt-oss-120b"
+const CYBORG_SIGNING_KEY=Deno.env.get("CYBORG_CAPABILITY_SIGNING_KEY")??""
+const GROQ_KEY=Deno.env.get("GROQ_API_KEY")??""
 const CALLER="edge.chemistry-stage-executor"
 const CORS={"access-control-allow-origin":"*","access-control-allow-headers":"authorization, x-client-info, apikey, content-type","access-control-allow-methods":"POST, OPTIONS"}
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...CORS,"content-type":"application/json"}})
@@ -47,6 +49,8 @@ Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{status:200,headers:CORS})
  if(req.method!=="POST")return reply({error:"method_not_allowed"},405)
  if(!URL||!ANON||!SERVICE)return reply({error:"chemistry_stage_runtime_config_missing"},500)
+ if(CYBORG_SIGNING_KEY.length<32)return reply({error:"CYBORG_CAPABILITY_SIGNING_KEY_REQUIRED",retryable:false,claim_created:false},503)
+ if(!GROQ_KEY)return reply({error:"CYBORG_PROVIDER_CREDENTIAL_REQUIRED:groq",retryable:false,claim_created:false},503)
  const authorization=req.headers.get("authorization")??"";if(!authorization.startsWith("Bearer "))return reply({error:"authenticated_owner_required"},401)
  const body=await req.json().catch(()=>({})) as {itemId?:string;expectedQueuedStage?:string};if(!body.itemId||!body.expectedQueuedStage)return reply({error:"itemId_and_expectedQueuedStage_required"},400)
  const owner=createClient(URL,ANON,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}})

@@ -20,6 +20,7 @@ jobs:
       - run: python scripts/validate-chemistry-one-click-commissioning.py
       - run: python scripts/validate-chemistry-commissioning-doc.py
       - run: python scripts/validate-chemistry-browser-execution-boundary.py
+      - run: python scripts/validate-chemistry-infrastructure-recovery.py
       - run: deno check --node-modules-dir=auto supabase/functions/chemistry-stage-executor/index.ts
       - run: npx tsc -p tsconfig.cyborg-proof.json
       - run: node /tmp/cyborg-proof/scripts/cyborg-economic-proof.js
