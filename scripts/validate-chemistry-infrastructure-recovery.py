@@ -36,6 +36,12 @@ preflight = executor.index('if(CYBORG_SIGNING_KEY.length<32)')
 claim = executor.index('owner.rpc("hq_laban_claim_chemistry_stage"')
 if preflight > claim:
     raise SystemExit('Cyborg configuration preflight must run before a Chemistry claim')
+authorization = executor.index('authorization.startsWith("Bearer ")')
+if preflight < authorization:
+    raise SystemExit('Cyborg configuration preflight must not disclose configuration before authentication')
+owner_access = executor.index('owner.rpc("hq_check_owner_access"')
+if preflight < owner_access:
+    raise SystemExit('Cyborg configuration preflight must not disclose configuration before owner authorization')
 
 for forbidden in [
     'delete from public.chemistry_worker_stage_attempts',
