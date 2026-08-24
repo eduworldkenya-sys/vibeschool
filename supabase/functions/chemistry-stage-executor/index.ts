@@ -49,12 +49,13 @@ Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{status:200,headers:CORS})
  if(req.method!=="POST")return reply({error:"method_not_allowed"},405)
  if(!URL||!ANON||!SERVICE)return reply({error:"chemistry_stage_runtime_config_missing"},500)
- if(CYBORG_SIGNING_KEY.length<32)return reply({error:"CYBORG_CAPABILITY_SIGNING_KEY_REQUIRED",retryable:false,claim_created:false},503)
- if(!GROQ_KEY)return reply({error:"CYBORG_PROVIDER_CREDENTIAL_REQUIRED:groq",retryable:false,claim_created:false},503)
  const authorization=req.headers.get("authorization")??"";if(!authorization.startsWith("Bearer "))return reply({error:"authenticated_owner_required"},401)
  const body=await req.json().catch(()=>({})) as {itemId?:string;expectedQueuedStage?:string};if(!body.itemId||!body.expectedQueuedStage)return reply({error:"itemId_and_expectedQueuedStage_required"},400)
  const owner=createClient(URL,ANON,{global:{headers:{Authorization:authorization}},auth:{persistSession:false,autoRefreshToken:false}})
  const db=createClient(URL,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}})
+ const access=await owner.rpc("hq_check_owner_access",{p_surface:"chemistry-stage-executor:preflight"});if(access.error)return reply({error:"authenticated_owner_required"},403)
+ if(CYBORG_SIGNING_KEY.length<32)return reply({error:"CYBORG_CAPABILITY_SIGNING_KEY_REQUIRED",retryable:false,claim_created:false},503)
+ if(!GROQ_KEY)return reply({error:"CYBORG_PROVIDER_CREDENTIAL_REQUIRED:groq",retryable:false,claim_created:false},503)
  let claim:Claim|null=null,receiptSaved=false
  try{
   const claimed=await owner.rpc("hq_laban_claim_chemistry_stage",{p_item_id:body.itemId,p_expected_queued_stage:body.expectedQueuedStage,p_lease_seconds:300});if(claimed.error)throw new Error(`CHEMISTRY_LABAN_CLAIM_FAILED:${claimed.error.message}`);claim=claimed.data as Claim;if(!claim?.attempt_id||!claim.lease_token)throw new Error("CHEMISTRY_LABAN_CLAIM_CONTRACT_INVALID")
