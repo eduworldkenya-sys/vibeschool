@@ -1,0 +1,127 @@
+{
+  "contract_id": "chemistry-fast-trust-v1",
+  "status": "proposed",
+  "scope": "grade10.chemistry",
+  "principle": "parallelize_discovery_generate_cheaply_reuse_evidence_verify_independently_detect_omissions",
+  "authority_hierarchy": [
+    "official_curriculum_and_learning_outcomes",
+    "approved_authoritative_scientific_sources",
+    "canonical_vibeschool_research_pack",
+    "author_candidate",
+    "independent_quality_and_critic_evidence",
+    "human_release_authority"
+  ],
+  "required_release_dimensions": [
+    "correctness",
+    "completeness",
+    "source_coverage",
+    "pedagogical_depth",
+    "assessment_coverage",
+    "experiment_safety_coverage",
+    "contradiction_resolution"
+  ],
+  "allowed_incomplete_states": [
+    "INCOMPLETE_EVIDENCE",
+    "SOURCE_CONFLICT",
+    "COVERAGE_UNKNOWN",
+    "OMISSION_DETECTED"
+  ],
+  "research_pack": {
+    "versioned": true,
+    "immutable_per_candidate": true,
+    "shared_across_workers": true,
+    "required_sections": [
+      "curriculum_outcomes",
+      "prerequisites",
+      "terminology",
+      "core_concepts",
+      "source_provenance",
+      "misconceptions",
+      "experiments_and_activities",
+      "safety",
+      "expected_observations",
+      "worked_examples",
+      "kenyan_applications",
+      "visual_requirements",
+      "assessment_blueprint",
+      "marking_guidance",
+      "differentiation_and_inclusion",
+      "source_conflicts"
+    ]
+  },
+  "parallel_research_probes": [
+    "curriculum",
+    "scientific_concepts",
+    "experiments_and_safety",
+    "misconceptions",
+    "kenyan_context",
+    "assessment",
+    "visuals"
+  ],
+  "coverage_matrix": {
+    "block_on_missing_mandatory": true,
+    "checks": [
+      "all_outcomes_taught_not_mentioned_only",
+      "all_required_concepts_instructed",
+      "prerequisites_addressed",
+      "activities_and_experiments_present",
+      "observations_and_explanations_present",
+      "safety_present",
+      "misconceptions_addressed",
+      "teacher_prompts_present",
+      "worked_examples_and_practice_present",
+      "differentiation_present",
+      "assessment_covers_all_outcomes",
+      "marking_guidance_present_or_linked",
+      "visual_requirements_satisfied_or_tracked",
+      "source_claims_traceable"
+    ]
+  },
+  "critic": {
+    "must_check_correctness": true,
+    "must_search_for_omissions": true,
+    "must_be_independent": true
+  },
+  "repair": {
+    "targeted_by_default": true,
+    "full_regeneration_requires_scope_justification": true,
+    "invalidates_affected_quality_and_critic_evidence": true
+  },
+  "optimization": {
+    "prefer_shared_research_over_repeated_discovery": true,
+    "prefer_cheapest_sufficient_drafting_model": true,
+    "escalate_model_cost_on_conflict_or_failed_gate": true,
+    "do_not_weaken_release_gates_for_speed": true
+  },
+  "external_research": {
+    "role": "supplier_not_authority",
+    "examples": ["Perplexity", "Google Research", "Gemini", "Claude", "OpenAI"],
+    "must_use_vendor_neutral_gateway_when_integrated": true,
+    "must_preserve_source_provenance": true
+  },
+  "regression_learning": {
+    "absence_detection_required": true,
+    "material_omissions_must_be_considered_for_permanent_guard": true,
+    "example_incidents": ["Kianjata Primary omission", "Chemurin Primary omission"]
+  },
+  "execution_order": [
+    "curriculum_contract",
+    "research_pack",
+    "pack_completeness_check",
+    "fast_authoring",
+    "deterministic_coverage_matrix",
+    "quality_review",
+    "independent_omission_search_critic",
+    "targeted_repair",
+    "fresh_quality",
+    "fresh_critic",
+    "human_release_review"
+  ],
+  "activation": {
+    "runtime": false,
+    "scheduler": false,
+    "automatic_publishing": false,
+    "payments": false,
+    "authority_expansion": false
+  }
+}
