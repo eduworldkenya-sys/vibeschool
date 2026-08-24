@@ -7,7 +7,8 @@ const ANON=Deno.env.get("SUPABASE_ANON_KEY")??""
 const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??""
 const MODEL=Deno.env.get("CHEMISTRY_STAGE_MODEL")??"openai/gpt-oss-120b"
 const CALLER="edge.chemistry-stage-executor"
-const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json"}})
+const CORS={"access-control-allow-origin":"*","access-control-allow-headers":"authorization, x-client-info, apikey, content-type","access-control-allow-methods":"POST, OPTIONS"}
+const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...CORS,"content-type":"application/json"}})
 
 type Obj=Record<string,unknown>
 type Claim={attempt_id:string;lease_token:string;stage:string;worker_key:string;worker_version:string;source_version:string;source_hash:string}
@@ -43,6 +44,7 @@ async function runModel(packet:Packet,claim:Claim){const input={stage:claim.stag
  const raw=groqText(g.output);if(!raw)throw new Error("CHEMISTRY_STAGE_MODEL_EMPTY");return{output:parse(raw),g}}
 
 Deno.serve(async(req:Request)=>{
+ if(req.method==="OPTIONS")return new Response("ok",{status:200,headers:CORS})
  if(req.method!=="POST")return reply({error:"method_not_allowed"},405)
  if(!URL||!ANON||!SERVICE)return reply({error:"chemistry_stage_runtime_config_missing"},500)
  const authorization=req.headers.get("authorization")??"";if(!authorization.startsWith("Bearer "))return reply({error:"authenticated_owner_required"},401)
