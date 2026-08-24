@@ -15,8 +15,16 @@ required = [
     'safeRuntime(fresh)',
     'Commission chapter',
     'Human release authority is still required.',
-    'expectedQueuedStage=queuedStageFor[item.stage]',
     'supabase.functions.invoke("chemistry-stage-executor"',
+    'function stageExecution(item:Item,now:number)',
+    'lease_expires_at',
+    'kind:"working"',
+    'kind:"stalled"',
+    'Working · lease active',
+    'Stalled · lease expired',
+    'Retry chapter with Laban',
+    'Retry preserves that attempt as TIMED_OUT',
+    'Retry stays locked to prevent duplicate execution',
 ]
 missing = [token for token in required if token not in page]
 if missing:
@@ -28,8 +36,9 @@ for forbidden in [
     'shadow_global_stop:false',
     'publish_chapter',
     'approve_publication',
+    'const claimable=!!queuedStageFor[i.stage]',
 ]:
     if forbidden in page:
         raise SystemExit('Chemistry commissioning safety boundary violated: ' + forbidden)
 
-print('Chemistry one-click commissioning contract: PASS')
+print('Chemistry one-click commissioning + stale-lease recovery contract: PASS')
