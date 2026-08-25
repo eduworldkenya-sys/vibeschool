@@ -5,6 +5,7 @@ migration = Path('supabase/migrations/20260825090000_chemistry_curriculum_author
 reconciliation = Path('supabase/migrations/20260825114500_chemistry_curriculum_authority_reconciliation.sql').read_text()
 hierarchy_uuid_repair = Path('supabase/migrations/20260825152500_fix_curriculum_authority_uuid_min.sql').read_text()
 outcome_hierarchy_repair = Path('supabase/migrations/20260825155500_bind_verified_chemistry_outcomes_hierarchy.sql').read_text()
+observation_code_repair = Path('supabase/migrations/20260825162500_converge_chemistry_observation_codes.sql').read_text()
 
 required = [
     'source_import_id uuid', 'content_sha256 text', 'source_locator text',
@@ -63,5 +64,19 @@ for forbidden in ['runtime_execution_enabled=true','heartbeat_enabled=true',"set
         raise SystemExit(f'Forbidden activation detected in outcome hierarchy repair: {forbidden}')
 if outcome_hierarchy_repair.count('perform public.hq_assert_owner();') != 1:
     raise SystemExit('Outcome hierarchy repair must remain a single explicit owner-gated mutation')
+
+observation_code_required = [
+    "CHEM-G10-' || upper(regexp_replace(o.outcome_code",
+    'EXACT_32_CODE_AND_TEXT_MATCHES_REQUIRED',
+    'CHEMISTRY_CODE_CONVERGENCE_INCOMPLETE',
+    'VERIFIED_HIERARCHY_BOUND_COHORT_INCOMPLETE',
+    "set status='sealed',reconciled_at=null",
+]
+missing_observation_code = [needle for needle in observation_code_required if needle not in observation_code_repair]
+if missing_observation_code:
+    raise SystemExit(f'Observation-code convergence invariants missing: {missing_observation_code}')
+for forbidden in ['runtime_execution_enabled=true','heartbeat_enabled=true',"set status='published'",'automatic_publishing=true',"set status='verified'"]:
+    if forbidden in observation_code_repair:
+        raise SystemExit(f'Forbidden activation detected in observation-code convergence: {forbidden}')
 
 print('Chemistry canonical curriculum authority validation: PASS')
