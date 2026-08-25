@@ -1,28 +1,17 @@
-"use client"
+import { PublicHeader } from '@/components/public/PublicHeader'
+import { PublicFooter } from '@/components/public/PublicFooter'
+import { BlogExplorer } from '@/components/blog/BlogExplorer'
+import { listPublishedBlogArticles } from '@/lib/blogContent'
+import { listKnowledgeArticles } from '@/lib/educationKnowledge'
 
-import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
-import { createBrowserClient } from "@supabase/ssr"
-import type { VibePublication } from "@/lib/publishTypes"
-import { listKnowledgeArticles } from "@/lib/educationKnowledge"
+export const revalidate = 300
 
-export default function BlogPage(){
- const [articles,setArticles]=useState<VibePublication[]>([])
- const [query,setQuery]=useState("")
- useEffect(()=>{const sb=createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);void sb.from("vibe_publications").select("id,author_id,format,title,subtitle,cover_url,description,genre,tags,language,status,pricing,chapter_count,total_reads,total_vibes,earnings_ksh,cbc_subject,cbc_grade,cbc_aligned,curriculum_framework,series_name,series_number,publication_name,issue_number,created_at,updated_at,published_at").eq("status","published").eq("format","vibepress").order("published_at",{ascending:false}).limit(30).then(({data})=>setArticles((data??[]) as VibePublication[]))},[])
- const guides=listKnowledgeArticles()
- const filtered=useMemo(()=>articles.filter(item=>`${item.title??""} ${item.description??""} ${(item.tags??[]).join(" ")}`.toLowerCase().includes(query.toLowerCase())),[articles,query])
- const featured=filtered[0]
- return <main className="hub">
-  <header><Link href="/">VIBESCHOOL</Link><nav><a href="#latest">Latest</a><Link href="/kenya-education">Guides</Link><Link href="/global/read">Learn</Link></nav></header>
-  <section className="mast"><p>KENYA EDUCATION HUB</p><h1>Understand education.<br/>Take the next useful step.</h1><div className="search"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search revision, exams, careers and education news"/></div></section>
-  <div className="categories"><span>KCSE</span><span>KJSEA</span><span>KPSEA</span><span>Revision</span><span>Careers</span><span>Teachers</span><span>Parents</span></div>
-  <section className="content" id="latest">
-   {featured?<Link className="featured" href={`/global/read/publication/${featured.id}`}><div className="cover">{featured.cover_url?<img src={featured.cover_url} alt=""/>:<b>V</b>}</div><div><small>FEATURED</small><h2>{featured.title}</h2><p>{featured.description}</p><strong>Read article →</strong></div></Link>:<div className="featured intro"><div><small>START HERE</small><h2>Practical guidance for Kenyan learners, families and teachers.</h2><p>New articles published through VibeSchool Studio will appear here. Explore our verified guides while the newsroom grows.</p><Link href="/kenya-education">Explore education guides →</Link></div></div>}
-   <div className="heading"><h2>Latest articles and guides</h2><span>Updated as useful information is verified</span></div>
-   <div className="grid">{filtered.slice(1).map(item=><Link key={item.id} href={`/global/read/publication/${item.id}`}><div className="thumb">{item.cover_url?<img src={item.cover_url} alt=""/>:<b>V</b>}</div><small>VIBESCHOOL EDUCATION</small><h3>{item.title}</h3><p>{item.description}</p></Link>)}{guides.map(item=><Link key={item.slug} href={`/kenya-education/${item.slug}`}><div className="thumb guide">GUIDE</div><small>{item.audience.join(" · ")}</small><h3>{item.title}</h3><p>{item.description}</p></Link>)}</div>
-  </section>
-  <section className="cta"><div><small>FROM READING TO LEARNING</small><h2>Don’t stop at the article.</h2><p>Continue into explanations, practice and VibeSchool learning experiences.</p></div><Link href="/global/read">Start learning →</Link></section>
-  <style jsx>{`.hub{min-height:100vh;background:#f8f8f5;color:#101827;font-family:var(--font-jakarta),Arial,sans-serif}.hub>header{height:64px;background:#07111f;color:white;padding:0 max(20px,calc((100vw - 1180px)/2));display:flex;align-items:center;justify-content:space-between}.hub>header>a{color:#e1c56d;font-weight:950;letter-spacing:.08em;text-decoration:none}.hub nav{display:flex;gap:22px}.hub nav a{color:#d2dae4;text-decoration:none;font-size:13px;font-weight:750}.mast{background:#0d1c2e;color:white;padding:78px max(20px,calc((100vw - 1180px)/2)) 68px}.mast>p,.featured small,.grid small,.cta small{font-size:10px;font-weight:900;letter-spacing:.14em;color:#d0b154}.mast h1{font-family:var(--font-display);font-size:clamp(42px,6vw,74px);line-height:1.02;letter-spacing:-.045em;margin:12px 0 28px}.search{max-width:690px;height:52px;background:white;border-radius:10px;display:flex;align-items:center;padding:0 16px;gap:9px}.search input{border:0;outline:0;width:100%;font:inherit}.categories{overflow-x:auto;display:flex;gap:25px;padding:17px max(20px,calc((100vw - 1180px)/2));border-bottom:1px solid #dcdfe3;background:white}.categories span{font-weight:850;font-size:12px;white-space:nowrap}.content{max-width:1180px;margin:auto;padding:34px 20px 75px}.featured{display:grid;grid-template-columns:1.15fr 1fr;gap:0;background:#fff;border:1px solid #dfe2e7;border-radius:18px;overflow:hidden;color:inherit;text-decoration:none}.featured.intro{grid-template-columns:1fr;padding:40px}.cover{min-height:360px;background:#13243a;display:grid;place-items:center}.cover img,.thumb img{width:100%;height:100%;object-fit:cover}.cover b,.thumb b{font-size:64px;color:#d0b154}.featured>div:last-child{padding:42px}.featured h2{font-size:clamp(30px,4vw,48px);line-height:1.05;margin:12px 0}.featured p,.grid p{color:#5f6874;line-height:1.6}.featured strong{color:#6e5514}.heading{display:flex;justify-content:space-between;align-items:end;margin:56px 0 20px}.heading h2{font-size:30px;margin:0}.heading span{font-size:12px;color:#6b7280}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.grid>a{color:inherit;text-decoration:none;background:white;border:1px solid #dfe2e7;border-radius:14px;overflow:hidden;padding-bottom:18px}.thumb{height:175px;background:#13243a;display:grid;place-items:center;margin-bottom:17px}.thumb.guide{background:#e8e2d2;color:#6e5514;font-weight:900}.grid h3,.grid p,.grid small{display:block;margin-left:18px;margin-right:18px}.grid h3{font-size:20px;line-height:1.25;margin-top:8px;margin-bottom:8px}.grid p{font-size:13px}.cta{background:#07111f;color:white;padding:54px max(20px,calc((100vw - 1180px)/2));display:flex;justify-content:space-between;align-items:center}.cta h2{font-size:36px;margin:7px 0}.cta p{color:#bcc7d3}.cta>a{background:#d0b154;color:#07111f;text-decoration:none;padding:13px 18px;border-radius:9px;font-weight:900}@media(max-width:760px){.hub nav a:not(:last-child){display:none}.mast{padding-top:52px}.featured{grid-template-columns:1fr}.cover{min-height:220px}.featured>div:last-child{padding:25px}.grid{grid-template-columns:1fr}.heading{align-items:start;gap:8px;flex-direction:column}.cta{align-items:flex-start;gap:20px;flex-direction:column}}`}</style>
- </main>
+export default async function BlogPage(){
+  const publications = await listPublishedBlogArticles()
+  const guides = listKnowledgeArticles()
+  return <div className="blog-shell">
+    <PublicHeader product="News & Guides" />
+    <main id="main-content"><BlogExplorer publications={publications} guides={guides}/></main>
+    <PublicFooter />
+  </div>
 }

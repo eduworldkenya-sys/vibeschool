@@ -6,7 +6,7 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: '*',
       allow: [
         '/', '/product', '/sandbox', '/teachers', '/learners', '/families', '/about', '/contact', '/careers', '/institutions',
-        '/trust/', '/pathways/', '/learn/careers', '/global', '/global/chronicles', '/global/vibes', '/global/read/', '/legal/',
+        '/trust/', '/pathways/', '/learn/careers', '/global', '/global/chronicles', '/global/vibes', '/global/read/', '/blog/', '/kenya-education/', '/legal/',
       ],
       disallow: [
         '/login', '/signup/', '/welcome', '/auth/', '/reset-password', '/api/', '/hq/', '/admin/',

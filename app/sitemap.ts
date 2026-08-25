@@ -1,5 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { getSupabaseServerClient } from '@/lib/supabaseServer'
+import { listKnowledgeArticles } from '@/lib/educationKnowledge'
+import { isPublicBlogReady } from '@/lib/blogContent'
 
 const SITE_URL = 'https://www.vibeschool.co.ke'
 
@@ -29,30 +31,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/learn/careers`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${SITE_URL}/global`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${SITE_URL}/global/read`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${SITE_URL}/blog`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${SITE_URL}/kenya-education`, changeFrequency: 'weekly', priority: 0.85 },
     { url: `${SITE_URL}/legal`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${SITE_URL}/legal/privacy`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${SITE_URL}/legal/terms`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${SITE_URL}/legal/aup`, changeFrequency: 'monthly', priority: 0.4 },
   ]
+  const knowledgeRoutes: MetadataRoute.Sitemap = listKnowledgeArticles().map(article => ({
+    url: `${SITE_URL}/kenya-education/${article.slug}`,
+    lastModified: article.updated_on,
+    changeFrequency: 'monthly',
+    priority: 0.8,
+  }))
 
   try {
     const supabase = getSupabaseServerClient()
     const { data: publications } = await supabase
       .from('vibe_publications')
-      .select('id, format, published_at, updated_at')
+      .select('id, format, title, description, tags, published_at, updated_at')
       .eq('status', 'published')
       .order('published_at', { ascending: false })
       .limit(1000)
 
-    const publicationRoutes: MetadataRoute.Sitemap = (publications ?? []).map((publication) => ({
-      url: publication.format === 'vibetextbook' ? `${SITE_URL}/read/textbook/${publication.id}` : `${SITE_URL}/global/read/publication/${publication.id}`,
+    const publicationRoutes: MetadataRoute.Sitemap = (publications ?? []).filter(publication => publication.format !== 'vibepress' || isPublicBlogReady(publication)).map((publication) => ({
+      url: publication.format === 'vibetextbook' ? `${SITE_URL}/read/textbook/${publication.id}` : publication.format === 'vibepress' ? `${SITE_URL}/blog/${publication.id}` : `${SITE_URL}/global/read/publication/${publication.id}`,
       lastModified: publication.updated_at ?? publication.published_at ?? undefined,
       changeFrequency: 'weekly',
       priority: publication.format === 'vibetextbook' ? 0.9 : 0.8,
     }))
 
-    return [...staticRoutes, ...publicationRoutes]
+    return [...staticRoutes, ...knowledgeRoutes, ...publicationRoutes]
   } catch {
-    return staticRoutes
+    return [...staticRoutes, ...knowledgeRoutes]
   }
 }

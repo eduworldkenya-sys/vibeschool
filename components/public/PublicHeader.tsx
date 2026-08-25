@@ -10,6 +10,7 @@ const navItems = [
   ['/product', 'Product'],
   ['/sandbox', 'Live Sandbox'],
   ['/global', 'Learn'],
+  ['/blog', 'News & Guides'],
   ['/pathways', 'Pathways'],
   ['/institutions', 'Schools'],
   ['/about', 'About'],
