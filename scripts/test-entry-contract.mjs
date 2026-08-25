@@ -25,9 +25,9 @@ const checks = [
   [parentSignup.includes("get_my_onboarding_state") && parentSignup.includes('router.replace(destination)'), 'parent signup continues through the canonical onboarding resolver'],
 
   [studentSignup.includes("'/api/create-student-account'"), 'learner signup uses the server-side account creation boundary'],
-  [studentAccountRoute.includes(".from('student_claim_codes')") && studentAccountRoute.includes(".eq('role', 'student')"), 'learner claim is validated server-side'],
-  [studentAccountRoute.includes('parent_linked_at') && studentAccountRoute.includes(".from('parent_student_links')") && studentAccountRoute.includes("code: 'guardian_required'"), 'learner credentials require an established parent or guardian connection'],
-  [studentSignup.includes('guardianRequired') && studentSignup.includes('Parent or guardian connects'), 'learner UX explains the guardian-first activation path'],
+  [studentAccountRoute.includes("rpc('lookup_student_claim'") && studentAccountRoute.includes("status !== 'ready'") && studentAccountRoute.includes("rpc('finalize_student_provisioning'"), 'learner claim is validated through the canonical server-side provisioning boundary'],
+  [studentAccountRoute.includes("case 'class_not_found'") && studentAccountRoute.includes("code: 'class_required'") && studentAccountRoute.includes('!studentId || !studentName || !schoolId'), 'learner credentials require valid school identity and class enrollment'],
+  [studentSignup.includes('parent or guardian can connect separately') && studentSignup.includes('not required before you activate'), 'learner UX explains that family linking is independent of school learner activation'],
   [roleLogin.includes("href=\"/signup/student\"") && roleLogin.includes("href=\"/signup/parent\""), 'focused sign in connects new learners and parents to direct signup'],
 
   // The selected login page is presentation/intent only. DB access state + onboarding own routing.
