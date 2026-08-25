@@ -52,6 +52,9 @@ export default function CurriculumAuthorityPage() {
   const [sourceVersion, setSourceVersion] = useState("July 2025")
   const [sourceId, setSourceId] = useState("")
   const [snapshotId, setSnapshotId] = useState("")
+  const [snapshotStatus, setSnapshotStatus] = useState("")
+  const [observationCount, setObservationCount] = useState(0)
+  const [resuming, setResuming] = useState(true)
   const [importId, setImportId] = useState(KICD_G10_CHEMISTRY_IMPORT)
   const [verificationPhrase, setVerificationPhrase] = useState("")
   const [observations, setObservations] = useState(DEFAULT_OBSERVATIONS)
@@ -71,6 +74,55 @@ export default function CurriculumAuthorityPage() {
         setSubjects(loaded)
         const chemistry = loaded.find((subject) => subject.name.trim().toLowerCase() === "chemistry")
         if (chemistry) setSubjectId(chemistry.id)
+      }
+    })()
+  }, [])
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const { data: curriculumImport, error: importError } = await hqSupabase
+          .from("curriculum_imports")
+          .select("source_ref,status")
+          .eq("id", KICD_G10_CHEMISTRY_IMPORT)
+          .maybeSingle()
+        if (importError) throw importError
+
+        const sourceRef = String(curriculumImport?.source_ref || "")
+        const resumedSnapshotId = sourceRef.startsWith("curriculum_authority_snapshot:")
+          ? sourceRef.slice("curriculum_authority_snapshot:".length)
+          : ""
+        if (!resumedSnapshotId) return
+
+        const { data: snapshot, error: snapshotError } = await hqSupabase
+          .from("curriculum_authority_snapshots")
+          .select("id,source_id,status")
+          .eq("id", resumedSnapshotId)
+          .maybeSingle()
+        if (snapshotError) throw snapshotError
+        if (!snapshot) return
+
+        const { count, error: countError } = await hqSupabase
+          .from("curriculum_authority_observations")
+          .select("id", { count: "exact", head: true })
+          .eq("snapshot_id", resumedSnapshotId)
+        if (countError) throw countError
+
+        setSourceId(String(snapshot.source_id))
+        setSnapshotId(String(snapshot.id))
+        setSnapshotStatus(String(snapshot.status))
+        setObservationCount(count || 0)
+        setResult({
+          resumed: true,
+          importStatus: String(curriculumImport?.status || ""),
+          snapshotId: String(snapshot.id),
+          snapshotStatus: String(snapshot.status),
+          observationCount: count || 0,
+        })
+      } catch (resumeError) {
+        setError(resumeError instanceof Error ? resumeError.message : String(resumeError))
+      } finally {
+        setResuming(false)
       }
     })()
   }, [])
@@ -108,6 +160,8 @@ export default function CurriculumAuthorityPage() {
     await run("artifact", async () => {
       const out = await invoke("ingest_artifact", { sourceId, artifactUrl: sourceUrl.trim() })
       setSnapshotId(String(out.snapshotId || ""))
+      setSnapshotStatus("staging")
+      setObservationCount(0)
       return out
     }).catch(() => undefined)
   }
@@ -119,7 +173,9 @@ export default function CurriculumAuthorityPage() {
       try { parsed = JSON.parse(observations) } catch { throw new Error("Observations must be valid JSON.") }
       if (!Array.isArray(parsed)) throw new Error("Observations JSON must be an array.")
       if (parsed.some((o: any) => !o?.strand?.trim?.() || !o?.sub_strand?.trim?.() || !o?.outcome_text?.trim?.())) throw new Error("Every observation needs exact strand, sub_strand and outcome_text from the source. Placeholder rows cannot be staged.")
-      return invoke("stage_observations", { snapshotId, observations: parsed })
+      const out = await invoke("stage_observations", { snapshotId, observations: parsed })
+      setObservationCount(parsed.length)
+      return out
     }).catch(() => undefined)
   }
 
@@ -213,7 +269,7 @@ export default function CurriculumAuthorityPage() {
         </section>
 
         <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between" }}><strong>2. Immutable artifact</strong><span style={badge(snapshotId ? C.green : C.muted)}>{snapshotId ? "HASHED + STORED" : "PENDING"}</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between" }}><strong>2. Immutable artifact</strong><span style={badge(snapshotId ? C.green : C.muted)}>{resuming ? "RESTORING…" : snapshotId ? `HASHED + STORED · ${snapshotStatus || "READY"}` : "PENDING"}</span></div>
           <p style={{ color:C.muted,fontSize:10.5,lineHeight:1.55 }}>The service fetches the PDF, rejects unapproved hosts/non-PDF responses, caps size, computes SHA-256 and stores bytes in a private Supabase bucket before creating a staging snapshot.</p>
           <button disabled={!!busy||!sourceId} onClick={()=>void ingestArtifact()} style={button(C.violet)}>{busy==="artifact"?"Fetching + hashing…":"Fetch, hash & retain artifact"}</button>
           {snapshotId && <div style={{ color:C.muted,fontSize:9.5,marginTop:8,wordBreak:"break-all" }}>snapshot_id: {snapshotId}</div>}
@@ -223,7 +279,7 @@ export default function CurriculumAuthorityPage() {
       <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 14, marginTop:14 }}>
         <div style={{ display:"flex",justifyContent:"space-between",gap:8,alignItems:"start" }}><div><strong>3. Source observations</strong><div style={{ color:C.muted,fontSize:10.5,marginTop:3 }}>Only exact observations transcribed/extracted from the retained artifact belong here. Empty placeholders are rejected.</div></div><span style={badge(C.blue)}>MAX 500 / REQUEST</span></div>
         <textarea value={observations} onChange={e=>setObservations(e.target.value)} spellCheck={false} style={{...input,minHeight:290,marginTop:10,fontFamily:"ui-monospace,SFMono-Regular,monospace",lineHeight:1.5}} />
-        <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginTop:10 }}><button disabled={!!busy||!snapshotId} onClick={()=>void stageObservations()} style={button(C.blue)}>{busy==="observations"?"Staging…":"Stage observations"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void sealReconcile()} style={button(C.violet)}>{busy==="seal"?"Sealing…":"Seal + reconcile"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void loadReview()} style={button(C.amber)}>{busy==="review"?"Loading…":"Load owner review"}</button></div>
+        <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginTop:10 }}><button disabled={!!busy||!snapshotId||observationCount>0} onClick={()=>void stageObservations()} style={button(C.blue)}>{busy==="observations"?"Staging…":observationCount>0?`${observationCount} observations staged`:"Stage observations"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void sealReconcile()} style={button(C.violet)}>{busy==="seal"?"Sealing…":"Seal + reconcile"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void loadReview()} style={button(C.amber)}>{busy==="review"?"Loading…":"Load owner review"}</button></div>
       </section>
 
       <section style={{ background:C.panel2,border:`1px solid ${C.line}`,borderRadius:14,padding:14,marginTop:14 }}>
