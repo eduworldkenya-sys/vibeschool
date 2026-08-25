@@ -27,7 +27,7 @@ async function hash(v:unknown){const d=await crypto.subtle.digest("SHA-256",new 
 function parse(raw:string){let v:unknown;try{v=JSON.parse(raw)}catch{throw new Error("CHEMISTRY_STAGE_MODEL_NON_JSON")};if(!v||typeof v!=="object"||Array.isArray(v))throw new Error("CHEMISTRY_STAGE_MODEL_OBJECT_REQUIRED");return v as Obj}
 function outcomes(p:Packet){return list(p.chapter.learning_outcomes).map(String).map(x=>x.trim()).filter(Boolean)}
 function candidate(p:Packet){return p.latest_artifact?rec(p.latest_artifact).content:p.chapter.blocks??[]}
-function packContent(p:Packet){return p.research_pack?rec(p.research_pack).content:null}
+function packContent(p:Packet):Obj|null{return p.research_pack?rec(rec(p.research_pack).content):null}
 function traces(a:Obj,os:string[]){const rows=list(a.outcome_trace).map(rec);return os.length>0&&os.every(o=>rows.some(r=>text(r.outcome)===o&&["concept_explanation","worked_or_concrete_example","learner_activity_or_experience","guided_practice","assessment_evidence","teacher_support","expected_learner_evidence"].every(k=>filled(r[k]))))}
 function activities(a:Obj){const rows=list(a.learner_activities).map(rec);return rows.length>0&&rows.every(r=>["instructions","materials_or_resources","expected_observation_or_outcome","teacher_check"].every(k=>filled(r[k])))}
 function assessments(a:Obj,os:string[]){const rows=list(a.assessment).map(rec);return rows.length>=6&&rows.every(r=>filled(r.question_or_task)&&filled(r.answer_or_marking_guidance)&&filled(r.evidence_of_mastery)&&os.includes(text(r.mapped_outcome)))}
