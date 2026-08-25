@@ -18,6 +18,7 @@ const badge = (accent = C.blue): React.CSSProperties => ({ display: "inline-flex
 
 const KICD_G10_PURE_SCIENCES_PAGE = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-ten/#category6"
 const KICD_G10_CHEMISTRY_PREVIEW = "https://drive.google.com/file/d/1R293rOfFoxio7GqwY-mVAolmLDnnHnQ2/preview"
+const KICD_G10_CHEMISTRY_IMPORT = "cb335e35-3460-4c16-a3d1-1fb90bf4fb16"
 const DEFAULT_OBSERVATIONS = JSON.stringify([
   {
     observation_key: "replace-with-source-locator-key",
@@ -51,6 +52,8 @@ export default function CurriculumAuthorityPage() {
   const [sourceVersion, setSourceVersion] = useState("July 2025")
   const [sourceId, setSourceId] = useState("")
   const [snapshotId, setSnapshotId] = useState("")
+  const [importId, setImportId] = useState(KICD_G10_CHEMISTRY_IMPORT)
+  const [verificationPhrase, setVerificationPhrase] = useState("")
   const [observations, setObservations] = useState(DEFAULT_OBSERVATIONS)
   const [promotionPhrase, setPromotionPhrase] = useState("")
   const [busy, setBusy] = useState("")
@@ -161,6 +164,27 @@ export default function CurriculumAuthorityPage() {
     }).catch(() => undefined)
   }
 
+  async function prepareChemistryAuthority() {
+    if (!snapshotId) return setError("Create the immutable artifact snapshot first.")
+    await run("prepare-chemistry", async () => {
+      const { data, error } = await hqSupabase.rpc("hq_prepare_grade10_chemistry_authority", {
+        p_import_id: importId.trim(), p_snapshot_id: snapshotId,
+      })
+      if (error) throw error
+      return (data || {}) as Json
+    }).catch(() => undefined)
+  }
+
+  async function verifyChemistryAuthority() {
+    if (verificationPhrase !== "VERIFY KICD CHEMISTRY") return setError("Type VERIFY KICD CHEMISTRY exactly.")
+    await run("verify-chemistry", async () => {
+      const { data, error } = await hqSupabase.rpc("hq_verify_grade10_chemistry_authority", { p_import_id: importId.trim() })
+      if (error) throw error
+      setVerificationPhrase("")
+      return (data || {}) as Json
+    }).catch(() => undefined)
+  }
+
   return <div style={{ minHeight: "100dvh", background: C.bg, color: C.text, fontFamily: "Inter,system-ui,sans-serif" }}>
     <header style={{ position: "sticky", top: 0, zIndex: 40, borderBottom: `1px solid ${C.line}`, background: "rgba(7,17,31,.96)", backdropFilter: "blur(12px)", padding: "14px 18px" }}>
       <div style={{ maxWidth: 1180, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
@@ -200,6 +224,14 @@ export default function CurriculumAuthorityPage() {
         <div style={{ display:"flex",justifyContent:"space-between",gap:8,alignItems:"start" }}><div><strong>3. Source observations</strong><div style={{ color:C.muted,fontSize:10.5,marginTop:3 }}>Only exact observations transcribed/extracted from the retained artifact belong here. Empty placeholders are rejected.</div></div><span style={badge(C.blue)}>MAX 500 / REQUEST</span></div>
         <textarea value={observations} onChange={e=>setObservations(e.target.value)} spellCheck={false} style={{...input,minHeight:290,marginTop:10,fontFamily:"ui-monospace,SFMono-Regular,monospace",lineHeight:1.5}} />
         <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginTop:10 }}><button disabled={!!busy||!snapshotId} onClick={()=>void stageObservations()} style={button(C.blue)}>{busy==="observations"?"Staging…":"Stage observations"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void sealReconcile()} style={button(C.violet)}>{busy==="seal"?"Sealing…":"Seal + reconcile"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void loadReview()} style={button(C.amber)}>{busy==="review"?"Loading…":"Load owner review"}</button></div>
+      </section>
+
+      <section style={{ background:C.panel2,border:`1px solid ${C.line}`,borderRadius:14,padding:14,marginTop:14 }}>
+        <strong>Grade 10 Chemistry authority convergence</strong>
+        <p style={{ color:C.muted,fontSize:10.5,lineHeight:1.55 }}>Preparation preserves every previous paraphrase in an audit ledger, replaces the bounded 32-row cohort with exact KICD wording, binds the retained artifact hash, and leaves every outcome unverified. Verification is a separate owner decision.</p>
+        <label style={{ fontSize:10 }}>Curriculum import</label><input value={importId} onChange={e=>setImportId(e.target.value)} style={{...input,margin:"4px 0 9px"}} />
+        <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}><button disabled={!!busy||!snapshotId} onClick={()=>void prepareChemistryAuthority()} style={button(C.violet)}>{busy==="prepare-chemistry"?"Preparing…":"Prepare exact KICD review"}</button></div>
+        <div style={{ marginTop:12,paddingTop:12,borderTop:`1px solid ${C.line}` }}><label style={{ fontSize:10,color:C.red,fontWeight:850 }}>Owner verification of source hash and all 32 exact outcomes</label><div style={{ display:"flex",gap:8,marginTop:5,flexWrap:"wrap" }}><input value={verificationPhrase} onChange={e=>setVerificationPhrase(e.target.value)} placeholder="Type VERIFY KICD CHEMISTRY" style={{...input,maxWidth:280}} /><button disabled={!!busy||verificationPhrase!=="VERIFY KICD CHEMISTRY"} onClick={()=>void verifyChemistryAuthority()} style={button(C.red)}>{busy==="verify-chemistry"?"Verifying…":"Verify KICD Chemistry authority"}</button></div></div>
       </section>
 
       <section style={{ background:C.panel2,border:`1px solid ${C.line}`,borderRadius:14,padding:14,marginTop:14 }}>
