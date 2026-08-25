@@ -41,7 +41,7 @@ export function requiredRoleForPath(pathname: string): string | null {
   const normalized = pathnameOnly(pathname)
   // Reader is a public learning surface, not a Global account dashboard.
   // This exception must remain before the broader /global role prefix.
-  if (normalized === '/global/read' || normalized.startsWith('/global/read/')) return null
+  if (normalized === '/global/paused' || normalized === '/global/read' || normalized.startsWith('/global/read/')) return null
   for (const [prefix, role] of Object.entries(PROTECTED_ROLE_PREFIXES)) {
     if (normalized === prefix || normalized.startsWith(`${prefix}/`)) return role
   }
