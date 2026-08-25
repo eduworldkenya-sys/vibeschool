@@ -1,11 +1,9 @@
 begin;
 
 -- One-time bounded convergence for the already owner-verified KICD Grade 10
--- Chemistry July 2025 cohort. Resolve the unique verified import by immutable
--- source metadata rather than generated IDs, attach its exact 32 outcomes to
--- the already owner-bound seven hierarchy rows, then invalidate reconciliation
--- so the owner can run one fresh deterministic review before final promotion.
-
+-- Chemistry July 2025 cohort. A blank reconstruction has no production cohort,
+-- so zero matching imports is an intentional no-op. If a matching cohort does
+-- exist, every production invariant below remains fail-closed.
 do $$
 declare
   v_import_id uuid;
@@ -25,6 +23,9 @@ begin
     and ci.content_sha256 ~ '^[0-9a-f]{64}$'
     and coalesce(ci.payload->>'curriculum_authority_snapshot_id','')<>'';
 
+  if v_import_count=0 then
+    return;
+  end if;
   if v_import_count<>1 then raise exception 'EXACT_ONE_VERIFIED_KICD_CHEMISTRY_IMPORT_REQUIRED'; end if;
 
   select (ci.payload->>'curriculum_authority_snapshot_id')::uuid
