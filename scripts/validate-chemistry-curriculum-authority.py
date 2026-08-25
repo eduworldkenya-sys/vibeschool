@@ -4,6 +4,7 @@ from pathlib import Path
 migration = Path('supabase/migrations/20260825090000_chemistry_curriculum_authority_binding.sql').read_text()
 reconciliation = Path('supabase/migrations/20260825114500_chemistry_curriculum_authority_reconciliation.sql').read_text()
 hierarchy_uuid_repair = Path('supabase/migrations/20260825152500_fix_curriculum_authority_uuid_min.sql').read_text()
+outcome_hierarchy_repair = Path('supabase/migrations/20260825155500_bind_verified_chemistry_outcomes_hierarchy.sql').read_text()
 
 required = [
     'source_import_id uuid',
@@ -86,5 +87,28 @@ if 'min(cs.id)' in hierarchy_uuid_repair:
 for forbidden in ['runtime_execution_enabled=true', 'heartbeat_enabled=true', "set status='published'", 'automatic_publishing=true']:
     if forbidden in hierarchy_uuid_repair:
         raise SystemExit(f'Forbidden activation detected in hierarchy repair: {forbidden}')
+
+outcome_hierarchy_required = [
+    'hq_bind_verified_grade10_chemistry_outcomes_hierarchy',
+    'VERIFIED_GRADE10_CHEMISTRY_IMPORT_REQUIRED',
+    'RECONCILED_32_OBSERVATION_SNAPSHOT_REQUIRED',
+    'EXACT_SEVEN_HIERARCHY_BINDINGS_REQUIRED',
+    'EXPECTED_32_MISSING_OUTCOMES_REQUIRED',
+    'OUTCOME_HIERARCHY_PROVENANCE_INCOMPLETE',
+    'VERIFIED_OUTCOME_COHORT_DRIFT',
+    'CHEMISTRY_HIERARCHY_BINDING_INCOMPLETE',
+    "set status='sealed',reconciled_at=null",
+    "'requires_fresh_reconciliation',true",
+    'perform public.hq_assert_owner();',
+    'grant execute on function public.hq_bind_verified_grade10_chemistry_outcomes_hierarchy(uuid,uuid)',
+]
+missing_outcome_hierarchy = [needle for needle in outcome_hierarchy_required if needle not in outcome_hierarchy_repair]
+if missing_outcome_hierarchy:
+    raise SystemExit(f'Outcome hierarchy binding invariants missing: {missing_outcome_hierarchy}')
+for forbidden in ['runtime_execution_enabled=true', 'heartbeat_enabled=true', "set status='published'", 'automatic_publishing=true', "set status='verified'"]:
+    if forbidden in outcome_hierarchy_repair:
+        raise SystemExit(f'Forbidden activation detected in outcome hierarchy repair: {forbidden}')
+if outcome_hierarchy_repair.count('perform public.hq_assert_owner();') != 1:
+    raise SystemExit('Outcome hierarchy repair must remain a single explicit owner-gated mutation')
 
 print('Chemistry canonical curriculum authority validation: PASS')
