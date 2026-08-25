@@ -8,6 +8,46 @@ begin;
 -- authorization-test: anon cannot execute any function introduced here; source
 -- verification requires hq_assert_owner; mission and publication paths fail closed.
 
+-- curriculum_imports exists in production but its original DDL was not present in
+-- the repository ledger. Reconstruct that canonical baseline before extending it,
+-- so a zero-to-current database and production converge on the same contract.
+create table if not exists public.curriculum_imports (
+  id uuid primary key default gen_random_uuid(),
+  created_by uuid not null references auth.users(id) on delete cascade,
+  source_type text not null check (source_type in ('official','publisher','teacher')),
+  authority_name text not null,
+  source_url text,
+  source_ref text,
+  curriculum_name text not null,
+  grade text not null,
+  subject text not null,
+  version_label text,
+  status text not null default 'draft' check (status in ('draft','reviewed','verified','rejected')),
+  payload jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  verified_by uuid references auth.users(id),
+  verified_at timestamptz
+);
+
+create index if not exists curriculum_imports_lookup_idx
+  on public.curriculum_imports(subject,grade,status,created_at desc);
+alter table public.curriculum_imports enable row level security;
+
+drop policy if exists curriculum_imports_owner_read on public.curriculum_imports;
+create policy curriculum_imports_owner_read on public.curriculum_imports
+  for select to authenticated using (created_by=(select auth.uid()));
+drop policy if exists curriculum_imports_owner_insert on public.curriculum_imports;
+create policy curriculum_imports_owner_insert on public.curriculum_imports
+  for insert to authenticated
+  with check (created_by=(select auth.uid()) and status in ('draft','reviewed'));
+drop policy if exists curriculum_imports_owner_update on public.curriculum_imports;
+create policy curriculum_imports_owner_update on public.curriculum_imports
+  for update to authenticated using (created_by=(select auth.uid()))
+  with check (created_by=(select auth.uid()) and status in ('draft','reviewed'));
+grant select,insert,update,delete on public.curriculum_imports to authenticated;
+grant all on public.curriculum_imports to service_role;
+
 alter table public.curriculum_imports
   add column if not exists content_sha256 text,
   add column if not exists effective_from date,
