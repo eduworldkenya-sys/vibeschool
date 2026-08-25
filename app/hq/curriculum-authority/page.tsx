@@ -63,7 +63,12 @@ export default function CurriculumAuthorityPage() {
   useEffect(() => {
     void (async () => {
       const { data, error } = await hqSupabase.from("subjects").select("id,name").is("school_id", null).order("name")
-      if (!error) {\n        const loaded = (data || []) as Subject[]\n        setSubjects(loaded)\n        const chemistry = loaded.find((subject) => subject.name.trim().toLowerCase() === "chemistry")\n        if (chemistry) setSubjectId(chemistry.id)\n      }
+      if (!error) {
+        const loaded = (data || []) as Subject[]
+        setSubjects(loaded)
+        const chemistry = loaded.find((subject) => subject.name.trim().toLowerCase() === "chemistry")
+        if (chemistry) setSubjectId(chemistry.id)
+      }
     })()
   }, [])
 
