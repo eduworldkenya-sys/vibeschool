@@ -11,6 +11,9 @@ begin;
 -- curriculum_imports exists in production but its original DDL was not present in
 -- the repository ledger. Reconstruct that canonical baseline before extending it,
 -- so a zero-to-current database and production converge on the same contract.
+-- authorization-test: public.curriculum_imports is owner-scoped by RLS; anon has
+-- no grants, authenticated access is row-scoped, and service_role is trusted only
+-- for the fail-closed mission/publication backstop.
 create table if not exists public.curriculum_imports (
   id uuid primary key default gen_random_uuid(),
   created_by uuid not null references auth.users(id) on delete cascade,
