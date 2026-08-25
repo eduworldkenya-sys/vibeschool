@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Kenya Education Hub | VibeSchool",
+  title: { absolute: "Kenya Education Hub | VibeSchool" },
   description: "Practical Kenyan education news, revision guidance, examination support and career pathways for learners, teachers and families.",
   alternates: { canonical: "/blog" },
   openGraph: {
