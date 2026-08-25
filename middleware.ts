@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { AUTH_DASHBOARDS, requiredRoleForPath, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
+import { isGlobalAccountPaused, isPausedGlobalAccountPath } from '@/lib/global-access'
 
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
 const PUBLIC_AUTH_ROUTES = new Set(['/login', '/reset-password', '/auth/forgot-password', '/auth/reset-password', '/auth/error'])
@@ -15,6 +16,13 @@ export async function middleware(request: NextRequest) {
     canonical.protocol = 'https:'
     canonical.port = ''
     return NextResponse.redirect(canonical, 308)
+  }
+
+  if (isGlobalAccountPaused() && isPausedGlobalAccountPath(pathname)) {
+    const pausedUrl = request.nextUrl.clone()
+    pausedUrl.pathname = '/global/paused'
+    pausedUrl.search = ''
+    return NextResponse.redirect(pausedUrl, 307)
   }
 
   if (pathname.startsWith('/hq')) {
