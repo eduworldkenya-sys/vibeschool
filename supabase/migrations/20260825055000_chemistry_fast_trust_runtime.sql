@@ -2,6 +2,10 @@ begin;
 
 -- P0: operationalize the Chemistry fast-trust doctrine without activating runtime,
 -- schedulers, publishing, payments, or additional worker authority.
+-- access: service-only public.chemistry_research_packs
+-- authorization-test: public.chemistry_research_packs denies public/anon/authenticated writes and permits service_role select/insert only; append-only trigger denies update/delete.
+-- access: service-only public.chemistry_coverage_snapshots
+-- authorization-test: public.chemistry_coverage_snapshots denies public/anon/authenticated writes and permits service_role select/insert only; append-only trigger denies update/delete.
 
 create table public.chemistry_research_packs (
   id uuid primary key,
