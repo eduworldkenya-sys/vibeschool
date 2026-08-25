@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1"
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,8 @@ const MAX_ARTIFACT_BYTES = 30 * 1024 * 1024
 const MAX_OBSERVATIONS_PER_REQUEST = 500
 const MAX_REDIRECTS = 8
 const MAX_HTML_BYTES = 512 * 1024
+const MAX_VIEWER_PAGES = 200
+const VIEWER_RENDER_WIDTH = 1600
 
 function hex(bytes: Uint8Array) {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("")
@@ -126,7 +129,82 @@ async function responseToPdf(response: Response, finalUrl: URL, fetchUrl: URL) {
     throw new Error(`artifact_not_pdf:${contentType.split(";")[0]}:${normalizedHost(finalUrl)}`)
   }
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
-  return { bytes, sha256: hex(digest), fetchUrl: fetchUrl.toString(), finalUrl: finalUrl.toString() }
+  return {
+    bytes,
+    sha256: hex(digest),
+    fetchUrl: fetchUrl.toString(),
+    finalUrl: finalUrl.toString(),
+    captureKind: "source_pdf" as const,
+    pageCount: null,
+  }
+}
+
+function decodeViewerUrl(value: string) {
+  return value
+    .replace(/\\u003d/gi, "=")
+    .replace(/\\u0026/gi, "&")
+    .replace(/&amp;/g, "&")
+}
+
+function parseGoogleJson(text: string) {
+  const normalized = text.replace(/^\)\]\}'\s*/, "")
+  return JSON.parse(normalized) as Record<string, unknown>
+}
+
+async function fetchGoogleDriveViewerPdf(fileId: string) {
+  const previewUrl = new URL(`https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`)
+  const preview = await fetchAllowed(previewUrl)
+  if (!preview.response.ok) throw new Error(`artifact_viewer_preview_failed:${preview.response.status}`)
+  const html = await preview.response.text()
+  if (new TextEncoder().encode(html).length > MAX_HTML_BYTES) throw new Error("artifact_viewer_preview_too_large")
+
+  const uploadMatch = html.match(/https:\/\/drive\.google\.com\/viewer\/upload\?[^"']+/i)
+  if (!uploadMatch) throw new Error("artifact_viewer_manifest_missing")
+  const uploadUrl = new URL(decodeViewerUrl(uploadMatch[0]))
+  assertAllowedArtifactUrl(uploadUrl, "artifact_viewer_host_not_allowed")
+
+  const upload = await fetchAllowed(uploadUrl)
+  if (!upload.response.ok) throw new Error(`artifact_viewer_manifest_failed:${upload.response.status}`)
+  const manifest = parseGoogleJson(await upload.response.text())
+  const metaPath = typeof manifest.meta === "string" ? manifest.meta : ""
+  const imagePath = typeof manifest.img === "string" ? manifest.img : ""
+  if (!metaPath || !imagePath) throw new Error("artifact_viewer_manifest_invalid")
+
+  const metaUrl = new URL(metaPath, "https://drive.google.com/viewer/")
+  const metaResponse = await fetchAllowed(metaUrl)
+  if (!metaResponse.response.ok) throw new Error(`artifact_viewer_metadata_failed:${metaResponse.response.status}`)
+  const metadata = parseGoogleJson(await metaResponse.response.text())
+  const pageCount = Number(metadata.pages)
+  if (!Number.isInteger(pageCount) || pageCount < 1 || pageCount > MAX_VIEWER_PAGES) {
+    throw new Error(`artifact_viewer_page_count_invalid:${pageCount}`)
+  }
+
+  const pdf = await PDFDocument.create()
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+    const pageUrl = new URL(imagePath, "https://drive.google.com/viewer/")
+    pageUrl.searchParams.set("page", String(pageIndex))
+    pageUrl.searchParams.set("w", String(VIEWER_RENDER_WIDTH))
+    const pageResponse = await fetchAllowed(pageUrl)
+    if (!pageResponse.response.ok) throw new Error(`artifact_viewer_page_failed:${pageIndex + 1}:${pageResponse.response.status}`)
+    const contentType = (pageResponse.response.headers.get("content-type") || "").toLowerCase()
+    if (!contentType.includes("image/png")) throw new Error(`artifact_viewer_page_not_png:${pageIndex + 1}`)
+    const pngBytes = new Uint8Array(await pageResponse.response.arrayBuffer())
+    const image = await pdf.embedPng(pngBytes)
+    const page = pdf.addPage([image.width, image.height])
+    page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height })
+  }
+
+  const bytes = await pdf.save({ useObjectStreams: false })
+  if (!bytes.length || bytes.length > MAX_ARTIFACT_BYTES) throw new Error("artifact_viewer_pdf_size_invalid")
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
+  return {
+    bytes,
+    sha256: hex(digest),
+    fetchUrl: previewUrl.toString(),
+    finalUrl: preview.finalUrl.toString(),
+    captureKind: "google_drive_viewer_rendered_pdf" as const,
+    pageCount,
+  }
 }
 
 async function fetchPdf(input: string) {
@@ -137,8 +215,14 @@ async function fetchPdf(input: string) {
     const confirmationUrl = await resolveGoogleDriveConfirmation(first.response.clone(), first.finalUrl, safe.fileId)
     if (confirmationUrl) {
       const confirmed = await fetchAllowed(confirmationUrl)
-      return responseToPdf(confirmed.response, confirmed.finalUrl, safe.fetchUrl)
+      try {
+        return await responseToPdf(confirmed.response, confirmed.finalUrl, safe.fetchUrl)
+      } catch (error) {
+        if (!(error instanceof Error) || !error.message.startsWith("artifact_not_pdf:")) throw error
+      }
     }
+    const contentType = (first.response.headers.get("content-type") || "").toLowerCase()
+    if (contentType.includes("text/html")) return fetchGoogleDriveViewerPdf(safe.fileId)
   }
 
   return responseToPdf(first.response, first.finalUrl, safe.fetchUrl)
@@ -205,6 +289,9 @@ Deno.serve(async (req: Request) => {
           resolved_fetch_url: artifact.fetchUrl,
           final_fetch_url: artifact.finalUrl,
           content_type: "application/pdf",
+          capture_kind: artifact.captureKind,
+          source_byte_identical: artifact.captureKind === "source_pdf",
+          viewer_page_count: artifact.pageCount,
           byte_length: artifact.bytes.length,
           sha256_verified_at: new Date().toISOString(),
           initiated_by: user.id,
