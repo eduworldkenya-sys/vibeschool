@@ -150,7 +150,15 @@ export default function CurriculumAuthorityPage() {
 
   async function invoke(action: string, body: Json) {
     const { data, error } = await hqSupabase.functions.invoke("curriculum-authority-intake", { body: { action, ...body } })
-    if (error) throw error
+    if (error) {
+      let detail = error.message || "Curriculum Authority request failed."
+      const context = (error as { context?: Response }).context
+      if (context) {
+        const payload = await context.clone().json().catch(() => null) as { error?: unknown; message?: unknown } | null
+        detail = String(payload?.error || payload?.message || detail)
+      }
+      throw new Error(detail)
+    }
     if (data?.error) throw new Error(String(data.error))
     return data as Json
   }
