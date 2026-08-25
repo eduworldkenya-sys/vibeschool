@@ -66,3 +66,23 @@ After #226 is certified and merged, #228 must be reconciled into a source-proven
 Production Supabase remains read-only for this recovery. Repository merge is capability promotion only; production migration application and real KICD artifact intake are separate controlled steps.
 
 Avoid intentional intermediate Vercel deployments. Consolidate repository updates at certification points.
+## Grade 10 KICD discovery contract — 2026-08-25
+
+KICD publishes Grade 10 designs as embedded Google Drive PDF previews grouped by learning area. For Pure Sciences, the canonical discovery page is:
+
+`https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-ten/#category6`
+
+The Grade 10 Chemistry artifact embedded by that KICD page is:
+
+`https://drive.google.com/file/d/1R293rOfFoxio7GqwY-mVAolmLDnnHnQ2/preview`
+
+The discovery page and artifact have distinct roles:
+
+- the KICD page proves authoritative discovery context and category placement;
+- the embedded PDF URL identifies the source artifact;
+- intake downloads the PDF through the allowlisted service lane, verifies the PDF signature, caps redirects and size, computes SHA-256, and retains immutable bytes;
+- normalized strands, sub-strands, outcomes, experiences, competencies, values, inquiry questions and assessment guidance must retain exact page/section locators;
+- a changed PDF hash creates a new version and requires fresh reconciliation and owner promotion; it must never silently overwrite a verified source;
+- Chemistry generation, mission execution and publication remain fail-closed until the official versioned source and all mapped outcomes are verified.
+
+This pattern is reusable for the other KICD Grade 10 categories and subjects. Do not treat the HTML category page alone as curriculum content, and do not treat a Drive title or URL alone as proof that extracted outcomes are correct.

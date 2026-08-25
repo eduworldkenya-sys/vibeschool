@@ -28,7 +28,7 @@ const checks = [
   ["owner hierarchy binding", page.includes('rpc("curriculum_authority_bind_hierarchy"')],
   ["owner final promotion", page.includes('rpc("curriculum_authority_promote_snapshot"') && page.includes('PROMOTE OFFICIAL')],
   ["placeholder observations rejected", page.includes("Placeholder rows cannot be staged")],
-  ["KICD canary evidence", page.includes("kicd.ac.ke/cbc-materials/curriculum-designs/grade-nine-designs") && page.includes("1HgntYl8nS1zydy8k00KrjEt_zJiMqISL")],
+  ["KICD Grade 10 Chemistry canary evidence", page.includes("kicd.ac.ke/cbc-materials/curriculum-designs/grade-ten/#category6") && page.includes("1R293rOfFoxio7GqwY-mVAolmLDnnHnQ2") && page.includes('parent_authority_page: KICD_G10_PURE_SCIENCES_PAGE')],
   ["HQ navigation", nav.includes('"/hq/curriculum-authority"')],
 ]
 
