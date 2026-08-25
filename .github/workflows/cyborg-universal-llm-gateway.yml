@@ -18,6 +18,7 @@ jobs:
       - run: node scripts/validate-cyborg-llm-gateway.mjs
       - run: node scripts/validate-cyborg-admission-sql.mjs
       - run: python scripts/validate-chemistry-cyborg-stage-executor.py
+      - run: python scripts/validate-chemistry-fast-trust-runtime.py
       - run: python scripts/validate-chemistry-one-click-commissioning.py
       - run: python scripts/validate-chemistry-commissioning-doc.py
       - run: python scripts/validate-chemistry-browser-execution-boundary.py
