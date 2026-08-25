@@ -1,6 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1"
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -151,7 +150,7 @@ function parseGoogleJson(text: string) {
   return JSON.parse(normalized) as Record<string, unknown>
 }
 
-async function fetchGoogleDriveViewerPdf(fileId: string) {
+async function fetchGoogleDriveViewerEvidence(db: ReturnType<typeof createClient>, sourceId: string, fileId: string) {
   const previewUrl = new URL(`https://drive.google.com/file/d/${encodeURIComponent(fileId)}/preview`)
   const preview = await fetchAllowed(previewUrl)
   if (!preview.response.ok) throw new Error(`artifact_viewer_preview_failed:${preview.response.status}`)
@@ -179,7 +178,8 @@ async function fetchGoogleDriveViewerPdf(fileId: string) {
     throw new Error(`artifact_viewer_page_count_invalid:${pageCount}`)
   }
 
-  const pdf = await PDFDocument.create()
+  const pages: Array<{ page: number; sha256: string; byte_length: number; storage_locator: string }> = []
+  let aggregateBytes = 0
   for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
     const pageUrl = new URL(imagePath, "https://drive.google.com/viewer/")
     pageUrl.searchParams.set("page", String(pageIndex))
@@ -189,25 +189,48 @@ async function fetchGoogleDriveViewerPdf(fileId: string) {
     const contentType = (pageResponse.response.headers.get("content-type") || "").toLowerCase()
     if (!contentType.includes("image/png")) throw new Error(`artifact_viewer_page_not_png:${pageIndex + 1}`)
     const pngBytes = new Uint8Array(await pageResponse.response.arrayBuffer())
-    const image = await pdf.embedPng(pngBytes)
-    const page = pdf.addPage([image.width, image.height])
-    page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height })
+    aggregateBytes += pngBytes.length
+    if (aggregateBytes > MAX_ARTIFACT_BYTES) throw new Error("artifact_viewer_pages_too_large")
+    const pageDigest = new Uint8Array(await crypto.subtle.digest("SHA-256", pngBytes))
+    const pageSha256 = hex(pageDigest)
+    const pagePath = `${sourceId}/viewer-pages/${String(pageIndex + 1).padStart(3, "0")}-${pageSha256}.png`
+    const upload = await db.storage.from("curriculum-authority-artifacts").upload(pagePath, pngBytes, {
+      contentType: "image/png",
+      cacheControl: "31536000",
+      upsert: false,
+    })
+    if (upload.error && !/already exists|duplicate/i.test(upload.error.message)) throw upload.error
+    pages.push({
+      page: pageIndex + 1,
+      sha256: pageSha256,
+      byte_length: pngBytes.length,
+      storage_locator: `curriculum-authority-artifacts/${pagePath}`,
+    })
   }
 
-  const bytes = await pdf.save({ useObjectStreams: false })
-  if (!bytes.length || bytes.length > MAX_ARTIFACT_BYTES) throw new Error("artifact_viewer_pdf_size_invalid")
+  const bytes = new TextEncoder().encode(JSON.stringify({
+    schema: "vibeschool.curriculum-viewer-evidence.v1",
+    source_file_id: fileId,
+    page_count: pageCount,
+    render_width: VIEWER_RENDER_WIDTH,
+    aggregate_page_bytes: aggregateBytes,
+    pages,
+  }))
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))
   return {
     bytes,
     sha256: hex(digest),
     fetchUrl: previewUrl.toString(),
     finalUrl: preview.finalUrl.toString(),
-    captureKind: "google_drive_viewer_rendered_pdf" as const,
+    captureKind: "google_drive_viewer_page_bundle_v1" as const,
+    contentType: "application/json",
+    extension: "json",
     pageCount,
+    aggregateBytes,
   }
 }
 
-async function fetchPdf(input: string) {
+async function fetchArtifact(db: ReturnType<typeof createClient>, sourceId: string, input: string) {
   const safe = safeArtifactUrl(input)
   const first = await fetchAllowed(safe.fetchUrl)
 
@@ -216,16 +239,18 @@ async function fetchPdf(input: string) {
     if (confirmationUrl) {
       const confirmed = await fetchAllowed(confirmationUrl)
       try {
-        return await responseToPdf(confirmed.response, confirmed.finalUrl, safe.fetchUrl)
+        const artifact = await responseToPdf(confirmed.response, confirmed.finalUrl, safe.fetchUrl)
+        return { ...artifact, contentType: "application/pdf", extension: "pdf", aggregateBytes: artifact.bytes.length }
       } catch (error) {
         if (!(error instanceof Error) || !error.message.startsWith("artifact_not_pdf:")) throw error
       }
     }
     const contentType = (first.response.headers.get("content-type") || "").toLowerCase()
-    if (contentType.includes("text/html")) return fetchGoogleDriveViewerPdf(safe.fileId)
+    if (contentType.includes("text/html")) return fetchGoogleDriveViewerEvidence(db, sourceId, safe.fileId)
   }
 
-  return responseToPdf(first.response, first.finalUrl, safe.fetchUrl)
+  const artifact = await responseToPdf(first.response, first.finalUrl, safe.fetchUrl)
+  return { ...artifact, contentType: "application/pdf", extension: "pdf", aggregateBytes: artifact.bytes.length }
 }
 
 function requiredText(value: unknown, field: string) {
@@ -268,10 +293,10 @@ Deno.serve(async (req: Request) => {
       if (!source || source.source_status !== "approved") throw new Error("source_not_approved")
       if (source.source_url !== artifactUrl) throw new Error("artifact_url_must_match_approved_source")
 
-      const artifact = await fetchPdf(artifactUrl)
-      const path = `${sourceId}/${artifact.sha256}.pdf`
+      const artifact = await fetchArtifact(db, sourceId, artifactUrl)
+      const path = `${sourceId}/${artifact.sha256}.${artifact.extension}`
       const upload = await db.storage.from("curriculum-authority-artifacts").upload(path, artifact.bytes, {
-        contentType: "application/pdf",
+        contentType: artifact.contentType,
         cacheControl: "31536000",
         upsert: false,
       })
@@ -288,11 +313,12 @@ Deno.serve(async (req: Request) => {
           fetched_from: artifactUrl,
           resolved_fetch_url: artifact.fetchUrl,
           final_fetch_url: artifact.finalUrl,
-          content_type: "application/pdf",
+          content_type: artifact.contentType,
           capture_kind: artifact.captureKind,
           source_byte_identical: artifact.captureKind === "source_pdf",
           viewer_page_count: artifact.pageCount,
           byte_length: artifact.bytes.length,
+          aggregate_evidence_bytes: artifact.aggregateBytes,
           sha256_verified_at: new Date().toISOString(),
           initiated_by: user.id,
         },
