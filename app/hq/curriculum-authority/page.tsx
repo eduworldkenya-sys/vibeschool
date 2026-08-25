@@ -81,43 +81,29 @@ export default function CurriculumAuthorityPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const { data: curriculumImport, error: importError } = await hqSupabase
-          .from("curriculum_imports")
-          .select("source_ref,status")
-          .eq("id", KICD_G10_CHEMISTRY_IMPORT)
-          .maybeSingle()
-        if (importError) throw importError
+        const { data, error: resumeError } = await hqSupabase.rpc("curriculum_authority_resume_snapshot", {
+          p_import_id: KICD_G10_CHEMISTRY_IMPORT,
+        })
+        if (resumeError) throw resumeError
+        const resumed = (data || {}) as Json
+        if (resumed.resumed !== true) return
 
-        const sourceRef = String(curriculumImport?.source_ref || "")
-        const resumedSnapshotId = sourceRef.startsWith("curriculum_authority_snapshot:")
-          ? sourceRef.slice("curriculum_authority_snapshot:".length)
-          : ""
-        if (!resumedSnapshotId) return
+        const resumedSourceId = String(resumed.source_id || "")
+        const resumedSnapshotId = String(resumed.snapshot_id || "")
+        const resumedStatus = String(resumed.snapshot_status || "")
+        const resumedObservationCount = Number(resumed.observation_count || 0)
+        if (!resumedSourceId || !resumedSnapshotId) throw new Error("Saved curriculum authority state is incomplete.")
 
-        const { data: snapshot, error: snapshotError } = await hqSupabase
-          .from("curriculum_authority_snapshots")
-          .select("id,source_id,status")
-          .eq("id", resumedSnapshotId)
-          .maybeSingle()
-        if (snapshotError) throw snapshotError
-        if (!snapshot) return
-
-        const { count, error: countError } = await hqSupabase
-          .from("curriculum_authority_observations")
-          .select("id", { count: "exact", head: true })
-          .eq("snapshot_id", resumedSnapshotId)
-        if (countError) throw countError
-
-        setSourceId(String(snapshot.source_id))
-        setSnapshotId(String(snapshot.id))
-        setSnapshotStatus(String(snapshot.status))
-        setObservationCount(count || 0)
+        setSourceId(resumedSourceId)
+        setSnapshotId(resumedSnapshotId)
+        setSnapshotStatus(resumedStatus)
+        setObservationCount(resumedObservationCount)
         setResult({
           resumed: true,
-          importStatus: String(curriculumImport?.status || ""),
-          snapshotId: String(snapshot.id),
-          snapshotStatus: String(snapshot.status),
-          observationCount: count || 0,
+          importStatus: String(resumed.import_status || ""),
+          snapshotId: resumedSnapshotId,
+          snapshotStatus: resumedStatus,
+          observationCount: resumedObservationCount,
         })
       } catch (resumeError) {
         setError(resumeError instanceof Error ? resumeError.message : String(resumeError))
