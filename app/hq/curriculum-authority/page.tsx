@@ -16,20 +16,20 @@ const input: React.CSSProperties = { width: "100%", boxSizing: "border-box", bor
 const button = (accent = C.blue): React.CSSProperties => ({ border: `1px solid ${accent}55`, background: `${accent}16`, color: accent, borderRadius: 10, padding: "9px 11px", fontWeight: 850, fontSize: 11, cursor: "pointer" })
 const badge = (accent = C.blue): React.CSSProperties => ({ display: "inline-flex", border: `1px solid ${accent}45`, background: `${accent}14`, color: accent, borderRadius: 999, padding: "4px 8px", fontSize: 9.5, fontWeight: 900 })
 
-const KICD_G9_PAGE = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-nine-designs/"
-const KICD_G9_MATH_PREVIEW = "https://drive.google.com/file/d/1HgntYl8nS1zydy8k00KrjEt_zJiMqISL/preview"
+const KICD_G10_PURE_SCIENCES_PAGE = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-ten/#category6"
+const KICD_G10_CHEMISTRY_PREVIEW = "https://drive.google.com/file/d/1R293rOfFoxio7GqwY-mVAolmLDnnHnQ2/preview"
 const DEFAULT_OBSERVATIONS = JSON.stringify([
   {
     observation_key: "replace-with-source-locator-key",
     curriculum_framework: "CBC",
-    grade: "Grade 9",
-    subject_label: "Mathematics",
+    grade: "Grade 10",
+    subject_label: "Chemistry",
     strand: "",
     sub_strand: "",
     topic: null,
     outcome_text: "",
     outcome_code: null,
-    source_locator: "Mathematics Grade 9 - July 2024 - Revised.pdf",
+    source_locator: "Chemistry Grade 10 - July 2025.pdf",
     source_page: null,
     source_section: null,
     competencies: [],
@@ -46,9 +46,9 @@ export default function CurriculumAuthorityPage() {
   const [subjectId, setSubjectId] = useState("f430f8b3-9d8d-4845-8904-a3e597191ab6")
   const [authorityName, setAuthorityName] = useState("Kenya Institute of Curriculum Development (KICD)")
   const [framework, setFramework] = useState("CBC")
-  const [grade, setGrade] = useState("Grade 9")
-  const [sourceUrl, setSourceUrl] = useState(KICD_G9_MATH_PREVIEW)
-  const [sourceVersion, setSourceVersion] = useState("July 2024 Revised")
+  const [grade, setGrade] = useState("Grade 10")
+  const [sourceUrl, setSourceUrl] = useState(KICD_G10_CHEMISTRY_PREVIEW)
+  const [sourceVersion, setSourceVersion] = useState("July 2025")
   const [sourceId, setSourceId] = useState("")
   const [snapshotId, setSnapshotId] = useState("")
   const [observations, setObservations] = useState(DEFAULT_OBSERVATIONS)
@@ -58,12 +58,12 @@ export default function CurriculumAuthorityPage() {
   const [result, setResult] = useState<Json | null>(null)
   const [review, setReview] = useState<Json | null>(null)
 
-  const selectedSubject = useMemo(() => subjects.find(s => s.id === subjectId)?.name || "Mathematics", [subjects, subjectId])
+  const selectedSubject = useMemo(() => subjects.find(s => s.id === subjectId)?.name || "Chemistry", [subjects, subjectId])
 
   useEffect(() => {
     void (async () => {
       const { data, error } = await hqSupabase.from("subjects").select("id,name").is("school_id", null).order("name")
-      if (!error) setSubjects((data || []) as Subject[])
+      if (!error) {\n        const loaded = (data || []) as Subject[]\n        setSubjects(loaded)\n        const chemistry = loaded.find((subject) => subject.name.trim().toLowerCase() === "chemistry")\n        if (chemistry) setSubjectId(chemistry.id)\n      }
     })()
   }, [])
 
@@ -80,7 +80,7 @@ export default function CurriculumAuthorityPage() {
         p_authority_name: authorityName.trim(), p_curriculum_framework: framework.trim(), p_grade: grade.trim(),
         p_canonical_subject_id: subjectId, p_source_url: sourceUrl.trim(), p_source_version: sourceVersion.trim(),
         p_source_published_on: null,
-        p_metadata: { parent_authority_page: KICD_G9_PAGE, source_title: `${selectedSubject} ${grade} - ${sourceVersion}`, intake_surface: "/hq/curriculum-authority" },
+        p_metadata: { parent_authority_page: KICD_G10_PURE_SCIENCES_PAGE, source_title: `${selectedSubject} ${grade} - ${sourceVersion}`, intake_surface: "/hq/curriculum-authority" },
       })
       if (error) throw error
       setSourceId(String(data))
@@ -173,13 +173,13 @@ export default function CurriculumAuthorityPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 14 }}>
         <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}><strong>1. Owner-approved source</strong><span style={badge(sourceId ? C.green : C.muted)}>{sourceId ? "REGISTERED" : "PENDING"}</span></div>
-          <div style={{ color: C.muted, fontSize: 10.5, margin: "4px 0 12px" }}>Canary defaults to the official KICD Grade 9 Mathematics July 2024 revised document embedded by KICD.</div>
+          <div style={{ color: C.muted, fontSize: 10.5, margin: "4px 0 12px" }}>Canary defaults to the official KICD Grade 10 Chemistry July 2025 document embedded in KICD’s Pure Sciences category. The KICD page is discovery evidence; the embedded PDF is the immutable curriculum artifact.</div>
           <label style={{ fontSize: 10 }}>Authority</label><input value={authorityName} onChange={e=>setAuthorityName(e.target.value)} style={{...input,margin:"4px 0 9px"}} />
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}><div><label style={{fontSize:10}}>Framework</label><input value={framework} onChange={e=>setFramework(e.target.value)} style={{...input,marginTop:4}} /></div><div><label style={{fontSize:10}}>Grade</label><input value={grade} onChange={e=>setGrade(e.target.value)} style={{...input,marginTop:4}} /></div></div>
           <label style={{ fontSize: 10, display:"block",marginTop:9 }}>Canonical subject</label><select value={subjectId} onChange={e=>setSubjectId(e.target.value)} style={{...input,marginTop:4}}>{subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>
           <label style={{ fontSize: 10, display:"block",marginTop:9 }}>Artifact/source URL</label><input value={sourceUrl} onChange={e=>setSourceUrl(e.target.value)} style={{...input,marginTop:4}} />
           <label style={{ fontSize: 10, display:"block",marginTop:9 }}>Source version</label><input value={sourceVersion} onChange={e=>setSourceVersion(e.target.value)} style={{...input,marginTop:4}} />
-          <div style={{ display:"flex",gap:8,marginTop:11,flexWrap:"wrap" }}><button disabled={!!busy} onClick={()=>void registerSource()} style={button(C.green)}>{busy==="register"?"Registering…":"Register approved source"}</button><a href={KICD_G9_PAGE} target="_blank" rel="noreferrer" style={{...button(C.blue),textDecoration:"none"}}>Open KICD evidence</a></div>
+          <div style={{ display:"flex",gap:8,marginTop:11,flexWrap:"wrap" }}><button disabled={!!busy} onClick={()=>void registerSource()} style={button(C.green)}>{busy==="register"?"Registering…":"Register approved source"}</button><a href={KICD_G10_PURE_SCIENCES_PAGE} target="_blank" rel="noreferrer" style={{...button(C.blue),textDecoration:"none"}}>Open KICD Grade 10 evidence</a></div>
           {sourceId && <div style={{ color:C.muted,fontSize:9.5,marginTop:8,wordBreak:"break-all" }}>source_id: {sourceId}</div>}
         </section>
 
