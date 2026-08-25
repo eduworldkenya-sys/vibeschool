@@ -9,6 +9,8 @@ import { GlobalBottomNav } from '@/components/global/layout/GlobalBottomNav'
 
 const HIDE_SHELL_PATHS = [
   '/global/signup',
+  '/global/read',
+  '/global/paused',
 ]
 
 export function GlobalShellProvider({ children }: { children: React.ReactNode }) {
