@@ -2,6 +2,7 @@
 from pathlib import Path
 
 migration = Path('supabase/migrations/20260825090000_chemistry_curriculum_authority_binding.sql').read_text()
+reconciliation = Path('supabase/migrations/20260825114500_chemistry_curriculum_authority_reconciliation.sql').read_text()
 
 required = [
     'source_import_id uuid',
@@ -45,5 +46,27 @@ if "grant execute on function public.chemistry_curriculum_authority_snapshot(uui
     raise SystemExit('Mission execution requires service-only curriculum snapshot access')
 if "grant execute on function public.chemistry_curriculum_authority_snapshot(uuid,boolean) to authenticated" in migration:
     raise SystemExit('Raw authority snapshot must not become a client mutation surface')
+
+reconciliation_required = [
+    'curriculum_outcome_reconciliation_audit',
+    'hq_prepare_grade10_chemistry_authority',
+    'hq_verify_grade10_chemistry_authority',
+    'CHEMISTRY_OUTCOME_COHORT_DRIFT',
+    'EXACT_APPROVED_KICD_CHEMISTRY_ARTIFACT_REQUIRED',
+    "'verified',false",
+    "v_updated<>32",
+    "v_count<>32",
+    'grant execute on function public.hq_prepare_grade10_chemistry_authority(uuid,uuid)',
+]
+missing_reconciliation = [needle for needle in reconciliation_required if needle not in reconciliation]
+if missing_reconciliation:
+    raise SystemExit(f'Chemistry reconciliation invariants missing: {missing_reconciliation}')
+if reconciliation.count("('CHEM-G10-") != 32:
+    raise SystemExit('Exact KICD outcome ledger must contain 32 coded outcomes')
+for forbidden in ['runtime_execution_enabled=true', 'heartbeat_enabled=true', "set status='published'", 'automatic_publishing=true']:
+    if forbidden in reconciliation:
+        raise SystemExit(f'Forbidden activation detected in reconciliation: {forbidden}')
+if reconciliation.count('perform public.hq_assert_owner();') != 2:
+    raise SystemExit('Preparation and verification must both remain owner-gated')
 
 print('Chemistry canonical curriculum authority validation: PASS')
