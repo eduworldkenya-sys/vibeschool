@@ -3,6 +3,7 @@ from pathlib import Path
 
 migration = Path('supabase/migrations/20260825090000_chemistry_curriculum_authority_binding.sql').read_text()
 reconciliation = Path('supabase/migrations/20260825114500_chemistry_curriculum_authority_reconciliation.sql').read_text()
+hierarchy_uuid_repair = Path('supabase/migrations/20260825152500_fix_curriculum_authority_uuid_min.sql').read_text()
 
 required = [
     'source_import_id uuid',
@@ -68,5 +69,22 @@ for forbidden in ['runtime_execution_enabled=true', 'heartbeat_enabled=true', "s
         raise SystemExit(f'Forbidden activation detected in reconciliation: {forbidden}')
 if reconciliation.count('perform public.hq_assert_owner();') != 2:
     raise SystemExit('Preparation and verification must both remain owner-gated')
+
+hierarchy_repair_required = [
+    'curriculum_authority_bind_hierarchy',
+    '(array_agg(cs.id order by cs.id))[1]',
+    'ambiguous_unpaced_cbc_hierarchy',
+    "'pacing_authority',false",
+    'perform public.hq_assert_owner();',
+    'grant execute on function public.curriculum_authority_bind_hierarchy(uuid) to authenticated',
+]
+missing_hierarchy_repair = [needle for needle in hierarchy_repair_required if needle not in hierarchy_uuid_repair]
+if missing_hierarchy_repair:
+    raise SystemExit(f'Hierarchy UUID repair invariants missing: {missing_hierarchy_repair}')
+if 'min(cs.id)' in hierarchy_uuid_repair:
+    raise SystemExit('Hierarchy binding must not call unsupported min(uuid)')
+for forbidden in ['runtime_execution_enabled=true', 'heartbeat_enabled=true', "set status='published'", 'automatic_publishing=true']:
+    if forbidden in hierarchy_uuid_repair:
+        raise SystemExit(f'Forbidden activation detected in hierarchy repair: {forbidden}')
 
 print('Chemistry canonical curriculum authority validation: PASS')
