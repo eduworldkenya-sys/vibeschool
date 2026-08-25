@@ -1,6 +1,7 @@
 import fs from "node:fs"
 
 const migration = fs.readFileSync("supabase/migrations/20260818133000_curriculum_authority_operator_intake_v1.sql", "utf8")
+const resumeMigration = fs.readFileSync("supabase/migrations/20260825145000_curriculum_authority_owner_resume.sql", "utf8")
 const fn = fs.readFileSync("supabase/functions/curriculum-authority-intake/index.ts", "utf8")
 const page = fs.readFileSync("app/hq/curriculum-authority/page.tsx", "utf8")
 const nav = fs.readFileSync("components/hq/HQShell.tsx", "utf8")
@@ -27,6 +28,10 @@ const checks = [
   ["service seals/reconciles only", fn.includes('rpc("curriculum_authority_seal_snapshot"') && fn.includes('rpc("curriculum_authority_reconcile_snapshot"') && !fn.includes('rpc("curriculum_authority_promote_snapshot"') && !fn.includes('rpc("curriculum_authority_bind_hierarchy"')],
   ["bounded error disclosure", fn.includes("safeMessage") && fn.includes("slice(0, 500)") && fn.includes("code: safeMessage.split")],
   ["HQ isolated client", page.includes('from "@/lib/hq/supabase"') && !page.includes('from "@/lib/supabase"')],
+  ["refresh uses owner resume RPC", page.includes('rpc("curriculum_authority_resume_snapshot"')],
+  ["refresh never directly reads service evidence", !page.includes('.from("curriculum_authority_snapshots")') && !page.includes('.from("curriculum_authority_observations")')],
+  ["resume RPC is owner-gated", resumeMigration.includes("perform public.hq_assert_owner()") && resumeMigration.includes("security definer")],
+  ["resume RPC preserves service-only tables", resumeMigration.includes("revoke all on function public.curriculum_authority_resume_snapshot(uuid) from public, anon") && resumeMigration.includes("grant execute on function public.curriculum_authority_resume_snapshot(uuid) to authenticated")],
   ["owner source registration", page.includes('rpc("curriculum_authority_register_source"')],
   ["owner hierarchy binding", page.includes('rpc("curriculum_authority_bind_hierarchy"')],
   ["owner final promotion", page.includes('rpc("curriculum_authority_promote_snapshot"') && page.includes('PROMOTE OFFICIAL')],
