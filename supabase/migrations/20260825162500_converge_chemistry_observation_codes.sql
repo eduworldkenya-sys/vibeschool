@@ -45,8 +45,8 @@ begin
    and clo.sub_strand_id is null
    and clo.outcome_code =
        'CHEM-G10-' || upper(regexp_replace(o.outcome_code,'\.([^.]+)$','-\1'))
-   and public.curriculum_authority_normalize_text(clo.outcome_text)=
-       public.curriculum_authority_normalize_text(o.outcome_text)
+   and public.curriculum_authority_normalize_text(trim(trailing '.' from clo.outcome_text))=
+       public.curriculum_authority_normalize_text(trim(trailing '.' from o.outcome_text))
   where r.snapshot_id=v_snapshot_id and r.classification='missing_outcome';
 
   if v_matches<>32 then raise exception 'EXACT_32_CODE_AND_TEXT_MATCHES_REQUIRED'; end if;
@@ -65,8 +65,8 @@ begin
     and clo.sub_strand_id is null
     and clo.outcome_code =
         'CHEM-G10-' || upper(regexp_replace(o.outcome_code,'\.([^.]+)$','-\1'))
-    and public.curriculum_authority_normalize_text(clo.outcome_text)=
-        public.curriculum_authority_normalize_text(o.outcome_text);
+    and public.curriculum_authority_normalize_text(trim(trailing '.' from clo.outcome_text))=
+        public.curriculum_authority_normalize_text(trim(trailing '.' from o.outcome_text));
   get diagnostics v_updated=row_count;
   if v_updated<>32 then raise exception 'CHEMISTRY_CODE_CONVERGENCE_INCOMPLETE'; end if;
 
