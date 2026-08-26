@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Exact-head regression guard for the production Chemistry Cyborg registration repair.
 migration = Path('supabase/migrations/20260826112000_chemistry_cyborg_registration_read_only_attempt.sql').read_text()
 required = [
     "v_old text := E'where id=p_source_authority_ref::uuid\\n      for update;'",
