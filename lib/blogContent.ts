@@ -24,6 +24,12 @@ export type PublishedBlogStory = {
 }
 
 const ARTICLE_FIELDS = 'id,title,subtitle,description,cover_url,genre,tags,language,published_at,updated_at'
+const EDITORIAL_DESKS: Record<string, string> = {
+  'desk:editorial': 'VibeSchool Editorial',
+  'desk:education': 'VibeSchool Education Desk',
+  'desk:parent': 'VibeSchool Parent Desk',
+  'desk:student': 'VibeSchool Student Desk',
+}
 const BLOCK_TYPES: string[] = [
   'paragraph','heading1','heading2','heading3','quote','bulletList','numberedList','image','diagram','table','equation',
   'video','audio','model3d','simulation','divider','callout','definition','example','workedExample','summary','keyPoints','code',
@@ -32,6 +38,14 @@ const BLOCK_TYPES: string[] = [
 
 export function isPublicBlogReady(article: Pick<PublishedBlogArticle,'title'|'description'> & {tags:string[]|null}){
   return Boolean(article.title?.trim()&&article.title.trim().length>=12&&article.description?.trim()&&article.description.trim().length>=60&&(article.tags??[]).some(tag=>tag.trim()))
+}
+
+export function resolveEditorialByline(article: Pick<PublishedBlogArticle,'tags'>, profileName?: string | null) {
+  for (const tag of article.tags ?? []) {
+    const desk = EDITORIAL_DESKS[tag.trim().toLowerCase()]
+    if (desk) return desk
+  }
+  return profileName?.trim() || 'VibeSchool Editorial'
 }
 
 export const listPublishedBlogArticles = cache(async (): Promise<PublishedBlogArticle[]> => {
@@ -76,7 +90,7 @@ export const getPublishedBlogStory = cache(async (id: string): Promise<Published
     return {
       publication: publication as PublishedBlogArticle,
       chapters,
-      authorName: profileResult.data?.full_name?.trim() || 'VibeSchool Editorial',
+      authorName: resolveEditorialByline(publication as PublishedBlogArticle, profileResult.data?.full_name),
     }
   } catch {
     return null
