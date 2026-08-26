@@ -23,6 +23,7 @@ export type PublishedBlogStory = {
   authorName: string
 }
 
+const SITE_URL = 'https://vibeschool.co.ke'
 const ARTICLE_FIELDS = 'id,title,subtitle,description,cover_url,genre,tags,language,published_at,updated_at'
 const BLOCK_TYPES: string[] = [
   'paragraph','heading1','heading2','heading3','quote','bulletList','numberedList','image','diagram','table','equation',
@@ -32,6 +33,12 @@ const BLOCK_TYPES: string[] = [
 
 export function isPublicBlogReady(article: Pick<PublishedBlogArticle,'title'|'description'> & {tags:string[]|null}){
   return Boolean(article.title?.trim()&&article.title.trim().length>=12&&article.description?.trim()&&article.description.trim().length>=60&&(article.tags??[]).some(tag=>tag.trim()))
+}
+
+function withCoverFallback(article: PublishedBlogArticle): PublishedBlogArticle {
+  const storedCover = article.cover_url?.trim()
+  if (storedCover) return article
+  return { ...article, cover_url: `${SITE_URL}/api/blog-cover/${article.id}` }
 }
 
 export const listPublishedBlogArticles = cache(async (): Promise<PublishedBlogArticle[]> => {
@@ -44,7 +51,7 @@ export const listPublishedBlogArticles = cache(async (): Promise<PublishedBlogAr
       .order('published_at', { ascending: false })
       .limit(60)
     if (error) throw error
-    return ((data ?? []) as PublishedBlogArticle[]).filter(isPublicBlogReady)
+    return ((data ?? []) as PublishedBlogArticle[]).filter(isPublicBlogReady).map(withCoverFallback)
   } catch {
     return []
   }
@@ -74,7 +81,7 @@ export const getPublishedBlogStory = cache(async (id: string): Promise<Published
       reading_time_min: chapter.reading_time_min,
     }))
     return {
-      publication: publication as PublishedBlogArticle,
+      publication: withCoverFallback(publication as PublishedBlogArticle),
       chapters,
       authorName: profileResult.data?.full_name?.trim() || 'VibeSchool Editorial',
     }
