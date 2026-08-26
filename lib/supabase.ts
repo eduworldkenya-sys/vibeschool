@@ -30,7 +30,7 @@ export function getSupabaseClient() {
   // unrelated application client, producing RLS failures such as VibePress
   // "Load failed".
   if (typeof window !== 'undefined' && window.location.pathname.startsWith('/hq')) {
-    return getHQSupabaseClient() as unknown as TypedBrowserClient
+    return getHQSupabaseClient()
   }
   if (!client) client = createSupabaseClient()
   return client
