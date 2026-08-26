@@ -12,7 +12,8 @@ const navItems = [
   ['/global', 'Learn'],
   ['/blog', 'News & Guides'],
   ['/pathways', 'Pathways'],
-  ['/schools', 'Schools'],
+  ['/schools', 'Find Schools'],
+  ['/institutions', 'For Schools'],
   ['/about', 'About'],
   ['/contact', 'Contact'],
 ] as const
