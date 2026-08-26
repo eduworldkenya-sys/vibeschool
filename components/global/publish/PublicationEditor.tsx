@@ -184,6 +184,8 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
     </div>
   )
 
+  const publishedReadOnly = publication.status === 'published'
+
   return (
     <div style={{
       minHeight: '100dvh', background: BG,
@@ -298,24 +300,27 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 11, color: saving ? ACCENT : MUTED, fontWeight: 600 }}>
-            {saveLabel}
+            {publishedReadOnly ? 'Published · read only' : saveLabel}
           </span>
-          <button onClick={() => setSetupOpen(true)} style={{
-            background: SURF, border: '1px solid ' + BORDER,
-            borderRadius: 8, padding: '6px 12px',
-            color: TEXT, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-          }}>
-            Setup
+          <button
+            onClick={() => { if (!publishedReadOnly) setSetupOpen(true) }}
+            disabled={publishedReadOnly}
+            style={{
+              background: SURF, border: '1px solid ' + BORDER,
+              borderRadius: 8, padding: '6px 12px',
+              color: publishedReadOnly ? MUTED : TEXT, fontSize: 12, fontWeight: 700,
+              cursor: publishedReadOnly ? 'default' : 'pointer',
+            }}
+          >
+            {publishedReadOnly ? 'Live' : 'Setup'}
           </button>
-          <button onClick={handlePublish} disabled={publishing} style={{
-            background: publishing ? 'rgba(204,255,0,0.5)' : ACCENT,
+          <button onClick={handlePublish} disabled={publishing || publishedReadOnly} style={{
+            background: publishing || publishedReadOnly ? 'rgba(204,255,0,0.35)' : ACCENT,
             color: '#090D16', border: 'none', borderRadius: 10,
             padding: '7px 16px', fontSize: 13, fontWeight: 800,
-            cursor: publishing ? 'not-allowed' : 'pointer',
+            cursor: publishing || publishedReadOnly ? 'default' : 'pointer',
           }}>
-            {publication.status === 'published'
-              ? (publishing ? 'Updating…' : 'Update')
-              : (publishing ? 'Publishing…' : 'Publish')}
+            {publishedReadOnly ? 'Published' : publishing ? 'Publishing…' : 'Publish'}
           </button>
         </div>
       </header>
@@ -339,6 +344,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         <input
           ref={titleInputRef}
           value={publication.title || ''}
+          readOnly={publishedReadOnly}
           onChange={e => {
             updatePublication({ title: e.target.value })
             if (e.target.value.trim()) setTitleError(false)
@@ -362,6 +368,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
 
         <input
           value={publication.subtitle || ''}
+          readOnly={publishedReadOnly}
           onChange={e => updatePublication({ subtitle: e.target.value })}
           placeholder="Subtitle (optional)"
           style={{
@@ -382,6 +389,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
             </div>
             <input
               value={activeChapter.title || ''}
+              readOnly={publishedReadOnly}
               onChange={e => updateChapterTitle(activeChapter.id, e.target.value)}
               placeholder={`${meta.chapterLabel} title`}
               style={{
@@ -394,17 +402,19 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
             <div style={{ fontSize: 11, color: MUTED, marginBottom: 16 }}>
               {activeChapter.word_count.toLocaleString()} words · {activeChapter.reading_time_min} min read
             </div>
-            <button
-              onClick={() => setOutcomesOpen(true)}
-              style={{
-                background: SURF, border: '1px solid ' + BORDER,
-                borderRadius: 8, padding: '6px 12px', marginBottom: 16,
-                color: TEXT, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-              }}
-            >
-              🎯 Curriculum Outcomes
-            </button>
+            {!publishedReadOnly && (
+              <button
+                onClick={() => setOutcomesOpen(true)}
+                style={{
+                  background: SURF, border: '1px solid ' + BORDER,
+                  borderRadius: 8, padding: '6px 12px', marginBottom: 16,
+                  color: TEXT, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                🎯 Curriculum Outcomes
+              </button>
+            )}
             <div style={{ borderTop: '1px solid ' + BORDER, marginBottom: 16 }} />
           </>
         )}
@@ -413,12 +423,12 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         {activeChapter && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {activeChapter.blocks.length === 0 ? (
-              <div onClick={() => addBlock('paragraph')} style={{
+              <div onClick={() => { if (!publishedReadOnly) addBlock('paragraph') }} style={{
                 border: '2px dashed ' + BORDER, borderRadius: 12,
                 padding: '36px 16px', textAlign: 'center',
-                cursor: 'pointer', color: MUTED, fontSize: 14,
+                cursor: publishedReadOnly ? 'default' : 'pointer', color: MUTED, fontSize: 14,
               }}>
-                Tap to start writing…
+                {publishedReadOnly ? 'No content in this chapter.' : 'Tap to start writing…'}
               </div>
             ) : (
               activeChapter.blocks.map(block => (
@@ -426,6 +436,7 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
                   key={block.id}
                   block={block}
                   format={format}
+                  readOnly={publishedReadOnly}
                   isFocused={focusedBlockId === block.id}
                   onFocus={() => setFocusedBlockId(block.id)}
                   onUpdate={updated => updateBlock(updated.id, updated.content, updated.meta)}
@@ -439,33 +450,37 @@ export function PublicationEditor({ authorId, format, publicationId }: Props) {
         )}
       </main>
 
-      <BlockToolbar
-        format={format}
-        onAddBlock={type => addBlock(type, focusedBlockId ?? undefined)}
-      />
+      {!publishedReadOnly && (
+        <BlockToolbar
+          format={format}
+          onAddBlock={type => addBlock(type, focusedBlockId ?? undefined)}
+        />
+      )}
 
       <ChapterSidebar
         format={format}
         chapters={chapters}
         activeChapterId={activeChapterId}
         onSelectChapter={setActiveChapterId}
-        onAddChapter={addChapter}
-        onDeleteChapter={deleteChapter}
-        onTitleChange={updateChapterTitle}
-        onStatusChange={updateChapterStatus}
+        onAddChapter={publishedReadOnly ? () => undefined : addChapter}
+        onDeleteChapter={publishedReadOnly ? () => undefined : deleteChapter}
+        onTitleChange={publishedReadOnly ? () => undefined : updateChapterTitle}
+        onStatusChange={publishedReadOnly ? () => undefined : updateChapterStatus}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
-      <PublicationSetupDrawer
-        publication={publication}
-        isOpen={setupOpen}
-        onClose={() => setSetupOpen(false)}
-        onUpdate={updatePublication}
-        onPublish={async () => { const ok = await publishPublication(); return ok }}
-      />
+      {!publishedReadOnly && (
+        <PublicationSetupDrawer
+          publication={publication}
+          isOpen={setupOpen}
+          onClose={() => setSetupOpen(false)}
+          onUpdate={updatePublication}
+          onPublish={async () => { const ok = await publishPublication(); return ok }}
+        />
+      )}
 
-      {activeChapter && (
+      {activeChapter && !publishedReadOnly && (
         <OutcomeSelector
           isOpen={outcomesOpen}
           onClose={() => setOutcomesOpen(false)}
