@@ -5,7 +5,12 @@ begin;
 -- deterministic: each chapter title must match exactly one promoted KICD
 -- sub-strand, and every promoted outcome must be mapped exactly once.
 -- No curriculum source, verified outcome, or publication content is mutated.
-
+--
+-- Clean reconstruction note: repository reconstruction is schema-only and does
+-- not contain production publication/import rows. In that specific case this
+-- data reconciliation is an intentional no-op. If either production identity is
+-- present, the migration fails closed unless the complete verified authority
+-- contract is present, preventing silent partial reconciliation.
 do $$
 declare
   v_publication_id constant uuid := '28791ef6-c87b-454e-b941-0c3c05a3fb1b';
@@ -16,6 +21,15 @@ declare
   v_mapped integer;
   v_linked_chapters integer;
 begin
+  if not exists (select 1 from public.vibe_publications p where p.id=v_publication_id)
+     and not exists (select 1 from public.curriculum_imports i where i.id=v_import_id) then
+    return;
+  end if;
+
+  if not exists (select 1 from public.vibe_publications p where p.id=v_publication_id) then
+    raise exception 'CHEMISTRY_PUBLICATION_REQUIRED';
+  end if;
+
   if not exists (
     select 1 from public.curriculum_imports i
     where i.id=v_import_id
