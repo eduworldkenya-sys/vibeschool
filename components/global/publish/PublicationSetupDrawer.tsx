@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createBrowserClient } from '@supabase/ssr'
 import {
   VibePublication, PricingModel,
   PublicationGenre, CBCSubject, CBCGrade,
   FORMAT_META,
 } from '@/lib/publishTypes'
+import { parseDraftMediaRef, removeVibePressMedia, resolveVibePressMediaUrl, uploadDraftMedia, validateVibePressImage } from '@/lib/vibepressMedia'
 
 const SURF   = '#111827'
 const CARD   = '#1a2235'
@@ -45,11 +46,11 @@ const CBC_SUBJECTS: { value: CBCSubject; label: string }[] = [
   { value: 'science',            label: 'Science & Tech'     },
   { value: 'biology',            label: 'Biology'            },
   { value: 'chemistry',          label: 'Chemistry'          },
-  { value: 'physics',            label: 'Physics'            },
-  { value: 'social_studies',     label: 'Social Studies'     },
-  { value: 'creative_arts',      label: 'Creative Arts'      },
-  { value: 'physical_education', label: 'Physical Education' },
-  { value: 'religious_education',label: 'Religious Ed.'      },
+  { value: 'physics',            label: 'Physics'             },
+  { value: 'social_studies',     label: 'Social Studies'      },
+  { value: 'creative_arts',      label: 'Creative Arts'       },
+  { value: 'physical_education', label: 'Physical Education'  },
+  { value: 'religious_education',label: 'Religious Ed.'       },
   { value: 'other',              label: 'Other'               },
 ]
 
@@ -78,7 +79,28 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
   const [tagInput,      setTagInput]      = useState('')
   const [priceInput,    setPriceInput]    = useState('')
   const [validErr,      setValidErr]      = useState<string | null>(null)
+  const [coverPreview,  setCoverPreview]  = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!publication.cover_url) {
+      setCoverPreview(null)
+      return () => { cancelled = true }
+    }
+    if (!parseDraftMediaRef(publication.cover_url)) {
+      setCoverPreview(publication.cover_url)
+      return () => { cancelled = true }
+    }
+    const sb = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    void resolveVibePressMediaUrl(sb, publication.cover_url)
+      .then(url => { if (!cancelled) setCoverPreview(url) })
+      .catch(() => { if (!cancelled) setValidErr('Draft cover preview could not be loaded.') })
+    return () => { cancelled = true }
+  }, [publication.cover_url])
 
   if (!isOpen) return null
 
@@ -88,11 +110,9 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
   const uploadCover = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const rawExt = file.name.includes('.') ? file.name.split('.').pop() : undefined
-    const ext    = rawExt ? rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') : 'png'
-    if (!['jpg','jpeg','png','gif','webp'].includes(ext)) return
-    if (file.size > 5 * 1024 * 1024) {
-      setValidErr('Cover image must be 5 MB or smaller.')
+    const validationError = validateVibePressImage(file)
+    if (validationError) {
+      setValidErr(validationError.replace('Image', 'Cover image'))
       if (fileRef.current) fileRef.current.value = ''
       return
     }
@@ -105,13 +125,12 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
       )
       const { data: { user } } = await sb.auth.getUser()
       if (!user) throw new Error('Sign in before uploading a cover image')
-      const path = `${user.id}/covers/${crypto.randomUUID()}.${ext}`
-      const { error: ue } = await sb.storage
-        .from('vibe-publication-covers')
-        .upload(path, file)
-      if (ue) throw ue
-      const { data } = sb.storage.from('vibe-publication-covers').getPublicUrl(path)
-      onUpdate({ cover_url: data.publicUrl })
+      const previous = publication.cover_url
+      const draftRef = await uploadDraftMedia(sb, user.id, 'covers', file)
+      const resolved = await resolveVibePressMediaUrl(sb, draftRef)
+      setCoverPreview(resolved)
+      onUpdate({ cover_url: draftRef })
+      if (parseDraftMediaRef(previous)) void removeVibePressMedia(sb, previous)
     } catch (error) {
       setValidErr(error instanceof Error ? error.message : 'Cover upload failed. Try again.')
     } finally {
@@ -244,12 +263,11 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
 
-              {/* Cover */}
               <div>
                 <span style={lbl}>COVER IMAGE</span>
-                {publication.cover_url ? (
+                {coverPreview ? (
                   <div style={{ position: 'relative' }}>
-                    <img src={publication.cover_url} alt="Cover"
+                    <img src={coverPreview} alt="Cover"
                       style={{ width: '100%', height: 150, objectFit: 'cover', borderRadius: 12 }} />
                     <button onClick={() => fileRef.current?.click()} style={{
                       position: 'absolute', bottom: 8, right: 8,
@@ -265,9 +283,9 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                   }}>{uploadingCover ? 'Uploading…' : '📷 Add cover image'}</div>
                 )}
                 <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{ display: 'none' }} onChange={uploadCover} />
+                <div style={{ fontSize: 11, color: MUTED, marginTop: 6 }}>JPEG, PNG, WebP or GIF · max 5 MB · private until publication</div>
               </div>
 
-              {/* Title */}
               <div>
                 <span style={lbl}>TITLE</span>
                 <input style={inp} value={publication.title || ''}
@@ -275,7 +293,6 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                   onChange={e => onUpdate({ title: e.target.value })} />
               </div>
 
-              {/* Description */}
               <div>
                 <span style={lbl}>DESCRIPTION</span>
                 <textarea style={{ ...inp, minHeight: 80, resize: 'none' as const }}
@@ -284,7 +301,6 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                   onChange={e => onUpdate({ description: e.target.value || null })} />
               </div>
 
-              {/* Genre */}
               <div>
                 <span style={lbl}>GENRE</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -296,7 +312,6 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                 </div>
               </div>
 
-              {/* Curriculum fields */}
               {isTextbook && (
                 <>
                   <div>
@@ -331,7 +346,6 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                 </>
               )}
 
-              {/* Pricing */}
               <div>
                 <span style={lbl}>MONETISATION</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -348,7 +362,6 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                 )}
               </div>
 
-              {/* Tags */}
               <div>
                 <span style={lbl}>TAGS</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
