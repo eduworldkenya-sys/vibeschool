@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -35,7 +36,7 @@ export default function ResetPasswordPage() {
 
   return <main style={{minHeight:'100dvh',background:'#05050f',color:'#fff',display:'grid',placeItems:'center',padding:24}}>
     <section style={{width:'100%',maxWidth:420}}>
-      <a href="/" style={{color:'#fff',textDecoration:'none',fontSize:28,fontWeight:800}}>Vibe<span style={{color:'#c8a84b'}}>School</span></a>
+      <Link href="/" style={{color:'#fff',textDecoration:'none',fontSize:28,fontWeight:800}}>Vibe<span style={{color:'#c8a84b'}}>School</span></Link>
       <h1 style={{fontSize:34,margin:'28px 0 10px'}}>Choose a new password</h1>
       <p style={{color:'rgba(255,255,255,.6)'}}>This page only works with a valid recovery session.</p>
       {message && <p role="alert" style={{padding:14,borderRadius:9,background:'rgba(255,80,80,.1)'}}>{message}</p>}

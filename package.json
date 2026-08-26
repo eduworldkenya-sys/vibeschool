@@ -7,8 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "security:next-baseline": "node scripts/validate-next-security-baseline.mjs",
+    "test:next-security-baseline": "node scripts/validate-next-security-baseline.mjs --self-test",
     "typecheck": "tsc --noEmit --pretty false",
-    "validate": "npm run typecheck && npm run lint && npm run build"
+    "validate": "npm run test:next-security-baseline && npm run typecheck && npm run lint && npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
@@ -23,7 +25,7 @@
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^1.16.0",
     "mammoth": "^1.12.0",
-    "next": "^14.2.3",
+    "next": "15.5.24",
     "next-themes": "^0.4.6",
     "openai": "^6.45.0",
     "pdfjs-dist": "^4.4.168",
@@ -42,7 +44,7 @@
     "babel-loader": "^10.1.1",
     "babel-plugin-module-resolver": "^5.0.3",
     "eslint": "^8",
-    "eslint-config-next": "14.2.3",
+    "eslint-config-next": "15.5.24",
     "tailwindcss": "^4.3.0",
     "typescript": "^5.9.3"
   }
