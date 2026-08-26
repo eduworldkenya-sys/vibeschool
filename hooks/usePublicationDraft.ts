@@ -8,10 +8,7 @@ import {
   publicationDraftToInsert,
   publicationRowToDraft,
 } from '@/lib/publicationDraftCodec'
-import {
-  publishPublication as publishPublicationLifecycle,
-  unpublishPublication as unpublishPublicationLifecycle,
-} from '@/lib/content-engine'
+import { publishPublication as publishPublicationLifecycle } from '@/lib/content-engine'
 import {
   finalizePromotedMedia,
   parseDraftMediaRef,
@@ -302,6 +299,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     const sb = getSupabaseClient()
     const promoted: PromotedMedia[] = []
     const replacements = new Map<string, string>()
+    let lifecycleSucceeded = false
 
     try {
       if (parseDraftMediaRef(originalPub.cover_url)) {
@@ -343,19 +341,26 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
 
       const now = new Date().toISOString()
       await publishPublicationLifecycle(sb, preparedPub.id)
+      lifecycleSucceeded = true
+
       const { data: persistedChapters, error: reloadError } = await sb.from('vibe_chapters').select('*').eq('publication_id', preparedPub.id).order('number', { ascending: true })
-      if (reloadError) throw reloadError
-      const nextChapters = (persistedChapters ?? []).map(chapterRowToDraft)
-      setChapters(nextChapters)
-      chapRef.current = nextChapters
+      if (!reloadError) {
+        const nextChapters = (persistedChapters ?? []).map(chapterRowToDraft)
+        setChapters(nextChapters)
+        chapRef.current = nextChapters
+      }
       const publishedPub = { ...preparedPub, status: 'published' as const, published_at: preparedPub.published_at ?? now }
       setPublication(publishedPub)
       pubRef.current = publishedPub
-      setError(null)
+      setError(reloadError ? 'Publication is live, but the editor could not refresh its chapter state. Reload the page.' : null)
 
       try { await finalizePromotedMedia(sb, promoted) } catch { /* published asset is canonical; leftover private copies are safe to clean later */ }
       return true
     } catch (publishError) {
+      if (lifecycleSucceeded) {
+        setError(publishError instanceof Error ? `Publication is live. ${publishError.message}` : 'Publication is live, but the editor hit a post-release error.')
+        return true
+      }
       setPublication(originalPub)
       pubRef.current = originalPub
       setChapters(originalChapters)
@@ -364,7 +369,6 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
         try { await persist() } catch { /* preserve the original error below */ }
         try { await rollbackPromotedMedia(sb, promoted) } catch { /* orphan cleanup can be retried independently */ }
       }
-      try { await unpublishPublicationLifecycle(sb, originalPub.id) } catch { /* lifecycle RPC is transactional; compensation is best effort */ }
       setError(publishError instanceof Error ? publishError.message : 'Publication failed')
       return false
     }
