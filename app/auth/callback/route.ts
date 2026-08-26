@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
   if (!code) return authError(req, 'missing_code', pendingCookies)
   if (!intent) return authError(req, 'invalid_intent', pendingCookies)
 
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,

@@ -11,8 +11,9 @@ const SITE_URL='https://www.vibeschool.co.ke'
 
 export const revalidate=300
 
-export async function generateMetadata({params}:{params:{id:string}}):Promise<Metadata>{
-  const story=await getPublishedBlogStory(params.id)
+export async function generateMetadata({params}:{params:Promise<{id:string}>}):Promise<Metadata>{
+  const {id}=await params
+  const story=await getPublishedBlogStory(id)
   if(!story)return{title:'Article not found',robots:{index:false,follow:false}}
   const {publication}=story
   const title=publication.title?.trim()||'VibeSchool Education Article'
@@ -25,8 +26,9 @@ export async function generateMetadata({params}:{params:{id:string}}):Promise<Me
   }
 }
 
-export default async function BlogArticlePage({params}:{params:{id:string}}){
-  const story=await getPublishedBlogStory(params.id)
+export default async function BlogArticlePage({params}:{params:Promise<{id:string}>}){
+  const {id}=await params
+  const story=await getPublishedBlogStory(id)
   if(!story)notFound()
   const {publication,chapters,authorName}=story
   const title=publication.title?.trim()||'VibeSchool Education Article'

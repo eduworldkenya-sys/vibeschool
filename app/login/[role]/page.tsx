@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
@@ -31,7 +32,7 @@ export default function RoleLoginPage() {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
-  if (!config) return <main className="shell"><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><a href="/">Go home</a><style jsx>{styles}</style></section></main>
+  if (!config) return <main className="shell"><section className="card"><h1>Choose a valid VibeSchool sign-in.</h1><Link href="/">Go home</Link><style jsx>{styles}</style></section></main>
 
   async function submit() {
     if (busy) return
@@ -104,8 +105,8 @@ export default function RoleLoginPage() {
   return <main className="shell">
     <div className="ambient" aria-hidden="true" />
     <header className="header">
-      <a className="header-brand" href="/" aria-label="VibeSchool home"><img src="/icons/vibeschool-logo-dark.svg" alt="VibeSchool" /></a>
-      <nav className="topnav" aria-label="Public navigation"><a href="/">Home</a><a href="/global">Explore</a><a href="/about">About</a><a href="/contact">Contact</a></nav>
+      <Link className="header-brand" href="/" aria-label="VibeSchool home"><img src="/icons/vibeschool-logo-dark.svg" alt="VibeSchool" /></Link>
+      <nav className="topnav" aria-label="Public navigation"><Link href="/">Home</Link><a href="/global">Explore</a><a href="/about">About</a><a href="/contact">Contact</a></nav>
     </header>
     <section className="card" aria-labelledby="login-title">
       <p className="eyebrow">{config.label.toUpperCase()} ACCESS</p>

@@ -22,8 +22,9 @@ const COPY: Record<string, { title: string; body: string }> = {
   identity_conflict: { title: 'Learner identity needs review', body: 'VibeSchool found conflicting learner identity evidence and stopped rather than choosing the wrong learner.' },
 }
 
-export default function AuthErrorPage({ searchParams }: { searchParams?: { reason?: string } }) {
-  const reason = typeof searchParams?.reason === 'string' ? searchParams.reason : ''
+export default async function AuthErrorPage({ searchParams }: { searchParams?: Promise<{ reason?: string }> }) {
+  const resolvedSearchParams = await searchParams
+  const reason = typeof resolvedSearchParams?.reason === 'string' ? resolvedSearchParams.reason : ''
   const copy = COPY[reason] ?? {
     title: 'Sign-in could not be completed',
     body: 'VibeSchool stopped the authentication journey safely. Start again or contact support if the problem continues.',
@@ -32,7 +33,7 @@ export default function AuthErrorPage({ searchParams }: { searchParams?: { reaso
   return (
     <main style={{ minHeight: '100dvh', background: '#05050f', color: '#fff', display: 'grid', placeItems: 'center', padding: 24 }}>
       <section style={{ width: '100%', maxWidth: 480 }}>
-        <a href="/" aria-label="VibeSchool home" style={{ color: '#fff', textDecoration: 'none', fontSize: 28, fontWeight: 800 }}>Vibe<span style={{ color: '#c8a84b' }}>School</span></a>
+        <Link href="/" aria-label="VibeSchool home" style={{ color: '#fff', textDecoration: 'none', fontSize: 28, fontWeight: 800 }}>Vibe<span style={{ color: '#c8a84b' }}>School</span></Link>
         <p style={{ marginTop: 32, color: '#c8a84b', fontSize: 11, fontWeight: 800, letterSpacing: '.14em' }}>SECURE SIGN-IN</p>
         <h1 style={{ fontSize: 34, lineHeight: 1.1, margin: '8px 0 12px' }}>{copy.title}</h1>
         <p style={{ color: 'rgba(255,255,255,.65)', lineHeight: 1.6 }}>{copy.body}</p>

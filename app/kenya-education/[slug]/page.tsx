@@ -7,16 +7,18 @@ import { getKnowledgeArticle, getKnowledgeSources, listKnowledgeArticles } from 
 
 export function generateStaticParams(){ return listKnowledgeArticles().map(article=>({slug:article.slug})) }
 
-export function generateMetadata({params}:{params:{slug:string}}):Metadata{
-  const article=getKnowledgeArticle(params.slug)
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}):Promise<Metadata>{
+  const {slug}=await params
+  const article=getKnowledgeArticle(slug)
   if(!article) return { title:'Kenya Education Guide' }
   return { alternates:{canonical:`/kenya-education/${article.slug}`}, title:article.title, description:article.description }
 }
 
 const labels={fact:'Official-source fact',guidance:'Practical guidance',boundary:'Important boundary'} as const
 
-export default function KnowledgeArticlePage({params}:{params:{slug:string}}){
-  const article=getKnowledgeArticle(params.slug)
+export default async function KnowledgeArticlePage({params}:{params:Promise<{slug:string}>}){
+  const {slug}=await params
+  const article=getKnowledgeArticle(slug)
   if(!article) notFound()
   return <div className="page"><PublicHeader product="Kenya Education"/><main id="main-content">
     <section className="hero"><div className="wrap"><Link href="/kenya-education" className="back">← Kenya Education</Link><p className="eyebrow">SOURCE-BACKED GUIDE</p><h1>{article.title}</h1><p className="lead">{article.description}</p><p className="updated">Reviewed {article.updated_on}</p></div></section>

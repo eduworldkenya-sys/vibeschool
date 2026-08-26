@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { FormEvent, Suspense, useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 
@@ -86,9 +87,9 @@ function ResetContent() {
   return (
     <main className="min-h-screen bg-[#05050F] text-white flex items-center justify-center px-4 py-10">
       <section className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-6 sm:p-8 shadow-2xl">
-        <a href="/" aria-label="VibeSchool home" className="mx-auto mb-6 flex max-w-[220px] justify-center">
+        <Link href="/" aria-label="VibeSchool home" className="mx-auto mb-6 flex max-w-[220px] justify-center">
           <img src="/icons/vibeschool-logo.png" alt="VibeSchool" className="max-h-16 w-auto object-contain" />
-        </a>
+        </Link>
 
         <h1 className="text-2xl font-semibold">Reset password</h1>
         <p className={`mt-2 text-sm leading-6 ${fatal ? "text-red-300" : "text-white/70"}`} role="status" aria-live="polite">
@@ -138,7 +139,7 @@ function ResetContent() {
         )}
 
         <div className="mt-6 text-center text-sm">
-          <a href="/login" className="text-[#D7BC68] underline underline-offset-4">Return to sign in</a>
+          <Link href="/login" className="text-[#D7BC68] underline underline-offset-4">Return to sign in</Link>
         </div>
       </section>
     </main>

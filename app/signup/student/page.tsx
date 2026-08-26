@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -48,7 +49,7 @@ export default function StudentSignupPage() {
   }
 
   return <main className="shell"><section className="card">
-    <a href="/" className="brand">Vibe<span>School</span></a>
+    <Link href="/" className="brand">Vibe<span>School</span></Link>
     <p className="eyebrow">LEARNER SETUP</p>
     <h1>Join your learning space.</h1>
     <p className="lead">Use the learner code your school gave you. VibeSchool uses it to find your existing learner record, so you do not need to recreate your name or class.</p>
@@ -67,7 +68,7 @@ export default function StudentSignupPage() {
     <label>Choose PIN</label>
     <input type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
     <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create learner account'}</button>
-    <p className="switch">Already registered? <a href="/login/student">Sign in</a></p>
+    <p className="switch">Already registered? <Link href="/login/student">Sign in</Link></p>
     <p className="help">No school? <a href="/global/signup">Create an independent learner account.</a> If you belong to a school but have no current class, ask the school to complete your enrollment first so your school identity is preserved.</p>
     <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>

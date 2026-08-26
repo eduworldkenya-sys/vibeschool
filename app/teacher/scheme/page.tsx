@@ -2,6 +2,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense, useMemo, useRef } from 'react'
+import Link from 'next/link'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { LessonPanel } from '@/components/scheme/LessonPanel'
 import { supabase } from '@/lib/supabase'
@@ -523,8 +524,7 @@ function SchemePageInner() {
     } finally {
       setLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [initialClassId, initialSubjectId, initialTermId, initialWeekStr])
 
   useEffect(() => {
     boot()
@@ -1352,9 +1352,9 @@ function SchemePageInner() {
           title="Not linked to a school yet"
           desc="Ask your school admin to add you, or complete onboarding to link your account."
           action={
-            <a href="/teacher/onboarding/school" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+            <Link href="/teacher/onboarding/school" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
               Complete Onboarding →
-            </a>
+            </Link>
           }
         />
       )
@@ -1366,9 +1366,9 @@ function SchemePageInner() {
           title="No classes assigned yet"
           desc="To use the Scheme of Work you need classes and subjects assigned to you."
           action={
-            <a href="/teacher/classhub" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
+            <Link href="/teacher/classhub" style={{ display: 'inline-block', padding: '10px 24px', borderRadius: 12, background: C.dark, color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
               Go to ClassHub →
-            </a>
+            </Link>
           }
         />
       )

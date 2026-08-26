@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -52,10 +53,10 @@ export default function ParentSignupPage() {
   }
 
   return <main className="shell"><section className="card">
-    <a href="/" className="brand">Vibe<span>School</span></a><p className="eyebrow">PARENT SETUP</p><h1>Stay connected to learning.</h1><p className="lead">Create your account first. Then connect your learner.</p>
+    <Link href="/" className="brand">Vibe<span>School</span></Link><p className="eyebrow">PARENT SETUP</p><h1>Stay connected to learning.</h1><p className="lead">Create your account first. Then connect your learner.</p>
     {message && <div role="alert" className="message">{message}</div>}
     <label>Full name</label><input autoComplete="name" value={name} onChange={e=>setName(e.target.value)} /><label>Email</label><input type="email" autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} /><label>Password</label><input type="password" autoComplete="new-password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>{if(e.key==='Enter') void submit()}} />
-    <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create parent account'}</button><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button><p className="switch">Already have an account? <a href="/login/parent">Sign in</a></p><p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
+    <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create parent account'}</button><div className="or"><span/>or<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}>Continue with Google</button><p className="switch">Already have an account? <Link href="/login/parent">Sign in</Link></p><p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }
 

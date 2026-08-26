@@ -12,9 +12,10 @@ const variants = {
 
 type Variant = keyof typeof variants
 
-export async function GET(request: Request, { params }: { params: { variant: string } }) {
-  if (!(params.variant in variants)) return new Response('Not found', { status: 404 })
-  const { size, maskable } = variants[params.variant as Variant]
+export async function GET(request: Request, { params }: { params: Promise<{ variant: string }> }) {
+  const { variant } = await params
+  if (!(variant in variants)) return new Response('Not found', { status: 404 })
+  const { size, maskable } = variants[variant as Variant]
   const padding = maskable ? Math.round(size * 0.2) : Math.max(2, Math.round(size * 0.08))
   const logoUrl = new URL('/icons/vibeschool-logo.png', request.url).toString()
 
