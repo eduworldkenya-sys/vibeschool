@@ -116,7 +116,7 @@ export async function promoteDraftMedia(
 
   const { data: blob, error: downloadError } = await client.storage.from(VIBEPRESS_DRAFT_BUCKET).download(draftPath)
   if (downloadError) throw downloadError
-  const publicPath = `${userId}/${kind}/${crypto.randomUUID()}-${filename}`
+  const publicPath = `${userId}/${kind}/${filename}`
   const { error: uploadError } = await client.storage.from(targetBucket).upload(publicPath, blob, {
     cacheControl: '31536000',
     upsert: false,
