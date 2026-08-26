@@ -5,7 +5,9 @@ begin;
 -- restored before this transaction commits. Only NULL -> exact source-bound
 -- sub_strand_id plus updated_at is permitted during the bounded repair.
 
--- access: service-only public.curriculum_verified_outcome_hierarchy_repair_audit\n-- authorization-test: public.curriculum_verified_outcome_hierarchy_repair_audit is denied to anon/authenticated; evidence is written only by the bounded governed migration.\ncreate table if not exists public.curriculum_verified_outcome_hierarchy_repair_audit (
+-- access: service-only public.curriculum_verified_outcome_hierarchy_repair_audit
+-- authorization-test: public.curriculum_verified_outcome_hierarchy_repair_audit is denied to anon/authenticated; evidence is written only by the bounded governed migration.
+create table if not exists public.curriculum_verified_outcome_hierarchy_repair_audit (
   id uuid primary key default gen_random_uuid(),
   curriculum_import_id uuid not null references public.curriculum_imports(id) on delete restrict,
   outcome_id uuid not null references public.curriculum_learning_outcomes(id) on delete restrict,
