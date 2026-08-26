@@ -13,7 +13,7 @@ const C = {
   red: "#fb7185", blue: "#60a5fa", violet: "#a78bfa",
 }
 const input: React.CSSProperties = { width: "100%", boxSizing: "border-box", borderRadius: 10, border: `1px solid ${C.line}`, background: "rgba(255,255,255,.04)", color: C.text, padding: "10px 11px", fontSize: 12 }
-const button = (accent = C.blue): React.CSSProperties => ({ border: `1px solid ${accent}55`, background: `${accent}16`, color: accent, borderRadius: 10, padding: "9px 11px", fontWeight: 850, fontSize: 11, cursor: "pointer" })
+const button = (accent = C.blue, done = false): React.CSSProperties => ({ border: `1px solid ${accent}55`, background: done ? `${C.green}18` : `${accent}16`, color: done ? C.green : accent, borderRadius: 10, padding: "9px 11px", fontWeight: 850, fontSize: 11, cursor: done ? "default" : "pointer", opacity: done ? .88 : 1 })
 const badge = (accent = C.blue): React.CSSProperties => ({ display: "inline-flex", border: `1px solid ${accent}45`, background: `${accent}14`, color: accent, borderRadius: 999, padding: "4px 8px", fontSize: 9.5, fontWeight: 900 })
 
 const KICD_G10_PURE_SCIENCES_PAGE = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-ten/#category6"
@@ -65,6 +65,11 @@ export default function CurriculumAuthorityPage() {
   const [review, setReview] = useState<Json | null>(null)
 
   const selectedSubject = useMemo(() => subjects.find(s => s.id === subjectId)?.name || "Chemistry", [subjects, subjectId])
+  const artifactDone = !!snapshotId
+  const observationsDone = observationCount > 0
+  const sealedDone = ["sealed", "reconciled", "promoted"].includes(snapshotStatus.toLowerCase())
+  const reviewLoaded = !!review
+  const promotedDone = snapshotStatus.toLowerCase() === "promoted"
 
   useEffect(() => {
     void (async () => {
@@ -78,33 +83,44 @@ export default function CurriculumAuthorityPage() {
     })()
   }, [])
 
+  async function refreshPersistedState() {
+    const { data, error: resumeError } = await hqSupabase.rpc("curriculum_authority_resume_snapshot", {
+      p_import_id: KICD_G10_CHEMISTRY_IMPORT,
+    })
+    if (resumeError) throw resumeError
+    const resumed = (data || {}) as Json
+    if (resumed.resumed !== true) return resumed
+
+    const resumedSourceId = String(resumed.source_id || "")
+    const resumedSnapshotId = String(resumed.snapshot_id || "")
+    const resumedStatus = String(resumed.snapshot_status || "")
+    const resumedObservationCount = Number(resumed.observation_count || 0)
+    if (!resumedSourceId || !resumedSnapshotId) throw new Error("Saved curriculum authority state is incomplete.")
+
+    setSourceId(resumedSourceId)
+    setSnapshotId(resumedSnapshotId)
+    setSnapshotStatus(resumedStatus)
+    setObservationCount(resumedObservationCount)
+
+    const { data: reviewData, error: reviewError } = await hqSupabase.rpc("curriculum_authority_get_snapshot_review", { p_snapshot_id: resumedSnapshotId })
+    if (!reviewError && reviewData) setReview((reviewData || {}) as Json)
+
+    const restored = {
+      resumed: true,
+      importStatus: String(resumed.import_status || ""),
+      snapshotId: resumedSnapshotId,
+      snapshotStatus: resumedStatus,
+      observationCount: resumedObservationCount,
+      ownerReviewRestored: !reviewError && !!reviewData,
+    }
+    setResult(restored)
+    return restored
+  }
+
   useEffect(() => {
     void (async () => {
       try {
-        const { data, error: resumeError } = await hqSupabase.rpc("curriculum_authority_resume_snapshot", {
-          p_import_id: KICD_G10_CHEMISTRY_IMPORT,
-        })
-        if (resumeError) throw resumeError
-        const resumed = (data || {}) as Json
-        if (resumed.resumed !== true) return
-
-        const resumedSourceId = String(resumed.source_id || "")
-        const resumedSnapshotId = String(resumed.snapshot_id || "")
-        const resumedStatus = String(resumed.snapshot_status || "")
-        const resumedObservationCount = Number(resumed.observation_count || 0)
-        if (!resumedSourceId || !resumedSnapshotId) throw new Error("Saved curriculum authority state is incomplete.")
-
-        setSourceId(resumedSourceId)
-        setSnapshotId(resumedSnapshotId)
-        setSnapshotStatus(resumedStatus)
-        setObservationCount(resumedObservationCount)
-        setResult({
-          resumed: true,
-          importStatus: String(resumed.import_status || ""),
-          snapshotId: resumedSnapshotId,
-          snapshotStatus: resumedStatus,
-          observationCount: resumedObservationCount,
-        })
+        await refreshPersistedState()
       } catch (resumeError) {
         setError(resumeError instanceof Error ? resumeError.message : String(resumeError))
       } finally {
@@ -113,14 +129,23 @@ export default function CurriculumAuthorityPage() {
     })()
   }, [])
 
-  async function run(label: string, work: () => Promise<Json>) {
+  async function run(label: string, work: () => Promise<Json>, refresh = true) {
     setBusy(label); setError(""); setResult(null)
-    try { const out = await work(); setResult(out); return out }
-    catch (e) { setError(e instanceof Error ? e.message : String(e)); throw e }
-    finally { setBusy("") }
+    try {
+      const out = await work()
+      setResult(out)
+      if (refresh) await refreshPersistedState()
+      return out
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+      throw e
+    } finally {
+      setBusy("")
+    }
   }
 
   async function registerSource() {
+    if (sourceId) return
     await run("register", async () => {
       const { data, error } = await hqSupabase.rpc("curriculum_authority_register_source", {
         p_authority_name: authorityName.trim(), p_curriculum_framework: framework.trim(), p_grade: grade.trim(),
@@ -150,6 +175,7 @@ export default function CurriculumAuthorityPage() {
   }
 
   async function ingestArtifact() {
+    if (artifactDone) return
     if (!sourceId) return setError("Register the owner-approved source first.")
     await run("artifact", async () => {
       const out = await invoke("ingest_artifact", { sourceId, artifactUrl: sourceUrl.trim() })
@@ -161,6 +187,7 @@ export default function CurriculumAuthorityPage() {
   }
 
   async function stageObservations() {
+    if (observationsDone) return
     if (!snapshotId) return setError("Create the immutable artifact snapshot first.")
     await run("observations", async () => {
       let parsed: unknown
@@ -174,8 +201,13 @@ export default function CurriculumAuthorityPage() {
   }
 
   async function sealReconcile() {
+    if (sealedDone) return
     if (!snapshotId) return setError("Snapshot required.")
-    await run("seal", () => invoke("seal_reconcile", { snapshotId })).catch(() => undefined)
+    await run("seal", async () => {
+      const out = await invoke("seal_reconcile", { snapshotId })
+      setSnapshotStatus("sealed")
+      return out
+    }).catch(() => undefined)
   }
 
   async function loadReview() {
@@ -185,7 +217,7 @@ export default function CurriculumAuthorityPage() {
       if (error) throw error
       setReview((data || {}) as Json)
       return (data || {}) as Json
-    }).catch(() => undefined)
+    }, false).catch(() => undefined)
   }
 
   async function bindHierarchy() {
@@ -200,16 +232,22 @@ export default function CurriculumAuthorityPage() {
 
   async function freshReconcile() {
     if (!snapshotId) return setError("Snapshot required.")
-    await run("reconcile", () => invoke("reconcile", { snapshotId })).catch(() => undefined)
+    await run("reconcile", async () => {
+      const out = await invoke("reconcile", { snapshotId })
+      setSnapshotStatus("reconciled")
+      return out
+    }).catch(() => undefined)
   }
 
   async function promote() {
+    if (promotedDone) return
     if (!snapshotId) return setError("Snapshot required.")
     if (promotionPhrase !== "PROMOTE OFFICIAL") return setError("Type PROMOTE OFFICIAL exactly before final promotion.")
     await run("promote", async () => {
       const { data, error } = await hqSupabase.rpc("curriculum_authority_promote_snapshot", { p_snapshot_id: snapshotId })
       if (error) throw error
       setPromotionPhrase("")
+      setSnapshotStatus("promoted")
       return (data || {}) as Json
     }).catch(() => undefined)
   }
@@ -245,40 +283,44 @@ export default function CurriculumAuthorityPage() {
 
     <main style={{ maxWidth: 1180, margin: "0 auto", padding: 18 }}>
       <section style={{ border: `1px solid ${C.amber}35`, background: `${C.amber}0d`, borderRadius: 14, padding: 13, marginBottom: 14, fontSize: 11.5, lineHeight: 1.6 }}>
-        This surface never invents curriculum. Source registration and final promotion retain the authenticated HQ owner identity. Artifact fetching, hashing, private storage and staging run through the service lane. Existing matching <code>cbc_strands</code> rows are not official until source-bound.
+        Completed authority actions are restored from Supabase on every load. Refreshing this page does not reset completed work or require you to repeat successful steps.
       </section>
       {error && <div role="alert" style={{ border: `1px solid ${C.red}45`, background: `${C.red}12`, color: "#fecdd3", borderRadius: 12, padding: 11, marginBottom: 12, fontSize: 11.5 }}>{error}</div>}
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 14 }}>
         <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}><strong>1. Owner-approved source</strong><span style={badge(sourceId ? C.green : C.muted)}>{sourceId ? "REGISTERED" : "PENDING"}</span></div>
-          <div style={{ color: C.muted, fontSize: 10.5, margin: "4px 0 12px" }}>Canary defaults to the official KICD Grade 10 Chemistry July 2025 document embedded in KICD’s Pure Sciences category. The KICD page is discovery evidence; the embedded PDF is the immutable curriculum artifact.</div>
+          <div style={{ color: C.muted, fontSize: 10.5, margin: "4px 0 12px" }}>Canary defaults to the official KICD Grade 10 Chemistry July 2025 document embedded in KICD’s Pure Sciences category.</div>
           <label style={{ fontSize: 10 }}>Authority</label><input value={authorityName} onChange={e=>setAuthorityName(e.target.value)} style={{...input,margin:"4px 0 9px"}} />
           <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr",gap:8 }}><div><label style={{fontSize:10}}>Framework</label><input value={framework} onChange={e=>setFramework(e.target.value)} style={{...input,marginTop:4}} /></div><div><label style={{fontSize:10}}>Grade</label><input value={grade} onChange={e=>setGrade(e.target.value)} style={{...input,marginTop:4}} /></div></div>
           <label style={{ fontSize: 10, display:"block",marginTop:9 }}>Canonical subject</label><select value={subjectId} onChange={e=>setSubjectId(e.target.value)} style={{...input,marginTop:4}}>{subjects.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select>
           <label style={{ fontSize: 10, display:"block",marginTop:9 }}>Artifact/source URL</label><input value={sourceUrl} onChange={e=>setSourceUrl(e.target.value)} style={{...input,marginTop:4}} />
           <label style={{ fontSize: 10, display:"block",marginTop:9 }}>Source version</label><input value={sourceVersion} onChange={e=>setSourceVersion(e.target.value)} style={{...input,marginTop:4}} />
-          <div style={{ display:"flex",gap:8,marginTop:11,flexWrap:"wrap" }}><button disabled={!!busy} onClick={()=>void registerSource()} style={button(C.green)}>{busy==="register"?"Registering…":"Register approved source"}</button><a href={KICD_G10_PURE_SCIENCES_PAGE} target="_blank" rel="noreferrer" style={{...button(C.blue),textDecoration:"none"}}>Open KICD Grade 10 evidence</a></div>
+          <div style={{ display:"flex",gap:8,marginTop:11,flexWrap:"wrap" }}><button disabled={!!busy||!!sourceId} onClick={()=>void registerSource()} style={button(C.green,!!sourceId)}>{sourceId?"✓ Registered":busy==="register"?"Registering…":"Register approved source"}</button><a href={KICD_G10_PURE_SCIENCES_PAGE} target="_blank" rel="noreferrer" style={{...button(C.blue),textDecoration:"none"}}>Open KICD Grade 10 evidence</a></div>
           {sourceId && <div style={{ color:C.muted,fontSize:9.5,marginTop:8,wordBreak:"break-all" }}>source_id: {sourceId}</div>}
         </section>
 
         <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between" }}><strong>2. Immutable artifact</strong><span style={badge(snapshotId ? C.green : C.muted)}>{resuming ? "RESTORING…" : snapshotId ? `HASHED + STORED · ${snapshotStatus || "READY"}` : "PENDING"}</span></div>
-          <p style={{ color:C.muted,fontSize:10.5,lineHeight:1.55 }}>The service fetches the PDF, rejects unapproved hosts/non-PDF responses, caps size, computes SHA-256 and stores bytes in a private Supabase bucket before creating a staging snapshot.</p>
-          <button disabled={!!busy||!sourceId} onClick={()=>void ingestArtifact()} style={button(C.violet)}>{busy==="artifact"?"Fetching + hashing…":"Fetch, hash & retain artifact"}</button>
+          <p style={{ color:C.muted,fontSize:10.5,lineHeight:1.55 }}>The retained artifact identity is restored from the database after refresh.</p>
+          <button disabled={!!busy||!sourceId||artifactDone} onClick={()=>void ingestArtifact()} style={button(C.violet,artifactDone)}>{artifactDone?"✓ Artifact retained":busy==="artifact"?"Fetching + hashing…":"Fetch, hash & retain artifact"}</button>
           {snapshotId && <div style={{ color:C.muted,fontSize:9.5,marginTop:8,wordBreak:"break-all" }}>snapshot_id: {snapshotId}</div>}
         </section>
       </div>
 
       <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 14, marginTop:14 }}>
-        <div style={{ display:"flex",justifyContent:"space-between",gap:8,alignItems:"start" }}><div><strong>3. Source observations</strong><div style={{ color:C.muted,fontSize:10.5,marginTop:3 }}>Only exact observations transcribed/extracted from the retained artifact belong here. Empty placeholders are rejected.</div></div><span style={badge(C.blue)}>MAX 500 / REQUEST</span></div>
+        <div style={{ display:"flex",justifyContent:"space-between",gap:8,alignItems:"start" }}><div><strong>3. Source observations</strong><div style={{ color:C.muted,fontSize:10.5,marginTop:3 }}>Successful staging, sealing and review state survive reloads.</div></div><span style={badge(C.blue)}>MAX 500 / REQUEST</span></div>
         <textarea value={observations} onChange={e=>setObservations(e.target.value)} spellCheck={false} style={{...input,minHeight:290,marginTop:10,fontFamily:"ui-monospace,SFMono-Regular,monospace",lineHeight:1.5}} />
-        <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginTop:10 }}><button disabled={!!busy||!snapshotId||observationCount>0} onClick={()=>void stageObservations()} style={button(C.blue)}>{busy==="observations"?"Staging…":observationCount>0?`${observationCount} observations staged`:"Stage observations"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void sealReconcile()} style={button(C.violet)}>{busy==="seal"?"Sealing…":"Seal + reconcile"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void loadReview()} style={button(C.amber)}>{busy==="review"?"Loading…":"Load owner review"}</button></div>
+        <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginTop:10 }}>
+          <button disabled={!!busy||!snapshotId||observationsDone} onClick={()=>void stageObservations()} style={button(C.blue,observationsDone)}>{busy==="observations"?"Staging…":observationsDone?`✓ ${observationCount} observations staged`:"Stage observations"}</button>
+          <button disabled={!!busy||!snapshotId||sealedDone} onClick={()=>void sealReconcile()} style={button(C.violet,sealedDone)}>{busy==="seal"?"Sealing…":sealedDone?"✓ Snapshot sealed":"Seal + reconcile"}</button>
+          <button disabled={!!busy||!snapshotId||reviewLoaded} onClick={()=>void loadReview()} style={button(C.amber,reviewLoaded)}>{busy==="review"?"Loading…":reviewLoaded?"✓ Owner review loaded":"Load owner review"}</button>
+        </div>
       </section>
 
       <section style={{ background:C.panel2,border:`1px solid ${C.line}`,borderRadius:14,padding:14,marginTop:14 }}>
         <strong>Grade 10 Chemistry authority convergence</strong>
-        <p style={{ color:C.muted,fontSize:10.5,lineHeight:1.55 }}>Preparation preserves every previous paraphrase in an audit ledger, replaces the bounded 32-row cohort with exact KICD wording, binds the retained artifact hash, and leaves every outcome unverified. Verification is a separate owner decision.</p>
+        <p style={{ color:C.muted,fontSize:10.5,lineHeight:1.55 }}>Preparation and verification continue to use the existing owner-gated backend contracts. After each successful action this page immediately reloads persisted production state.</p>
         <label style={{ fontSize:10 }}>Curriculum import</label><input value={importId} onChange={e=>setImportId(e.target.value)} style={{...input,margin:"4px 0 9px"}} />
         <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}><button disabled={!!busy||!snapshotId} onClick={()=>void prepareChemistryAuthority()} style={button(C.violet)}>{busy==="prepare-chemistry"?"Preparing…":"Prepare exact KICD review"}</button></div>
         <div style={{ marginTop:12,paddingTop:12,borderTop:`1px solid ${C.line}` }}><label style={{ fontSize:10,color:C.red,fontWeight:850 }}>Owner verification of source hash and all 32 exact outcomes</label><div style={{ display:"flex",gap:8,marginTop:5,flexWrap:"wrap" }}><input value={verificationPhrase} onChange={e=>setVerificationPhrase(e.target.value)} placeholder="Type VERIFY KICD CHEMISTRY" style={{...input,maxWidth:280}} /><button disabled={!!busy||verificationPhrase!=="VERIFY KICD CHEMISTRY"} onClick={()=>void verifyChemistryAuthority()} style={button(C.red)}>{busy==="verify-chemistry"?"Verifying…":"Verify KICD Chemistry authority"}</button></div></div>
@@ -286,13 +328,13 @@ export default function CurriculumAuthorityPage() {
 
       <section style={{ background:C.panel2,border:`1px solid ${C.line}`,borderRadius:14,padding:14,marginTop:14 }}>
         <strong>4. Hierarchy provenance and promotion</strong>
-        <p style={{ color:C.muted,fontSize:10.5,lineHeight:1.55 }}>Bind exact unpaced hierarchy only after reconciliation. Binding deliberately invalidates the reconciliation; run a fresh reconciliation before promotion. Promotion remains an explicit owner action.</p>
-        <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}><button disabled={!!busy||!snapshotId} onClick={()=>void bindHierarchy()} style={button(C.blue)}>{busy==="bind"?"Binding…":"Bind exact hierarchy"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void freshReconcile()} style={button(C.violet)}>{busy==="reconcile"?"Reconciling…":"Fresh reconciliation"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void loadReview()} style={button(C.amber)}>Refresh review</button></div>
+        <p style={{ color:C.muted,fontSize:10.5,lineHeight:1.55 }}>Review data is automatically restored on refresh. Final promotion remains an explicit owner action.</p>
+        <div style={{ display:"flex",gap:8,flexWrap:"wrap" }}><button disabled={!!busy||!snapshotId} onClick={()=>void bindHierarchy()} style={button(C.blue)}>{busy==="bind"?"Binding…":"Bind exact hierarchy"}</button><button disabled={!!busy||!snapshotId||promotedDone} onClick={()=>void freshReconcile()} style={button(C.violet)}>{busy==="reconcile"?"Reconciling…":"Fresh reconciliation"}</button><button disabled={!!busy||!snapshotId} onClick={()=>void loadReview()} style={button(C.amber)}>Refresh review</button></div>
         {review && <pre style={{ whiteSpace:"pre-wrap",wordBreak:"break-word",background:"rgba(0,0,0,.18)",border:`1px solid ${C.line}`,borderRadius:10,padding:10,fontSize:10,lineHeight:1.5,marginTop:10 }}>{JSON.stringify(review,null,2)}</pre>}
-        <div style={{ marginTop:12,paddingTop:12,borderTop:`1px solid ${C.line}` }}><label style={{ fontSize:10,color:C.red,fontWeight:850 }}>Final authority confirmation</label><div style={{ display:"flex",gap:8,marginTop:5,flexWrap:"wrap" }}><input value={promotionPhrase} onChange={e=>setPromotionPhrase(e.target.value)} placeholder="Type PROMOTE OFFICIAL" style={{...input,maxWidth:260}} /><button disabled={!!busy||promotionPhrase!=="PROMOTE OFFICIAL"||!snapshotId} onClick={()=>void promote()} style={button(C.red)}>{busy==="promote"?"Promoting…":"Promote official outcomes"}</button></div></div>
+        <div style={{ marginTop:12,paddingTop:12,borderTop:`1px solid ${C.line}` }}><label style={{ fontSize:10,color:C.red,fontWeight:850 }}>Final authority confirmation</label><div style={{ display:"flex",gap:8,marginTop:5,flexWrap:"wrap" }}><input disabled={promotedDone} value={promotionPhrase} onChange={e=>setPromotionPhrase(e.target.value)} placeholder={promotedDone?"Official outcomes promoted":"Type PROMOTE OFFICIAL"} style={{...input,maxWidth:260}} /><button disabled={!!busy||promotedDone||promotionPhrase!=="PROMOTE OFFICIAL"||!snapshotId} onClick={()=>void promote()} style={button(C.red,promotedDone)}>{promotedDone?"✓ Official outcomes promoted":busy==="promote"?"Promoting…":"Promote official outcomes"}</button></div></div>
       </section>
 
-      {result && <section style={{ marginTop:14,background:"rgba(0,0,0,.18)",border:`1px solid ${C.line}`,borderRadius:14,padding:12 }}><div style={{ color:C.muted,fontSize:9.5,fontWeight:900,textTransform:"uppercase" }}>Latest operation evidence</div><pre style={{ whiteSpace:"pre-wrap",wordBreak:"break-word",fontSize:10,lineHeight:1.5,margin:"7px 0 0" }}>{JSON.stringify(result,null,2)}</pre></section>}
+      {result && <section style={{ marginTop:14,background:"rgba(0,0,0,.18)",border:`1px solid ${C.line}`,borderRadius:14,padding:12 }}><div style={{ color:C.muted,fontSize:9.5,fontWeight:900,textTransform:"uppercase" }}>Latest persisted operation evidence</div><pre style={{ whiteSpace:"pre-wrap",wordBreak:"break-word",fontSize:10,lineHeight:1.5,margin:"7px 0 0" }}>{JSON.stringify(result,null,2)}</pre></section>}
     </main>
   </div>
 }
