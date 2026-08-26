@@ -1,0 +1,9 @@
+{
+  "minimumDependencyAge": {
+    "age": "PT24H",
+    "exclude": [
+      "npm:eslint-config-next",
+      "npm:next"
+    ]
+  }
+}
