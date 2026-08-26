@@ -54,6 +54,42 @@ $$;
 revoke all on function public.schools_search_public_v1(text,text,text,text,text,text,text,integer) from public;
 grant execute on function public.schools_search_public_v1(text,text,text,text,text,text,text,integer) to anon, authenticated;
 
+create or replace function public.schools_search_community_pending_v1(
+  p_query text default null,
+  p_county text default null,
+  p_sub_county text default null,
+  p_level text default null,
+  p_limit integer default 25
+)
+returns table(
+  request_id uuid,
+  school_name text,
+  county text,
+  sub_county text,
+  school_level text,
+  submitted_at timestamptz
+)
+language sql
+stable
+security definer
+set search_path = public, pg_temp
+as $$
+  select r.id, r.name, r.county, r.sub_county, r.level, r.created_at
+  from public.school_discovery_requests r
+  where r.status='pending'
+    and r.request_type='missing_or_new'
+    and r.target_school_id is null
+    and (p_query is null or trim(p_query)='' or lower(r.name) like '%' || lower(trim(p_query)) || '%')
+    and (p_county is null or trim(p_county)='' or lower(coalesce(r.county,''))=lower(trim(p_county)))
+    and (p_sub_county is null or trim(p_sub_county)='' or lower(coalesce(r.sub_county,''))=lower(trim(p_sub_county)))
+    and (p_level is null or trim(p_level)='' or lower(coalesce(r.level,''))=lower(trim(p_level)))
+  order by r.created_at desc
+  limit least(greatest(coalesce(p_limit,25),1),50);
+$$;
+
+revoke all on function public.schools_search_community_pending_v1(text,text,text,text,integer) from public;
+grant execute on function public.schools_search_community_pending_v1(text,text,text,text,integer) to anon, authenticated;
+
 create or replace function public.schools_get_public_profile_v1(p_school_id uuid)
 returns table(
   school_id uuid,
