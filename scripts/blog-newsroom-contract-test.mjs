@@ -1,16 +1,7 @@
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-
 const read=path=>fs.readFileSync(path,'utf8')
-const header=read('components/public/PublicHeader.tsx')
-const footer=read('components/public/PublicFooter.tsx')
-const listing=read('components/blog/BlogExplorer.tsx')
-const article=read('app/blog/[id]/page.tsx')
-const css=read('app/blog/[id]/article.module.css')
-const blogContent=read('lib/blogContent.ts')
-const editor=read('components/hq/SimpleArticleEditor.tsx')
-const sitemap=read('app/sitemap.ts')
-
+const header=read('components/public/PublicHeader.tsx'),footer=read('components/public/PublicFooter.tsx'),listing=read('components/blog/BlogExplorer.tsx'),article=read('app/blog/[id]/page.tsx'),css=read('app/blog/[id]/article.module.css'),blogContent=read('lib/blogContent.ts'),editor=read('components/hq/SimpleArticleEditor.tsx'),sitemap=read('app/sitemap.ts')
 assert.match(header,/\['\/blog', 'News & Guides'\]/,'shared public navigation must expose the blog')
 assert.match(footer,/href="\/blog"/,'public footer must expose the blog')
 assert.match(listing,/aria-label="Article categories"/,'category controls must be labelled')
@@ -19,8 +10,12 @@ assert.match(listing,/No matching guides yet/,'search must have an empty state')
 assert.match(article,/generateMetadata/,'published blog articles must have dynamic metadata')
 assert.match(article,/'@type':'Article'/,'published blog articles must expose Article structured data')
 assert.match(article,/PUT THIS INTO PRACTICE/,'articles must bridge reading into action')
-assert.match(article,/Start focused practice/,'exam stories must expose a contextual learning action')
-assert.match(article,/StepText/,'structured plans must support scannable action labels')
+assert.match(article,/Practise my weak topic/,'exam stories must preserve the diagnosed weak-topic intent')
+assert.match(article,/intent=practice&source=blog&programme=kcse/,'KCSE CTA must carry acquisition and practice context')
+assert.match(article,/Share on WhatsApp/,'articles must expose a low-friction WhatsApp sharing action')
+assert.match(article,/Related stories/,'articles must provide contextual continuation')
+assert.match(article,/DIAGNOSE/,'structured rescue plans must expose semantic action labels')
+assert.match(article,/RETEST/,'structured rescue plans must complete the diagnose-to-retest loop')
 assert.match(css,/\.actionSteps/,'structured action plans must have dedicated responsive presentation')
 assert.match(blogContent,/\.eq\('status', 'published'\)/,'article reader must remain published-only')
 assert.match(blogContent,/filter\(isPublicBlogReady\)/,'unfinished publications must not enter the newsroom')
@@ -30,5 +25,4 @@ assert.match(editor,/A concrete next step for the reader/,'editor must require a
 assert.match(editor,/Social preview: add a cover image/,'editor must warn when social preview lacks a cover')
 assert.match(sitemap,/format === 'vibepress' \? `\$\{SITE_URL\}\/blog\/\$\{publication.id\}`/,'VibePress sitemap entries must use canonical blog routes')
 assert.match(sitemap,/listKnowledgeArticles/,'verified Kenya education guides must be included in the sitemap')
-
 console.log('Blog newsroom contract: PASS')
