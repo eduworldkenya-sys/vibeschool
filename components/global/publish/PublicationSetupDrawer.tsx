@@ -50,7 +50,7 @@ const CBC_SUBJECTS: { value: CBCSubject; label: string }[] = [
   { value: 'creative_arts',      label: 'Creative Arts'      },
   { value: 'physical_education', label: 'Physical Education' },
   { value: 'religious_education',label: 'Religious Ed.'      },
-  { value: 'other',              label: 'Other'              },
+  { value: 'other',              label: 'Other'               },
 ]
 
 const CBC_GRADES: { value: CBCGrade; label: string }[] = [
@@ -91,21 +91,33 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
     const rawExt = file.name.includes('.') ? file.name.split('.').pop() : undefined
     const ext    = rawExt ? rawExt.toLowerCase().replace(/[^a-z0-9]/g, '') : 'png'
     if (!['jpg','jpeg','png','gif','webp'].includes(ext)) return
+    if (file.size > 5 * 1024 * 1024) {
+      setValidErr('Cover image must be 5 MB or smaller.')
+      if (fileRef.current) fileRef.current.value = ''
+      return
+    }
     setUploadingCover(true)
+    setValidErr(null)
     try {
       const sb   = createBrowserClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
-      const path = `${crypto.randomUUID()}.${ext}`
+      const { data: { user } } = await sb.auth.getUser()
+      if (!user) throw new Error('Sign in before uploading a cover image')
+      const path = `${user.id}/covers/${crypto.randomUUID()}.${ext}`
       const { error: ue } = await sb.storage
         .from('vibe-publication-covers')
         .upload(path, file)
-      if (!ue) {
-        const { data } = sb.storage.from('vibe-publication-covers').getPublicUrl(path)
-        onUpdate({ cover_url: data.publicUrl })
-      }
-    } finally { setUploadingCover(false) }
+      if (ue) throw ue
+      const { data } = sb.storage.from('vibe-publication-covers').getPublicUrl(path)
+      onUpdate({ cover_url: data.publicUrl })
+    } catch (error) {
+      setValidErr(error instanceof Error ? error.message : 'Cover upload failed. Try again.')
+    } finally {
+      setUploadingCover(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
   }
 
   const addTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -252,7 +264,7 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                     textAlign: 'center', cursor: 'pointer', color: MUTED, fontSize: 13,
                   }}>{uploadingCover ? 'Uploading…' : '📷 Add cover image'}</div>
                 )}
-                <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadCover} />
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" style={{ display: 'none' }} onChange={uploadCover} />
               </div>
 
               {/* Title */}
@@ -325,60 +337,36 @@ export function PublicationSetupDrawer({ publication, isOpen, onClose, onUpdate,
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                   {(['free','paid','freemium','donation'] as PricingModel['type'][]).map(t => (
                     <button key={t} onClick={() => applyPricing(t)} style={pill(publication.pricing.type === t)}>
-                      {t === 'free' ? 'Free' : t === 'paid' ? 'Paid' : t === 'freemium' ? 'Freemium' : 'Donation'}
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
                     </button>
                   ))}
-                  {isTextbook && (
-                    <button onClick={() => applyPricing('school_license')} style={pill(publication.pricing.type === 'school_license')}>
-                      🏫 School License
-                    </button>
-                  )}
                 </div>
-                {(publication.pricing.type === 'paid' ||
-                  publication.pricing.type === 'freemium' ||
-                  publication.pricing.type === 'donation') && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: MUTED, fontSize: 13 }}>KSh</span>
-                    <input style={{ ...inp, width: 120 }} type="number" value={priceInput}
-                      placeholder="e.g. 150"
-                      onChange={e => setPriceInput(e.target.value)} />
-                  </div>
+                {publication.pricing.type !== 'free' && (
+                  <input style={inp} inputMode="numeric" value={priceInput}
+                    placeholder="Price (KSh)"
+                    onChange={e => setPriceInput(e.target.value)} />
                 )}
               </div>
 
               {/* Tags */}
               <div>
                 <span style={lbl}>TAGS</span>
-                <input style={inp} value={tagInput}
-                  placeholder="Type tag + Enter"
-                  onChange={e => setTagInput(e.target.value)}
-                  onKeyDown={addTag} />
-                {publication.tags.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                    {publication.tags.map(t => (
-                      <span key={t}
-                        onClick={() => onUpdate({ tags: publication.tags.filter(x => x !== t) })}
-                        style={{ background: CARD, border: '1px solid ' + BORDER, borderRadius: 24, padding: '4px 10px', fontSize: 11, color: TEXT, cursor: 'pointer' }}>
-                        #{t} <span style={{ color: MUTED }}>✕</span>
-                      </span>
-                    ))}
-                  </div>
-                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                  {publication.tags.map(tag => (
+                    <button key={tag} onClick={() => onUpdate({ tags: publication.tags.filter(t => t !== tag) })}
+                      style={{ ...pill(false), padding: '4px 9px' }}>#{tag} ×</button>
+                  ))}
+                </div>
+                <input style={inp} value={tagInput} placeholder="Type a tag and press Enter"
+                  onChange={e => setTagInput(e.target.value)} onKeyDown={addTag} />
               </div>
 
-              {/* Publish */}
-              <button onClick={handlePublish} disabled={publishing} style={{
-                width: '100%', padding: 14,
-                background: publishing ? 'rgba(204,255,0,0.5)' : ACCENT,
-                color: '#090D16', border: 'none', borderRadius: 12,
-                fontSize: 15, fontWeight: 800,
-                cursor: publishing ? 'not-allowed' : 'pointer',
-                marginTop: 4,
-              }}>
-                {publishing
-                  ? (wasAlreadyLive ? 'Updating…' : 'Publishing…')
-                  : (wasAlreadyLive ? `Update ${meta.label} ✓` : `Publish ${meta.label} 🚀`)}
-              </button>
+              <button onClick={handlePublish} disabled={publishing || uploadingCover} style={{
+                marginTop: 6, background: ACCENT, color: '#090D16', border: 'none',
+                borderRadius: 12, padding: '13px 18px', fontSize: 14, fontWeight: 850,
+                cursor: publishing || uploadingCover ? 'default' : 'pointer',
+                opacity: publishing || uploadingCover ? 0.55 : 1,
+              }}>{publishing ? 'Publishing…' : wasAlreadyLive ? 'Update publication' : 'Publish'}</button>
             </div>
           </>
         )}
