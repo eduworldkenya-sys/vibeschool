@@ -20,6 +20,15 @@ type School = {
   knec_code:string|null
 }
 
+type PendingSchool = {
+  request_id:string
+  school_name:string
+  county:string|null
+  sub_county:string|null
+  school_level:string|null
+  submitted_at:string
+}
+
 type MissingDraft = { name:string; county:string; subCounty:string; level:string; code:string; notes:string }
 
 const emptyMissing:MissingDraft={name:'',county:'',subCounty:'',level:'',code:'',notes:''}
@@ -30,6 +39,7 @@ export default function SchoolsDirectoryPage(){
   const [subCounty,setSubCounty]=useState('')
   const [level,setLevel]=useState('')
   const [rows,setRows]=useState<School[]>([])
+  const [pendingRows,setPendingRows]=useState<PendingSchool[]>([])
   const [loading,setLoading]=useState(true)
   const [error,setError]=useState('')
   const [searched,setSearched]=useState(false)
@@ -40,18 +50,31 @@ export default function SchoolsDirectoryPage(){
 
   async function load(){
     setLoading(true);setError('')
-    const {data,error}=await supabase.rpc('schools_search_public_v1',{
-      p_query:query.trim()||null,
-      p_county:county.trim()||null,
-      p_sub_county:subCounty.trim()||null,
-      p_school_category:level||null,
-      p_ownership_type:null,
-      p_gender_type:null,
-      p_accommodation_type:null,
-      p_limit:100,
-    })
-    if(error){setRows([]);setError('School information could not be loaded right now.')}
-    else setRows((data??[]) as School[])
+    const schoolCategory=level?level.toLowerCase():null
+    const [canonicalResult,pendingResult]=await Promise.all([
+      supabase.rpc('schools_search_public_v1',{
+        p_query:query.trim()||null,
+        p_county:county.trim()||null,
+        p_sub_county:subCounty.trim()||null,
+        p_school_category:schoolCategory,
+        p_ownership_type:null,
+        p_gender_type:null,
+        p_accommodation_type:null,
+        p_limit:100,
+      }),
+      supabase.rpc('schools_search_community_pending_v1',{
+        p_query:query.trim()||null,
+        p_county:county.trim()||null,
+        p_sub_county:subCounty.trim()||null,
+        p_level:level||null,
+        p_limit:25,
+      }),
+    ])
+    if(canonicalResult.error){setRows([]);setPendingRows([]);setError('School information could not be loaded right now.')}
+    else {
+      setRows((canonicalResult.data??[]) as School[])
+      setPendingRows(pendingResult.error?[]:(pendingResult.data??[]) as PendingSchool[])
+    }
     setLoading(false);setSearched(true)
   }
 
@@ -75,8 +98,11 @@ export default function SchoolsDirectoryPage(){
     })
     setSaving(false)
     if(error){setFeedback('We could not save this request. Please check the details and try again.');return}
-    setFeedback(`Request ${String(data).slice(0,8)} received. It will be reconciled before any public school record is created.`)
+    setFeedback(`Request ${String(data).slice(0,8)} received. It is now visible as community submitted while VibeSchool verifies the school.`)
+    await load()
   }
+
+  const totalResults=rows.length+pendingRows.length
 
   return <div className={styles.page}>
     <PublicHeader product="Schools"/>
@@ -84,7 +110,7 @@ export default function SchoolsDirectoryPage(){
       <section className={styles.hero}>
         <span className={styles.eyebrow}>KENYA SCHOOL DIRECTORY</span>
         <h1 className={styles.title}>Find a school. Understand what is known.</h1>
-        <p className={styles.lead}>Search VibeSchool’s canonical school records by name and location. Public profiles separate verified information from information that has not yet been confirmed.</p>
+        <p className={styles.lead}>Search VibeSchool’s canonical school records and clearly labelled community submissions. Public profiles separate verified information from information that has not yet been confirmed.</p>
       </section>
 
       <section className={styles.panel} aria-label="Find a school">
@@ -93,22 +119,29 @@ export default function SchoolsDirectoryPage(){
             <label className={styles.field}><span>School name</span><input className={styles.input} value={query} onChange={e=>setQuery(e.target.value)} placeholder="e.g. Gilgil Township"/></label>
             <label className={styles.field}><span>County</span><input className={styles.input} value={county} onChange={e=>setCounty(e.target.value)} placeholder="e.g. Nakuru"/></label>
             <label className={styles.field}><span>Sub-county</span><input className={styles.input} value={subCounty} onChange={e=>setSubCounty(e.target.value)} placeholder="e.g. Gilgil"/></label>
-            <label className={styles.field}><span>Level</span><select className={styles.select} value={level} onChange={e=>setLevel(e.target.value)}><option value="">Any level</option><option value="primary">Primary</option><option value="junior">Junior School</option><option value="senior_secondary">Senior School</option></select></label>
+            <label className={styles.field}><span>Level</span><select className={styles.select} value={level} onChange={e=>setLevel(e.target.value)}><option value="">Any level</option><option value="PRIMARY">Primary</option><option value="JUNIOR">Junior School</option><option value="SENIOR_SECONDARY">Senior School</option></select></label>
           </div>
           <div className={styles.actions}><button className={styles.primary} disabled={loading}>{loading?'Searching…':'Search schools'}</button><button type="button" className={styles.secondary} onClick={openMissing}>Add a missing school</button></div>
         </form>
-        <div className={styles.notice}><strong>Trust rule:</strong> community submissions do not become public school records automatically. VibeSchool checks identity, duplicates and stronger evidence first.</div>
+        <div className={styles.notice}><strong>Trust rule:</strong> community submissions can appear publicly as <em>verification pending</em>, but they cannot claim verified school codes, contacts, pathways or other official facts until reconciled.</div>
       </section>
 
       {error&&<div role="alert" className={`${styles.status} ${styles.error}`}>{error}</div>}
       {!loading&&!error&&<>
-        <div className={styles.resultsHeader}><div><span className={styles.eyebrow}>DIRECTORY RESULTS</span><h2>{rows.length} school{rows.length===1?'':'s'} found</h2></div><span className={styles.small}>Canonical records only</span></div>
+        <div className={styles.resultsHeader}><div><span className={styles.eyebrow}>DIRECTORY RESULTS</span><h2>{totalResults} school{totalResults===1?'':'s'} found</h2></div><span className={styles.small}>Canonical + clearly labelled pending submissions</span></div>
         <div className={styles.cards}>{rows.map(s=><Link className={styles.card} href={`/schools/${s.school_id}`} key={s.school_id}>
           <div><h3 className={styles.schoolName}>{s.school_name}</h3><p className={styles.meta}>{[s.sub_county,s.county].filter(Boolean).join(' · ')||'Location not yet verified'}</p></div>
           <div className={styles.chips}>{[s.school_category,s.ownership_type,s.gender_type,s.accommodation_type].filter(Boolean).map(v=><span className={styles.chip} key={v}>{v}</span>)}</div>
           <span className={styles.small}>View school profile →</span>
         </Link>)}</div>
-        {searched&&rows.length===0&&<div className={`${styles.panel} ${styles.empty}`}><h2>Can’t find the school?</h2><p className={styles.meta}>Send the name and location you know. VibeSchool will check aliases, identifiers and existing records before adding anything publicly.</p><div className={styles.actions}><button className={styles.primary} onClick={openMissing}>Send missing school</button></div></div>}
+
+        {pendingRows.length>0&&<section className={styles.section} aria-label="Community submitted schools"><div className={styles.resultsHeader}><div><span className={styles.eyebrow}>COMMUNITY SUBMITTED</span><h2>Verification pending</h2></div><span className={styles.small}>Not yet canonical</span></div><div className={styles.cards}>{pendingRows.map(s=><article className={styles.card} key={s.request_id}>
+          <div><h3 className={styles.schoolName}>{s.school_name}</h3><p className={styles.meta}>{[s.sub_county,s.county].filter(Boolean).join(' · ')||'Approximate location not supplied'}</p></div>
+          <div className={styles.chips}>{s.school_level&&<span className={styles.chip}>{s.school_level}</span>}<span className={styles.chip}>Community submitted</span></div>
+          <span className={styles.small}>Verification pending · official claims withheld</span>
+        </article>)}</div></section>}
+
+        {searched&&totalResults===0&&<div className={`${styles.panel} ${styles.empty}`}><h2>Can’t find the school?</h2><p className={styles.meta}>Send the name and location you know. VibeSchool will publish it only as a clearly labelled pending submission while identity and stronger evidence are checked.</p><div className={styles.actions}><button className={styles.primary} onClick={openMissing}>Send missing school</button></div></div>}
       </>}
 
       {showMissing&&<section className={`${styles.panel} ${styles.section}`} aria-label="Add a missing school">
