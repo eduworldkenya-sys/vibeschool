@@ -13,6 +13,16 @@ import {
   unpublishPublication as unpublishPublicationLifecycle,
 } from '@/lib/content-engine'
 import {
+  finalizePromotedMedia,
+  parseDraftMediaRef,
+  promoteDraftMedia,
+  removeVibePressMedia,
+  rollbackPromotedMedia,
+  VIBEPRESS_COVER_BUCKET,
+  VIBEPRESS_IMAGE_BUCKET,
+  type PromotedMedia,
+} from '@/lib/vibepressMedia'
+import {
   VibePublication,
   VibeChapter,
   ContentBlock,
@@ -26,6 +36,7 @@ import {
 } from '@/lib/publishTypes'
 
 const AUTOSAVE_MS = 3000
+const PUBLISHED_REVISION_MESSAGE = 'Published publications are locked against direct autosave. Create a governed revision before changing live content.'
 
 export interface UsePublicationDraftResult {
   loading: boolean
@@ -104,6 +115,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
           setActiveChapterId(loadedChapters[0].id)
           pubRef.current = pub
           chapRef.current = loadedChapters
+          if (pub.status === 'published') setError(PUBLISHED_REVISION_MESSAGE)
         }
       } catch (reason) {
         if (!cancelled) setError(reason instanceof Error ? reason.message : 'Load failed')
@@ -134,7 +146,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
         if (chapterError) throw chapterError
       }
       setLastSaved(new Date())
-      setError(null)
+      if (pub.status !== 'published') setError(null)
       return true
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Save failed')
@@ -156,7 +168,14 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
+  const rejectPublishedMutation = useCallback((): boolean => {
+    if (pubRef.current?.status !== 'published') return false
+    setError(PUBLISHED_REVISION_MESSAGE)
+    return true
+  }, [])
+
   const updatePublication = useCallback((updates: Partial<VibePublication>) => {
+    if (rejectPublishedMutation()) return
     setPublication(previous => {
       if (!previous) return null
       const next = { ...previous, ...updates }
@@ -165,27 +184,30 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
       return next
     })
     scheduleSave()
-  }, [scheduleSave])
+  }, [rejectPublishedMutation, scheduleSave])
 
   const updateChapterTitle = useCallback((id: string, title: string) => {
+    if (rejectPublishedMutation()) return
     setChapters(previous => {
       const next = previous.map(chapter => chapter.id === id ? { ...chapter, title } : chapter)
       chapRef.current = next
       return next
     })
     scheduleSave()
-  }, [scheduleSave])
+  }, [rejectPublishedMutation, scheduleSave])
 
   const updateChapterStatus = useCallback((id: string, status: ChapterStatus) => {
+    if (rejectPublishedMutation()) return
     setChapters(previous => {
       const next = previous.map(chapter => chapter.id !== id ? chapter : { ...chapter, status, published_at: status === 'published' ? (chapter.published_at ?? new Date().toISOString()) : chapter.published_at })
       chapRef.current = next
       return next
     })
     scheduleSave()
-  }, [scheduleSave])
+  }, [rejectPublishedMutation, scheduleSave])
 
   const addChapter = useCallback(() => {
+    if (rejectPublishedMutation()) return
     const pub = pubRef.current
     const currentChapters = chapRef.current
     if (!pub) return
@@ -195,20 +217,29 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     chapRef.current = next
     setActiveChapterId(fresh.id)
     scheduleSave()
-  }, [scheduleSave])
+  }, [rejectPublishedMutation, scheduleSave])
 
   const deleteChapter = useCallback((id: string) => {
+    if (rejectPublishedMutation()) return
     const currentChapters = chapRef.current
     if (currentChapters.length <= 1) return
+    const deleted = currentChapters.find(chapter => chapter.id === id)
+    if (deleted) {
+      const sb = getSupabaseClient()
+      for (const block of deleted.blocks) {
+        if ((block.type === 'image' || block.type === 'diagram') && parseDraftMediaRef(block.content)) void removeVibePressMedia(sb, block.content)
+      }
+    }
     deletedIdsRef.current.push(id)
     const next = currentChapters.filter(chapter => chapter.id !== id).map((chapter, index) => ({ ...chapter, number: index + 1 }))
     setChapters(next)
     chapRef.current = next
     setActiveChapterId(previous => previous === id ? (next[0]?.id ?? null) : previous)
     scheduleSave()
-  }, [scheduleSave])
+  }, [rejectPublishedMutation, scheduleSave])
 
   const mutateActiveChapter = useCallback((fn: (blocks: ContentBlock[]) => ContentBlock[]) => {
+    if (rejectPublishedMutation()) return
     const targetId = activeChapterId
     setChapters(previous => {
       const next = previous.map(chapter => {
@@ -220,7 +251,7 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
       return next
     })
     scheduleSave()
-  }, [activeChapterId, scheduleSave])
+  }, [activeChapterId, rejectPublishedMutation, scheduleSave])
 
   const addBlock = useCallback((type: BlockType, afterBlockId?: string) => {
     const newBlock: ContentBlock = { id: crypto.randomUUID(), type, content: '' }
@@ -238,7 +269,14 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
     mutateActiveChapter(blocks => blocks.map(block => block.id !== blockId ? block : { ...block, content, meta: meta !== undefined ? { ...block.meta, ...meta } : block.meta }))
   }, [mutateActiveChapter])
 
-  const deleteBlock = useCallback((blockId: string) => mutateActiveChapter(blocks => blocks.filter(block => block.id !== blockId)), [mutateActiveChapter])
+  const deleteBlock = useCallback((blockId: string) => {
+    const currentChapter = chapRef.current.find(chapter => chapter.id === activeChapterId)
+    const removed = currentChapter?.blocks.find(block => block.id === blockId)
+    if (removed && (removed.type === 'image' || removed.type === 'diagram') && parseDraftMediaRef(removed.content)) {
+      void removeVibePressMedia(getSupabaseClient(), removed.content)
+    }
+    mutateActiveChapter(blocks => blocks.filter(block => block.id !== blockId))
+  }, [activeChapterId, mutateActiveChapter])
 
   const moveBlock = useCallback((blockId: string, direction: 'up' | 'down') => {
     mutateActiveChapter(blocks => {
@@ -253,31 +291,84 @@ export function usePublicationDraft(authorId: string, format: PublicationFormat,
   }, [mutateActiveChapter])
 
   const publishPublication = useCallback(async (): Promise<boolean> => {
-    const pub = pubRef.current
-    if (!pub) { setError('Publication is not available.'); return false }
-    if (!pub.title?.trim()) { setError('Title is required before publishing.'); return false }
-    if (pub.format === 'vibetextbook' && !pub.cbc_subject?.trim()) { setError('Select the CBC subject before publishing this textbook.'); return false }
-    if (pub.format === 'vibetextbook' && !pub.cbc_grade?.trim()) { setError('Select the grade before publishing this textbook.'); return false }
-    const saved = await forceSave()
-    if (!saved) return false
+    const originalPub = pubRef.current
+    const originalChapters = chapRef.current
+    if (!originalPub) { setError('Publication is not available.'); return false }
+    if (originalPub.status === 'published') { setError(PUBLISHED_REVISION_MESSAGE); return false }
+    if (!originalPub.title?.trim()) { setError('Title is required before publishing.'); return false }
+    if (originalPub.format === 'vibetextbook' && !originalPub.cbc_subject?.trim()) { setError('Select the CBC subject before publishing this textbook.'); return false }
+    if (originalPub.format === 'vibetextbook' && !originalPub.cbc_grade?.trim()) { setError('Select the grade before publishing this textbook.'); return false }
+
     const sb = getSupabaseClient()
-    const now = new Date().toISOString()
+    const promoted: PromotedMedia[] = []
+    const replacements = new Map<string, string>()
+
     try {
-      await publishPublicationLifecycle(sb, pub.id)
-      const { data: persistedChapters, error: reloadError } = await sb.from('vibe_chapters').select('*').eq('publication_id', pub.id).order('number', { ascending: true })
+      if (parseDraftMediaRef(originalPub.cover_url)) {
+        const cover = await promoteDraftMedia(sb, originalPub.cover_url!, VIBEPRESS_COVER_BUCKET)
+        if (cover) {
+          promoted.push(cover)
+          replacements.set(cover.sourceRef, cover.publicUrl)
+        }
+      }
+
+      for (const chapter of originalChapters) {
+        for (const block of chapter.blocks) {
+          if ((block.type !== 'image' && block.type !== 'diagram') || !parseDraftMediaRef(block.content)) continue
+          const image = await promoteDraftMedia(sb, block.content, VIBEPRESS_IMAGE_BUCKET)
+          if (image) {
+            promoted.push(image)
+            replacements.set(image.sourceRef, image.publicUrl)
+          }
+        }
+      }
+
+      const preparedPub = replacements.size > 0
+        ? { ...originalPub, cover_url: originalPub.cover_url ? (replacements.get(originalPub.cover_url) ?? originalPub.cover_url) : originalPub.cover_url }
+        : originalPub
+      const preparedChapters = replacements.size > 0
+        ? originalChapters.map(chapter => ({
+            ...chapter,
+            blocks: chapter.blocks.map(block => replacements.has(block.content) ? { ...block, content: replacements.get(block.content)! } : block),
+          }))
+        : originalChapters
+
+      setPublication(preparedPub)
+      pubRef.current = preparedPub
+      setChapters(preparedChapters)
+      chapRef.current = preparedChapters
+
+      const saved = await forceSave()
+      if (!saved) throw new Error('Publication could not be saved before release.')
+
+      const now = new Date().toISOString()
+      await publishPublicationLifecycle(sb, preparedPub.id)
+      const { data: persistedChapters, error: reloadError } = await sb.from('vibe_chapters').select('*').eq('publication_id', preparedPub.id).order('number', { ascending: true })
       if (reloadError) throw reloadError
       const nextChapters = (persistedChapters ?? []).map(chapterRowToDraft)
       setChapters(nextChapters)
       chapRef.current = nextChapters
+      const publishedPub = { ...preparedPub, status: 'published' as const, published_at: preparedPub.published_at ?? now }
+      setPublication(publishedPub)
+      pubRef.current = publishedPub
+      setError(null)
+
+      try { await finalizePromotedMedia(sb, promoted) } catch { /* published asset is canonical; leftover private copies are safe to clean later */ }
+      return true
     } catch (publishError) {
-      try { await unpublishPublicationLifecycle(sb, pub.id) } catch { /* lifecycle RPC is transactional; this only compensates for post-publish reload failure */ }
+      setPublication(originalPub)
+      pubRef.current = originalPub
+      setChapters(originalChapters)
+      chapRef.current = originalChapters
+      if (promoted.length > 0) {
+        try { await persist() } catch { /* preserve the original error below */ }
+        try { await rollbackPromotedMedia(sb, promoted) } catch { /* orphan cleanup can be retried independently */ }
+      }
+      try { await unpublishPublicationLifecycle(sb, originalPub.id) } catch { /* lifecycle RPC is transactional; compensation is best effort */ }
       setError(publishError instanceof Error ? publishError.message : 'Publication failed')
       return false
     }
-    setPublication(previous => previous ? { ...previous, status: 'published', published_at: previous.published_at ?? now } : null)
-    setError(null)
-    return true
-  }, [forceSave])
+  }, [forceSave, persist])
 
   return { loading, saving, lastSaved, error, publication, chapters, activeChapterId, setActiveChapterId, updatePublication, updateChapterTitle, updateChapterStatus, addChapter, deleteChapter, addBlock, updateBlock, deleteBlock, moveBlock, publishPublication, forceSave }
 }
