@@ -1,6 +1,6 @@
 import { CYBORG_POLICY_VERSION, CapabilityClaims, hashValue, signCapability } from '../_shared/cyborg-capability.ts'
 import { getCyborgCallerPolicy } from '../_shared/cyborg-caller-policy.ts'
-import { requireServiceCaller, rpc } from '../_shared/cyborg-service.ts'
+import { localRpc, requireServiceCaller, rpc } from '../_shared/cyborg-service.ts'
 
 const SIGNING_KEY=Deno.env.get('CYBORG_CAPABILITY_SIGNING_KEY')??''
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -34,7 +34,8 @@ Deno.serve(async(req)=>{try{
   }else if(CHEMISTRY_STAGE_CALLERS.has(caller)){
     const lease=record(body.stageLease),attemptId=typeof lease?.attemptId==='string'?lease.attemptId:'',leaseToken=typeof lease?.leaseToken==='string'?lease.leaseToken:''
     if(!UUID.test(attemptId)||!UUID.test(leaseToken))throw new Error('CHEMISTRY_CYBORG_STAGE_LEASE_REQUIRED')
-    await rpc('chemistry_assert_cyborg_stage_lease',{p_attempt_id:attemptId,p_lease_token:leaseToken,p_caller_service_id:caller})
+    // Stage leases are project-local execution authority. Never resolve them against an optional remote Cyborg control-plane database.
+    await localRpc('chemistry_assert_cyborg_stage_lease',{p_attempt_id:attemptId,p_lease_token:leaseToken,p_caller_service_id:caller})
     sourceAuthorityKind='chemistry_stage_attempt';sourceAuthorityRef=attemptId;sourceAuthorityToken=leaseToken
   }else if(sourceRaw&&(suppliedKind!=='service'||suppliedRef||suppliedToken))throw new Error('CYBORG_SOURCE_AUTHORITY_KIND_DENIED')
 

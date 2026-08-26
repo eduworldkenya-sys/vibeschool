@@ -3,6 +3,7 @@ from pathlib import Path
 
 migration = Path('supabase/migrations/20260823210000_chemistry_cyborg_stage_execution_bridge.sql').read_text()
 policy = Path('supabase/functions/_shared/cyborg-caller-policy.ts').read_text()
+service = Path('supabase/functions/_shared/cyborg-service.ts').read_text()
 admission = Path('supabase/functions/cyborg-admission/index.ts').read_text()
 executor = Path('supabase/functions/chemistry-stage-executor/index.ts').read_text()
 
@@ -25,9 +26,14 @@ required_migration = [
     'grant select,insert on public.chemistry_stage_execution_receipts,public.chemistry_worker_artifacts',
 ]
 required_policy = ["'edge.chemistry-stage-executor':{provider:'groq',models:['openai/gpt-oss-120b'],maxTokens:6000}"]
+required_service = [
+    "const LOCAL_SUPABASE_URL = Deno.env.get('SUPABASE_URL')",
+    "const LOCAL_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')",
+    'export async function localRpc',
+]
 required_admission = [
     "'edge.chemistry-stage-executor'",
-    "await rpc('chemistry_assert_cyborg_stage_lease'",
+    "await localRpc('chemistry_assert_cyborg_stage_lease'",
     "sourceAuthorityKind='chemistry_stage_attempt'",
     'authorityScope:[]',
     'toolScope:[]',
@@ -54,12 +60,16 @@ required_executor = [
 for label, text, needles in [
     ('migration', migration, required_migration),
     ('caller policy', policy, required_policy),
+    ('cyborg service', service, required_service),
     ('admission', admission, required_admission),
     ('executor', executor, required_executor),
 ]:
     missing = [needle for needle in needles if needle not in text]
     if missing:
         raise SystemExit(f'{label} missing Chemistry Cyborg execution invariants: {missing}')
+
+if "await rpc('chemistry_assert_cyborg_stage_lease'" in admission:
+    raise SystemExit('Chemistry stage lease must never resolve through the optional remote Cyborg control plane')
 
 for candidate in (migration, executor):
     for forbidden in [
