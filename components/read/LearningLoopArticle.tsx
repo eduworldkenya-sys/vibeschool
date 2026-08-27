@@ -73,11 +73,12 @@ export function LearningLoopArticle({ publicationId, chapterId, blocks, format, 
 
   const done = available.filter(layer => completed.includes(layer.id)).length;
   const percent = available.length ? Math.round((done / available.length) * 100) : 0;
+  const teacherBridgeUrl = `/teacher/from-textbook?publicationId=${encodeURIComponent(publicationId)}&chapterId=${encodeURIComponent(chapterId)}`;
 
   return (
     <article aria-label="Chapter learning loop" style={{ fontSize, lineHeight: 1.72 }}>
       {available.length > 1 ? (
-        <section aria-label="Learning progress" style={{ margin: "0 0 30px", padding: "15px 16px", border: "1px solid rgba(255,255,255,.11)", borderRadius: 14, background: "rgba(255,255,255,.025)" }}>
+        <section aria-label="Learning progress" style={{ margin: "0 0 18px", padding: "15px 16px", border: "1px solid rgba(255,255,255,.11)", borderRadius: 14, background: "rgba(255,255,255,.025)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "baseline" }}>
             <strong style={{ fontSize: 14 }}>Learning loop</strong>
             <span style={{ fontSize: 12, opacity: .7 }}>{done}/{available.length} stages · {percent}%</span>
@@ -87,6 +88,11 @@ export function LearningLoopArticle({ publicationId, chapterId, blocks, format, 
           </div>
         </section>
       ) : null}
+
+      <aside aria-label="Teacher tools" style={{ margin: "0 0 30px", padding: "13px 15px", border: "1px solid rgba(207,255,0,.28)", borderRadius: 14, background: "rgba(207,255,0,.045)", display: "flex", gap: 14, justifyContent: "space-between", alignItems: "center" }}>
+        <div><strong style={{ display: "block", fontSize: 13 }}>Teaching this unit?</strong><span style={{ display: "block", fontSize: 12, opacity: .72, marginTop: 2 }}>Use the exact chapter in a lesson plan or homework.</span></div>
+        <a href={teacherBridgeUrl} style={{ color: "#cfff00", fontWeight: 850, fontSize: 12, textDecoration: "none", whiteSpace: "nowrap" }}>Teacher OS →</a>
+      </aside>
 
       {available.map((layer, layerIndex) => {
         const isDone = completed.includes(layer.id);
