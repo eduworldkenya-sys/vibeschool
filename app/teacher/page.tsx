@@ -21,11 +21,11 @@ const stages = [
 ];
 
 const proof = [
-  ["Scheme of work", "Existing Teacher OS route", "/login?redirect=/teacher/scheme", "public_teacher_scheme" as const],
-  ["Lesson planning", "Existing Teacher OS route", "/login?redirect=/teacher/lessonplan", "public_teacher_lesson" as const],
-  ["Assessment & revision", "Existing Teacher OS route", "/login?redirect=/teacher/assessment", "public_teacher_revision" as const],
-  ["Teacher wallet", "Existing M-Pesa credit flow", "/login?redirect=/teacher/credits", "public_teacher_payment" as const],
-];
+  ["Scheme of work", "Existing Teacher OS route", "/login?redirect=/teacher/scheme", "public_teacher_scheme"],
+  ["Lesson planning", "Existing Teacher OS route", "/login?redirect=/teacher/lessonplan", "public_teacher_lesson"],
+  ["Assessment & revision", "Existing Teacher OS route", "/login?redirect=/teacher/assessment", "public_teacher_revision"],
+  ["Teacher wallet", "Existing M-Pesa credit flow", "/login?redirect=/teacher/credits", "public_teacher_payment"],
+] as const;
 
 const whatsapp = "https://wa.me/254728232157?text=" + encodeURIComponent("Hello VibeSchool. I am a teacher interested in VibeSchool teacher access. Please help me get started.");
 
