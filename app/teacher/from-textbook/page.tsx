@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 type Chapter = { id: string; publication_id: string; title: string | null; learning_outcomes: string[] | null };
 type Plan = { id: string; title: string | null; topic: string | null; taught_date: string | null; status: string | null };
 type Homework = { id: string; title: string; subject: string | null; due_date: string | null };
-
 type RegisteredResource = { id: string; title?: string | null };
 
 const card: React.CSSProperties = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 15 };
@@ -100,14 +99,6 @@ function FromTextbookInner() {
       const payload = data as { ok?: boolean; error?: string } | null;
       if (!payload?.ok) throw new Error(payload?.error || "The chapter could not be linked.");
 
-      if (targetType === "homework") {
-        const { error: updateError } = await supabase.from("homework").update({
-          source_publication_id: publicationId,
-          source_chapter_id: chapterId,
-          source_resource_id: resourceId,
-        }).eq("id", targetId);
-        if (updateError) throw updateError;
-      }
       setMessage(targetType === "lesson_plan" ? "Chapter linked to the lesson plan." : "Chapter linked to the homework.");
     } catch (e) {
       console.error("[from-textbook] attach", e);
