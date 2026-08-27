@@ -1,17 +1,21 @@
 import type{Metadata}from"next";
+import{unstable_noStore as noStore}from"next/cache";
 import{notFound}from"next/navigation";
-import{cache}from"react";
 import{createClient}from"@supabase/supabase-js";
 import ReaderClient,{type Chapter,type ReaderPayload}from"./ReaderClient";
 
+export const dynamic="force-dynamic";
+export const revalidate=0;
+
 const SITE_URL="https://vibeschool.co.ke";
 
-const loadPublicReader=cache(async(publicationId:string):Promise<ReaderPayload|null>=>{
+async function loadPublicReader(publicationId:string):Promise<ReaderPayload|null>{
+  noStore();
   if(!publicationId)return null;
   const supabase=createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}
+    {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:(input,init)=>fetch(input,{...init,cache:"no-store"})}}
   );
   let{data,error}=await supabase.rpc("get_public_vibetextbook_reader",{publication_id_input:publicationId});
   if(error&&(error.code==="PGRST202"||error.code==="42883")){
@@ -23,7 +27,7 @@ const loadPublicReader=cache(async(publicationId:string):Promise<ReaderPayload|n
   if(!payload?.ok||!payload.publication)return null;
   payload.chapters=Array.isArray(payload.chapters)?payload.chapters:[];
   return payload;
-});
+}
 
 function selectedChapter(payload:ReaderPayload,chapterId?:string):Chapter|null{
   if(chapterId){const requested=payload.chapters.find(chapter=>chapter.id===chapterId);if(requested)return requested;}
@@ -46,11 +50,12 @@ function canonicalFor(publicationId:string,chapter:Chapter|null){
 
 export async function generateMetadata({params,searchParams}:{params:{publicationId:string};searchParams?:{chapter?:string}}):Promise<Metadata>{
   const payload=await loadPublicReader(params.publicationId);
-  if(!payload)return{title:"Textbook not found | VibeSchool",robots:{index:false,follow:false}};
+  if(!payload)return{title:"Textbook not found",robots:{index:false,follow:false}};
   const chapter=selectedChapter(payload,searchParams?.chapter);
   const publicationTitle=payload.publication.title||"VibeSchool Textbook";
   const chapterTitle=chapter?.title||publicationTitle;
-  const title=chapter&&chapterTitle!==publicationTitle?`${chapterTitle} | ${publicationTitle} | VibeSchool`:`${publicationTitle} | VibeSchool`;
+  const title=chapter&&chapterTitle!==publicationTitle?`${chapterTitle} | ${publicationTitle}`:publicationTitle;
+  const socialTitle=`${title} | VibeSchool`;
   const description=descriptionFor(payload,chapter);
   const canonical=canonicalFor(params.publicationId,chapter);
   const images=payload.publication.cover_url?[{url:payload.publication.cover_url,alt:publicationTitle}]:undefined;
@@ -58,8 +63,8 @@ export async function generateMetadata({params,searchParams}:{params:{publicatio
     title,
     description,
     alternates:{canonical},
-    openGraph:{title,description,url:canonical,siteName:"VibeSchool",type:"article",images},
-    twitter:{card:images?"summary_large_image":"summary",title,description,images:payload.publication.cover_url?[payload.publication.cover_url]:undefined},
+    openGraph:{title:socialTitle,description,url:canonical,siteName:"VibeSchool",type:"article",images},
+    twitter:{card:images?"summary_large_image":"summary",title:socialTitle,description,images:payload.publication.cover_url?[payload.publication.cover_url]:undefined},
     robots:{index:true,follow:true},
   };
 }
