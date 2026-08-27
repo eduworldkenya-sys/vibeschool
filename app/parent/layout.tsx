@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabase";
 import type { ParentNavTab } from "@/lib/types";
 import { UserContext } from "@/lib/parent-context";
 import OfflineBar from "@/components/teacher/OfflineBar";
-import VibeLearnShellWrapper from "@/components/student/VibeLearnShellWrapper";
 import TwinRoleSwitcher from "@/components/twin/TwinRoleSwitcher";
 import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core";
 
@@ -26,7 +25,7 @@ function tabIdFromPath(path: string): ParentNavTab["id"] {
   return (match?.id ?? "home") as ParentNavTab["id"];
 }
 
-function BottomNav({ activeId, onVibeLearnOpen }: { activeId: ParentNavTab["id"]; onVibeLearnOpen: () => void; }) {
+function BottomNav({ activeId }: { activeId: ParentNavTab["id"] }) {
   const router = useRouter();
   return (
     <div style={{
@@ -39,7 +38,7 @@ function BottomNav({ activeId, onVibeLearnOpen }: { activeId: ParentNavTab["id"]
         const isCenter = t.id === "vibelearn";
         if (isCenter) {
           return (
-            <button key={t.id} onClick={onVibeLearnOpen} aria-label="Open VibeLearn" style={{
+            <button key={t.id} onClick={() => router.push(t.href)} aria-label="Open VibeLearn" aria-current={isActive ? "page" : undefined} style={{
               flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end",
               border: "none", background: "none", cursor: "pointer", padding: "0 0 6px", position: "relative", height: "100%",
             }}>
@@ -55,7 +54,7 @@ function BottomNav({ activeId, onVibeLearnOpen }: { activeId: ParentNavTab["id"]
           );
         }
         return (
-          <button key={t.id} onClick={() => router.push(t.href)} aria-label={t.label} style={{
+          <button key={t.id} onClick={() => router.push(t.href)} aria-label={t.label} aria-current={isActive ? "page" : undefined} style={{
             flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3,
             border: "none", background: "none", cursor: "pointer", padding: "8px 0", color: isActive ? "#10b981" : "#6b7280", position: "relative",
           }}>
@@ -105,7 +104,6 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   const activeId = tabIdFromPath(pathname);
   const [fullName, setFullName] = useState("");
   const [initials, setInitials] = useState("");
-  const [vibeLearnOpen, setVibeLearnOpen] = useState(false);
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
@@ -152,8 +150,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
       <TopBar initials={initials} />
       <OfflineBar />
       <main style={{ maxWidth: 768, margin: "0 auto", padding: "16px 16px 160px", background: "#f0f2f5", color: "#111827" }}>{children}</main>
-      <BottomNav activeId={activeId} onVibeLearnOpen={() => setVibeLearnOpen(true)} />
-      <VibeLearnShellWrapper isOpen={vibeLearnOpen} onClose={() => setVibeLearnOpen(false)} />
+      <BottomNav activeId={activeId} />
     </UserContext.Provider>
   );
 }
