@@ -4,6 +4,8 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const ADMISSION_URL = Deno.env.get('CYBORG_ADMISSION_URL') ?? `${SUPABASE_URL}/functions/v1/cyborg-admission`
 const GATEWAY_URL = Deno.env.get('CYBORG_LLM_GATEWAY_URL') ?? `${SUPABASE_URL}/functions/v1/cyborg-llm-gateway`
+const ADMISSION_TIMEOUT_MS = 12_000
+const GATEWAY_TIMEOUT_MS = 30_000
 
 export type CyborgSourceAuthority = {
   kind: 'service' | 'worker_model_invocation' | 'chemistry_stage_attempt'
@@ -90,6 +92,7 @@ export async function invokeCyborgEdgeModel(input: EdgeCyborgInput): Promise<Edg
       stageLease: input.stageLease,
       sourceAuthority: input.sourceAuthority,
     }),
+    signal: AbortSignal.timeout(ADMISSION_TIMEOUT_MS),
   })
   const admission = record(await admissionResponse.json().catch(() => ({}))) ?? {}
   if (!admissionResponse.ok) throw new Error(`CYBORG_ADMISSION_FAILED:${String(admission.error ?? admissionResponse.status)}`)
@@ -120,6 +123,7 @@ export async function invokeCyborgEdgeModel(input: EdgeCyborgInput): Promise<Edg
       messages: input.messages,
       metadata,
     }),
+    signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS),
   })
   const payload = record(await gatewayResponse.json().catch(() => ({}))) ?? {}
   if (!gatewayResponse.ok) throw new CyborgGatewayError(String(payload.error ?? gatewayResponse.status), record(payload.details) ?? {})
@@ -149,7 +153,7 @@ export async function invokeCyborgEdgeModelWithFallback(input: EdgeCyborgInput, 
     } catch (error) {
       lastError = error
       const details = error instanceof CyborgGatewayError ? error.details : {}
-      const retryable = details.retryable === true || details.category === 'capacity' || details.category === 'provider_unavailable'
+      const retryable = details.retryable === true || details.category === 'capacity' || details.category === 'provider_unavailable' || details.category === 'route_unavailable'
       if (!retryable || index === routes.length - 1) throw error
     }
   }
