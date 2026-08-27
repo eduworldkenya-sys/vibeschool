@@ -1,0 +1,107 @@
+-- Schools V2: trust, profile completeness and governed school-claim foundation.
+-- Claim requests never mutate canonical school records automatically.
+
+create table if not exists public.school_profile_claim_requests (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  requested_by uuid not null references auth.users(id) on delete cascade,
+  role_at_school text not null,
+  evidence_note text,
+  contact_phone text,
+  status text not null default 'pending' check (status in ('pending','approved','rejected','withdrawn')),
+  reviewed_at timestamptz,
+  reviewed_by uuid references auth.users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create unique index if not exists school_profile_claim_requests_one_open
+  on public.school_profile_claim_requests(school_id, requested_by)
+  where status = 'pending';
+
+alter table public.school_profile_claim_requests enable row level security;
+
+create policy "claimants can read own school claims"
+  on public.school_profile_claim_requests for select
+  to authenticated
+  using (requested_by = auth.uid());
+
+create policy "claimants can create own school claims"
+  on public.school_profile_claim_requests for insert
+  to authenticated
+  with check (requested_by = auth.uid() and status = 'pending');
+
+create or replace function public.submit_school_profile_claim_v1(
+  p_school_id uuid,
+  p_role_at_school text,
+  p_evidence_note text default null,
+  p_contact_phone text default null
+) returns uuid
+language plpgsql
+security invoker
+set search_path = public
+as $$
+declare
+  v_id uuid;
+begin
+  if auth.uid() is null then raise exception 'authentication_required'; end if;
+  if length(trim(coalesce(p_role_at_school,''))) < 2 then raise exception 'role_required'; end if;
+  if not exists(select 1 from public.schools where id=p_school_id) then raise exception 'school_not_found'; end if;
+
+  insert into public.school_profile_claim_requests(school_id,requested_by,role_at_school,evidence_note,contact_phone)
+  values(p_school_id,auth.uid(),trim(p_role_at_school),nullif(trim(coalesce(p_evidence_note,'')),''),nullif(trim(coalesce(p_contact_phone,'')),''))
+  returning id into v_id;
+  return v_id;
+end;
+$$;
+
+revoke all on function public.submit_school_profile_claim_v1(uuid,text,text,text) from public, anon;
+grant execute on function public.submit_school_profile_claim_v1(uuid,text,text,text) to authenticated;
+
+create or replace function public.schools_profile_trust_public_v1(p_school_id uuid)
+returns table(
+  school_id uuid,
+  verified_claim_count bigint,
+  profile_completeness integer,
+  trust_state text,
+  last_verified_at timestamptz
+)
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with s as (
+    select id, school_name, county, sub_county, school_category, ownership_type,
+           gender_type, accommodation_type, knec_code
+    from public.schools where id=p_school_id
+  ), o as (
+    select count(*)::bigint as n, max(verified_at) as last_verified
+    from public.school_offerings
+    where school_id=p_school_id and verified_at is not null
+  )
+  select s.id,
+    (case when s.school_name is not null then 1 else 0 end +
+     case when s.county is not null then 1 else 0 end +
+     case when s.sub_county is not null then 1 else 0 end +
+     case when s.school_category is not null then 1 else 0 end +
+     case when s.ownership_type is not null then 1 else 0 end +
+     case when s.gender_type is not null then 1 else 0 end +
+     case when s.accommodation_type is not null then 1 else 0 end +
+     case when s.knec_code is not null then 1 else 0 end + o.n)::bigint,
+    least(100, round((
+      (case when s.school_name is not null then 1 else 0 end +
+       case when s.county is not null then 1 else 0 end +
+       case when s.sub_county is not null then 1 else 0 end +
+       case when s.school_category is not null then 1 else 0 end +
+       case when s.ownership_type is not null then 1 else 0 end +
+       case when s.gender_type is not null then 1 else 0 end +
+       case when s.accommodation_type is not null then 1 else 0 end +
+       case when s.knec_code is not null then 1 else 0 end)::numeric / 8) * 100)::integer),
+    case when o.n > 0 then 'verified_claims' else 'canonical_identity' end,
+    o.last_verified
+  from s cross join o;
+$$;
+
+revoke all on function public.schools_profile_trust_public_v1(uuid) from public;
+grant execute on function public.schools_profile_trust_public_v1(uuid) to anon, authenticated;
