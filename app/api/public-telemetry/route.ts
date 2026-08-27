@@ -9,9 +9,10 @@ const ALLOWED_EVENTS = new Set([
   'public_connected_explorer_interaction','public_capability_status_view',
   'public_sandbox_open','public_sandbox_progress','public_sandbox_role','public_sandbox_complete',
   'public_sandbox_breadth','public_sandbox_signup','public_sandbox_pilot','public_sandbox_product',
+  'public_teacher_scheme','public_teacher_lesson','public_teacher_revision','public_teacher_creator','public_teacher_payment','public_teacher_whatsapp',
 ])
 
-const PUBLIC_PATH = /^\/(?:$|product(?:\/|$)|sandbox(?:\/|$)|teachers(?:\/|$)|learners(?:\/|$)|families(?:\/|$)|about(?:\/|$)|contact(?:\/|$)|careers(?:\/|$)|institutions(?:\/|$)|trust(?:\/|$)|legal(?:\/|$)|pathways(?:\/|$)|learn\/careers(?:\/|$)|global(?:\/|$))/
+const PUBLIC_PATH = /^\/(?:$|product(?:\/|$)|sandbox(?:\/|$)|teacher(?:\/|$)|teachers(?:\/|$)|learners(?:\/|$)|families(?:\/|$)|about(?:\/|$)|contact(?:\/|$)|careers(?:\/|$)|institutions(?:\/|$)|trust(?:\/|$)|legal(?:\/|$)|pathways(?:\/|$)|learn\/careers(?:\/|$)|global(?:\/|$))/
 const MAX_BODY_BYTES = 1024
 
 export async function POST(request: Request) {
