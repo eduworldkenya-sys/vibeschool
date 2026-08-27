@@ -39,7 +39,7 @@ export default function TeacherGateway() {
         <p className={styles.eyebrow}>FOR KENYAN TEACHERS · BUILT FOR THE PHONE IN YOUR HAND</p>
         <h1>What do you need to get done today?</h1>
         <p className={styles.lead}>A scheme. Tomorrow&apos;s lesson. Candidate revision. A better way to use what you already know. Start with the job — not the software.</p>
-        <div className={styles.actions}><TrackedLink className={styles.primary} event="public_teacher_scheme" href="/login?redirect=/teacher/scheme">Prepare my scheme</TrackedLink><TrackedLink className={styles.secondary} event="public_teacher_revision" href="/login?redirect=/teacher/assessment">Prepare revision</TrackedLink></div>
+        <div className={styles.actions}><TrackedLink className={styles.primary} event="public_teacher_scheme" href="/login?redirect=/teacher/scheme">Prepare my scheme</TrackedLink><TrackedLink className={styles.secondary} event="public_teacher_revision" href="/login?redirect=/teacher/assessment">Prepare revision</TrackedLink><TrackedLink className={styles.inlineLink} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Continue to Teacher OS →</TrackedLink></div>
         <div className={styles.signals}><span>Kenyan curriculum context</span><span>Mobile-first</span><span>Connected Teacher OS</span><span>Human-led teaching</span></div>
       </div></section>
 
