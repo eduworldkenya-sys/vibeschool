@@ -21,6 +21,13 @@ function json(data: unknown, status = 200) {
   })
 }
 
+function providerMessage(status: number) {
+  if (status === 401 || status === 403) return "Lesson generation is temporarily unavailable because the AI provider authentication failed."
+  if (status === 429) return "Lesson generation is temporarily busy. Please try again shortly."
+  if (status >= 500) return "The AI provider is temporarily unavailable. Please try again shortly."
+  return "Lesson generation failed. Please try again."
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
 
@@ -33,20 +40,9 @@ serve(async (req) => {
   if (authError || !user) return json({ error: "Unauthorized" }, 401)
 
   try {
-    // This function uses service-role writes. Re-establish current teacher
-    // authority before wallet creation, external spend, or any consequential work.
     const [{ data: profile }, { data: teacherAssignment }] = await Promise.all([
-      adminClient
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle(),
-      adminClient
-        .from("teacher_classes")
-        .select("id")
-        .eq("teacher_id", user.id)
-        .limit(1)
-        .maybeSingle(),
+      adminClient.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+      adminClient.from("teacher_classes").select("id").eq("teacher_id", user.id).limit(1).maybeSingle(),
     ])
 
     if (profile?.role !== "teacher" || !teacherAssignment) {
@@ -62,12 +58,7 @@ serve(async (req) => {
     if (!wallet) {
       const { data: newWallet, error: walletErr } = await adminClient
         .from("vibe_credits")
-        .insert({
-          teacher_id: user.id,
-          balance: FREE_CREDITS,
-          total_earned: FREE_CREDITS,
-          total_spent: 0,
-        })
+        .insert({ teacher_id: user.id, balance: FREE_CREDITS, total_earned: FREE_CREDITS, total_spent: 0 })
         .select("balance, total_spent")
         .single()
 
@@ -113,17 +104,10 @@ serve(async (req) => {
         const tavilyRes = await fetch("https://api.tavily.com/search", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            api_key: TAVILY_KEY,
-            query: subject + " " + topic + " Kenya CBC curriculum lesson resources grade",
-            max_results: 4,
-            include_answer: true,
-          }),
+          body: JSON.stringify({ api_key: TAVILY_KEY, query: subject + " " + topic + " Kenya CBC curriculum lesson resources grade", max_results: 4, include_answer: true }),
         })
         const tavilyData = await tavilyRes.json()
-        tavilyContext = (tavilyData.results ?? [])
-          .map((r: any) => "- " + r.title + ": " + r.content)
-          .join("\n")
+        tavilyContext = (tavilyData.results ?? []).map((r: any) => "- " + r.title + ": " + r.content).join("\n")
       } catch (tavilyErr) {
         console.warn("[generate-lesson-plan] Tavily failed:", tavilyErr)
       }
@@ -143,9 +127,7 @@ serve(async (req) => {
       "Number of learners: " + studentCount,
       "Duration: " + duration,
       "Topic: " + topic,
-      curriculumStrand
-        ? "KICD Curriculum strand: " + curriculumStrand + (curriculumSubStrand ? " → " + curriculumSubStrand : "") + ". Align objectives and content explicitly to this strand."
-        : "",
+      curriculumStrand ? "KICD Curriculum strand: " + curriculumStrand + (curriculumSubStrand ? " → " + curriculumSubStrand : "") + ". Align objectives and content explicitly to this strand." : "",
       focus ? "Teacher focus: " + focus : "",
       prevList,
       tavilyContext ? "\nWeb resources for context:\n" + tavilyContext : "",
@@ -193,30 +175,41 @@ serve(async (req) => {
       "</differentiation>",
     ].filter(Boolean).join("\n")
 
+    if (!GROQ_KEY) {
+      console.error("[generate-lesson-plan] GROQ_API_KEY is not configured")
+      return json({ error: "provider_not_configured", message: "Lesson generation is temporarily unavailable." }, 503)
+    }
+
     const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + GROQ_KEY,
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 4000,
-        temperature: 0.3,
-      }),
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + GROQ_KEY },
+      body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [{ role: "user", content: prompt }], max_tokens: 4000, temperature: 0.3 }),
     })
 
-    const groqData = await groqRes.json()
-    if (!groqRes.ok || !groqData.choices) {
-      console.error("[generate-lesson-plan] Groq error:", JSON.stringify(groqData))
-      return json({ error: "Groq generation failed", detail: groqData }, 502)
+    let groqData: any = null
+    try {
+      groqData = await groqRes.json()
+    } catch {
+      console.error("[generate-lesson-plan] Groq returned non-JSON response", { status: groqRes.status })
+      return json({ error: "provider_invalid_response", message: providerMessage(groqRes.status) }, 502)
+    }
+
+    if (!groqRes.ok || !groqData?.choices) {
+      const providerCode = groqData?.error?.code ?? groqData?.error?.type ?? "unknown"
+      console.error("[generate-lesson-plan] Groq request failed", { status: groqRes.status, providerCode })
+      return json({
+        error: "provider_generation_failed",
+        provider: "groq",
+        provider_status: groqRes.status,
+        provider_code: providerCode,
+        message: providerMessage(groqRes.status),
+      }, groqRes.status === 429 ? 429 : 502)
     }
 
     const text = groqData.choices?.[0]?.message?.content ?? ""
     if (!text) {
-      console.error("[generate-lesson-plan] Empty Groq response:", JSON.stringify(groqData))
-      return json({ error: "Empty response from Groq" }, 502)
+      console.error("[generate-lesson-plan] Empty Groq response")
+      return json({ error: "provider_empty_response", message: "The AI provider returned an empty lesson plan. Please try again." }, 502)
     }
 
     const newBalance = wallet.balance - CREDIT_COST
@@ -224,11 +217,7 @@ serve(async (req) => {
 
     const { error: deductErr } = await adminClient
       .from("vibe_credits")
-      .update({
-        balance: newBalance,
-        total_spent: newTotalSpent,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ balance: newBalance, total_spent: newTotalSpent, updated_at: new Date().toISOString() })
       .eq("teacher_id", user.id)
 
     if (deductErr) {
@@ -244,12 +233,9 @@ serve(async (req) => {
       })
     }
 
-    return json({
-      plan: text,
-      credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance },
-    })
+    return json({ plan: text, credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance } })
   } catch (err) {
     console.error("[generate-lesson-plan] Unhandled error:", err)
-    return json({ error: String(err) }, 500)
+    return json({ error: "lesson_plan_generation_failed", message: "Lesson generation failed unexpectedly. Please try again." }, 500)
   }
 })
