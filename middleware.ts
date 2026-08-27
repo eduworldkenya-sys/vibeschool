@@ -18,6 +18,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(canonical, 308)
   }
 
+  // /teacher is the public teacher acquisition gateway. The authenticated
+  // Teacher OS remains under /teacher/* and keeps its existing authority gate.
+  if (pathname === '/teacher' || pathname === '/teacher/') {
+    const gateway = request.nextUrl.clone()
+    gateway.pathname = '/for-teachers'
+    return NextResponse.rewrite(gateway)
+  }
+
   if (isGlobalAccountPaused() && isPausedGlobalAccountPath(pathname)) {
     const pausedUrl = request.nextUrl.clone()
     pausedUrl.pathname = '/global/paused'
