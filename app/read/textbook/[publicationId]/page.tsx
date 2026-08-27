@@ -1,55 +1,72 @@
-"use client";
-import React,{useEffect,useMemo,useRef,useState}from"react";
-import{useParams,useRouter,useSearchParams}from"next/navigation";
-import{createBrowserClient}from"@supabase/ssr";
-import type{ContentBlock,VibePublication}from"@/lib/publishTypes";
-import{ContentBlockEditor}from"@/components/global/publish/ContentBlockEditor";
-import{ReaderLearningSheet,ReaderNarrationMiniPlayer,type ReaderSheetMode}from"@/components/read/ReaderLearningSheet";
-import{useReaderNarrator}from"@/components/read/useReaderNarrator";
-import sheetStyles from"@/components/read/ReaderLearningSheet.module.css";
+import type{Metadata}from"next";
+import{notFound}from"next/navigation";
+import{cache}from"react";
+import{createClient}from"@supabase/supabase-js";
+import ReaderClient,{type Chapter,type ReaderPayload}from"./ReaderClient";
 
-type Curriculum={framework:string|null;grade:string|null;subject:string|null;strand:string|null;sub_strand:string|null;topic:string|null;term:number|null;week:number|null;learning_outcomes:string[];key_inquiry_questions:string[];suggested_experiences:string[];core_competencies:string[];core_values:string[];source_ref:string|null;alignment_status:"unclaimed"|"creator_claimed"|"pending_review"|"verified"|"rejected";authority:"official"|"publisher"|null;verified_by:string|null;verified_at:string|null;has_curriculum_detail:boolean};
-type Chapter={id:string;publication_id:string;title:string|null;number:number;status:"draft"|"published"|"locked";word_count:number|null;reading_time_min:number|null;can_read:boolean;progress_percent:number|null;completed_at:string|null;curriculum:Curriculum;is_bookmarked:boolean;blocks:ContentBlock[]|null};
-type Payload={ok:boolean;publication:VibePublication;chapters:Chapter[];resume:{chapter_id:string;progress_percent:number;last_read_at:string}|null};
-const C={bg:"#0b0d12",surface:"#151821",text:"#f6f7f8",muted:"#9aa0aa",line:"rgba(255,255,255,.11)",accent:"#cfff00"};
-const cap=(s:string)=>s.replace(/_/g," ").replace(/\b\w/g,m=>m.toUpperCase());
-const blocks=(v:unknown):ContentBlock[]=>Array.isArray(v)?v.filter((b):b is ContentBlock=>!!b&&typeof b==="object"&&typeof(b as ContentBlock).id==="string"&&typeof(b as ContentBlock).type==="string"):[];
+const SITE_URL="https://vibeschool.co.ke";
 
-export default function ReadTextbookPage(){
-  const params=useParams();const router=useRouter();const qs=useSearchParams();const publicationId=typeof params.publicationId==="string"?params.publicationId:"";
-  const[state,setState]=useState<"loading"|"ready"|"error"|"not_found">("loading");const[payload,setPayload]=useState<Payload|null>(null);const[index,setIndex]=useState(0);const[contents,setContents]=useState(false);const[sheet,setSheet]=useState<ReaderSheetMode|null>(null);const[details,setDetails]=useState(false);const[font,setFontState]=useState(19);const[focus,setFocus]=useState(false);const[query,setQuery]=useState("");const searchRef=useRef<HTMLInputElement|null>(null);
-  const chapters=payload?.chapters??[];const active=chapters[index]??null;const activeBlocks=useMemo(()=>blocks(active?.blocks),[active?.blocks]);
-  const narrator=useReaderNarrator("reader-active-unit",active?.id??"none");
+const loadPublicReader=cache(async(publicationId:string):Promise<ReaderPayload|null>=>{
+  if(!publicationId)return null;
+  const supabase=createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}
+  );
+  let{data,error}=await supabase.rpc("get_public_vibetextbook_reader",{publication_id_input:publicationId});
+  if(error&&(error.code==="PGRST202"||error.code==="42883")){
+    const legacy=await supabase.rpc("get_vibetextbook_reader",{publication_id_input:publicationId});
+    data=legacy.data;error=legacy.error;
+  }
+  if(error)throw new Error(`Public textbook reader failed: ${error.code??"unknown"}`);
+  const payload=data as ReaderPayload|null;
+  if(!payload?.ok||!payload.publication)return null;
+  payload.chapters=Array.isArray(payload.chapters)?payload.chapters:[];
+  return payload;
+});
 
-  useEffect(()=>{try{const saved=Number(localStorage.getItem("vibe.reader.fontSize"));if(Number.isFinite(saved)&&saved>=16&&saved<=26)setFontState(saved)}catch{}},[]);
-  const setFont=(value:number)=>{const next=Math.max(16,Math.min(26,value));setFontState(next);try{localStorage.setItem("vibe.reader.fontSize",String(next))}catch{}};
-
-  useEffect(()=>{let cancelled=false;if(!publicationId){setState("not_found");return}const sb=createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);void(async()=>{setState("loading");const{data:{session}}=await sb.auth.getSession();let{data,error}=await sb.rpc(session?"get_vibetextbook_reader":"get_public_vibetextbook_reader",{publication_id_input:publicationId});if(!session&&error&&(error.code==="PGRST202"||error.code==="42883")){const legacy=await sb.rpc("get_vibetextbook_reader",{publication_id_input:publicationId});data=legacy.data;error=legacy.error}if(cancelled)return;if(error){setState("error");return}const p=data as Payload|null;if(!p?.ok||!p.publication){setState("not_found");return}p.chapters=Array.isArray(p.chapters)?p.chapters:[];setPayload(p);const requested=qs.get("chapter");const ri=requested?p.chapters.findIndex(c=>c.id===requested):-1;const resume=p.resume?.chapter_id?p.chapters.findIndex(c=>c.id===p.resume?.chapter_id):-1;setIndex(ri>=0?ri:resume>=0?resume:0);setState("ready")})().catch(()=>setState("error"));return()=>{cancelled=true}},[publicationId]);
-
-  useEffect(()=>{if(!payload||!active)return;window.dispatchEvent(new CustomEvent("vibe:reader-chapter",{detail:{publicationId:payload.publication.id,chapterId:active.id,progressPercent:active.progress_percent??0}}));setDetails(false);setSheet(null)},[payload?.publication.id,active?.id]);
-
-  useEffect(()=>{if(!payload||!active?.can_read)return;const root=document.getElementById("reader-active-unit");if(!root)return;const sb=createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);let last=Math.max(0,active.progress_percent??0);let timer:number|undefined;const update=()=>{window.clearTimeout(timer);timer=window.setTimeout(()=>{const rect=root.getBoundingClientRect();const rootTop=window.scrollY+rect.top;const readBottom=Math.max(0,window.scrollY+window.innerHeight-rootTop);const pct=Math.max(0,Math.min(100,Math.round(readBottom/Math.max(root.scrollHeight,1)*100)));if(pct>=Math.min(100,last+5)||pct>=98){last=Math.max(last,pct);void sb.rpc("record_reading_progress",{publication_id_input:payload.publication.id,chapter_id_input:active.id,progress_percent_input:last})}},180)};window.addEventListener("scroll",update,{passive:true});update();return()=>{window.removeEventListener("scroll",update);window.clearTimeout(timer)}},[payload?.publication.id,active?.id,active?.can_read]);
-
-  function go(i:number){if(!chapters[i])return;narrator.stop();setIndex(i);setContents(false);setSheet(null);window.history.replaceState(window.history.state,"",`/read/textbook/${publicationId}?chapter=${encodeURIComponent(chapters[i].id)}`);setTimeout(()=>document.getElementById("reader-active-unit")?.scrollIntoView({behavior:"smooth",block:"start"}),20)}
-  function openPractice(){window.dispatchEvent(new Event("vibe:reader-open-practice"));setSheet(null)}
-
-  if(state==="loading")return <div style={{minHeight:"100dvh",background:C.bg,color:C.text,display:"grid",placeItems:"center"}}>Opening your book…</div>;
-  if(state!=="ready"||!payload)return <div style={{minHeight:"100dvh",background:C.bg,color:C.text,display:"grid",placeItems:"center",padding:24,textAlign:"center"}}><div><h1 style={{fontSize:22}}>This book could not be opened</h1><p style={{color:C.muted}}>Try again, or return to VibeLearn.</p><button onClick={()=>router.push("/global")} style={btn}>Back to VibeLearn</button></div></div>;
-
-  const pub=payload.publication;const path=[active?.curriculum.grade&&cap(active.curriculum.grade),active?.curriculum.subject&&cap(active.curriculum.subject),active?.curriculum.strand].filter(Boolean).join(" · ");const filtered=chapters.filter(c=>!query.trim()||`${c.number} ${c.title??""}`.toLowerCase().includes(query.toLowerCase()));
-
-  return <div style={{minHeight:"100dvh",background:C.bg,color:C.text,fontFamily:"Inter,system-ui,-apple-system,sans-serif",fontSize:font,lineHeight:1.72}}>
-    <style>{`[data-reader-speaking="true"]{outline:2px solid rgba(207,255,0,.5);outline-offset:7px;border-radius:8px;background:rgba(207,255,0,.035);transition:background .18s ease}`}</style>
-    {!focus&&<header style={{position:"sticky",top:0,zIndex:40,background:"rgba(11,13,18,.94)",backdropFilter:"blur(16px)",borderBottom:`1px solid ${C.line}`}}><div style={{height:58,maxWidth:760,margin:"auto",padding:"0 12px",display:"grid",gridTemplateColumns:"42px minmax(0,1fr) auto auto",alignItems:"center",gap:6}}><button aria-label="Back" onClick={()=>router.back()} style={iconBtn}>←</button><div style={{overflow:"hidden",whiteSpace:"nowrap",textOverflow:"ellipsis",fontSize:13,fontWeight:750}}>{active?.title||pub.title||"VibeLearn"}</div><button onClick={()=>setContents(true)} style={navBtn}>Contents</button><button aria-label="Open reading tools" onClick={()=>setSheet("tools")} style={iconBtn}>•••</button></div></header>}
-    <main id="reader-active-unit" style={{width:"min(calc(100% - 36px),700px)",margin:"0 auto",padding:focus?"30px 0 96px":"34px 0 96px",scrollMarginTop:70}}>
-      {active?<><div style={{marginBottom:30}}><div style={{fontSize:12,fontWeight:850,letterSpacing:".13em",color:C.accent,marginBottom:10}}>UNIT {active.number}</div><h1 style={{fontSize:"clamp(30px,8vw,46px)",lineHeight:1.08,letterSpacing:"-.035em",margin:"0 0 12px",fontWeight:900}}>{active.title||`Unit ${active.number}`}</h1>{path&&<div style={{fontSize:13,color:C.muted,marginBottom:18}}>{path}</div>}{active.curriculum.learning_outcomes.length>0&&<section aria-labelledby="outcomes-title" style={{borderLeft:`2px solid ${C.accent}`,paddingLeft:16,margin:"22px 0 28px"}}><h2 id="outcomes-title" style={{fontSize:14,margin:"0 0 9px",fontWeight:850}}>What you’ll learn</h2><ul style={{margin:0,paddingLeft:20,fontSize:15,lineHeight:1.55,color:"#d9dce1"}}>{active.curriculum.learning_outcomes.slice(0,4).map((o,i)=><li key={i} style={{marginBottom:6}}>{o}</li>)}</ul>{(active.curriculum.learning_outcomes.length>4||active.curriculum.key_inquiry_questions.length>0||active.curriculum.suggested_experiences.length>0)&&<button onClick={()=>setDetails(v=>!v)} style={{...linkBtn,marginTop:7}}>{details?"Hide learning details":"More learning details"}</button>}{details&&<div style={{marginTop:12,fontSize:14,color:C.muted}}>{active.curriculum.learning_outcomes.slice(4).map((o,i)=><div key={`o${i}`}>• {o}</div>)}{active.curriculum.key_inquiry_questions.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Questions to think about</strong>{active.curriculum.key_inquiry_questions.map((q,i)=><div key={`q${i}`}>• {q}</div>)}</>}{active.curriculum.suggested_experiences.length>0&&<><strong style={{display:"block",color:C.text,marginTop:12}}>Ways to learn this</strong>{active.curriculum.suggested_experiences.map((x,i)=><div key={`x${i}`}>• {x}</div>)}</>}</div>}</section>}</div>
-      {active.can_read?activeBlocks.length?<article aria-label="Chapter content" style={{fontSize:font,lineHeight:1.72}}>{activeBlocks.map(block=><div key={block.id} id={`reader-block-${block.id}`} data-reader-block-id={block.id} style={{marginBottom:8}}><ContentBlockEditor block={block} format={pub.format} readOnly isFocused={false} onFocus={()=>undefined} onUpdate={()=>undefined} onDelete={()=>undefined} onMoveUp={()=>undefined} onMoveDown={()=>undefined}/></div>)}</article>:<p style={{color:C.muted}}>This unit has no readable content yet.</p>:<div style={{padding:"30px 0",borderTop:`1px solid ${C.line}`}}><h2>This unit is locked</h2><p style={{color:C.muted}}>This unit is not available with your current access.</p></div>}
-      <nav aria-label="Chapter navigation" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,borderTop:`1px solid ${C.line}`,marginTop:42,paddingTop:22}}><button disabled={index<=0} onClick={()=>go(index-1)} style={btn}>← Previous</button><button disabled={index>=chapters.length-1} onClick={()=>go(index+1)} style={btn}>Next →</button></nav></>:<p>No units are available yet.</p>}
-    </main>
-    {focus&&<button onClick={()=>setFocus(false)} style={{position:"fixed",right:14,top:14,zIndex:60,...btn}}>Exit focus</button>}
-    {active?<ReaderNarrationMiniPlayer chapterTitle={active.title||`Unit ${active.number}`} narrator={narrator} onOpen={()=>setSheet("listen")}/>:null}
-    {active?<ReaderLearningSheet open={sheet!==null} mode={sheet??"tools"} chapterId={active.id} chapterTitle={active.title||`Unit ${active.number}`} fontSize={font} narrator={narrator} onMode={setSheet} onClose={()=>setSheet(null)} onPractice={openPractice} onFontSize={setFont} onFocus={()=>{setFocus(true);setSheet(null)}}/>:null}
-    {contents&&<div className={sheetStyles.backdrop} role="presentation" onMouseDown={e=>{if(e.currentTarget===e.target)setContents(false)}}><aside className={sheetStyles.sheet} role="dialog" aria-modal="true" aria-label="Contents"><div className={sheetStyles.handleWrap}><span className={sheetStyles.handle}/></div><header className={sheetStyles.header}><div className={sheetStyles.titleWrap}><div className={sheetStyles.eyebrow}>Contents</div><div className={sheetStyles.title}>{pub.title}</div></div><button aria-label="Close contents" onClick={()=>setContents(false)} className={sheetStyles.iconButton}>×</button></header><div className={sheetStyles.body}><input ref={searchRef} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search this book" style={input}/><div style={{marginTop:14,display:"grid",gap:4}}>{filtered.map(c=>{const i=chapters.indexOf(c);return <button key={c.id} onClick={()=>go(i)} style={{border:0,borderRadius:10,padding:"11px 10px",background:i===index?"rgba(207,255,0,.09)":"transparent",color:C.text,textAlign:"left",fontSize:14}}><span style={{color:i===index?C.accent:C.muted,fontSize:11,fontWeight:800}}>UNIT {c.number}</span><div style={{fontWeight:700,marginTop:2}}>{c.title||`Unit ${c.number}`}</div>{c.progress_percent?<div style={{fontSize:11,color:C.muted,marginTop:2}}>{c.completed_at?"Finished":`${c.progress_percent}% read`}</div>:null}</button>})}</div></div></aside></div>}
-  </div>
+function selectedChapter(payload:ReaderPayload,chapterId?:string):Chapter|null{
+  if(chapterId){const requested=payload.chapters.find(chapter=>chapter.id===chapterId);if(requested)return requested;}
+  return payload.chapters[0]??null;
 }
-const btn:React.CSSProperties={minHeight:44,border:`1px solid ${C.line}`,borderRadius:10,background:C.surface,color:C.text,padding:"9px 14px",fontWeight:750,cursor:"pointer"};const iconBtn:React.CSSProperties={...btn,minHeight:40,minWidth:40,padding:"6px 9px",background:"transparent",fontSize:18};const navBtn:React.CSSProperties={...btn,minHeight:40,padding:"6px 9px",background:"transparent",fontSize:13};const linkBtn:React.CSSProperties={border:0,background:"transparent",color:C.accent,padding:0,fontWeight:800,cursor:"pointer",fontSize:13};const input:React.CSSProperties={width:"100%",boxSizing:"border-box",border:`1px solid ${C.line}`,borderRadius:11,background:C.bg,color:C.text,padding:"12px 13px",fontSize:15,outline:"none"};
+
+function plainText(value:string){return value.replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/\s+/g," ").trim();}
+
+function descriptionFor(payload:ReaderPayload,chapter:Chapter|null){
+  const chapterText=chapter?.blocks?.map(block=>plainText(block.content??"")).filter(Boolean).join(" ")??"";
+  const fallback=payload.publication.description?plainText(payload.publication.description):"Read this VibeSchool textbook chapter online.";
+  const text=chapterText||fallback;
+  return text.length>160?`${text.slice(0,157).trimEnd()}…`:text;
+}
+
+function canonicalFor(publicationId:string,chapter:Chapter|null){
+  const base=`${SITE_URL}/read/textbook/${encodeURIComponent(publicationId)}`;
+  return chapter?`${base}?chapter=${encodeURIComponent(chapter.id)}`:base;
+}
+
+export async function generateMetadata({params,searchParams}:{params:{publicationId:string};searchParams?:{chapter?:string}}):Promise<Metadata>{
+  const payload=await loadPublicReader(params.publicationId);
+  if(!payload)return{title:"Textbook not found | VibeSchool",robots:{index:false,follow:false}};
+  const chapter=selectedChapter(payload,searchParams?.chapter);
+  const publicationTitle=payload.publication.title||"VibeSchool Textbook";
+  const chapterTitle=chapter?.title||publicationTitle;
+  const title=chapter&&chapterTitle!==publicationTitle?`${chapterTitle} | ${publicationTitle} | VibeSchool`:`${publicationTitle} | VibeSchool`;
+  const description=descriptionFor(payload,chapter);
+  const canonical=canonicalFor(params.publicationId,chapter);
+  const images=payload.publication.cover_url?[{url:payload.publication.cover_url,alt:publicationTitle}]:undefined;
+  return{
+    title,
+    description,
+    alternates:{canonical},
+    openGraph:{title,description,url:canonical,siteName:"VibeSchool",type:"article",images},
+    twitter:{card:images?"summary_large_image":"summary",title,description,images:payload.publication.cover_url?[payload.publication.cover_url]:undefined},
+    robots:{index:true,follow:true},
+  };
+}
+
+export default async function ReadTextbookPage({params,searchParams}:{params:{publicationId:string};searchParams?:{chapter?:string}}){
+  const payload=await loadPublicReader(params.publicationId);
+  if(!payload)notFound();
+  const chapter=selectedChapter(payload,searchParams?.chapter);
+  return <ReaderClient publicationId={params.publicationId} initialPayload={payload} initialChapterId={chapter?.id??null}/>;
+}
