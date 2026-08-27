@@ -25,7 +25,7 @@ required_migration = [
     'shadow_global_stop,true',
     'grant select,insert on public.chemistry_stage_execution_receipts,public.chemistry_worker_artifacts',
 ]
-required_policy = ["'edge.chemistry-stage-executor':{provider:'groq',models:['openai/gpt-oss-120b'],maxTokens:6000}"]
+required_policy = ["'edge.chemistry-stage-executor':{provider:'groq',models:['llama-3.3-70b-versatile','openai/gpt-oss-120b'],maxTokens:6000}"]
 required_service = [
     "const LOCAL_SUPABASE_URL = Deno.env.get('SUPABASE_URL')",
     "const LOCAL_SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')",
@@ -42,7 +42,7 @@ required_executor = [
     'hq_laban_claim_chemistry_stage',
     'p_lease_seconds:300',
     'chemistry_get_stage_execution_packet',
-    'invokeCyborgEdgeModel',
+    'invokeCyborgEdgeModelWithFallback',
     'callerServiceId:CALLER',
     'stageLease:{attemptId:claim.attempt_id,leaseToken:claim.lease_token}',
     'sourceAuthority:{kind:"chemistry_stage_attempt"',
@@ -88,6 +88,8 @@ for candidate in (migration, executor):
 
 if 'hq_content_authoring_claim' in executor or 'content_worker_begin_execution' in executor:
     raise SystemExit('Chemistry executor must not route through the general runtime-dependent Author claim')
+if 'GROQ_API_KEY' in executor or 'api.groq.com' in executor:
+    raise SystemExit('Chemistry executor must obtain provider access only through the canonical Cyborg gateway')
 if "from public,anon,authenticated,service_role;\ngrant execute on function public.chemistry_get_stage_execution_packet" not in migration:
     raise SystemExit('execution packet must be service-only')
 if migration.find('perform public.chemistry_assert_cyborg_stage_lease') > migration.find("select * into a from public.chemistry_worker_stage_attempts where id=p_attempt_id;"):
