@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ContentBlock, PublicationFormat } from "@/lib/publishTypes";
 import { ContentBlockEditor } from "@/components/global/publish/ContentBlockEditor";
+import { LearningCheckpoint } from "@/components/read/LearningCheckpoint";
+import { parseLearningCheckpoint } from "@/lib/learning/checkpoint";
 
 export type LearningLayer = "orient" | "comprehend" | "apply" | "connect" | "extend";
 
@@ -16,10 +18,10 @@ type Props = {
 
 const LAYERS: Array<{ id: LearningLayer; label: string; description: string }> = [
   { id: "orient", label: "Orient", description: "Know where you are going and activate what you already know." },
-  { id: "comprehend", label: "Comprehend", description: "Build the core historical narrative, concepts and evidence." },
+  { id: "comprehend", label: "Comprehend", description: "Build the core narrative, concepts and evidence." },
   { id: "apply", label: "Apply & check", description: "Test understanding and surface misconceptions early." },
-  { id: "connect", label: "Connect", description: "Relate the history to Kenya, Africa and connected ideas where relevant." },
-  { id: "extend", label: "Extend", description: "Move into KCSE practice, revision and teacher-ready application." },
+  { id: "connect", label: "Connect", description: "Relate the learning to Kenya, Africa and connected ideas where relevant." },
+  { id: "extend", label: "Extend", description: "Move into exam practice, revision and teacher-ready application." },
 ];
 
 const isLayer = (value: unknown): value is LearningLayer =>
@@ -44,6 +46,17 @@ function inferLayer(block: ContentBlock): LearningLayer {
 
 function layerFor(block: ContentBlock): LearningLayer {
   return explicitLayer(block) ?? inferLayer(block);
+}
+
+function checkpointFor(block: ContentBlock) {
+  if (block.type !== "interactive" && block.type !== "question") return null;
+  const raw = block.meta?.learning_checkpoint;
+  if (typeof raw !== "string") return null;
+  try {
+    return parseLearningCheckpoint(JSON.parse(raw), block.id);
+  } catch {
+    return null;
+  }
 }
 
 export function LearningLoopArticle({ publicationId, chapterId, blocks, format, fontSize }: Props) {
@@ -110,11 +123,18 @@ export function LearningLoopArticle({ publicationId, chapterId, blocks, format, 
                 </button>
               </div>
             </header>
-            {groups[layer.id].map(block => (
-              <div key={block.id} id={`reader-block-${block.id}`} data-reader-block-id={block.id} style={{ marginBottom: 8 }}>
-                <ContentBlockEditor block={block} format={format} readOnly isFocused={false} onFocus={() => undefined} onUpdate={() => undefined} onDelete={() => undefined} onMoveUp={() => undefined} onMoveDown={() => undefined} />
-              </div>
-            ))}
+            {groups[layer.id].map(block => {
+              const checkpoint = checkpointFor(block);
+              return (
+                <div key={block.id} id={`reader-block-${block.id}`} data-reader-block-id={block.id} style={{ marginBottom: 8 }}>
+                  {checkpoint ? (
+                    <LearningCheckpoint publicationId={publicationId} chapterId={chapterId} blockId={block.id} spec={checkpoint} />
+                  ) : (
+                    <ContentBlockEditor block={block} format={format} readOnly isFocused={false} onFocus={() => undefined} onUpdate={() => undefined} onDelete={() => undefined} onMoveUp={() => undefined} onMoveDown={() => undefined} />
+                  )}
+                </div>
+              );
+            })}
           </section>
         );
       })}
