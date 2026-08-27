@@ -1,13 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-import { groqText, invokeCyborgEdgeModel } from "../_shared/cyborg-model-client.ts"
+import { groqText, invokeCyborgEdgeModelWithFallback } from "../_shared/cyborg-model-client.ts"
 
 const URL=Deno.env.get("SUPABASE_URL")??""
 const ANON=Deno.env.get("SUPABASE_ANON_KEY")??""
 const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")??""
-const MODEL=Deno.env.get("CHEMISTRY_STAGE_MODEL")??"openai/gpt-oss-120b"
+const MODEL=Deno.env.get("CHEMISTRY_STAGE_MODEL")??"llama-3.3-70b-versatile"
+const FALLBACK_MODEL=Deno.env.get("CHEMISTRY_STAGE_FALLBACK_MODEL")??"openai/gpt-oss-120b"
 const CYBORG_SIGNING_KEY=Deno.env.get("CYBORG_CAPABILITY_SIGNING_KEY")??""
-const GROQ_KEY=Deno.env.get("GROQ_API_KEY")??""
 const CALLER="edge.chemistry-stage-executor"
 const CORS={"access-control-allow-origin":"*","access-control-allow-headers":"authorization, x-client-info, apikey, content-type","access-control-allow-methods":"POST, OPTIONS"}
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{...CORS,"content-type":"application/json"}})
@@ -48,7 +48,8 @@ function prompt(stage:string){const common="You are executing exactly one lease-
 }
 
 async function runModel(packet:Packet,claim:Claim){const before=coverageMatrix(rec(candidate(packet)),outcomes(packet),packContent(packet));const targets=claim.stage==="REPAIRING"?repairTargets(packet,before.missing):[];if(claim.stage==="REPAIRING"&&!targets.length)throw new Error("CHEMISTRY_REPAIR_TARGETS_REQUIRED");const input={stage:claim.stage,worker_key:claim.worker_key,worker_version:claim.worker_version,chapter:packet.chapter,source_version:claim.source_version,source_hash:claim.source_hash,learning_quality_contract:rec(packet.attempt.input_packet).learning_quality_contract,fast_trust_contract:packet.fast_trust_contract,research_pack:packContent(packet),prior_evidence:rec(packet.item).evidence,repair_targets:targets,current_candidate:candidate(packet)}
- const g=await invokeCyborgEdgeModel({callerServiceId:CALLER,actorKey:`worker:${claim.worker_key}`,externalChatId:`chemistry:${claim.attempt_id}`,objective:`Execute governed Chemistry ${claim.stage} for ${text(packet.chapter.title)}`,provider:"groq",model:MODEL,maxTokens:6000,messages:[{role:"system",content:prompt(claim.stage)},{role:"user",content:JSON.stringify(input)}],metadata:{feature:"chemistry-stage-executor",stage:claim.stage,attemptId:claim.attempt_id,workerKey:claim.worker_key},dataClassification:"restricted",stageLease:{attemptId:claim.attempt_id,leaseToken:claim.lease_token},sourceAuthority:{kind:"chemistry_stage_attempt",ref:claim.attempt_id,token:claim.lease_token}})
+ const fallback=FALLBACK_MODEL&&FALLBACK_MODEL!==MODEL?[{provider:"groq",model:FALLBACK_MODEL,maxTokens:2800}]:[]
+ const g=await invokeCyborgEdgeModelWithFallback({callerServiceId:CALLER,actorKey:`worker:${claim.worker_key}`,externalChatId:`chemistry:${claim.attempt_id}`,objective:`Execute governed Chemistry ${claim.stage} for ${text(packet.chapter.title)}`,provider:"groq",model:MODEL,maxTokens:6000,messages:[{role:"system",content:prompt(claim.stage)},{role:"user",content:JSON.stringify(input)}],metadata:{feature:"chemistry-stage-executor",stage:claim.stage,attemptId:claim.attempt_id,workerKey:claim.worker_key},dataClassification:"restricted",stageLease:{attemptId:claim.attempt_id,leaseToken:claim.lease_token},sourceAuthority:{kind:"chemistry_stage_attempt",ref:claim.attempt_id,token:claim.lease_token}},fallback)
  const raw=groqText(g.output);if(!raw)throw new Error("CHEMISTRY_STAGE_MODEL_EMPTY");return{output:parse(raw),g,targets}}
 
 Deno.serve(async(req:Request)=>{
@@ -61,7 +62,6 @@ Deno.serve(async(req:Request)=>{
  const db=createClient(URL,SERVICE,{auth:{persistSession:false,autoRefreshToken:false}})
  const access=await owner.rpc("hq_check_owner_access",{p_surface:"chemistry-stage-executor:preflight"});if(access.error)return reply({error:"authenticated_owner_required"},403)
  if(CYBORG_SIGNING_KEY.length<32)return reply({error:"CYBORG_CAPABILITY_SIGNING_KEY_REQUIRED",retryable:false,claim_created:false},503)
- if(!GROQ_KEY)return reply({error:"CYBORG_PROVIDER_CREDENTIAL_REQUIRED:groq",retryable:false,claim_created:false},503)
  let claim:Claim|null=null,receiptSaved=false
  try{
   const claimed=await owner.rpc("hq_laban_claim_chemistry_stage",{p_item_id:body.itemId,p_expected_queued_stage:body.expectedQueuedStage,p_lease_seconds:300});if(claimed.error)throw new Error(`CHEMISTRY_LABAN_CLAIM_FAILED:${claimed.error.message}`);claim=claimed.data as Claim;if(!claim?.attempt_id||!claim.lease_token)throw new Error("CHEMISTRY_LABAN_CLAIM_CONTRACT_INVALID")
@@ -96,7 +96,7 @@ Deno.serve(async(req:Request)=>{
 
   const completion:Obj={learning_quality_contract_version:3,fast_trust_contract_version:1,research_pack_id:packId,quality_evidence:quality,coverage_matrix:cov.matrix,missing_requirements:effectiveMissing,repair_targets:targets,findings:fs,side_effects_applied:false,published:false,cyborg:{mission_id:g.missionId,invocation_id:g.invocationId,lineage:g.lineage},...(artifactId?{chemistry_artifact_id:artifactId,source_version:newVersion,source_hash:newHash}:{})}
   const refs=[`cyborg-mission:${g.missionId}`,`cyborg-invocation:${g.invocationId}`,`cyborg-receipt:${String(g.lineage.receiptHash??"")}`,...(packId?[`chemistry-research-pack:${packId}`]:[]),...(artifactId?[`chemistry-artifact:${artifactId}`]:[])]
-  const receipt=await db.from("chemistry_stage_execution_receipts").insert({attempt_id:claim.attempt_id,item_id:text(packet.item.id),stage,worker_key:claim.worker_key,worker_version:claim.worker_version,model_key:MODEL,cyborg_mission_id:g.missionId,cyborg_invocation_id:g.invocationId,lineage:g.lineage,disposition,completion_packet:completion,evidence_refs:refs});if(receipt.error)throw new Error(`CHEMISTRY_EXECUTION_RECEIPT_FAILED:${receipt.error.message}`);receiptSaved=true
+  const receipt=await db.from("chemistry_stage_execution_receipts").insert({attempt_id:claim.attempt_id,item_id:text(packet.item.id),stage,worker_key:claim.worker_key,worker_version:claim.worker_version,model_key:text(g.lineage.model)||MODEL,cyborg_mission_id:g.missionId,cyborg_invocation_id:g.invocationId,lineage:g.lineage,disposition,completion_packet:completion,evidence_refs:refs});if(receipt.error)throw new Error(`CHEMISTRY_EXECUTION_RECEIPT_FAILED:${receipt.error.message}`);receiptSaved=true
   const done=await db.rpc("chemistry_complete_stage",{p_attempt_id:claim.attempt_id,p_lease_token:claim.lease_token,p_expected_source_version:claim.source_version,p_expected_source_hash:claim.source_hash,p_disposition:disposition,p_output_packet:completion,p_evidence_refs:refs,p_error_code:errorCode});if(done.error)throw new Error(`CHEMISTRY_STAGE_COMPLETE_FAILED:${done.error.message}`)
   return reply({ok:true,stage,worker_key:claim.worker_key,disposition,research_pack_id:packId,artifact_id:artifactId,completion:done.data})
  }catch(error){const message=error instanceof Error?error.message:String(error);console.error(message)

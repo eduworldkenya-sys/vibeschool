@@ -22,9 +22,8 @@ required_migration = [
 required_executor = [
     'CYBORG_SIGNING_KEY.length<32',
     'CYBORG_CAPABILITY_SIGNING_KEY_REQUIRED',
-    '!GROQ_KEY',
-    'CYBORG_PROVIDER_CREDENTIAL_REQUIRED:groq',
     'claim_created:false',
+    'invokeCyborgEdgeModelWithFallback',
 ]
 
 for label, text, needles in [('migration', migration, required_migration), ('executor', executor, required_executor)]:
@@ -42,6 +41,8 @@ if preflight < authorization:
 owner_access = executor.index('owner.rpc("hq_check_owner_access"')
 if preflight < owner_access:
     raise SystemExit('Cyborg configuration preflight must not disclose configuration before owner authorization')
+if 'GROQ_API_KEY' in executor or 'api.groq.com' in executor:
+    raise SystemExit('Chemistry executor must not own provider credentials or call Groq directly')
 
 for forbidden in [
     'delete from public.chemistry_worker_stage_attempts',

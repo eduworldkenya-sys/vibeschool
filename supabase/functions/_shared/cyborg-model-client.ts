@@ -36,6 +36,16 @@ export type EdgeCyborgResult = {
   lineage: Record<string, unknown>
 }
 
+export type EdgeCyborgFallbackRoute = { provider: string; model: string; maxTokens?: number }
+
+export class CyborgGatewayError extends Error {
+  details: Record<string, unknown>
+  constructor(code: string, details: Record<string, unknown>) {
+    super(`CYBORG_GATEWAY_FAILED:${code}`)
+    this.details = details
+  }
+}
+
 function record(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -112,7 +122,7 @@ export async function invokeCyborgEdgeModel(input: EdgeCyborgInput): Promise<Edg
     }),
   })
   const payload = record(await gatewayResponse.json().catch(() => ({}))) ?? {}
-  if (!gatewayResponse.ok) throw new Error(`CYBORG_GATEWAY_FAILED:${String(payload.error ?? gatewayResponse.status)}`)
+  if (!gatewayResponse.ok) throw new CyborgGatewayError(String(payload.error ?? gatewayResponse.status), record(payload.details) ?? {})
   const lineage = record(payload.lineage)
   if (!lineage || lineage.lineageVerified !== true || lineage.policyDecision !== 'ALLOW' || typeof lineage.receiptHash !== 'string') {
     throw new Error('CYBORG_LINEAGE_REQUIRED')
@@ -121,6 +131,29 @@ export async function invokeCyborgEdgeModel(input: EdgeCyborgInput): Promise<Edg
   if (await receiptHash(unsigned) !== stored) throw new Error('CYBORG_LINEAGE_HASH_MISMATCH')
   const envelope = record(payload.output)
   return { missionId, missionRevision, chatId, invocationId, output: envelope?.output, lineage }
+}
+
+export async function invokeCyborgEdgeModelWithFallback(input: EdgeCyborgInput, fallbacks: EdgeCyborgFallbackRoute[] = []): Promise<EdgeCyborgResult> {
+  const routes = [{ provider: input.provider, model: input.model, maxTokens: input.maxTokens }, ...fallbacks]
+  let lastError: unknown
+  for (let index = 0; index < routes.length; index++) {
+    const route = routes[index]
+    try {
+      return await invokeCyborgEdgeModel({
+        ...input,
+        provider: route.provider,
+        model: route.model,
+        maxTokens: route.maxTokens ?? input.maxTokens,
+        metadata: { ...(input.metadata ?? {}), routeAttempt: index + 1, fallback: index > 0 },
+      })
+    } catch (error) {
+      lastError = error
+      const details = error instanceof CyborgGatewayError ? error.details : {}
+      const retryable = details.retryable === true || details.category === 'capacity' || details.category === 'provider_unavailable'
+      if (!retryable || index === routes.length - 1) throw error
+    }
+  }
+  throw lastError
 }
 
 export function groqText(output: unknown): string {
