@@ -17,6 +17,7 @@ jobs:
       - run: npm ci
       - run: node scripts/validate-cyborg-llm-gateway.mjs
       - run: node scripts/validate-cyborg-admission-sql.mjs
+      - run: python scripts/validate-cyborg-gateway-auth-boundary.py
       - run: python scripts/validate-chemistry-cyborg-stage-executor.py
       - run: python scripts/validate-chemistry-fast-trust-runtime.py
       - run: python scripts/validate-chemistry-curriculum-authority.py
