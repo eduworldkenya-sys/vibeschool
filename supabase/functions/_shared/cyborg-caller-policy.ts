@@ -19,7 +19,7 @@ export const CYBORG_CALLER_POLICIES:Readonly<Record<string,CyborgCallerPolicy>>=
   'edge.content-authoring-worker':{provider:'groq',models:['openai/gpt-oss-120b'],maxTokens:3500},
   'edge.content-critic-worker':{provider:'groq',models:['openai/gpt-oss-120b'],maxTokens:6000},
   'edge.content-repair-worker':{provider:'groq',models:['openai/gpt-oss-120b'],maxTokens:6000},
-  'edge.chemistry-stage-executor':{provider:'groq',models:['openai/gpt-oss-120b'],maxTokens:6000},
+  'edge.chemistry-stage-executor':{provider:'groq',models:['llama-3.3-70b-versatile','openai/gpt-oss-120b'],maxTokens:6000},
   'edge.content-semantic-verifier':{provider:'groq',models:['openai/gpt-oss-120b'],maxTokens:3500},
   'script.seed-curriculum-content':{provider:'anthropic',models:['claude-haiku-4-5-20251001'],maxTokens:1500},
 })

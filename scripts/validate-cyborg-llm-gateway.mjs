@@ -35,7 +35,7 @@ for (const invariant of [
 
 // Scan server-side/runtime authority surfaces. Legacy browser-only inference is not
 // treated as an execution authority and is migrated independently.
-const roots = ['app/api','lib','components','scripts'];
+const roots = ['app/api','lib','components','scripts','supabase/functions'];
 const forbidden = [
   /new\s+OpenAI\s*\(/,
   /new\s+Anthropic\s*\(/,
@@ -45,8 +45,35 @@ const forbidden = [
   /api\.anthropic\.com\/v1\/messages/,
   /api\.openai\.com\/v1\//,
   /generativelanguage\.googleapis\.com\//,
+  /api\.groq\.com\/openai\/v1\//,
+  /\bGROQ_API_KEY\b/,
+  /\bANTHROPIC_API_KEY\b/,
+  /\bOPENAI_API_KEY\b/,
 ];
-const allow = new Set(['lib/cyborg/gateway.ts','scripts/validate-cyborg-llm-gateway.mjs']);
+const allow = new Set([
+  'lib/cyborg/gateway.ts',
+  'scripts/validate-cyborg-llm-gateway.mjs',
+  'supabase/functions/cyborg-llm-gateway/index.ts',
+]);
+// Existing direct Edge integrations are frozen debt. This explicit list prevents
+// additions while each entry is migrated through the canonical gateway.
+const legacyEdgeProviderDebt = new Set([
+  'app/api/exam/generate/route.ts',
+  'app/api/generate-lesson-plan/route.ts',
+  'app/api/reports/insight/route.ts',
+  'app/api/subject-insight/route.ts',
+  'app/api/twin/pulse/route.ts',
+  'app/api/vibevoice/route.ts',
+  'supabase/functions/content-assessment-generate/index.ts',
+  'supabase/functions/content-material-generate/index.ts',
+  'supabase/functions/curriculum-intelligence-health-action/index.ts',
+  'supabase/functions/curriculum-intelligence-research/index.ts',
+  'supabase/functions/generate-canonical-lesson-plan/index.ts',
+  'supabase/functions/generate-lesson-plan/index.ts',
+  'supabase/functions/learning-transform/index.ts',
+  'supabase/functions/swift-processor/index.ts',
+  'supabase/functions/twin-chat/index.ts',
+]);
 const violations = [];
 function walk(dir) {
   if (!fs.existsSync(dir)) return;
@@ -54,7 +81,7 @@ function walk(dir) {
     if (['node_modules','.next','dist','build'].includes(entry.name)) continue;
     const p = path.join(dir,entry.name);
     if (entry.isDirectory()) walk(p);
-    else if (/\.(ts|tsx|js|mjs|cjs)$/.test(entry.name) && !allow.has(p)) {
+    else if (/\.(ts|tsx|js|mjs|cjs)$/.test(entry.name) && !allow.has(p) && !legacyEdgeProviderDebt.has(p)) {
       const text=fs.readFileSync(p,'utf8');
       for (const rule of forbidden) if (rule.test(text)) violations.push(`${p}:${rule}`);
     }
@@ -62,4 +89,9 @@ function walk(dir) {
 }
 for (const root of roots) walk(root);
 if (violations.length) throw new Error(`NO_DIRECT_LLM_CALLS violated:\n${violations.join('\n')}`);
+for (const debt of legacyEdgeProviderDebt) {
+  if (!fs.existsSync(debt)) throw new Error(`STALE_DIRECT_LLM_DEBT_ALLOWLIST:${debt}`);
+  const text=fs.readFileSync(debt,'utf8');
+  if (!forbidden.some(rule=>rule.test(text))) throw new Error(`DIRECT_LLM_DEBT_MIGRATED_REMOVE_ALLOWLIST:${debt}`);
+}
 console.log('CYBORG_UNIVERSAL_LLM_GATEWAY_PASS');
