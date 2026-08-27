@@ -1,0 +1,5 @@
+County selector: local 47-county fallback
+Primary search: schools_search_public_v2
+Fallback search: schools_search_public_v1
+Pending primary: schools_search_community_pending_v2
+Pending fallback: schools_search_community_pending_v1
