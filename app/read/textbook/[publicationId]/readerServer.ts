@@ -1,19 +1,23 @@
 import "server-only";
 
 import type { Metadata } from "next";
-import { cache } from "react";
+import { unstable_noStore as noStore } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import type { Chapter, ReaderPayload } from "./ReaderClient";
 
 const SITE_URL = "https://vibeschool.co.ke";
 
-export const loadPublicReader = cache(async (publicationId: string): Promise<ReaderPayload | null> => {
+export async function loadPublicReader(publicationId: string): Promise<ReaderPayload | null> {
+  noStore();
   if (!publicationId) return null;
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
+    {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { fetch: (input, init) => fetch(input, { ...init, cache: "no-store" }) },
+    },
   );
 
   let { data, error } = await supabase.rpc("get_public_vibetextbook_reader", {
@@ -37,7 +41,7 @@ export const loadPublicReader = cache(async (publicationId: string): Promise<Rea
 
   payload.chapters = Array.isArray(payload.chapters) ? payload.chapters : [];
   return payload;
-});
+}
 
 export function findChapter(payload: ReaderPayload, chapterId?: string): Chapter | null {
   if (!chapterId) return null;
@@ -84,10 +88,11 @@ export function metadataForChapter(
   const subject = chapter.curriculum?.subject?.replace(/_/g, " ") || null;
   const curriculumLabel = [grade, subject].filter(Boolean).join(" · ");
   const title = curriculumLabel
-    ? `${chapterTitle} | ${curriculumLabel} | VibeSchool`
+    ? `${chapterTitle} | ${curriculumLabel}`
     : chapterTitle !== publicationTitle
-      ? `${chapterTitle} | ${publicationTitle} | VibeSchool`
-      : `${publicationTitle} | VibeSchool`;
+      ? `${chapterTitle} | ${publicationTitle}`
+      : publicationTitle;
+  const socialTitle = `${title} | VibeSchool`;
   const description = descriptionFor(payload, chapter);
   const canonical = chapterUrl(publicationId, chapter.id);
   const images = payload.publication.cover_url
@@ -99,7 +104,7 @@ export function metadataForChapter(
     description,
     alternates: { canonical },
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       url: canonical,
       siteName: "VibeSchool",
@@ -108,7 +113,7 @@ export function metadataForChapter(
     },
     twitter: {
       card: images ? "summary_large_image" : "summary",
-      title,
+      title: socialTitle,
       description,
       images: payload.publication.cover_url ? [payload.publication.cover_url] : undefined,
     },
