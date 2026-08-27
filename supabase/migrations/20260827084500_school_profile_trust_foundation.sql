@@ -12,7 +12,9 @@ create table if not exists public.school_profile_claim_requests (
   reviewed_at timestamptz,
   reviewed_by uuid references auth.users(id),
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  constraint school_profile_claim_requests_pending_has_no_review
+    check (status <> 'pending' or (reviewed_at is null and reviewed_by is null))
 );
 
 create unique index if not exists school_profile_claim_requests_one_open
@@ -20,6 +22,9 @@ create unique index if not exists school_profile_claim_requests_one_open
   where status = 'pending';
 
 alter table public.school_profile_claim_requests enable row level security;
+
+revoke all on table public.school_profile_claim_requests from public, anon, authenticated;
+grant select, insert on table public.school_profile_claim_requests to authenticated;
 
 create policy "claimants can read own school claims"
   on public.school_profile_claim_requests for select
@@ -29,7 +34,12 @@ create policy "claimants can read own school claims"
 create policy "claimants can create own school claims"
   on public.school_profile_claim_requests for insert
   to authenticated
-  with check (requested_by = auth.uid() and status = 'pending');
+  with check (
+    requested_by = auth.uid()
+    and status = 'pending'
+    and reviewed_at is null
+    and reviewed_by is null
+  );
 
 create or replace function public.submit_school_profile_claim_v1(
   p_school_id uuid,
@@ -46,11 +56,22 @@ declare
 begin
   if auth.uid() is null then raise exception 'authentication_required'; end if;
   if length(trim(coalesce(p_role_at_school,''))) < 2 then raise exception 'role_required'; end if;
-  if not exists(select 1 from public.schools where id=p_school_id) then raise exception 'school_not_found'; end if;
+  if not exists(select 1 from public.schools where id=p_school_id and deleted_at is null) then
+    raise exception 'school_not_found';
+  end if;
 
-  insert into public.school_profile_claim_requests(school_id,requested_by,role_at_school,evidence_note,contact_phone)
-  values(p_school_id,auth.uid(),trim(p_role_at_school),nullif(trim(coalesce(p_evidence_note,'')),''),nullif(trim(coalesce(p_contact_phone,'')),''))
+  insert into public.school_profile_claim_requests(
+    school_id, requested_by, role_at_school, evidence_note, contact_phone,
+    status, reviewed_at, reviewed_by
+  )
+  values(
+    p_school_id, auth.uid(), trim(p_role_at_school),
+    nullif(trim(coalesce(p_evidence_note,'')),''),
+    nullif(trim(coalesce(p_contact_phone,'')),''),
+    'pending', null, null
+  )
   returning id into v_id;
+
   return v_id;
 end;
 $$;
@@ -72,35 +93,64 @@ security invoker
 set search_path = public
 as $$
   with s as (
-    select id, school_name, county, sub_county, school_category, ownership_type,
-           gender_type, accommodation_type, knec_code
-    from public.schools where id=p_school_id
+    select
+      id,
+      name,
+      county,
+      sub_county,
+      school_category,
+      ownership_type,
+      gender_type,
+      accommodation_type,
+      knec_code,
+      phone,
+      postal_address,
+      motto,
+      vision,
+      logo_url,
+      established_year
+    from public.schools
+    where id = p_school_id
+      and deleted_at is null
   ), o as (
-    select count(*)::bigint as n, max(verified_at) as last_verified
-    from public.school_offerings
-    where school_id=p_school_id and verified_at is not null
+    select
+      count(*) filter (
+        where verified_at is not null
+          and verification_state = 'verified'
+      )::bigint as n,
+      max(verified_at) filter (
+        where verification_state = 'verified'
+      ) as last_verified
+    from public.pathway_school_offerings
+    where school_id = p_school_id
+  ), c as (
+    select
+      s.*,
+      (
+        case when nullif(trim(s.name),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.county),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.sub_county),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.school_category),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.ownership_type),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.gender_type),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.accommodation_type),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.knec_code),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.phone),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.postal_address),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.motto),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.vision),'') is not null then 1 else 0 end +
+        case when nullif(trim(s.logo_url),'') is not null then 1 else 0 end +
+        case when s.established_year is not null then 1 else 0 end
+      ) as populated_fields
+    from s
   )
-  select s.id,
-    (case when s.school_name is not null then 1 else 0 end +
-     case when s.county is not null then 1 else 0 end +
-     case when s.sub_county is not null then 1 else 0 end +
-     case when s.school_category is not null then 1 else 0 end +
-     case when s.ownership_type is not null then 1 else 0 end +
-     case when s.gender_type is not null then 1 else 0 end +
-     case when s.accommodation_type is not null then 1 else 0 end +
-     case when s.knec_code is not null then 1 else 0 end + o.n)::bigint,
-    least(100, round((
-      (case when s.school_name is not null then 1 else 0 end +
-       case when s.county is not null then 1 else 0 end +
-       case when s.sub_county is not null then 1 else 0 end +
-       case when s.school_category is not null then 1 else 0 end +
-       case when s.ownership_type is not null then 1 else 0 end +
-       case when s.gender_type is not null then 1 else 0 end +
-       case when s.accommodation_type is not null then 1 else 0 end +
-       case when s.knec_code is not null then 1 else 0 end)::numeric / 8) * 100)::integer),
+  select
+    c.id,
+    (c.populated_fields::bigint + o.n)::bigint,
+    least(100, round((c.populated_fields::numeric / 14) * 100)::integer),
     case when o.n > 0 then 'verified_claims' else 'canonical_identity' end,
     o.last_verified
-  from s cross join o;
+  from c cross join o;
 $$;
 
 revoke all on function public.schools_profile_trust_public_v1(uuid) from public;
