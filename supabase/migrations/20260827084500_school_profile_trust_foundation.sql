@@ -1,5 +1,6 @@
 -- Schools V2: trust, profile completeness and governed school-claim foundation.
 -- Claim requests never mutate canonical school records automatically.
+-- authorization-test: public.school_profile_claim_requests
 
 create table if not exists public.school_profile_claim_requests (
   id uuid primary key default gen_random_uuid(),
@@ -56,7 +57,12 @@ declare
 begin
   if auth.uid() is null then raise exception 'authentication_required'; end if;
   if length(trim(coalesce(p_role_at_school,''))) < 2 then raise exception 'role_required'; end if;
-  if not exists(select 1 from public.schools where id=p_school_id and deleted_at is null) then
+  if not exists(
+    select 1
+    from public.schools s
+    where s.id = p_school_id
+      and coalesce(to_jsonb(s)->>'deleted_at', '') = ''
+  ) then
     raise exception 'school_not_found';
   end if;
 
@@ -94,24 +100,11 @@ set search_path = public
 as $$
   with s as (
     select
-      id,
-      name,
-      county,
-      sub_county,
-      school_category,
-      ownership_type,
-      gender_type,
-      accommodation_type,
-      knec_code,
-      phone,
-      postal_address,
-      motto,
-      vision,
-      logo_url,
-      established_year
-    from public.schools
-    where id = p_school_id
-      and deleted_at is null
+      s.id,
+      to_jsonb(s) as doc
+    from public.schools s
+    where s.id = p_school_id
+      and coalesce(to_jsonb(s)->>'deleted_at', '') = ''
   ), o as (
     select
       count(*) filter (
@@ -125,28 +118,28 @@ as $$
     where school_id = p_school_id
   ), c as (
     select
-      s.*,
+      s.id,
       (
-        case when nullif(trim(s.name),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.county),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.sub_county),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.school_category),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.ownership_type),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.gender_type),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.accommodation_type),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.knec_code),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.phone),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.postal_address),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.motto),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.vision),'') is not null then 1 else 0 end +
-        case when nullif(trim(s.logo_url),'') is not null then 1 else 0 end +
-        case when s.established_year is not null then 1 else 0 end
+        case when nullif(trim(coalesce(s.doc->>'name','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'county','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'sub_county','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'school_category','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'ownership_type','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'gender_type','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'accommodation_type','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'knec_code','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'phone','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'postal_address','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'motto','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'vision','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'logo_url','')),'') is not null then 1 else 0 end +
+        case when nullif(trim(coalesce(s.doc->>'established_year','')),'') is not null then 1 else 0 end
       ) as populated_fields
     from s
   )
   select
     c.id,
-    (c.populated_fields::bigint + o.n)::bigint,
+    o.n,
     least(100, round((c.populated_fields::numeric / 14) * 100)::integer),
     case when o.n > 0 then 'verified_claims' else 'canonical_identity' end,
     o.last_verified
