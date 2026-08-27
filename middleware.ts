@@ -18,6 +18,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(canonical, 308)
   }
 
+  // Public teacher acquisition surfaces. Operational Teacher OS routes under
+  // /teacher/* continue through the existing authenticated authority gate.
+  if (pathname === '/teacher' || pathname === '/teacher/') {
+    const gateway = request.nextUrl.clone()
+    gateway.pathname = '/for-teachers'
+    return NextResponse.rewrite(gateway)
+  }
+  if (pathname === '/teacher/creators' || pathname === '/teacher/creators/') {
+    const gateway = request.nextUrl.clone()
+    gateway.pathname = '/for-teachers/creators'
+    return NextResponse.rewrite(gateway)
+  }
+
   if (isGlobalAccountPaused() && isPausedGlobalAccountPath(pathname)) {
     const pausedUrl = request.nextUrl.clone()
     pausedUrl.pathname = '/global/paused'

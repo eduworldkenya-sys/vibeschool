@@ -30,6 +30,12 @@ export type PublicEventName =
   | 'public_sandbox_signup'
   | 'public_sandbox_pilot'
   | 'public_sandbox_product'
+  | 'public_teacher_scheme'
+  | 'public_teacher_lesson'
+  | 'public_teacher_revision'
+  | 'public_teacher_creator'
+  | 'public_teacher_payment'
+  | 'public_teacher_whatsapp'
 
 export function trackPublicEvent(event: PublicEventName, path?: string) {
   if (typeof window === 'undefined') return
