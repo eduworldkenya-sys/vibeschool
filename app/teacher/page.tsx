@@ -2,94 +2,64 @@ import Link from "next/link";
 
 export const metadata = {
   title: "For Teachers | VibeSchool",
-  description: "Prepare your teaching, strengthen revision, and grow the value of what you know — built for Kenyan teachers.",
+  description: "Schemes, lesson planning, candidate revision and a path to grow the value of your teaching knowledge — built for Kenyan teachers.",
 };
 
-const paths = [
-  {
-    eyebrow: "SAVE · TEACH",
-    title: "Prepare my teaching",
-    body: "Start with the work already waiting for you: schemes of work, lesson plans, teaching resources, homework and assessment.",
-    points: ["Work from your phone", "Keep and reuse your work", "Move from scheme to lesson without starting again"],
-    href: "/auth?role=teacher&next=/teacher/scheme",
-    cta: "Prepare my teaching",
-  },
-  {
-    eyebrow: "IMPROVE",
-    title: "Prepare my learners",
-    body: "Turn revision into a focused cycle: practise, find difficult areas, respond with targeted support, and keep moving.",
-    points: ["Build revision around real topics", "Create practice and assessment", "Keep candidate preparation connected to teaching"],
-    href: "/exam",
-    cta: "Start revision",
-  },
-  {
-    eyebrow: "EARN",
-    title: "Earn from what I know",
-    body: "Your best explanations, questions and teaching methods have value beyond one classroom. Help shape VibeSchool's teacher creator programme.",
-    points: ["Bring your subject expertise", "Build reusable professional resources", "Join early without fake earning promises"],
-    href: "/contact?topic=founding-teacher-creator",
-    cta: "Join founding creators",
-    coming: true,
-  },
+const jobs = [
+  { title: "I need a scheme of work", body: "Start from the curriculum, organise the term, then keep the work ready for the lesson that follows.", href: "/login?redirect=/teacher/scheme", cta: "Prepare my scheme" },
+  { title: "My lesson is not ready", body: "Move from your teaching plan into lesson preparation without rebuilding the same context every day.", href: "/login?redirect=/teacher/lessonplan", cta: "Prepare my lesson" },
+  { title: "My candidates need revision", body: "Prepare practice and assessment around the topics your learners need to strengthen.", href: "/login?redirect=/teacher/assessment", cta: "Prepare revision" },
+  { title: "I want to earn from what I know", body: "Join the founding creator programme as we build a governed path for excellent teacher knowledge to reach more learners.", href: "/teacher/creators", cta: "Explore creator programme" },
+];
+
+const stages = [
+  ["SAVE", "Stop rebuilding the same work", "Prepare schemes, lessons and assessments from your phone. Keep the work so tomorrow starts where today ended."],
+  ["TEACH", "Connect the teaching week", "A scheme should lead naturally to the lesson, the lesson to homework and assessment, and the next lesson should retain that context."],
+  ["IMPROVE", "Turn learner evidence into revision", "Use assessment and learner work to focus revision on what needs attention instead of simply giving more questions."],
+  ["EARN", "Grow the value of teacher expertise", "Great explanations, questions and teaching methods should be reusable. The founding creator programme begins that journey without promising income before the marketplace is ready."],
 ];
 
 export default function TeacherGateway() {
   return (
     <main style={{ minHeight: "100vh", background: "#f7f8f5", color: "#17211b" }}>
-      <header style={{ maxWidth: 1180, margin: "0 auto", padding: "22px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-        <Link href="/" style={{ color: "inherit", textDecoration: "none", display: "flex", alignItems: "center", gap: 10, fontWeight: 900, letterSpacing: -0.4 }}>
-          <span style={{ width: 34, height: 34, borderRadius: 10, background: "#16865b", color: "white", display: "grid", placeItems: "center" }}>V</span>
-          VibeSchool
-        </Link>
-        <Link href="/auth?role=teacher&next=/teacher/pulse" style={{ color: "#17211b", fontSize: 14, fontWeight: 800, textDecoration: "none" }}>Already a teacher? Continue →</Link>
+      <header style={{ maxWidth: 1180, margin: "0 auto", padding: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <Link href="/" style={{ color: "inherit", textDecoration: "none", display: "flex", alignItems: "center", gap: 10, fontWeight: 900 }}><span style={{ width: 36, height: 36, borderRadius: 11, background: "#16865b", color: "white", display: "grid", placeItems: "center" }}>V</span>VibeSchool</Link>
+        <Link href="/login?redirect=/teacher/pulse" style={{ color: "#17211b", fontSize: 14, fontWeight: 800, textDecoration: "none" }}>Continue to Teacher →</Link>
       </header>
 
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "64px 20px 34px" }}>
-        <div style={{ maxWidth: 820 }}>
-          <p style={{ margin: "0 0 16px", color: "#16865b", fontSize: 13, fontWeight: 900, letterSpacing: 1.4 }}>BUILT FOR KENYAN TEACHERS · MOBILE FIRST</p>
-          <h1 style={{ margin: 0, fontSize: "clamp(42px, 7vw, 78px)", lineHeight: 0.98, letterSpacing: "-0.055em", fontWeight: 950 }}>What do you need to do today, Teacher?</h1>
-          <p style={{ maxWidth: 690, margin: "26px 0 0", fontSize: "clamp(18px, 2.5vw, 23px)", lineHeight: 1.55, color: "#536159" }}>
-            Don&apos;t start with software. Start with the job in front of you. Prepare your work, help your learners improve, and grow the value of what you already know.
-          </p>
+      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "66px 20px 34px" }}>
+        <div style={{ maxWidth: 900 }}>
+          <p style={{ margin: "0 0 16px", color: "#16865b", fontSize: 13, fontWeight: 900, letterSpacing: 1.4 }}>FOR KENYAN TEACHERS · BUILT FOR THE PHONE IN YOUR HAND</p>
+          <h1 style={{ margin: 0, fontSize: "clamp(42px, 7vw, 80px)", lineHeight: .98, letterSpacing: "-.055em", fontWeight: 950 }}>What do you need to get done today?</h1>
+          <p style={{ maxWidth: 720, margin: "26px 0 0", fontSize: "clamp(18px, 2.5vw, 23px)", lineHeight: 1.55, color: "#536159" }}>A scheme. Tomorrow&apos;s lesson. Candidate revision. A better way to use what you already know. Start with the job — not the software.</p>
         </div>
       </section>
 
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "24px 20px 76px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 18 }}>
-        {paths.map((path) => (
-          <article key={path.title} style={{ background: "#fff", border: "1px solid #e2e7e2", borderRadius: 24, padding: 28, display: "flex", flexDirection: "column", minHeight: 430, boxShadow: "0 14px 40px rgba(28, 52, 38, 0.06)" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <span style={{ color: "#16865b", fontSize: 12, fontWeight: 900, letterSpacing: 1.1 }}>{path.eyebrow}</span>
-              {path.coming && <span style={{ background: "#edf8f2", color: "#14714e", padding: "6px 9px", borderRadius: 999, fontSize: 11, fontWeight: 800 }}>Founding programme</span>}
-            </div>
-            <h2 style={{ margin: "24px 0 12px", fontSize: 30, lineHeight: 1.08, letterSpacing: -1.1 }}>{path.title}</h2>
-            <p style={{ margin: 0, color: "#5f6c64", lineHeight: 1.65, fontSize: 16 }}>{path.body}</p>
-            <ul style={{ margin: "24px 0 28px", paddingLeft: 20, color: "#334139", lineHeight: 1.8, fontSize: 14 }}>
-              {path.points.map((point) => <li key={point}>{point}</li>)}
-            </ul>
-            <Link href={path.href} style={{ marginTop: "auto", minHeight: 50, borderRadius: 14, background: "#17211b", color: "white", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 18px", textDecoration: "none", fontWeight: 900 }}>{path.cta} →</Link>
-          </article>
-        ))}
+      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "24px 20px 76px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(245px,1fr))", gap: 16 }}>
+        {jobs.map((job, i) => <article key={job.title} style={{ background: i === 0 ? "#17211b" : "#fff", color: i === 0 ? "#fff" : "#17211b", border: "1px solid #e1e6e1", borderRadius: 24, padding: 26, minHeight: 310, display: "flex", flexDirection: "column", boxShadow: "0 14px 38px rgba(28,52,38,.06)" }}>
+          <span style={{ width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center", background: i === 0 ? "#16865b" : "#edf8f2", color: i === 0 ? "#fff" : "#16865b", fontWeight: 900 }}>{i + 1}</span>
+          <h2 style={{ margin: "22px 0 12px", fontSize: 27, lineHeight: 1.08, letterSpacing: -.8 }}>{job.title}</h2>
+          <p style={{ margin: 0, lineHeight: 1.65, color: i === 0 ? "#d5ddd8" : "#5f6c64" }}>{job.body}</p>
+          <Link href={job.href} style={{ marginTop: "auto", paddingTop: 24, color: i === 0 ? "#7ce0b5" : "#16865b", textDecoration: "none", fontWeight: 900 }}>{job.cta} →</Link>
+        </article>)}
       </section>
 
-      <section style={{ background: "#17211b", color: "white" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "68px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 42, alignItems: "center" }}>
-          <div>
-            <p style={{ margin: "0 0 10px", color: "#77d5ad", fontWeight: 900, fontSize: 12, letterSpacing: 1.2 }}>SAVE → TEACH → IMPROVE → EARN</p>
-            <h2 style={{ margin: 0, fontSize: "clamp(30px, 5vw, 50px)", lineHeight: 1.05, letterSpacing: -1.8 }}>Your work should not disappear when the lesson ends.</h2>
-          </div>
-          <div style={{ color: "#cbd5ce", fontSize: 17, lineHeight: 1.7 }}>
-            <p style={{ marginTop: 0 }}>Prepare it once. Keep it. Improve it. Reuse it. Let the next lesson remember where the last one stopped.</p>
-            <p style={{ marginBottom: 0 }}>Need a hard copy? Prepare the thinking on VibeSchool, export when available, and print wherever works for you.</p>
+      <section style={{ background: "#fff", borderTop: "1px solid #e4e8e4", borderBottom: "1px solid #e4e8e4" }}>
+        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 20px" }}>
+          <p style={{ color: "#16865b", fontWeight: 900, letterSpacing: 1.3, fontSize: 12 }}>ONE WORKFLOW, NOT FOUR DISCONNECTED TOOLS</p>
+          <h2 style={{ maxWidth: 760, margin: "10px 0 38px", fontSize: "clamp(32px,5vw,54px)", lineHeight: 1.05, letterSpacing: -1.8 }}>Prepare it once. Let the next job remember.</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 18 }}>
+            {stages.map(([name,title,body], i) => <div key={name} style={{ padding: "24px 0", borderTop: "3px solid #16865b" }}><div style={{ color: "#16865b", fontSize: 12, fontWeight: 950 }}>{String(i+1).padStart(2,"0")} · {name}</div><h3 style={{ fontSize: 22, margin: "14px 0 10px" }}>{title}</h3><p style={{ color: "#5f6c64", lineHeight: 1.65, margin: 0 }}>{body}</p></div>)}
           </div>
         </div>
       </section>
 
-      <section style={{ maxWidth: 900, margin: "0 auto", padding: "78px 20px", textAlign: "center" }}>
-        <p style={{ margin: "0 0 12px", color: "#16865b", fontWeight: 900, fontSize: 12, letterSpacing: 1.2 }}>START WITH TODAY</p>
-        <h2 style={{ margin: "0 auto", maxWidth: 720, fontSize: "clamp(32px, 5vw, 52px)", lineHeight: 1.08, letterSpacing: -1.8 }}>Do the work you already came to do.</h2>
-        <p style={{ margin: "18px auto 28px", maxWidth: 650, color: "#5f6c64", fontSize: 17, lineHeight: 1.7 }}>VibeSchool grows with your teaching instead of making you configure everything again tomorrow.</p>
-        <Link href="/auth?role=teacher&next=/teacher/scheme" style={{ display: "inline-flex", minHeight: 54, alignItems: "center", justifyContent: "center", borderRadius: 15, padding: "0 24px", background: "#16865b", color: "white", textDecoration: "none", fontWeight: 900 }}>Prepare my teaching →</Link>
+      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 30 }}>
+        <div><p style={{ color: "#16865b", fontSize: 12, fontWeight: 900, letterSpacing: 1.2 }}>THE CYBER CAN STILL PRINT IT</p><h2 style={{ margin: "10px 0", fontSize: "clamp(30px,4vw,46px)", letterSpacing: -1.5 }}>Keep the thinking with you.</h2></div>
+        <div style={{ color: "#536159", fontSize: 17, lineHeight: 1.75 }}><p style={{ marginTop: 0 }}>You may still need a hard copy. The difference is that preparation, editing and reuse can live with you instead of beginning again each time you need a document.</p><p style={{ marginBottom: 0 }}><strong style={{ color: "#17211b" }}>Prepare → save → reuse → export when available → print where convenient.</strong></p></div>
       </section>
+
+      <section style={{ background: "#17211b", color: "white" }}><div style={{ maxWidth: 900, margin: "0 auto", padding: "76px 20px", textAlign: "center" }}><p style={{ color: "#77d5ad", fontSize: 12, fontWeight: 900, letterSpacing: 1.2 }}>SAVE → TEACH → IMPROVE → EARN</p><h2 style={{ fontSize: "clamp(34px,5vw,56px)", lineHeight: 1.05, letterSpacing: -2, margin: "12px 0 18px" }}>Start with the work already waiting for you.</h2><p style={{ color: "#cbd5ce", fontSize: 18, lineHeight: 1.7, maxWidth: 650, margin: "0 auto 28px" }}>No need to learn an education platform first. Choose the job, get to work, and let VibeSchool connect the rest over time.</p><Link href="/login?redirect=/teacher/scheme" style={{ display: "inline-flex", minHeight: 54, alignItems: "center", justifyContent: "center", padding: "0 25px", borderRadius: 15, background: "#16865b", color: "white", textDecoration: "none", fontWeight: 900 }}>Prepare my scheme →</Link></div></section>
     </main>
   );
 }
