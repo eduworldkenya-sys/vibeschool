@@ -89,8 +89,8 @@ export default function ClassHubPage() {
         <p style={{margin:0,color:"#64748b",fontSize:13,fontWeight:700}}>{row.subjects?.name ?? "Subject"}</p>
         <h2 style={{margin:"6px 0 4px"}}>{row.classes?.name ?? "Class"}{row.classes?.stream ? ` · ${row.classes.stream}` : ""}</h2>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:16}}>
-          <button onClick={()=>router.push(`/teacher/scheme?class=${row.class_id}&subject=${row.subject_id}`)} style={{padding:"9px 12px",borderRadius:9,border:"1px solid #cbd5e1",background:"white",fontWeight:700}}>Scheme of work</button>
-          <button onClick={()=>router.push(`/teacher/assessment?class=${row.class_id}&subject=${row.subject_id}`)} style={{padding:"9px 12px",borderRadius:9,border:"1px solid #cbd5e1",background:"white",fontWeight:700}}>Assess</button>
+          <button onClick={()=>router.push(`/teacher/scheme?classId=${row.class_id}&subjectId=${row.subject_id}`)} style={{padding:"9px 12px",borderRadius:9,border:"1px solid #cbd5e1",background:"white",fontWeight:700}}>Scheme of work</button>
+          <button onClick={()=>router.push(`/teacher/assessment?classId=${row.class_id}&subjectId=${row.subject_id}`)} style={{padding:"9px 12px",borderRadius:9,border:"1px solid #cbd5e1",background:"white",fontWeight:700}}>Assess</button>
         </div>
       </article>)}</div>}
   </main>;
