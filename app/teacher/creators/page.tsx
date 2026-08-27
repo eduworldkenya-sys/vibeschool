@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { TrackedLink } from "@/components/public/TrackedLink";
 
 export const metadata = { title: "Founding Teacher Creators | VibeSchool", description: "Help shape a responsible creator pathway for Kenyan teacher expertise." };
+
+const creatorWhatsApp = "https://wa.me/254728232157?text=" + encodeURIComponent("Hello VibeSchool. I am interested in joining the Founding Teacher Creator programme. My subject/level is: ");
 
 export default function FoundingCreators() {
   return <main style={{ minHeight:"100vh", background:"#f7f8f5", color:"#17211b" }}>
@@ -15,7 +18,7 @@ export default function FoundingCreators() {
           {[['CREATE','Bring one resource or teaching idea worth sharing.'],['QUALITY','Help define what excellent, curriculum-grounded teacher content looks like.'],['PUBLISH','Shape how teacher authorship, attribution and distribution should work.'],['EARN','Help design a fair future earning model before we promise payouts.']].map(([a,b])=><div key={a} style={{ padding:18, background:"#f7f8f5", borderRadius:16 }}><strong style={{ color:"#16865b", fontSize:12 }}>{a}</strong><p style={{ marginBottom:0, lineHeight:1.55 }}>{b}</p></div>)}
         </div>
       </div>
-      <div style={{ marginTop:34, padding:28, borderRadius:24, background:"#17211b", color:"white" }}><h2 style={{ marginTop:0 }}>This is not an income promise.</h2><p style={{ color:"#cbd5ce", lineHeight:1.7 }}>The marketplace and creator payout model are still being developed. Founding creators join to shape the system, test contribution workflows and establish the quality standard before commercial earning is opened.</p><Link href="/login?redirect=/teacher/profile" style={{ display:"inline-flex", marginTop:8, minHeight:50, alignItems:"center", padding:"0 20px", borderRadius:14, background:"#16865b", color:"white", textDecoration:"none", fontWeight:900 }}>Join VibeSchool as a teacher →</Link></div>
+      <div style={{ marginTop:34, padding:28, borderRadius:24, background:"#17211b", color:"white" }}><h2 style={{ marginTop:0 }}>This is not an income promise.</h2><p style={{ color:"#cbd5ce", lineHeight:1.7 }}>The marketplace and creator payout model are still being developed. Founding creators join to shape the system, test contribution workflows and establish the quality standard before commercial earning is opened.</p><div style={{ display:"flex", gap:12, flexWrap:"wrap", marginTop:18 }}><TrackedLink event="public_teacher_creator" href={creatorWhatsApp} external target="_blank" rel="noopener noreferrer" style={{ display:"inline-flex", minHeight:50, alignItems:"center", padding:"0 20px", borderRadius:14, background:"#16865b", color:"white", textDecoration:"none", fontWeight:900 }}>Register interest on WhatsApp →</TrackedLink><Link href="/login?redirect=/teacher/profile" style={{ display:"inline-flex", minHeight:50, alignItems:"center", padding:"0 20px", borderRadius:14, border:"1px solid rgba(255,255,255,.25)", color:"white", textDecoration:"none", fontWeight:900 }}>Join VibeSchool as a teacher →</Link></div></div>
     </div>
   </main>
 }
