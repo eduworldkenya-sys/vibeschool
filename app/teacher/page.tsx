@@ -1,5 +1,7 @@
-import Link from "next/link";
+import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicFooter } from "@/components/public/PublicFooter";
 import { TrackedLink } from "@/components/public/TrackedLink";
+import styles from "@/components/public/PublicLanding.module.css";
 
 export const metadata = {
   title: "For Teachers | VibeSchool",
@@ -30,56 +32,38 @@ const proof = [
 const whatsapp = "https://wa.me/254728232157?text=" + encodeURIComponent("Hello VibeSchool. I am a teacher interested in VibeSchool teacher access. Please help me get started.");
 
 export default function TeacherGateway() {
-  return (
-    <main style={{ minHeight: "100vh", background: "#f7f8f5", color: "#17211b" }}>
-      <header style={{ maxWidth: 1180, margin: "0 auto", padding: "20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
-        <Link href="/" style={{ color: "inherit", textDecoration: "none", display: "flex", alignItems: "center", gap: 10, fontWeight: 900 }}><span style={{ width: 36, height: 36, borderRadius: 11, background: "#16865b", color: "white", display: "grid", placeItems: "center" }}>V</span>VibeSchool</Link>
-        <Link href="/login?redirect=/teacher/pulse" style={{ color: "#17211b", fontSize: 14, fontWeight: 800, textDecoration: "none" }}>Continue to Teacher →</Link>
-      </header>
+  return <div className={styles.page}>
+    <PublicHeader product="Teachers" />
+    <main id="main-content">
+      <section className={styles.hero}><div className={styles.wrap}>
+        <p className={styles.eyebrow}>FOR KENYAN TEACHERS · BUILT FOR THE PHONE IN YOUR HAND</p>
+        <h1>What do you need to get done today?</h1>
+        <p className={styles.lead}>A scheme. Tomorrow&apos;s lesson. Candidate revision. A better way to use what you already know. Start with the job — not the software.</p>
+        <div className={styles.actions}><TrackedLink className={styles.primary} event="public_teacher_scheme" href="/login?redirect=/teacher/scheme">Prepare my scheme</TrackedLink><TrackedLink className={styles.secondary} event="public_teacher_revision" href="/login?redirect=/teacher/assessment">Prepare revision</TrackedLink><TrackedLink className={styles.inlineLink} event="public_teacher_lesson" href="/login?redirect=/teacher/pulse">Continue to Teacher OS →</TrackedLink></div>
+        <div className={styles.signals}><span>Kenyan curriculum context</span><span>Mobile-first</span><span>Connected Teacher OS</span><span>Human-led teaching</span></div>
+      </div></section>
 
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "66px 20px 34px" }}>
-        <div style={{ maxWidth: 900 }}>
-          <p style={{ margin: "0 0 16px", color: "#16865b", fontSize: 13, fontWeight: 900, letterSpacing: 1.4 }}>FOR KENYAN TEACHERS · BUILT FOR THE PHONE IN YOUR HAND</p>
-          <h1 style={{ margin: 0, fontSize: "clamp(42px, 7vw, 80px)", lineHeight: .98, letterSpacing: "-.055em", fontWeight: 950 }}>What do you need to get done today?</h1>
-          <p style={{ maxWidth: 720, margin: "26px 0 0", fontSize: "clamp(18px, 2.5vw, 23px)", lineHeight: 1.55, color: "#536159" }}>A scheme. Tomorrow&apos;s lesson. Candidate revision. A better way to use what you already know. Start with the job — not the software.</p>
-        </div>
-      </section>
+      <section className={styles.section}><div className={styles.wrap}>
+        <p className={styles.eyebrow}>START WITH THE JOB</p><h2>Choose the work already waiting for you.</h2>
+        <div className={styles.grid}>{jobs.map(job => <article key={job.title}><h3>{job.title}</h3><p>{job.body}</p><TrackedLink event={job.event} href={job.href}>{job.cta} →</TrackedLink></article>)}</div>
+      </div></section>
 
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "24px 20px 76px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(245px,1fr))", gap: 16 }}>
-        {jobs.map((job, i) => <article key={job.title} style={{ background: i === 0 ? "#17211b" : "#fff", color: i === 0 ? "#fff" : "#17211b", border: "1px solid #e1e6e1", borderRadius: 24, padding: 26, minHeight: 310, display: "flex", flexDirection: "column", boxShadow: "0 14px 38px rgba(28,52,38,.06)" }}>
-          <span style={{ width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center", background: i === 0 ? "#16865b" : "#edf8f2", color: i === 0 ? "#fff" : "#16865b", fontWeight: 900 }}>{i + 1}</span>
-          <h2 style={{ margin: "22px 0 12px", fontSize: 27, lineHeight: 1.08, letterSpacing: -.8 }}>{job.title}</h2>
-          <p style={{ margin: 0, lineHeight: 1.65, color: i === 0 ? "#d5ddd8" : "#5f6c64" }}>{job.body}</p>
-          <TrackedLink event={job.event} href={job.href} style={{ marginTop: "auto", paddingTop: 24, color: i === 0 ? "#7ce0b5" : "#16865b", textDecoration: "none", fontWeight: 900 }}>{job.cta} →</TrackedLink>
-        </article>)}
-      </section>
+      <section className={styles.sectionAlt}><div className={styles.wrap}>
+        <p className={styles.eyebrow}>REAL PRODUCT PATHS</p><h2>See where each promise leads.</h2>
+        <div className={styles.proofGrid}>{proof.map(([title,status,href,event]) => <div className={styles.proofCard} key={title}><small>{status}</small><h3>{title}</h3><TrackedLink className={styles.inlineLink} href={href} event={event}>Open workflow →</TrackedLink></div>)}</div>
+      </div></section>
 
-      <section style={{ background: "#fff", borderTop: "1px solid #e4e8e4", borderBottom: "1px solid #e4e8e4" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 20px" }}>
-          <p style={{ color: "#16865b", fontWeight: 900, letterSpacing: 1.3, fontSize: 12 }}>REAL PRODUCT PATHS</p>
-          <h2 style={{ maxWidth: 760, margin: "10px 0 30px", fontSize: "clamp(32px,5vw,54px)", lineHeight: 1.05, letterSpacing: -1.8 }}>See where each promise leads.</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 14 }}>
-            {proof.map(([title,status,href,event]) => <div key={title} style={{ border: "1px solid #e1e6e1", borderRadius: 18, padding: 20 }}><div style={{ color: "#16865b", fontSize: 11, fontWeight: 900 }}>{status}</div><h3 style={{ margin: "10px 0 16px", fontSize: 21 }}>{title}</h3><TrackedLink href={href} event={event} style={{ color: "#17211b", fontWeight: 900, textDecoration: "none" }}>Open workflow →</TrackedLink></div>)}
-          </div>
-        </div>
-      </section>
+      <section className={styles.section}><div className={styles.wrap}>
+        <p className={styles.eyebrow}>ONE WORKFLOW, NOT FOUR DISCONNECTED TOOLS</p><h2>Prepare it once. Let the next job remember.</h2>
+        <div className={styles.steps}>{stages.map(([name,title,body],i) => <div className={styles.step} key={name}><span>{String(i+1).padStart(2,"0")} · {name}</span><strong>{title}</strong><p className={styles.muted}>{body}</p></div>)}</div>
+      </div></section>
 
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 20px" }}>
-        <p style={{ color: "#16865b", fontWeight: 900, letterSpacing: 1.3, fontSize: 12 }}>ONE WORKFLOW, NOT FOUR DISCONNECTED TOOLS</p>
-        <h2 style={{ maxWidth: 760, margin: "10px 0 38px", fontSize: "clamp(32px,5vw,54px)", lineHeight: 1.05, letterSpacing: -1.8 }}>Prepare it once. Let the next job remember.</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 18 }}>
-          {stages.map(([name,title,body], i) => <div key={name} style={{ padding: "24px 0", borderTop: "3px solid #16865b" }}><div style={{ color: "#16865b", fontSize: 12, fontWeight: 950 }}>{String(i+1).padStart(2,"0")} · {name}</div><h3 style={{ fontSize: 22, margin: "14px 0 10px" }}>{title}</h3><p style={{ color: "#5f6c64", lineHeight: 1.65, margin: 0 }}>{body}</p></div>)}
-        </div>
-      </section>
+      <section className={styles.ctaBand}><div className={styles.ctaInner}><div><p className={styles.eyebrow}>READY TO USE MORE?</p><h2>Teacher payments already use the Vibe wallet.</h2><p className={styles.copy}>Sign in, choose an active teacher credit package and complete payment through the existing M-Pesa STK flow. We do not invent a special price here that the live wallet does not support.</p></div><div className={styles.actions}><TrackedLink className={styles.primary} event="public_teacher_payment" href="/login?redirect=/teacher/credits">View teacher packages & pay</TrackedLink><TrackedLink className={styles.secondary} event="public_teacher_whatsapp" href={whatsapp} external target="_blank" rel="noopener noreferrer">Ask on WhatsApp</TrackedLink></div></div></section>
 
-      <section style={{ background: "#edf8f2", borderTop: "1px solid #d7eadf", borderBottom: "1px solid #d7eadf" }}><div style={{ maxWidth: 980, margin: "0 auto", padding: "70px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 28, alignItems: "center" }}><div><p style={{ color: "#16865b", fontSize: 12, fontWeight: 900, letterSpacing: 1.2 }}>READY TO USE MORE?</p><h2 style={{ margin: "10px 0", fontSize: "clamp(32px,4.5vw,50px)", letterSpacing: -1.6, lineHeight: 1.05 }}>Teacher payments already use the Vibe wallet.</h2><p style={{ color: "#536159", lineHeight: 1.7 }}>Sign in, choose an active teacher credit package and complete payment through the existing M-Pesa STK flow. We do not invent a special price here that the live wallet does not support.</p></div><div style={{ display: "grid", gap: 12 }}><TrackedLink event="public_teacher_payment" href="/login?redirect=/teacher/credits" style={{ minHeight: 54, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 15, background: "#16865b", color: "#fff", textDecoration: "none", fontWeight: 900, padding: "0 20px" }}>View teacher packages & pay →</TrackedLink><TrackedLink event="public_teacher_whatsapp" href={whatsapp} external target="_blank" rel="noopener noreferrer" style={{ minHeight: 52, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 15, border: "1px solid #16865b", color: "#16865b", textDecoration: "none", fontWeight: 900, padding: "0 20px", background: "#fff" }}>Ask on WhatsApp →</TrackedLink></div></div></section>
+      <section className={styles.section}><div className={`${styles.wrap} ${styles.two}`}><div><p className={styles.eyebrow}>THE CYBER CAN STILL PRINT IT</p><h2>Keep the thinking with you.</h2></div><div><p className={styles.copy}>You may still need a hard copy. The difference is that preparation, editing and reuse can live with you instead of beginning again each time you need a document.</p><p><strong>Prepare → save → reuse → export when available → print where convenient.</strong></p></div></div></section>
 
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "72px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 30 }}>
-        <div><p style={{ color: "#16865b", fontSize: 12, fontWeight: 900, letterSpacing: 1.2 }}>THE CYBER CAN STILL PRINT IT</p><h2 style={{ margin: "10px 0", fontSize: "clamp(30px,4vw,46px)", letterSpacing: -1.5 }}>Keep the thinking with you.</h2></div>
-        <div style={{ color: "#536159", fontSize: 17, lineHeight: 1.75 }}><p style={{ marginTop: 0 }}>You may still need a hard copy. The difference is that preparation, editing and reuse can live with you instead of beginning again each time you need a document.</p><p style={{ marginBottom: 0 }}><strong style={{ color: "#17211b" }}>Prepare → save → reuse → export when available → print where convenient.</strong></p></div>
-      </section>
-
-      <section style={{ background: "#17211b", color: "white" }}><div style={{ maxWidth: 900, margin: "0 auto", padding: "76px 20px", textAlign: "center" }}><p style={{ color: "#77d5ad", fontSize: 12, fontWeight: 900, letterSpacing: 1.2 }}>SAVE → TEACH → IMPROVE → EARN</p><h2 style={{ fontSize: "clamp(34px,5vw,56px)", lineHeight: 1.05, letterSpacing: -2, margin: "12px 0 18px" }}>Start with the work already waiting for you.</h2><p style={{ color: "#cbd5ce", fontSize: 18, lineHeight: 1.7, maxWidth: 650, margin: "0 auto 28px" }}>No need to learn an education platform first. Choose the job, get to work, and let VibeSchool connect the rest over time.</p><TrackedLink event="public_teacher_scheme" href="/login?redirect=/teacher/scheme" style={{ display: "inline-flex", minHeight: 54, alignItems: "center", justifyContent: "center", padding: "0 25px", borderRadius: 15, background: "#16865b", color: "white", textDecoration: "none", fontWeight: 900 }}>Prepare my scheme →</TrackedLink></div></section>
+      <section className={styles.dark}><div className={`${styles.wrap} ${styles.center}`}><p className={styles.eyebrowLight}>SAVE → TEACH → IMPROVE → EARN</p><h2>Start with the work already waiting for you.</h2><p className={styles.lead}>No need to learn an education platform first. Choose the job, get to work, and let VibeSchool connect the rest over time.</p><div className={styles.actions}><TrackedLink className={styles.gold} event="public_teacher_scheme" href="/login?redirect=/teacher/scheme">Prepare my scheme</TrackedLink></div></div></section>
     </main>
-  );
+    <PublicFooter />
+  </div>;
 }
