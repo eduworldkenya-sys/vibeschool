@@ -25,6 +25,8 @@ export default function AdminTeachersPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [schoolName, setSchoolName] = useState("")
+  const [inviteMessage, setInviteMessage] = useState("")
 
   useEffect(() => { void bootstrap() }, [])
 
@@ -44,14 +46,16 @@ export default function AdminTeachersPage() {
   }
 
   async function loadAll(sid: string) {
-    const [memberRes, classRes, subjectRes, assignmentRes] = await Promise.all([
+    const [schoolRes, memberRes, classRes, subjectRes, assignmentRes] = await Promise.all([
+      supabase.from("schools").select("name").eq("id", sid).single(),
       supabase.from("school_members").select("profile_id").eq("school_id", sid).eq("role", "teacher"),
       supabase.from("classes").select("id,name,stream").eq("school_id", sid).order("name").order("stream"),
       supabase.from("subjects").select("id,name").eq("school_id", sid).order("name"),
       supabase.from("teacher_classes").select("id,teacher_id,class_id,subject_id,is_class_teacher").eq("school_id", sid),
     ])
-    const firstError = [memberRes.error, classRes.error, subjectRes.error, assignmentRes.error].find(Boolean)
+    const firstError = [schoolRes.error, memberRes.error, classRes.error, subjectRes.error, assignmentRes.error].find(Boolean)
     if (firstError) throw firstError
+    setSchoolName(schoolRes.data?.name ?? "this school")
 
     const teacherIds = Array.from(new Set((memberRes.data ?? []).map(row => row.profile_id)))
     const profileRes = teacherIds.length
@@ -127,6 +131,17 @@ export default function AdminTeachersPage() {
     }
   }
 
+  async function copyTeacherInvite() {
+    const signupUrl = `${window.location.origin}/signup/teacher`
+    const message = `Join ${schoolName || "our school"} on VibeSchool as a teacher: ${signupUrl}\n\nCreate your teacher account, choose your school level, then search for ${schoolName || "our school"}. The school admin will assign your classes and subjects after you connect.`
+    try {
+      await navigator.clipboard.writeText(message)
+      setInviteMessage("Teacher invitation copied. Send it by WhatsApp, SMS or email.")
+    } catch {
+      setInviteMessage(message)
+    }
+  }
+
   const classById = useMemo(() => new Map(classes.map(row => [row.id, row])), [classes])
   const subjectById = useMemo(() => new Map(subjects.map(row => [row.id, row])), [subjects])
 
@@ -140,10 +155,19 @@ export default function AdminTeachersPage() {
       </header>
       {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}
 
+      <section style={{ background: "#0f172a", color: "white", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
+        <div><strong>Add a teacher securely</strong><div style={{ color: "#cbd5e1", fontSize: 13, lineHeight: 1.5, marginTop: 4 }}>The teacher creates their own account and connects to {schoolName || "the school"}. This protects identity; Admin then assigns their secondary class, stream and subject below.</div></div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}>
+          <button onClick={() => window.open("/signup/teacher", "_blank", "noopener,noreferrer")} style={{ border: 0, borderRadius: 11, padding: 12, background: "#10b981", color: "white", fontWeight: 800, cursor: "pointer" }}>Open teacher signup</button>
+          <button onClick={() => void copyTeacherInvite()} style={{ border: "1px solid #475569", borderRadius: 11, padding: 12, background: "transparent", color: "white", fontWeight: 800, cursor: "pointer" }}>Copy invitation</button>
+        </div>
+        {inviteMessage && <div role="status" style={{ color: inviteMessage.startsWith("Teacher") ? "#bbf7d0" : "#e2e8f0", whiteSpace: "pre-wrap", fontSize: 12 }}>{inviteMessage}</div>}
+      </section>
+
       {teachers.length === 0 ? (
         <section style={{ background: "white", border: "1px solid #f59e0b", borderRadius: 16, padding: 20 }}>
           <strong>No teachers connected to this school</strong>
-          <p style={{ color: "#64748b", lineHeight: 1.5 }}>Teachers first connect through the teacher onboarding school-resolution flow. Once membership exists, Admin can assign classes and subjects here without creating a parallel teacher identity.</p>
+          <p style={{ color: "#64748b", lineHeight: 1.5 }}>Send the invitation above. When the teacher connects to this school, they will appear here for class and subject assignment.</p>
         </section>
       ) : (
         <>
