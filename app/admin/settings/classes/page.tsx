@@ -13,6 +13,13 @@ const LEVELS = [
   "Form 1", "Form 2", "Form 3", "Form 4",
 ]
 
+const SECONDARY_SYSTEMS = {
+  cbe: { label: "CBE senior school", levels: ["Grade 10", "Grade 11", "Grade 12"] },
+  eightFourFour: { label: "8-4-4 secondary", levels: ["Form 1", "Form 2", "Form 3", "Form 4"] },
+} as const
+
+type SecondarySystem = keyof typeof SECONDARY_SYSTEMS
+
 interface ClassRow {
   id: string
   name: string
@@ -41,6 +48,9 @@ export default function AdminClassesSettingsPage() {
   const [editing, setEditing] = useState<ClassRow | null>(null)
   const [editName, setEditName] = useState("")
   const [editStream, setEditStream] = useState("")
+  const [secondarySystem, setSecondarySystem] = useState<SecondarySystem>("eightFourFour")
+  const [secondaryStream, setSecondaryStream] = useState("")
+  const [setupMessage, setSetupMessage] = useState("")
 
   useEffect(() => {
     void bootstrap()
@@ -96,6 +106,36 @@ export default function AdminClassesSettingsPage() {
     } catch (cause) {
       console.error("Admin class creation failed", cause)
       setError(cause instanceof Error ? cause.message : "Class could not be created.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function addSecondaryClasses() {
+    if (!schoolId || saving) return
+    setSaving(true)
+    setError("")
+    setSetupMessage("")
+    try {
+      const normalizedStream = secondaryStream.trim().replace(/\s+/g, " ")
+      const levels = SECONDARY_SYSTEMS[secondarySystem].levels
+      const existingKeys = new Set(classes.map(row => `${row.name.trim().toLowerCase()}|${(row.stream ?? "").trim().toLowerCase()}`))
+      const rows = levels
+        .filter(name => !existingKeys.has(`${name.toLowerCase()}|${normalizedStream.toLowerCase()}`))
+        .map(name => ({ school_id: schoolId, name, stream: normalizedStream }))
+
+      if (rows.length === 0) {
+        setSetupMessage("Those secondary classes already exist. No duplicates were created.")
+        return
+      }
+      const { error: insertError } = await supabase.from("classes").insert(rows)
+      if (insertError) throw insertError
+      await loadClasses(schoolId)
+      setSetupMessage(`${rows.length} secondary class${rows.length === 1 ? "" : "es"} added${normalizedStream ? ` for stream ${normalizedStream}` : ""}.`)
+      setSecondaryStream("")
+    } catch (cause) {
+      console.error("Admin secondary class setup failed", cause)
+      setError(cause instanceof Error ? cause.message : "Secondary classes could not be created.")
     } finally {
       setSaving(false)
     }
@@ -181,6 +221,16 @@ export default function AdminClassesSettingsPage() {
       </header>
 
       {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", borderRadius: 12, padding: 12 }}>{error}</div>}
+
+      <section style={{ background: "#0f172a", color: "white", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
+        <div><strong>Set up secondary school classes</strong><div style={{ color: "#cbd5e1", fontSize: 13, marginTop: 4 }}>Add the complete Kenyan secondary structure at once. Existing classes are preserved and duplicates are skipped.</div></div>
+        <select aria-label="Secondary education system" value={secondarySystem} onChange={event => setSecondarySystem(event.target.value as SecondarySystem)} style={fieldStyle}>
+          {Object.entries(SECONDARY_SYSTEMS).map(([value, config]) => <option key={value} value={value}>{config.label} · {config.levels.join("–")}</option>)}
+        </select>
+        <input aria-label="Stream for secondary classes" value={secondaryStream} onChange={event => setSecondaryStream(event.target.value)} placeholder="Stream, e.g. East or A (optional)" style={fieldStyle} />
+        <button disabled={saving} onClick={() => void addSecondaryClasses()} style={{ border: 0, borderRadius: 11, padding: 12, background: "#10b981", color: "white", fontWeight: 800, cursor: saving ? "not-allowed" : "pointer" }}>{saving ? "Creating…" : `Add ${SECONDARY_SYSTEMS[secondarySystem].levels.join(", ")}`}</button>
+        {setupMessage && <div role="status" style={{ color: "#bbf7d0", fontSize: 13 }}>{setupMessage}</div>}
+      </section>
 
       <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 16, display: "grid", gap: 10 }}>
         <strong>Add class / stream</strong>
