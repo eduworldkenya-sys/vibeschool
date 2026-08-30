@@ -30,13 +30,15 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     if (!schoolId || loading) return
 
     setLoading(true)
-    const { data: classId, error: rpcError } = await supabase.rpc('create_teacher_class_assignment', {
+    // The generated database type snapshot is updated separately from feature
+    // migrations; keep this new RPC locally typed until that regeneration runs.
+    const { data: classId, error: rpcError } = await supabase.rpc('create_teacher_class_assignment' as never, {
       p_school_id: schoolId,
       p_grade: grade,
       p_stream: stream.trim(),
       p_subject: subject,
       p_is_class_teacher: role === 'class_teacher',
-    })
+    } as never) as { data: string | null; error: { message: string } | null }
     setLoading(false)
 
     if (rpcError || !classId) {
@@ -92,4 +94,3 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     </div>
   )
 }
-
