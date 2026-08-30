@@ -1,17 +1,18 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
 
 export const dynamic = 'force-dynamic'
 
-type TeacherClassRow = { class_id: string; is_class_teacher: boolean | null }
+type TeacherClassRow = { class_id: string; subject_id: string; is_class_teacher: boolean | null }
 type ClassRow = { id: string; name: string; stream: string | null; subject: string | null }
 
 export default function ClassHubPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [classes, setClasses] = useState<ClassRow[]>([])
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
@@ -33,7 +34,7 @@ export default function ClassHubPage() {
 
       const { data: assignments, error: assignmentError } = await supabase
         .from('teacher_classes')
-        .select('class_id,is_class_teacher')
+        .select('class_id,subject_id,is_class_teacher')
         .eq('teacher_id', user.id)
 
       if (assignmentError) {
@@ -54,14 +55,16 @@ export default function ClassHubPage() {
         return
       }
 
-      const [classResult, enrollmentResult] = await Promise.all([
+      const subjectIds = Array.from(new Set(((assignments ?? []) as TeacherClassRow[]).map(row => row.subject_id).filter(Boolean)))
+      const [classResult, enrollmentResult, subjectResult] = await Promise.all([
         supabase.from('classes').select('id,name,stream,subject').in('id', classIds).order('name'),
         supabase.from('student_classes').select('class_id').in('class_id', classIds),
+        subjectIds.length ? supabase.from('subjects').select('id,name').in('id', subjectIds) : Promise.resolve({ data: [], error: null }),
       ])
 
-      if (classResult.error) {
+      if (classResult.error || subjectResult.error) {
         if (!cancelled) {
-          setError('We found your class assignments but could not load the class details.')
+          setError('We found your class assignments but could not load their details.')
           setLoading(false)
         }
         return
@@ -72,8 +75,22 @@ export default function ClassHubPage() {
         if (row.class_id) nextCounts[row.class_id] = (nextCounts[row.class_id] ?? 0) + 1
       }
 
+      const subjectById = new Map<string, string>((subjectResult.data ?? []).map(row => [String(row.id), String(row.name)] as const))
+      const subjectsByClass = new Map<string, Set<string>>()
+      for (const assignment of (assignments ?? []) as TeacherClassRow[]) {
+        const name = subjectById.get(assignment.subject_id)
+        if (!name) continue
+        const names = subjectsByClass.get(assignment.class_id) ?? new Set<string>()
+        names.add(name)
+        subjectsByClass.set(assignment.class_id, names)
+      }
+      const classRows = ((classResult.data ?? []) as ClassRow[]).map(row => ({
+        ...row,
+        subject: Array.from(subjectsByClass.get(row.id) ?? []).join(', ') || row.subject,
+      }))
+
       if (!cancelled) {
-        setClasses((classResult.data ?? []) as ClassRow[])
+        setClasses(classRows)
         setCounts(nextCounts)
         setLoading(false)
       }
@@ -89,7 +106,10 @@ export default function ClassHubPage() {
         <p style={{ margin: 0, color: C.textMuted, fontSize: 12, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase' }}>Classes</p>
         <h1 style={{ margin: '6px 0 4px', fontSize: 28, fontWeight: 900 }}>My Classes</h1>
         <p style={{ margin: 0, color: C.textMuted, fontSize: 14 }}>Open a class to manage its students, attendance, homework and teaching work.</p>
+        <button type="button" onClick={() => router.push('/teacher/classhub/add')} style={{ marginTop: 14, padding: '11px 15px', border: 0, borderRadius: 11, background: C.accent, color: '#fff', fontWeight: 800, cursor: 'pointer' }}>+ Add or join class</button>
       </div>
+
+      {searchParams.get('added') === '1' && <div role="status" style={{ marginBottom: 14, padding: 11, borderRadius: 11, background: '#ecfdf5', color: '#065f46', fontWeight: 700, fontSize: 13 }}>Class assignment added.</div>}
 
       {loading && (
         <div aria-live="polite" style={{ display: 'grid', gap: 12 }}>
@@ -107,7 +127,8 @@ export default function ClassHubPage() {
       {!loading && !error && classes.length === 0 && (
         <div style={{ padding: '32px 20px', border: `1px solid ${C.border}`, borderRadius: 18, background: C.bg, textAlign: 'center' }}>
           <h2 style={{ margin: 0, fontSize: 18 }}>No classes assigned yet</h2>
-          <p style={{ margin: '8px 0 0', color: C.textMuted, lineHeight: 1.5 }}>Your Classes page shows classes assigned to you by the school. Once a class is assigned, it will appear here automatically.</p>
+          <p style={{ margin: '8px 0 14px', color: C.textMuted, lineHeight: 1.5 }}>Add the class and subject you teach. If the school class already exists, VibeSchool will reuse it.</p>
+          <button type="button" onClick={() => router.push('/teacher/classhub/add')} style={{ padding: '10px 14px', border: 0, borderRadius: 10, background: C.accent, color: '#fff', fontWeight: 800 }}>Add your first class</button>
         </div>
       )}
 
