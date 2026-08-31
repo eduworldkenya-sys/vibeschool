@@ -22,17 +22,22 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: Remove legacy any cast
+      - name: Remove legacy cast and preserve narrowing
         shell: python
         run: |
           from pathlib import Path
           path = Path('components/teacher/LessonPlanModal.tsx')
           text = path.read_text()
-          old = """      const query =\n        supabase\n          .from('homework') as any\n\n      const {\n        data,\n        error: homeworkError,\n      } = await query\n        .select('id')"""
-          new = """      const {\n        data,\n        error: homeworkError,\n      } = await supabase\n        .from('homework')\n        .select('id')"""
+          old = """    async function loadHomeworkLineage() {\n      const query =\n        supabase\n          .from('homework') as any\n\n      const {\n        data,\n        error: homeworkError,\n      } = await query\n        .select('id')\n        .eq(\n          'teaching_occurrence_id',\n          occurrenceId,\n        )\n        .eq(\n          'lesson_plan_id',\n          lessonPlanId,\n        )\n        .limit(1)"""
+          new = """    async function loadHomeworkLineage(\n      resolvedOccurrenceId: string,\n      resolvedLessonPlanId: string,\n    ) {\n      const {\n        data,\n        error: homeworkError,\n      } = await supabase\n        .from('homework')\n        .select('id')\n        .eq(\n          'teaching_occurrence_id',\n          resolvedOccurrenceId,\n        )\n        .eq(\n          'lesson_plan_id',\n          resolvedLessonPlanId,\n        )\n        .limit(1)"""
           if text.count(old) != 1:
-              raise SystemExit(f'Expected one legacy cast block, got {text.count(old)}')
-          path.write_text(text.replace(old, new))
+              raise SystemExit(f'Expected one legacy homework loader, got {text.count(old)}')
+          text = text.replace(old, new)
+          old_call = """    void loadHomeworkLineage()"""
+          new_call = """    void loadHomeworkLineage(\n      occurrenceId,\n      lessonPlanId,\n    )"""
+          if text.count(old_call) != 1:
+              raise SystemExit(f'Expected one homework loader call, got {text.count(old_call)}')
+          path.write_text(text.replace(old_call, new_call))
       - run: npm ci
       - run: npm run typecheck
       - name: Commit cleanup and remove temporary workflow
