@@ -110,29 +110,23 @@ export async function loadExactLessonPackage(
     .eq('duration_minutes', identity.durationMinutes)
 
   if (identity.schemeId) {
-    // Prefer the teacher's exact Scheme package, then a package-certified
-    // global equivalent. RLS independently enforces both scopes.
     query = query.or(`scheme_id.eq.${identity.schemeId},reuse_scope.eq.global`)
   } else {
     query = query.eq('reuse_scope', 'global')
   }
 
-  const { data, error } = await query
-    .order('reuse_scope', { ascending: false })
-    .limit(2)
-
+  const { data, error } = await query.limit(4)
   if (error) throw error
 
   const rows = (data ?? []) as PackageCacheRow[]
-  const selected = rows.find(row =>
-    row.reuse_scope === 'scheme' ||
-    (
+  const selected =
+    rows.find(row => row.reuse_scope === 'scheme') ??
+    rows.find(row =>
       row.reuse_scope === 'global' &&
       row.certification_status === 'certified' &&
       Boolean(row.certification_policy_version) &&
-      Boolean(row.certified_at)
-    ),
-  )
+      Boolean(row.certified_at),
+    )
 
   if (!selected || !isSections(selected.sections)) return null
 
@@ -180,11 +174,39 @@ export async function storeSchemeLessonPackage({
     generation_mode: generationMode,
   }
 
+  const { data: existing, error: lookupError } = await db
+    .from('lesson_package_cache')
+    .select('id')
+    .eq('cache_key', cacheKey)
+    .eq('source_fingerprint', sourceFingerprint)
+    .eq('duration_minutes', identity.durationMinutes)
+    .eq('reuse_scope', 'scheme')
+    .eq('scheme_id', identity.schemeId)
+    .maybeSingle()
+
+  if (lookupError) throw lookupError
+
+  if (existing?.id) {
+    const { error: updateError } = await db
+      .from('lesson_package_cache')
+      .update({
+        sections,
+        source_resource_ids: identity.sourceResourceIds,
+        source_resource_version_ids: identity.sourceResourceVersionIds,
+        source_hashes: identity.sourceHashes,
+        source_provenance: payload.source_provenance,
+        generation_mode: generationMode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+
+    if (updateError) throw updateError
+    return String(existing.id)
+  }
+
   const { data, error } = await db
     .from('lesson_package_cache')
-    .upsert(payload, {
-      onConflict: 'cache_key,source_fingerprint,duration_minutes,reuse_scope,scheme_id',
-    })
+    .insert(payload)
     .select('id')
     .single()
 
