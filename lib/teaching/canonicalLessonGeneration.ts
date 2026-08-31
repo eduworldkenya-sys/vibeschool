@@ -2,6 +2,10 @@ import type { Json } from '@/lib/database.types'
 import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
 import type { CertifiedLessonContentAsset } from '@/lib/teaching/lessonSourceBundle'
 import { validateLessonPlanGrounding } from '@/lib/teaching/lessonPlanGrounding'
+import {
+  allocateLessonPhaseTiming,
+  durationMinutesFromLabel,
+} from '@/lib/teaching/lessonTiming'
 
 export interface CanonicalLessonIdentity {
   curriculumId: string
@@ -44,34 +48,38 @@ export type CanonicalLessonGenerationResult =
     }
 
 const CONTENT_KEYS = new Set([
-  'body',
-  'content',
-  'explanation',
-  'explanations',
-  'summary',
-  'examples',
-  'kenyanExamples',
-  'kenyan_examples',
-  'activities',
-  'misconceptions',
-  'workedExamples',
-  'worked_examples',
-  'questions',
-  'answers',
-  'keyPoints',
-  'key_points',
-  'teacherNotes',
-  'teacher_notes',
-  'sections',
+  'body', 'content', 'explanation', 'explanations', 'summary',
+  'examples', 'kenyanExamples', 'kenyan_examples', 'activities',
+  'misconceptions', 'workedExamples', 'worked_examples', 'questions',
+  'answers', 'keyPoints', 'key_points', 'teacherNotes', 'teacher_notes',
+  'sections', 'learnerActivities', 'learner_activities', 'expectedAnswers',
+  'expected_answers',
 ])
+
+const CATEGORY_KEYS = {
+  teachingPoints: new Set([
+    'body', 'content', 'explanation', 'explanations', 'summary',
+    'keyPoints', 'key_points', 'teacherNotes', 'teacher_notes', 'sections',
+    'workedExamples', 'worked_examples', 'examples', 'kenyanExamples',
+    'kenyan_examples',
+  ]),
+  learnerActivities: new Set(['activities', 'learnerActivities', 'learner_activities']),
+  expectedAnswers: new Set(['answers', 'expectedAnswers', 'expected_answers']),
+  misconceptions: new Set(['misconceptions']),
+  questions: new Set(['questions']),
+} as const
 
 function clean(value?: string | null): string {
   return value?.trim() ?? ''
 }
 
-function collectStrings(value: Json, key: string | null = null): string[] {
+function collectStrings(
+  value: Json,
+  allowedKeys: ReadonlySet<string> = CONTENT_KEYS,
+  key: string | null = null,
+): string[] {
   if (typeof value === 'string') {
-    return key === null || CONTENT_KEYS.has(key)
+    return key === null || allowedKeys.has(key)
       ? [value.trim()].filter(Boolean)
       : []
   }
@@ -81,27 +89,24 @@ function collectStrings(value: Json, key: string | null = null): string[] {
   }
 
   if (Array.isArray(value)) {
-    return value.flatMap(item => collectStrings(item, key))
+    return value.flatMap(item => collectStrings(item, allowedKeys, key))
   }
 
   return Object.entries(value).flatMap(([childKey, childValue]) => {
-    if (childValue === undefined || !CONTENT_KEYS.has(childKey)) {
-      return []
-    }
-
-    return collectStrings(childValue, childKey)
+    if (childValue === undefined || !allowedKeys.has(childKey)) return []
+    return collectStrings(childValue, allowedKeys, childKey)
   })
 }
 
-function certifiedContentText(assets: CertifiedLessonContentAsset[]): string {
+function contentForCategory(
+  assets: CertifiedLessonContentAsset[],
+  allowedKeys: ReadonlySet<string>,
+): string {
   return assets
     .flatMap(asset => {
-      const fragments = collectStrings(asset.payload)
+      const fragments = collectStrings(asset.payload, allowedKeys)
       if (fragments.length === 0) return []
-
-      return [
-        `Certified content: ${asset.title}\n${fragments.join('\n\n')}`,
-      ]
+      return [`${asset.title}\n${fragments.join('\n\n')}`]
     })
     .join('\n\n')
     .slice(0, 20000)
@@ -111,10 +116,33 @@ function joinNonEmpty(
   values: Array<string | null | undefined>,
   separator = '\n',
 ): string {
-  return values
-    .map(clean)
-    .filter(Boolean)
-    .join(separator)
+  return values.map(clean).filter(Boolean).join(separator)
+}
+
+function canonicalHomework({
+  topic,
+  objectives,
+  inquiry,
+  questions,
+}: {
+  topic: string
+  objectives: string
+  inquiry: string
+  questions: string
+}): string {
+  if (questions) {
+    return `Use the approved certified-content question(s) below as follow-up work:\n${questions}`
+  }
+  if (inquiry) {
+    return [
+      `Answer the key inquiry question in your own words: ${inquiry}`,
+      `Give one relevant example connected to ${topic}.`,
+      objectives ? `Check your work against the lesson objective(s):\n${objectives}` : null,
+    ].filter(Boolean).join('\n')
+  }
+  return objectives
+    ? `Review ${topic} and write a short response showing how you achieved the objective(s):\n${objectives}`
+    : `Review ${topic} and write three accurate points from the lesson.`
 }
 
 /**
@@ -143,11 +171,18 @@ export async function generateCanonicalLessonPlan(
   const inquiry = clean(identity.keyInquiryQuestion)
   const experiences = clean(identity.learningExperiences)
   const assessment = clean(identity.assessmentMethods)
-  const content = certifiedContentText(assets)
+  const teachingPoints = contentForCategory(assets, CATEGORY_KEYS.teachingPoints)
+  const learnerActivities = contentForCategory(assets, CATEGORY_KEYS.learnerActivities)
+  const expectedAnswers = contentForCategory(assets, CATEGORY_KEYS.expectedAnswers)
+  const misconceptions = contentForCategory(assets, CATEGORY_KEYS.misconceptions)
+  const questions = contentForCategory(assets, CATEGORY_KEYS.questions)
   const resourceTitles = assets.map(asset => asset.title).join('; ')
   const curriculumPath = joinNonEmpty(
     [identity.curriculumStrand, identity.curriculumSubStrand],
     ' → ',
+  )
+  const timing = allocateLessonPhaseTiming(
+    durationMinutesFromLabel(identity.duration ?? '40 minutes'),
   )
 
   const sections: LessonPlanSections = {
@@ -166,19 +201,38 @@ export async function generateCanonicalLessonPlan(
     ]),
 
     introduction: joinNonEmpty([
+      `Timing: ${timing.introduction} minutes.`,
       `Lesson focus: ${identity.topicTitle}.`,
       inquiry ? `Key inquiry question: ${inquiry}` : null,
-      `Planned duration: ${identity.duration ?? '40 minutes'}.`,
+      `Total lesson duration: ${timing.totalMinutes} minutes.`,
     ]),
 
     development: joinNonEmpty([
-      curriculumPath ? `Curriculum path: ${curriculumPath}.` : null,
-      experiences ? `Scheme learning experiences:\n${experiences}` : null,
-      content ||
-        'The certified resource contains no recognised teaching-content fields. Follow the Scheme learning sequence.',
+      `Timing: ${timing.development} minutes.`,
+      curriculumPath ? `CURRICULUM PATH\n${curriculumPath}` : null,
+      `TEACHING POINTS / CANONICAL TEACHER NOTES\n${
+        teachingPoints ||
+        'Use the exact certified resources attached to this lesson and teach directly toward the Scheme objective.'
+      }`,
+      `LEARNER ACTIVITIES\n${
+        learnerActivities ||
+        experiences ||
+        'Follow the authoritative Scheme learning experiences using the attached certified content.'
+      }`,
+      `EXPECTED ANSWERS / EVIDENCE\n${
+        expectedAnswers ||
+        (inquiry
+          ? `Learner responses should accurately address: ${inquiry}`
+          : 'Check learner responses against the exact certified source and stated Scheme objective.')
+      }`,
+      `MISCONCEPTIONS TO WATCH\n${
+        misconceptions ||
+        'Watch for answers that conflict with the certified source, worked examples or Scheme objective; correct them using the same approved authority.'
+      }`,
     ], '\n\n'),
 
     consolidation: joinNonEmpty([
+      `Timing: ${timing.consolidation} minutes.`,
       `Return to the lesson focus: ${identity.topicTitle}.`,
       inquiry
         ? `Revisit the key inquiry question: ${inquiry}`
@@ -186,19 +240,28 @@ export async function generateCanonicalLessonPlan(
     ]),
 
     assessmentHook: joinNonEmpty([
+      `Timing: ${timing.assessment} minutes.`,
       objectives
         ? `Objectives being assessed:\n${objectives}`
         : 'No authoritative Scheme objective is attached yet.',
       assessment
         ? `Scheme assessment method(s):\n${assessment}`
         : 'Use teacher observation, oral checks or another teacher-selected method without changing the stated objective.',
+      expectedAnswers ? `Expected answer/evidence reference:\n${expectedAnswers}` : null,
     ], '\n\n'),
 
-    homework:
-      'No homework has been invented automatically. Add homework only when supported by the Scheme objective or the attached certified content.',
+    homework: canonicalHomework({
+      topic: identity.topicTitle,
+      objectives,
+      inquiry,
+      questions,
+    }),
 
-    differentiation:
-      'Adjust pacing, grouping, prompts and resource support to learner needs without changing the Scheme objective or certified content authority.',
+    differentiation: joinNonEmpty([
+      'Support: reduce task size, add prompts, pair strategically or reopen the attached certified resource.',
+      'On track: complete the core Scheme/certified-content activity and explain the answer/evidence.',
+      'Extension: justify, compare or apply the same objective in another relevant context without introducing a new curriculum objective.',
+    ]),
   }
 
   const validation = validateLessonPlanGrounding({
