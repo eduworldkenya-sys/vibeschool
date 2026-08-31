@@ -120,7 +120,6 @@ async function loadExplicitSchemeResources(
     'list_scheme_lesson_resources',
     { p_scheme_lesson_id: schemeId },
   )
-
   if (error) throw error
 
   const payload = data as {
@@ -201,46 +200,73 @@ async function loadCurriculumResourceCandidates(
     .filter(isTeachingContentCandidate)
 }
 
+function parseVersionPayload(data: unknown): ReusableVersionRow[] {
+  const response = data as {
+    ok?: boolean
+    versions?: ReusableVersionRow[]
+  } | null
+  return response?.ok ? response.versions ?? [] : []
+}
+
 /**
- * Reads only database-approved reusable versions. RLS remains strict on the
- * table itself; the guarded RPC additionally permits exact immutable snapshots
- * of currently published chapters without claiming those snapshots are certified.
+ * Certified versions can be read through the global canonical lookup. A
+ * published/unverified snapshot is read only through the exact persisted Scheme
+ * item that links it. This preserves the existing "certified = global reuse"
+ * guardrail while still letting teachers use already-published source material.
  */
 async function loadReusableVersions(
   candidates: ResourceCandidate[],
+  schemeId: string | null,
 ): Promise<{
   certified: CertifiedLessonContentAsset[]
   published: PublishedLessonContentAsset[]
 }> {
-  if (candidates.length === 0) {
-    return { certified: [], published: [] }
-  }
+  if (candidates.length === 0) return { certified: [], published: [] }
 
   const candidateById = new Map(
     candidates.map(candidate => [candidate.id, candidate]),
   )
 
-  const { data, error } = await supabase.rpc(
+  const globalPromise = supabase.rpc(
     'cla_list_reusable_lesson_resource_versions',
     { p_resource_ids: candidates.map(candidate => candidate.id) },
   )
+  const schemePromise = schemeId
+    ? supabase.rpc(
+        'cla_list_scheme_lesson_resource_versions',
+        { p_scheme_lesson_id: schemeId },
+      )
+    : Promise.resolve({ data: null, error: null })
 
-  if (error) throw error
+  const [globalResult, schemeResult] = await Promise.all([
+    globalPromise,
+    schemePromise,
+  ])
 
-  const response = data as {
-    ok?: boolean
-    versions?: ReusableVersionRow[]
-  } | null
+  if (globalResult.error) throw globalResult.error
+  if (schemeResult.error) throw schemeResult.error
 
-  if (!response?.ok) return { certified: [], published: [] }
+  const versionsById = new Map<string, ReusableVersionRow>()
+  for (const version of [
+    ...parseVersionPayload(globalResult.data),
+    ...parseVersionPayload(schemeResult.data),
+  ]) {
+    if (version.id && !versionsById.has(version.id)) {
+      versionsById.set(version.id, version)
+    }
+  }
+
+  const versions = Array.from(versionsById.values()).sort((left, right) => {
+    const rank = (status?: string) =>
+      status === 'certified' ? 0 : status === 'verified' ? 1 : 2
+    return rank(left.lifecycle_status) - rank(right.lifecycle_status)
+  })
 
   const certified: CertifiedLessonContentAsset[] = []
   const published: PublishedLessonContentAsset[] = []
   const chosenResources = new Set<string>()
 
-  // RPC order is assurance first, newest version second. Keep only the best
-  // reusable version per resource to prevent duplicate content assembly.
-  for (const version of response.versions ?? []) {
+  for (const version of versions) {
     if (
       !version.id ||
       !version.resource_id ||
@@ -339,7 +365,6 @@ export async function buildCanonicalLessonSourceBundle({
   if (source?.schemeId) {
     explicitResources = await loadExplicitSchemeResources(source.schemeId)
   }
-
   if (source) {
     curriculumResources = await loadCurriculumResourceCandidates(source)
   }
@@ -348,8 +373,10 @@ export async function buildCanonicalLessonSourceBundle({
     ...explicitResources,
     ...curriculumResources,
   ])
-
-  const reusable = await loadReusableVersions(candidates)
+  const reusable = await loadReusableVersions(
+    candidates,
+    source?.schemeId ?? null,
+  )
 
   return {
     timetableOccurrence: {
