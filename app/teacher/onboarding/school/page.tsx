@@ -24,6 +24,7 @@ const LEVELS = [
   ["PRIMARY", "Primary", "PP1–Grade 6"],
   ["JUNIOR", "Junior School", "Grade 7–9"],
   ["SENIOR_SECONDARY", "Senior Secondary", "Grade 10–12"],
+  ["SECONDARY_844", "Secondary (8-4-4)", "Form 1–4"],
 ] as const
 
 const COUNTIES = [
@@ -33,11 +34,12 @@ const COUNTIES = [
   "Mandera", "Marsabit", "Migori", "Murang’a", "Nandi", "Narok", "Nyandarua", "Samburu",
   "Siaya", "Taita Taveta", "Tana River", "Tharaka Nithi", "Trans Nzoia", "Turkana", "Vihiga",
   "Wajir", "West Pokot",
+  "Elgeyo-Marakwet", "Garissa", "Homa Bay", "Isiolo", "Nyamira",
 ]
 
 export default function SchoolDiscovery() {
   const router = useRouter()
-  const [level, setLevel] = useState("")
+  const [levels, setLevels] = useState<string[]>([])
   const [q, setQ] = useState("")
   const [county, setCounty] = useState("")
   const [subCounty, setSubCounty] = useState("")
@@ -54,7 +56,7 @@ export default function SchoolDiscovery() {
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
 
-  useEffect(() => {
+  function requestLocation() {
     navigator.geolocation?.getCurrentPosition(
       (p) => {
         setLat(p.coords.latitude)
@@ -63,10 +65,10 @@ export default function SchoolDiscovery() {
       () => {},
       { maximumAge: 300000, timeout: 3500 }
     )
-  }, [])
+  }
 
   useEffect(() => {
-    if (!level || q.trim().length < 2) {
+    if (!levels.length || q.trim().length < 2) {
       setRows([])
       setSearching(false)
       return
@@ -76,7 +78,7 @@ export default function SchoolDiscovery() {
       setSearching(true)
       const { data, error } = await supabase.rpc("search_school_directory", {
         p_query: q.trim(),
-        p_level: level,
+        p_level: levels[0] === "SECONDARY_844" ? "SENIOR_SECONDARY" : levels[0],
         p_county: county || null,
         p_sub_county: subCounty || null,
         p_lat: lat,
@@ -93,7 +95,7 @@ export default function SchoolDiscovery() {
     }, 180)
 
     return () => clearTimeout(timer)
-  }, [q, level, county, subCounty, lat, lng])
+  }, [q, levels, county, subCounty, lat, lng])
 
   const hasAmbiguousNames = useMemo(() => {
     const counts = new Map<string, number>()
@@ -105,25 +107,25 @@ export default function SchoolDiscovery() {
   }, [rows])
 
   async function connect() {
-    if (!picked || !level) return
+    if (!picked || !levels.length) return
     setBusy(true)
     setMsg("")
-    const fn = picked.source === "DIRECTORY" ? "connect_teacher_to_directory_school" : "connect_teacher_to_school"
-    const args = picked.source === "DIRECTORY"
-      ? { p_directory_id: picked.id, p_level: level }
-      : { p_school_id: picked.id, p_level: level }
-    const { error } = await supabase.rpc(fn, args)
+    const normalizedLevels = levels.map(value => value === "SECONDARY_844" ? "SENIOR_SECONDARY" : value)
+    const { data, error } = await supabase.rpc("submit_teacher_school_claim", {
+      p_school_id: picked.source === "CANONICAL" ? picked.id : null,
+      p_directory_school_id: picked.source === "DIRECTORY" ? picked.id : null,
+      p_discovery_request_id: null,
+      p_levels: Array.from(new Set(normalizedLevels)),
+    })
     setBusy(false)
     if (error) {
-      if (error.message?.includes("school_identity_review_required")) {
-        setMsg("This directory school needs verification before we can connect it safely. Send the school details below and our team will reconcile it without creating a duplicate.")
-        setMissingMode(true)
-      } else {
-        setMsg("We could not connect you to that school. Please retry.")
-      }
+      setMsg(error.message?.includes("active_teacher_required")
+        ? "Your teacher profile is not active. Contact VibeSchool support and quote SCHOOL-CLAIM-AUTH."
+        : `We could not submit the school claim. ${error.message || "Please retry."}`)
       return
     }
-    router.push("/teacher/onboarding/class")
+    const claim = (data || {}) as { reference_code?: string }
+    router.push(`/teacher/provisional${claim.reference_code ? `?reference=${encodeURIComponent(claim.reference_code)}` : ""}`)
   }
 
   async function requestMissingSchool() {
@@ -134,12 +136,12 @@ export default function SchoolDiscovery() {
 
     setBusy(true)
     setMsg("")
-    const { error } = await supabase.rpc("submit_school_discovery_request", {
+    const { data: requestId, error } = await supabase.rpc("submit_school_discovery_request", {
       p_name: q.trim(),
       p_county: county || null,
       p_sub_county: subCounty.trim() || null,
       p_ward: null,
-      p_level: level || null,
+      p_level: levels[0] === "SECONDARY_844" ? "SENIOR_SECONDARY" : (levels[0] || null),
       p_school_code: schoolCode.trim() || null,
       p_lat: lat,
       p_lng: lng,
@@ -150,26 +152,50 @@ export default function SchoolDiscovery() {
     })
     setBusy(false)
     if (error) {
-      setMsg("We could not send the school details. Please retry.")
+      setMsg(`We could not send the school details. ${error.message || "Please retry."}`)
+      return
+    }
+    const normalizedLevels = levels.map(value => value === "SECONDARY_844" ? "SENIOR_SECONDARY" : value)
+    const { data: claim, error: claimError } = await supabase.rpc("submit_teacher_school_claim", {
+      p_school_id: null,
+      p_directory_school_id: null,
+      p_discovery_request_id: requestId,
+      p_levels: Array.from(new Set(normalizedLevels)),
+    })
+    if (claimError) {
+      setMsg(`School details were received, but the claim could not be linked. Quote request ${String(requestId).slice(0, 8)} when contacting support.`)
       return
     }
     setSent(true)
+    const reference = ((claim || {}) as { reference_code?: string }).reference_code
+    if (reference) setMsg(`Claim ${reference} is queued. Review target: within 24 hours.`)
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut()
+    router.replace('/login/teacher')
   }
 
   return (
     <main style={{ minHeight: "100vh", background: "#f3f4f6", padding: 16, fontFamily: "system-ui" }}>
       <section style={{ maxWidth: 560, margin: "40px auto", background: "#fff", borderRadius: 20, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,.08)" }}>
+        <nav aria-label="Onboarding controls" style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 18, fontSize: 13 }}>
+          <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", color: "#475467" }}>← Back</button>
+          <span style={{ color: "#667085", fontWeight: 700 }}>Step 1 of 3</span>
+          <button type="button" onClick={() => void signOut()} style={{ border: 0, background: "transparent", color: "#475467" }}>Sign out</button>
+        </nav>
         <h1 style={{ marginTop: 0, marginBottom: 8 }}>Find your school</h1>
         <p style={{ color: "#667085", marginTop: 0 }}>
           Choose your level, type a few words, and pick your school. We use school names, verified aliases and location clues to make the match faster.
         </p>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))", gap: 8 }}>
           {LEVELS.map(([value, label, hint]) => (
             <button
               key={value}
-              onClick={() => { setLevel(value); setPicked(null); setMsg(""); setMissingMode(false); setSent(false) }}
-              style={{ padding: 12, borderRadius: 12, border: level === value ? "2px solid #16a34a" : "1px solid #ddd", background: level === value ? "#f0fdf4" : "#fff" }}
+              onClick={() => { setLevels(current => current.includes(value) ? current.filter(item => item !== value) : [...current, value]); setPicked(null); setMsg(""); setMissingMode(false); setSent(false) }}
+              aria-pressed={levels.includes(value)}
+              style={{ padding: 12, borderRadius: 12, border: levels.includes(value) ? "2px solid #16a34a" : "1px solid #ddd", background: levels.includes(value) ? "#f0fdf4" : "#fff" }}
             >
               <b>{label}</b>
               <small style={{ display: "block", marginTop: 4, color: "#667085" }}>{hint}</small>
@@ -177,21 +203,28 @@ export default function SchoolDiscovery() {
           ))}
         </div>
 
-        <input
-          disabled={!level}
-          value={q}
-          onChange={(e) => { setQ(e.target.value); setPicked(null); setMissingMode(false); setSent(false) }}
-          placeholder={level ? "e.g. St Marys, Moi, Mangu, school code" : "Choose a level first"}
-          style={{ width: "100%", boxSizing: "border-box", marginTop: 14, padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16 }}
-        />
-
-        <select value={county} onChange={(e) => setCounty(e.target.value)} style={{ width: "100%", boxSizing: "border-box", marginTop: 8, padding: 14, borderRadius: 12, border: "1px solid #ccc" }}>
-          <option value="">Any county</option>
-          {COUNTIES.map((c) => <option key={c}>{c}</option>)}
-        </select>
+        <div style={{ display: "grid", gap: 12, marginTop: 16, position: "relative", isolation: "isolate" }}>
+          <label style={{ display: "grid", gap: 6, color: "#344054", fontSize: 13, fontWeight: 750 }}>
+            School name or code
+            <input
+              disabled={!levels.length}
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPicked(null); setMissingMode(false); setSent(false) }}
+              placeholder={levels.length ? "e.g. St Marys, Moi, Mangu, school code" : "Choose one or more levels first"}
+              style={{ display: "block", width: "100%", minHeight: 52, boxSizing: "border-box", padding: "0 14px", borderRadius: 12, border: "1px solid #98a2b3", background: "#fff", color: "#101828", fontSize: 16, position: "relative", zIndex: 1 }}
+            />
+          </label>
+          <label style={{ display: "grid", gap: 6, color: "#344054", fontSize: 13, fontWeight: 750 }}>
+            County
+            <select aria-label="County" value={county} onChange={(e) => setCounty(e.target.value)} style={{ display: "block", width: "100%", minHeight: 52, boxSizing: "border-box", padding: "0 42px 0 14px", borderRadius: 12, border: "1px solid #98a2b3", background: "#fff", color: "#101828", fontSize: 16, position: "relative", zIndex: 1 }}>
+              <option value="">Any county</option>
+              {COUNTIES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </label>
+        </div>
 
         <div style={{ fontSize: 13, color: "#667085", marginTop: 8 }}>
-          {lat != null && lng != null ? "📍 Using your location to rank nearby schools." : "💡 Location is optional. If allowed, it helps distinguish schools with the same name."}
+          {lat != null && lng != null ? "📍 Using your location to rank nearby schools." : <><span>Location is optional and only helps rank nearby matches.</span> <button type="button" onClick={requestLocation} style={{ border: 0, background: "transparent", color: "#166534", fontWeight: 800, padding: 4 }}>Use my location</button></>}
         </div>
 
         {searching && <p style={{ color: "#667085", fontSize: 13 }}>Searching schools…</p>}
@@ -254,9 +287,10 @@ export default function SchoolDiscovery() {
             {sent ? (
               <>
                 <b>School details received.</b>
-                <p style={{ fontSize: 13, color: "#667085", marginBottom: 0 }}>
-                  We'll check the directory and reconcile the school before creating a duplicate. You can retry the school connection once it is identified.
+                <p style={{ fontSize: 13, color: "#667085", marginBottom: 8 }}>
+                  Your claim is queued for review within 24 hours. You can continue in a restricted Teacher workspace; we will show the updated status when you return.
                 </p>
+                <button type="button" onClick={() => router.push('/teacher/provisional')} style={{ width: "100%", padding: 13, border: 0, borderRadius: 10, background: "#16a34a", color: "#fff", fontWeight: 800 }}>Continue to Teacher workspace</button>
               </>
             ) : (
               <>
@@ -275,6 +309,9 @@ export default function SchoolDiscovery() {
             )}
           </div>
         )}
+        <footer style={{ marginTop: 20, paddingTop: 14, borderTop: "1px solid #e5e7eb", fontSize: 12, color: "#667085" }}>
+          Need help? <a href="https://wa.me/254728232157?text=Hello%20VibeSchool%2C%20I%20need%20help%20with%20teacher%20school%20onboarding." target="_blank" rel="noreferrer" style={{ color: "#166534", fontWeight: 800 }}>Contact VibeSchool</a>
+        </footer>
       </section>
     </main>
   )

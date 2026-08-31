@@ -8,7 +8,11 @@ const ROLES = [
   { href: '/login/global', title: 'Global learner', body: 'Explore VibeSchool learning outside a school account.' },
 ] as const
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams?: { redirect?: string } }) {
+  const redirect = typeof searchParams?.redirect === 'string' && searchParams.redirect.startsWith('/') && !searchParams.redirect.startsWith('//')
+    ? searchParams.redirect
+    : ''
+  const withRedirect = (href: string) => redirect ? `${href}?redirect=${encodeURIComponent(redirect)}` : href
   return (
     <main className={styles.shell}>
       <section className={styles.panel} aria-labelledby="login-title">
@@ -21,7 +25,7 @@ export default function LoginPage() {
 
         <div className={styles.roles} aria-label="Choose account type">
           {ROLES.map((role) => (
-            <Link key={role.href} href={role.href} className={styles.role}>
+            <Link key={role.href} href={withRedirect(role.href)} className={styles.role}>
               <strong>{role.title}</strong>
               <span>{role.body}</span>
               <b aria-hidden="true">→</b>

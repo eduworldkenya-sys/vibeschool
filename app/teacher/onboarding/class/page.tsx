@@ -12,6 +12,8 @@ const GRADES = [
   'PP1','PP2',
   'Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6',
   'Grade 7','Grade 8','Grade 9',
+  'Form 1','Form 2','Form 3','Form 4',
+  'Grade 10','Grade 11','Grade 12',
 ]
 
 const SUBJECTS = [
@@ -19,6 +21,9 @@ const SUBJECTS = [
   'Social Studies','Religious Education','Creative Arts and Sports',
   'Agriculture and Nutrition','Home Science','Indigenous Languages',
   'French','German','Arabic','Kenyan Sign Language',
+  'Biology','Chemistry','Physics','History and Government','Geography',
+  'Business Studies','Computer Studies','Christian Religious Education',
+  'Islamic Religious Education','Hindu Religious Education','Music','Art and Design',
 ]
 
 export default function ClassOnboardingPage() {
@@ -49,18 +54,20 @@ export default function ClassOnboardingPage() {
 
     schoolId = memberData?.school_id ?? null
 
-    // Legacy teacher accounts may predate school_members; keep a single fallback
-    // rather than querying three identity sources for every onboarding attempt.
     if (!schoolId) {
-      const { data: teacherData } = await supabase
-        .from('teacher_profiles')
-        .select('school_id')
-        .eq('profile_id', user.id)
-        .maybeSingle()
-      schoolId = teacherData?.school_id ?? null
+      const { data: provisionalId, error: provisionalError } = await supabase.rpc('create_provisional_teacher_class', {
+        p_grade: grade,
+        p_stream: stream.trim(),
+        p_subject: subject,
+      })
+      setLoading(false)
+      if (provisionalError || !provisionalId) {
+        setError('We could not save this provisional class. ' + (provisionalError?.message ?? 'Please retry.'))
+        return
+      }
+      router.push('/teacher/provisional?class=saved')
+      return
     }
-
-    if (!schoolId) { setLoading(false); router.push('/teacher/onboarding/school'); return }
 
     const { data: classId, error: fnErr } = await supabase.rpc('onboard_teacher_class', {
       p_school_id:  schoolId,
@@ -118,7 +125,7 @@ export default function ClassOnboardingPage() {
           <button onClick={handleCreate} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: 'none', background: loading ? '#9ca3af' : accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4 }}>
             {loading ? 'Creating…' : 'Create Class →'}
           </button>
-          <button onClick={() => router.push('/teacher')} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4, width: '100%' }}>
+          <button onClick={() => router.push('/teacher/pulse')} disabled={loading} style={{ padding: '13px 20px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontWeight: 700, fontSize: 15, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', marginTop: 4, width: '100%' }}>
             Skip for now
           </button>
         </div>

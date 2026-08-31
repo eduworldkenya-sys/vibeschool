@@ -6,6 +6,11 @@ import { isGlobalAccountPaused, isPausedGlobalAccountPath } from '@/lib/global-a
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
 const PUBLIC_AUTH_ROUTES = new Set(['/login', '/reset-password', '/auth/forgot-password', '/auth/reset-password', '/auth/error'])
 type OnboardingState = { state?: unknown; destination?: unknown }
+const PROVISIONAL_TEACHER_ROUTES = new Set([
+  '/teacher/provisional',
+  '/teacher/onboarding/school',
+  '/teacher/onboarding/class',
+])
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -131,6 +136,9 @@ export async function middleware(request: NextRequest) {
     }
 
     if (state !== 'ready') {
+      if (role === 'teacher' && state === 'provisional' && PROVISIONAL_TEACHER_ROUTES.has(pathname)) {
+        return supabaseResponse
+      }
       const current = `${pathname}${request.nextUrl.search}`
       if (current !== destination) {
         const target = request.nextUrl.clone()

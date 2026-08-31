@@ -497,6 +497,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const router = useRouter();
   const activeId = tabIdFromPath(pathname);
+  const isLimitedOnboardingPath = pathname.startsWith("/teacher/onboarding") || pathname === "/teacher/provisional";
 
   const [twinOpen, setTwinOpen] = useState(false);
   const [twinUnread, setTwinUnread] = useState(0);
@@ -526,6 +527,22 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     async function fetchProfile() {
       try {
+        if (isLimitedOnboardingPath) {
+          const { data: { user }, error: userError } = await supabase.auth.getUser();
+          if (userError || !user) { router.replace(`/login/teacher?redirect=${encodeURIComponent(pathname)}`); return; }
+          const { data: profileData, error: profileError } = await supabase.from("profiles").select("full_name,role,account_status,is_anonymized").eq("id", user.id).single();
+          if (profileError || !profileData || profileData.role !== "teacher" || profileData.account_status !== "active" || profileData.is_anonymized) {
+            router.replace("/auth/error?reason=teacher_authority_required");
+            return;
+          }
+          const name = profileData.full_name ?? "";
+          setFullName(name);
+          const parts = name.trim().split(" ").filter(Boolean);
+          setInitials(parts.slice(0, 2).map((word: string) => word[0].toUpperCase()).join(""));
+          teacherIdRef.current = user.id;
+          setAuthReady(true);
+          return;
+        }
         const authority = await getTwinAuthorityContext();
         const userId = authority.userId;
 
@@ -575,9 +592,10 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       }
     }
     void fetchProfile();
-  }, [refreshCredits, router]);
+  }, [isLimitedOnboardingPath, pathname, refreshCredits, router]);
 
   if (!authReady) return <div style={{ minHeight: "100vh", background: "#f8fafc" }} />;
+  if (isLimitedOnboardingPath) return <>{children}</>;
 
   return (
     <ToastContext.Provider value={{ showToast }}>

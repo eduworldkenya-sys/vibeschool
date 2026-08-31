@@ -1,0 +1,364 @@
+{
+  "schemaVersion": 1,
+  "kernelVersion": 2,
+  "registryVersion": 5,
+  "missionId": "CYBORG-20260830185414-e14873",
+  "runId": "d5b84c68-b686-4264-91f8-12c810d309fd",
+  "missionType": "SECURITY",
+  "intent": "Repair and integrate the P0 teacher-school onboarding authorization incident: governed claims, provisional access, secondary classes, operator review, notifications, regression proof, exact-head CI, and post-merge verification; production database mutation remains owner-gated.",
+  "baseSha": "a77217bf6fc89ce9b0fa7ebc2c5d4109a7ad5578",
+  "headSha": "a77217bf6fc89ce9b0fa7ebc2c5d4109a7ad5578",
+  "riskLevel": "R5",
+  "capabilities": [
+    "READ_REPO",
+    "READ_CI",
+    "READ_DB",
+    "READ_RUNTIME",
+    "RUN_TESTS",
+    "EDIT_CODE",
+    "CREATE_BRANCH",
+    "CREATE_PR",
+    "MERGE_PR"
+  ],
+  "scope": {
+    "mission": [
+      "app/teacher/onboarding",
+      "app/teacher/provisional",
+      "app/hq/schools/data-quality",
+      "app/login/page.tsx",
+      "middleware.ts",
+      "lib/school.ts",
+      "supabase/migrations/20260830190000_governed_teacher_school_onboarding.sql",
+      "supabase/tests/governed_teacher_school_onboarding_contract.sql",
+      "scripts/teacher-onboarding-contract-test.mjs",
+      "docs/incidents/2026-08-30-teacher-school-onboarding.md",
+      "app/teacher/layout.tsx"
+    ],
+    "affectedDependencies": [],
+    "excluded": []
+  },
+  "requirements": [
+    {
+      "id": "R01-repository_truth",
+      "description": "repository truth",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R02-threat_model",
+      "description": "threat model",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E4",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R03-authority_boundary",
+      "description": "authority boundary",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R04-tenant_isolation",
+      "description": "tenant isolation",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E4",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R05-negative_abuse_cases",
+      "description": "negative abuse cases",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E4",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R06-secret_handling",
+      "description": "secret handling",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R07-auditability",
+      "description": "auditability",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R08-independent_assurance",
+      "description": "independent assurance",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E6",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R09-exact_head_ci",
+      "description": "exact head ci",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E5",
+      "evidenceIds": [],
+      "dependencies": [
+        "test_integrity",
+        "security_and_data"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R10-learning_closure",
+      "description": "learning closure",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    }
+  ],
+  "selectedSkills": [
+    {
+      "id": "repo-truth-first",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "contract-integrity",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "canonical-architecture-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "exact-head-pr-certification-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "activation-authority-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "evidence-status-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "preflight-before-ci",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "test-the-test",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "ci-failure-repair-loop",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "evidence-and-certification",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "dependency-integrity-loop",
+      "activation": "always-armed",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "escape-hatch-auditor",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "security-authority-gate",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "merge-certification-gate",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "regression-learning",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "resource-conservation",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "mission-decomposition",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "completion-coverage-gate",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "autonomous-repair-until-terminal",
+      "activation": "always-armed",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "execution-journal-integrity",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "knowledge-reconciliation",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "tool-failure-recovery",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "idempotency-and-resume",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "concurrency-and-ownership",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "supabase-rls-security",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    },
+    {
+      "id": "journey-integrity",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    },
+    {
+      "id": "production-readiness",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    },
+    {
+      "id": "observability-watchdog-reliability",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    }
+  ],
+  "evidence": [],
+  "contradictions": [],
+  "findings": [],
+  "decisions": [],
+  "technicalDebt": [],
+  "attempts": {},
+  "state": "MISSION",
+  "learningClosure": false,
+  "createdAt": "2026-08-30T18:54:14.736Z",
+  "updatedAt": "2026-08-31T04:07:50.156Z",
+  "journalPath": ".cyborg/journal/CYBORG-20260830185414-e14873.ndjson",
+  "activation": {
+    "runtime": false,
+    "schedulers": false,
+    "publishing": false,
+    "payments": false,
+    "consequentialAuthority": false
+  },
+  "lastJournalHash": "781d1a8bc80bb6a453205f43212a5fb0ed82f2b124140fd08d4328c0ea111a0f",
+  "templateVersion": 1,
+  "templateId": "SECURITY"
+}
