@@ -71,8 +71,6 @@ function sourceLabel(
  * AI enhancement belongs after this deterministic baseline and is optional.
  */
 export async function generateLessonPlan({
-  teacherName,
-  schoolName,
   className,
   studentCount,
   duration,
@@ -107,10 +105,11 @@ export async function generateLessonPlan({
     curriculumSubStrand,
   )
   const teacherFocus = clean(focus)
-  const previousTopic = previousTopics
+  const previousTopicsClean = previousTopics
     .map(clean)
     .filter(Boolean)
-    .at(-1) ?? ''
+  const previousTopic =
+    previousTopicsClean[previousTopicsClean.length - 1] ?? ''
 
   const sections: LessonPlanSections = {
     objectives:
@@ -172,9 +171,6 @@ export async function generateLessonPlan({
           : 'Adjust pacing, grouping, prompts and resource support to learner needs without changing the Scheme objective.',
       ]),
   }
-
-  void teacherName
-  void schoolName
 
   return {
     ok: true,
