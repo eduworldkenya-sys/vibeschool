@@ -24,6 +24,29 @@ create table if not exists public.class_subject_allocations (
   constraint class_subject_allocations_unique unique (class_id, subject_id, academic_term_id)
 );
 
+-- Production already depends on this helper for school-scoped authorization.
+-- Re-declare the canonical definition here so a blank rebuild does not rely on
+-- production-only schema drift before the RLS policy below is created.
+create or replace function public.is_active_school_member(p_school_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists(
+    select 1
+    from public.school_members mine
+    join public.schools ms on ms.id = mine.school_id
+    where mine.profile_id = auth.uid()
+      and mine.school_id = p_school_id
+      and ms.status = 'active'
+  )
+$$;
+
+revoke all on function public.is_active_school_member(uuid) from public;
+grant execute on function public.is_active_school_member(uuid) to authenticated;
+
 alter table public.class_subject_allocations enable row level security;
 
 revoke all on public.class_subject_allocations from anon;
