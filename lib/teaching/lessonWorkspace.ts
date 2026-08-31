@@ -136,21 +136,21 @@ async function restorePersistedLessonSource(
   return null
 }
 
+/**
+ * Lesson creation is deterministic-first. Canonical reusable AI assets remain
+ * a later optional enhancement layer, not a prerequisite for a teacher to get
+ * a Scheme-derived plan. Returning null here keeps the existing modal on the
+ * contextual builder while preserving the source identity on the saved plan.
+ */
 function buildCanonicalIdentity(
   source: LessonSourceSuggestion | null,
   subjectId: string,
   grade: string | null,
 ): LessonCanonicalSourceIdentity | null {
-  if (!source?.id || !source.strandId || !subjectId || !grade) {
-    return null
-  }
-
-  return {
-    curriculumId: source.id,
-    subjectId,
-    grade,
-    subStrandId: source.strandId,
-  }
+  void source
+  void subjectId
+  void grade
+  return null
 }
 
 /**
