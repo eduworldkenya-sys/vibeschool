@@ -46,10 +46,16 @@ require(source_bundle, '!version.certification_policy_version', 'resource certif
 require(source_bundle, '!version.certified_at', 'resource certification timestamp')
 
 # Exact assembled package cache. Teacher writes remain Scheme-scoped; global
-# reuse requires independent package certification.
+# reuse requires independent package certification and exact source bindings.
 require(package_cache, ".eq('source_fingerprint', sourceFingerprint)", 'cache source fingerprint')
 require(package_cache, ".eq('duration_minutes', identity.durationMinutes)", 'cache duration')
-require(package_cache, "row.certification_status === 'certified'", 'global cache certification')
+require(package_cache, ".eq('reuse_scope', 'global')", 'global cache scope')
+require(package_cache, ".eq('certification_status', 'certified')", 'global cache certification')
+require(package_cache, ".not('certification_policy_version', 'is', null)", 'global certification policy')
+require(package_cache, ".not('certified_at', 'is', null)", 'global certification timestamp')
+require(package_cache, 'LESSON_PACKAGE_SOURCE_BINDINGS_MISMATCH', 'source tuple integrity')
+for scheme_field in ('learningResources', 'learningExperiences', 'assessmentMethods', 'reference'):
+    require(package_cache, scheme_field, f'cache fingerprint {scheme_field}')
 require(package_migration, "reuse_scope in ('scheme', 'global')", 'cache scope constraint')
 require(package_migration, "certification_status in ('scheme_scoped', 'certified')", 'cache certification constraint')
 require(package_migration, "s.teacher_id = (select auth.uid())", 'teacher Scheme ownership')
