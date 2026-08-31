@@ -88,6 +88,8 @@ serve(async (req) => {
     return json({ error: "forbidden" }, 403)
   }
 
+  // Authorization is deliberately complete before global recovery or any
+  // other service-role mutation. Keep this ordering fail-closed.
   const { error: recoveryError } = await db.rpc("cla_recover_expired_learning_resource_claims", { p_limit: 100 })
   if (recoveryError) {
     console.error("[generate-canonical-lesson-plan] stale claim recovery failed", recoveryError)
