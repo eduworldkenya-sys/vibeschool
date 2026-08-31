@@ -1,7 +1,11 @@
 import type { Json } from '@/lib/database.types'
 import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
-import type { CertifiedLessonContentAsset } from '@/lib/teaching/lessonSourceBundle'
+import type {
+  CertifiedLessonContentAsset,
+  PublishedLessonContentAsset,
+} from '@/lib/teaching/lessonSourceBundle'
 import { validateLessonPlanGrounding } from '@/lib/teaching/lessonPlanGrounding'
+import { planLessonTiming } from '@/lib/teaching/lessonTiming'
 
 export interface CanonicalLessonIdentity {
   curriculumId: string
@@ -15,6 +19,7 @@ export interface CanonicalLessonIdentity {
   duration?: string
   languageCode?: string
   schemeId?: string | null
+  lessonNumber?: number | null
   schemeObjectives?: string | null
   keyInquiryQuestion?: string | null
   learningResources?: string | null
@@ -22,6 +27,7 @@ export interface CanonicalLessonIdentity {
   assessmentMethods?: string | null
   reference?: string | null
   certifiedContent?: CertifiedLessonContentAsset[]
+  publishedContent?: PublishedLessonContentAsset[]
 }
 
 export type CanonicalLessonGenerationResult =
@@ -31,6 +37,7 @@ export type CanonicalLessonGenerationResult =
       sections: LessonPlanSections
       resourceId: string
       resourceVersionId: string | null
+      sourceAssurance: 'certified' | 'published_unverified'
       certificationRequired: boolean
       creditsUsed: number
     }
@@ -42,6 +49,17 @@ export type CanonicalLessonGenerationResult =
       resourceVersionId?: string | null
       reviewStatus?: string | null
     }
+
+interface ChapterBlock {
+  id: string | null
+  type: string
+  content: string
+  lessonNumber: number | null
+  learningLayer: string | null
+  kind: string | null
+  assessment: boolean
+  teacherDerivative: boolean
+}
 
 const CONTENT_KEYS = new Set([
   'body',
@@ -69,6 +87,16 @@ function clean(value?: string | null): string {
   return value?.trim() ?? ''
 }
 
+function joinNonEmpty(
+  values: Array<string | null | undefined>,
+  separator = '\n',
+): string {
+  return values
+    .map(clean)
+    .filter(Boolean)
+    .join(separator)
+}
+
 function collectStrings(value: Json, key: string | null = null): string[] {
   if (typeof value === 'string') {
     return key === null || CONTENT_KEYS.has(key)
@@ -93,33 +121,114 @@ function collectStrings(value: Json, key: string | null = null): string[] {
   })
 }
 
+function asRecord(value: Json): Record<string, Json | undefined> | null {
+  if (
+    value === null ||
+    Array.isArray(value) ||
+    typeof value !== 'object'
+  ) {
+    return null
+  }
+
+  return value as Record<string, Json | undefined>
+}
+
+function toChapterBlock(value: Json): ChapterBlock | null {
+  const row = asRecord(value)
+  if (!row || typeof row.content !== 'string') return null
+
+  const meta = row.meta ? asRecord(row.meta) : null
+  const rawLessonNumber = meta?.lesson_number
+
+  return {
+    id: typeof row.id === 'string' ? row.id : null,
+    type: typeof row.type === 'string' ? row.type : 'paragraph',
+    content: row.content.trim(),
+    lessonNumber:
+      typeof rawLessonNumber === 'number'
+        ? rawLessonNumber
+        : typeof rawLessonNumber === 'string' && /^\d+$/.test(rawLessonNumber)
+          ? Number(rawLessonNumber)
+          : null,
+    learningLayer:
+      typeof meta?.learning_layer === 'string'
+        ? meta.learning_layer
+        : null,
+    kind: typeof meta?.kind === 'string' ? meta.kind : null,
+    assessment: meta?.assessment === true,
+    teacherDerivative: meta?.teacher_derivative === true,
+  }
+}
+
+function chapterBlocks(asset: PublishedLessonContentAsset): ChapterBlock[] {
+  if (!Array.isArray(asset.payload)) return []
+  return asset.payload.flatMap(value => {
+    const block = toChapterBlock(value)
+    return block ? [block] : []
+  })
+}
+
+function exactLessonBlocks(
+  assets: PublishedLessonContentAsset[],
+  lessonNumber?: number | null,
+): ChapterBlock[] {
+  const all = assets.flatMap(chapterBlocks)
+  if (!lessonNumber) return all.filter(block => block.lessonNumber === null)
+  return all.filter(block => block.lessonNumber === lessonNumber)
+}
+
+function safeSharedBlocks(assets: PublishedLessonContentAsset[]): ChapterBlock[] {
+  return assets
+    .flatMap(chapterBlocks)
+    .filter(block =>
+      block.lessonNumber === null &&
+      (
+        block.learningLayer === 'orient' ||
+        block.kind === 'misconception' ||
+        block.kind === 'differentiation' ||
+        block.teacherDerivative
+      ),
+    )
+}
+
+function blockText(blocks: ChapterBlock[], types?: string[]): string {
+  return blocks
+    .filter(block => !types || types.includes(block.type))
+    .map(block => block.content)
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+function extractQuestions(blocks: ChapterBlock[]): string[] {
+  const questions: string[] = []
+
+  for (const block of blocks) {
+    const matches = block.content.match(/[^.!?\n]*\?/g) ?? []
+    for (const match of matches) {
+      const question = clean(match)
+      if (question && !questions.includes(question)) questions.push(question)
+    }
+  }
+
+  return questions.slice(0, 4)
+}
+
 function certifiedContentText(assets: CertifiedLessonContentAsset[]): string {
   return assets
     .flatMap(asset => {
       const fragments = collectStrings(asset.payload)
       if (fragments.length === 0) return []
-
-      return [
-        `Certified content: ${asset.title}\n${fragments.join('\n\n')}`,
-      ]
+      return [`Certified content: ${asset.title}\n${fragments.join('\n\n')}`]
     })
     .join('\n\n')
     .slice(0, 20000)
 }
 
-function joinNonEmpty(
-  values: Array<string | null | undefined>,
-  separator = '\n',
-): string {
-  return values
-    .map(clean)
-    .filter(Boolean)
-    .join(separator)
-}
-
 /**
- * Deterministically transforms exact certified VibeSchool content plus Scheme
- * authority into a lesson plan. No Edge Function or model provider is called.
+ * Deterministically transforms exact Scheme authority plus reusable VibeSchool
+ * content into a live-teaching lesson plan. No Edge Function, web search or
+ * model provider is called. Published-but-unverified content remains explicitly
+ * unverified; this function never promotes its assurance state.
  */
 export async function generateCanonicalLessonPlan(
   accessToken: string,
@@ -127,15 +236,17 @@ export async function generateCanonicalLessonPlan(
 ): Promise<CanonicalLessonGenerationResult> {
   void accessToken
 
-  const assets = identity.certifiedContent ?? []
-  const primary = assets[0]
+  const certified = identity.certifiedContent ?? []
+  const published = identity.publishedContent ?? []
+  const primaryCertified = certified[0]
+  const primaryPublished = published[0]
 
-  if (!primary) {
+  if (!primaryCertified && !primaryPublished) {
     return {
       ok: false,
       status: 'error',
       message:
-        'No certified VibeSchool content is available for this lesson. Use the Scheme-derived baseline.',
+        'No reusable VibeSchool content is available for this lesson. Use the Scheme-derived baseline.',
     }
   }
 
@@ -143,12 +254,42 @@ export async function generateCanonicalLessonPlan(
   const inquiry = clean(identity.keyInquiryQuestion)
   const experiences = clean(identity.learningExperiences)
   const assessment = clean(identity.assessmentMethods)
-  const content = certifiedContentText(assets)
-  const resourceTitles = assets.map(asset => asset.title).join('; ')
   const curriculumPath = joinNonEmpty(
     [identity.curriculumStrand, identity.curriculumSubStrand],
     ' → ',
   )
+  const timing = planLessonTiming(identity.duration)
+
+  const exactBlocks = exactLessonBlocks(published, identity.lessonNumber)
+  const sharedBlocks = safeSharedBlocks(published)
+  const exactTeachingText = blockText(
+    exactBlocks,
+    ['paragraph', 'callout', 'activity'],
+  )
+  const misconceptions = blockText(
+    sharedBlocks.filter(block => block.kind === 'misconception'),
+  )
+  const differentiation = blockText(
+    sharedBlocks.filter(block => block.kind === 'differentiation'),
+  )
+  const teacherBridge = blockText(
+    sharedBlocks.filter(block => block.teacherDerivative),
+  )
+  const orientingText = blockText(
+    sharedBlocks.filter(block => block.learningLayer === 'orient'),
+  )
+  const teacherQuestions = extractQuestions([
+    ...exactBlocks,
+    ...sharedBlocks.filter(block => block.learningLayer === 'orient'),
+  ])
+  const certifiedText = certifiedContentText(certified)
+  const sourceTitles = [
+    ...certified.map(asset => asset.title),
+    ...published.map(asset => asset.title),
+  ].filter((title, index, all) => all.indexOf(title) === index)
+
+  const authoritativeTeachingText =
+    exactTeachingText || certifiedText || experiences
 
   const sections: LessonPlanSections = {
     objectives:
@@ -157,8 +298,8 @@ export async function generateCanonicalLessonPlan(
 
     resources: joinNonEmpty([
       identity.learningResources,
-      resourceTitles
-        ? `Certified VibeSchool content: ${resourceTitles}`
+      sourceTitles.length > 0
+        ? `VibeSchool source: ${sourceTitles.join('; ')}`
         : null,
       identity.reference
         ? `Reference: ${identity.reference}`
@@ -166,39 +307,80 @@ export async function generateCanonicalLessonPlan(
     ]),
 
     introduction: joinNonEmpty([
+      `0–${timing.introductionMinutes} min · Introduce`,
       `Lesson focus: ${identity.topicTitle}.`,
       inquiry ? `Key inquiry question: ${inquiry}` : null,
-      `Planned duration: ${identity.duration ?? '40 minutes'}.`,
-    ]),
+      orientingText ? `Teaching context:\n${orientingText}` : null,
+      teacherQuestions[0]
+        ? `Ask: ${teacherQuestions[0]}`
+        : null,
+    ], '\n\n'),
 
     development: joinNonEmpty([
+      `${timing.introductionMinutes}–${
+        timing.introductionMinutes + timing.teachingMinutes
+      } min · Teach`,
       curriculumPath ? `Curriculum path: ${curriculumPath}.` : null,
-      experiences ? `Scheme learning experiences:\n${experiences}` : null,
-      content ||
-        'The certified resource contains no recognised teaching-content fields. Follow the Scheme learning sequence.',
+      authoritativeTeachingText
+        ? `Teaching points and learner task:\n${authoritativeTeachingText}`
+        : 'Follow the exact approved Scheme learning experience for this lesson.',
+      teacherQuestions.length > 1
+        ? `Teacher prompts:\n${teacherQuestions.slice(1).map(q => `• ${q}`).join('\n')}`
+        : null,
+      misconceptions
+        ? `Watch for misconception:\n${misconceptions}`
+        : null,
+      experiences && experiences !== authoritativeTeachingText
+        ? `Scheme learning experience:\n${experiences}`
+        : null,
     ], '\n\n'),
 
     consolidation: joinNonEmpty([
+      `${
+        timing.totalMinutes - timing.homeworkMinutes - timing.consolidationMinutes
+      }–${timing.totalMinutes - timing.homeworkMinutes} min · Consolidate`,
       `Return to the lesson focus: ${identity.topicTitle}.`,
       inquiry
         ? `Revisit the key inquiry question: ${inquiry}`
         : 'Review the stated Scheme objective with learners.',
+      authoritativeTeachingText
+        ? 'Expected evidence: learners can demonstrate the action or understanding described in the exact lesson source above.'
+        : null,
     ]),
 
     assessmentHook: joinNonEmpty([
+      `${
+        timing.introductionMinutes +
+        timing.teachingMinutes +
+        timing.activityMinutes
+      }–${
+        timing.totalMinutes - timing.consolidationMinutes - timing.homeworkMinutes
+      } min · Check learning`,
       objectives
         ? `Objectives being assessed:\n${objectives}`
         : 'No authoritative Scheme objective is attached yet.',
       assessment
         ? `Scheme assessment method(s):\n${assessment}`
-        : 'Use teacher observation, oral checks or another teacher-selected method without changing the stated objective.',
+        : 'Use observation or oral checking against the stated objective.',
+      teacherBridge ? `Teacher assessment guidance:\n${teacherBridge}` : null,
+      teacherQuestions.length > 0
+        ? `Ready oral checks:\n${teacherQuestions.map(q => `• ${q}`).join('\n')}`
+        : null,
     ], '\n\n'),
 
-    homework:
-      'No homework has been invented automatically. Add homework only when supported by the Scheme objective or the attached certified content.',
+    homework: joinNonEmpty([
+      `${timing.totalMinutes - timing.homeworkMinutes}–${timing.totalMinutes} min · Homework / close`,
+      exactTeachingText
+        ? `Recommended follow-up: revisit the exact lesson task from ${primaryPublished?.title ?? primaryCertified?.title ?? 'the approved source'} and complete or explain it independently.`
+        : 'No homework is preloaded because the authoritative source does not contain an exact lesson task.',
+      'Teacher may assign, edit or skip this recommendation.',
+    ], '\n\n'),
 
-    differentiation:
-      'Adjust pacing, grouping, prompts and resource support to learner needs without changing the Scheme objective or certified content authority.',
+    differentiation: joinNonEmpty([
+      differentiation ||
+        'Adjust pacing, grouping, prompts and resource support without changing the Scheme objective.',
+      'Keep the curriculum objective and authoritative content common; only delivery support should vary by learner/class context.',
+    ], '\n\n'),
   }
 
   const validation = validateLessonPlanGrounding({
@@ -214,13 +396,27 @@ export async function generateCanonicalLessonPlan(
     }
   }
 
+  if (primaryCertified) {
+    return {
+      ok: true,
+      status: 'hit',
+      sections,
+      resourceId: primaryCertified.resourceId,
+      resourceVersionId: primaryCertified.resourceVersionId,
+      sourceAssurance: 'certified',
+      certificationRequired: false,
+      creditsUsed: 0,
+    }
+  }
+
   return {
     ok: true,
-    status: 'hit',
+    status: 'candidate',
     sections,
-    resourceId: primary.resourceId,
-    resourceVersionId: primary.resourceVersionId,
-    certificationRequired: false,
+    resourceId: primaryPublished!.resourceId,
+    resourceVersionId: null,
+    sourceAssurance: 'published_unverified',
+    certificationRequired: true,
     creditsUsed: 0,
   }
 }
