@@ -25,6 +25,10 @@ export interface LessonPackageSourceIdentity {
   sourceHashes: string[]
   schemeObjectives?: string | null
   keyInquiryQuestion?: string | null
+  learningResources?: string | null
+  learningExperiences?: string | null
+  assessmentMethods?: string | null
+  reference?: string | null
 }
 
 function normalize(value: string): string {
@@ -42,6 +46,28 @@ export function buildLessonPackageCacheKey(identity: LessonPackageSourceIdentity
   ].join('|')
 }
 
+function sourceTuples(identity: LessonPackageSourceIdentity): Array<{
+  resourceId: string
+  resourceVersionId: string
+  contentSha256: string
+}> {
+  const maxLength = Math.max(
+    identity.sourceResourceIds.length,
+    identity.sourceResourceVersionIds.length,
+    identity.sourceHashes.length,
+  )
+
+  return Array.from({ length: maxLength }, (_, index) => ({
+    resourceId: identity.sourceResourceIds[index] ?? '',
+    resourceVersionId: identity.sourceResourceVersionIds[index] ?? '',
+    contentSha256: identity.sourceHashes[index] ?? '',
+  })).sort((left, right) =>
+    `${left.resourceId}|${left.resourceVersionId}|${left.contentSha256}`.localeCompare(
+      `${right.resourceId}|${right.resourceVersionId}|${right.contentSha256}`,
+    ),
+  )
+}
+
 function stableSourceMaterial(identity: LessonPackageSourceIdentity): string {
   return JSON.stringify({
     curriculumId: identity.curriculumId,
@@ -50,11 +76,13 @@ function stableSourceMaterial(identity: LessonPackageSourceIdentity): string {
     subStrandId: identity.subStrandId,
     topicTitle: identity.topicTitle,
     durationMinutes: identity.durationMinutes,
-    sourceResourceIds: [...identity.sourceResourceIds].sort(),
-    sourceResourceVersionIds: [...identity.sourceResourceVersionIds].sort(),
-    sourceHashes: [...identity.sourceHashes].sort(),
+    sourceAssets: sourceTuples(identity),
     schemeObjectives: identity.schemeObjectives?.trim() ?? '',
     keyInquiryQuestion: identity.keyInquiryQuestion?.trim() ?? '',
+    learningResources: identity.learningResources?.trim() ?? '',
+    learningExperiences: identity.learningExperiences?.trim() ?? '',
+    assessmentMethods: identity.assessmentMethods?.trim() ?? '',
+    reference: identity.reference?.trim() ?? '',
   })
 }
 
@@ -152,6 +180,12 @@ export async function storeSchemeLessonPackage({
       subStrandId: identity.subStrandId,
       topicTitle: identity.topicTitle,
       schemeId: identity.schemeId,
+      schemeObjectives: identity.schemeObjectives ?? null,
+      keyInquiryQuestion: identity.keyInquiryQuestion ?? null,
+      learningResources: identity.learningResources ?? null,
+      learningExperiences: identity.learningExperiences ?? null,
+      assessmentMethods: identity.assessmentMethods ?? null,
+      reference: identity.reference ?? null,
     },
     sections,
     generation_mode: generationMode,
