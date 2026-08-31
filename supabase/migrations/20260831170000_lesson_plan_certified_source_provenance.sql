@@ -5,6 +5,18 @@
 
 begin;
 
+-- Production already carries this curriculum identity column, but its original
+-- creation was historical schema drift rather than repository migration truth.
+-- Reconstruct it here so a clean database and production expose the same lesson
+-- identity contract before the provenance trigger is installed.
+alter table public.lesson_plans
+  add column if not exists strand_id uuid
+  references public.cbc_strands(id);
+
+create index if not exists idx_lesson_plans_strand_id
+  on public.lesson_plans(strand_id)
+  where strand_id is not null;
+
 create or replace function public.lesson_plan_pin_certified_sources()
 returns trigger
 language plpgsql
