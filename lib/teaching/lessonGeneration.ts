@@ -1,6 +1,9 @@
 import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
+import {
+  validateLessonPlanGrounding,
+} from '@/lib/teaching/lessonPlanGrounding'
 
 export interface GenerateLessonPlanInput {
   accessToken: string
@@ -59,16 +62,7 @@ function sourceLabel(
 
 /**
  * Builds the reliable baseline lesson plan without calling any model provider.
- *
- * Authority rules:
- * - Scheme/curriculum fields are copied or reorganised, never replaced.
- * - Missing authoritative fields remain visibly missing instead of being
- *   invented by a model or by template prose.
- * - Teacher focus may shape delivery, but it never rewrites objectives.
- * - This function performs no network call, consumes no credits and remains
- *   available when every AI provider is unavailable.
- *
- * AI enhancement belongs after this deterministic baseline and is optional.
+ * Scheme/curriculum fields are copied or reorganised, never replaced.
  */
 export async function generateLessonPlan({
   className,
@@ -111,6 +105,10 @@ export async function generateLessonPlan({
   const previousTopic =
     previousTopicsClean[previousTopicsClean.length - 1] ?? ''
 
+  const assessmentObjectiveText = objectives
+    ? `Objectives being assessed:\n${objectives}`
+    : 'No authoritative Scheme objective is attached yet.'
+
   const sections: LessonPlanSections = {
     objectives:
       objectives ||
@@ -140,8 +138,8 @@ export async function generateLessonPlan({
           ? `Curriculum path: ${curriculumPath}.`
           : null,
         experiences
-          ? `Learning experiences:\n${experiences}`
-          : 'Follow the approved Scheme/content learning sequence for this lesson. No additional curriculum content has been invented.',
+          ? `Scheme learning experiences:\n${experiences}`
+          : 'Follow the approved Scheme learning sequence for this lesson. No additional curriculum content has been invented.',
         teacherFocus
           ? `Teacher focus for delivery: ${teacherFocus}`
           : null,
@@ -156,9 +154,12 @@ export async function generateLessonPlan({
       ]),
 
     assessmentHook:
-      assessment
-        ? `Scheme assessment method(s):\n${assessment}`
-        : 'Assess only against the stated Scheme objective. No authoritative assessment method is attached yet.',
+      joinNonEmpty([
+        assessmentObjectiveText,
+        assessment
+          ? `Scheme assessment method(s):\n${assessment}`
+          : 'Use teacher observation, oral checks or another teacher-selected method without changing the stated objective.',
+      ], '\n\n'),
 
     homework:
       'No homework has been invented automatically. Add homework only when it is supported by the lesson objective, approved content, or teacher instruction.',
@@ -170,6 +171,15 @@ export async function generateLessonPlan({
           ? `Teacher-requested adaptation: ${teacherFocus}`
           : 'Adjust pacing, grouping, prompts and resource support to learner needs without changing the Scheme objective.',
       ]),
+  }
+
+  const validation = validateLessonPlanGrounding({
+    sections,
+    schemeObjectives: curriculumObjectives,
+  })
+
+  if (!validation.ok) {
+    return validation
   }
 
   return {
