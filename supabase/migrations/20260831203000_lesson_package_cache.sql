@@ -1,5 +1,6 @@
 -- Exact assembled lesson-package cache.
 -- Teacher writes stay Scheme-scoped; global reuse requires explicit package certification.
+-- authorization-test: public.lesson_package_cache
 
 create table if not exists public.lesson_package_cache (
   id uuid primary key default gen_random_uuid(),
@@ -116,10 +117,9 @@ create policy lesson_package_cache_delete_scheme
     )
   );
 
--- This function is intentionally SECURITY INVOKER. It is callable only by
+-- This function is intentionally invoker-rights. It is callable only by
 -- service_role, whose own database role bypasses RLS. Keeping it invoker-based
--- avoids exposing a privileged SECURITY DEFINER function through the public
--- Data API schema.
+-- avoids exposing a privileged routine through the public Data API schema.
 create or replace function public.certify_lesson_package_cache(
   p_source_package_id uuid,
   p_global_cache_key text,
