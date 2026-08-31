@@ -46,6 +46,7 @@ export interface LessonWorkspaceBootResult {
   existingPlan: ExistingLessonPlan | null
   source: LessonSourceSuggestion | null
   sourceLinked: boolean
+  sourceError: string | null
   canonicalIdentity: LessonCanonicalSourceIdentity | null
   occurrence: TeachingOccurrence | null
   occurrenceError: string | null
@@ -191,6 +192,7 @@ export async function loadLessonWorkspace({
 
   let source: LessonSourceSuggestion | null = null
   let sourceLinked = false
+  let sourceError: string | null = null
 
   if (context.schoolId && context.grade) {
     try {
@@ -206,11 +208,18 @@ export async function loadLessonWorkspace({
         requestedSchemeId,
       })
       sourceLinked = source !== null
-    } catch (sourceError) {
+
+      if (!source && timetableSlotId) {
+        sourceError =
+          "Scheme connection needs attention. VibeSchool knows this scheduled class, but couldn't resolve its Scheme lesson. You can still create a custom lesson."
+      }
+    } catch (sourceResolutionError) {
       console.error(
         '[lessonWorkspace] lesson source resolution failed',
-        sourceError,
+        sourceResolutionError,
       )
+      sourceError =
+        "Scheme connection needs attention. VibeSchool couldn't resolve the scheduled Scheme lesson. You can still create a custom lesson."
     }
   }
 
@@ -222,12 +231,15 @@ export async function loadLessonWorkspace({
       if (persistedSource) {
         source = persistedSource
         sourceLinked = true
+        sourceError = null
       }
-    } catch (sourceError) {
+    } catch (sourceResolutionError) {
       console.error(
         '[lessonWorkspace] persisted source restoration failed',
-        sourceError,
+        sourceResolutionError,
       )
+      sourceError =
+        "Scheme connection needs attention. VibeSchool couldn't restore this plan's linked Scheme lesson."
     }
   }
 
@@ -260,6 +272,7 @@ export async function loadLessonWorkspace({
     existingPlan,
     source,
     sourceLinked,
+    sourceError,
     canonicalIdentity,
     occurrence,
     occurrenceError,

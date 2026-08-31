@@ -1,7 +1,12 @@
 import { supabase } from '@/lib/supabase'
 import {
   getActiveTerm,
+  getTermForDate,
   currentWeekOf,
+  schoolWeekOf,
+} from '@/lib/academicTerm'
+import type {
+  ActiveTerm,
 } from '@/lib/academicTerm'
 import type {
   CurriculumSuggestion,
@@ -79,32 +84,6 @@ const SCHEME_SOURCE_COLUMNS = [
   'period',
   'sequence_number',
 ].join(',')
-
-function weekForOccurrence(
-  startDate: string,
-  occurrenceDate: string | null | undefined,
-): number | null {
-  if (
-    !occurrenceDate ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(startDate) ||
-    !/^\d{4}-\d{2}-\d{2}$/.test(occurrenceDate)
-  ) {
-    return null
-  }
-
-  const start = Date.parse(`${startDate}T00:00:00Z`)
-  const occurrence = Date.parse(`${occurrenceDate}T00:00:00Z`)
-
-  if (
-    Number.isNaN(start) ||
-    Number.isNaN(occurrence) ||
-    occurrence < start
-  ) {
-    return null
-  }
-
-  return Math.floor((occurrence - start) / 604800000) + 1
-}
 
 function toSuggestion(
   row: SchemeSourceRow,
@@ -189,8 +168,7 @@ async function loadSchemeSourceForOccurrence({
   schoolId,
   classId,
   subjectId,
-  academicTermId,
-  academicTermStartDate,
+  academicTerm,
 }: {
   timetableSlotId: string
   occurrenceDate: string
@@ -198,11 +176,10 @@ async function loadSchemeSourceForOccurrence({
   schoolId: string
   classId: string
   subjectId: string
-  academicTermId: string
-  academicTermStartDate: string
+  academicTerm: ActiveTerm
 }): Promise<SchemeSourceRow | null> {
-  const occurrenceWeek = weekForOccurrence(
-    academicTermStartDate,
+  const occurrenceWeek = schoolWeekOf(
+    academicTerm,
     occurrenceDate,
   )
   if (occurrenceWeek === null) return null
@@ -240,7 +217,7 @@ async function loadSchemeSourceForOccurrence({
     .eq('school_id', schoolId)
     .eq('class_id', classId)
     .eq('subject_id', subjectId)
-    .eq('academic_term_id', academicTermId)
+    .eq('academic_term_id', academicTerm.id)
     .eq('week', occurrenceWeek)
     .eq('period', weeklyPeriodIndex + 1)
     .maybeSingle()
@@ -260,12 +237,14 @@ async function loadSchemeSourceForOccurrence({
  * Resolves the educational source for a lesson occurrence.
  *
  * Authority order:
- * 1. Explicit Scheme item selected by the teacher / persisted lesson plan.
- * 2. Exact dated timetable occurrence -> academic week + weekly timetable
- *    ordinal -> exact Scheme week + period row.
- * 3. Legacy progression fallback when an exact occurrence cannot be mapped.
- * 4. Curriculum fallback for the occurrence's academic week.
- * 5. No source — the teacher may enter a custom topic.
+ * 1. Occurrence date -> academic term containing that date. Lifecycle status
+ *    is not authoritative for dated teaching.
+ * 2. Explicit Scheme item selected by the teacher / persisted lesson plan.
+ * 3. Exact dated timetable occurrence -> canonical school week + weekly
+ *    timetable ordinal -> exact Scheme week + period row.
+ * 4. Legacy progression fallback when an exact occurrence cannot be mapped.
+ * 5. Curriculum fallback for the occurrence's academic week.
+ * 6. No source — the teacher may enter a custom topic.
  *
  * A Scheme row remains authoritative even when legacy curriculum rows do not
  * yet have a reusable sub_strand_id. That condition may disable canonical
@@ -286,7 +265,9 @@ export async function resolveLessonSource({
   occurrenceDate = null,
   requestedSchemeId = null,
 }: ResolveLessonSourceInput): Promise<LessonSourceSuggestion | null> {
-  const term = await getActiveTerm(schoolId)
+  const term = occurrenceDate
+    ? await getTermForDate(schoolId, occurrenceDate)
+    : await getActiveTerm(schoolId)
 
   if (!term) return null
 
@@ -317,8 +298,7 @@ export async function resolveLessonSource({
       schoolId,
       classId,
       subjectId,
-      academicTermId: term.id,
-      academicTermStartDate: term.start_date,
+      academicTerm: term,
     })
 
     if (occurrenceScheme) {
@@ -328,7 +308,7 @@ export async function resolveLessonSource({
 
   // Compatibility fallback for historical/unbound timetable data only. The
   // canonical path above is deterministic and must win whenever the occurrence
-  // can be located in the active weekly timetable.
+  // can be located in the dated weekly timetable.
   const {
     data: nextSchemeRows,
     error: nextSchemeError,
@@ -361,7 +341,7 @@ export async function resolveLessonSource({
   }
 
   const occurrenceWeek =
-    weekForOccurrence(term.start_date, occurrenceDate) ??
+    (occurrenceDate ? schoolWeekOf(term, occurrenceDate) : null) ??
     currentWeekOf(term)
 
   const { data: curriculumRows, error: curriculumError } =
