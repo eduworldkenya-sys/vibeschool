@@ -1,0 +1,50 @@
+name: Zero AI Lesson UX Codemod
+
+on:
+  push:
+    branches:
+      - architecture/zero-ai-lesson-release-gate
+    paths:
+      - scripts/apply-zero-ai-lesson-ux.py
+      - .github/workflows/zero-ai-lesson-ux-codemod.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: architecture/zero-ai-lesson-release-gate
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply guarded UI replacements
+        run: python scripts/apply-zero-ai-lesson-ux.py
+      - name: Verify replacement contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('components/teacher/LessonPlanModal.tsx').read_text()
+          required = [
+              'Built from Scheme + VibeSchool Content · No AI',
+              "generated_by: 'deterministic'",
+              'Build Lesson Plan · No AI',
+              'View · Edit · Assign · Share {action.label}',
+          ]
+          for value in required:
+              assert value in p, value
+          PY
+      - name: Commit generated source edit
+        run: |
+          if git diff --quiet; then
+            echo 'No changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add components/teacher/LessonPlanModal.tsx
+          git commit -m 'feat(lesson): finish teacher zero-AI UX'
+          git push
