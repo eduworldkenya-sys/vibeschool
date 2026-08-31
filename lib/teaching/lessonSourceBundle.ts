@@ -121,9 +121,8 @@ async function loadCurriculumResourceCandidates(
 
   // `asset_kind` and `purpose` exist in the canonical-resource migrations and
   // production schema, while the generated Database type may lag that additive
-  // migration. Selecting the row rather than naming those columns keeps this
-  // query type-safe against the older generated shape; the narrow runtime cast
-  // below is limited to the two additive canonical metadata fields.
+  // migration. Read the whole row and narrow those optional fields structurally
+  // at runtime rather than bypassing TypeScript with an escape-hatch cast.
   let query = supabase
     .from('learning_resources')
     .select('*')
@@ -142,7 +141,27 @@ async function loadCurriculumResourceCandidates(
   const { data, error } = await query.limit(25)
   if (error) throw error
 
-  return ((data ?? []) as unknown as ResourceCandidate[])
+  return (data ?? [])
+    .map(resource => {
+      const assetKind =
+        'asset_kind' in resource &&
+        typeof resource.asset_kind === 'string'
+          ? resource.asset_kind
+          : null
+
+      const purpose =
+        'purpose' in resource &&
+        typeof resource.purpose === 'string'
+          ? resource.purpose
+          : null
+
+      return {
+        id: resource.id,
+        title: resource.title,
+        asset_kind: assetKind,
+        purpose,
+      }
+    })
     .filter(isTeachingContentCandidate)
 }
 
