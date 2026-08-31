@@ -11,12 +11,27 @@ type Props = {
   onClose: () => void
 }
 
-const PHASES: Array<{ key: keyof LessonPlanSections; label: string }> = [
-  { key: 'introduction', label: 'Introduction' },
-  { key: 'development', label: 'Development' },
-  { key: 'consolidation', label: 'Consolidation' },
-  { key: 'assessmentHook', label: 'Assessment & Exit Check' },
+type TeachStep = {
+  key: keyof LessonPlanSections
+  label: string
+  timed: boolean
+}
+
+/**
+ * Teach Mode is a guided view over the already-prepared deterministic lesson
+ * package. Objectives and homework bookend the timed classroom phases; they do
+ * not add minutes to the timetable occurrence.
+ */
+const STEPS: TeachStep[] = [
+  { key: 'objectives', label: 'Objectives', timed: false },
+  { key: 'introduction', label: 'Introduction', timed: true },
+  { key: 'development', label: 'Teach & Learn', timed: true },
+  { key: 'consolidation', label: 'Consolidation', timed: true },
+  { key: 'assessmentHook', label: 'Assessment & Exit Check', timed: true },
+  { key: 'homework', label: 'Homework', timed: false },
 ]
+
+const TIMED_STEPS = STEPS.filter(step => step.timed)
 
 function parsePositiveMinutes(value: string | undefined): number | null {
   if (!value) return null
@@ -45,9 +60,9 @@ function totalMinutes(sections: LessonPlanSections): number | null {
   }
 
   // Backward-compatible recovery for deterministic plans that contain exact
-  // phase ranges but predate the explicit total marker. The final phase end is
-  // the lesson duration because lessonTimingRanges() is contiguous and exact.
-  const rangeEnds = PHASES.flatMap(({ key }) => {
+  // phase ranges but predate the explicit total marker. Only timed classroom
+  // phases participate; objectives and homework intentionally do not.
+  const rangeEnds = TIMED_STEPS.flatMap(({ key }) => {
     const match = sections[key].match(/Timing:\s*\d+\s*[–-]\s*(\d+)\s*min/i)
     const end = parsePositiveMinutes(match?.[1])
     return end === null ? [] : [end]
@@ -58,7 +73,7 @@ function totalMinutes(sections: LessonPlanSections): number | null {
 
 export default function LessonTeachMode({ subject, className, topic, sections, onClose }: Props) {
   const total = useMemo(() => totalMinutes(sections), [sections])
-  const [phaseIndex, setPhaseIndex] = useState(0)
+  const [stepIndex, setStepIndex] = useState(0)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
@@ -76,7 +91,8 @@ export default function LessonTeachMode({ subject, className, topic, sections, o
   const remainingRemainder = remainingSeconds === null
     ? null
     : String(remainingSeconds % 60).padStart(2, '0')
-  const phase = PHASES[phaseIndex]
+  const step = STEPS[stepIndex]
+  const isFinalStep = stepIndex === STEPS.length - 1
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1200, background: '#f8fafc', overflowY: 'auto', padding: '18px 16px 90px', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -84,7 +100,7 @@ export default function LessonTeachMode({ subject, className, topic, sections, o
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }}>
-              Teach Mode · {total === null ? 'Timing unavailable' : `${total} minutes`}
+              Teach Now · Prepared Teaching Pack · {total === null ? 'Timing unavailable' : `${total} minutes`}
             </div>
             <h1 style={{ margin: '4px 0', fontSize: 22 }}>{topic || subject}</h1>
             <div style={{ fontSize: 12, color: '#64748b' }}>{subject} · {className}</div>
@@ -108,32 +124,54 @@ export default function LessonTeachMode({ subject, className, topic, sections, o
             </div>
           </div>
           <div style={{ background: '#eef2ff', color: '#3730a3', borderRadius: 14, padding: 14 }}>
-            <div style={{ fontSize: 10, opacity: 0.75, textTransform: 'uppercase', fontWeight: 800 }}>Current phase</div>
-            <div style={{ fontSize: 17, fontWeight: 900, marginTop: 7 }}>{phase.label}</div>
+            <div style={{ fontSize: 10, opacity: 0.75, textTransform: 'uppercase', fontWeight: 800 }}>Current step</div>
+            <div style={{ fontSize: 17, fontWeight: 900, marginTop: 7 }}>{step.label}</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12 }}>
-          {PHASES.map((item, index) => (
-            <button key={item.key} type="button" onClick={() => setPhaseIndex(index)} style={{ whiteSpace: 'nowrap', borderRadius: 20, padding: '7px 10px', border: index === phaseIndex ? '1px solid #4338ca' : '1px solid #d1d5db', background: index === phaseIndex ? '#eef2ff' : '#fff', color: index === phaseIndex ? '#4338ca' : '#475569', fontSize: 11, fontWeight: 800 }}>{index + 1}. {item.label}</button>
+          {STEPS.map((item, index) => (
+            <button key={item.key} type="button" onClick={() => setStepIndex(index)} style={{ whiteSpace: 'nowrap', borderRadius: 20, padding: '7px 10px', border: index === stepIndex ? '1px solid #4338ca' : '1px solid #d1d5db', background: index === stepIndex ? '#eef2ff' : '#fff', color: index === stepIndex ? '#4338ca' : '#475569', fontSize: 11, fontWeight: 800 }}>{index + 1}. {item.label}</button>
           ))}
         </div>
 
         <section style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 18, marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>{phaseIndex + 1}. {phase.label}</div>
-          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.75, fontSize: 14, color: '#0f172a' }}>{sections[phase.key]}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }}>{stepIndex + 1}. {step.label}</div>
+            {!step.timed && (
+              <span style={{ borderRadius: 999, background: '#f1f5f9', color: '#475569', padding: '3px 7px', fontSize: 9, fontWeight: 800 }}>Prepared reference</span>
+            )}
+          </div>
+          <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.75, fontSize: 14, color: '#0f172a' }}>{sections[step.key]}</div>
         </section>
 
-        {phaseIndex === 1 && (
-          <section style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 14, padding: 14, marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 900, color: '#92400e', marginBottom: 6 }}>Resources ready</div>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: 13, color: '#78350f' }}>{sections.resources}</div>
+        {step.key === 'development' && (
+          <>
+            <section style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 14, padding: 14, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: '#92400e', marginBottom: 6 }}>Resources ready</div>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: 13, color: '#78350f' }}>{sections.resources}</div>
+            </section>
+            <section style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 14, padding: 14, marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: '#5b21b6', marginBottom: 6 }}>Differentiation ready</div>
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, fontSize: 13, color: '#5b21b6' }}>{sections.differentiation}</div>
+            </section>
+          </>
+        )}
+
+        {step.key === 'homework' && (
+          <section style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 14, padding: 14, marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#065f46', marginBottom: 6 }}>Ready for teacher action</div>
+            <div style={{ lineHeight: 1.6, fontSize: 13, color: '#065f46' }}>The homework is already prepared. Return to the lesson workspace to View · Edit · Assign · Share it; no AI generation is required.</div>
           </section>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <button type="button" disabled={phaseIndex === 0} onClick={() => setPhaseIndex(index => Math.max(0, index - 1))} style={{ padding: 13, borderRadius: 12, border: '1px solid #cbd5e1', background: '#fff', fontWeight: 800, opacity: phaseIndex === 0 ? 0.5 : 1 }}>← Previous</button>
-          <button type="button" disabled={phaseIndex === PHASES.length - 1} onClick={() => setPhaseIndex(index => Math.min(PHASES.length - 1, index + 1))} style={{ padding: 13, borderRadius: 12, border: 'none', background: '#4338ca', color: '#fff', fontWeight: 800, opacity: phaseIndex === PHASES.length - 1 ? 0.5 : 1 }}>Next →</button>
+          <button type="button" disabled={stepIndex === 0} onClick={() => setStepIndex(index => Math.max(0, index - 1))} style={{ padding: 13, borderRadius: 12, border: '1px solid #cbd5e1', background: '#fff', fontWeight: 800, opacity: stepIndex === 0 ? 0.5 : 1 }}>← Previous</button>
+          {isFinalStep ? (
+            <button type="button" onClick={onClose} style={{ padding: 13, borderRadius: 12, border: 'none', background: '#4338ca', color: '#fff', fontWeight: 800 }}>Return to lesson workspace →</button>
+          ) : (
+            <button type="button" onClick={() => setStepIndex(index => Math.min(STEPS.length - 1, index + 1))} style={{ padding: 13, borderRadius: 12, border: 'none', background: '#4338ca', color: '#fff', fontWeight: 800 }}>Next →</button>
+          )}
         </div>
       </div>
     </div>
