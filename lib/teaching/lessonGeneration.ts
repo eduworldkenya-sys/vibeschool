@@ -19,6 +19,12 @@ export interface GenerateLessonPlanInput {
   previousTopics: string[]
   curriculumStrand?: string
   curriculumSubStrand?: string
+  curriculumObjectives?: string | null
+  keyInquiryQuestion?: string | null
+  learningResources?: string | null
+  learningExperiences?: string | null
+  assessmentMethods?: string | null
+  reference?: string | null
 }
 
 export type GenerateLessonPlanResult =
@@ -32,10 +38,11 @@ export type GenerateLessonPlanResult =
     }
 
 /**
- * Calls the canonical lesson-plan Edge Function and validates its response.
+ * Calls the contextual lesson-plan Edge Function and validates its response.
  *
- * This service never writes lesson_plans and never changes the teaching
- * occurrence lifecycle.
+ * When a Scheme source exists but is not yet eligible for canonical reusable
+ * asset generation, its authoritative pedagogy is still sent as grounding.
+ * This service never writes lesson_plans and never changes occurrence state.
  */
 export async function generateLessonPlan({
   accessToken,
@@ -50,6 +57,12 @@ export async function generateLessonPlan({
   previousTopics,
   curriculumStrand,
   curriculumSubStrand,
+  curriculumObjectives,
+  keyInquiryQuestion,
+  learningResources,
+  learningExperiences,
+  assessmentMethods,
+  reference,
 }: GenerateLessonPlanInput): Promise<GenerateLessonPlanResult> {
   const response = await fetch(
     SUPABASE_URL + '/functions/v1/generate-lesson-plan',
@@ -71,6 +84,12 @@ export async function generateLessonPlan({
         previousTopics,
         curriculumStrand,
         curriculumSubStrand,
+        curriculumObjectives,
+        keyInquiryQuestion,
+        learningResources,
+        learningExperiences,
+        assessmentMethods,
+        reference,
       }),
     },
   )

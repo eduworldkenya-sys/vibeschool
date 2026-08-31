@@ -41,7 +41,8 @@ import type {
   LessonContextStudent,
 } from '@/lib/teaching/lessonContext'
 import { C } from '@/components/teacher/ui'
-import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'
+import type { TimetableSlot } from '@/lib/types'
+import type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
 import { refreshPulse } from "@/lib/pulse/refresh";
 import {
   StartOccurrenceError,
@@ -232,7 +233,7 @@ export default function LessonPlanModal({
   const [error,    setError]    = useState('')
   const [topic,    setTopic]    = useState('')
   const [focus,    setFocus]    = useState('')
-  const [suggestion,      setSuggestion]      = useState<CurriculumSuggestion | null>(null)
+  const [suggestion,      setSuggestion]      = useState<LessonSourceSuggestion | null>(null)
   const [suggestionLinked,  setSuggestionLinked]  = useState(false)
   const [canonicalIdentity, setCanonicalIdentity] = useState<LessonCanonicalSourceIdentity | null>(null)
   const [ctx,      setCtx]      = useState<Ctx>({
@@ -633,23 +634,23 @@ export default function LessonPlanModal({
 
     let cancelled = false
 
-    async function loadHomeworkLineage() {
-      const query =
-        supabase
-          .from('homework') as any
-
+    async function loadHomeworkLineage(
+      resolvedOccurrenceId: string,
+      resolvedLessonPlanId: string,
+    ) {
       const {
         data,
         error: homeworkError,
-      } = await query
+      } = await supabase
+        .from('homework')
         .select('id')
         .eq(
           'teaching_occurrence_id',
-          occurrenceId,
+          resolvedOccurrenceId,
         )
         .eq(
           'lesson_plan_id',
-          lessonPlanId,
+          resolvedLessonPlanId,
         )
         .limit(1)
 
@@ -670,7 +671,10 @@ export default function LessonPlanModal({
       )
     }
 
-    void loadHomeworkLineage()
+    void loadHomeworkLineage(
+      occurrenceId,
+      lessonPlanId,
+    )
 
     return () => {
       cancelled = true
@@ -690,6 +694,9 @@ export default function LessonPlanModal({
         setCanonicalIdentity(null)
         setLessonResources([])
         setLessonResourcesError(null)
+        setTopic('')
+        setFocus('')
+        setError('')
 
         const loaded = await loadLessonWorkspace({
           timetableSlotId: slot.id,
@@ -750,6 +757,12 @@ export default function LessonPlanModal({
 
           setPhase('view')
         } else {
+          // New plans inherit the authoritative Scheme/curriculum topic by
+          // default. The teacher may explicitly switch to a custom topic, but
+          // must never retype information VibeSchool already resolved.
+          if (loaded.source) {
+            setTopic(loaded.source.topic)
+          }
           setPhase('form')
         }
       } catch (bootError) {
@@ -885,13 +898,6 @@ export default function LessonPlanModal({
   async function generate() {
     if (topic.trim() === '') { setError('Please enter a topic first.'); return }
 
-    if (suggestionLinked && !canonicalIdentity) {
-      setError(
-        'This curriculum source is missing a stable curriculum or sub-strand ID. Canonical generation is blocked until the source is repaired.',
-      )
-      return
-    }
-
     // G1
     const token = await getToken()
     if (token == null) return
@@ -953,9 +959,11 @@ export default function LessonPlanModal({
             }
           : generation.sections
       } else {
-        // A custom free-text topic has no authoritative curriculum identity.
-        // Preserve the existing contextual generator but never promote its
-        // output into the canonical reusable inventory.
+        // Legacy Scheme/curriculum rows may not yet have the stable sub-strand
+        // identity required for reusable canonical assets. They are still
+        // authoritative educational sources: generate a contextual plan from
+        // their Scheme grounding and persist their scheme/curriculum linkage.
+        // Truly custom topics follow the same generator without grounding.
         const generation = await generateLessonPlan({
           accessToken: token,
           teacherName: ctx.teacherName,
@@ -967,6 +975,14 @@ export default function LessonPlanModal({
           topic: topic.trim(),
           focus: focus.trim() || undefined,
           previousTopics: ctx.previousTopics,
+          curriculumStrand: suggestionLinked ? suggestion?.strand : undefined,
+          curriculumSubStrand: suggestionLinked ? suggestion?.subStrand : undefined,
+          curriculumObjectives: suggestionLinked ? suggestion?.objectives : undefined,
+          keyInquiryQuestion: suggestionLinked ? suggestion?.keyInquiryQuestion : undefined,
+          learningResources: suggestionLinked ? suggestion?.learningResources : undefined,
+          learningExperiences: suggestionLinked ? suggestion?.learningExperiences : undefined,
+          assessmentMethods: suggestionLinked ? suggestion?.assessmentMethods : undefined,
+          reference: suggestionLinked ? suggestion?.reference : undefined,
         })
 
         if (!generation.ok) {
@@ -1484,6 +1500,21 @@ export default function LessonPlanModal({
                   <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
                     {suggestion.strand}{suggestion.subStrand ? ' → ' + suggestion.subStrand : ''}
                   </div>
+                  {suggestion.lessonNumber != null && (
+                    <div style={{ fontSize: 10, color: '#4338ca', marginTop: 5, fontWeight: 700 }}>
+                      Lesson {suggestion.lessonNumber}{suggestion.period != null ? ' · Period ' + suggestion.period : ''}
+                    </div>
+                  )}
+                  {suggestion.objectives && (
+                    <div style={{ fontSize: 11, color: C.textMuted, marginTop: 7, lineHeight: 1.45 }}>
+                      <span style={{ fontWeight: 700 }}>Objectives: </span>{suggestion.objectives}
+                    </div>
+                  )}
+                  {suggestion.keyInquiryQuestion && (
+                    <div style={{ fontSize: 11, color: C.textMuted, marginTop: 5, lineHeight: 1.45 }}>
+                      <span style={{ fontWeight: 700 }}>Inquiry: </span>{suggestion.keyInquiryQuestion}
+                    </div>
+                  )}
                   {!suggestionLinked && (
                     <button
                       onClick={() => { setTopic(suggestion.topic); setSuggestionLinked(true) }}
@@ -1566,15 +1597,15 @@ export default function LessonPlanModal({
               </div>
               {suggestionLinked && !canonicalIdentity && (
                 <p style={{ fontSize: 11, color: '#b45309', marginBottom: 12 }}>
-                  This curriculum item is missing stable canonical IDs. Generation will remain blocked until the source is repaired.
+                  Scheme linked. This legacy source is not yet eligible for reusable canonical assets, so this lesson will be generated from its authoritative Scheme data instead.
                 </p>
               )}
               {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
-              <button onClick={generate} disabled={isbusy || (suggestionLinked && !canonicalIdentity)} style={{
+              <button onClick={generate} disabled={isbusy} style={{
                 width: '100%', padding: '14px', borderRadius: 12, border: 'none',
                 background: C.accent, color: '#fff', fontSize: 15, fontWeight: 800,
-                cursor: isbusy || (suggestionLinked && !canonicalIdentity) ? 'not-allowed' : 'pointer',
-                opacity: isbusy || (suggestionLinked && !canonicalIdentity) ? 0.7 : 1,
+                cursor: isbusy ? 'not-allowed' : 'pointer',
+                opacity: isbusy ? 0.7 : 1,
                 display: 'flex', alignItems: 'center',
                 justifyContent: 'center', gap: 8, fontFamily: 'inherit',
               }}>

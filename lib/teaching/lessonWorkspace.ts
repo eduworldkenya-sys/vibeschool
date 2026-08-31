@@ -8,6 +8,9 @@ import type {
 import {
   resolveLessonSource,
 } from '@/lib/teaching/lessonSource'
+import type {
+  LessonSourceSuggestion,
+} from '@/lib/teaching/lessonSource'
 import {
   loadLessonPlanForOccurrence,
 } from '@/lib/teaching/lessonRepository'
@@ -20,9 +23,6 @@ import {
 import type {
   TeachingOccurrence,
 } from '@/lib/teaching/types'
-import type {
-  CurriculumSuggestion,
-} from '@/lib/types'
 
 export interface LoadLessonWorkspaceInput {
   timetableSlotId: string
@@ -44,60 +44,71 @@ export interface LessonWorkspaceBootResult {
   teacherId: string
   context: LessonContext
   existingPlan: ExistingLessonPlan | null
-  source: CurriculumSuggestion | null
+  source: LessonSourceSuggestion | null
   sourceLinked: boolean
   canonicalIdentity: LessonCanonicalSourceIdentity | null
   occurrence: TeachingOccurrence | null
   occurrenceError: string | null
 }
 
+function emptySourceDetails() {
+  return {
+    objectives: null,
+    keyInquiryQuestion: null,
+    learningResources: null,
+    resources: null,
+    reference: null,
+    learningExperiences: null,
+    assessmentMethods: null,
+    lessonNumber: null,
+    period: null,
+    sequenceNumber: null,
+  }
+}
+
 /**
  * Restores the educational identity persisted on an existing lesson plan.
- *
- * Persisted scheme_id is authoritative over a current-week suggestion.
+ * Persisted scheme_id is authoritative over a newly resolved suggestion.
  */
 async function restorePersistedLessonSource(
   existingPlan: ExistingLessonPlan,
-): Promise<CurriculumSuggestion | null> {
+): Promise<LessonSourceSuggestion | null> {
   if (existingPlan.scheme_id) {
-    const {
-      data: schemeRow,
-      error: schemeError,
-    } = await supabase
+    const { data: schemeRow, error: schemeError } = await supabase
       .from('scheme_of_work')
       .select(
-        'id, curriculum_id, sub_strand_id, strand, sub_strand, topic, week, term',
+        'id, curriculum_id, sub_strand_id, strand, sub_strand, topic, week, term, objectives, key_inquiry_question, learning_resources, resources, reference, learning_experiences, assessment_methods, lesson_number, period, sequence_number',
       )
       .eq('id', existingPlan.scheme_id)
       .single()
 
-    if (schemeError) {
-      throw schemeError
-    }
+    if (schemeError) throw schemeError
 
     return {
-      id:
-        schemeRow.curriculum_id ??
-        existingPlan.curriculum_id ??
-        null,
+      id: schemeRow.curriculum_id ?? existingPlan.curriculum_id ?? null,
       strand: schemeRow.strand ?? '',
       subStrand: schemeRow.sub_strand ?? '',
       topic: schemeRow.topic,
       term: schemeRow.term,
       week: schemeRow.week,
       strandId:
-        schemeRow.sub_strand_id ??
-        existingPlan.strand_id ??
-        null,
+        schemeRow.sub_strand_id ?? existingPlan.strand_id ?? null,
       schemeId: schemeRow.id,
+      objectives: schemeRow.objectives ?? null,
+      keyInquiryQuestion: schemeRow.key_inquiry_question ?? null,
+      learningResources: schemeRow.learning_resources ?? null,
+      resources: schemeRow.resources ?? null,
+      reference: schemeRow.reference ?? null,
+      learningExperiences: schemeRow.learning_experiences ?? null,
+      assessmentMethods: schemeRow.assessment_methods ?? null,
+      lessonNumber: schemeRow.lesson_number ?? null,
+      period: schemeRow.period ?? null,
+      sequenceNumber: schemeRow.sequence_number ?? null,
     }
   }
 
   if (existingPlan.curriculum_id) {
-    const {
-      data: curriculumRow,
-      error: curriculumError,
-    } = await supabase
+    const { data: curriculumRow, error: curriculumError } = await supabase
       .from('curriculum')
       .select(
         'id, sub_strand_id, strand, sub_strand, topic, week, term',
@@ -105,9 +116,7 @@ async function restorePersistedLessonSource(
       .eq('id', existingPlan.curriculum_id)
       .single()
 
-    if (curriculumError) {
-      throw curriculumError
-    }
+    if (curriculumError) throw curriculumError
 
     return {
       id: curriculumRow.id,
@@ -117,10 +126,9 @@ async function restorePersistedLessonSource(
       term: curriculumRow.term,
       week: curriculumRow.week,
       strandId:
-        curriculumRow.sub_strand_id ??
-        existingPlan.strand_id ??
-        null,
+        curriculumRow.sub_strand_id ?? existingPlan.strand_id ?? null,
       schemeId: null,
+      ...emptySourceDetails(),
     }
   }
 
@@ -128,16 +136,11 @@ async function restorePersistedLessonSource(
 }
 
 function buildCanonicalIdentity(
-  source: CurriculumSuggestion | null,
+  source: LessonSourceSuggestion | null,
   subjectId: string,
   grade: string | null,
 ): LessonCanonicalSourceIdentity | null {
-  if (
-    !source?.id ||
-    !source.strandId ||
-    !subjectId ||
-    !grade
-  ) {
+  if (!source?.id || !source.strandId || !subjectId || !grade) {
     return null
   }
 
@@ -152,12 +155,9 @@ function buildCanonicalIdentity(
 /**
  * Loads all read-only state required to open one exact Lesson Workspace.
  *
- * The occurrence read is intentionally nonfatal: a temporary lifecycle read
- * failure must not prevent a teacher from opening or editing the lesson plan.
- *
- * R3: grade is deliberately preserved. Canonical generation must be able to
- * carry the exact authoritative curriculum identity from this workspace; it
- * must never reconstruct that identity from free-text topic/strand labels.
+ * A resolved Scheme/curriculum source is linked by default. The teacher may
+ * explicitly switch to a custom topic in the UI, but the default must never
+ * require re-entering curriculum data the system already knows.
  */
 export async function loadLessonWorkspace({
   timetableSlotId,
@@ -173,18 +173,10 @@ export async function loadLessonWorkspace({
     )
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
 
-  if (!user) {
-    return null
-  }
-
-  const [
-    context,
-    existingPlan,
-  ] = await Promise.all([
+  const [context, existingPlan] = await Promise.all([
     loadLessonContext({
       userId: user.id,
       classId,
@@ -197,7 +189,7 @@ export async function loadLessonWorkspace({
     }),
   ])
 
-  let source: CurriculumSuggestion | null = null
+  let source: LessonSourceSuggestion | null = null
   let sourceLinked = false
 
   if (context.schoolId && context.grade) {
@@ -209,8 +201,11 @@ export async function loadLessonWorkspace({
         subjectId,
         subjectName,
         grade: context.grade,
+        timetableSlotId,
+        occurrenceDate,
         requestedSchemeId,
       })
+      sourceLinked = source !== null
     } catch (sourceError) {
       console.error(
         '[lessonWorkspace] lesson source resolution failed',

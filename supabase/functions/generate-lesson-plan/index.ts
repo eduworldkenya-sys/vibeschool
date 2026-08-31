@@ -33,8 +33,6 @@ serve(async (req) => {
   if (authError || !user) return json({ error: "Unauthorized" }, 401)
 
   try {
-    // This function uses service-role writes. Re-establish current teacher
-    // authority before wallet creation, external spend, or any consequential work.
     const [{ data: profile }, { data: teacherAssignment }] = await Promise.all([
       adminClient
         .from("profiles")
@@ -101,7 +99,25 @@ serve(async (req) => {
     }
 
     const body = await req.json()
-    const { teacher, school, subject, className, studentCount, duration, topic, focus, previousTopics, curriculumStrand, curriculumSubStrand } = body
+    const {
+      teacher,
+      school,
+      subject,
+      className,
+      studentCount,
+      duration,
+      topic,
+      focus,
+      previousTopics,
+      curriculumStrand,
+      curriculumSubStrand,
+      curriculumObjectives,
+      keyInquiryQuestion,
+      learningResources,
+      learningExperiences,
+      assessmentMethods,
+      reference,
+    } = body
 
     if (!topic || !subject || !className) {
       return json({ error: "Missing required fields: topic, subject, className" }, 400)
@@ -133,6 +149,15 @@ serve(async (req) => {
       ? "Previously covered: " + previousTopics.join(", ") + "."
       : "This is the first recorded lesson for this class."
 
+    const schemeGrounding = [
+      curriculumObjectives ? "Authoritative Scheme objectives: " + curriculumObjectives : "",
+      keyInquiryQuestion ? "Authoritative key inquiry question: " + keyInquiryQuestion : "",
+      learningExperiences ? "Authoritative learning experiences: " + learningExperiences : "",
+      learningResources ? "Authoritative learning resources: " + learningResources : "",
+      assessmentMethods ? "Authoritative assessment methods: " + assessmentMethods : "",
+      reference ? "Authoritative reference: " + reference : "",
+    ].filter(Boolean)
+
     const prompt = [
       "You are an expert Kenyan CBC curriculum lesson planner. Generate a complete practical classroom-ready lesson plan that reads like a teaching script — specific enough that any teacher can pick it up and deliver it confidently.",
       "",
@@ -146,18 +171,26 @@ serve(async (req) => {
       curriculumStrand
         ? "KICD Curriculum strand: " + curriculumStrand + (curriculumSubStrand ? " → " + curriculumSubStrand : "") + ". Align objectives and content explicitly to this strand."
         : "",
+      ...schemeGrounding,
+      schemeGrounding.length
+        ? "Treat the Scheme of Work fields above as authoritative. Expand them into a teachable plan; do not replace them with unrelated objectives or activities."
+        : "",
       focus ? "Teacher focus: " + focus : "",
       prevList,
-      tavilyContext ? "\nWeb resources for context:\n" + tavilyContext : "",
+      tavilyContext ? "\nWeb resources for supplementary context only:\n" + tavilyContext : "",
       "",
       "Return ONLY the XML below. No text before or after. No markdown. No code fences.",
       "",
       "<objectives>",
-      "3 clear measurable CBC competency-based learning objectives for this specific topic.",
+      curriculumObjectives
+        ? "Preserve and operationalise the authoritative Scheme objectives above as measurable CBC lesson objectives."
+        : "3 clear measurable CBC competency-based learning objectives for this specific topic.",
       "</objectives>",
       "",
       "<resources>",
-      "Specific materials needed: textbook pages, manipulatives, chalk, diagrams, locally available items.",
+      learningResources
+        ? "Use the authoritative Scheme learning resources above first; add only practical supporting materials where useful."
+        : "Specific materials needed: textbook pages, manipulatives, chalk, diagrams, locally available items.",
       "</resources>",
       "",
       "<introduction>",
@@ -171,6 +204,8 @@ serve(async (req) => {
       "- Specific questions to ask with expected answers",
       "- Actual exercises with answers provided for the teacher",
       "- Common mistakes to watch for",
+      keyInquiryQuestion ? "- Explicitly address the authoritative key inquiry question" : "",
+      learningExperiences ? "- Realise the authoritative learning experiences in classroom-ready steps" : "",
       "Build explicitly on: " + prevList,
       "</development>",
       "",
@@ -179,7 +214,9 @@ serve(async (req) => {
       "</consolidation>",
       "",
       "<assessmentHook>",
-      "One specific formative assessment moment during the lesson — what to look for and how to record it quickly.",
+      assessmentMethods
+        ? "Use the authoritative Scheme assessment methods above as the primary formative assessment approach; state what to look for and how to record it quickly."
+        : "One specific formative assessment moment during the lesson — what to look for and how to record it quickly.",
       "</assessmentHook>",
       "",
       "<homework>",
