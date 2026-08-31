@@ -722,6 +722,7 @@ export default function LessonPlanModal({
         setCanonicalIdentity(loaded.canonicalIdentity)
         setTeachingOccurrence(loaded.occurrence)
         setCompleteError(loaded.occurrenceError)
+        setError(loaded.sourceError ?? '')
 
         const existing = loaded.existingPlan
 
