@@ -29,6 +29,7 @@ import {
 import type {
   CanonicalLessonSourceBundle,
   CertifiedLessonContentAsset,
+  PublishedLessonContentAsset,
 } from '@/lib/teaching/lessonSourceBundle'
 
 export interface LoadLessonWorkspaceInput {
@@ -46,6 +47,7 @@ export interface LessonCanonicalSourceIdentity {
   grade: string
   subStrandId: string
   schemeId: string | null
+  lessonNumber: number | null
   schemeObjectives: string | null
   keyInquiryQuestion: string | null
   learningResources: string | null
@@ -53,6 +55,7 @@ export interface LessonCanonicalSourceIdentity {
   assessmentMethods: string | null
   reference: string | null
   certifiedContent: CertifiedLessonContentAsset[]
+  publishedContent: PublishedLessonContentAsset[]
 }
 
 export interface LessonWorkspaceBootResult {
@@ -159,13 +162,20 @@ function buildCanonicalIdentity(
   grade: string | null,
 ): LessonCanonicalSourceIdentity | null {
   const source = sourceBundle?.scheme
+  const hasReusableContent = Boolean(
+    sourceBundle &&
+    (
+      sourceBundle.certifiedContent.length > 0 ||
+      sourceBundle.publishedContent.length > 0
+    ),
+  )
 
-  // The reusable-content path is allowed only when exact certified assets are
-  // present. Otherwise the modal deliberately falls back to the deterministic
-  // Scheme/template builder and remains completely model-independent.
+  // Reusable lesson assembly requires an exact source identity and actual
+  // VibeSchool content. Published content is permitted without pretending it
+  // is certified; its assurance state remains explicit in the bundle.
   if (
     !sourceBundle ||
-    sourceBundle.certifiedContent.length === 0 ||
+    !hasReusableContent ||
     !source?.id ||
     !source.strandId ||
     !subjectId ||
@@ -180,6 +190,7 @@ function buildCanonicalIdentity(
     grade,
     subStrandId: source.strandId,
     schemeId: source.schemeId ?? null,
+    lessonNumber: source.lessonNumber ?? null,
     schemeObjectives: source.objectives ?? null,
     keyInquiryQuestion: source.keyInquiryQuestion ?? null,
     learningResources: source.learningResources ?? null,
@@ -187,6 +198,7 @@ function buildCanonicalIdentity(
     assessmentMethods: source.assessmentMethods ?? null,
     reference: source.reference ?? null,
     certifiedContent: sourceBundle.certifiedContent,
+    publishedContent: sourceBundle.publishedContent,
   }
 }
 
@@ -194,8 +206,8 @@ function buildCanonicalIdentity(
  * Loads all read-only state required to open one exact Lesson Workspace.
  *
  * Authority order is preserved as:
- * dated timetable occurrence -> Scheme -> certified VibeSchool content ->
- * class context. The bundle is read-only and never invents missing authority.
+ * dated timetable occurrence -> Scheme -> VibeSchool content -> class context.
+ * The bundle is read-only and never invents missing authority or certification.
  */
 export async function loadLessonWorkspace({
   timetableSlotId,
@@ -299,7 +311,7 @@ export async function loadLessonWorkspace({
       bundleError,
     )
     sourceBundleError =
-      'Certified content could not be resolved. The Scheme-derived baseline remains available.'
+      'VibeSchool content could not be resolved. The Scheme-derived baseline remains available.'
   }
 
   const canonicalIdentity = buildCanonicalIdentity(
