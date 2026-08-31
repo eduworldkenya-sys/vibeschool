@@ -201,6 +201,7 @@ export async function loadLessonWorkspace({
         subjectId,
         subjectName,
         grade: context.grade,
+        timetableSlotId,
         occurrenceDate,
         requestedSchemeId,
       })
