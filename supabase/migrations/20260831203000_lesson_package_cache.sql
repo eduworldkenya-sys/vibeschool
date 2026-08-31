@@ -58,7 +58,7 @@ create policy lesson_package_cache_select
     or
     (reuse_scope = 'scheme' and scheme_id is not null and exists (
       select 1 from public.scheme_of_work s
-      where s.id = lesson_package_cache.scheme_id and s.teacher_id = auth.uid()
+      where s.id = lesson_package_cache.scheme_id and s.teacher_id = (select auth.uid())
     ))
   );
 
@@ -66,7 +66,7 @@ drop policy if exists lesson_package_cache_insert_scheme on public.lesson_packag
 create policy lesson_package_cache_insert_scheme
   on public.lesson_package_cache for insert to authenticated
   with check (
-    created_by = auth.uid()
+    created_by = (select auth.uid())
     and reuse_scope = 'scheme'
     and certification_status = 'scheme_scoped'
     and certification_policy_version is null
@@ -74,7 +74,7 @@ create policy lesson_package_cache_insert_scheme
     and scheme_id is not null
     and exists (
       select 1 from public.scheme_of_work s
-      where s.id = lesson_package_cache.scheme_id and s.teacher_id = auth.uid()
+      where s.id = lesson_package_cache.scheme_id and s.teacher_id = (select auth.uid())
     )
   );
 
@@ -83,11 +83,11 @@ create policy lesson_package_cache_update_scheme
   on public.lesson_package_cache for update to authenticated
   using (
     reuse_scope = 'scheme'
-    and created_by = auth.uid()
+    and created_by = (select auth.uid())
     and scheme_id is not null
     and exists (
       select 1 from public.scheme_of_work s
-      where s.id = lesson_package_cache.scheme_id and s.teacher_id = auth.uid()
+      where s.id = lesson_package_cache.scheme_id and s.teacher_id = (select auth.uid())
     )
   )
   with check (
@@ -95,11 +95,11 @@ create policy lesson_package_cache_update_scheme
     and certification_status = 'scheme_scoped'
     and certification_policy_version is null
     and certified_at is null
-    and created_by = auth.uid()
+    and created_by = (select auth.uid())
     and scheme_id is not null
     and exists (
       select 1 from public.scheme_of_work s
-      where s.id = lesson_package_cache.scheme_id and s.teacher_id = auth.uid()
+      where s.id = lesson_package_cache.scheme_id and s.teacher_id = (select auth.uid())
     )
   );
 
@@ -108,14 +108,18 @@ create policy lesson_package_cache_delete_scheme
   on public.lesson_package_cache for delete to authenticated
   using (
     reuse_scope = 'scheme'
-    and created_by = auth.uid()
+    and created_by = (select auth.uid())
     and scheme_id is not null
     and exists (
       select 1 from public.scheme_of_work s
-      where s.id = lesson_package_cache.scheme_id and s.teacher_id = auth.uid()
+      where s.id = lesson_package_cache.scheme_id and s.teacher_id = (select auth.uid())
     )
   );
 
+-- This function is intentionally SECURITY INVOKER. It is callable only by
+-- service_role, whose own database role bypasses RLS. Keeping it invoker-based
+-- avoids exposing a privileged SECURITY DEFINER function through the public
+-- Data API schema.
 create or replace function public.certify_lesson_package_cache(
   p_source_package_id uuid,
   p_global_cache_key text,
@@ -123,17 +127,13 @@ create or replace function public.certify_lesson_package_cache(
 )
 returns uuid
 language plpgsql
-security definer
-set search_path = public
+security invoker
+set search_path = ''
 as $$
 declare
   v_source public.lesson_package_cache%rowtype;
   v_id uuid;
 begin
-  if coalesce(auth.jwt() ->> 'role', '') <> 'service_role' then
-    raise exception 'lesson_package_certification_forbidden' using errcode = '42501';
-  end if;
-
   if nullif(btrim(p_global_cache_key), '') is null or nullif(btrim(p_policy_version), '') is null then
     raise exception 'lesson_package_certification_metadata_required' using errcode = '22023';
   end if;
