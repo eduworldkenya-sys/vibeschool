@@ -1,10 +1,9 @@
-import { SUPABASE_URL } from '@/lib/supabase'
-import {
-  parseLessonPlanBody,
-} from '@/lib/teaching/lessonPlanCodec'
 import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
+import {
+  validateLessonPlanGrounding,
+} from '@/lib/teaching/lessonPlanGrounding'
 
 export interface GenerateLessonPlanInput {
   accessToken: string
@@ -37,18 +36,35 @@ export type GenerateLessonPlanResult =
       message: string
     }
 
+function clean(value?: string | null): string {
+  return value?.trim() ?? ''
+}
+
+function joinNonEmpty(
+  values: Array<string | null | undefined>,
+  separator = '\n',
+): string {
+  return values
+    .map(clean)
+    .filter(Boolean)
+    .join(separator)
+}
+
+function sourceLabel(
+  curriculumStrand?: string,
+  curriculumSubStrand?: string,
+): string {
+  return joinNonEmpty(
+    [curriculumStrand, curriculumSubStrand],
+    ' → ',
+  )
+}
+
 /**
- * Calls the contextual lesson-plan Edge Function and validates its response.
- *
- * When a Scheme source exists but is not yet eligible for canonical reusable
- * asset generation, its authoritative pedagogy is still sent as grounding.
- * This service never writes lesson_plans and never changes occurrence state.
+ * Builds the reliable baseline lesson plan without calling any model provider.
+ * Scheme/curriculum fields are copied or reorganised, never replaced.
  */
 export async function generateLessonPlan({
-  accessToken,
-  teacherName,
-  schoolName,
-  subject,
   className,
   studentCount,
   duration,
@@ -64,64 +80,106 @@ export async function generateLessonPlan({
   assessmentMethods,
   reference,
 }: GenerateLessonPlanInput): Promise<GenerateLessonPlanResult> {
-  const response = await fetch(
-    SUPABASE_URL + '/functions/v1/generate-lesson-plan',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + accessToken,
-      },
-      body: JSON.stringify({
-        teacher: teacherName,
-        school: schoolName,
-        subject,
-        className,
-        studentCount,
-        duration,
-        topic,
-        focus,
-        previousTopics,
-        curriculumStrand,
-        curriculumSubStrand,
-        curriculumObjectives,
-        keyInquiryQuestion,
-        learningResources,
-        learningExperiences,
-        assessmentMethods,
-        reference,
-      }),
-    },
-  )
+  const resolvedTopic = clean(topic)
 
-  const json = await response.json()
-
-  if (!response.ok || !json.plan) {
-    const message =
-      json.error === 'insufficient_credits'
-        ? (
-            json.message ??
-            'You have no Vibe Credits. Buy credits to generate lesson plans.'
-          )
-        : (
-            json.error ??
-            'Generation failed. Try again.'
-          )
-
+  if (!resolvedTopic) {
     return {
       ok: false,
-      message,
+      message: 'A lesson topic is required.',
     }
   }
 
-  const sections = parseLessonPlanBody(json.plan)
+  const objectives = clean(curriculumObjectives)
+  const inquiry = clean(keyInquiryQuestion)
+  const resources = clean(learningResources)
+  const experiences = clean(learningExperiences)
+  const assessment = clean(assessmentMethods)
+  const curriculumPath = sourceLabel(
+    curriculumStrand,
+    curriculumSubStrand,
+  )
+  const teacherFocus = clean(focus)
+  const previousTopicsClean = previousTopics
+    .map(clean)
+    .filter(Boolean)
+  const previousTopic =
+    previousTopicsClean[previousTopicsClean.length - 1] ?? ''
 
-  if (!sections) {
-    return {
-      ok: false,
-      message:
-        'The AI returned an unreadable plan. Try again.',
-    }
+  const assessmentObjectiveText = objectives
+    ? `Objectives being assessed:\n${objectives}`
+    : 'No authoritative Scheme objective is attached yet.'
+
+  const sections: LessonPlanSections = {
+    objectives:
+      objectives ||
+      'No authoritative learning objective is attached to this lesson yet. Add or link the Scheme of Work objective before teaching.',
+
+    resources:
+      joinNonEmpty([
+        resources || 'Use the learning resources attached to the Scheme/content source.',
+        reference ? `Reference: ${clean(reference)}` : null,
+      ]),
+
+    introduction:
+      joinNonEmpty([
+        `Lesson focus: ${resolvedTopic}.`,
+        previousTopic
+          ? `Connect briefly to the previous lesson: ${previousTopic}.`
+          : null,
+        inquiry
+          ? `Key inquiry question: ${inquiry}`
+          : null,
+        `Class: ${className}${studentCount > 0 ? ` (${studentCount} learners)` : ''}. Planned duration: ${duration}.`,
+      ]),
+
+    development:
+      joinNonEmpty([
+        curriculumPath
+          ? `Curriculum path: ${curriculumPath}.`
+          : null,
+        experiences
+          ? `Scheme learning experiences:\n${experiences}`
+          : 'Follow the approved Scheme learning sequence for this lesson. No additional curriculum content has been invented.',
+        teacherFocus
+          ? `Teacher focus for delivery: ${teacherFocus}`
+          : null,
+      ], '\n\n'),
+
+    consolidation:
+      joinNonEmpty([
+        `Return to the lesson focus: ${resolvedTopic}.`,
+        inquiry
+          ? `Use the key inquiry question to consolidate learning: ${inquiry}`
+          : 'Review the stated Scheme objective with learners before closing the lesson.',
+      ]),
+
+    assessmentHook:
+      joinNonEmpty([
+        assessmentObjectiveText,
+        assessment
+          ? `Scheme assessment method(s):\n${assessment}`
+          : 'Use teacher observation, oral checks or another teacher-selected method without changing the stated objective.',
+      ], '\n\n'),
+
+    homework:
+      'No homework has been invented automatically. Add homework only when it is supported by the lesson objective, approved content, or teacher instruction.',
+
+    differentiation:
+      joinNonEmpty([
+        `Deliver the same authoritative objective to all learners in ${className}.`,
+        teacherFocus
+          ? `Teacher-requested adaptation: ${teacherFocus}`
+          : 'Adjust pacing, grouping, prompts and resource support to learner needs without changing the Scheme objective.',
+      ]),
+  }
+
+  const validation = validateLessonPlanGrounding({
+    sections,
+    schemeObjectives: curriculumObjectives,
+  })
+
+  if (!validation.ok) {
+    return validation
   }
 
   return {
