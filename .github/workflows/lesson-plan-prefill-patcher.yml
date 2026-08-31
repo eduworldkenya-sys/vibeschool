@@ -1,0 +1,102 @@
+name: Lesson Plan Prefill Patcher
+
+on:
+  push:
+    branches:
+      - fix/lesson-plan-canonical-prefill
+    paths:
+      - .github/workflows/lesson-plan-prefill-patcher.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/lesson-plan-canonical-prefill
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Patch LessonPlanModal
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('components/teacher/LessonPlanModal.tsx')
+          text = path.read_text()
+
+          replacements = []
+
+          replacements.append((
+              "import type { TimetableSlot, CurriculumSuggestion } from '@/lib/types'",
+              "import type { TimetableSlot } from '@/lib/types'\nimport type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'",
+          ))
+
+          replacements.append((
+              "const [suggestion,      setSuggestion]      = useState<CurriculumSuggestion | null>(null)",
+              "const [suggestion,      setSuggestion]      = useState<LessonSourceSuggestion | null>(null)",
+          ))
+
+          replacements.append((
+              "        planSchemeIdRef.current = null\n        setSuggestionLinked(false)\n        setCanonicalIdentity(null)\n        setLessonResources([])\n        setLessonResourcesError(null)",
+              "        planSchemeIdRef.current = null\n        setSuggestionLinked(false)\n        setCanonicalIdentity(null)\n        setLessonResources([])\n        setLessonResourcesError(null)\n        setTopic('')\n        setFocus('')\n        setError('')",
+          ))
+
+          replacements.append((
+              "        } else {\n          setPhase('form')\n        }",
+              "        } else {\n          // New plans inherit the authoritative Scheme/curriculum topic by\n          // default. The teacher may explicitly switch to a custom topic, but\n          // must never retype information VibeSchool already resolved.\n          if (loaded.source) {\n            setTopic(loaded.source.topic)\n          }\n          setPhase('form')\n        }",
+          ))
+
+          replacements.append((
+              "    if (suggestionLinked && !canonicalIdentity) {\n      setError(\n        'This curriculum source is missing a stable curriculum or sub-strand ID. Canonical generation is blocked until the source is repaired.',\n      )\n      return\n    }\n\n",
+              "",
+          ))
+
+          old_generation = """        // A custom free-text topic has no authoritative curriculum identity.\n        // Preserve the existing contextual generator but never promote its\n        // output into the canonical reusable inventory.\n        const generation = await generateLessonPlan({\n          accessToken: token,\n          teacherName: ctx.teacherName,\n          schoolName: ctx.schoolName,\n          subject: slot.subject,\n          className: slot.class,\n          studentCount: ctx.studentCount,\n          duration: calcDuration(slot.start, slot.end),\n          topic: topic.trim(),\n          focus: focus.trim() || undefined,\n          previousTopics: ctx.previousTopics,\n        })"""
+          new_generation = """        // Legacy Scheme/curriculum rows may not yet have the stable sub-strand\n        // identity required for reusable canonical assets. They are still\n        // authoritative educational sources: generate a contextual plan from\n        // their Scheme grounding and persist their scheme/curriculum linkage.\n        // Truly custom topics follow the same generator without grounding.\n        const generation = await generateLessonPlan({\n          accessToken: token,\n          teacherName: ctx.teacherName,\n          schoolName: ctx.schoolName,\n          subject: slot.subject,\n          className: slot.class,\n          studentCount: ctx.studentCount,\n          duration: calcDuration(slot.start, slot.end),\n          topic: topic.trim(),\n          focus: focus.trim() || undefined,\n          previousTopics: ctx.previousTopics,\n          curriculumStrand: suggestionLinked ? suggestion?.strand : undefined,\n          curriculumSubStrand: suggestionLinked ? suggestion?.subStrand : undefined,\n          curriculumObjectives: suggestionLinked ? suggestion?.objectives : undefined,\n          keyInquiryQuestion: suggestionLinked ? suggestion?.keyInquiryQuestion : undefined,\n          learningResources: suggestionLinked ? suggestion?.learningResources : undefined,\n          learningExperiences: suggestionLinked ? suggestion?.learningExperiences : undefined,\n          assessmentMethods: suggestionLinked ? suggestion?.assessmentMethods : undefined,\n          reference: suggestionLinked ? suggestion?.reference : undefined,\n        })"""
+          replacements.append((old_generation, new_generation))
+
+          old_source_details = """                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>\n                    {suggestion.strand}{suggestion.subStrand ? ' → ' + suggestion.subStrand : ''}\n                  </div>"""
+          new_source_details = """                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>\n                    {suggestion.strand}{suggestion.subStrand ? ' → ' + suggestion.subStrand : ''}\n                  </div>\n                  {suggestion.lessonNumber != null && (\n                    <div style={{ fontSize: 10, color: '#4338ca', marginTop: 5, fontWeight: 700 }}>\n                      Lesson {suggestion.lessonNumber}{suggestion.period != null ? ' · Period ' + suggestion.period : ''}\n                    </div>\n                  )}\n                  {suggestion.objectives && (\n                    <div style={{ fontSize: 11, color: C.textMuted, marginTop: 7, lineHeight: 1.45 }}>\n                      <span style={{ fontWeight: 700 }}>Objectives: </span>{suggestion.objectives}\n                    </div>\n                  )}\n                  {suggestion.keyInquiryQuestion && (\n                    <div style={{ fontSize: 11, color: C.textMuted, marginTop: 5, lineHeight: 1.45 }}>\n                      <span style={{ fontWeight: 700 }}>Inquiry: </span>{suggestion.keyInquiryQuestion}\n                    </div>\n                  )}"""
+          replacements.append((old_source_details, new_source_details))
+
+          replacements.append((
+              "                  This curriculum item is missing stable canonical IDs. Generation will remain blocked until the source is repaired.",
+              "                  Scheme linked. This legacy source is not yet eligible for reusable canonical assets, so this lesson will be generated from its authoritative Scheme data instead.",
+          ))
+
+          replacements.append((
+              "<button onClick={generate} disabled={isbusy || (suggestionLinked && !canonicalIdentity)} style={{",
+              "<button onClick={generate} disabled={isbusy} style={{",
+          ))
+          replacements.append((
+              "cursor: isbusy || (suggestionLinked && !canonicalIdentity) ? 'not-allowed' : 'pointer',",
+              "cursor: isbusy ? 'not-allowed' : 'pointer',",
+          ))
+          replacements.append((
+              "opacity: isbusy || (suggestionLinked && !canonicalIdentity) ? 0.7 : 1,",
+              "opacity: isbusy ? 0.7 : 1,",
+          ))
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one match, found {count}: {old[:120]!r}')
+              text = text.replace(old, new)
+
+          path.write_text(text)
+      - run: npm ci
+      - run: npm run typecheck
+      - name: Commit patch and remove temporary workflow
+        run: |
+          rm .github/workflows/lesson-plan-prefill-patcher.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/teacher/LessonPlanModal.tsx .github/workflows/lesson-plan-prefill-patcher.yml
+          git commit -m "fix: prefill lesson plans from authoritative scheme"
+          git push origin HEAD:fix/lesson-plan-canonical-prefill
