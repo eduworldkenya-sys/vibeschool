@@ -17,10 +17,13 @@ export interface CertifiedLessonContentAsset {
 
 export interface PublishedLessonContentAsset {
   resourceId: string
+  resourceVersionId: string
   publicationId: string
   chapterId: string
   title: string
   payload: Json
+  contentSha256: string
+  lifecycleStatus: 'candidate' | 'verified'
   alignmentStatus: string | null
   verifiedAt: string | null
   publishedAt: string | null
@@ -66,13 +69,16 @@ interface ResourceCandidate {
   purpose: string | null
 }
 
-interface CertifiedVersionRow {
-  id: string
-  resource_id: string
-  payload: Json
-  content_sha256: string
-  certification_policy_version: string | null
-  certified_at: string | null
+interface ReusableVersionRow {
+  id?: string
+  resource_id?: string
+  lifecycle_status?: string
+  payload?: Json
+  content_sha256?: string
+  certification_policy_version?: string | null
+  certified_at?: string | null
+  verified_at?: string | null
+  provenance?: Json
 }
 
 function uniqueById<T extends { id: string }>(items: T[]): T[] {
@@ -93,6 +99,18 @@ function isTeachingContentCandidate(resource: ResourceCandidate): boolean {
       resource.purpose === 'reference'
     )
   )
+}
+
+function jsonObject(value: Json | undefined): Record<string, Json | undefined> {
+  if (
+    value === undefined ||
+    value === null ||
+    Array.isArray(value) ||
+    typeof value !== 'object'
+  ) {
+    return {}
+  }
+  return value as Record<string, Json | undefined>
 }
 
 async function loadExplicitSchemeResources(
@@ -183,96 +201,119 @@ async function loadCurriculumResourceCandidates(
     .filter(isTeachingContentCandidate)
 }
 
-async function loadCertifiedVersions(
+/**
+ * Reads only database-approved reusable versions. RLS remains strict on the
+ * table itself; the guarded RPC additionally permits exact immutable snapshots
+ * of currently published chapters without claiming those snapshots are certified.
+ */
+async function loadReusableVersions(
   candidates: ResourceCandidate[],
-): Promise<CertifiedLessonContentAsset[]> {
-  if (candidates.length === 0) return []
+): Promise<{
+  certified: CertifiedLessonContentAsset[]
+  published: PublishedLessonContentAsset[]
+}> {
+  if (candidates.length === 0) {
+    return { certified: [], published: [] }
+  }
 
   const candidateById = new Map(
     candidates.map(candidate => [candidate.id, candidate]),
   )
 
-  const { data, error } = await supabase
-    .from('learning_resource_versions')
-    .select(
-      'id, resource_id, payload, content_sha256, certification_policy_version, certified_at',
-    )
-    .in('resource_id', candidates.map(candidate => candidate.id))
-    .eq('lifecycle_status', 'certified')
+  const { data, error } = await supabase.rpc(
+    'cla_list_reusable_lesson_resource_versions',
+    { p_resource_ids: candidates.map(candidate => candidate.id) },
+  )
 
   if (error) throw error
 
-  return ((data ?? []) as CertifiedVersionRow[]).flatMap(version => {
-    const resource = candidateById.get(version.resource_id)
+  const response = data as {
+    ok?: boolean
+    versions?: ReusableVersionRow[]
+  } | null
+
+  if (!response?.ok) return { certified: [], published: [] }
+
+  const certified: CertifiedLessonContentAsset[] = []
+  const published: PublishedLessonContentAsset[] = []
+  const chosenResources = new Set<string>()
+
+  // RPC order is assurance first, newest version second. Keep only the best
+  // reusable version per resource to prevent duplicate content assembly.
+  for (const version of response.versions ?? []) {
     if (
-      !resource ||
-      !version.certification_policy_version ||
-      !version.certified_at
+      !version.id ||
+      !version.resource_id ||
+      version.payload === undefined ||
+      !version.content_sha256 ||
+      chosenResources.has(version.resource_id)
     ) {
-      return []
+      continue
     }
 
-    return [{
+    const resource = candidateById.get(version.resource_id)
+    if (!resource) continue
+
+    if (
+      version.lifecycle_status === 'certified' &&
+      version.certification_policy_version &&
+      version.certified_at
+    ) {
+      certified.push({
+        resourceId: resource.id,
+        resourceVersionId: version.id,
+        title: resource.title,
+        assetKind: resource.assetKind,
+        purpose: resource.purpose,
+        payload: version.payload,
+        contentSha256: version.content_sha256,
+        certificationPolicyVersion: version.certification_policy_version,
+        certifiedAt: version.certified_at,
+      })
+      chosenResources.add(resource.id)
+      continue
+    }
+
+    if (
+      version.lifecycle_status !== 'candidate' &&
+      version.lifecycle_status !== 'verified'
+    ) {
+      continue
+    }
+
+    const provenance = jsonObject(version.provenance)
+    const publicationId = provenance.publication_id
+    const chapterId = provenance.chapter_id
+    const alignmentStatus = provenance.alignment_status
+    const publishedAt = provenance.published_at
+
+    if (
+      provenance.source_kind !== 'published_chapter' ||
+      typeof publicationId !== 'string' ||
+      typeof chapterId !== 'string'
+    ) {
+      continue
+    }
+
+    published.push({
       resourceId: resource.id,
       resourceVersionId: version.id,
+      publicationId,
+      chapterId,
       title: resource.title,
-      assetKind: resource.assetKind,
-      purpose: resource.purpose,
       payload: version.payload,
       contentSha256: version.content_sha256,
-      certificationPolicyVersion: version.certification_policy_version,
-      certifiedAt: version.certified_at,
-    }]
-  })
-}
+      lifecycleStatus: version.lifecycle_status,
+      alignmentStatus:
+        typeof alignmentStatus === 'string' ? alignmentStatus : null,
+      verifiedAt: version.verified_at ?? null,
+      publishedAt:
+        typeof publishedAt === 'string' ? publishedAt : null,
+    })
+    chosenResources.add(resource.id)
+  }
 
-/**
- * Published VibeSchool chapters are deterministic source material, but are
- * deliberately represented separately from certified versions. A published
- * creator-claimed chapter remains published/unverified until its real QA gate
- * certifies it; lesson preparation never fabricates that status.
- */
-async function loadPublishedChapterAssets(
-  candidates: ResourceCandidate[],
-): Promise<PublishedLessonContentAsset[]> {
-  const chapterCandidates = candidates.filter(
-    candidate =>
-      candidate.sourceType === 'chapter' &&
-      candidate.publicationId &&
-      candidate.chapterId,
-  )
-
-  if (chapterCandidates.length === 0) return []
-
-  const byChapterId = new Map(
-    chapterCandidates.map(candidate => [candidate.chapterId as string, candidate]),
-  )
-
-  const { data, error } = await supabase
-    .from('vibe_chapters')
-    .select(
-      'id, publication_id, title, blocks, status, alignment_status, verified_at, published_at',
-    )
-    .in('id', Array.from(byChapterId.keys()))
-    .eq('status', 'published')
-
-  if (error) throw error
-
-  return (data ?? []).flatMap(chapter => {
-    const candidate = byChapterId.get(chapter.id)
-    if (!candidate || !chapter.publication_id) return []
-
-    return [{
-      resourceId: candidate.id,
-      publicationId: chapter.publication_id,
-      chapterId: chapter.id,
-      title: chapter.title ?? candidate.title,
-      payload: chapter.blocks as Json,
-      alignmentStatus: chapter.alignment_status ?? null,
-      verifiedAt: chapter.verified_at ?? null,
-      publishedAt: chapter.published_at ?? null,
-    }]
-  })
+  return { certified, published }
 }
 
 export async function buildCanonicalLessonSourceBundle({
@@ -308,10 +349,7 @@ export async function buildCanonicalLessonSourceBundle({
     ...curriculumResources,
   ])
 
-  const [certifiedContent, publishedContent] = await Promise.all([
-    loadCertifiedVersions(candidates),
-    loadPublishedChapterAssets(candidates),
-  ])
+  const reusable = await loadReusableVersions(candidates)
 
   return {
     timetableOccurrence: {
@@ -330,19 +368,22 @@ export async function buildCanonicalLessonSourceBundle({
       previousTopics: context.previousTopics,
     },
     scheme: source,
-    certifiedContent,
-    publishedContent,
+    certifiedContent: reusable.certified,
+    publishedContent: reusable.published,
     provenance: {
       schemeId: source?.schemeId ?? null,
       curriculumId: source?.id ?? null,
       subStrandId: source?.strandId ?? null,
       resourceIds: Array.from(new Set([
-        ...certifiedContent.map(asset => asset.resourceId),
-        ...publishedContent.map(asset => asset.resourceId),
+        ...reusable.certified.map(asset => asset.resourceId),
+        ...reusable.published.map(asset => asset.resourceId),
       ])),
-      resourceVersionIds: certifiedContent.map(asset => asset.resourceVersionId),
-      publicationIds: publishedContent.map(asset => asset.publicationId),
-      chapterIds: publishedContent.map(asset => asset.chapterId),
+      resourceVersionIds: [
+        ...reusable.certified.map(asset => asset.resourceVersionId),
+        ...reusable.published.map(asset => asset.resourceVersionId),
+      ],
+      publicationIds: reusable.published.map(asset => asset.publicationId),
+      chapterIds: reusable.published.map(asset => asset.chapterId),
     },
   }
 }
