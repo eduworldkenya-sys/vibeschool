@@ -8,6 +8,7 @@ const SUPABASE_SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
 
 const CREDIT_COST = 1
 const FREE_CREDITS = 3
+const EXPLICIT_AI_INTENT = "ai_enhance"
 
 const CORS = {
   "Access-Control-Allow-Origin": Deno.env.get("ALLOWED_ORIGIN") ?? "*",
@@ -23,10 +24,29 @@ function json(data: unknown, status = 200) {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS })
+  if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405)
 
   const authHeader = req.headers.get("authorization") ?? ""
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7).trim() : ""
   if (!token) return json({ error: "Missing auth token" }, 401)
+
+  let body: Record<string, unknown>
+  try {
+    body = await req.json()
+  } catch {
+    return json({ error: "invalid_json" }, 400)
+  }
+
+  // Zero-AI is the lesson-plan default. This legacy model endpoint is usable
+  // only when the caller explicitly requests an AI enhancement. It must never
+  // become an automatic fallback for deterministic lesson construction.
+  if (body.intent !== EXPLICIT_AI_INTENT) {
+    return json({
+      error: "explicit_ai_enhancement_intent_required",
+      requiredIntent: EXPLICIT_AI_INTENT,
+      message: "Baseline lesson plans are built without AI. Use an explicit AI enhance action to call this endpoint.",
+    }, 409)
+  }
 
   const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE)
   const { data: { user }, error: authError } = await adminClient.auth.getUser(token)
@@ -84,7 +104,7 @@ serve(async (req) => {
           feature: "signup_bonus",
           amount: FREE_CREDITS,
           balance_after: FREE_CREDITS,
-          notes: "Free credits on first AI use",
+          notes: "Free credits on first explicit AI enhancement",
         })
       }
     }
@@ -94,11 +114,10 @@ serve(async (req) => {
         error: "insufficient_credits",
         balance: wallet?.balance ?? 0,
         required: CREDIT_COST,
-        message: "You have no Vibe Credits. Buy credits to generate lesson plans.",
+        message: "You have no Vibe Credits for this optional AI enhancement.",
       }, 402)
     }
 
-    const body = await req.json()
     const {
       teacher,
       school,
@@ -131,7 +150,7 @@ serve(async (req) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             api_key: TAVILY_KEY,
-            query: subject + " " + topic + " Kenya CBC curriculum lesson resources grade",
+            query: String(subject) + " " + String(topic) + " Kenya CBC curriculum lesson resources grade",
             max_results: 4,
             include_answer: true,
           }),
@@ -145,7 +164,7 @@ serve(async (req) => {
       }
     }
 
-    const prevList = previousTopics?.length
+    const prevList = Array.isArray(previousTopics) && previousTopics.length
       ? "Previously covered: " + previousTopics.join(", ") + "."
       : "This is the first recorded lesson for this class."
 
@@ -159,7 +178,8 @@ serve(async (req) => {
     ].filter(Boolean)
 
     const prompt = [
-      "You are an expert Kenyan CBC curriculum lesson planner. Generate a complete practical classroom-ready lesson plan that reads like a teaching script — specific enough that any teacher can pick it up and deliver it confidently.",
+      "You are enhancing an existing Kenyan CBC lesson plan at the teacher's explicit request.",
+      "Preserve the authoritative Scheme objectives and curriculum grounding. Do not silently replace them.",
       "",
       "Teacher: " + teacher,
       "School: " + school,
@@ -169,11 +189,11 @@ serve(async (req) => {
       "Duration: " + duration,
       "Topic: " + topic,
       curriculumStrand
-        ? "KICD Curriculum strand: " + curriculumStrand + (curriculumSubStrand ? " → " + curriculumSubStrand : "") + ". Align objectives and content explicitly to this strand."
+        ? "KICD Curriculum strand: " + curriculumStrand + (curriculumSubStrand ? " → " + curriculumSubStrand : "") + "."
         : "",
       ...schemeGrounding,
       schemeGrounding.length
-        ? "Treat the Scheme of Work fields above as authoritative. Expand them into a teachable plan; do not replace them with unrelated objectives or activities."
+        ? "Treat the Scheme of Work fields above as authoritative. Enhance presentation and pedagogy only; do not introduce unrelated objectives."
         : "",
       focus ? "Teacher focus: " + focus : "",
       prevList,
@@ -183,50 +203,40 @@ serve(async (req) => {
       "",
       "<objectives>",
       curriculumObjectives
-        ? "Preserve and operationalise the authoritative Scheme objectives above as measurable CBC lesson objectives."
+        ? "Preserve and operationalise the authoritative Scheme objectives above."
         : "3 clear measurable CBC competency-based learning objectives for this specific topic.",
       "</objectives>",
       "",
       "<resources>",
       learningResources
         ? "Use the authoritative Scheme learning resources above first; add only practical supporting materials where useful."
-        : "Specific materials needed: textbook pages, manipulatives, chalk, diagrams, locally available items.",
+        : "Specific materials needed for the lesson.",
       "</resources>",
       "",
       "<introduction>",
-      "Exact 5-7 minute hook. Write the actual words the teacher says. Connect to learners daily Kenyan life.",
+      "Use the exact total lesson duration supplied by the caller; do not assume a 40-minute period.",
       "</introduction>",
       "",
       "<development>",
-      "Detailed 20-25 minute main teaching sequence written as a script:",
-      "- Exact teacher talk at each stage",
-      "- What to write or draw on the board",
-      "- Specific questions to ask with expected answers",
-      "- Actual exercises with answers provided for the teacher",
-      "- Common mistakes to watch for",
-      keyInquiryQuestion ? "- Explicitly address the authoritative key inquiry question" : "",
-      learningExperiences ? "- Realise the authoritative learning experiences in classroom-ready steps" : "",
-      "Build explicitly on: " + prevList,
+      "Enhance the teacher notes, learner activities, expected answers and misconceptions while preserving the authoritative curriculum grounding.",
       "</development>",
       "",
       "<consolidation>",
-      "Focused 8-10 minute wrap-up script. Specific cold-call questions. Exact words to use.",
+      "Close by checking the stated objectives and inquiry question.",
       "</consolidation>",
       "",
       "<assessmentHook>",
       assessmentMethods
-        ? "Use the authoritative Scheme assessment methods above as the primary formative assessment approach; state what to look for and how to record it quickly."
-        : "One specific formative assessment moment during the lesson — what to look for and how to record it quickly.",
+        ? "Use the authoritative Scheme assessment methods above as the primary formative assessment approach."
+        : "Use a formative assessment that checks the stated objectives.",
       "</assessmentHook>",
       "",
       "<homework>",
-      "Specific achievable homework task with exact questions written out. Must reinforce today's topic.",
+      "Provide follow-up work that reinforces only today's stated objective(s).",
       "</homework>",
       "",
       "<differentiation>",
-      "Higher achievers: specific extension task",
-      "On track: core task description",
-      "Needs support: exact scaffolding strategy for this topic",
+      "Provide support, core and extension adaptations without changing the lesson objective.",
       "</differentiation>",
     ].filter(Boolean).join("\n")
 
@@ -247,7 +257,7 @@ serve(async (req) => {
     const groqData = await groqRes.json()
     if (!groqRes.ok || !groqData.choices) {
       console.error("[generate-lesson-plan] Groq error:", JSON.stringify(groqData))
-      return json({ error: "Groq generation failed", detail: groqData }, 502)
+      return json({ error: "Groq enhancement failed", detail: groqData }, 502)
     }
 
     const text = groqData.choices?.[0]?.message?.content ?? ""
@@ -274,15 +284,16 @@ serve(async (req) => {
       await adminClient.from("vibe_credit_transactions").insert({
         teacher_id: user.id,
         type: "spend",
-        feature: "lesson_plan",
+        feature: "lesson_plan_ai_enhance",
         amount: -CREDIT_COST,
         balance_after: newBalance,
-        notes: "Generated lesson plan",
+        notes: "Explicit AI lesson enhancement",
       })
     }
 
     return json({
       plan: text,
+      provenance: { generationMode: "ai_assisted", intent: EXPLICIT_AI_INTENT },
       credits: { used: CREDIT_COST, balance: newBalance, was: wallet.balance },
     })
   } catch (err) {
