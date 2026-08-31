@@ -36,7 +36,7 @@ export type CanonicalLessonGenerationResult =
       status: 'hit' | 'candidate'
       sections: LessonPlanSections
       resourceId: string
-      resourceVersionId: string | null
+      resourceVersionId: string
       sourceAssurance: 'certified' | 'published_unverified'
       certificationRequired: boolean
       creditsUsed: number
@@ -62,25 +62,10 @@ interface ChapterBlock {
 }
 
 const CONTENT_KEYS = new Set([
-  'body',
-  'content',
-  'explanation',
-  'explanations',
-  'summary',
-  'examples',
-  'kenyanExamples',
-  'kenyan_examples',
-  'activities',
-  'misconceptions',
-  'workedExamples',
-  'worked_examples',
-  'questions',
-  'answers',
-  'keyPoints',
-  'key_points',
-  'teacherNotes',
-  'teacher_notes',
-  'sections',
+  'body', 'content', 'explanation', 'explanations', 'summary', 'examples',
+  'kenyanExamples', 'kenyan_examples', 'activities', 'misconceptions',
+  'workedExamples', 'worked_examples', 'questions', 'answers', 'keyPoints',
+  'key_points', 'teacherNotes', 'teacher_notes', 'sections',
 ])
 
 function clean(value?: string | null): string {
@@ -91,10 +76,7 @@ function joinNonEmpty(
   values: Array<string | null | undefined>,
   separator = '\n',
 ): string {
-  return values
-    .map(clean)
-    .filter(Boolean)
-    .join(separator)
+  return values.map(clean).filter(Boolean).join(separator)
 }
 
 function collectStrings(value: Json, key: string | null = null): string[] {
@@ -103,40 +85,28 @@ function collectStrings(value: Json, key: string | null = null): string[] {
       ? [value.trim()].filter(Boolean)
       : []
   }
-
   if (typeof value === 'number' || typeof value === 'boolean' || value === null) {
     return []
   }
-
   if (Array.isArray(value)) {
     return value.flatMap(item => collectStrings(item, key))
   }
-
   return Object.entries(value).flatMap(([childKey, childValue]) => {
-    if (childValue === undefined || !CONTENT_KEYS.has(childKey)) {
-      return []
-    }
-
+    if (childValue === undefined || !CONTENT_KEYS.has(childKey)) return []
     return collectStrings(childValue, childKey)
   })
 }
 
 function asRecord(value: Json): Record<string, Json | undefined> | null {
-  if (
-    value === null ||
-    Array.isArray(value) ||
-    typeof value !== 'object'
-  ) {
+  if (value === null || Array.isArray(value) || typeof value !== 'object') {
     return null
   }
-
   return value as Record<string, Json | undefined>
 }
 
 function toChapterBlock(value: Json): ChapterBlock | null {
   const row = asRecord(value)
   if (!row || typeof row.content !== 'string') return null
-
   const meta = row.meta ? asRecord(row.meta) : null
   const rawLessonNumber = meta?.lesson_number
 
@@ -151,9 +121,7 @@ function toChapterBlock(value: Json): ChapterBlock | null {
           ? Number(rawLessonNumber)
           : null,
     learningLayer:
-      typeof meta?.learning_layer === 'string'
-        ? meta.learning_layer
-        : null,
+      typeof meta?.learning_layer === 'string' ? meta.learning_layer : null,
     kind: typeof meta?.kind === 'string' ? meta.kind : null,
     assessment: meta?.assessment === true,
     teacherDerivative: meta?.teacher_derivative === true,
@@ -201,7 +169,6 @@ function blockText(blocks: ChapterBlock[], types?: string[]): string {
 
 function extractQuestions(blocks: ChapterBlock[]): string[] {
   const questions: string[] = []
-
   for (const block of blocks) {
     const matches = block.content.match(/[^.!?\n]*\?/g) ?? []
     for (const match of matches) {
@@ -209,7 +176,6 @@ function extractQuestions(blocks: ChapterBlock[]): string[] {
       if (question && !questions.includes(question)) questions.push(question)
     }
   }
-
   return questions.slice(0, 4)
 }
 
@@ -288,8 +254,7 @@ export async function generateCanonicalLessonPlan(
     ...published.map(asset => asset.title),
   ].filter((title, index, all) => all.indexOf(title) === index)
 
-  const authoritativeTeachingText =
-    exactTeachingText || certifiedText || experiences
+  const authoritativeTeachingText = exactTeachingText || certifiedText || experiences
 
   const sections: LessonPlanSections = {
     objectives:
@@ -298,12 +263,8 @@ export async function generateCanonicalLessonPlan(
 
     resources: joinNonEmpty([
       identity.learningResources,
-      sourceTitles.length > 0
-        ? `VibeSchool source: ${sourceTitles.join('; ')}`
-        : null,
-      identity.reference
-        ? `Reference: ${identity.reference}`
-        : null,
+      sourceTitles.length > 0 ? `VibeSchool source: ${sourceTitles.join('; ')}` : null,
+      identity.reference ? `Reference: ${identity.reference}` : null,
     ]),
 
     introduction: joinNonEmpty([
@@ -311,15 +272,11 @@ export async function generateCanonicalLessonPlan(
       `Lesson focus: ${identity.topicTitle}.`,
       inquiry ? `Key inquiry question: ${inquiry}` : null,
       orientingText ? `Teaching context:\n${orientingText}` : null,
-      teacherQuestions[0]
-        ? `Ask: ${teacherQuestions[0]}`
-        : null,
+      teacherQuestions[0] ? `Ask: ${teacherQuestions[0]}` : null,
     ], '\n\n'),
 
     development: joinNonEmpty([
-      `${timing.introductionMinutes}–${
-        timing.introductionMinutes + timing.teachingMinutes
-      } min · Teach`,
+      `${timing.introductionMinutes}–${timing.introductionMinutes + timing.teachingMinutes} min · Teach`,
       curriculumPath ? `Curriculum path: ${curriculumPath}.` : null,
       authoritativeTeachingText
         ? `Teaching points and learner task:\n${authoritativeTeachingText}`
@@ -327,18 +284,14 @@ export async function generateCanonicalLessonPlan(
       teacherQuestions.length > 1
         ? `Teacher prompts:\n${teacherQuestions.slice(1).map(q => `• ${q}`).join('\n')}`
         : null,
-      misconceptions
-        ? `Watch for misconception:\n${misconceptions}`
-        : null,
+      misconceptions ? `Watch for misconception:\n${misconceptions}` : null,
       experiences && experiences !== authoritativeTeachingText
         ? `Scheme learning experience:\n${experiences}`
         : null,
     ], '\n\n'),
 
     consolidation: joinNonEmpty([
-      `${
-        timing.totalMinutes - timing.homeworkMinutes - timing.consolidationMinutes
-      }–${timing.totalMinutes - timing.homeworkMinutes} min · Consolidate`,
+      `${timing.totalMinutes - timing.homeworkMinutes - timing.consolidationMinutes}–${timing.totalMinutes - timing.homeworkMinutes} min · Consolidate`,
       `Return to the lesson focus: ${identity.topicTitle}.`,
       inquiry
         ? `Revisit the key inquiry question: ${inquiry}`
@@ -349,13 +302,7 @@ export async function generateCanonicalLessonPlan(
     ]),
 
     assessmentHook: joinNonEmpty([
-      `${
-        timing.introductionMinutes +
-        timing.teachingMinutes +
-        timing.activityMinutes
-      }–${
-        timing.totalMinutes - timing.consolidationMinutes - timing.homeworkMinutes
-      } min · Check learning`,
+      `${timing.introductionMinutes + timing.teachingMinutes + timing.activityMinutes}–${timing.totalMinutes - timing.consolidationMinutes - timing.homeworkMinutes} min · Check learning`,
       objectives
         ? `Objectives being assessed:\n${objectives}`
         : 'No authoritative Scheme objective is attached yet.',
@@ -414,7 +361,7 @@ export async function generateCanonicalLessonPlan(
     status: 'candidate',
     sections,
     resourceId: primaryPublished!.resourceId,
-    resourceVersionId: null,
+    resourceVersionId: primaryPublished!.resourceVersionId,
     sourceAssurance: 'published_unverified',
     certificationRequired: true,
     creditsUsed: 0,
