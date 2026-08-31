@@ -634,23 +634,23 @@ export default function LessonPlanModal({
 
     let cancelled = false
 
-    async function loadHomeworkLineage() {
-      const query =
-        supabase
-          .from('homework') as any
-
+    async function loadHomeworkLineage(
+      resolvedOccurrenceId: string,
+      resolvedLessonPlanId: string,
+    ) {
       const {
         data,
         error: homeworkError,
-      } = await query
+      } = await supabase
+        .from('homework')
         .select('id')
         .eq(
           'teaching_occurrence_id',
-          occurrenceId,
+          resolvedOccurrenceId,
         )
         .eq(
           'lesson_plan_id',
-          lessonPlanId,
+          resolvedLessonPlanId,
         )
         .limit(1)
 
@@ -671,7 +671,10 @@ export default function LessonPlanModal({
       )
     }
 
-    void loadHomeworkLineage()
+    void loadHomeworkLineage(
+      occurrenceId,
+      lessonPlanId,
+    )
 
     return () => {
       cancelled = true
