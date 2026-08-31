@@ -109,32 +109,27 @@ async function loadExplicitSchemeResources(
     ok?: boolean
     resources?: Array<{
       resource_id?: string
-      title?: string
-      source_type?: string | null
       publication_id?: string | null
       chapter_id?: string | null
-      asset_kind?: string | null
-      purpose?: string | null
+      chapter_title?: string | null
     }>
   } | null
 
   if (!payload?.ok) return []
 
-  return (payload.resources ?? [])
-    .flatMap(resource =>
-      resource.resource_id
-        ? [{
-            id: resource.resource_id,
-            title: resource.title ?? 'Approved learning resource',
-            sourceType: resource.source_type ?? null,
-            publicationId: resource.publication_id ?? null,
-            chapterId: resource.chapter_id ?? null,
-            assetKind: resource.asset_kind ?? null,
-            purpose: resource.purpose ?? null,
-          }]
-        : [],
-    )
-    .filter(isTeachingContentCandidate)
+  return (payload.resources ?? []).flatMap(resource =>
+    resource.resource_id
+      ? [{
+          id: resource.resource_id,
+          title: resource.chapter_title ?? 'Approved learning resource',
+          sourceType: resource.chapter_id ? 'chapter' : null,
+          publicationId: resource.publication_id ?? null,
+          chapterId: resource.chapter_id ?? null,
+          assetKind: null,
+          purpose: null,
+        }]
+      : [],
+  )
 }
 
 async function loadCurriculumResourceCandidates(
@@ -232,10 +227,10 @@ async function loadCertifiedVersions(
 }
 
 /**
- * Published VibeSchool chapters are usable as deterministic source material,
- * but are kept explicitly separate from certified resource versions. This lets
- * teachers benefit from already-published content without falsely promoting a
- * creator-claimed chapter to certified status.
+ * Published VibeSchool chapters are deterministic source material, but are
+ * deliberately represented separately from certified versions. A published
+ * creator-claimed chapter remains published/unverified until its real QA gate
+ * certifies it; lesson preparation never fabricates that status.
  */
 async function loadPublishedChapterAssets(
   candidates: ResourceCandidate[],
