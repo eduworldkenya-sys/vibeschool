@@ -15,6 +15,17 @@ export interface CertifiedLessonContentAsset {
   certifiedAt: string
 }
 
+export interface PublishedLessonContentAsset {
+  resourceId: string
+  publicationId: string
+  chapterId: string
+  title: string
+  payload: Json
+  alignmentStatus: string | null
+  verifiedAt: string | null
+  publishedAt: string | null
+}
+
 export interface CanonicalLessonSourceBundle {
   timetableOccurrence: {
     timetableSlotId: string
@@ -33,19 +44,25 @@ export interface CanonicalLessonSourceBundle {
   }
   scheme: LessonSourceSuggestion | null
   certifiedContent: CertifiedLessonContentAsset[]
+  publishedContent: PublishedLessonContentAsset[]
   provenance: {
     schemeId: string | null
     curriculumId: string | null
     subStrandId: string | null
     resourceIds: string[]
     resourceVersionIds: string[]
+    publicationIds: string[]
+    chapterIds: string[]
   }
 }
 
 interface ResourceCandidate {
   id: string
   title: string
-  asset_kind: string | null
+  sourceType: string | null
+  publicationId: string | null
+  chapterId: string | null
+  assetKind: string | null
   purpose: string | null
 }
 
@@ -69,7 +86,7 @@ function uniqueById<T extends { id: string }>(items: T[]): T[] {
 
 function isTeachingContentCandidate(resource: ResourceCandidate): boolean {
   return (
-    resource.asset_kind !== 'lesson_plan' &&
+    resource.assetKind !== 'lesson_plan' &&
     (
       resource.purpose === null ||
       resource.purpose === 'teach' ||
@@ -93,6 +110,9 @@ async function loadExplicitSchemeResources(
     resources?: Array<{
       resource_id?: string
       title?: string
+      source_type?: string | null
+      publication_id?: string | null
+      chapter_id?: string | null
       asset_kind?: string | null
       purpose?: string | null
     }>
@@ -105,8 +125,11 @@ async function loadExplicitSchemeResources(
       resource.resource_id
         ? [{
             id: resource.resource_id,
-            title: resource.title ?? 'Certified learning resource',
-            asset_kind: resource.asset_kind ?? null,
+            title: resource.title ?? 'Approved learning resource',
+            sourceType: resource.source_type ?? null,
+            publicationId: resource.publication_id ?? null,
+            chapterId: resource.chapter_id ?? null,
+            assetKind: resource.asset_kind ?? null,
             purpose: resource.purpose ?? null,
           }]
         : [],
@@ -119,10 +142,6 @@ async function loadCurriculumResourceCandidates(
 ): Promise<ResourceCandidate[]> {
   if (!source.id && !source.strandId) return []
 
-  // `asset_kind` and `purpose` exist in the canonical-resource migrations and
-  // production schema, while the generated Database type may lag that additive
-  // migration. Read the whole row and narrow those optional fields structurally
-  // at runtime rather than bypassing TypeScript with an escape-hatch cast.
   let query = supabase
     .from('learning_resources')
     .select('*')
@@ -142,26 +161,30 @@ async function loadCurriculumResourceCandidates(
   if (error) throw error
 
   return (data ?? [])
-    .map(resource => {
-      const assetKind =
-        'asset_kind' in resource &&
-        typeof resource.asset_kind === 'string'
+    .map(resource => ({
+      id: resource.id,
+      title: resource.title,
+      sourceType:
+        'source_type' in resource && typeof resource.source_type === 'string'
+          ? resource.source_type
+          : null,
+      publicationId:
+        'publication_id' in resource && typeof resource.publication_id === 'string'
+          ? resource.publication_id
+          : null,
+      chapterId:
+        'chapter_id' in resource && typeof resource.chapter_id === 'string'
+          ? resource.chapter_id
+          : null,
+      assetKind:
+        'asset_kind' in resource && typeof resource.asset_kind === 'string'
           ? resource.asset_kind
-          : null
-
-      const purpose =
-        'purpose' in resource &&
-        typeof resource.purpose === 'string'
+          : null,
+      purpose:
+        'purpose' in resource && typeof resource.purpose === 'string'
           ? resource.purpose
-          : null
-
-      return {
-        id: resource.id,
-        title: resource.title,
-        asset_kind: assetKind,
-        purpose,
-      }
-    })
+          : null,
+    }))
     .filter(isTeachingContentCandidate)
 }
 
@@ -198,12 +221,61 @@ async function loadCertifiedVersions(
       resourceId: resource.id,
       resourceVersionId: version.id,
       title: resource.title,
-      assetKind: resource.asset_kind,
+      assetKind: resource.assetKind,
       purpose: resource.purpose,
       payload: version.payload,
       contentSha256: version.content_sha256,
       certificationPolicyVersion: version.certification_policy_version,
       certifiedAt: version.certified_at,
+    }]
+  })
+}
+
+/**
+ * Published VibeSchool chapters are usable as deterministic source material,
+ * but are kept explicitly separate from certified resource versions. This lets
+ * teachers benefit from already-published content without falsely promoting a
+ * creator-claimed chapter to certified status.
+ */
+async function loadPublishedChapterAssets(
+  candidates: ResourceCandidate[],
+): Promise<PublishedLessonContentAsset[]> {
+  const chapterCandidates = candidates.filter(
+    candidate =>
+      candidate.sourceType === 'chapter' &&
+      candidate.publicationId &&
+      candidate.chapterId,
+  )
+
+  if (chapterCandidates.length === 0) return []
+
+  const byChapterId = new Map(
+    chapterCandidates.map(candidate => [candidate.chapterId as string, candidate]),
+  )
+
+  const { data, error } = await supabase
+    .from('vibe_chapters')
+    .select(
+      'id, publication_id, title, blocks, status, alignment_status, verified_at, published_at',
+    )
+    .in('id', Array.from(byChapterId.keys()))
+    .eq('status', 'published')
+
+  if (error) throw error
+
+  return (data ?? []).flatMap(chapter => {
+    const candidate = byChapterId.get(chapter.id)
+    if (!candidate || !chapter.publication_id) return []
+
+    return [{
+      resourceId: candidate.id,
+      publicationId: chapter.publication_id,
+      chapterId: chapter.id,
+      title: chapter.title ?? candidate.title,
+      payload: chapter.blocks as Json,
+      alignmentStatus: chapter.alignment_status ?? null,
+      verifiedAt: chapter.verified_at ?? null,
+      publishedAt: chapter.published_at ?? null,
     }]
   })
 }
@@ -241,7 +313,10 @@ export async function buildCanonicalLessonSourceBundle({
     ...curriculumResources,
   ])
 
-  const certifiedContent = await loadCertifiedVersions(candidates)
+  const [certifiedContent, publishedContent] = await Promise.all([
+    loadCertifiedVersions(candidates),
+    loadPublishedChapterAssets(candidates),
+  ])
 
   return {
     timetableOccurrence: {
@@ -261,12 +336,18 @@ export async function buildCanonicalLessonSourceBundle({
     },
     scheme: source,
     certifiedContent,
+    publishedContent,
     provenance: {
       schemeId: source?.schemeId ?? null,
       curriculumId: source?.id ?? null,
       subStrandId: source?.strandId ?? null,
-      resourceIds: certifiedContent.map(asset => asset.resourceId),
+      resourceIds: Array.from(new Set([
+        ...certifiedContent.map(asset => asset.resourceId),
+        ...publishedContent.map(asset => asset.resourceId),
+      ])),
       resourceVersionIds: certifiedContent.map(asset => asset.resourceVersionId),
+      publicationIds: publishedContent.map(asset => asset.publicationId),
+      chapterIds: publishedContent.map(asset => asset.chapterId),
     },
   }
 }
