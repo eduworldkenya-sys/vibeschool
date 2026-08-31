@@ -1,0 +1,92 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def text(path: str) -> str:
+    return (ROOT / path).read_text()
+
+
+def require(src: str, needle: str, label: str) -> None:
+    assert needle in src, f"{label}: missing {needle!r}"
+
+
+def forbid(src: str, needle: str, label: str) -> None:
+    assert needle not in src, f"{label}: forbidden {needle!r}"
+
+baseline = text('lib/teaching/lessonGeneration.ts')
+canonical = text('lib/teaching/canonicalLessonGeneration.ts')
+source_bundle = text('lib/teaching/lessonSourceBundle.ts')
+package_cache = text('lib/teaching/lessonPackageCache.ts')
+package_migration = text('supabase/migrations/20260831203000_lesson_package_cache.sql')
+legacy_ai = text('supabase/functions/generate-lesson-plan/index.ts')
+canonical_ai = text('supabase/functions/generate-canonical-lesson-plan/index.ts')
+modal = text('components/teacher/LessonPlanModal.tsx')
+teach_mode = text('components/teacher/LessonTeachMode.tsx')
+
+# Baseline builders remain deterministic and provider-free.
+for name, src in [('baseline', baseline), ('canonical', canonical)]:
+    forbid(src, 'api.groq.com', name)
+    forbid(src, 'api.tavily.com', name)
+    require(src, 'validateLessonPlanGrounding', f'{name} grounding')
+    require(src, 'allocateLessonTiming', f'{name} exact timing')
+
+require(canonical, 'creditsUsed: 0', 'canonical zero-credit')
+require(canonical, 'Teaching points / teacher notes', 'canonical teacher notes')
+require(canonical, 'Learner activities', 'canonical learner activities')
+require(canonical, 'Expected answer', 'canonical answers')
+require(canonical, 'Misconceptions to watch', 'canonical misconceptions')
+require(canonical, 'Teacher actions: View · Edit · Assign · Share.', 'preloaded material actions')
+
+# Exact Scheme resource boundary and certified content authority.
+require(source_bundle, 'if (source?.schemeId)', 'exact Scheme boundary')
+require(source_bundle, 'loadExplicitSchemeResources(source.schemeId)', 'exact Scheme resources')
+require(source_bundle, ".eq('lifecycle_status', 'certified')", 'certified resource version')
+require(source_bundle, '!version.certification_policy_version', 'resource certification policy')
+require(source_bundle, '!version.certified_at', 'resource certification timestamp')
+
+# Exact assembled package cache. Teacher writes remain Scheme-scoped; global
+# reuse requires independent package certification and exact source bindings.
+require(package_cache, ".eq('source_fingerprint', sourceFingerprint)", 'cache source fingerprint')
+require(package_cache, ".eq('duration_minutes', identity.durationMinutes)", 'cache duration')
+require(package_cache, ".eq('reuse_scope', 'global')", 'global cache scope')
+require(package_cache, ".eq('certification_status', 'certified')", 'global cache certification')
+require(package_cache, ".not('certification_policy_version', 'is', null)", 'global certification policy')
+require(package_cache, ".not('certified_at', 'is', null)", 'global certification timestamp')
+require(package_cache, 'LESSON_PACKAGE_SOURCE_BINDINGS_MISMATCH', 'source tuple integrity')
+for scheme_field in ('learningResources', 'learningExperiences', 'assessmentMethods', 'reference'):
+    require(package_cache, scheme_field, f'cache fingerprint {scheme_field}')
+require(package_migration, "reuse_scope in ('scheme', 'global')", 'cache scope constraint')
+require(package_migration, "certification_status in ('scheme_scoped', 'certified')", 'cache certification constraint')
+require(package_migration, "s.teacher_id = (select auth.uid())", 'teacher Scheme ownership')
+require(package_migration, 'security invoker', 'invoker package certification')
+forbid(package_migration, 'security definer', 'public package certification')
+require(package_migration, 'set search_path = \'\'', 'pinned function search path')
+require(package_migration, 'revoke all on function public.certify_lesson_package_cache', 'function execute revoke')
+require(package_migration, 'grant execute on function public.certify_lesson_package_cache(uuid, text, text) to service_role', 'service-only package certification')
+require(package_migration, 'source_resource_version_ids', 'exact resource versions')
+require(package_migration, 'source_hashes', 'source hashes')
+
+# Model-backed endpoints are unreachable without explicit teacher intent. The
+# gate must execute before provider calls and before credit reservation/wallet work.
+for name, src in [('legacy-ai', legacy_ai), ('canonical-ai', canonical_ai)]:
+    require(src, 'EXPLICIT_AI_INTENT = "ai_enhance"', name)
+    require(src, 'explicit_ai_enhancement_intent_required', name)
+    gate = src.index('if (body.intent !== EXPLICIT_AI_INTENT)')
+    providers = [i for i in (src.find('api.groq.com'), src.find('api.tavily.com')) if i >= 0]
+    assert providers and gate < min(providers), f'{name}: intent gate must precede provider calls'
+    credit_markers = [i for i in (src.find('.from("vibe_credits")'), src.find('cla_reserve_learning_resource_credit')) if i >= 0]
+    assert credit_markers and gate < min(credit_markers), f'{name}: intent gate must precede credit work'
+
+# Teacher-facing provenance and live-teaching surface stay non-AI by default.
+require(modal, 'Built from Scheme + VibeSchool Content', 'teacher provenance')
+for forbidden in ('Generated by Twin', 'Generate Homework', 'Generate Worksheet'):
+    forbid(modal, forbidden, 'teacher zero-AI UX')
+require(teach_mode, 'development', 'Teach Mode development')
+require(teach_mode, 'assessmentHook', 'Teach Mode assessment')
+require(teach_mode, 'Total lesson time:', 'Teach Mode exact total authority')
+require(teach_mode, 'rangeEnds.length > 0 ? Math.max(...rangeEnds) : null', 'Teach Mode legacy timing recovery')
+require(teach_mode, 'The timer is disabled rather than assuming a 40-minute period.', 'Teach Mode fail closed timing')
+forbid(teach_mode, 'match ? Number(match[1]) : 40', 'Teach Mode hard-coded fallback')
+
+print('lesson-system release contract: PASS')

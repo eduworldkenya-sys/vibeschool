@@ -1,0 +1,50 @@
+name: Lesson System Release Gate
+
+on:
+  pull_request:
+    paths:
+      - 'components/teacher/LessonPlanModal.tsx'
+      - 'components/teacher/LessonTeachMode.tsx'
+      - 'lib/teaching/**'
+      - 'supabase/functions/generate-lesson-plan/**'
+      - 'supabase/functions/generate-canonical-lesson-plan/**'
+      - 'supabase/migrations/**lesson_package_cache.sql'
+      - 'scripts/test-lesson-system-release-contract.py'
+      - 'scripts/test-lesson-timing-contract.cjs'
+      - '.github/workflows/lesson-system-release-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'components/teacher/LessonPlanModal.tsx'
+      - 'components/teacher/LessonTeachMode.tsx'
+      - 'lib/teaching/**'
+      - 'supabase/functions/generate-lesson-plan/**'
+      - 'supabase/functions/generate-canonical-lesson-plan/**'
+      - 'supabase/migrations/**lesson_package_cache.sql'
+      - 'scripts/test-lesson-system-release-contract.py'
+      - 'scripts/test-lesson-timing-contract.cjs'
+      - '.github/workflows/lesson-system-release-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  release-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Canonical production build + lesson certification
+        uses: ./.github/actions/production-build-contract
+        with:
+          prebuild_command: |
+            npm run typecheck
+            python scripts/test-lesson-system-release-contract.py
+            npx tsc lib/teaching/lessonTiming.ts --target ES2020 --module commonjs --outDir /tmp/vibeschool-lesson-timing --skipLibCheck
+            node scripts/test-lesson-timing-contract.cjs /tmp/vibeschool-lesson-timing/lessonTiming.js
+            npm run lint
+          supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}

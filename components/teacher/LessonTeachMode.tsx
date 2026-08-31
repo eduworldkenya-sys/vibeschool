@@ -18,9 +18,42 @@ const PHASES: Array<{ key: keyof LessonPlanSections; label: string }> = [
   { key: 'assessmentHook', label: 'Assessment & Exit Check' },
 ]
 
-function totalMinutes(sections: LessonPlanSections): number {
-  const match = sections.assessmentHook.match(/Total lesson time:\s*(\d+)\/(\d+)\s*min/i)
-  return match ? Number(match[1]) : 40
+function parsePositiveMinutes(value: string | undefined): number | null {
+  if (!value) return null
+  const minutes = Number(value)
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : null
+}
+
+/**
+ * Lesson sections are built from the exact timetable duration. Teach Mode must
+ * use that persisted timing authority and must never invent a conventional
+ * 40-minute period when timing metadata is missing.
+ */
+function totalMinutes(sections: LessonPlanSections): number | null {
+  const explicit = sections.assessmentHook.match(
+    /Total lesson time:\s*(\d+)\/(\d+)\s*min/i,
+  )
+  const explicitTotal = parsePositiveMinutes(explicit?.[1])
+  const explicitDenominator = parsePositiveMinutes(explicit?.[2])
+
+  if (
+    explicitTotal !== null &&
+    explicitDenominator !== null &&
+    explicitTotal === explicitDenominator
+  ) {
+    return explicitTotal
+  }
+
+  // Backward-compatible recovery for deterministic plans that contain exact
+  // phase ranges but predate the explicit total marker. The final phase end is
+  // the lesson duration because lessonTimingRanges() is contiguous and exact.
+  const rangeEnds = PHASES.flatMap(({ key }) => {
+    const match = sections[key].match(/Timing:\s*\d+\s*[–-]\s*(\d+)\s*min/i)
+    const end = parsePositiveMinutes(match?.[1])
+    return end === null ? [] : [end]
+  })
+
+  return rangeEnds.length > 0 ? Math.max(...rangeEnds) : null
 }
 
 export default function LessonTeachMode({ subject, className, topic, sections, onClose }: Props) {
@@ -29,13 +62,20 @@ export default function LessonTeachMode({ subject, className, topic, sections, o
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
   useEffect(() => {
+    if (total === null) return undefined
     const timer = window.setInterval(() => setElapsedSeconds(value => value + 1), 1000)
     return () => window.clearInterval(timer)
-  }, [])
+  }, [total])
 
-  const remainingSeconds = Math.max(0, total * 60 - elapsedSeconds)
-  const remainingMinutes = Math.floor(remainingSeconds / 60)
-  const remainingRemainder = String(remainingSeconds % 60).padStart(2, '0')
+  const remainingSeconds = total === null
+    ? null
+    : Math.max(0, total * 60 - elapsedSeconds)
+  const remainingMinutes = remainingSeconds === null
+    ? null
+    : Math.floor(remainingSeconds / 60)
+  const remainingRemainder = remainingSeconds === null
+    ? null
+    : String(remainingSeconds % 60).padStart(2, '0')
   const phase = PHASES[phaseIndex]
 
   return (
@@ -43,17 +83,29 @@ export default function LessonTeachMode({ subject, className, topic, sections, o
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 16 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }}>Teach Mode · {total} minutes</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }}>
+              Teach Mode · {total === null ? 'Timing unavailable' : `${total} minutes`}
+            </div>
             <h1 style={{ margin: '4px 0', fontSize: 22 }}>{topic || subject}</h1>
             <div style={{ fontSize: 12, color: '#64748b' }}>{subject} · {className}</div>
           </div>
           <button type="button" onClick={onClose} style={{ border: '1px solid #d1d5db', background: '#fff', borderRadius: 10, padding: '9px 12px', fontWeight: 800 }}>Close</button>
         </div>
 
+        {total === null && (
+          <div style={{ background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', borderRadius: 12, padding: 12, marginBottom: 14, fontSize: 12, fontWeight: 700 }}>
+            This saved plan has no authoritative timing metadata. The timer is disabled rather than assuming a 40-minute period. Rebuild the plan from its timetable occurrence to restore exact timing.
+          </div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
           <div style={{ background: '#1e1b4b', color: '#fff', borderRadius: 14, padding: 14 }}>
             <div style={{ fontSize: 10, opacity: 0.7, textTransform: 'uppercase', fontWeight: 800 }}>Lesson remaining</div>
-            <div style={{ fontSize: 26, fontWeight: 900, marginTop: 4 }}>{remainingMinutes}:{remainingRemainder}</div>
+            <div style={{ fontSize: 26, fontWeight: 900, marginTop: 4 }}>
+              {remainingMinutes === null || remainingRemainder === null
+                ? '—:—'
+                : `${remainingMinutes}:${remainingRemainder}`}
+            </div>
           </div>
           <div style={{ background: '#eef2ff', color: '#3730a3', borderRadius: 14, padding: 14 }}>
             <div style={{ fontSize: 10, opacity: 0.75, textTransform: 'uppercase', fontWeight: 800 }}>Current phase</div>

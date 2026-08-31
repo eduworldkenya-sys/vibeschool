@@ -8,6 +8,7 @@ const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY") ?? ""
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? "*"
 
 const CREDIT_COST = 1
+const EXPLICIT_AI_INTENT = "ai_enhance"
 
 const CORS = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
@@ -57,12 +58,28 @@ serve(async (req) => {
   const token = authHeader.replace(/^Bearer\s+/i, "").trim()
   if (!token) return json({ error: "missing_auth_token" }, 401)
 
+  let body: Record<string, unknown>
+  try {
+    body = await req.json()
+  } catch {
+    return json({ error: "invalid_json" }, 400)
+  }
+
+  // This is a model-backed candidate-production endpoint, not the baseline
+  // lesson path. Require explicit enhancement intent before service-role work,
+  // canonical claims, credit reservation, Tavily, or Groq.
+  if (body.intent !== EXPLICIT_AI_INTENT) {
+    return json({
+      error: "explicit_ai_enhancement_intent_required",
+      requiredIntent: EXPLICIT_AI_INTENT,
+      message: "Deterministic Scheme/certified-content lesson assembly is the default. AI candidate generation requires an explicit enhancement action.",
+    }, 409)
+  }
+
   const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
   const { data: { user }, error: authError } = await db.auth.getUser(token)
   if (authError || !user) return json({ error: "unauthorized" }, 401)
 
-  // This endpoint bypasses RLS through the service role. Authorize the actor
-  // before global recovery, credit claims, model spend, or resource writes.
   const [{ data: profile }, { data: teacherAssignment }] = await Promise.all([
     db.from("profiles").select("role").eq("id", user.id).maybeSingle(),
     db.from("teacher_classes").select("id").eq("teacher_id", user.id).limit(1).maybeSingle(),
@@ -71,7 +88,8 @@ serve(async (req) => {
     return json({ error: "forbidden" }, 403)
   }
 
-  // Recover bounded stale reservations only after caller authorization.
+  // Authorization is deliberately complete before global recovery or any
+  // other service-role mutation. Keep this ordering fail-closed.
   const { error: recoveryError } = await db.rpc("cla_recover_expired_learning_resource_claims", { p_limit: 100 })
   if (recoveryError) {
     console.error("[generate-canonical-lesson-plan] stale claim recovery failed", recoveryError)
@@ -83,7 +101,6 @@ serve(async (req) => {
   let reservedBalance: number | null = null
 
   try {
-    const body = await req.json()
     const curriculumId = requiredString(body.curriculumId, "curriculum_id")
     const subjectId = requiredString(body.subjectId, "subject_id")
     const grade = requiredString(body.grade, "grade")
@@ -127,7 +144,7 @@ serve(async (req) => {
     if (reservation.success !== true) {
       await db.rpc("cla_fail_learning_resource_claim", { p_claim_id: claimId, p_reason: "insufficient_credits" })
       claimId = null
-      return json({ error: "insufficient_credits", balance: Number(reservation.balance ?? 0), required: CREDIT_COST, message: "You have no Vibe Credits. Buy credits to generate this new curriculum asset." }, 402)
+      return json({ error: "insufficient_credits", balance: Number(reservation.balance ?? 0), required: CREDIT_COST, message: "You have no Vibe Credits for this optional AI candidate generation." }, 402)
     }
     creditReserved = true
     reservedBalance = Number(reservation.balance ?? 0)
@@ -149,7 +166,7 @@ serve(async (req) => {
     }
 
     const prompt = [
-      "You are producing a reusable Kenyan curriculum lesson-plan candidate.",
+      "You are producing a reusable Kenyan curriculum lesson-plan candidate after an explicit AI enhancement request.",
       "The output must be context-free and reusable across unrelated teachers and schools.",
       "Do not mention a teacher, school, class stream, learner count, date, deadline, or prior class history.",
       `Subject: ${subjectName}`, `Grade: ${grade}`, `Topic: ${topicTitle}`,
@@ -182,13 +199,13 @@ serve(async (req) => {
       p_claim_id: claimId,
       p_payload_format: "vibeschool.lesson-plan.sections.v1",
       p_payload: { plan },
-      p_provenance: { generator: "generate-canonical-lesson-plan", model: "llama-3.3-70b-versatile", research_provider: TAVILY_API_KEY ? "tavily" : "none", curriculum_id: curriculumId, subject_id: subjectId, grade, sub_strand_id: subStrandId },
+      p_provenance: { generator: "generate-canonical-lesson-plan", generation_mode: "ai_assisted", intent: EXPLICIT_AI_INTENT, model: "llama-3.3-70b-versatile", research_provider: TAVILY_API_KEY ? "tavily" : "none", curriculum_id: curriculumId, subject_id: subjectId, grade, sub_strand_id: subStrandId },
     })
     if (candidateError) throw candidateError
 
     claimId = null
     creditReserved = false
-    return json({ status: "candidate", plan, resourceId: candidate?.resource_id ?? gate.resource_id, resourceVersionId: candidate?.resource_version_id ?? null, version: candidate?.version ?? null, certificationRequired: true, credits: { used: CREDIT_COST, balance: reservedBalance } })
+    return json({ status: "candidate", plan, provenance: { generationMode: "ai_assisted", intent: EXPLICIT_AI_INTENT }, resourceId: candidate?.resource_id ?? gate.resource_id, resourceVersionId: candidate?.resource_version_id ?? null, version: candidate?.version ?? null, certificationRequired: true, credits: { used: CREDIT_COST, balance: reservedBalance } })
   } catch (error) {
     console.error("[generate-canonical-lesson-plan] failed", error)
     if (claimId) {

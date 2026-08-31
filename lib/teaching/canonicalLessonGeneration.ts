@@ -7,6 +7,11 @@ import {
   lessonTimingRanges,
   parseLessonDurationMinutes,
 } from '@/lib/teaching/lessonTiming'
+import {
+  loadExactLessonPackage,
+  storeSchemeLessonPackage,
+} from '@/lib/teaching/lessonPackageCache'
+import type { LessonPackageSourceIdentity } from '@/lib/teaching/lessonPackageCache'
 
 export interface CanonicalLessonIdentity {
   curriculumId: string
@@ -37,7 +42,8 @@ export type CanonicalLessonGenerationResult =
       resourceId: string
       resourceVersionId: string | null
       certificationRequired: boolean
-      creditsUsed: number
+      creditsUsed: 0
+      packageCache?: 'scheme' | 'global' | 'miss'
     }
   | {
       ok: false
@@ -112,6 +118,31 @@ function joinNonEmpty(values: Array<string | null | undefined>, separator = '\n'
   return values.map(clean).filter(Boolean).join(separator)
 }
 
+function cacheIdentity(
+  identity: CanonicalLessonIdentity,
+  assets: CertifiedLessonContentAsset[],
+  durationMinutes: number,
+): LessonPackageSourceIdentity {
+  return {
+    curriculumId: identity.curriculumId,
+    subjectId: identity.subjectId,
+    grade: identity.grade,
+    subStrandId: identity.subStrandId,
+    topicTitle: identity.topicTitle,
+    schemeId: identity.schemeId ?? null,
+    durationMinutes,
+    sourceResourceIds: assets.map(asset => asset.resourceId),
+    sourceResourceVersionIds: assets.map(asset => asset.resourceVersionId),
+    sourceHashes: assets.map(asset => asset.contentSha256),
+    schemeObjectives: identity.schemeObjectives,
+    keyInquiryQuestion: identity.keyInquiryQuestion,
+    learningResources: identity.learningResources,
+    learningExperiences: identity.learningExperiences,
+    assessmentMethods: identity.assessmentMethods,
+    reference: identity.reference,
+  }
+}
+
 /**
  * Builds the reusable canonical teacher lesson from Scheme authority and exact
  * certified VibeSchool content. This path never calls an AI/model provider.
@@ -148,6 +179,32 @@ export async function generateCanonicalLessonPlan(
 
   const timing = allocateLessonTiming(parseLessonDurationMinutes(identity.duration))
   const ranges = lessonTimingRanges(timing)
+  const packageIdentity = cacheIdentity(identity, assets, timing.total)
+
+  try {
+    const cached = await loadExactLessonPackage(packageIdentity)
+    if (cached) {
+      const cachedValidation = validateLessonPlanGrounding({
+        sections: cached.sections,
+        schemeObjectives: identity.schemeObjectives,
+      })
+      if (cachedValidation.ok) {
+        return {
+          ok: true,
+          status: 'hit',
+          sections: cached.sections,
+          resourceId: primary.resourceId,
+          resourceVersionId: primary.resourceVersionId,
+          certificationRequired: false,
+          creditsUsed: 0,
+          packageCache: cached.reuseScope,
+        }
+      }
+    }
+  } catch (cacheReadError) {
+    console.warn('[canonicalLessonGeneration] package cache read failed', cacheReadError)
+  }
+
   const questionAnswerBlock = questions.length > 0
     ? questions.map((question, index) => `${index + 1}. ${question}${answers[index] ? `\n   Expected answer: ${answers[index]}` : ''}`).join('\n')
     : '1. Use the Scheme assessment method(s) below to check the stated objectives.'
@@ -215,6 +272,12 @@ export async function generateCanonicalLessonPlan(
   const validation = validateLessonPlanGrounding({ sections, schemeObjectives: identity.schemeObjectives })
   if (!validation.ok) return { ok: false, status: 'error', message: validation.message }
 
+  try {
+    await storeSchemeLessonPackage({ identity: packageIdentity, sections })
+  } catch (cacheWriteError) {
+    console.warn('[canonicalLessonGeneration] package cache write failed', cacheWriteError)
+  }
+
   return {
     ok: true,
     status: 'hit',
@@ -223,5 +286,6 @@ export async function generateCanonicalLessonPlan(
     resourceVersionId: primary.resourceVersionId,
     certificationRequired: false,
     creditsUsed: 0,
+    packageCache: 'miss',
   }
 }
