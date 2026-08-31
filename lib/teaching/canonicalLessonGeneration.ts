@@ -2,6 +2,11 @@ import type { Json } from '@/lib/database.types'
 import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
 import type { CertifiedLessonContentAsset } from '@/lib/teaching/lessonSourceBundle'
 import { validateLessonPlanGrounding } from '@/lib/teaching/lessonPlanGrounding'
+import {
+  allocateLessonTiming,
+  lessonTimingRanges,
+  parseLessonDurationMinutes,
+} from '@/lib/teaching/lessonTiming'
 
 export interface CanonicalLessonIdentity {
   curriculumId: string
@@ -43,83 +48,72 @@ export type CanonicalLessonGenerationResult =
       reviewStatus?: string | null
     }
 
-const CONTENT_KEYS = new Set([
-  'body',
-  'content',
-  'explanation',
-  'explanations',
-  'summary',
-  'examples',
-  'kenyanExamples',
-  'kenyan_examples',
-  'activities',
-  'misconceptions',
-  'workedExamples',
-  'worked_examples',
-  'questions',
-  'answers',
-  'keyPoints',
-  'key_points',
-  'teacherNotes',
-  'teacher_notes',
-  'sections',
-])
+const FIELD_KEYS = {
+  teachingPoints: new Set(['body','content','explanation','explanations','summary','keyPoints','key_points','teacherNotes','teacher_notes','workedExamples','worked_examples','kenyanExamples','kenyan_examples','examples']),
+  activities: new Set(['activities','learningActivities','learning_activities','learnerActivities','learner_activities']),
+  questions: new Set(['questions','assessmentQuestions','assessment_questions','diagnostics','diagnosticQuestions','diagnostic_questions']),
+  answers: new Set(['answers','expectedAnswers','expected_answers','markingGuide','marking_guide']),
+  misconceptions: new Set(['misconceptions','commonMisconceptions','common_misconceptions']),
+  differentiation: new Set(['differentiation','support','extension','challenge']),
+  homework: new Set(['homework','homeworkTasks','homework_tasks','followUp','follow_up']),
+}
 
 function clean(value?: string | null): string {
   return value?.trim() ?? ''
 }
 
-function collectStrings(value: Json, key: string | null = null): string[] {
+function splitAuthorityList(value?: string | null): string[] {
+  const normalized = clean(value)
+  if (!normalized) return []
+  return normalized.split(/\s*[|;]\s*|\n+/).map(clean).filter(Boolean)
+}
+
+function collectStrings(value: Json, keys: Set<string>, parentKey: string | null = null): string[] {
   if (typeof value === 'string') {
-    return key === null || CONTENT_KEYS.has(key)
-      ? [value.trim()].filter(Boolean)
+    return parentKey !== null && keys.has(parentKey) ? [value.trim()].filter(Boolean) : []
+  }
+  if (typeof value === 'number' || typeof value === 'boolean' || value === null) return []
+  if (Array.isArray(value)) return value.flatMap(item => collectStrings(item, keys, parentKey))
+
+  return Object.entries(value).flatMap(([key, child]) => {
+    if (keys.has(key)) return collectStrings(child, keys, key)
+    return typeof child === 'object' && child !== null
+      ? collectStrings(child, keys, parentKey)
       : []
-  }
-
-  if (typeof value === 'number' || typeof value === 'boolean' || value === null) {
-    return []
-  }
-
-  if (Array.isArray(value)) {
-    return value.flatMap(item => collectStrings(item, key))
-  }
-
-  return Object.entries(value).flatMap(([childKey, childValue]) => {
-    if (childValue === undefined || !CONTENT_KEYS.has(childKey)) {
-      return []
-    }
-
-    return collectStrings(childValue, childKey)
   })
 }
 
-function certifiedContentText(assets: CertifiedLessonContentAsset[]): string {
-  return assets
-    .flatMap(asset => {
-      const fragments = collectStrings(asset.payload)
-      if (fragments.length === 0) return []
-
-      return [
-        `Certified content: ${asset.title}\n${fragments.join('\n\n')}`,
-      ]
-    })
-    .join('\n\n')
-    .slice(0, 20000)
+function unique(values: string[]): string[] {
+  const seen = new Set<string>()
+  return values.filter(value => {
+    const normalized = clean(value).toLocaleLowerCase()
+    if (!normalized || seen.has(normalized)) return false
+    seen.add(normalized)
+    return true
+  })
 }
 
-function joinNonEmpty(
-  values: Array<string | null | undefined>,
-  separator = '\n',
-): string {
-  return values
-    .map(clean)
-    .filter(Boolean)
-    .join(separator)
+function collectAssetField(assets: CertifiedLessonContentAsset[], keys: Set<string>): string[] {
+  return unique(assets.flatMap(asset => collectStrings(asset.payload, keys)))
+}
+
+function numbered(values: string[], fallback: string): string {
+  return values.length > 0
+    ? values.map((value, index) => `${index + 1}. ${value}`).join('\n')
+    : fallback
+}
+
+function bullets(values: string[], fallback: string): string {
+  return values.length > 0 ? values.map(value => `• ${value}`).join('\n') : fallback
+}
+
+function joinNonEmpty(values: Array<string | null | undefined>, separator = '\n'): string {
+  return values.map(clean).filter(Boolean).join(separator)
 }
 
 /**
- * Deterministically transforms exact certified VibeSchool content plus Scheme
- * authority into a lesson plan. No Edge Function or model provider is called.
+ * Builds the reusable canonical teacher lesson from Scheme authority and exact
+ * certified VibeSchool content. This path never calls an AI/model provider.
  */
 export async function generateCanonicalLessonPlan(
   accessToken: string,
@@ -129,90 +123,96 @@ export async function generateCanonicalLessonPlan(
 
   const assets = identity.certifiedContent ?? []
   const primary = assets[0]
-
   if (!primary) {
     return {
       ok: false,
       status: 'error',
-      message:
-        'No certified VibeSchool content is available for this lesson. Use the Scheme-derived baseline.',
+      message: 'No certified VibeSchool content is available for this lesson. Use the Scheme-derived baseline.',
     }
   }
 
-  const objectives = clean(identity.schemeObjectives)
+  const objectives = splitAuthorityList(identity.schemeObjectives)
+  const experiences = splitAuthorityList(identity.learningExperiences)
+  const assessmentMethods = splitAuthorityList(identity.assessmentMethods)
   const inquiry = clean(identity.keyInquiryQuestion)
-  const experiences = clean(identity.learningExperiences)
-  const assessment = clean(identity.assessmentMethods)
-  const content = certifiedContentText(assets)
-  const resourceTitles = assets.map(asset => asset.title).join('; ')
-  const curriculumPath = joinNonEmpty(
-    [identity.curriculumStrand, identity.curriculumSubStrand],
-    ' → ',
-  )
+  const curriculumPath = joinNonEmpty([identity.curriculumStrand, identity.curriculumSubStrand], ' → ')
+
+  const teachingPoints = collectAssetField(assets, FIELD_KEYS.teachingPoints)
+  const activities = collectAssetField(assets, FIELD_KEYS.activities)
+  const questions = collectAssetField(assets, FIELD_KEYS.questions)
+  const answers = collectAssetField(assets, FIELD_KEYS.answers)
+  const misconceptions = collectAssetField(assets, FIELD_KEYS.misconceptions)
+  const differentiation = collectAssetField(assets, FIELD_KEYS.differentiation)
+  const homeworkTasks = collectAssetField(assets, FIELD_KEYS.homework)
+
+  const timing = allocateLessonTiming(parseLessonDurationMinutes(identity.duration))
+  const ranges = lessonTimingRanges(timing)
+  const questionAnswerBlock = questions.length > 0
+    ? questions.map((question, index) => `${index + 1}. ${question}${answers[index] ? `\n   Expected answer: ${answers[index]}` : ''}`).join('\n')
+    : '1. Use the Scheme assessment method(s) below to check the stated objectives.'
 
   const sections: LessonPlanSections = {
-    objectives:
-      objectives ||
-      'No authoritative Scheme objective is attached to this lesson yet.',
+    objectives: numbered(objectives, 'No authoritative Scheme objective is attached to this lesson yet.'),
 
     resources: joinNonEmpty([
-      identity.learningResources,
-      resourceTitles
-        ? `Certified VibeSchool content: ${resourceTitles}`
+      'VibeSchool approved learning resources:',
+      numbered(assets.map(asset => asset.title), '1. No certified VibeSchool resource title is available.'),
+      identity.learningResources
+        ? `\nScheme resources:\n${bullets(splitAuthorityList(identity.learningResources), '• Use the linked Scheme resources.')}`
         : null,
-      identity.reference
-        ? `Reference: ${identity.reference}`
-        : null,
+      identity.reference ? `\nCurriculum reference:\n• ${identity.reference}` : null,
     ]),
 
     introduction: joinNonEmpty([
-      `Lesson focus: ${identity.topicTitle}.`,
-      inquiry ? `Key inquiry question: ${inquiry}` : null,
-      `Planned duration: ${identity.duration ?? '40 minutes'}.`,
+      `Timing: ${ranges.introduction} (${timing.introduction} min).`,
+      `1. Introduce the lesson focus: ${identity.topicTitle}.`,
+      inquiry ? `2. Ask the key inquiry question: ${inquiry}` : null,
+      '3. Establish prior knowledge before moving into the main learning activity.',
     ]),
 
     development: joinNonEmpty([
+      `Timing: ${ranges.development} (${timing.development} min).`,
       curriculumPath ? `Curriculum path: ${curriculumPath}.` : null,
-      experiences ? `Scheme learning experiences:\n${experiences}` : null,
-      content ||
-        'The certified resource contains no recognised teaching-content fields. Follow the Scheme learning sequence.',
+      `\nTeaching points / teacher notes:\n${numbered(teachingPoints, '1. Use the approved VibeSchool resource above as the teaching authority for this lesson.')}`,
+      `\nLearner activities:\n${numbered(activities.length > 0 ? activities : experiences, '1. Follow the approved Scheme learning experience for this lesson.')}`,
+      `\nCheck-for-understanding questions and expected answers:\n${questionAnswerBlock}`,
+      `\nMisconceptions to watch:\n${bullets(misconceptions, '• Check understanding against the stated objectives and correct unsupported learner claims.')}`,
     ], '\n\n'),
 
     consolidation: joinNonEmpty([
-      `Return to the lesson focus: ${identity.topicTitle}.`,
-      inquiry
-        ? `Revisit the key inquiry question: ${inquiry}`
-        : 'Review the stated Scheme objective with learners.',
+      `Timing: ${ranges.consolidation} (${timing.consolidation} min).`,
+      `1. Return to the lesson focus: ${identity.topicTitle}.`,
+      inquiry ? `2. Revisit the key inquiry question: ${inquiry}` : '2. Ask learners to explain the lesson objective in their own words.',
+      '3. Ask learners to state one key idea learned and one point that still needs clarification.',
     ]),
 
     assessmentHook: joinNonEmpty([
-      objectives
-        ? `Objectives being assessed:\n${objectives}`
-        : 'No authoritative Scheme objective is attached yet.',
-      assessment
-        ? `Scheme assessment method(s):\n${assessment}`
-        : 'Use teacher observation, oral checks or another teacher-selected method without changing the stated objective.',
-    ], '\n\n'),
+      `Timing: ${ranges.assessment} (${timing.assessment} min). Total lesson time: ${timing.total}/${timing.total} min.`,
+      `\nObjectives being assessed:\n${numbered(objectives, '1. No authoritative Scheme objective is attached yet.')}`,
+      `\nPrepared checks:\n${questionAnswerBlock}`,
+      assessmentMethods.length > 0 ? `\nScheme assessment method(s):\n${bullets(assessmentMethods, '')}` : null,
+      '\nRecord each learner as Mastered, Developing or Needs support before closing the lesson.',
+    ]),
 
-    homework:
-      'No homework has been invented automatically. Add homework only when supported by the Scheme objective or the attached certified content.',
+    homework: homeworkTasks.length > 0
+      ? joinNonEmpty([
+          'Preloaded objective-aligned follow-up:',
+          numbered(homeworkTasks, ''),
+          'Teacher actions: View · Edit · Assign · Share.',
+        ])
+      : 'No certified homework task is attached to this lesson. Do not invent one automatically; the teacher may add a task or use optional AI enhancement.',
 
-    differentiation:
-      'Adjust pacing, grouping, prompts and resource support to learner needs without changing the Scheme objective or certified content authority.',
+    differentiation: differentiation.length > 0
+      ? joinNonEmpty(['Use the same authoritative objectives for every learner.', numbered(differentiation, '')])
+      : joinNonEmpty([
+          '1. Support: use additional prompts, paired work, visuals or partially completed examples.',
+          '2. Core: complete the approved learner activity independently or collaboratively as designed.',
+          '3. Stretch: require evidence, comparison, justification or application while keeping the same Scheme objective.',
+        ]),
   }
 
-  const validation = validateLessonPlanGrounding({
-    sections,
-    schemeObjectives: identity.schemeObjectives,
-  })
-
-  if (!validation.ok) {
-    return {
-      ok: false,
-      status: 'error',
-      message: validation.message,
-    }
-  }
+  const validation = validateLessonPlanGrounding({ sections, schemeObjectives: identity.schemeObjectives })
+  if (!validation.ok) return { ok: false, status: 'error', message: validation.message }
 
   return {
     ok: true,

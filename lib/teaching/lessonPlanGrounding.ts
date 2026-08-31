@@ -17,29 +17,16 @@ function clean(value?: string | null): string {
 function objectiveParts(value?: string | null): string[] {
   const normalized = clean(value)
   if (!normalized) return []
-
-  return normalized
-    .split(/\s*[|;]\s*|\n+/)
-    .map(clean)
-    .filter(Boolean)
+  return normalized.split(/\s*[|;]\s*|\n+/).map(clean).filter(Boolean)
 }
 
 function includesNormalized(haystack: string, needle: string): boolean {
-  return clean(haystack)
-    .toLocaleLowerCase()
-    .includes(clean(needle).toLocaleLowerCase())
+  return clean(haystack).toLocaleLowerCase().includes(clean(needle).toLocaleLowerCase())
 }
 
 /**
- * Deterministic pre-save grounding gate.
- *
- * It proves the invariants that do not require semantic model judgment:
- * - every authoritative Scheme objective is copied into the objectives block;
- * - every Scheme objective is explicitly named by the assessment block;
- * - all eight canonical plan sections are non-empty.
- *
- * The builder itself is constrained to Scheme fields, certified payloads and
- * template prose, so no web/model content can enter this path.
+ * Deterministic pre-save grounding/readiness gate for invariants that can be
+ * proven without semantic model judgment.
  */
 export function validateLessonPlanGrounding({
   sections,
@@ -47,31 +34,25 @@ export function validateLessonPlanGrounding({
 }: LessonPlanGroundingInput): LessonPlanGroundingResult {
   for (const [key, value] of Object.entries(sections)) {
     if (!clean(value)) {
-      return {
-        ok: false,
-        message: `Grounding validation failed: ${key} is empty.`,
-      }
+      return { ok: false, message: `Grounding validation failed: ${key} is empty.` }
     }
   }
 
-  const objectives = objectiveParts(schemeObjectives)
-
-  for (const objective of objectives) {
+  for (const objective of objectiveParts(schemeObjectives)) {
     if (!includesNormalized(sections.objectives, objective)) {
-      return {
-        ok: false,
-        message:
-          'Grounding validation failed: a Scheme objective is missing from the lesson objectives.',
-      }
+      return { ok: false, message: 'Grounding validation failed: a Scheme objective is missing from the lesson objectives.' }
     }
-
     if (!includesNormalized(sections.assessmentHook, objective)) {
-      return {
-        ok: false,
-        message:
-          'Grounding validation failed: assessment is not explicitly tied to every Scheme objective.',
-      }
+      return { ok: false, message: 'Grounding validation failed: assessment is not explicitly tied to every Scheme objective.' }
     }
+  }
+
+  if (!/Total lesson time:\s*\d+\/\d+ min/i.test(sections.assessmentHook)) {
+    return { ok: false, message: 'Readiness validation failed: lesson timing total is missing.' }
+  }
+
+  if (!/Learner activities/i.test(sections.development)) {
+    return { ok: false, message: 'Readiness validation failed: learner activities are missing.' }
   }
 
   return { ok: true }
