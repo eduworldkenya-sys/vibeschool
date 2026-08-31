@@ -19,7 +19,7 @@ const LAYERS: Array<{ id: LearningLayer; label: string; description: string }> =
   { id: "comprehend", label: "Comprehend", description: "Build the core concepts, explanations and evidence." },
   { id: "apply", label: "Apply & check", description: "Test understanding and surface misconceptions early." },
   { id: "connect", label: "Connect", description: "Relate the learning to Kenya, Africa and connected ideas where relevant." },
-  { id: "extend", label: "Extend", description: "Move into KCSE practice, revision and teacher-ready application." },
+  { id: "extend", label: "Extend", description: "Deepen learning through mastery practice, reflection and teacher-ready application." },
 ];
 
 const isLayer = (value: unknown): value is LearningLayer =>
