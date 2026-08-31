@@ -1,0 +1,49 @@
+name: Lesson Zero-AI Release Gate
+
+on:
+  pull_request:
+    paths:
+      - 'components/teacher/LessonPlanModal.tsx'
+      - 'lib/teaching/**'
+      - 'supabase/functions/generate-lesson-plan/**'
+      - 'supabase/functions/generate-canonical-lesson-plan/**'
+      - 'supabase/migrations/**lesson_package_cache.sql'
+      - 'scripts/test-zero-ai-lesson-release-contract.py'
+      - 'scripts/test-lesson-timing-contract.cjs'
+      - '.github/workflows/lesson-zero-ai-release-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'components/teacher/LessonPlanModal.tsx'
+      - 'lib/teaching/**'
+      - 'supabase/functions/generate-lesson-plan/**'
+      - 'supabase/functions/generate-canonical-lesson-plan/**'
+      - 'supabase/migrations/**lesson_package_cache.sql'
+
+permissions:
+  contents: read
+
+jobs:
+  lesson-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Zero-AI/security contract
+        run: python scripts/test-zero-ai-lesson-release-contract.py
+      - name: Compile exact timing helper
+        run: npx tsc lib/teaching/lessonTiming.ts --target ES2020 --module commonjs --outDir /tmp/vibeschool-lesson-timing --skipLibCheck
+      - name: Exact 40/60/80/short timing
+        run: node scripts/test-lesson-timing-contract.cjs /tmp/vibeschool-lesson-timing/lessonTiming.js
+      - name: Production build
+        run: npm run build
