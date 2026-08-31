@@ -84,11 +84,13 @@ function collectStrings(value: Json, key: string | null = null): string[] {
     return value.flatMap(item => collectStrings(item, key))
   }
 
-  return Object.entries(value).flatMap(([childKey, childValue]) =>
-    CONTENT_KEYS.has(childKey)
-      ? collectStrings(childValue, childKey)
-      : [],
-  )
+  return Object.entries(value).flatMap(([childKey, childValue]) => {
+    if (childValue === undefined || !CONTENT_KEYS.has(childKey)) {
+      return []
+    }
+
+    return collectStrings(childValue, childKey)
+  })
 }
 
 function certifiedContentText(assets: CertifiedLessonContentAsset[]): string {
