@@ -67,6 +67,17 @@ function uniqueById<T extends { id: string }>(items: T[]): T[] {
   })
 }
 
+function isTeachingContentCandidate(resource: ResourceCandidate): boolean {
+  return (
+    resource.asset_kind !== 'lesson_plan' &&
+    (
+      resource.purpose === null ||
+      resource.purpose === 'teach' ||
+      resource.purpose === 'reference'
+    )
+  )
+}
+
 async function loadExplicitSchemeResources(
   schemeId: string,
 ): Promise<ResourceCandidate[]> {
@@ -89,16 +100,18 @@ async function loadExplicitSchemeResources(
 
   if (!payload?.ok) return []
 
-  return (payload.resources ?? []).flatMap(resource =>
-    resource.resource_id
-      ? [{
-          id: resource.resource_id,
-          title: resource.title ?? 'Certified learning resource',
-          asset_kind: resource.asset_kind ?? null,
-          purpose: resource.purpose ?? null,
-        }]
-      : [],
-  )
+  return (payload.resources ?? [])
+    .flatMap(resource =>
+      resource.resource_id
+        ? [{
+            id: resource.resource_id,
+            title: resource.title ?? 'Certified learning resource',
+            asset_kind: resource.asset_kind ?? null,
+            purpose: resource.purpose ?? null,
+          }]
+        : [],
+    )
+    .filter(isTeachingContentCandidate)
 }
 
 async function loadCurriculumResourceCandidates(
@@ -106,9 +119,14 @@ async function loadCurriculumResourceCandidates(
 ): Promise<ResourceCandidate[]> {
   if (!source.id && !source.strandId) return []
 
+  // `asset_kind` and `purpose` exist in the canonical-resource migrations and
+  // production schema, while the generated Database type may lag that additive
+  // migration. Selecting the row rather than naming those columns keeps this
+  // query type-safe against the older generated shape; the narrow runtime cast
+  // below is limited to the two additive canonical metadata fields.
   let query = supabase
     .from('learning_resources')
-    .select('id, title, asset_kind, purpose')
+    .select('*')
     .eq('status', 'active')
 
   if (source.id && source.strandId) {
@@ -124,8 +142,8 @@ async function loadCurriculumResourceCandidates(
   const { data, error } = await query.limit(25)
   if (error) throw error
 
-  return ((data ?? []) as ResourceCandidate[])
-    .filter(resource => resource.asset_kind !== 'lesson_plan')
+  return ((data ?? []) as unknown as ResourceCandidate[])
+    .filter(isTeachingContentCandidate)
 }
 
 async function loadCertifiedVersions(
