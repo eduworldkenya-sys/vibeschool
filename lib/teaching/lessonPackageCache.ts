@@ -1,4 +1,3 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
 import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
@@ -112,22 +111,16 @@ function isSections(value: unknown): value is LessonPlanSections {
   ].every(key => typeof record[key] === 'string' && String(record[key]).trim().length > 0)
 }
 
-function untypedClient(): SupabaseClient<any> {
-  return supabase as unknown as SupabaseClient<any>
-}
-
 async function loadSchemeScopedPackage({
-  db,
   cacheKey,
   sourceFingerprint,
   identity,
 }: {
-  db: SupabaseClient<any>
   cacheKey: string
   sourceFingerprint: string
   identity: LessonPackageSourceIdentity & { schemeId: string }
 }): Promise<PackageCacheRow | null> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('lesson_package_cache')
     .select('id, sections, reuse_scope, certification_status, certification_policy_version, certified_at')
     .eq('cache_key', cacheKey)
@@ -137,21 +130,19 @@ async function loadSchemeScopedPackage({
     .eq('scheme_id', identity.schemeId)
     .maybeSingle()
   if (error) throw error
-  return (data as PackageCacheRow | null) ?? null
+  return data ?? null
 }
 
 async function loadCertifiedGlobalPackage({
-  db,
   cacheKey,
   sourceFingerprint,
   durationMinutes,
 }: {
-  db: SupabaseClient<any>
   cacheKey: string
   sourceFingerprint: string
   durationMinutes: number
 }): Promise<PackageCacheRow | null> {
-  const { data, error } = await db
+  const { data, error } = await supabase
     .from('lesson_package_cache')
     .select('id, sections, reuse_scope, certification_status, certification_policy_version, certified_at')
     .eq('cache_key', cacheKey)
@@ -163,7 +154,7 @@ async function loadCertifiedGlobalPackage({
     .not('certified_at', 'is', null)
     .maybeSingle()
   if (error) throw error
-  return (data as PackageCacheRow | null) ?? null
+  return data ?? null
 }
 
 export async function loadExactLessonPackage(identity: LessonPackageSourceIdentity): Promise<{
@@ -173,11 +164,9 @@ export async function loadExactLessonPackage(identity: LessonPackageSourceIdenti
 } | null> {
   const cacheKey = buildLessonPackageCacheKey(identity)
   const sourceFingerprint = await buildLessonPackageSourceFingerprint(identity)
-  const db = untypedClient()
 
   if (identity.schemeId) {
     const schemePackage = await loadSchemeScopedPackage({
-      db,
       cacheKey,
       sourceFingerprint,
       identity: { ...identity, schemeId: identity.schemeId },
@@ -188,7 +177,6 @@ export async function loadExactLessonPackage(identity: LessonPackageSourceIdenti
   }
 
   const globalPackage = await loadCertifiedGlobalPackage({
-    db,
     cacheKey,
     sourceFingerprint,
     durationMinutes: identity.durationMinutes,
@@ -211,7 +199,6 @@ export async function storeSchemeLessonPackage({
 
   const cacheKey = buildLessonPackageCacheKey(identity)
   const sourceFingerprint = await buildLessonPackageSourceFingerprint(identity)
-  const db = untypedClient()
   const payload = {
     cache_key: cacheKey,
     scheme_id: identity.schemeId,
@@ -240,7 +227,7 @@ export async function storeSchemeLessonPackage({
     generation_mode: generationMode,
   }
 
-  const { data: existing, error: lookupError } = await db
+  const { data: existing, error: lookupError } = await supabase
     .from('lesson_package_cache')
     .select('id')
     .eq('cache_key', cacheKey)
@@ -252,7 +239,7 @@ export async function storeSchemeLessonPackage({
   if (lookupError) throw lookupError
 
   if (existing?.id) {
-    const { error: updateError } = await db
+    const { error: updateError } = await supabase
       .from('lesson_package_cache')
       .update({
         sections,
@@ -268,7 +255,7 @@ export async function storeSchemeLessonPackage({
     return String(existing.id)
   }
 
-  const { data, error } = await db.from('lesson_package_cache').insert(payload).select('id').single()
+  const { data, error } = await supabase.from('lesson_package_cache').insert(payload).select('id').single()
   if (error) throw error
   return typeof data?.id === 'string' ? data.id : null
 }
