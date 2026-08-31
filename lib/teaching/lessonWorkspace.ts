@@ -23,6 +23,13 @@ import {
 import type {
   TeachingOccurrence,
 } from '@/lib/teaching/types'
+import {
+  buildCanonicalLessonSourceBundle,
+} from '@/lib/teaching/lessonSourceBundle'
+import type {
+  CanonicalLessonSourceBundle,
+  CertifiedLessonContentAsset,
+} from '@/lib/teaching/lessonSourceBundle'
 
 export interface LoadLessonWorkspaceInput {
   timetableSlotId: string
@@ -38,6 +45,14 @@ export interface LessonCanonicalSourceIdentity {
   subjectId: string
   grade: string
   subStrandId: string
+  schemeId: string | null
+  schemeObjectives: string | null
+  keyInquiryQuestion: string | null
+  learningResources: string | null
+  learningExperiences: string | null
+  assessmentMethods: string | null
+  reference: string | null
+  certifiedContent: CertifiedLessonContentAsset[]
 }
 
 export interface LessonWorkspaceBootResult {
@@ -47,6 +62,8 @@ export interface LessonWorkspaceBootResult {
   source: LessonSourceSuggestion | null
   sourceLinked: boolean
   sourceError: string | null
+  sourceBundle: CanonicalLessonSourceBundle | null
+  sourceBundleError: string | null
   canonicalIdentity: LessonCanonicalSourceIdentity | null
   occurrence: TeachingOccurrence | null
   occurrenceError: string | null
@@ -136,29 +153,49 @@ async function restorePersistedLessonSource(
   return null
 }
 
-/**
- * Lesson creation is deterministic-first. Canonical reusable AI assets remain
- * a later optional enhancement layer, not a prerequisite for a teacher to get
- * a Scheme-derived plan. Returning null here keeps the existing modal on the
- * contextual builder while preserving the source identity on the saved plan.
- */
 function buildCanonicalIdentity(
-  source: LessonSourceSuggestion | null,
+  sourceBundle: CanonicalLessonSourceBundle | null,
   subjectId: string,
   grade: string | null,
 ): LessonCanonicalSourceIdentity | null {
-  void source
-  void subjectId
-  void grade
-  return null
+  const source = sourceBundle?.scheme
+
+  // The reusable-content path is allowed only when exact certified assets are
+  // present. Otherwise the modal deliberately falls back to the deterministic
+  // Scheme/template builder and remains completely model-independent.
+  if (
+    !sourceBundle ||
+    sourceBundle.certifiedContent.length === 0 ||
+    !source?.id ||
+    !source.strandId ||
+    !subjectId ||
+    !grade
+  ) {
+    return null
+  }
+
+  return {
+    curriculumId: source.id,
+    subjectId,
+    grade,
+    subStrandId: source.strandId,
+    schemeId: source.schemeId ?? null,
+    schemeObjectives: source.objectives ?? null,
+    keyInquiryQuestion: source.keyInquiryQuestion ?? null,
+    learningResources: source.learningResources ?? null,
+    learningExperiences: source.learningExperiences ?? null,
+    assessmentMethods: source.assessmentMethods ?? null,
+    reference: source.reference ?? null,
+    certifiedContent: sourceBundle.certifiedContent,
+  }
 }
 
 /**
  * Loads all read-only state required to open one exact Lesson Workspace.
  *
- * A resolved Scheme/curriculum source is linked by default. The teacher may
- * explicitly switch to a custom topic in the UI, but the default must never
- * require re-entering curriculum data the system already knows.
+ * Authority order is preserved as:
+ * dated timetable occurrence -> Scheme -> certified VibeSchool content ->
+ * class context. The bundle is read-only and never invents missing authority.
  */
 export async function loadLessonWorkspace({
   timetableSlotId,
@@ -243,8 +280,30 @@ export async function loadLessonWorkspace({
     }
   }
 
+  let sourceBundle: CanonicalLessonSourceBundle | null = null
+  let sourceBundleError: string | null = null
+
+  try {
+    sourceBundle = await buildCanonicalLessonSourceBundle({
+      timetableSlotId,
+      occurrenceDate,
+      classId,
+      subjectId,
+      subjectName,
+      context,
+      source,
+    })
+  } catch (bundleError) {
+    console.error(
+      '[lessonWorkspace] canonical source bundle failed',
+      bundleError,
+    )
+    sourceBundleError =
+      'Certified content could not be resolved. The Scheme-derived baseline remains available.'
+  }
+
   const canonicalIdentity = buildCanonicalIdentity(
-    source,
+    sourceBundle,
     subjectId,
     context.grade,
   )
@@ -273,6 +332,8 @@ export async function loadLessonWorkspace({
     source,
     sourceLinked,
     sourceError,
+    sourceBundle,
+    sourceBundleError,
     canonicalIdentity,
     occurrence,
     occurrenceError,
