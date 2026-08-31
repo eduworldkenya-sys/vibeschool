@@ -63,7 +63,14 @@ set blocks = c.blocks || jsonb_build_array(
   )
 ), updated_at = now()
 where c.title = 'The First World War (1914–1918)'
-  and c.publication_id in (select id from target)
+  and c.publication_id in (
+    select id
+    from public.vibe_publications
+    where title = 'Vibe History & Government Form 4'
+      and status = 'published'
+    order by published_at desc nulls last
+    limit 1
+  )
   and not exists (select 1 from jsonb_array_elements(c.blocks) b where b->>'id'='ww1-connect-kenya');
 
 -- One real formative checkpoint per remaining unit. These are deliberately
@@ -92,7 +99,14 @@ set blocks = c.blocks || case c.number
   else '[]'::jsonb
 end,
 updated_at = now()
-where c.publication_id in (select id from target)
+where c.publication_id in (
+    select id
+    from public.vibe_publications
+    where title = 'Vibe History & Government Form 4'
+      and status = 'published'
+    order by published_at desc nulls last
+    limit 1
+  )
   and c.number between 2 and 11
   and not exists (select 1 from jsonb_array_elements(c.blocks) b where b->'meta'->>'learning_layer'='apply');
 

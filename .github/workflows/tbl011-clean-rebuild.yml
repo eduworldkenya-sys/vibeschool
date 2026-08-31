@@ -6,6 +6,7 @@ on:
     paths:
       - "supabase/migrations/**"
       - "supabase/config.toml"
+      - "supabase/reconciliation/tbl012_production_core_schema_hashes.json"
       - "scripts/sql/tbl011_clean_rebuild_verify.sql"
       - "scripts/sql/verify_worker_engine_authority_plane.sql"
       - "scripts/sql/certify_task12_observability.sql"
