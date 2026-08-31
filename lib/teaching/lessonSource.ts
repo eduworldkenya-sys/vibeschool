@@ -123,6 +123,18 @@ function toSuggestion(
   }
 }
 
+function isSchemeSourceRow(value: object | null): value is SchemeSourceRow {
+  if (!value) return false
+  return (
+    'id' in value &&
+    'topic' in value &&
+    'week' in value &&
+    typeof value.id === 'string' &&
+    typeof value.topic === 'string' &&
+    typeof value.week === 'number'
+  )
+}
+
 async function loadSchemeSourceById({
   schemeId,
   userId,
@@ -150,8 +162,15 @@ async function loadSchemeSourceById({
     .maybeSingle()
 
   if (error) throw error
+  if (data === null) return null
 
-  return data as unknown as SchemeSourceRow | null
+  if (!isSchemeSourceRow(data)) {
+    throw new Error(
+      'lessonSource: Scheme source response is missing required fields.',
+    )
+  }
+
+  return data
 }
 
 /**
