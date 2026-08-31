@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import LessonPlanModal from '@/components/teacher/LessonPlanModal'
+import { isLessonPlanReadyToTeach } from '@/lib/teaching/lessonReadiness'
 import type { TimetableSlot, PlanRow, HistoryRow } from '@/lib/types'
 
 interface SlotWithPlan {
@@ -302,15 +303,15 @@ function LessonPlanInner() {
     loadHistory()
   }, [urlClassId, activeSlot])
 
-  const readyCount   = items.filter(i => i.plan).length
-  const missingCount = items.filter(i => !i.plan).length
+  const readyCount = items.filter(i => i.plan && isLessonPlanReadyToTeach(i.plan.body)).length
+  const missingCount = items.length - readyCount
   const isThisWeek   = weekStart === nairobiWeekStart()
 
   // Drives the "Today & Upcoming" list below when a Differentiation Summary
   // row is tapped. 'all' means no filter is active.
   const visibleItems = items.filter(({ plan }) => {
     if (diffFilter === 'all')       return true
-    if (diffFilter === 'missing')   return !plan
+    if (diffFilter === 'missing')   return !plan || !isLessonPlanReadyToTeach(plan.body)
     if (diffFilter === 'draft')     return !!plan && plan.status === 'draft'
     if (diffFilter === 'published') return !!plan && (plan.status === 'published' || plan.status === 'shared_to_parents')
     return true
