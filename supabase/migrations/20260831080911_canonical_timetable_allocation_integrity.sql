@@ -1,3 +1,4 @@
+-- authorization-test: public.class_subject_allocations
 create table if not exists public.class_subject_allocations (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
