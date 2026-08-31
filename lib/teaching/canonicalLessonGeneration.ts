@@ -3,6 +3,13 @@ import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
 import type { CertifiedLessonContentAsset } from '@/lib/teaching/lessonSourceBundle'
 import { validateLessonPlanGrounding } from '@/lib/teaching/lessonPlanGrounding'
 import {
+  loadExactLessonPackage,
+  storeSchemeLessonPackage,
+} from '@/lib/teaching/lessonPackageCache'
+import type {
+  LessonPackageSourceIdentity,
+} from '@/lib/teaching/lessonPackageCache'
+import {
   allocateLessonPhaseTiming,
   durationMinutesFromLabel,
 } from '@/lib/teaching/lessonTiming'
@@ -36,7 +43,8 @@ export type CanonicalLessonGenerationResult =
       resourceId: string
       resourceVersionId: string | null
       certificationRequired: boolean
-      creditsUsed: number
+      creditsUsed: 0
+      packageCache?: 'scheme' | 'global' | 'miss'
     }
   | {
       ok: false
@@ -145,6 +153,27 @@ function canonicalHomework({
     : `Review ${topic} and write three accurate points from the lesson.`
 }
 
+function cacheIdentity(
+  identity: CanonicalLessonIdentity,
+  assets: CertifiedLessonContentAsset[],
+  durationMinutes: number,
+): LessonPackageSourceIdentity {
+  return {
+    curriculumId: identity.curriculumId,
+    subjectId: identity.subjectId,
+    grade: identity.grade,
+    subStrandId: identity.subStrandId,
+    topicTitle: identity.topicTitle,
+    schemeId: identity.schemeId ?? null,
+    durationMinutes,
+    sourceResourceIds: assets.map(asset => asset.resourceId),
+    sourceResourceVersionIds: assets.map(asset => asset.resourceVersionId),
+    sourceHashes: assets.map(asset => asset.contentSha256),
+    schemeObjectives: identity.schemeObjectives,
+    keyInquiryQuestion: identity.keyInquiryQuestion,
+  }
+}
+
 /**
  * Deterministically transforms exact certified VibeSchool content plus Scheme
  * authority into a lesson plan. No Edge Function or model provider is called.
@@ -167,6 +196,41 @@ export async function generateCanonicalLessonPlan(
     }
   }
 
+  const timing = allocateLessonPhaseTiming(
+    durationMinutesFromLabel(identity.duration ?? '40 minutes'),
+  )
+  const packageIdentity = cacheIdentity(
+    identity,
+    assets,
+    timing.totalMinutes,
+  )
+
+  try {
+    const cached = await loadExactLessonPackage(packageIdentity)
+    if (cached) {
+      const validation = validateLessonPlanGrounding({
+        sections: cached.sections,
+        schemeObjectives: identity.schemeObjectives,
+      })
+
+      if (validation.ok) {
+        return {
+          ok: true,
+          status: 'hit',
+          sections: cached.sections,
+          resourceId: primary.resourceId,
+          resourceVersionId: primary.resourceVersionId,
+          certificationRequired: false,
+          creditsUsed: 0,
+          packageCache: cached.reuseScope,
+        }
+      }
+    }
+  } catch (cacheReadError) {
+    // Cache is an optimization, never a lesson-generation dependency.
+    console.warn('[canonicalLessonGeneration] package cache read failed', cacheReadError)
+  }
+
   const objectives = clean(identity.schemeObjectives)
   const inquiry = clean(identity.keyInquiryQuestion)
   const experiences = clean(identity.learningExperiences)
@@ -180,9 +244,6 @@ export async function generateCanonicalLessonPlan(
   const curriculumPath = joinNonEmpty(
     [identity.curriculumStrand, identity.curriculumSubStrand],
     ' → ',
-  )
-  const timing = allocateLessonPhaseTiming(
-    durationMinutesFromLabel(identity.duration ?? '40 minutes'),
   )
 
   const sections: LessonPlanSections = {
@@ -277,6 +338,17 @@ export async function generateCanonicalLessonPlan(
     }
   }
 
+  try {
+    await storeSchemeLessonPackage({
+      identity: packageIdentity,
+      sections,
+      generationMode: 'deterministic',
+    })
+  } catch (cacheWriteError) {
+    // Never block a teacher because cache persistence failed.
+    console.warn('[canonicalLessonGeneration] package cache write failed', cacheWriteError)
+  }
+
   return {
     ok: true,
     status: 'hit',
@@ -285,5 +357,6 @@ export async function generateCanonicalLessonPlan(
     resourceVersionId: primary.resourceVersionId,
     certificationRequired: false,
     creditsUsed: 0,
+    packageCache: 'miss',
   }
 }
