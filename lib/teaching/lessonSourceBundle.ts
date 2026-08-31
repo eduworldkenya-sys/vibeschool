@@ -119,10 +119,6 @@ async function loadCurriculumResourceCandidates(
 ): Promise<ResourceCandidate[]> {
   if (!source.id && !source.strandId) return []
 
-  // `asset_kind` and `purpose` exist in the canonical-resource migrations and
-  // production schema, while the generated Database type may lag that additive
-  // migration. Read the whole row and narrow those optional fields structurally
-  // at runtime rather than bypassing TypeScript with an escape-hatch cast.
   let query = supabase
     .from('learning_resources')
     .select('*')
@@ -225,23 +221,24 @@ export async function buildCanonicalLessonSourceBundle({
   context: LessonContext
   source: LessonSourceSuggestion | null
 }): Promise<CanonicalLessonSourceBundle> {
-  let explicitResources: ResourceCandidate[] = []
-  let curriculumResources: ResourceCandidate[] = []
+  let candidates: ResourceCandidate[] = []
 
   if (source?.schemeId) {
-    explicitResources = await loadExplicitSchemeResources(source.schemeId)
+    // A dated Scheme row is the lesson-number/period authority. Once a Scheme
+    // lesson exists, only resources explicitly linked to THAT row may enter
+    // its source bundle. Never union broad curriculum/sub-strand publications:
+    // a certified resource for lesson 2 must not leak into lesson 1 merely
+    // because both share a sub-strand.
+    candidates = await loadExplicitSchemeResources(source.schemeId)
+  } else if (source) {
+    // Curriculum-wide discovery is permitted only when there is no exact
+    // Scheme lesson to scope the occurrence.
+    candidates = await loadCurriculumResourceCandidates(source)
   }
 
-  if (source) {
-    curriculumResources = await loadCurriculumResourceCandidates(source)
-  }
-
-  const candidates = uniqueById([
-    ...explicitResources,
-    ...curriculumResources,
-  ])
-
-  const certifiedContent = await loadCertifiedVersions(candidates)
+  const certifiedContent = await loadCertifiedVersions(
+    uniqueById(candidates),
+  )
 
   return {
     timetableOccurrence: {
