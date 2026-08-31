@@ -530,8 +530,11 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
         if (isLimitedOnboardingPath) {
           const { data: { user }, error: userError } = await supabase.auth.getUser();
           if (userError || !user) { router.replace(`/login/teacher?redirect=${encodeURIComponent(pathname)}`); return; }
-          const { data: profileData, error: profileError } = await supabase.from("profiles").select("full_name,role,account_status,is_anonymized").eq("id", user.id).single();
-          if (profileError || !profileData || profileData.role !== "teacher" || profileData.account_status !== "active" || profileData.is_anonymized) {
+          const [{ data: profileData, error: profileError }, { data: teacherData, error: teacherError }] = await Promise.all([
+            supabase.from("profiles").select("full_name,account_status,is_anonymized").eq("id", user.id).single(),
+            supabase.from("teacher_profiles").select("profile_id").eq("profile_id", user.id).maybeSingle(),
+          ]);
+          if (profileError || teacherError || !profileData || !teacherData?.profile_id || profileData.account_status !== "active" || profileData.is_anonymized) {
             router.replace("/auth/error?reason=teacher_authority_required");
             return;
           }

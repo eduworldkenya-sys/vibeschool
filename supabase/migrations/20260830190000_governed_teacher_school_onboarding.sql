@@ -1,6 +1,7 @@
 begin;
 
 -- A teacher selecting a school is evidence for a claim, never authority.
+-- authorization-test: public.teacher_school_claims supabase/tests/governed_teacher_school_onboarding_contract.sql
 create table if not exists public.teacher_school_claims (
   id uuid primary key default gen_random_uuid(),
   reference_code text not null unique default ('VS-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10))),
@@ -37,6 +38,7 @@ drop policy if exists teacher_school_claims_read_own on public.teacher_school_cl
 create policy teacher_school_claims_read_own on public.teacher_school_claims
   for select to authenticated using (teacher_id = (select auth.uid()));
 
+-- authorization-test: public.provisional_teacher_classes supabase/tests/governed_teacher_school_onboarding_contract.sql
 create table if not exists public.provisional_teacher_classes (
   id uuid primary key default gen_random_uuid(),
   teacher_id uuid not null references public.profiles(id) on delete cascade,

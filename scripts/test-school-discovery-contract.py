@@ -8,10 +8,8 @@ combined = "\n".join(p.read_text() for p in migrations)
 
 required_page_markers = [
     'search_school_directory',
-    'connect_teacher_to_directory_school',
-    'connect_teacher_to_school',
+    'submit_teacher_school_claim',
     'submit_school_discovery_request',
-    'school_identity_review_required',
     'My school is new or missing',
     'There are schools with the same name.',
 ]
