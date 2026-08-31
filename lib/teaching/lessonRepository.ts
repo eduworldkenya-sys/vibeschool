@@ -20,6 +20,7 @@ export interface ExistingLessonPlan {
   curriculum_id: string | null
   strand_id: string | null
   scheme_id: string | null
+  generated_by: string | null
 }
 
 export interface SaveGeneratedLessonPlanInput {
@@ -50,6 +51,7 @@ export interface SavedLessonPlanIdentity {
   curriculum_id: string | null
   strand_id: string | null
   scheme_id: string | null
+  generated_by: string | null
 }
 
 /**
@@ -70,7 +72,7 @@ export async function loadLessonPlanForOccurrence({
   const { data, error } = await supabase
     .from('lesson_plans')
     .select(
-      'id, title, body, topic, status, curriculum_id, strand_id, scheme_id',
+      'id, title, body, topic, status, curriculum_id, strand_id, scheme_id, generated_by',
     )
     .eq('teacher_id', teacherId)
     .eq('timetable_slot_id', timetableSlotId)
@@ -85,28 +87,34 @@ export async function loadLessonPlanForOccurrence({
 }
 
 /**
- * Inserts or updates a generated plan and verifies the database-returned
- * curriculum identity before reporting success.
+ * Persists the normal Lesson Workspace builder as deterministic provenance.
+ * The current caller never invokes a model provider; historical/explicit AI
+ * paths do not use this repository seam and retain their own provenance.
  */
 export async function saveGeneratedLessonPlan({
   planId,
   payload,
   expectedIdentity,
 }: SaveGeneratedLessonPlanInput): Promise<SavedLessonPlanIdentity> {
+  const deterministicPayload = {
+    ...payload,
+    generated_by: 'deterministic',
+  }
+
   const writeResult = planId
     ? await supabase
         .from('lesson_plans')
-        .update(payload)
+        .update(deterministicPayload)
         .eq('id', planId)
         .select(
-          'id, curriculum_id, strand_id, scheme_id',
+          'id, curriculum_id, strand_id, scheme_id, generated_by',
         )
         .single()
     : await supabase
         .from('lesson_plans')
-        .insert(payload)
+        .insert(deterministicPayload)
         .select(
-          'id, curriculum_id, strand_id, scheme_id',
+          'id, curriculum_id, strand_id, scheme_id, generated_by',
         )
         .single()
 
@@ -123,16 +131,19 @@ export async function saveGeneratedLessonPlan({
   const saved = writeResult.data
 
   const identityMatches =
-    (saved.curriculum_id ?? null) ===
-      expectedIdentity.curriculumId &&
-    (saved.strand_id ?? null) ===
-      expectedIdentity.strandId &&
-    (saved.scheme_id ?? null) ===
-      expectedIdentity.schemeId
+    (saved.curriculum_id ?? null) === expectedIdentity.curriculumId &&
+    (saved.strand_id ?? null) === expectedIdentity.strandId &&
+    (saved.scheme_id ?? null) === expectedIdentity.schemeId
 
   if (!identityMatches) {
     throw new Error(
       'lessonRepository: saved curriculum identity did not match the selected source.',
+    )
+  }
+
+  if (saved.generated_by !== 'deterministic') {
+    throw new Error(
+      'lessonRepository: deterministic lesson provenance was not persisted.',
     )
   }
 
