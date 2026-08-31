@@ -51,16 +51,19 @@ function sourceTuples(identity: LessonPackageSourceIdentity): Array<{
   resourceVersionId: string
   contentSha256: string
 }> {
-  const maxLength = Math.max(
+  const lengths = [
     identity.sourceResourceIds.length,
     identity.sourceResourceVersionIds.length,
     identity.sourceHashes.length,
-  )
+  ]
+  if (!lengths.every(length => length === lengths[0])) {
+    throw new Error('LESSON_PACKAGE_SOURCE_BINDINGS_MISMATCH')
+  }
 
-  return Array.from({ length: maxLength }, (_, index) => ({
-    resourceId: identity.sourceResourceIds[index] ?? '',
-    resourceVersionId: identity.sourceResourceVersionIds[index] ?? '',
-    contentSha256: identity.sourceHashes[index] ?? '',
+  return identity.sourceResourceIds.map((resourceId, index) => ({
+    resourceId,
+    resourceVersionId: identity.sourceResourceVersionIds[index],
+    contentSha256: identity.sourceHashes[index],
   })).sort((left, right) =>
     `${left.resourceId}|${left.resourceVersionId}|${left.contentSha256}`.localeCompare(
       `${right.resourceId}|${right.resourceVersionId}|${right.contentSha256}`,
@@ -106,11 +109,61 @@ function isSections(value: unknown): value is LessonPlanSections {
     'assessmentHook',
     'homework',
     'differentiation',
-  ].every(key => typeof record[key] === 'string')
+  ].every(key => typeof record[key] === 'string' && String(record[key]).trim().length > 0)
 }
 
 function untypedClient(): SupabaseClient<any> {
   return supabase as unknown as SupabaseClient<any>
+}
+
+async function loadSchemeScopedPackage({
+  db,
+  cacheKey,
+  sourceFingerprint,
+  identity,
+}: {
+  db: SupabaseClient<any>
+  cacheKey: string
+  sourceFingerprint: string
+  identity: LessonPackageSourceIdentity & { schemeId: string }
+}): Promise<PackageCacheRow | null> {
+  const { data, error } = await db
+    .from('lesson_package_cache')
+    .select('id, sections, reuse_scope, certification_status, certification_policy_version, certified_at')
+    .eq('cache_key', cacheKey)
+    .eq('source_fingerprint', sourceFingerprint)
+    .eq('duration_minutes', identity.durationMinutes)
+    .eq('reuse_scope', 'scheme')
+    .eq('scheme_id', identity.schemeId)
+    .maybeSingle()
+  if (error) throw error
+  return (data as PackageCacheRow | null) ?? null
+}
+
+async function loadCertifiedGlobalPackage({
+  db,
+  cacheKey,
+  sourceFingerprint,
+  durationMinutes,
+}: {
+  db: SupabaseClient<any>
+  cacheKey: string
+  sourceFingerprint: string
+  durationMinutes: number
+}): Promise<PackageCacheRow | null> {
+  const { data, error } = await db
+    .from('lesson_package_cache')
+    .select('id, sections, reuse_scope, certification_status, certification_policy_version, certified_at')
+    .eq('cache_key', cacheKey)
+    .eq('source_fingerprint', sourceFingerprint)
+    .eq('duration_minutes', durationMinutes)
+    .eq('reuse_scope', 'global')
+    .eq('certification_status', 'certified')
+    .not('certification_policy_version', 'is', null)
+    .not('certified_at', 'is', null)
+    .maybeSingle()
+  if (error) throw error
+  return (data as PackageCacheRow | null) ?? null
 }
 
 export async function loadExactLessonPackage(identity: LessonPackageSourceIdentity): Promise<{
@@ -122,31 +175,26 @@ export async function loadExactLessonPackage(identity: LessonPackageSourceIdenti
   const sourceFingerprint = await buildLessonPackageSourceFingerprint(identity)
   const db = untypedClient()
 
-  let query = db
-    .from('lesson_package_cache')
-    .select('id, sections, reuse_scope, certification_status, certification_policy_version, certified_at')
-    .eq('cache_key', cacheKey)
-    .eq('source_fingerprint', sourceFingerprint)
-    .eq('duration_minutes', identity.durationMinutes)
+  if (identity.schemeId) {
+    const schemePackage = await loadSchemeScopedPackage({
+      db,
+      cacheKey,
+      sourceFingerprint,
+      identity: { ...identity, schemeId: identity.schemeId },
+    })
+    if (schemePackage && isSections(schemePackage.sections)) {
+      return { sections: schemePackage.sections, packageId: schemePackage.id, reuseScope: 'scheme' }
+    }
+  }
 
-  if (identity.schemeId) query = query.or(`scheme_id.eq.${identity.schemeId},reuse_scope.eq.global`)
-  else query = query.eq('reuse_scope', 'global')
-
-  const { data, error } = await query.limit(4)
-  if (error) throw error
-
-  const rows = (data ?? []) as PackageCacheRow[]
-  const selected =
-    rows.find(row => row.reuse_scope === 'scheme') ??
-    rows.find(row =>
-      row.reuse_scope === 'global' &&
-      row.certification_status === 'certified' &&
-      Boolean(row.certification_policy_version) &&
-      Boolean(row.certified_at),
-    )
-
-  if (!selected || !isSections(selected.sections)) return null
-  return { sections: selected.sections, packageId: selected.id, reuseScope: selected.reuse_scope }
+  const globalPackage = await loadCertifiedGlobalPackage({
+    db,
+    cacheKey,
+    sourceFingerprint,
+    durationMinutes: identity.durationMinutes,
+  })
+  if (!globalPackage || !isSections(globalPackage.sections)) return null
+  return { sections: globalPackage.sections, packageId: globalPackage.id, reuseScope: 'global' }
 }
 
 export async function storeSchemeLessonPackage({
@@ -159,6 +207,7 @@ export async function storeSchemeLessonPackage({
   generationMode?: 'deterministic' | 'ai_assisted'
 }): Promise<string | null> {
   if (!identity.schemeId) return null
+  if (!isSections(sections)) throw new Error('LESSON_PACKAGE_SECTIONS_INVALID')
 
   const cacheKey = buildLessonPackageCacheKey(identity)
   const sourceFingerprint = await buildLessonPackageSourceFingerprint(identity)
