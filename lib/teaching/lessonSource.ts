@@ -27,6 +27,7 @@ export interface ResolveLessonSourceInput {
   subjectId: string
   subjectName: string
   grade: string
+  timetableSlotId?: string | null
   occurrenceDate?: string | null
   requestedSchemeId?: string | null
 }
@@ -49,6 +50,14 @@ interface SchemeSourceRow {
   lesson_number: number | null
   period: number | null
   sequence_number: number | null
+}
+
+interface TimetableSourceRow {
+  id: string
+  day_of_week: number
+  start_time: string
+  effective_from: string | null
+  effective_until: string | null
 }
 
 const SCHEME_SOURCE_COLUMNS = [
@@ -173,14 +182,90 @@ async function loadSchemeSourceById({
   return data
 }
 
+async function loadSchemeSourceForOccurrence({
+  timetableSlotId,
+  occurrenceDate,
+  userId,
+  schoolId,
+  classId,
+  subjectId,
+  academicTermId,
+  academicTermStartDate,
+}: {
+  timetableSlotId: string
+  occurrenceDate: string
+  userId: string
+  schoolId: string
+  classId: string
+  subjectId: string
+  academicTermId: string
+  academicTermStartDate: string
+}): Promise<SchemeSourceRow | null> {
+  const occurrenceWeek = weekForOccurrence(
+    academicTermStartDate,
+    occurrenceDate,
+  )
+  if (occurrenceWeek === null) return null
+
+  const { data: slotRows, error: slotError } = await supabase
+    .from('timetable_slots')
+    .select('id, day_of_week, start_time, effective_from, effective_until')
+    .eq('school_id', schoolId)
+    .eq('teacher_id', userId)
+    .eq('class_id', classId)
+    .eq('subject_id', subjectId)
+
+  if (slotError) throw slotError
+
+  const activeSlots = ((slotRows ?? []) as TimetableSourceRow[])
+    .filter((slot) =>
+      (!slot.effective_from || slot.effective_from <= occurrenceDate) &&
+      (!slot.effective_until || slot.effective_until >= occurrenceDate),
+    )
+    .sort((left, right) =>
+      left.day_of_week - right.day_of_week ||
+      left.start_time.localeCompare(right.start_time) ||
+      left.id.localeCompare(right.id),
+    )
+
+  const weeklyPeriodIndex = activeSlots.findIndex(
+    (slot) => slot.id === timetableSlotId,
+  )
+  if (weeklyPeriodIndex < 0) return null
+
+  const { data: exactScheme, error: exactSchemeError } = await supabase
+    .from('scheme_of_work')
+    .select(SCHEME_SOURCE_COLUMNS)
+    .eq('teacher_id', userId)
+    .eq('school_id', schoolId)
+    .eq('class_id', classId)
+    .eq('subject_id', subjectId)
+    .eq('academic_term_id', academicTermId)
+    .eq('week', occurrenceWeek)
+    .eq('period', weeklyPeriodIndex + 1)
+    .maybeSingle()
+
+  if (exactSchemeError) throw exactSchemeError
+  if (!exactScheme) return null
+  if (!isSchemeSourceRow(exactScheme)) {
+    throw new Error(
+      'lessonSource: exact occurrence Scheme source is missing required fields.',
+    )
+  }
+
+  return exactScheme
+}
+
 /**
  * Resolves the educational source for a lesson occurrence.
  *
  * Authority order:
- * 1. Explicit Scheme item selected by the teacher.
- * 2. Next Scheme item after actual completed teaching progress.
- * 3. Curriculum fallback for the occurrence's academic week.
- * 4. No source — the teacher may enter a custom topic.
+ * 1. Explicit Scheme item selected by the teacher / persisted lesson plan.
+ * 2. Exact dated timetable occurrence -> academic week + weekly timetable
+ *    ordinal -> exact Scheme week + period row.
+ * 3. Legacy progression fallback when an exact occurrence cannot be mapped.
+ * 4. Curriculum fallback for the occurrence's academic week.
+ * 5. No source — the teacher may enter a custom topic.
  *
  * A Scheme row remains authoritative even when legacy curriculum rows do not
  * yet have a reusable sub_strand_id. That condition may disable canonical
@@ -188,7 +273,7 @@ async function loadSchemeSourceById({
  * detach the lesson from its Scheme of Work.
  *
  * This function is read-only. It never creates or updates lesson plans,
- * Scheme rows, curriculum rows or teaching occurrences.
+ * Scheme rows, curriculum rows, timetable slots or teaching occurrences.
  */
 export async function resolveLessonSource({
   userId,
@@ -197,6 +282,7 @@ export async function resolveLessonSource({
   subjectId,
   subjectName,
   grade,
+  timetableSlotId = null,
   occurrenceDate = null,
   requestedSchemeId = null,
 }: ResolveLessonSourceInput): Promise<LessonSourceSuggestion | null> {
@@ -223,6 +309,26 @@ export async function resolveLessonSource({
     return toSuggestion(requestedScheme, term.term)
   }
 
+  if (timetableSlotId && occurrenceDate) {
+    const occurrenceScheme = await loadSchemeSourceForOccurrence({
+      timetableSlotId,
+      occurrenceDate,
+      userId,
+      schoolId,
+      classId,
+      subjectId,
+      academicTermId: term.id,
+      academicTermStartDate: term.start_date,
+    })
+
+    if (occurrenceScheme) {
+      return toSuggestion(occurrenceScheme, term.term)
+    }
+  }
+
+  // Compatibility fallback for historical/unbound timetable data only. The
+  // canonical path above is deterministic and must win whenever the occurrence
+  // can be located in the active weekly timetable.
   const {
     data: nextSchemeRows,
     error: nextSchemeError,
