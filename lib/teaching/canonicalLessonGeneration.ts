@@ -76,6 +76,7 @@ function collectStrings(value: Json, keys: Set<string>, parentKey: string | null
   if (Array.isArray(value)) return value.flatMap(item => collectStrings(item, keys, parentKey))
 
   return Object.entries(value).flatMap(([key, child]) => {
+    if (child === undefined) return []
     if (keys.has(key)) return collectStrings(child, keys, key)
     return typeof child === 'object' && child !== null
       ? collectStrings(child, keys, parentKey)
