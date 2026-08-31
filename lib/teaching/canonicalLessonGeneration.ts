@@ -136,6 +136,10 @@ function cacheIdentity(
     sourceHashes: assets.map(asset => asset.contentSha256),
     schemeObjectives: identity.schemeObjectives,
     keyInquiryQuestion: identity.keyInquiryQuestion,
+    learningResources: identity.learningResources,
+    learningExperiences: identity.learningExperiences,
+    assessmentMethods: identity.assessmentMethods,
+    reference: identity.reference,
   }
 }
 
