@@ -97,17 +97,10 @@ export async function getTermForDate(
 }
 
 /**
- * Administrative/current-term helper retained for undated screens.
- * Dated lesson resolution must use getTermForDate instead.
+ * Current-term helper for undated screens. "Active" is calendar-derived:
+ * whichever term contains today wins, regardless of a stale lifecycle label.
  */
 export async function getActiveTerm(schoolId: string): Promise<ActiveTerm | null> {
-  const { data, error } = await supabase
-    .from('academic_terms')
-    .select('id,term,academic_year,start_date,end_date,status')
-    .eq('school_id', schoolId)
-    .eq('status', 'active')
-    .maybeSingle()
-
-  if (error) throw error
-  return (data as ActiveTerm | null) ?? null
+  const today = new Date().toISOString().slice(0, 10)
+  return getTermForDate(schoolId, today)
 }
