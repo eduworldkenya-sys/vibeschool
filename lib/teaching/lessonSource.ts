@@ -7,6 +7,19 @@ import type {
   CurriculumSuggestion,
 } from '@/lib/types'
 
+export interface LessonSourceSuggestion extends CurriculumSuggestion {
+  objectives: string | null
+  keyInquiryQuestion: string | null
+  learningResources: string | null
+  resources: string | null
+  reference: string | null
+  learningExperiences: string | null
+  assessmentMethods: string | null
+  lessonNumber: number | null
+  period: number | null
+  sequenceNumber: number | null
+}
+
 export interface ResolveLessonSourceInput {
   userId: string
   schoolId: string
@@ -14,7 +27,131 @@ export interface ResolveLessonSourceInput {
   subjectId: string
   subjectName: string
   grade: string
+  occurrenceDate?: string | null
   requestedSchemeId?: string | null
+}
+
+interface SchemeSourceRow {
+  id: string
+  curriculum_id: string | null
+  sub_strand_id: string | null
+  strand: string | null
+  sub_strand: string | null
+  topic: string
+  week: number
+  objectives: string | null
+  key_inquiry_question: string | null
+  learning_resources: string | null
+  resources: string | null
+  reference: string | null
+  learning_experiences: string | null
+  assessment_methods: string | null
+  lesson_number: number | null
+  period: number | null
+  sequence_number: number | null
+}
+
+const SCHEME_SOURCE_COLUMNS = [
+  'id',
+  'curriculum_id',
+  'sub_strand_id',
+  'strand',
+  'sub_strand',
+  'topic',
+  'week',
+  'objectives',
+  'key_inquiry_question',
+  'learning_resources',
+  'resources',
+  'reference',
+  'learning_experiences',
+  'assessment_methods',
+  'lesson_number',
+  'period',
+  'sequence_number',
+].join(',')
+
+function weekForOccurrence(
+  startDate: string,
+  occurrenceDate: string | null | undefined,
+): number | null {
+  if (
+    !occurrenceDate ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(startDate) ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(occurrenceDate)
+  ) {
+    return null
+  }
+
+  const start = Date.parse(`${startDate}T00:00:00Z`)
+  const occurrence = Date.parse(`${occurrenceDate}T00:00:00Z`)
+
+  if (
+    Number.isNaN(start) ||
+    Number.isNaN(occurrence) ||
+    occurrence < start
+  ) {
+    return null
+  }
+
+  return Math.floor((occurrence - start) / 604800000) + 1
+}
+
+function toSuggestion(
+  row: SchemeSourceRow,
+  termNumber: number,
+): LessonSourceSuggestion {
+  return {
+    id: row.curriculum_id,
+    strand: row.strand ?? '',
+    subStrand: row.sub_strand ?? '',
+    topic: row.topic,
+    term: termNumber,
+    week: row.week,
+    strandId: row.sub_strand_id ?? null,
+    schemeId: row.id,
+    objectives: row.objectives ?? null,
+    keyInquiryQuestion: row.key_inquiry_question ?? null,
+    learningResources: row.learning_resources ?? null,
+    resources: row.resources ?? null,
+    reference: row.reference ?? null,
+    learningExperiences: row.learning_experiences ?? null,
+    assessmentMethods: row.assessment_methods ?? null,
+    lessonNumber: row.lesson_number ?? null,
+    period: row.period ?? null,
+    sequenceNumber: row.sequence_number ?? null,
+  }
+}
+
+async function loadSchemeSourceById({
+  schemeId,
+  userId,
+  schoolId,
+  classId,
+  subjectId,
+  academicTermId,
+}: {
+  schemeId: string
+  userId: string
+  schoolId: string
+  classId: string
+  subjectId: string
+  academicTermId: string
+}): Promise<SchemeSourceRow | null> {
+  const { data, error } = await supabase
+    .from('scheme_of_work')
+    .select(SCHEME_SOURCE_COLUMNS)
+    .eq('id', schemeId)
+    .eq('teacher_id', userId)
+    .eq('class_id', classId)
+    .eq('subject_id', subjectId)
+    .eq('academic_term_id', academicTermId)
+    .eq('school_id', schoolId)
+    .maybeSingle()
+
+  if (error) throw error
+
+  return data as unknown as SchemeSourceRow | null
 }
 
 /**
@@ -23,12 +160,13 @@ export interface ResolveLessonSourceInput {
  * Authority order:
  * 1. Explicit Scheme item selected by the teacher.
  * 2. Next Scheme item after actual completed teaching progress.
- * 3. Current-week national curriculum fallback.
+ * 3. Curriculum fallback for the occurrence's academic week.
  * 4. No source — the teacher may enter a custom topic.
  *
- * Stable curriculum identity is carried directly from persisted UUID columns.
- * Text labels are display/pedagogy data only and are never used to manufacture
- * canonical identity.
+ * A Scheme row remains authoritative even when legacy curriculum rows do not
+ * yet have a reusable sub_strand_id. That condition may disable canonical
+ * asset reuse, but it must never force the teacher to retype a known topic or
+ * detach the lesson from its Scheme of Work.
  *
  * This function is read-only. It never creates or updates lesson plans,
  * Scheme rows, curriculum rows or teaching occurrences.
@@ -40,46 +178,22 @@ export async function resolveLessonSource({
   subjectId,
   subjectName,
   grade,
+  occurrenceDate = null,
   requestedSchemeId = null,
-}: ResolveLessonSourceInput): Promise<CurriculumSuggestion | null> {
+}: ResolveLessonSourceInput): Promise<LessonSourceSuggestion | null> {
   const term = await getActiveTerm(schoolId)
 
-  if (!term) {
-    return null
-  }
-
-  const currentWeek = currentWeekOf(term)
-
-  let schemeSource: {
-    schemeId: string
-    curriculumId: string | null
-    subStrandId: string | null
-    strand: string | null
-    subStrand: string | null
-    topic: string
-    week: number
-  } | null = null
+  if (!term) return null
 
   if (requestedSchemeId) {
-    const {
-      data: requestedScheme,
-      error: requestedSchemeError,
-    } = await supabase
-      .from('scheme_of_work')
-      .select(
-        'id, curriculum_id, sub_strand_id, strand, sub_strand, topic, week',
-      )
-      .eq('id', requestedSchemeId)
-      .eq('teacher_id', userId)
-      .eq('class_id', classId)
-      .eq('subject_id', subjectId)
-      .eq('academic_term_id', term.id)
-      .eq('school_id', schoolId)
-      .maybeSingle()
-
-    if (requestedSchemeError) {
-      throw requestedSchemeError
-    }
+    const requestedScheme = await loadSchemeSourceById({
+      schemeId: requestedSchemeId,
+      userId,
+      schoolId,
+      classId,
+      subjectId,
+      academicTermId: term.id,
+    })
 
     if (!requestedScheme) {
       throw new Error(
@@ -87,89 +201,43 @@ export async function resolveLessonSource({
       )
     }
 
-    schemeSource = {
-      schemeId: requestedScheme.id,
-      curriculumId:
-        requestedScheme.curriculum_id ?? null,
-      subStrandId:
-        requestedScheme.sub_strand_id ?? null,
-      strand: requestedScheme.strand,
-      subStrand: requestedScheme.sub_strand,
-      topic: requestedScheme.topic,
-      week: requestedScheme.week,
-    }
-  } else {
-    const {
-      data: nextSchemeRows,
-      error: nextSchemeError,
-    } = await supabase.rpc(
-      'get_next_scheme_item',
-      {
-        p_class_id: classId,
-        p_subject_id: subjectId,
-        p_academic_term_id: term.id,
-      },
-    )
+    return toSuggestion(requestedScheme, term.term)
+  }
 
-    if (nextSchemeError) {
-      throw nextSchemeError
-    }
+  const {
+    data: nextSchemeRows,
+    error: nextSchemeError,
+  } = await supabase.rpc(
+    'get_next_scheme_item',
+    {
+      p_class_id: classId,
+      p_subject_id: subjectId,
+      p_academic_term_id: term.id,
+    },
+  )
 
-    const nextScheme = nextSchemeRows?.[0]
+  if (nextSchemeError) throw nextSchemeError
 
-    if (nextScheme) {
-      // get_next_scheme_item predates canonical reusable assets and may not
-      // return sub_strand_id. Re-read the exact authoritative Scheme row by
-      // its UUID rather than resolving identity from text labels.
-      const {
-        data: schemeIdentity,
-        error: schemeIdentityError,
-      } = await supabase
-        .from('scheme_of_work')
-        .select('curriculum_id, sub_strand_id')
-        .eq('id', nextScheme.scheme_id)
-        .eq('teacher_id', userId)
-        .eq('class_id', classId)
-        .eq('subject_id', subjectId)
-        .eq('academic_term_id', term.id)
-        .eq('school_id', schoolId)
-        .single()
+  const nextScheme = nextSchemeRows?.[0]
 
-      if (schemeIdentityError) {
-        throw schemeIdentityError
-      }
+  if (nextScheme?.scheme_id) {
+    const exactScheme = await loadSchemeSourceById({
+      schemeId: nextScheme.scheme_id,
+      userId,
+      schoolId,
+      classId,
+      subjectId,
+      academicTermId: term.id,
+    })
 
-      schemeSource = {
-        schemeId: nextScheme.scheme_id,
-        curriculumId:
-          schemeIdentity.curriculum_id ??
-          nextScheme.curriculum_id ??
-          null,
-        subStrandId:
-          schemeIdentity.sub_strand_id ?? null,
-        strand: nextScheme.strand,
-        subStrand: nextScheme.sub_strand,
-        topic: nextScheme.topic,
-        week: nextScheme.week,
-      }
+    if (exactScheme) {
+      return toSuggestion(exactScheme, term.term)
     }
   }
 
-  if (schemeSource) {
-    return {
-      id: schemeSource.curriculumId,
-      strand: schemeSource.strand ?? '',
-      subStrand: schemeSource.subStrand ?? '',
-      topic: schemeSource.topic,
-      term: term.term,
-      week: schemeSource.week,
-      // CurriculumSuggestion.strandId is the historical field name. For the
-      // canonical path it carries the stable curriculum sub-strand UUID used
-      // by learning_resources.sub_strand_id.
-      strandId: schemeSource.subStrandId,
-      schemeId: schemeSource.schemeId,
-    }
-  }
+  const occurrenceWeek =
+    weekForOccurrence(term.start_date, occurrenceDate) ??
+    currentWeekOf(term)
 
   const { data: curriculumRows, error: curriculumError } =
     await supabase
@@ -178,18 +246,13 @@ export async function resolveLessonSource({
       .eq('grade', grade)
       .eq('subject', subjectName)
       .eq('term', term.term)
-      .eq('week', currentWeek)
+      .eq('week', occurrenceWeek)
       .limit(1)
 
-  if (curriculumError) {
-    throw curriculumError
-  }
+  if (curriculumError) throw curriculumError
 
   const curriculumRow = curriculumRows?.[0]
-
-  if (!curriculumRow) {
-    return null
-  }
+  if (!curriculumRow) return null
 
   return {
     id: curriculumRow.id,
@@ -197,8 +260,18 @@ export async function resolveLessonSource({
     subStrand: curriculumRow.sub_strand,
     topic: curriculumRow.topic,
     term: term.term,
-    week: currentWeek,
+    week: occurrenceWeek,
     strandId: curriculumRow.sub_strand_id ?? null,
     schemeId: null,
+    objectives: null,
+    keyInquiryQuestion: null,
+    learningResources: null,
+    resources: null,
+    reference: null,
+    learningExperiences: null,
+    assessmentMethods: null,
+    lessonNumber: null,
+    period: null,
+    sequenceNumber: null,
   }
 }
