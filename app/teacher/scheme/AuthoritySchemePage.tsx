@@ -14,12 +14,8 @@ type RpcError = { message: string; code?: string | null }
 type RpcResponse<T> = { data: T | null; error: RpcError | null }
 
 async function callRpc<T>(name: string, args: Record<string, unknown>): Promise<RpcResponse<T>> {
-  const rpc = supabase.rpc as unknown as (
-    functionName: string,
-    parameters: Record<string, unknown>,
-  ) => Promise<{ data: unknown; error: RpcError | null }>
-  const result = await rpc(name, args)
-  return { data: result.data as T | null, error: result.error }
+  const result: RpcResponse<T> = await Reflect.apply(supabase.rpc, supabase, [name, args])
+  return result
 }
 
 const C = {
