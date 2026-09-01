@@ -20,8 +20,6 @@ where swa.global_subject_id is null
 create index if not exists subject_weekly_allocations_grade_global_subject_idx
   on public.subject_weekly_allocations(grade,global_subject_id);
 
--- Resolve the exact academic term by ownership + date. Mutable lifecycle status
--- is deliberately not part of the authority contract.
 create or replace function public.resolve_academic_term_for_date(
   p_school_id uuid,
   p_date date
@@ -66,8 +64,6 @@ begin
 end;
 $function$;
 
--- Resolve an instructional week from the configured term_weeks calendar. A
--- school override wins over the national row for the same term/week.
 create or replace function public.resolve_instructional_week_for_date(
   p_school_id uuid,
   p_date date
@@ -154,8 +150,9 @@ declare
   v_lessons integer;
 begin
   if v_uid is null then raise exception 'SCHEME_AUTH_REQUIRED'; end if;
-  select c.school_id,c.grade into v_school_id,v_grade from public.classes c where c.id=p_class_id;
+  select c.school_id,nullif(btrim(c.name),'') into v_school_id,v_grade from public.classes c where c.id=p_class_id;
   if v_school_id is null then raise exception 'SCHEME_CLASS_NOT_FOUND'; end if;
+  if v_grade is null then raise exception 'SCHEME_CLASS_GRADE_REQUIRED'; end if;
   if not exists(select 1 from public.teacher_classes tc where tc.teacher_id=v_uid and tc.school_id=v_school_id and tc.class_id=p_class_id and tc.subject_id=p_subject_id)
      and not public.is_school_admin(v_school_id)
   then raise exception 'SCHEME_ASSIGNMENT_REQUIRED'; end if;
@@ -177,8 +174,6 @@ begin
 end;
 $function$;
 
--- SOW-06/SOW-08: custom lessons also allocate sequence under the same advisory
--- lock. Optional resource linking happens in the same transaction.
 create or replace function public.commit_custom_scheme_item(
   p_class_id uuid,
   p_subject_id uuid,
@@ -218,6 +213,14 @@ begin
   if not exists(select 1 from public.teacher_classes tc where tc.teacher_id=v_uid and tc.school_id=v_class.school_id and tc.class_id=p_class_id and tc.subject_id=p_subject_id)
      and not public.is_school_admin(v_class.school_id)
   then raise exception 'SCHEME_ASSIGNMENT_REQUIRED'; end if;
+
+  if not exists(
+    select 1
+    from public.term_weeks tw
+    where tw.term_id=p_academic_term_id
+      and (tw.school_id=v_class.school_id or tw.school_id is null)
+      and tw.week_number=p_week
+  ) then raise exception 'SCHEME_WEEK_NOT_IN_INSTRUCTIONAL_CALENDAR'; end if;
 
   perform pg_advisory_xact_lock(hashtextextended(p_class_id::text||':'||p_subject_id::text||':'||p_academic_term_id::text,0));
   select coalesce(max(s.sequence_number),0)+1 into v_next_sequence
@@ -266,8 +269,6 @@ begin
 end;
 $function$;
 
--- The legacy auto-generator can create partial curriculum rows. Remove it from
--- the authenticated normal path; the hardened commit RPC is the authority.
 revoke execute on function public.generate_scheme_from_curriculum(uuid,uuid,uuid,boolean) from authenticated;
 revoke execute on function public.ensure_scheme_from_curriculum(uuid,uuid,uuid) from authenticated;
 
