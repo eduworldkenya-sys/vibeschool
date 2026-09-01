@@ -6,18 +6,18 @@ export type LearnerAttendanceEvidence = {
 
 export type LearnerHomeworkEvidence = {
   id: string;
-  due_date: string;
+  due_date: string | null;
 };
 
 export type LearnerSubmissionEvidence = {
-  homework_id: string;
+  homework_id: string | null;
   status: string;
 };
 
 export type LearnerAssessmentEvidence = {
   assessment_id: string;
-  subject_id: string;
-  percentage: number;
+  subject_id: string | null;
+  percentage: number | null;
   assessment_type: string;
   released_at: string | null;
 };
@@ -54,24 +54,9 @@ export type LearnerTrend = {
 } | null;
 
 export type LearnerTruthSummary = {
-  attendance: {
-    records: number;
-    present: number;
-    absent: number;
-    late: number;
-    rate: number | null;
-  };
-  work: {
-    assigned: number;
-    submitted: number;
-    missing: number;
-  };
-  assessment: {
-    released: number;
-    cbc: number;
-    exams: number;
-    averageReleasedScore: number | null;
-  };
+  attendance: { records: number; present: number; absent: number; late: number; rate: number | null };
+  work: { assigned: number; submitted: number; missing: number };
+  assessment: { released: number; cbc: number; exams: number; averageReleasedScore: number | null };
   evidenceState: "none" | "sparse" | "sufficient";
   evidenceMessage: string;
   trend: LearnerTrend;
@@ -80,24 +65,24 @@ export type LearnerTruthSummary = {
 
 const CBC_SUPPORT_LEVELS = new Set(["BE", "AE"]);
 
-function finitePercent(value: number) {
-  return Number.isFinite(value) && value >= 0 && value <= 100;
+function finitePercent(value: number | null) {
+  return value !== null && Number.isFinite(value) && value >= 0 && value <= 100;
 }
 
 function comparableTrend(assessments: LearnerAssessmentEvidence[]): LearnerTrend {
   const groups = new Map<string, LearnerAssessmentEvidence[]>();
   for (const row of assessments) {
-    if (!finitePercent(Number(row.percentage)) || !row.released_at) continue;
+    if (!finitePercent(row.percentage) || !row.released_at || !row.subject_id) continue;
     const key = `${row.subject_id}::${row.assessment_type}`;
     const group = groups.get(key) ?? [];
     group.push(row);
     groups.set(key, group);
   }
 
-  const candidates = [...groups.entries()]
+  const candidates = Array.from(groups.entries())
     .map(([key, rows]) => ({
       key,
-      rows: [...rows].sort((a, b) => new Date(b.released_at ?? 0).getTime() - new Date(a.released_at ?? 0).getTime()),
+      rows: rows.slice().sort((a, b) => new Date(b.released_at ?? 0).getTime() - new Date(a.released_at ?? 0).getTime()),
     }))
     .filter(({ rows }) => rows.length >= 4)
     .sort((a, b) => b.rows.length - a.rows.length);
@@ -109,14 +94,12 @@ function comparableTrend(assessments: LearnerAssessmentEvidence[]): LearnerTrend
   const prior = selected.rows.slice(2, 4);
   const recentAverage = recent.reduce((sum, row) => sum + Number(row.percentage), 0) / recent.length;
   const priorAverage = prior.reduce((sum, row) => sum + Number(row.percentage), 0) / prior.length;
-  const [subjectId, assessmentType] = selected.key.split("::");
+  const separator = selected.key.indexOf("::");
+  if (separator < 1) return null;
+  const subjectId = selected.key.slice(0, separator);
+  const assessmentType = selected.key.slice(separator + 2);
 
-  return {
-    delta: Math.round(recentAverage - priorAverage),
-    subjectId,
-    assessmentType,
-    evidenceCount: selected.rows.length,
-  };
+  return { delta: Math.round(recentAverage - priorAverage), subjectId, assessmentType, evidenceCount: selected.rows.length };
 }
 
 export function buildLearnerTruthSummary(input: LearnerTruthInput): LearnerTruthSummary {
@@ -127,22 +110,22 @@ export function buildLearnerTruthSummary(input: LearnerTruthInput): LearnerTruth
   const attendanceRecords = input.attendance.length;
   const attendanceRate = attendanceRecords ? Math.round((present / attendanceRecords) * 100) : null;
 
-  const submissionIds = new Set(input.submissions.map((row) => row.homework_id));
+  const submissionIds = new Set(input.submissions.map((row) => row.homework_id).filter((id): id is string => typeof id === "string"));
   const submitted = input.homework.filter((row) => submissionIds.has(row.id)).length;
-  const missingRows = input.homework.filter((row) => !submissionIds.has(row.id) && new Date(row.due_date).getTime() < now.getTime());
+  const missingRows = input.homework.filter((row) => {
+    if (!row.due_date || submissionIds.has(row.id)) return false;
+    const dueAt = new Date(row.due_date).getTime();
+    return Number.isFinite(dueAt) && dueAt < now.getTime();
+  });
 
-  const releasedAssessments = input.assessments.filter((row) => row.released_at && finitePercent(Number(row.percentage)));
+  const releasedAssessments = input.assessments.filter((row) => Boolean(row.released_at) && finitePercent(row.percentage));
   const averageReleasedScore = releasedAssessments.length
     ? Math.round(releasedAssessments.reduce((sum, row) => sum + Number(row.percentage), 0) / releasedAssessments.length)
     : null;
 
   const learningEvidenceCount = releasedAssessments.length + input.cbc.length + input.examCount;
   const totalEvidenceCount = attendanceRecords + input.submissions.length + learningEvidenceCount;
-  const evidenceState: LearnerTruthSummary["evidenceState"] = totalEvidenceCount === 0
-    ? "none"
-    : learningEvidenceCount < 2
-      ? "sparse"
-      : "sufficient";
+  const evidenceState: LearnerTruthSummary["evidenceState"] = totalEvidenceCount === 0 ? "none" : learningEvidenceCount < 2 ? "sparse" : "sufficient";
 
   const signals: LearnerSignal[] = [];
   if (missingRows.length > 0) {
@@ -155,13 +138,14 @@ export function buildLearnerTruthSummary(input: LearnerTruthInput): LearnerTruth
   }
 
   const lowAssessmentGroups = new Map<string, LearnerAssessmentEvidence[]>();
-  for (const row of releasedAssessments.filter((item) => Number(item.percentage) < 50)) {
+  for (const row of releasedAssessments) {
+    if (!row.subject_id || row.percentage === null || row.percentage >= 50) continue;
     const key = `${row.subject_id}::${row.assessment_type}`;
     const group = lowAssessmentGroups.get(key) ?? [];
     group.push(row);
     lowAssessmentGroups.set(key, group);
   }
-  const repeatedLow = [...lowAssessmentGroups.values()].sort((a, b) => b.length - a.length)[0];
+  const repeatedLow = Array.from(lowAssessmentGroups.values()).sort((a, b) => b.length - a.length)[0];
   if (repeatedLow && repeatedLow.length >= 2) {
     signals.push({
       id: "repeated_low_assessment",
@@ -178,7 +162,7 @@ export function buildLearnerTruthSummary(input: LearnerTruthInput): LearnerTruth
     group.push(row);
     cbcSupportGroups.set(key, group);
   }
-  const repeatedCbc = [...cbcSupportGroups.values()].sort((a, b) => b.length - a.length)[0];
+  const repeatedCbc = Array.from(cbcSupportGroups.values()).sort((a, b) => b.length - a.length)[0];
   if (repeatedCbc && repeatedCbc.length >= 2) {
     signals.push({
       id: "repeated_cbc_support",
@@ -191,12 +175,7 @@ export function buildLearnerTruthSummary(input: LearnerTruthInput): LearnerTruth
   return {
     attendance: { records: attendanceRecords, present, absent, late, rate: attendanceRate },
     work: { assigned: input.homework.length, submitted, missing: missingRows.length },
-    assessment: {
-      released: releasedAssessments.length,
-      cbc: input.cbc.length,
-      exams: input.examCount,
-      averageReleasedScore,
-    },
+    assessment: { released: releasedAssessments.length, cbc: input.cbc.length, exams: input.examCount, averageReleasedScore },
     evidenceState,
     evidenceMessage: evidenceState === "sufficient"
       ? "Enough recorded learning evidence exists to inspect patterns."
