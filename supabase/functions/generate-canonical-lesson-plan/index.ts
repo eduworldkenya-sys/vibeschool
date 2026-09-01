@@ -94,7 +94,7 @@ async function prepareGroundedPedagogy({
   userId,
   body,
 }: {
-  db: ReturnType<typeof createClient>
+  db: any
   userId: string
   body: Record<string, unknown>
 }) {
@@ -116,10 +116,6 @@ async function prepareGroundedPedagogy({
   if (schemeError) return json({ error: "grounded_scheme_lookup_failed" }, 500)
   if (!schemeRow) return json({ error: "grounded_scheme_not_owned" }, 403)
 
-  // Never trust the browser to decide which certified resources are valid for
-  // this lesson. Reconstruct the same authority boundary server-side: an asset
-  // must either be explicitly linked to this Scheme lesson or be active
-  // teaching/reference content matching the Scheme curriculum/sub-strand.
   const { data: explicitResult, error: explicitError } = await db.rpc(
     "list_scheme_lesson_resources",
     { p_scheme_lesson_id: schemeId },
@@ -128,7 +124,7 @@ async function prepareGroundedPedagogy({
   const explicitPayload = record(explicitResult)
   const explicitResourceIds = new Set(
     (Array.isArray(explicitPayload?.resources) ? explicitPayload.resources : [])
-      .flatMap(item => {
+      .flatMap((item: unknown) => {
         const row = record(item)
         return typeof row?.resource_id === "string" ? [row.resource_id] : []
       }),
@@ -143,7 +139,7 @@ async function prepareGroundedPedagogy({
   if (resourceError) return json({ error: "grounded_resource_authority_lookup_failed" }, 500)
 
   const eligibleResourceIds = new Set(
-    (resourceRows ?? []).flatMap(resource => {
+    (resourceRows ?? []).flatMap((resource: Record<string, unknown>) => {
       const resourceId = String(resource.id)
       const purpose = typeof resource.purpose === "string" ? resource.purpose : null
       const assetKind = typeof resource.asset_kind === "string" ? resource.asset_kind : null
@@ -178,7 +174,7 @@ async function prepareGroundedPedagogy({
     .eq("lifecycle_status", "certified")
   if (versionsError) return json({ error: "grounded_content_lookup_failed" }, 500)
 
-  const versionById = new Map((versions ?? []).map(version => [String(version.id), version]))
+  const versionById = new Map((versions ?? []).map((version: Record<string, unknown>) => [String(version.id), version]))
   const verifiedSources = requestedAssets.flatMap(asset => {
     const version = versionById.get(asset.resourceVersionId)
     if (
@@ -320,8 +316,6 @@ serve(async (req) => {
     }
   }
 
-  // Legacy explicit enhancement remains separately credit-gated. Grounded
-  // canonical preparation above never enters this wallet/research path.
   const { error: recoveryError } = await db.rpc("cla_recover_expired_learning_resource_claims", { p_limit: 100 })
   if (recoveryError) {
     console.error("[generate-canonical-lesson-plan] stale claim recovery failed", recoveryError)
