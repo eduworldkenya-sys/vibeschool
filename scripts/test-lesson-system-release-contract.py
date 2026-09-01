@@ -106,11 +106,13 @@ require(canonical_ai, 'AUTHORITY RULE:', 'prompt injection/source authority boun
 require(canonical_ai, 'Untrusted display label', 'client label distrust')
 require(canonical_ai, 'Your job is HOW TO TEACH, not WHAT curriculum to teach.', 'AI pedagogical scope')
 require(canonical_ai, 'credits: { used: 0 }', 'grounded preparation does not charge teacher credits')
+intent_gate = 'if (body.intent !== EXPLICIT_AI_INTENT && body.intent !== GROUNDED_PREPARE_INTENT)'
+require(canonical_ai, intent_gate, 'canonical intent separation gate')
 require(canonical_ai, 'if (body.intent === GROUNDED_PREPARE_INTENT)', 'grounded branch')
 grounded_branch = canonical_ai.index('if (body.intent === GROUNDED_PREPARE_INTENT)')
 credit_reservation = canonical_ai.index('cla_reserve_learning_resource_credit')
 assert grounded_branch < credit_reservation, 'grounded preparation must branch before legacy credit work'
-require(canonical_ai, 'Legacy explicit enhancement remains separately credit-gated.', 'explicit/grounded economic separation')
+assert canonical_ai.index(intent_gate) < grounded_branch, 'canonical intent gate must precede grounded branch'
 
 # Teacher-facing normal path remains prepared rather than generation-centric.
 require(modal, 'Built from Scheme + VibeSchool Content', 'teacher provenance')
