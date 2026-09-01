@@ -3,31 +3,35 @@ name: Canonical Learning Assets R3
 on:
   pull_request:
     paths:
-      - 'lib/content/canonicalLearningAssetIdentity.ts'
-      - 'lib/content/canonicalLearningAssetLookup.ts'
-      - 'lib/teaching/canonicalLessonGeneration.ts'
-      - 'lib/teaching/lessonSource.ts'
-      - 'lib/teaching/lessonWorkspace.ts'
-      - 'supabase/migrations/20260818141000_canonical_learning_resource_versions.sql'
-      - 'supabase/migrations/20260818141500_canonical_learning_resource_version_visibility_hardening.sql'
-      - 'supabase/migrations/20260818141600_canonical_learning_resource_platform_visibility.sql'
-      - 'supabase/migrations/20260818142000_canonical_learning_resource_generation_claims.sql'
-      - 'supabase/migrations/20260818142100_canonical_learning_resource_candidate_deposit.sql'
-      - 'supabase/migrations/20260818142200_canonical_learning_resource_promotion_authority.sql'
-      - 'supabase/migrations/20260818142300_canonical_lesson_resource_version_pin.sql'
-      - 'supabase/migrations/20260818214000_canonical_learning_resource_credit_reservation.sql'
-      - 'supabase/migrations/20260818214100_canonical_learning_resource_credit_recovery.sql'
+      - 'lib/teaching/**'
+      - 'components/teacher/**'
       - 'supabase/functions/generate-canonical-lesson-plan/**'
+      - 'supabase/functions/_shared/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-canonical-learning-asset-identity.sh'
       - 'scripts/sql/canonical_learning_resource_versions_verify.sql'
       - 'scripts/sql/canonical_learning_resource_promotion_verify.sql'
-      - 'scripts/test-canonical-learning-asset-identity.sh'
       - '.github/workflows/canonical-learning-assets-r3.yml'
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/teaching/**'
+      - 'components/teacher/**'
+      - 'supabase/functions/generate-canonical-lesson-plan/**'
+      - 'supabase/functions/_shared/**'
+      - 'supabase/migrations/**'
+      - 'scripts/test-canonical-learning-asset-identity.sh'
+      - 'scripts/sql/canonical_learning_resource_versions_verify.sql'
+      - 'scripts/sql/canonical_learning_resource_promotion_verify.sql'
+      - '.github/workflows/canonical-learning-assets-r3.yml'
+
+permissions:
+  contents: read
 
 jobs:
   canonical-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
@@ -46,7 +50,20 @@ jobs:
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/canonical_learning_resource_versions_verify.sql
           PGPASSWORD=postgres psql 'postgresql://postgres@127.0.0.1:54322/postgres' -f scripts/sql/canonical_learning_resource_promotion_verify.sql
       - name: Type-check governed canonical lesson generator
-        run: deno check --node-modules-dir=auto supabase/functions/generate-canonical-lesson-plan/index.ts
+        run: |
+          set +e
+          deno check --node-modules-dir=auto supabase/functions/generate-canonical-lesson-plan/index.ts > /tmp/canonical-deno-check.log 2>&1
+          status=$?
+          cat /tmp/canonical-deno-check.log
+          if [ "$status" -ne 0 ]; then
+            {
+              echo '### Canonical lesson Deno check failure'
+              echo '```text'
+              tail -n 120 /tmp/canonical-deno-check.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$status"
       - name: Verify authoritative lesson identity path
         run: |
           set -euo pipefail
