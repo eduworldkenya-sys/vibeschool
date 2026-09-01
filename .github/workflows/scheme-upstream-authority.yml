@@ -1,0 +1,32 @@
+name: Scheme Upstream Authority
+
+on:
+  pull_request:
+    paths:
+      - 'lib/teaching/lessonSource.ts'
+      - 'app/teacher/teach-today/page.tsx'
+      - 'app/teacher/scheme/page.tsx'
+      - 'scripts/test-scheme-upstream-authority.py'
+      - '.github/workflows/scheme-upstream-authority.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/teaching/lessonSource.ts'
+      - 'app/teacher/teach-today/page.tsx'
+      - 'app/teacher/scheme/page.tsx'
+      - 'scripts/test-scheme-upstream-authority.py'
+      - '.github/workflows/scheme-upstream-authority.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  authority-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify Scheme upstream authority
+        run: python scripts/test-scheme-upstream-authority.py
