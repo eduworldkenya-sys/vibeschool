@@ -4,12 +4,17 @@ begin;
 alter table public.subject_weekly_allocations
   add column if not exists global_subject_id uuid references public.subjects(id) on delete restrict;
 
-with unique_global_subject as (
-  select lower(btrim(name)) as normalized_name, min(id) as id
+with ranked_global_subject as (
+  select
+    lower(btrim(name)) as normalized_name,
+    id,
+    count(*) over (partition by lower(btrim(name))) as normalized_count
   from public.subjects
   where school_id is null
-  group by lower(btrim(name))
-  having count(*) = 1
+), unique_global_subject as (
+  select normalized_name,id
+  from ranked_global_subject
+  where normalized_count=1
 )
 update public.subject_weekly_allocations swa
 set global_subject_id = ugs.id
