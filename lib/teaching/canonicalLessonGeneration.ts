@@ -1,4 +1,5 @@
 import type { Json } from '@/lib/database.types'
+import { supabase } from '@/lib/supabase'
 import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
 import type { CertifiedLessonContentAsset } from '@/lib/teaching/lessonSourceBundle'
 import { validateLessonPlanGrounding } from '@/lib/teaching/lessonPlanGrounding'
@@ -44,6 +45,7 @@ export type CanonicalLessonGenerationResult =
       certificationRequired: boolean
       creditsUsed: 0
       packageCache?: 'scheme' | 'global' | 'miss'
+      generationMode?: 'deterministic' | 'ai_assisted'
     }
   | {
       ok: false
@@ -62,6 +64,18 @@ const FIELD_KEYS = {
   misconceptions: new Set(['misconceptions','commonMisconceptions','common_misconceptions']),
   differentiation: new Set(['differentiation','support','extension','challenge']),
   homework: new Set(['homework','homeworkTasks','homework_tasks','followUp','follow_up']),
+}
+
+interface GroundedPedagogy {
+  teachingPoints: string[]
+  examples: string[]
+  vocabulary: Array<{ term: string; meaning: string }>
+  learnerActivities: string[]
+  questions: Array<{ question: string; expectedAnswer: string }>
+  misconceptions: Array<{ misconception: string; correction: string }>
+  differentiation: { support: string[]; stretch: string[] }
+  assessment: Array<{ question: string; expectedAnswer: string }>
+  homework: Array<{ question: string; expectedAnswer: string }>
 }
 
 function clean(value?: string | null): string {
@@ -118,6 +132,115 @@ function joinNonEmpty(values: Array<string | null | undefined>, separator = '\n'
   return values.map(clean).filter(Boolean).join(separator)
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
+
+function stringArray(value: unknown, limit = 12): string[] {
+  if (!Array.isArray(value)) return []
+  return unique(value.flatMap(item => typeof item === 'string' && item.trim() ? [item.trim()] : [])).slice(0, limit)
+}
+
+function qaArray(value: unknown, limit = 12): Array<{ question: string; expectedAnswer: string }> {
+  if (!Array.isArray(value)) return []
+  return value.flatMap(item => {
+    const record = asRecord(item)
+    const question = typeof record?.question === 'string' ? record.question.trim() : ''
+    const expectedAnswer = typeof record?.expectedAnswer === 'string' ? record.expectedAnswer.trim() : ''
+    return question && expectedAnswer ? [{ question, expectedAnswer }] : []
+  }).slice(0, limit)
+}
+
+function misconceptionArray(value: unknown): Array<{ misconception: string; correction: string }> {
+  if (!Array.isArray(value)) return []
+  return value.flatMap(item => {
+    const record = asRecord(item)
+    const misconception = typeof record?.misconception === 'string' ? record.misconception.trim() : ''
+    const correction = typeof record?.correction === 'string' ? record.correction.trim() : ''
+    return misconception && correction ? [{ misconception, correction }] : []
+  }).slice(0, 10)
+}
+
+function vocabularyArray(value: unknown): Array<{ term: string; meaning: string }> {
+  if (!Array.isArray(value)) return []
+  return value.flatMap(item => {
+    const record = asRecord(item)
+    const term = typeof record?.term === 'string' ? record.term.trim() : ''
+    const meaning = typeof record?.meaning === 'string' ? record.meaning.trim() : ''
+    return term && meaning ? [{ term, meaning }] : []
+  }).slice(0, 12)
+}
+
+function parsePedagogy(value: unknown): GroundedPedagogy | null {
+  const record = asRecord(value)
+  if (!record) return null
+  const differentiation = asRecord(record.differentiation)
+  const pedagogy: GroundedPedagogy = {
+    teachingPoints: stringArray(record.teachingPoints, 10),
+    examples: stringArray(record.examples, 10),
+    vocabulary: vocabularyArray(record.vocabulary),
+    learnerActivities: stringArray(record.learnerActivities, 10),
+    questions: qaArray(record.questions),
+    misconceptions: misconceptionArray(record.misconceptions),
+    differentiation: {
+      support: stringArray(differentiation?.support, 8),
+      stretch: stringArray(differentiation?.stretch, 8),
+    },
+    assessment: qaArray(record.assessment),
+    homework: qaArray(record.homework),
+  }
+  return pedagogy.teachingPoints.length >= 2 && pedagogy.questions.length >= 1
+    ? pedagogy
+    : null
+}
+
+function needsPedagogicalReasoning(input: {
+  teachingPoints: string[]
+  questions: string[]
+  answers: string[]
+  misconceptions: string[]
+  differentiation: string[]
+  homeworkTasks: string[]
+}): boolean {
+  return input.teachingPoints.length < 3 ||
+    input.questions.length < 2 ||
+    input.answers.length < input.questions.length ||
+    input.misconceptions.length === 0 ||
+    input.differentiation.length === 0 ||
+    input.homeworkTasks.length === 0
+}
+
+async function requestGroundedPedagogy(
+  accessToken: string,
+  identity: CanonicalLessonIdentity,
+  assets: CertifiedLessonContentAsset[],
+): Promise<GroundedPedagogy | null> {
+  if (!identity.schemeId || assets.length === 0) return null
+
+  const { data, error } = await supabase.functions.invoke('generate-canonical-lesson-plan', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: {
+      intent: 'grounded_prepare',
+      schemeId: identity.schemeId,
+      subjectName: identity.subjectName,
+      grade: identity.grade,
+      topicTitle: identity.topicTitle,
+      sourceAssets: assets.map(asset => ({
+        resourceId: asset.resourceId,
+        resourceVersionId: asset.resourceVersionId,
+        contentSha256: asset.contentSha256,
+      })),
+    },
+  })
+
+  if (error) throw error
+  const payload = asRecord(data)
+  if (payload?.status !== 'grounded_prepared') return null
+  return parsePedagogy(payload.pedagogy)
+}
+
 function cacheIdentity(
   identity: CanonicalLessonIdentity,
   assets: CertifiedLessonContentAsset[],
@@ -145,14 +268,15 @@ function cacheIdentity(
 
 /**
  * Builds the reusable canonical teacher lesson from Scheme authority and exact
- * certified VibeSchool content. This path never calls an AI/model provider.
+ * certified VibeSchool content. Cache hits are provider-free. On a cache miss,
+ * weakly structured certified content may use the governed AI endpoint only to
+ * derive pedagogy; curriculum identity, objectives, sources and timing remain
+ * deterministic. AI failure degrades safely to the deterministic package.
  */
 export async function generateCanonicalLessonPlan(
   accessToken: string,
   identity: CanonicalLessonIdentity,
 ): Promise<CanonicalLessonGenerationResult> {
-  void accessToken
-
   const assets = identity.certifiedContent ?? []
   const primary = assets[0]
   if (!primary) {
@@ -169,13 +293,13 @@ export async function generateCanonicalLessonPlan(
   const inquiry = clean(identity.keyInquiryQuestion)
   const curriculumPath = joinNonEmpty([identity.curriculumStrand, identity.curriculumSubStrand], ' → ')
 
-  const teachingPoints = collectAssetField(assets, FIELD_KEYS.teachingPoints)
-  const activities = collectAssetField(assets, FIELD_KEYS.activities)
-  const questions = collectAssetField(assets, FIELD_KEYS.questions)
-  const answers = collectAssetField(assets, FIELD_KEYS.answers)
-  const misconceptions = collectAssetField(assets, FIELD_KEYS.misconceptions)
-  const differentiation = collectAssetField(assets, FIELD_KEYS.differentiation)
-  const homeworkTasks = collectAssetField(assets, FIELD_KEYS.homework)
+  let teachingPoints = collectAssetField(assets, FIELD_KEYS.teachingPoints)
+  let activities = collectAssetField(assets, FIELD_KEYS.activities)
+  let questions = collectAssetField(assets, FIELD_KEYS.questions)
+  let answers = collectAssetField(assets, FIELD_KEYS.answers)
+  let misconceptions = collectAssetField(assets, FIELD_KEYS.misconceptions)
+  let differentiation = collectAssetField(assets, FIELD_KEYS.differentiation)
+  let homeworkTasks = collectAssetField(assets, FIELD_KEYS.homework)
 
   const timing = allocateLessonTiming(parseLessonDurationMinutes(identity.duration))
   const ranges = lessonTimingRanges(timing)
@@ -203,6 +327,43 @@ export async function generateCanonicalLessonPlan(
     }
   } catch (cacheReadError) {
     console.warn('[canonicalLessonGeneration] package cache read failed', cacheReadError)
+  }
+
+  let generationMode: 'deterministic' | 'ai_assisted' = 'deterministic'
+  if (needsPedagogicalReasoning({
+    teachingPoints,
+    questions,
+    answers,
+    misconceptions,
+    differentiation,
+    homeworkTasks,
+  })) {
+    try {
+      const pedagogy = await requestGroundedPedagogy(accessToken, identity, assets)
+      if (pedagogy) {
+        generationMode = 'ai_assisted'
+        teachingPoints = pedagogy.teachingPoints
+        activities = pedagogy.learnerActivities.length > 0 ? pedagogy.learnerActivities : activities
+        questions = pedagogy.questions.map(item => item.question)
+        answers = pedagogy.questions.map(item => item.expectedAnswer)
+        misconceptions = pedagogy.misconceptions.map(item => `${item.misconception} → ${item.correction}`)
+        differentiation = [
+          ...pedagogy.differentiation.support.map(item => `Support: ${item}`),
+          ...pedagogy.differentiation.stretch.map(item => `Stretch: ${item}`),
+        ]
+        homeworkTasks = pedagogy.homework.map(item => `${item.question}\n   Expected answer: ${item.expectedAnswer}`)
+
+        const enrichment = [
+          pedagogy.examples.length > 0 ? `Examples:\n${bullets(pedagogy.examples, '')}` : '',
+          pedagogy.vocabulary.length > 0
+            ? `Vocabulary:\n${bullets(pedagogy.vocabulary.map(item => `${item.term}: ${item.meaning}`), '')}`
+            : '',
+        ].filter(Boolean)
+        if (enrichment.length > 0) teachingPoints = [...teachingPoints, ...enrichment]
+      }
+    } catch (aiError) {
+      console.warn('[canonicalLessonGeneration] grounded AI enrichment unavailable; using deterministic package', aiError)
+    }
   }
 
   const questionAnswerBlock = questions.length > 0
@@ -258,7 +419,7 @@ export async function generateCanonicalLessonPlan(
           numbered(homeworkTasks, ''),
           'Teacher actions: View · Edit · Assign · Share.',
         ])
-      : 'No certified homework task is attached to this lesson. Do not invent one automatically; the teacher may add a task or use optional AI enhancement.',
+      : 'No certified homework task is attached to this lesson. The teacher may add a task or use optional AI enhancement.',
 
     differentiation: differentiation.length > 0
       ? joinNonEmpty(['Use the same authoritative objectives for every learner.', numbered(differentiation, '')])
@@ -273,7 +434,7 @@ export async function generateCanonicalLessonPlan(
   if (!validation.ok) return { ok: false, status: 'error', message: validation.message }
 
   try {
-    await storeSchemeLessonPackage({ identity: packageIdentity, sections })
+    await storeSchemeLessonPackage({ identity: packageIdentity, sections, generationMode })
   } catch (cacheWriteError) {
     console.warn('[canonicalLessonGeneration] package cache write failed', cacheWriteError)
   }
@@ -287,5 +448,6 @@ export async function generateCanonicalLessonPlan(
     certificationRequired: false,
     creditsUsed: 0,
     packageCache: 'miss',
+    generationMode,
   }
 }
