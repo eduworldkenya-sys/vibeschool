@@ -37,9 +37,10 @@ begin
     raise exception 'SCHEME_DUPLICATE_CURRICULUM_IDS';
   end if;
 
-  select c.school_id,c.grade into v_school_id,v_grade
+  select c.school_id,nullif(btrim(c.name),'') into v_school_id,v_grade
   from public.classes c where c.id=p_class_id;
   if v_school_id is null then raise exception 'SCHEME_CLASS_NOT_FOUND'; end if;
+  if v_grade is null then raise exception 'SCHEME_CLASS_GRADE_REQUIRED'; end if;
 
   if not exists (
     select 1 from public.teacher_classes tc
@@ -77,7 +78,8 @@ begin
   for v_curriculum_id in
     select x from unnest(p_curriculum_ids) x
     join public.curriculum c on c.id=x
-    order by c.week,c.id
+    left join public.cbc_strands cs on cs.id=c.sub_strand_id
+    order by coalesce(cs.strand_order,2147483647),coalesce(cs.sub_strand_order,2147483647),c.week,c.created_at,c.id
   loop
     select * into v_curr from public.curriculum where id=v_curriculum_id;
 
