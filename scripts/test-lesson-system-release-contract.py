@@ -24,14 +24,26 @@ canonical_ai = text('supabase/functions/generate-canonical-lesson-plan/index.ts'
 modal = text('components/teacher/LessonPlanModal.tsx')
 teach_mode = text('components/teacher/LessonTeachMode.tsx')
 
-# Baseline builders remain deterministic and provider-free.
-for name, src in [('baseline', baseline), ('canonical', canonical)]:
-    forbid(src, 'api.groq.com', name)
-    forbid(src, 'api.tavily.com', name)
-    require(src, 'validateLessonPlanGrounding', f'{name} grounding')
-    require(src, 'allocateLessonTiming', f'{name} exact timing')
+# Scheme-only baseline remains deterministic and provider-free.
+forbid(baseline, 'api.groq.com', 'baseline')
+forbid(baseline, 'api.tavily.com', 'baseline')
+require(baseline, 'validateLessonPlanGrounding', 'baseline grounding')
+require(baseline, 'allocateLessonTiming', 'baseline exact timing')
 
-require(canonical, 'creditsUsed: 0', 'canonical zero-credit')
+# Canonical assembly keeps curriculum/timing deterministic. AI is allowed only
+# as a bounded pedagogical reasoning layer on a cache miss when certified
+# content is structurally weak; failure must fall back without blocking class.
+forbid(canonical, 'api.groq.com', 'canonical direct provider')
+forbid(canonical, 'api.tavily.com', 'canonical research provider')
+require(canonical, 'validateLessonPlanGrounding', 'canonical grounding')
+require(canonical, 'allocateLessonTiming', 'canonical exact timing')
+require(canonical, "intent: 'grounded_prepare'", 'grounded preparation intent')
+require(canonical, 'needsPedagogicalReasoning', 'AI only when pedagogically needed')
+require(canonical, 'loadExactLessonPackage(packageIdentity)', 'cache before AI')
+require(canonical, 'grounded AI enrichment unavailable; using deterministic package', 'AI failure fallback')
+require(canonical, "generationMode = 'ai_assisted'", 'AI provenance mode')
+require(canonical, 'storeSchemeLessonPackage({ identity: packageIdentity, sections, generationMode })', 'cache enriched package')
+require(canonical, 'creditsUsed: 0', 'canonical teacher-credit free')
 require(canonical, 'Teaching points / teacher notes', 'canonical teacher notes')
 require(canonical, 'Learner activities', 'canonical learner activities')
 require(canonical, 'Expected answer', 'canonical answers')
@@ -67,21 +79,43 @@ require(package_migration, 'grant execute on function public.certify_lesson_pack
 require(package_migration, 'source_resource_version_ids', 'exact resource versions')
 require(package_migration, 'source_hashes', 'source hashes')
 
-# Model-backed endpoints are unreachable without explicit teacher intent. The
-# gate must execute before provider calls and before credit reservation/wallet work.
-for name, src in [('legacy-ai', legacy_ai), ('canonical-ai', canonical_ai)]:
-    require(src, 'EXPLICIT_AI_INTENT = "ai_enhance"', name)
-    require(src, 'explicit_ai_enhancement_intent_required', name)
-    gate = src.index('if (body.intent !== EXPLICIT_AI_INTENT)')
-    providers = [i for i in (src.find('api.groq.com'), src.find('api.tavily.com')) if i >= 0]
-    assert providers and gate < min(providers), f'{name}: intent gate must precede provider calls'
-    credit_markers = [i for i in (src.find('.from("vibe_credits")'), src.find('cla_reserve_learning_resource_credit')) if i >= 0]
-    assert credit_markers and gate < min(credit_markers), f'{name}: intent gate must precede credit work'
+# Legacy free-form AI stays explicit and credit gated.
+require(legacy_ai, 'EXPLICIT_AI_INTENT = "ai_enhance"', 'legacy-ai')
+require(legacy_ai, 'explicit_ai_enhancement_intent_required', 'legacy-ai')
+legacy_gate = legacy_ai.index('if (body.intent !== EXPLICIT_AI_INTENT)')
+legacy_providers = [i for i in (legacy_ai.find('api.groq.com'), legacy_ai.find('api.tavily.com')) if i >= 0]
+assert legacy_providers and legacy_gate < min(legacy_providers), 'legacy-ai: intent gate must precede provider calls'
+legacy_credits = [i for i in (legacy_ai.find('.from("vibe_credits")'), legacy_ai.find('cla_reserve_learning_resource_credit')) if i >= 0]
+assert legacy_credits and legacy_gate < min(legacy_credits), 'legacy-ai: intent gate must precede credit work'
 
-# Teacher-facing provenance and live-teaching surface stay non-AI by default.
+# Canonical AI has two disjoint modes: explicit free-form enhancement remains
+# credit-gated; automatic grounded preparation is source-bound, teacher-owned,
+# certified-content-only, routed through Cyborg, and never invokes Tavily.
+require(canonical_ai, 'EXPLICIT_AI_INTENT = "ai_enhance"', 'canonical explicit AI')
+require(canonical_ai, 'GROUNDED_PREPARE_INTENT = "grounded_prepare"', 'canonical grounded intent')
+require(canonical_ai, 'invokeCyborgEdgeModelWithFallback', 'canonical governed model gateway')
+require(canonical_ai, '.eq("teacher_id", userId)', 'grounded Scheme ownership')
+require(canonical_ai, 'list_scheme_lesson_resources', 'grounded explicit Scheme resources')
+require(canonical_ai, '.from("learning_resources")', 'grounded resource authority lookup')
+require(canonical_ai, 'explicitlyLinked || curriculumMatch || subStrandMatch', 'grounded Scheme eligibility rule')
+require(canonical_ai, 'grounded_source_not_eligible_for_scheme', 'grounded unrelated-resource rejection')
+require(canonical_ai, '.eq("lifecycle_status", "certified")', 'grounded certified versions')
+require(canonical_ai, 'grounded_source_verification_failed', 'grounded exact source verification')
+require(canonical_ai, 'String(version.content_sha256) !== asset.contentSha256', 'grounded source hash verification')
+require(canonical_ai, 'AUTHORITY RULE:', 'prompt injection/source authority boundary')
+require(canonical_ai, 'Untrusted display label', 'client label distrust')
+require(canonical_ai, 'Your job is HOW TO TEACH, not WHAT curriculum to teach.', 'AI pedagogical scope')
+require(canonical_ai, 'credits: { used: 0 }', 'grounded preparation does not charge teacher credits')
+require(canonical_ai, 'if (body.intent === GROUNDED_PREPARE_INTENT)', 'grounded branch')
+grounded_branch = canonical_ai.index('if (body.intent === GROUNDED_PREPARE_INTENT)')
+credit_reservation = canonical_ai.index('cla_reserve_learning_resource_credit')
+assert grounded_branch < credit_reservation, 'grounded preparation must branch before legacy credit work'
+require(canonical_ai, 'Legacy explicit enhancement remains separately credit-gated.', 'explicit/grounded economic separation')
+
+# Teacher-facing normal path remains prepared rather than generation-centric.
 require(modal, 'Built from Scheme + VibeSchool Content', 'teacher provenance')
 for forbidden in ('Generated by Twin', 'Generate Homework', 'Generate Worksheet'):
-    forbid(modal, forbidden, 'teacher zero-AI UX')
+    forbid(modal, forbidden, 'teacher prepared-package UX')
 for required in ('objectives', 'development', 'assessmentHook', 'homework'):
     require(teach_mode, required, f'Teach Mode {required}')
 require(teach_mode, 'Resources ready', 'Teach Mode prepared resources')

@@ -81,7 +81,25 @@ for (const [name, source] of [
   mustContain(source, 'teacher_classes', `${name} must verify current teacher assignment before service-role work`)
   mustContain(source, 'role', `${name} must verify teacher role before service-role work`)
 }
-mustContain(canonicalGenerateLesson, 'before global recovery', 'canonical generator must authorize before global service recovery')
+
+// Canonical lesson generation now has a source-grounded preparation branch in
+// addition to explicit enhancement. Both must still authenticate and establish
+// teacher assignment before any global recovery, canonical claim, wallet work,
+// or model invocation.
+const canonicalTeacherGate = canonicalGenerateLesson.indexOf('if (profile?.role !== "teacher" || !teacherAssignment)')
+const canonicalRecovery = canonicalGenerateLesson.indexOf('cla_recover_expired_learning_resource_claims')
+const canonicalGroundedModel = canonicalGenerateLesson.indexOf('invokeCyborgEdgeModelWithFallback')
+if (canonicalTeacherGate < 0 || canonicalRecovery < 0 || canonicalGroundedModel < 0) {
+  fail('canonical generator authorization/model markers are missing')
+}
+if (!(canonicalTeacherGate < canonicalRecovery)) {
+  fail('canonical generator must authorize before global service recovery')
+}
+// The helper definition may textually precede serve(), so verify its invocation
+// is reachable only through the post-auth grounded branch rather than comparing
+// helper-definition source positions.
+mustContain(canonicalGenerateLesson, 'if (body.intent === GROUNDED_PREPARE_INTENT)', 'grounded preparation must have a dedicated post-auth branch')
+mustContain(canonicalGenerateLesson, 'return await prepareGroundedPedagogy({ db, userId: user.id, body })', 'grounded preparation must receive authenticated teacher identity')
 
 for (const [path, source] of cronFiles) {
   mustContain(source, 'if (!cronSecret) return false', `${path} must fail closed without CRON_SECRET`)
