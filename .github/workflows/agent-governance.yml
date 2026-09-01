@@ -2,6 +2,18 @@ name: Agent Governance
 
 on:
   pull_request:
+    paths-ignore:
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.png'
+      - '**/*.webp'
+      - '**/*.gif'
+      - '**/*.svg'
+      - '**/*.avif'
+      - '**/*.ico'
+      - '**/*.md'
+      - '**/*.mdx'
+      - '**/*.txt'
   push:
     branches: [main]
 

@@ -1,6 +1,18 @@
 name: Cyborg Universal LLM Gateway
 on:
   pull_request:
+    paths-ignore:
+      - '**/*.jpg'
+      - '**/*.jpeg'
+      - '**/*.png'
+      - '**/*.webp'
+      - '**/*.gif'
+      - '**/*.svg'
+      - '**/*.avif'
+      - '**/*.ico'
+      - '**/*.md'
+      - '**/*.mdx'
+      - '**/*.txt'
   workflow_dispatch:
 jobs:
   gateway-contract:
