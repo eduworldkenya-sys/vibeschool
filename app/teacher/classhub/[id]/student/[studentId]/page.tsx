@@ -11,9 +11,9 @@ type ClassContext = { class_id: string; class_name: string; stream: string | nul
 type Context = { teacher_id: string; school_id: string | null; classes: ClassContext[] };
 type Student = { id: string; name: string; admission_number: string | null; profile_id: string | null; deleted_at?: string | null };
 type AttendanceRow = { date: string; status: string; is_late: boolean | null };
-type HomeworkRow = { id: string; title: string; subject: string | null; due_date: string; type: string | null };
-type SubmissionRow = { homework_id: string; status: string; mark: number | null; feedback: string | null; submitted_at: string | null };
-type GradebookRow = { assessment_id: string; subject_id: string; score: number; max_score: number; percentage: number; assessment_type: string; assessment_title: string; released_at: string | null };
+type HomeworkRow = { id: string; title: string; subject: string | null; due_date: string | null; type: string | null };
+type SubmissionRow = { homework_id: string | null; status: string; mark: number | null; feedback: string | null; submitted_at: string | null };
+type GradebookRow = { assessment_id: string; subject_id: string | null; score: number | null; max_score: number | null; percentage: number | null; assessment_type: string; assessment_title: string; released_at: string | null };
 type CbcRow = { id: string; subject_id: string; strand_id: string | null; sub_strand: string | null; assessment_type: string; performance: string; notes: string | null; created_at: string };
 type ExamRow = { id: string; exam_id: string; subject_id: string; marks: number; is_absent: boolean; created_at: string };
 type SubjectRow = { id: string; name: string };
@@ -36,33 +36,17 @@ function parseContext(value: unknown): Context {
     for (const entry of value.classes) {
       if (!isRecord(entry)) continue;
       if (typeof entry.class_id !== "string" || typeof entry.class_name !== "string" || typeof entry.subject_id !== "string" || typeof entry.subject_name !== "string") continue;
-      classes.push({
-        class_id: entry.class_id,
-        class_name: entry.class_name,
-        stream: stringOrNull(entry.stream),
-        subject_id: entry.subject_id,
-        subject_name: entry.subject_name,
-      });
+      classes.push({ class_id: entry.class_id, class_name: entry.class_name, stream: stringOrNull(entry.stream), subject_id: entry.subject_id, subject_name: entry.subject_name });
     }
   }
-  return {
-    teacher_id: typeof value.teacher_id === "string" ? value.teacher_id : "",
-    school_id: stringOrNull(value.school_id),
-    classes,
-  };
+  return { teacher_id: typeof value.teacher_id === "string" ? value.teacher_id : "", school_id: stringOrNull(value.school_id), classes };
 }
 
 function parseEnrolledLearner(value: unknown): Student | null {
   if (!isRecord(value)) return null;
   const nested = Array.isArray(value.students) ? value.students[0] : value.students;
   if (!isRecord(nested) || typeof nested.id !== "string" || typeof nested.name !== "string") return null;
-  return {
-    id: nested.id,
-    name: nested.name,
-    admission_number: stringOrNull(nested.admission_number),
-    profile_id: stringOrNull(nested.profile_id),
-    deleted_at: stringOrNull(nested.deleted_at),
-  };
+  return { id: nested.id, name: nested.name, admission_number: stringOrNull(nested.admission_number), profile_id: stringOrNull(nested.profile_id), deleted_at: stringOrNull(nested.deleted_at) };
 }
 
 function formatDate(value: string) {
@@ -71,12 +55,7 @@ function formatDate(value: string) {
 }
 
 function Badge({ text, tone = "neutral" }: { text: string; tone?: "good" | "warn" | "bad" | "neutral" }) {
-  const palette = {
-    good: { background: "#ecfdf5", color: "#065f46" },
-    warn: { background: "#fffbeb", color: "#92400e" },
-    bad: { background: "#fef2f2", color: "#991b1b" },
-    neutral: { background: "#f3f4f6", color: "#4b5563" },
-  }[tone];
+  const palette = { good: { background: "#ecfdf5", color: "#065f46" }, warn: { background: "#fffbeb", color: "#92400e" }, bad: { background: "#fef2f2", color: "#991b1b" }, neutral: { background: "#f3f4f6", color: "#4b5563" } }[tone];
   return <span style={{ ...palette, display: "inline-block", borderRadius: 99, padding: "4px 8px", fontSize: 10, fontWeight: 900 }}>{text}</span>;
 }
 
@@ -116,9 +95,7 @@ export default function TeacherStudentProgressPage() {
       if (!ctx.classes.some((item) => item.class_id === classId)) throw new Error("This class is not assigned to you in the active school.");
       setContext(ctx);
 
-      const enrollmentRes = await supabase.from("student_classes")
-        .select("student_id,students(id,name,admission_number,profile_id,deleted_at)")
-        .eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("is_current", true).maybeSingle();
+      const enrollmentRes = await supabase.from("student_classes").select("student_id,students(id,name,admission_number,profile_id,deleted_at)").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("is_current", true).maybeSingle();
       if (enrollmentRes.error) throw enrollmentRes.error;
       const learner = parseEnrolledLearner(enrollmentRes.data);
       if (!learner || learner.deleted_at) throw new Error("This learner is not currently enrolled in this class.");
@@ -136,9 +113,7 @@ export default function TeacherStudentProgressPage() {
       for (const result of [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes]) if (result.error) throw result.error;
 
       const homeworkRows: HomeworkRow[] = homeworkRes.data ?? [];
-      const submissionRes = homeworkRows.length
-        ? await supabase.from("homework_submissions").select("homework_id,status,mark,feedback,submitted_at").eq("student_id", studentId).in("homework_id", homeworkRows.map((item) => item.id))
-        : { data: [], error: null };
+      const submissionRes = homeworkRows.length ? await supabase.from("homework_submissions").select("homework_id,status,mark,feedback,submitted_at").eq("student_id", studentId).in("homework_id", homeworkRows.map((item) => item.id)) : { data: [], error: null };
       if (submissionRes.error) throw submissionRes.error;
 
       setAttendance(attendanceRes.data ?? []);
@@ -170,12 +145,7 @@ export default function TeacherStudentProgressPage() {
     <section style={{ background: "linear-gradient(135deg,#1e1b4b,#4f46e5)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
       <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={{ minHeight: 38, border: 0, borderRadius: 10, background: "rgba(255,255,255,.14)", color: "#fff", padding: "0 11px", fontWeight: 800 }}>‹ Class</button>
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 13 }}><div style={{ width: 54, height: 54, borderRadius: 99, background: "rgba(255,255,255,.18)", display: "grid", placeItems: "center", fontWeight: 900 }}>{student.name.charAt(0).toUpperCase()}</div><div><h1 style={{ margin: 0, fontSize: 22 }}>{student.name}</h1><div style={{ marginTop: 4, fontSize: 11, opacity: .75 }}>{classAssignment?.class_name ?? "Class"}{classAssignment?.stream ? ` ${classAssignment.stream}` : ""}{student.admission_number ? ` · Adm ${student.admission_number}` : ""}</div></div></div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginTop: 14 }}>{[
-        { label: "Attendance", value: truth.attendance.rate == null ? "—" : `${truth.attendance.rate}%` },
-        { label: "Work", value: `${truth.work.submitted}/${truth.work.assigned}` },
-        { label: "Evidence", value: assessmentEvidence },
-        { label: "Released avg", value: truth.assessment.averageReleasedScore == null ? "—" : `${truth.assessment.averageReleasedScore}%` },
-      ].map((item) => <div key={item.label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 11, padding: "8px 4px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{item.value}</div><div style={{ marginTop: 2, fontSize: 8, opacity: .65 }}>{item.label}</div></div>)}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginTop: 14 }}>{[{ label: "Attendance", value: truth.attendance.rate == null ? "—" : `${truth.attendance.rate}%` }, { label: "Work", value: `${truth.work.submitted}/${truth.work.assigned}` }, { label: "Evidence", value: assessmentEvidence }, { label: "Released avg", value: truth.assessment.averageReleasedScore == null ? "—" : `${truth.assessment.averageReleasedScore}%` }].map((item) => <div key={item.label} style={{ background: "rgba(255,255,255,.12)", borderRadius: 11, padding: "8px 4px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{item.value}</div><div style={{ marginTop: 2, fontSize: 8, opacity: .65 }}>{item.label}</div></div>)}</div>
     </section>
 
     <section style={{ marginBottom: 12, borderRadius: 16, padding: 13, background: truth.evidenceState === "sufficient" ? "#ecfdf5" : "#fffbeb", color: truth.evidenceState === "sufficient" ? "#065f46" : "#92400e", border: `1px solid ${truth.evidenceState === "sufficient" ? "#a7f3d0" : "#fde68a"}` }}><div style={{ fontWeight: 900, fontSize: 12 }}>{truth.evidenceState === "sufficient" ? "Evidence available" : "Not enough evidence yet"}</div><div style={{ marginTop: 3, fontSize: 11 }}>{truth.evidenceMessage}</div></section>
@@ -188,10 +158,10 @@ export default function TeacherStudentProgressPage() {
       <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>TEACHER ACTIONS</div><div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#0f766e", color: "#fff", fontWeight: 900 }}>Assign / review work</button><button type="button" onClick={() => router.push(`/teacher/assessment?classId=${classId}`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#92400e", color: "#fff", fontWeight: 900 }}>Assess learner</button><button type="button" onClick={() => router.push(`/teacher/attendance?classId=${classId}`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#065f46", color: "#fff", fontWeight: 900 }}>Attendance</button><button type="button" onClick={() => setTab("assessment")} style={{ minHeight: 46, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", fontWeight: 900 }}>Inspect evidence</button></div></Card>
     </div>}
 
-    {tab === "work" && <Card>{homework.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "#6b7280" }}>No homework assigned by you for this class yet.</div> : <div style={{ display: "grid", gap: 9 }}>{homework.map((item) => { const submission = submissionMap.get(item.id); const overdue = !submission && new Date(item.due_date).getTime() < Date.now(); return <button type="button" key={item.id} onClick={() => router.push(`/teacher/classhub/${classId}/homework/${item.id}`)} style={{ width: "100%", textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 13, padding: 11, background: "#fff" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div><div style={{ fontSize: 13, fontWeight: 900 }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 10, color: "#6b7280" }}>{item.subject || "Subject"} · Due {formatDate(item.due_date)}</div></div>{submission ? <Badge text={submission.status} tone={submission.status === "marked" ? "good" : "neutral"} /> : <Badge text={overdue ? "Missing" : "Not submitted"} tone={overdue ? "bad" : "warn"} />}</div>{submission?.mark != null && <div style={{ marginTop: 7, fontSize: 12, fontWeight: 900, color: "#065f46" }}>Mark: {submission.mark}</div>}{submission?.feedback && <div style={{ marginTop: 5, fontSize: 11, color: "#6b7280" }}>{submission.feedback}</div>}</button>; })}</div>}</Card>}
+    {tab === "work" && <Card>{homework.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "#6b7280" }}>No homework assigned by you for this class yet.</div> : <div style={{ display: "grid", gap: 9 }}>{homework.map((item) => { const submission = submissionMap.get(item.id); const overdue = Boolean(item.due_date) && !submission && new Date(item.due_date ?? "").getTime() < Date.now(); return <button type="button" key={item.id} onClick={() => router.push(`/teacher/classhub/${classId}/homework/${item.id}`)} style={{ width: "100%", textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 13, padding: 11, background: "#fff" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div><div style={{ fontSize: 13, fontWeight: 900 }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 10, color: "#6b7280" }}>{item.subject || "Subject"} · {item.due_date ? `Due ${formatDate(item.due_date)}` : "No due date"}</div></div>{submission ? <Badge text={submission.status} tone={submission.status === "marked" ? "good" : "neutral"} /> : <Badge text={overdue ? "Missing" : "Not submitted"} tone={overdue ? "bad" : "warn"} />}</div>{submission?.mark != null && <div style={{ marginTop: 7, fontSize: 12, fontWeight: 900, color: "#065f46" }}>Mark: {submission.mark}</div>}{submission?.feedback && <div style={{ marginTop: 5, fontSize: 11, color: "#6b7280" }}>{submission.feedback}</div>}</button>; })}</div>}</Card>}
 
     {tab === "assessment" && <div style={{ display: "grid", gap: 10 }}>
-      <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>RELEASED ASSESSMENTS</div>{gradebook.length === 0 ? <div style={{ color: "#6b7280" }}>No released canonical assessment scores yet.</div> : gradebook.map((item, index) => <div key={`${item.assessment_id}-${index}`} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f3f4f6", padding: "8px 0" }}><div><strong>{item.assessment_title}</strong><div style={{ fontSize: 10, color: "#6b7280" }}>{subjectNames.get(item.subject_id) ?? "Subject"} · {item.assessment_type}</div></div><Badge text={`${Math.round(item.percentage)}%`} tone={item.percentage >= 70 ? "good" : item.percentage < 50 ? "bad" : "warn"} /></div>)}</Card>
+      <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>RELEASED ASSESSMENTS</div>{gradebook.length === 0 ? <div style={{ color: "#6b7280" }}>No released canonical assessment scores yet.</div> : gradebook.map((item, index) => { const percentage = item.percentage; return <div key={`${item.assessment_id}-${index}`} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f3f4f6", padding: "8px 0" }}><div><strong>{item.assessment_title}</strong><div style={{ fontSize: 10, color: "#6b7280" }}>{item.subject_id ? subjectNames.get(item.subject_id) ?? "Subject" : "Unscoped subject"} · {item.assessment_type}</div></div>{percentage === null ? <Badge text="No score" /> : <Badge text={`${Math.round(percentage)}%`} tone={percentage >= 70 ? "good" : percentage < 50 ? "bad" : "warn"} />}</div>; })}</Card>
       <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>CBC COMPETENCY EVIDENCE</div>{cbc.length === 0 ? <div style={{ color: "#6b7280" }}>No CBC competency observations recorded yet.</div> : cbc.map((item) => <div key={item.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f3f4f6", padding: "8px 0" }}><div><strong>{subjectNames.get(item.subject_id) ?? "Subject"}{item.sub_strand ? ` · ${item.sub_strand}` : ""}</strong><div style={{ fontSize: 10, color: "#6b7280" }}>{item.assessment_type} · {formatDate(item.created_at)}</div></div><Badge text={item.performance} tone={item.performance === "EE" || item.performance === "ME" ? "good" : item.performance === "BE" ? "bad" : "warn"} /></div>)}</Card>
       <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>EXAM RESULTS</div>{exams.length === 0 ? <div style={{ color: "#6b7280" }}>No exam results recorded by you for this learner.</div> : exams.map((item) => <div key={item.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f3f4f6", padding: "8px 0" }}><span>{subjectNames.get(item.subject_id) ?? "Subject"} · {formatDate(item.created_at)}</span><Badge text={item.is_absent ? "Absent" : `${item.marks}`} tone={item.is_absent ? "warn" : "neutral"} /></div>)}</Card>
     </div>}
