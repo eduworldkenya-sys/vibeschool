@@ -3,7 +3,6 @@ import {
   getActiveTerm,
   getTermForDate,
   currentWeekOf,
-  schoolWeekOf,
 } from '@/lib/academicTerm'
 import type {
   ActiveTerm,
@@ -65,6 +64,12 @@ interface TimetableSourceRow {
   effective_until: string | null
 }
 
+interface InstructionalWeekRow {
+  term_id: string
+  term_number: number
+  week_number: number
+}
+
 const SCHEME_SOURCE_COLUMNS = [
   'id',
   'curriculum_id',
@@ -123,6 +128,35 @@ function isSchemeSourceRow(value: object | null): value is SchemeSourceRow {
   )
 }
 
+async function resolveInstructionalWeekForDate(
+  schoolId: string,
+  occurrenceDate: string,
+): Promise<InstructionalWeekRow> {
+  const { data, error } = await supabase.rpc(
+    'resolve_instructional_week_for_date',
+    {
+      p_school_id: schoolId,
+      p_date: occurrenceDate,
+    },
+  )
+
+  if (error) throw error
+
+  const row = Array.isArray(data) ? data[0] : null
+  if (
+    !row ||
+    typeof row.term_id !== 'string' ||
+    typeof row.term_number !== 'number' ||
+    typeof row.week_number !== 'number'
+  ) {
+    throw new Error(
+      `lessonSource: no authoritative instructional week for ${occurrenceDate}.`,
+    )
+  }
+
+  return row as InstructionalWeekRow
+}
+
 async function loadSchemeSourceById({
   schemeId,
   userId,
@@ -161,9 +195,47 @@ async function loadSchemeSourceById({
   return data
 }
 
-async function loadSchemeSourceForOccurrence({
+async function loadCurrentSchemeProgression({
+  userId,
+  schoolId,
+  classId,
+  subjectId,
+  academicTerm,
+}: {
+  userId: string
+  schoolId: string
+  classId: string
+  subjectId: string
+  academicTerm: ActiveTerm
+}): Promise<SchemeSourceRow | null> {
+  const { data, error } = await supabase.rpc(
+    'get_next_scheme_item',
+    {
+      p_class_id: classId,
+      p_subject_id: subjectId,
+      p_academic_term_id: academicTerm.id,
+    },
+  )
+
+  if (error) throw error
+
+  const next = Array.isArray(data) ? data[0] : null
+  if (!next?.scheme_id) return null
+
+  return loadSchemeSourceById({
+    schemeId: next.scheme_id,
+    userId,
+    schoolId,
+    classId,
+    subjectId,
+    academicTermId: academicTerm.id,
+  })
+}
+
+async function loadSchemeSourceForOccurrenceFallback({
   timetableSlotId,
   occurrenceDate,
+  occurrenceWeek,
   userId,
   schoolId,
   classId,
@@ -172,18 +244,13 @@ async function loadSchemeSourceForOccurrence({
 }: {
   timetableSlotId: string
   occurrenceDate: string
+  occurrenceWeek: number
   userId: string
   schoolId: string
   classId: string
   subjectId: string
   academicTerm: ActiveTerm
 }): Promise<SchemeSourceRow | null> {
-  const occurrenceWeek = schoolWeekOf(
-    academicTerm,
-    occurrenceDate,
-  )
-  if (occurrenceWeek === null) return null
-
   const { data: slotRows, error: slotError } = await supabase
     .from('timetable_slots')
     .select('id, day_of_week, start_time, effective_from, effective_until')
@@ -226,7 +293,7 @@ async function loadSchemeSourceForOccurrence({
   if (!exactScheme) return null
   if (!isSchemeSourceRow(exactScheme)) {
     throw new Error(
-      'lessonSource: exact occurrence Scheme source is missing required fields.',
+      'lessonSource: fallback occurrence Scheme source is missing required fields.',
     )
   }
 
@@ -237,19 +304,18 @@ async function loadSchemeSourceForOccurrence({
  * Resolves the educational source for a lesson occurrence.
  *
  * Authority order:
- * 1. Occurrence date -> academic term containing that date. Lifecycle status
- *    is not authoritative for dated teaching.
+ * 1. Occurrence date -> academic term containing that date.
  * 2. Explicit Scheme item selected by the teacher / persisted lesson plan.
- * 3. Exact dated timetable occurrence -> canonical school week + weekly
- *    timetable ordinal -> exact Scheme week + period row.
- * 4. Legacy progression fallback when an exact occurrence cannot be mapped.
- * 5. Curriculum fallback for the occurrence's academic week.
+ * 3. Persisted Scheme progression -> first sequence after the highest completed
+ *    teaching occurrence. This is the current teaching truth.
+ * 4. Exact dated timetable occurrence -> server-resolved instructional week +
+ *    timetable ordinal, retained only as a compatibility fallback when no
+ *    progression evidence exists yet.
+ * 5. Curriculum fallback for the server-resolved instructional week.
  * 6. No source — the teacher may enter a custom topic.
  *
- * A Scheme row remains authoritative even when legacy curriculum rows do not
- * yet have a reusable sub_strand_id. That condition may disable canonical
- * asset reuse, but it must never force the teacher to retype a known topic or
- * detach the lesson from its Scheme of Work.
+ * A completed Scheme lesson must never be resurrected merely because a new
+ * timetable slot happens to map to the same week/period ordinal.
  *
  * This function is read-only. It never creates or updates lesson plans,
  * Scheme rows, curriculum rows, timetable slots or teaching occurrences.
@@ -290,10 +356,40 @@ export async function resolveLessonSource({
     return toSuggestion(requestedScheme, term.term)
   }
 
-  if (timetableSlotId && occurrenceDate) {
-    const occurrenceScheme = await loadSchemeSourceForOccurrence({
+  const progressionScheme = await loadCurrentSchemeProgression({
+    userId,
+    schoolId,
+    classId,
+    subjectId,
+    academicTerm: term,
+  })
+
+  if (progressionScheme) {
+    return toSuggestion(progressionScheme, term.term)
+  }
+
+  let occurrenceWeek: number | null = null
+
+  if (occurrenceDate) {
+    const instructionalWeek = await resolveInstructionalWeekForDate(
+      schoolId,
+      occurrenceDate,
+    )
+
+    if (instructionalWeek.term_id !== term.id) {
+      throw new Error(
+        'lessonSource: term and instructional-week authorities disagree.',
+      )
+    }
+
+    occurrenceWeek = instructionalWeek.week_number
+  }
+
+  if (timetableSlotId && occurrenceDate && occurrenceWeek !== null) {
+    const occurrenceScheme = await loadSchemeSourceForOccurrenceFallback({
       timetableSlotId,
       occurrenceDate,
+      occurrenceWeek,
       userId,
       schoolId,
       classId,
@@ -306,43 +402,7 @@ export async function resolveLessonSource({
     }
   }
 
-  // Compatibility fallback for historical/unbound timetable data only. The
-  // canonical path above is deterministic and must win whenever the occurrence
-  // can be located in the dated weekly timetable.
-  const {
-    data: nextSchemeRows,
-    error: nextSchemeError,
-  } = await supabase.rpc(
-    'get_next_scheme_item',
-    {
-      p_class_id: classId,
-      p_subject_id: subjectId,
-      p_academic_term_id: term.id,
-    },
-  )
-
-  if (nextSchemeError) throw nextSchemeError
-
-  const nextScheme = nextSchemeRows?.[0]
-
-  if (nextScheme?.scheme_id) {
-    const exactScheme = await loadSchemeSourceById({
-      schemeId: nextScheme.scheme_id,
-      userId,
-      schoolId,
-      classId,
-      subjectId,
-      academicTermId: term.id,
-    })
-
-    if (exactScheme) {
-      return toSuggestion(exactScheme, term.term)
-    }
-  }
-
-  const occurrenceWeek =
-    (occurrenceDate ? schoolWeekOf(term, occurrenceDate) : null) ??
-    currentWeekOf(term)
+  const curriculumWeek = occurrenceWeek ?? currentWeekOf(term)
 
   const { data: curriculumRows, error: curriculumError } =
     await supabase
@@ -351,7 +411,7 @@ export async function resolveLessonSource({
       .eq('grade', grade)
       .eq('subject', subjectName)
       .eq('term', term.term)
-      .eq('week', occurrenceWeek)
+      .eq('week', curriculumWeek)
       .limit(1)
 
   if (curriculumError) throw curriculumError
@@ -365,7 +425,7 @@ export async function resolveLessonSource({
     subStrand: curriculumRow.sub_strand,
     topic: curriculumRow.topic,
     term: term.term,
-    week: occurrenceWeek,
+    week: curriculumWeek,
     strandId: curriculumRow.sub_strand_id ?? null,
     schemeId: null,
     objectives: null,
