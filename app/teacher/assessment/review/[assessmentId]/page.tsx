@@ -74,7 +74,7 @@ export default function AssessmentReviewPage() {
       }
       if (status !== 'approved') throw new Error(`Assessment cannot be assigned from status “${status}”.`)
 
-      const { data, error: assignError } = await rpc<unknown>('exq_assign_lesson_assessment_once', {
+      const { data, error: assignError } = await rpc<unknown>('exq_assign_grounded_assessment_once', {
         p_assessment_id: assessmentId,
         p_class_id: context.classId,
         p_time_limit_minutes: context.estimatedMinutes,
