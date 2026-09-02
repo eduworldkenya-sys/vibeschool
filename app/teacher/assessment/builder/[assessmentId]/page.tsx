@@ -23,6 +23,8 @@ import {
   type BuilderSection,
 } from '@/lib/assessment/builder'
 
+const GROUNDING_AUTHORITY = 'linked_scheme_curriculum_learning_outcomes'
+
 export default function AssessmentBuilderPage() {
   const params = useParams<{ assessmentId: string }>()
   const assessmentId = params.assessmentId
@@ -39,7 +41,7 @@ export default function AssessmentBuilderPage() {
   const [bankActionId, setBankActionId] = useState<string | null>(null)
   const [bankMessage, setBankMessage] = useState('')
 
-  const isGrounded = Boolean(assessment && assessment.generationSource !== 'teacher_authored')
+  const isGrounded = assessment?.groundingAuthority === GROUNDING_AUTHORITY
   const allItems = useMemo(
     () => assessment
       ? [...assessment.sections.flatMap(section => section.items), ...assessment.unsectionedItems]
