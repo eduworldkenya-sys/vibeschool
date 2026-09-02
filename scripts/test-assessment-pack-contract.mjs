@@ -29,6 +29,24 @@ check(review.includes('Done · Assessment workspace'), 'assigned assessment exit
 const builderLayout = read('app/teacher/assessment/builder/[assessmentId]/layout.tsx')
 check(builderLayout.includes('Review & Assign'), 'advanced builder always has path back to review and assignment')
 
+const builderPage = read('app/teacher/assessment/builder/[assessmentId]/page.tsx')
+check(builderPage.includes("assessment.generationSource !== 'teacher_authored'"), 'builder detects curriculum-grounded assessments')
+check(builderPage.includes('subjectId: assessment?.subjectId'), 'Question Bank discovery is restricted to the assessment subject')
+check(builderPage.includes('rows.filter(item => Boolean(item.learningOutcomeId))'), 'grounded Question Bank hides items without curriculum outcome lineage')
+check(builderPage.includes('item.outcomeCount !== 1'), 'multi-outcome grounded items are not incorrectly promoted as one reusable bank question')
+check(builderPage.includes('curriculum lineage preserved'), 'builder communicates lineage-safe Question Bank reuse')
+
+const builderClient = read('lib/assessment/builder.ts')
+check(builderClient.includes('outcomeCount'), 'builder model carries item outcome-link count')
+check(builderClient.includes('generationSource'), 'builder model carries generation source')
+check(builderClient.includes('subjectId'), 'builder model carries subject authority')
+
+const builderContextMigration = read('supabase/migrations/20260902063100_exq_builder_grounding_context.sql')
+check(builderContextMigration.includes("'subject_id', ad.subject_id"), 'builder authority returns subject identity')
+check(builderContextMigration.includes("'generation_source', ad.generation_source"), 'builder authority returns grounding identity')
+check(builderContextMigration.includes("'outcome_count'"), 'builder authority returns outcome-link count without direct client table reads')
+check(builderContextMigration.includes('revoke all on function public.exq_list_builder_assessment'), 'builder authority remains non-anonymous')
+
 const lessonMigration = read('supabase/migrations/20260902062000_exq_lesson_assessment_grounding.sql')
 check(lessonMigration.includes('security definer'), 'lesson assessment authorities execute at guarded server boundary')
 check(lessonMigration.includes('lp.teacher_id is distinct from caller'), 'outcome resolver verifies lesson ownership')
