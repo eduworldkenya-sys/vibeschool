@@ -5,7 +5,7 @@ import { PublicHeader } from '@/components/public/PublicHeader'
 import { PublicFooter } from '@/components/public/PublicFooter'
 import { getKnowledgeArticle, getKnowledgeSources, listKnowledgeArticles } from '@/lib/educationKnowledge'
 
-const SITE_URL='https://www.vibeschool.co.ke'
+const SITE_URL='https://vibeschool.co.ke'
 
 export function generateStaticParams(){ return listKnowledgeArticles().map(article=>({slug:article.slug})) }
 

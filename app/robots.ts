@@ -13,7 +13,7 @@ export default function robots(): MetadataRoute.Robots {
         '/teacher/', '/parent/', '/student/', '/select', '/global/create/', '/global/dashboard', '/global/profile', '/global/signup',
       ],
     }],
-    sitemap: 'https://www.vibeschool.co.ke/sitemap.xml',
-    host: 'https://www.vibeschool.co.ke',
+    sitemap: 'https://vibeschool.co.ke/sitemap.xml',
+    host: 'https://vibeschool.co.ke',
   }
 }
