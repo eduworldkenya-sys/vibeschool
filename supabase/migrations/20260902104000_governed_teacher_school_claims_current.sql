@@ -154,6 +154,40 @@ returns jsonb language sql stable security definer set search_path=public,auth,p
   ),'{}'::jsonb)
 $$;
 
+create or replace function public.hq_list_teacher_school_claims(p_status text default 'pending',p_limit integer default 100)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=public,auth,pg_temp
+as $$
+begin
+  if auth.uid() is null or not coalesce(public.is_platform_owner(),false) then
+    raise exception 'owner_authorization_required' using errcode='42501';
+  end if;
+  if p_status not in ('pending','needs_information','approved','rejected','cancelled','expired') then
+    raise exception 'invalid_status' using errcode='22023';
+  end if;
+  return coalesce((
+    select jsonb_agg(to_jsonb(x) order by x.created_at)
+    from (
+      select c.id,c.reference_code,c.status,c.requested_levels,c.created_at,c.updated_at,
+             c.school_id,c.directory_school_id,
+             coalesce(s.name,d.name) as school_name,
+             coalesce(s.county,d.county) as county,
+             p.full_name as teacher_name
+      from public.teacher_school_claims c
+      join public.profiles p on p.id=c.teacher_id
+      left join public.schools s on s.id=c.school_id
+      left join public.schools_directory d on d.id=c.directory_school_id
+      where c.status=p_status
+      order by c.created_at
+      limit greatest(1,least(coalesce(p_limit,100),200))
+    ) x
+  ),'[]'::jsonb);
+end;
+$$;
+
 create or replace function public.review_teacher_school_claim(p_claim_id uuid,p_action text,p_note text default null)
 returns jsonb language plpgsql security definer set search_path=public,auth,pg_temp as $$
 declare
@@ -202,9 +236,10 @@ begin
     where id=c.id;
 
   if p_action='approved' then
+    -- Preserve any existing stronger membership role (admin/owner); approval must never downgrade it.
     insert into public.school_members(school_id,profile_id,role)
       values(v_school,c.teacher_id,'teacher')
-      on conflict(school_id,profile_id) do update set role='teacher';
+      on conflict(school_id,profile_id) do nothing;
     update public.profiles set school_id=v_school where id=c.teacher_id;
     insert into public.teacher_profiles(profile_id,school_id)
       values(c.teacher_id,v_school)
@@ -219,11 +254,13 @@ revoke all on function public.submit_teacher_school_claim(uuid,uuid,text[]) from
 revoke all on function public.connect_teacher_to_school(uuid,text) from public,anon;
 revoke all on function public.connect_teacher_to_directory_school(uuid,text) from public,anon;
 revoke all on function public.get_my_teacher_school_claim() from public,anon;
+revoke all on function public.hq_list_teacher_school_claims(text,integer) from public,anon,authenticated;
 revoke all on function public.review_teacher_school_claim(uuid,text,text) from public,anon;
 grant execute on function public.submit_teacher_school_claim(uuid,uuid,text[]) to authenticated;
 grant execute on function public.connect_teacher_to_school(uuid,text) to authenticated;
 grant execute on function public.connect_teacher_to_directory_school(uuid,text) to authenticated;
 grant execute on function public.get_my_teacher_school_claim() to authenticated;
+grant execute on function public.hq_list_teacher_school_claims(text,integer) to authenticated;
 grant execute on function public.review_teacher_school_claim(uuid,text,text) to authenticated;
 
 notify pgrst,'reload schema';
