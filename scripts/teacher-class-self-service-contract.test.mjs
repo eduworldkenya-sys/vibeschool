@@ -14,7 +14,7 @@ assert.match(migration, /teacher_school_membership_required/i)
 assert.match(migration, /sm\.profile_id = v_uid[\s\S]*sm\.school_id = p_school_id[\s\S]*sm\.role::text = 'teacher'/i)
 assert.match(migration, /s\.school_id is null[\s\S]*lower\(btrim\(s\.name\)\) = lower\(v_subject_input\)/i)
 assert.match(migration, /pg_advisory_xact_lock/i)
-assert.match(migration, /on conflict \(teacher_id,class_id,subject_id\) do update/i)
+assert.match(migration, /on conflict\s*\(\s*teacher_id\s*,\s*class_id\s*,\s*subject_id\s*\)\s*do update/i)
 assert.match(migration, /revoke all on function public\.create_teacher_class_assignment[\s\S]*service_role/i)
 assert.match(migration, /grant execute on function public\.create_teacher_class_assignment[\s\S]*to authenticated/i)
 
