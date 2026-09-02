@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import type { PublishedBlogArticle } from '@/lib/blogContent'
-export const SITE_URL='https://www.vibeschool.co.ke';export const ORGANIZATION_ID=`${SITE_URL}/#organization`
+export const SITE_URL='https://vibeschool.co.ke';export const ORGANIZATION_ID=`${SITE_URL}/#organization`
 export type ContentKind='news'|'revision'|'curriculum'|'teacher-guide'|'education-guide'
 export type AuthorityContext={kind:ContentKind;audience:'teacher'|'learner'|'parent'|'general';framework?:string;subject?:string;grade?:string;programme?:'KCSE'|'KJSEA'|'KPSEA';topics:string[];authoritySource:'curriculum'|'editorial'}
 const clean=(value?:string|null)=>value?.trim()||undefined
