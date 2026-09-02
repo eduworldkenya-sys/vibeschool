@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'app/teacher/onboarding/school/**'
+      - 'app/hq/schools/data-quality/page.tsx'
+      - 'components/hq/TeacherSchoolClaimQueue.tsx'
       - 'supabase/migrations/20260902104000_governed_teacher_school_claims_current.sql'
       - 'supabase/tests/governed_teacher_school_current_contract.sql'
       - 'scripts/governed-teacher-school-contract.test.mjs'
