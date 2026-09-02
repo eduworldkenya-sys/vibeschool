@@ -306,7 +306,7 @@ export async function buildCanonicalLessonSourceBundle({
       schoolId: context.schoolId,
       grade: context.grade,
       studentCount: context.studentCount,
-      previousLesson: context.previousLesson,
+      previousLesson: context.previousLesson ?? null,
     },
     scheme: source,
     resourceAuthority,
