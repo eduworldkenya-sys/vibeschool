@@ -24,6 +24,14 @@ type LiveSchemaCompatClient = TypedBrowserClient & {
 let client: TypedBrowserClient | null = null
 
 export function getSupabaseClient() {
+  // HQ uses an intentionally isolated auth storage key. Direct callers of this
+  // helper must obey the same route-aware contract as the compatibility proxy;
+  // otherwise an HQ page can authenticate successfully and then query with the
+  // unrelated application client, producing RLS failures such as VibePress
+  // "Load failed".
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/hq')) {
+    return getHQSupabaseClient()
+  }
   if (!client) client = createSupabaseClient()
   return client
 }
