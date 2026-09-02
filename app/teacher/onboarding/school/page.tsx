@@ -20,6 +20,8 @@ type School = {
   knec_code: string | null
 }
 
+type SchoolClaim = { status?: string }
+
 const LEVELS = [
   ["PRIMARY", "Primary", "PP1–Grade 6"],
   ["JUNIOR", "Junior School", "Grade 7–9"],
@@ -53,6 +55,16 @@ export default function SchoolDiscovery() {
   const [sent, setSent] = useState(false)
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase.rpc("get_my_teacher_school_claim")
+      const claim = (data || {}) as SchoolClaim
+      if (claim.status === "pending" || claim.status === "needs_information") {
+        router.replace("/teacher/onboarding/school/pending")
+      }
+    })()
+  }, [router])
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -119,11 +131,11 @@ export default function SchoolDiscovery() {
         setMsg("This directory school needs verification before we can connect it safely. Send the school details below and our team will reconcile it without creating a duplicate.")
         setMissingMode(true)
       } else {
-        setMsg("We could not connect you to that school. Please retry.")
+        setMsg("We could not submit your school for verification. Please retry.")
       }
       return
     }
-    router.push("/teacher/onboarding/class")
+    router.push("/teacher/onboarding/school/pending")
   }
 
   async function requestMissingSchool() {
@@ -161,7 +173,7 @@ export default function SchoolDiscovery() {
       <section style={{ maxWidth: 560, margin: "40px auto", background: "#fff", borderRadius: 20, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,.08)" }}>
         <h1 style={{ marginTop: 0, marginBottom: 8 }}>Find your school</h1>
         <p style={{ color: "#667085", marginTop: 0 }}>
-          Choose your level, type a few words, and pick your school. We use school names, verified aliases and location clues to make the match faster.
+          Choose your level, type a few words, and pick your school. Your selection is submitted for verification and does not grant school access until an authorized reviewer approves it.
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
@@ -239,7 +251,7 @@ export default function SchoolDiscovery() {
 
         {picked && (
           <button disabled={busy} onClick={connect} style={{ width: "100%", marginTop: 12, padding: 14, border: 0, borderRadius: 12, background: "#16a34a", color: "#fff", fontWeight: 700 }}>
-            {busy ? "Connecting…" : "This is my school →"}
+            {busy ? "Submitting…" : "Submit school for verification →"}
           </button>
         )}
 
