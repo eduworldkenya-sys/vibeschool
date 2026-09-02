@@ -2,8 +2,8 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   createInterventionAssessment,
   evaluateIntervention,
@@ -15,6 +15,9 @@ import {
 
 export default function AssessmentInterventionsPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const classId = searchParams.get('classId')?.trim() || null
+  const studentId = searchParams.get('studentId')?.trim() || null
   const [items, setItems] = useState<InterventionQueueItem[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -22,15 +25,20 @@ export default function AssessmentInterventionsPage() {
   const [message, setMessage] = useState('')
   const [notes, setNotes] = useState<Record<string, string>>({})
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    try { setItems(await listInterventionQueue()) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load intervention queue.') }
-    finally { setLoading(false) }
-  }
+    try {
+      const queue = await listInterventionQueue(classId ?? undefined)
+      setItems(studentId ? queue.filter(item => item.studentId === studentId) : queue)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not load intervention queue.')
+    } finally {
+      setLoading(false)
+    }
+  }, [classId, studentId])
 
-  useEffect(() => { void load() }, [])
+  useEffect(() => { void load() }, [load])
 
   async function openRemedialBuilder(item: InterventionQueueItem) {
     setBusyId(item.interventionId)
@@ -78,6 +86,8 @@ export default function AssessmentInterventionsPage() {
     escalated: items.filter(item => item.status === 'escalated').length,
   }), [items])
 
+  const contextLabel = studentId ? 'Learner-scoped intervention queue' : classId ? 'Class-scoped intervention queue' : 'All assigned learner interventions'
+
   return (
     <main style={shell}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
@@ -85,6 +95,7 @@ export default function AssessmentInterventionsPage() {
           <div style={eyebrow}>Assessment Intelligence</div>
           <h1 style={{ margin: '6px 0' }}>Learner Intervention Queue</h1>
           <p style={{ margin: 0, color: '#6b7280' }}>Turn mastery gaps into targeted practice, collect follow-up evidence, and close or escalate support.</p>
+          <div style={{ ...muted, marginTop: 8 }}>{contextLabel}</div>
         </section>
 
         <section style={card}>
@@ -100,7 +111,7 @@ export default function AssessmentInterventionsPage() {
         {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
 
         {loading ? <section style={card}>Building intervention queue…</section>
-          : items.length === 0 ? <section style={card}><strong>No open interventions</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>New follow-up actions will appear as released assessment evidence is processed.</p></section>
+          : items.length === 0 ? <section style={card}><strong>No open interventions</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>No evidence-backed intervention matches this context.</p></section>
           : items.map(item => (
             <section key={item.interventionId} style={{ ...card, borderColor: priorityBorder[item.priority] }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
