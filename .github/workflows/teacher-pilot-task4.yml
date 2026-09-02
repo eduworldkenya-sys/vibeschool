@@ -9,6 +9,7 @@ on:
       - 'lib/timetable/**'
       - 'supabase/migrations/**'
       - 'scripts/test-teacher-pilot-task4-contract.mjs'
+      - 'scripts/test-assessment-pack-contract.mjs'
       - '.github/workflows/teacher-pilot-task4.yml'
   workflow_dispatch:
 
@@ -25,3 +26,5 @@ jobs:
           node-version: 20
       - name: Teacher Pilot Task 4 contract
         run: node scripts/test-teacher-pilot-task4-contract.mjs
+      - name: Assessment Pack authority contract
+        run: node scripts/test-assessment-pack-contract.mjs

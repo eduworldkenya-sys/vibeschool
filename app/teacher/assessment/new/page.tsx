@@ -2,250 +2,230 @@
 
 export const dynamic = 'force-dynamic'
 
-import { Suspense, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import {
-  addDraftItem,
-  completeLessonAssessmentGeneration,
-  failLessonAssessmentGeneration,
-  requestLessonAssessment,
-} from '@/lib/assessment'
-import type {
-  AutoMarkingMode,
-  LessonAssessmentType,
-  QuestionType,
-} from '@/lib/assessment'
+import { supabase } from '@/lib/supabase'
+import { addDraftItem, completeLessonAssessmentGeneration, failLessonAssessmentGeneration } from '@/lib/assessment'
+import type { AutoMarkingMode, QuestionType } from '@/lib/assessment'
 
 type StudioType = 'exercise' | 'quiz' | 'homework' | 'test'
+type LessonTruth = { body: string; classId: string; subjectId: string }
+type OutcomeRef = { id: string; text: string }
 type DraftQuestion = {
   prompt: string
-  answer: string
   marks: number
   questionType: QuestionType
   autoMarkingMode: AutoMarkingMode
   difficulty: 'easy' | 'medium' | 'hard'
   bloomLevel: string
+  outcomeTexts: string[]
+}
+type RpcResult<T> = { data: T | null; error: { message?: string } | null }
+type GenericRpc = <T>(name: string, args: Record<string, unknown>) => PromiseLike<RpcResult<T>>
+const rpc = supabase.rpc.bind(supabase) as unknown as GenericRpc
+
+const LABEL: Record<StudioType, string> = { exercise: 'Class Exercise', quiz: 'Quick Quiz', homework: 'Homework', test: 'CAT' }
+const SPEC: Record<StudioType, { minutes: number; purpose: string }> = {
+  exercise: { minutes: 25, purpose: 'Guided practice on today’s taught outcomes.' },
+  quiz: { minutes: 15, purpose: 'A short independent mastery check.' },
+  homework: { minutes: 35, purpose: 'Independent reinforcement using a certified homework task.' },
+  test: { minutes: 40, purpose: 'Formal cumulative assessment across completed teaching.' },
 }
 
-const TYPE_LABEL: Record<StudioType, string> = {
-  exercise: 'Class Exercise',
-  quiz: 'Quick Quiz',
-  homework: 'Homework',
-  test: 'CAT',
+function section(body: string, name: string): string {
+  return body.match(new RegExp(`<${name}>([\\s\\S]*?)<\\/${name}>`, 'i'))?.[1]?.trim() ?? ''
 }
 
-const BLUEPRINT: Record<StudioType, { minutes: number; instructions: string }> = {
-  exercise: { minutes: 25, instructions: 'Answer all questions. Show your working where required.' },
-  quiz: { minutes: 15, instructions: 'Answer all questions within the suggested time.' },
-  homework: { minutes: 35, instructions: 'Complete all questions and submit by the due date set by your teacher.' },
-  test: { minutes: 40, instructions: 'Answer all questions. Read each question carefully and manage your time.' },
+function objectiveTexts(body: string): string[] {
+  return section(body, 'objectives').split('\n').map(value => value.replace(/^\s*\d+[.)]\s*/, '').trim()).filter(Boolean)
 }
 
-function cleanPreparedCheck(line: string): string {
-  return line.replace(/^\s*\d+[.)]\s*/, '').trim()
+function question(prompt: string, marks: number, bloomLevel: string, difficulty: 'easy' | 'medium' | 'hard', outcomes: string[]): DraftQuestion {
+  return { prompt, marks, questionType: 'structured', autoMarkingMode: 'none', difficulty, bloomLevel, outcomeTexts: outcomes }
 }
 
-function preparedQuestionsFromHook(hook: string): DraftQuestion[] {
-  const prepared = hook.match(/Prepared checks:\s*([\s\S]*?)(?:\n\s*Scheme assessment method|\n\s*Record each learner|$)/i)?.[1] ?? ''
-  if (!prepared.trim()) return []
-
-  const lines = prepared.split('\n').map(line => line.trim()).filter(Boolean)
-  const questions: DraftQuestion[] = []
-
-  for (let index = 0; index < lines.length; index += 1) {
-    if (/^Expected answer:/i.test(lines[index])) continue
-    if (!/^\d+[.)]\s/.test(lines[index])) continue
-
-    const prompt = cleanPreparedCheck(lines[index])
-    const nextLine = lines[index + 1] ?? ''
-    const answer = /^Expected answer:/i.test(nextLine)
-      ? nextLine.replace(/^Expected answer:\s*/i, '').trim()
-      : ''
-
-    if (!prompt) continue
-    questions.push({
-      prompt,
-      answer,
-      marks: answer ? 2 : 3,
-      questionType: 'short_answer',
-      autoMarkingMode: answer ? 'case_insensitive' : 'none',
-      difficulty: questions.length === 0 ? 'easy' : questions.length < 3 ? 'medium' : 'hard',
-      bloomLevel: questions.length === 0 ? 'remember' : questions.length < 3 ? 'understand' : 'apply',
-    })
+function questionsFor(type: StudioType, body: string): DraftQuestion[] {
+  const outcomes = objectiveTexts(body)
+  if (!outcomes.length || type === 'test') return []
+  if (type === 'exercise') {
+    return outcomes.map((outcome, index) => question(
+      `${outcome} Use relevant lesson evidence or an example where appropriate.`,
+      index === 0 ? 2 : 4,
+      index === 0 ? 'understand' : 'apply',
+      index === 0 ? 'easy' : 'medium',
+      [outcome],
+    ))
   }
-
-  return questions
-}
-
-function fallbackQuestions(type: StudioType, topic: string): DraftQuestion[] {
-  const focus = topic.trim() || 'this lesson'
-  const base: DraftQuestion[] = [
-    { prompt: `State one key idea you learned about ${focus}.`, answer: '', marks: 2, questionType: 'short_answer', autoMarkingMode: 'none', difficulty: 'easy', bloomLevel: 'remember' },
-    { prompt: `Explain ${focus} in your own words.`, answer: '', marks: 3, questionType: 'structured', autoMarkingMode: 'none', difficulty: 'medium', bloomLevel: 'understand' },
-    { prompt: `Apply what you learned about ${focus} to one correct example.`, answer: '', marks: 4, questionType: 'structured', autoMarkingMode: 'none', difficulty: 'medium', bloomLevel: 'apply' },
+  if (type === 'quiz') {
+    return outcomes.slice(0, 3).map((outcome, index) => question(
+      outcome,
+      index === 0 ? 2 : 3,
+      index === 0 ? 'remember' : 'understand',
+      index === 0 ? 'easy' : 'medium',
+      [outcome],
+    ))
+  }
+  const homework = section(body, 'homework')
+  if (!homework || /no certified homework task|do not invent/i.test(homework)) return []
+  return [
+    question(homework, 10, 'apply', 'medium', outcomes),
+    question(`Apply this taught outcome in a new context: ${outcomes[0]}`, 5, 'create', 'hard', [outcomes[0]]),
   ]
-
-  if (type === 'homework') {
-    return [...base, { prompt: `Create and solve one new example about ${focus}.`, answer: '', marks: 4, questionType: 'structured', autoMarkingMode: 'none', difficulty: 'hard', bloomLevel: 'create' }]
-  }
-  if (type === 'test') {
-    return [...base, { prompt: `Compare two ideas or methods related to ${focus} and justify your answer.`, answer: '', marks: 5, questionType: 'structured', autoMarkingMode: 'none', difficulty: 'hard', bloomLevel: 'evaluate' }]
-  }
-  return base
 }
 
-function buildQuestions(type: StudioType, topic: string, hook: string): DraftQuestion[] {
-  const prepared = preparedQuestionsFromHook(hook)
-  if (prepared.length > 0) {
-    if (type === 'quiz') return prepared.slice(0, 5)
-    if (type === 'exercise') return prepared
-    if (type === 'homework') return prepared.slice(0, Math.max(1, Math.min(6, prepared.length)))
-    return prepared
+function record(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} returned an invalid payload.`)
+  return value as Record<string, unknown>
+}
+
+async function resolveOutcomeRefs(lessonPlanId: string, texts: string[]): Promise<OutcomeRef[]> {
+  const uniqueTexts = Array.from(new Set(texts))
+  const { data, error } = await rpc<unknown>('exq_resolve_lesson_assessment_outcomes', { p_lesson_plan_id: lessonPlanId })
+  if (error) throw new Error(error.message ?? 'Curriculum outcome resolution failed.')
+  const payload = record(data, 'Curriculum outcome authority')
+  const refs = (Array.isArray(payload.outcomes) ? payload.outcomes : []).flatMap(value => {
+    const row = record(value, 'Curriculum outcome')
+    return typeof row.id === 'string' && typeof row.outcome_text === 'string' ? [{ id: row.id, text: row.outcome_text }] : []
+  })
+  const resolved = new Set(refs.map(ref => ref.text))
+  const missing = uniqueTexts.filter(text => !resolved.has(text))
+  if (missing.length) throw new Error(`Assessment blocked: ${missing.length} lesson outcome${missing.length === 1 ? '' : 's'} could not be resolved through linked Scheme curriculum authority.`)
+  return refs
+}
+
+async function linkItemOutcomes(itemId: string, texts: string[], refs: OutcomeRef[]): Promise<void> {
+  const byText = new Map(refs.map(ref => [ref.text, ref.id]))
+  for (const text of Array.from(new Set(texts))) {
+    const outcomeId = byText.get(text)
+    if (!outcomeId) throw new Error('Assessment item outcome lineage could not be resolved.')
+    const { error } = await rpc<unknown>('exq_link_item_outcome', { p_assessment_item_id: itemId, p_outcome_id: outcomeId, p_weight: 1 })
+    if (error) throw new Error(error.message ?? 'Assessment outcome lineage failed.')
   }
-  return fallbackQuestions(type, topic)
 }
 
 function Studio() {
   const router = useRouter()
   const params = useSearchParams()
   const lessonPlanId = params.get('lessonPlanId') ?? ''
-  const topic = params.get('topic') ?? ''
-  const assessmentHook = params.get('assessmentHook') ?? ''
-  const requestedType = params.get('type')
-  const initialType: StudioType = requestedType === 'exercise' || requestedType === 'homework' || requestedType === 'test' ? requestedType : 'quiz'
-
-  const [assessmentType, setAssessmentType] = useState<StudioType>(initialType)
-  const questions = useMemo(() => buildQuestions(assessmentType, topic, assessmentHook), [assessmentType, topic, assessmentHook])
+  const requested = params.get('type')
+  const initial: StudioType = requested === 'exercise' || requested === 'homework' || requested === 'test' ? requested : 'quiz'
+  const [type, setType] = useState<StudioType>(initial)
+  const [lesson, setLesson] = useState<LessonTruth | null>(null)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  async function createDraft() {
-    if (!lessonPlanId || saving) return
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      if (!lessonPlanId) { setLoading(false); return }
+      const { data, error: loadError } = await supabase.from('lesson_plans').select('body,class_id,subject_id').eq('id', lessonPlanId).maybeSingle()
+      if (!active) return
+      if (loadError) setError(loadError.message)
+      else if (!data?.body || !data.class_id || !data.subject_id) setError('Assessment preparation is blocked because the saved lesson is missing authoritative context.')
+      else setLesson({ body: data.body, classId: data.class_id, subjectId: data.subject_id })
+      setLoading(false)
+    })()
+    return () => { active = false }
+  }, [lessonPlanId])
+
+  const questions = useMemo(() => lesson ? questionsFor(type, lesson.body) : [], [lesson, type])
+  const totalMarks = questions.reduce((sum, item) => sum + item.marks, 0)
+
+  async function prepare(advanced: boolean) {
+    if (!lesson || !lessonPlanId || saving || type === 'test' || !questions.length) return
     setSaving(true)
     setError('')
-
     let assessmentId: string | null = null
     try {
-      const label = TYPE_LABEL[assessmentType]
-      const request = await requestLessonAssessment({
-        lessonPlanId,
-        assessmentType: assessmentType as LessonAssessmentType,
-        requestKey: `lesson:${lessonPlanId}:${assessmentType}:v2`,
-        title: `${label} — ${topic || 'Lesson'}`,
-        generationMetadata: {
-          generator_version: 'deterministic-lesson-materials-v2',
-          ai_used: false,
-          source: 'lesson_plan_prepared_checks',
-          blueprint: {
-            question_count: questions.length,
-            estimated_minutes: BLUEPRINT[assessmentType].minutes,
-            difficulty_progression: questions.map(question => question.difficulty),
-            bloom_distribution: questions.map(question => question.bloomLevel),
-          },
+      const outcomeRefs = await resolveOutcomeRefs(lessonPlanId, questions.flatMap(item => item.outcomeTexts))
+      const metadata = {
+        generator_version: 'curriculum-outcome-assessment-v4',
+        ai_used: false,
+        source: 'authoritative_lesson_body',
+        authority: 'linked_scheme_curriculum_learning_outcomes',
+        blueprint: {
+          question_count: questions.length,
+          estimated_minutes: SPEC[type].minutes,
+          outcome_count: outcomeRefs.length,
+          difficulty_progression: questions.map(item => item.difficulty),
+          bloom_distribution: questions.map(item => item.bloomLevel),
         },
-      })
-
-      assessmentId = request.assessmentId
-      if (!request.created) {
-        router.push(`/teacher/assessment/builder/${assessmentId}`)
-        return
       }
+      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_grounded_lesson_assessment', {
+        p_lesson_plan_id: lessonPlanId,
+        p_assessment_type: type,
+        p_request_key: `lesson:${lessonPlanId}:${type}:v4`,
+        p_title: `${LABEL[type]} — lesson outcomes`,
+        p_generation_metadata: metadata,
+      })
+      if (prepareError) throw new Error(prepareError.message ?? 'Assessment preparation failed.')
+      const prepared = record(data, 'Grounded assessment preparation')
+      if (typeof prepared.assessment_id !== 'string') throw new Error('Grounded assessment preparation did not return an assessment ID.')
+      assessmentId = prepared.assessment_id
 
-      let totalMarks = 0
-      for (let index = 0; index < questions.length; index += 1) {
-        const question = questions[index]
-        totalMarks += question.marks
-        await addDraftItem({
+      if (prepared.needs_generation === true) {
+        for (let index = 0; index < questions.length; index += 1) {
+          const item = questions[index]
+          const itemId = await addDraftItem({
+            assessmentId,
+            questionType: item.questionType,
+            prompt: item.prompt,
+            marks: item.marks,
+            orderNum: index + 1,
+            acceptedAnswers: [],
+            correctAnswer: null,
+            autoMarkingMode: item.autoMarkingMode,
+            difficulty: item.difficulty,
+            bloomLevel: item.bloomLevel,
+            generatedBy: 'curriculum_outcome_material',
+          })
+          await linkItemOutcomes(itemId, item.outcomeTexts, outcomeRefs)
+        }
+        await completeLessonAssessmentGeneration({
           assessmentId,
-          questionType: question.questionType,
-          prompt: question.prompt,
-          marks: question.marks,
-          orderNum: index + 1,
-          acceptedAnswers: question.answer ? [question.answer] : [],
-          correctAnswer: question.answer || null,
-          autoMarkingMode: question.answer ? question.autoMarkingMode : 'none',
-          difficulty: question.difficulty,
-          bloomLevel: question.bloomLevel,
-          generatedBy: 'deterministic_lesson_material',
+          itemCount: questions.length,
+          totalMarks,
+          estimatedMinutes: SPEC[type].minutes,
+          generationMetadata: { ...metadata, generated_from: 'authoritative_lesson_body', teacher_review_required: true },
         })
       }
-
-      await completeLessonAssessmentGeneration({
-        assessmentId,
-        itemCount: questions.length,
-        totalMarks,
-        estimatedMinutes: BLUEPRINT[assessmentType].minutes,
-        generationMetadata: { generated_from: 'lesson_plan', ai_used: false, teacher_review_required: true },
-      })
-
-      router.push(`/teacher/assessment/builder/${assessmentId}`)
-    } catch (generationError) {
-      console.error('[LessonAssessmentStudio] material creation failed', generationError)
+      router.push(advanced ? `/teacher/assessment/builder/${assessmentId}` : `/teacher/assessment/review/${assessmentId}`)
+    } catch (cause) {
       if (assessmentId) {
-        try {
-          await failLessonAssessmentGeneration({
-            assessmentId,
-            errorCode: 'draft_generation_failed',
-            errorMessage: generationError instanceof Error ? generationError.message : null,
-          })
-        } catch (recordError) {
-          console.error('[LessonAssessmentStudio] failure recording failed', recordError)
-        }
+        try { await failLessonAssessmentGeneration({ assessmentId, errorCode: 'curriculum_grounded_generation_failed', errorMessage: cause instanceof Error ? cause.message : null }) }
+        catch (recordError) { console.error('[LessonAssessmentStudio] failure recording failed', recordError) }
       }
-      setError(generationError instanceof Error ? generationError.message : 'Lesson material could not be opened.')
+      setError(cause instanceof Error ? cause.message : 'Material could not be prepared.')
     } finally {
       setSaving(false)
     }
   }
 
-  if (!lessonPlanId) {
-    return <main style={page}><section style={card}><h1 style={{ marginTop: 0 }}>Lesson Materials</h1><p style={{ color: '#b91c1c' }}>Open lesson materials from a saved lesson plan.</p><button type="button" onClick={() => router.back()} style={secondaryButton}>Go back</button></section></main>
-  }
+  if (!lessonPlanId) return <main style={page}><section style={card}><h1>Lesson Materials</h1><p>Open materials from a saved lesson plan.</p></section></main>
 
-  return (
-    <main style={page}>
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <button type="button" onClick={() => router.back()} style={{ ...secondaryButton, marginBottom: 12 }}>← Back to lesson</button>
-        <section style={card}>
-          <div style={eyebrow}>Lesson Materials · No AI</div>
-          <h1 style={{ margin: '6px 0 8px' }}>Prepared from your lesson</h1>
-          <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.55 }}>VibeSchool uses the lesson’s Scheme objectives and prepared checks. Review or edit before assigning or sharing.</p>
-        </section>
+  const blocked = type === 'homework'
+    ? 'No certified homework is attached. VibeSchool will not invent one.'
+    : type === 'test'
+      ? 'CAT is cumulative. It is built from outcomes across completed teaching, not cloned from this one lesson.'
+      : 'Automatic generation is blocked because authoritative lesson outcomes are unavailable.'
 
-        <section style={card}>
-          <div style={eyebrow}>Material</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10, marginTop: 12 }}>
-            {(Object.keys(TYPE_LABEL) as StudioType[]).map(type => (
-              <button key={type} type="button" onClick={() => setAssessmentType(type)} style={{ padding: 14, borderRadius: 12, border: assessmentType === type ? '2px solid #4338ca' : '1px solid #d1d5db', background: assessmentType === type ? '#eef2ff' : '#fff', color: assessmentType === type ? '#4338ca' : '#374151', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {TYPE_LABEL[type]}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section style={card}>
-          <div style={eyebrow}>Preloaded preview</div>
-          <h2 style={{ fontSize: 17, margin: '8px 0' }}>{TYPE_LABEL[assessmentType]} — {topic || 'Lesson'}</h2>
-          <div style={{ color: '#4b5563', lineHeight: 1.7, fontSize: 13 }}>{questions.length} questions · {questions.reduce((sum, question) => sum + question.marks, 0)} marks · about {BLUEPRINT[assessmentType].minutes} minutes</div>
-          <ol style={{ paddingLeft: 22, color: '#374151', lineHeight: 1.6 }}>
-            {questions.map((question, index) => <li key={`${question.prompt}-${index}`} style={{ marginBottom: 8 }}>{question.prompt} <strong>({question.marks})</strong>{question.answer && <div style={{ fontSize: 12, color: '#047857', marginTop: 3 }}>Expected answer: {question.answer}</div>}</li>)}
-          </ol>
-        </section>
-
-        {error && <div style={errorBox}>{error}</div>}
-        <button type="button" onClick={createDraft} disabled={saving} style={{ ...primaryButton, width: '100%', opacity: saving ? 0.65 : 1 }}>
-          {saving ? 'Opening material…' : `Open ${TYPE_LABEL[assessmentType]} in Builder`}
-        </button>
-      </div>
-    </main>
-  )
+  return <main style={page}><div style={{ maxWidth: 760, margin: '0 auto' }}>
+    <button type="button" onClick={() => router.back()} style={secondary}>← Back to lesson</button>
+    <section style={card}><div style={eyebrow}>Prepared assessment pack · No AI</div><h1>Ready from authoritative lesson outcomes</h1><p style={{ color: '#6b7280' }}>Curriculum outcomes—not activity labels—drive generated work. Advanced authoring is optional.</p></section>
+    <section style={card}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>{(Object.keys(LABEL) as StudioType[]).map(materialType => <button key={materialType} type="button" onClick={() => setType(materialType)} style={{ padding: 14, borderRadius: 12, border: type === materialType ? '2px solid #4338ca' : '1px solid #d1d5db', background: type === materialType ? '#eef2ff' : '#fff', fontWeight: 800 }}>{LABEL[materialType]}</button>)}</div></section>
+    <section style={card}><div style={eyebrow}>{LABEL[type]}</div><h2>{SPEC[type].purpose}</h2>{loading ? <p>Loading authoritative lesson…</p> : questions.length === 0 ? <div style={notice}>{blocked}</div> : <><div>{questions.length} questions · {totalMarks} marks · about {SPEC[type].minutes} minutes</div><ol>{questions.map((item, index) => <li key={`${item.prompt}-${index}`} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong></li>)}</ol></>}</section>
+    {error && <div style={errorBox}>{error}</div>}
+    {type === 'test' ? <button type="button" onClick={() => router.push(`/teacher/assessment/cat/new?lessonPlanId=${encodeURIComponent(lessonPlanId)}`)} style={{ ...primary, width: '100%' }}>Open cumulative CAT workspace</button> : questions.length > 0 ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><button type="button" disabled={saving} onClick={() => void prepare(false)} style={primary}>{saving ? 'Preparing…' : 'Review & assign'}</button><button type="button" disabled={saving} onClick={() => void prepare(true)} style={secondary}>Advanced Edit</button></div> : null}
+  </div></main>
 }
 
 const page: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, marginBottom: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.06)' }
+const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, marginBottom: 12 }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
-const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '14px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, fontSize: 14, fontFamily: 'inherit', cursor: 'pointer' }
-const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', cursor: 'pointer' }
+const primary: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '14px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, cursor: 'pointer' }
+const secondary: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }
+const notice: React.CSSProperties = { padding: 12, borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', lineHeight: 1.5 }
 const errorBox: React.CSSProperties = { padding: 12, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', marginBottom: 12 }
 
 export default function NewAssessmentPage() {
