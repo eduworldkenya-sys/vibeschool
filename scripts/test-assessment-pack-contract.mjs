@@ -14,6 +14,7 @@ check(studio.includes('linked_scheme_curriculum_learning_outcomes'), 'generation
 check(studio.includes('/teacher/assessment/review/${assessmentId}'), 'default flow goes to lightweight review instead of full builder')
 check(studio.includes('/teacher/assessment/builder/${assessmentId}'), 'advanced builder remains available explicitly')
 check(studio.includes('/teacher/assessment/cat/new?lessonPlanId='), 'CAT routes to real cumulative workspace')
+check(studio.includes('Array.from(new Set(texts))'), 'outcome dedup remains compatible with repository TypeScript target')
 check(!studio.includes('State one key idea you learned about ${focus}'), 'generic topic fallback question generation is removed')
 check(!studio.includes('Explain ${focus} in your own words'), 'generic activity-label explanation fallback is removed')
 check(studio.includes('/no certified homework task|do not invent/i'), 'homework generation fails closed when lesson has no certified homework')
@@ -30,7 +31,8 @@ const builderLayout = read('app/teacher/assessment/builder/[assessmentId]/layout
 check(builderLayout.includes('Review & Assign'), 'advanced builder always has path back to review and assignment')
 
 const builderPage = read('app/teacher/assessment/builder/[assessmentId]/page.tsx')
-check(builderPage.includes("assessment.generationSource !== 'teacher_authored'"), 'builder detects curriculum-grounded assessments')
+check(builderPage.includes("GROUNDING_AUTHORITY = 'linked_scheme_curriculum_learning_outcomes'"), 'builder identifies grounded assessments by explicit curriculum authority')
+check(builderPage.includes('assessment?.groundingAuthority === GROUNDING_AUTHORITY'), 'builder does not infer grounding from unrelated generation sources')
 check(builderPage.includes('subjectId: assessment?.subjectId'), 'Question Bank discovery is restricted to the assessment subject')
 check(builderPage.includes('rows.filter(item => Boolean(item.learningOutcomeId))'), 'grounded Question Bank hides items without curriculum outcome lineage')
 check(builderPage.includes('item.outcomeCount !== 1'), 'multi-outcome grounded items are not incorrectly promoted as one reusable bank question')
@@ -38,12 +40,12 @@ check(builderPage.includes('curriculum lineage preserved'), 'builder communicate
 
 const builderClient = read('lib/assessment/builder.ts')
 check(builderClient.includes('outcomeCount'), 'builder model carries item outcome-link count')
-check(builderClient.includes('generationSource'), 'builder model carries generation source')
+check(builderClient.includes('groundingAuthority'), 'builder model carries explicit grounding authority')
 check(builderClient.includes('subjectId'), 'builder model carries subject authority')
 
 const builderContextMigration = read('supabase/migrations/20260902063100_exq_builder_grounding_context.sql')
 check(builderContextMigration.includes("'subject_id', ad.subject_id"), 'builder authority returns subject identity')
-check(builderContextMigration.includes("'generation_source', ad.generation_source"), 'builder authority returns grounding identity')
+check(builderContextMigration.includes("'grounding_authority', ad.generation_metadata->>'authority'"), 'builder authority returns explicit grounding identity')
 check(builderContextMigration.includes("'outcome_count'"), 'builder authority returns outcome-link count without direct client table reads')
 check(builderContextMigration.includes('revoke all on function public.exq_list_builder_assessment'), 'builder authority remains non-anonymous')
 
