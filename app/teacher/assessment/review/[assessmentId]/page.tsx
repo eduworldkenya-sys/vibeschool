@@ -42,7 +42,7 @@ export default function AssessmentReviewPage() {
       const [builder, definitionResult, assignmentResult] = await Promise.all([
         loadBuilderAssessment(assessmentId),
         supabase.from('assessment_definitions').select('class_id,status,estimated_minutes').eq('id', assessmentId).maybeSingle(),
-        supabase.from('assessment_assignments').select('id,status').eq('assessment_id', assessmentId).order('assigned_at', { ascending: false }).limit(1).maybeSingle(),
+        supabase.from('assessment_assignments').select('id,status').eq('assessment_id', assessmentId).in('status', ['assigned', 'open']).order('assigned_at', { ascending: false }).limit(1).maybeSingle(),
       ])
       if (definitionResult.error) throw definitionResult.error
       if (assignmentResult.error) throw assignmentResult.error
@@ -101,9 +101,9 @@ export default function AssessmentReviewPage() {
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <button type="button" onClick={() => router.back()} style={secondary}>← Back</button>
         <section style={card}>
-          <div style={eyebrow}>Ready to assign</div>
+          <div style={eyebrow}>{assignment ? 'Assigned' : 'Ready to assign'}</div>
           <h1 style={{ margin: '6px 0' }}>{assessment?.title ?? 'Assessment'}</h1>
-          <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>VibeSchool prepared this from authoritative curriculum outcomes. Check the questions, then assign in one tap. Full Builder controls are optional.</p>
+          <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>VibeSchool prepared this from authoritative curriculum outcomes. Check the questions, then assign in one tap. Full Builder controls are optional before release.</p>
         </section>
 
         {error && <section style={errorBox}>{error}</section>}
@@ -119,9 +119,17 @@ export default function AssessmentReviewPage() {
             </ol>
           </section>
 
-          {assignment ? <section style={successBox}><strong>✓ Assigned to the class</strong><div style={{ marginTop: 5 }}>Learners can now receive this assessment through the canonical assessment assignment flow.</div></section> : <button type="button" disabled={busy || items.length === 0} onClick={() => void assignNow()} style={{ ...primary, width: '100%' }}>{busy ? 'Assigning…' : 'Assign now'}</button>}
-
-          <button type="button" onClick={() => router.push(`/teacher/assessment/builder/${assessmentId}`)} style={{ ...secondary, width: '100%', marginTop: 10 }}>Advanced Edit · Sections · Question Bank</button>
+          {assignment ? (
+            <>
+              <section style={successBox}><strong>✓ Assigned to the class</strong><div style={{ marginTop: 5 }}>Learners can now receive this assessment through the canonical assessment assignment flow.</div></section>
+              <button type="button" onClick={() => router.push('/teacher/assessment')} style={{ ...secondary, width: '100%', marginTop: 10 }}>Done · Assessment workspace</button>
+            </>
+          ) : (
+            <>
+              <button type="button" disabled={busy || items.length === 0} onClick={() => void assignNow()} style={{ ...primary, width: '100%' }}>{busy ? 'Assigning…' : 'Assign now'}</button>
+              <button type="button" onClick={() => router.push(`/teacher/assessment/builder/${assessmentId}`)} style={{ ...secondary, width: '100%', marginTop: 10 }}>Advanced Edit · Sections · Question Bank</button>
+            </>
+          )}
         </>}
       </div>
     </main>
