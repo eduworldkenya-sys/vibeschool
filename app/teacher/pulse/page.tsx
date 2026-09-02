@@ -2,20 +2,14 @@
 
 export const dynamic = "force-dynamic";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/app/teacher/layout";
 import { fetchPulseData } from "@/lib/pulse/fetcher";
 import type { ActivityItem, PriorityTask, PulseSnapshot } from "@/lib/types";
 import { runRules } from "@/lib/pulse/rules";
-import {
-  fingerprint,
-  readGuideCache,
-  readSnapCache,
-  writeGuideCache,
-  writeSnapCache,
-} from "@/lib/pulse/cache";
+import { readSnapCache, writeSnapCache } from "@/lib/pulse/cache";
 import AssessmentPulseCard from "@/components/teacher/AssessmentPulseCard";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
 import NextTeachingAction from "@/components/teacher/NextTeachingAction";
@@ -40,7 +34,7 @@ function keyOf(classId: string, subjectId: string): string {
 }
 
 function sameSubject(left: string | null | undefined, right: string | null | undefined): boolean {
-  if (!left || !right) return true;
+  if (!left || !right) return false;
   return left.trim().toLowerCase() === right.trim().toLowerCase();
 }
 
@@ -80,8 +74,8 @@ function scopeSnapshot(
     missedLessonPlans: snapshot.missedLessonPlans.filter(
       (item) => item.class_id === classId && item.subject_id === subjectId
     ),
-    // These arrays do not carry class/subject identity in the pulse contract.
-    // Excluding them here prevents a selected class from showing another class's alerts.
+    // These alerts do not carry class/subject identity in the pulse contract.
+    // Suppress them in a scoped view rather than showing another class's alert.
     atRisk: [],
     consecutiveAbsences: [],
   };
@@ -174,14 +168,12 @@ function AttentionCard({
   guideHeadline,
   guideMessage,
   guidePriority,
-  guideActive,
   onNavigate,
 }: {
   tasks: PriorityTask[];
   guideHeadline: string | null;
   guideMessage: string;
   guidePriority: string;
-  guideActive: boolean;
   onNavigate: (href: string) => void;
 }) {
   const primaryTask = tasks[0];
@@ -236,7 +228,7 @@ function AttentionCard({
               color: "#92400e",
             }}
           >
-            {guideActive ? "Preparing guidance for this teaching state..." : guideMessage}
+            {guideMessage}
           </div>
         </div>
       )}
@@ -312,11 +304,6 @@ export default function PulsePage() {
   const [selectedKey, setSelectedKey] = useState("");
   const [snap, setSnap] = useState<PulseSnapshot | null>(null);
   const [usingCachedSnap, setUsingCachedSnap] = useState(false);
-  const [guideMsg, setGuideMsg] = useState("");
-  const [guidePriority, setGuidePriority] = useState("calm");
-  const [guideActive, setGuideActive] = useState(false);
-  const [guideHeadline, setGuideHeadline] = useState<string | null>(null);
-  const [tasks, setTasks] = useState<PriorityTask[]>([]);
   const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null);
 
@@ -324,44 +311,6 @@ export default function PulsePage() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef(false);
   const activeSchoolIdRef = useRef<string | null>(null);
-
-  const resolveGuide = useCallback(async (snapshot: PulseSnapshot, signal?: AbortSignal) => {
-    const result = runRules(snapshot);
-    if (signal?.aborted) return;
-
-    setGuideMsg(result.message);
-    setGuidePriority(result.priority);
-    setGuideHeadline(result.upcomingWarning);
-    setTasks(result.tasks);
-
-    if (result.confidence >= 70) return;
-
-    const fp = fingerprint(snapshot);
-    const cached = readGuideCache();
-    if (cached?.fp === fp) {
-      setGuideMsg(cached.message);
-      return;
-    }
-
-    setGuideActive(true);
-    try {
-      const res = await fetch("/api/twin/pulse", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ snapshot, signals: result.signals }),
-        signal,
-      });
-      const data = (await res.json()) as { message?: string };
-      if (!signal?.aborted && data.message) {
-        setGuideMsg(data.message);
-        writeGuideCache(fp, data.message);
-      }
-    } catch {
-      // Guidance is supplementary and must never block the teaching workflow.
-    } finally {
-      if (!signal?.aborted) setGuideActive(false);
-    }
-  }, []);
 
   const boot = useCallback(
     async (isRefresh = false, signal?: AbortSignal) => {
@@ -375,11 +324,6 @@ export default function PulsePage() {
           setSnap(cached);
           setUsingCachedSnap(true);
           setLoading(false);
-          const result = runRules(cached);
-          setGuideMsg(result.message);
-          setGuidePriority(result.priority);
-          setGuideHeadline(result.upcomingWarning);
-          setTasks(result.tasks);
         }
       }
 
@@ -434,7 +378,6 @@ export default function PulsePage() {
         setSnap(fresh);
         setUsingCachedSnap(false);
         writeSnapCache(fresh);
-        await resolveGuide(fresh, signal);
       } catch {
         // The cached snapshot, when available, remains the safe offline fallback.
       } finally {
@@ -445,7 +388,7 @@ export default function PulsePage() {
         fetchingRef.current = false;
       }
     },
-    [resolveGuide, schools.length]
+    [schools.length]
   );
 
   const handleSchoolChange = useCallback(
@@ -461,8 +404,8 @@ export default function PulsePage() {
   const handleContextChange = useCallback(
     (key: string) => {
       setSelectedKey(key);
-      // The local view changes immediately; this refresh reconciles any state that
-      // may have changed since the last snapshot (attendance, plans, homework, etc.).
+      // Update the view immediately from the current snapshot, then reconcile
+      // attendance/plans/homework with a fresh server read.
       void boot(true);
     },
     [boot]
@@ -510,13 +453,12 @@ export default function PulsePage() {
     (item) => keyOf(item.class_id, item.subject_id) === selectedKey
   );
   const effectiveKey = selectedKeyIsValid ? selectedKey : defaultKey;
-  const [focusClassId, focusSubjectId] = effectiveKey.split("::");
+  const [focusClassId = "", focusSubjectId = ""] = effectiveKey.split("::");
 
-  const contextSnap = useMemo(
-    () => scopeSnapshot(snap, focusClassId, focusSubjectId),
-    [snap, focusClassId, focusSubjectId]
-  );
-  const contextResult = useMemo(() => runRules(contextSnap), [contextSnap]);
+  // These are plain derivations, not hooks. That keeps React hook ordering stable
+  // across the loading -> loaded transition while still updating synchronously.
+  const contextSnap = scopeSnapshot(snap, focusClassId, focusSubjectId);
+  const contextResult = runRules(contextSnap);
   const focusSlot = contextSnap.todaySlots[0];
   const focusRoster = contextSnap.myClasses[0];
 
@@ -604,7 +546,6 @@ export default function PulsePage() {
         guideHeadline={contextResult.upcomingWarning}
         guideMessage={contextResult.message}
         guidePriority={contextResult.priority}
-        guideActive={false}
         onNavigate={(href) => router.push(href)}
       />
 
