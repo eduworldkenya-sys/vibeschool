@@ -11,8 +11,11 @@ type OutcomeRef = { id: string; text: string; code: string | null }
 type CatContext = { classId: string; subjectId: string; term: number | null; completedLessonCount: number; outcomes: OutcomeRef[] }
 type CatQuestion = { prompt: string; marks: number; bloom: string; difficulty: 'medium' | 'hard'; outcome: OutcomeRef }
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type GenericRpc = <T>(name: string, args: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as GenericRpc
+
+async function rpc<T>(name: string, args: Record<string, unknown>): Promise<RpcResult<T>> {
+  const result = await supabase.rpc(name as never, args as never)
+  return { data: result.data as T | null, error: result.error }
+}
 
 function record(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`${label} returned an invalid payload.`)
@@ -21,11 +24,7 @@ function record(value: unknown, label: string): Record<string, unknown> {
 
 function buildQuestions(outcomes: OutcomeRef[]): CatQuestion[] {
   return outcomes.slice(0, 10).map((outcome, index) => ({
-    prompt: index % 3 === 0
-      ? outcome.text
-      : index % 3 === 1
-        ? `Apply this taught outcome using relevant evidence or an example: ${outcome.text}`
-        : `Explain and justify your response for this taught outcome: ${outcome.text}`,
+    prompt: index % 3 === 0 ? outcome.text : index % 3 === 1 ? `Apply this taught outcome using relevant evidence or an example: ${outcome.text}` : `Explain and justify your response for this taught outcome: ${outcome.text}`,
     marks: index % 3 === 0 ? 4 : 6,
     bloom: index % 3 === 0 ? 'understand' : index % 3 === 1 ? 'apply' : 'analyse',
     difficulty: index % 3 === 0 ? 'medium' : 'hard',
@@ -34,13 +33,9 @@ function buildQuestions(outcomes: OutcomeRef[]): CatQuestion[] {
 }
 
 function CatWorkspace() {
-  const router = useRouter()
-  const params = useSearchParams()
+  const router = useRouter(), params = useSearchParams()
   const seedLessonPlanId = params.get('lessonPlanId') ?? ''
-  const [context, setContext] = useState<CatContext | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [context, setContext] = useState<CatContext | null>(null), [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -53,22 +48,11 @@ function CatWorkspace() {
         const payload = record(data, 'CAT outcome authority')
         const outcomes = (Array.isArray(payload.outcomes) ? payload.outcomes : []).flatMap(value => {
           const row = record(value, 'CAT outcome')
-          return typeof row.id === 'string' && typeof row.outcome_text === 'string'
-            ? [{ id: row.id, text: row.outcome_text, code: typeof row.outcome_code === 'string' ? row.outcome_code : null }]
-            : []
+          return typeof row.id === 'string' && typeof row.outcome_text === 'string' ? [{ id: row.id, text: row.outcome_text, code: typeof row.outcome_code === 'string' ? row.outcome_code : null }] : []
         })
-        setContext({
-          classId: typeof payload.class_id === 'string' ? payload.class_id : '',
-          subjectId: typeof payload.subject_id === 'string' ? payload.subject_id : '',
-          term: typeof payload.term === 'number' ? payload.term : null,
-          completedLessonCount: Number(payload.completed_lesson_count ?? 0),
-          outcomes,
-        })
-      } catch (cause) {
-        setError(cause instanceof Error ? cause.message : 'CAT outcome authority returned invalid data.')
-      } finally {
-        setLoading(false)
-      }
+        setContext({ classId: typeof payload.class_id === 'string' ? payload.class_id : '', subjectId: typeof payload.subject_id === 'string' ? payload.subject_id : '', term: typeof payload.term === 'number' ? payload.term : null, completedLessonCount: Number(payload.completed_lesson_count ?? 0), outcomes })
+      } catch (cause) { setError(cause instanceof Error ? cause.message : 'CAT outcome authority returned invalid data.') }
+      finally { setLoading(false) }
     })()
     return () => { active = false }
   }, [seedLessonPlanId])
@@ -79,68 +63,29 @@ function CatWorkspace() {
 
   async function prepare(advanced: boolean) {
     if (!context || !cumulativeReady || saving) return
-    setSaving(true)
-    setError('')
-    let assessmentId: string | null = null
+    setSaving(true); setError(''); let assessmentId: string | null = null
     try {
       const title = `CAT${context.term ? ` · Term ${context.term}` : ''} · ${context.completedLessonCount} completed lessons`
-      const metadata = {
-        generator_version: 'curriculum-outcome-cat-v1',
-        ai_used: false,
-        source: 'completed_teaching_occurrences',
-        authority: 'linked_scheme_curriculum_learning_outcomes',
-        completed_lesson_count: context.completedLessonCount,
-        outcome_count: context.outcomes.length,
-        selected_outcome_count: questions.length,
-      }
-      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_certified_cat_assessment', {
-        p_seed_lesson_plan_id: seedLessonPlanId,
-        p_request_key: `cat:${context.classId}:${context.subjectId}:term:${context.term ?? 'none'}:v1`,
-        p_title: title,
-        p_generation_metadata: metadata,
-      })
+      const metadata = { generator_version: 'curriculum-outcome-cat-v1', ai_used: false, source: 'completed_teaching_occurrences', authority: 'linked_scheme_curriculum_learning_outcomes', completed_lesson_count: context.completedLessonCount, outcome_count: context.outcomes.length, selected_outcome_count: questions.length }
+      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_certified_cat_assessment', { p_seed_lesson_plan_id: seedLessonPlanId, p_request_key: `cat:${context.classId}:${context.subjectId}:term:${context.term ?? 'none'}:v1`, p_title: title, p_generation_metadata: metadata })
       if (prepareError) throw new Error(prepareError.message ?? 'CAT preparation failed.')
       const prepared = record(data, 'CAT preparation')
       if (typeof prepared.assessment_id !== 'string') throw new Error('CAT preparation did not return an assessment ID.')
       assessmentId = prepared.assessment_id
-
       if (prepared.needs_generation === true) {
         for (let index = 0; index < questions.length; index += 1) {
           const item = questions[index]
-          const itemId = await addDraftItem({
-            assessmentId,
-            questionType: 'structured',
-            prompt: item.prompt,
-            marks: item.marks,
-            orderNum: index + 1,
-            acceptedAnswers: [],
-            correctAnswer: null,
-            autoMarkingMode: 'none',
-            difficulty: item.difficulty,
-            bloomLevel: item.bloom,
-            generatedBy: 'cumulative_curriculum_outcome_material',
-          })
+          const itemId = await addDraftItem({ assessmentId, questionType: 'structured', prompt: item.prompt, marks: item.marks, orderNum: index + 1, acceptedAnswers: [], correctAnswer: null, autoMarkingMode: 'none', difficulty: item.difficulty, bloomLevel: item.bloom, generatedBy: 'cumulative_curriculum_outcome_material' })
           const { error: lineageError } = await rpc<unknown>('exq_link_item_outcome', { p_assessment_item_id: itemId, p_outcome_id: item.outcome.id, p_weight: 1 })
           if (lineageError) throw new Error(lineageError.message ?? 'CAT outcome lineage failed.')
         }
-        await completeLessonAssessmentGeneration({
-          assessmentId,
-          itemCount: questions.length,
-          totalMarks,
-          estimatedMinutes: 40,
-          generationMetadata: { ...metadata, generated_from: 'completed_teaching_occurrences', teacher_review_required: true },
-        })
+        await completeLessonAssessmentGeneration({ assessmentId, itemCount: questions.length, totalMarks, estimatedMinutes: 40, generationMetadata: { ...metadata, generated_from: 'completed_teaching_occurrences', teacher_review_required: true } })
       }
       router.push(advanced ? `/teacher/assessment/builder/${assessmentId}` : `/teacher/assessment/review/${assessmentId}`)
     } catch (cause) {
-      if (assessmentId) {
-        try { await failLessonAssessmentGeneration({ assessmentId, errorCode: 'cumulative_cat_generation_failed', errorMessage: cause instanceof Error ? cause.message : null }) }
-        catch (recordError) { console.error('[CATWorkspace] failure recording failed', recordError) }
-      }
+      if (assessmentId) { try { await failLessonAssessmentGeneration({ assessmentId, errorCode: 'cumulative_cat_generation_failed', errorMessage: cause instanceof Error ? cause.message : null }) } catch (recordError) { console.error('[CATWorkspace] failure recording failed', recordError) } }
       setError(cause instanceof Error ? cause.message : 'CAT could not be prepared.')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   return <main style={page}><div style={{ maxWidth: 760, margin: '0 auto' }}>
@@ -158,7 +103,4 @@ const primary: React.CSSProperties = { border: 'none', borderRadius: 12, padding
 const secondary: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }
 const errorBox: React.CSSProperties = { background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: 12, color: '#b91c1c', marginBottom: 12 }
 const notice: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }
-
-export default function CatNewPage() {
-  return <Suspense fallback={<main style={{ padding: 20 }}>Loading CAT workspace…</main>}><CatWorkspace /></Suspense>
-}
+export default function CatNewPage() { return <Suspense fallback={<main style={{ padding: 20 }}>Loading CAT workspace…</main>}><CatWorkspace /></Suspense> }
