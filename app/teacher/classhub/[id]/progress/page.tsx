@@ -9,6 +9,11 @@ export const dynamic = 'force-dynamic'
 
 type Learner = { id:string; name:string; admission_number:string|null; isCurrent:boolean; joinedAt:string|null; leftAt:string|null }
 type Evidence = { student_id:string; score:number|null; max_score:number|null; proficiency:string|null; observed_at:string }
+type TeacherClassAssignment = { class_id:string; class_name:string; stream:string|null }
+type TeacherOperatingContext = { school_id:string|null; classes?:TeacherClassAssignment[] }
+type StudentNested = { id:string; name:string; admission_number:string|null; deleted_at:string|null }
+type EnrollmentRow = { student_id:string; is_current:boolean|null; joined_at:string|null; left_at:string|null; students:StudentNested|StudentNested[]|null }
+type EvidenceRow = { student_id:string; score:number|string|null; max_score:number|string|null; proficiency:string|null; observed_at:string }
 type View = 'current'|'archived'
 type SupportFilter = 'all'|'support'|'secure'|'no-evidence'
 const order:Record<ProgressBand,number>={BE:0,AE:1,NE:2,ME:3,EE:4}
@@ -30,25 +35,27 @@ export default function ClassStudentProgressPage(){
     try{
       const {data:auth,error:authError}=await supabase.auth.getUser(); if(authError||!auth.user){router.replace('/login');return}
       const {data:ctx,error:ce}=await supabase.rpc('teacher_get_operating_context'); if(ce)throw ce
-      const c:any=ctx; const assignment=c?.classes?.find((x:any)=>x.class_id===classId)
-      if(!c?.school_id||!assignment)throw new Error('This class is not assigned to you in the active school.')
+      const context=ctx as unknown as TeacherOperatingContext
+      const assignment=context.classes?.find(item=>item.class_id===classId)
+      if(!context.school_id||!assignment)throw new Error('This class is not assigned to you in the active school.')
       setClassName(`${assignment.class_name}${assignment.stream?` ${assignment.stream}`:''}`)
 
-      const enrollment=await supabase.from('student_classes').select('student_id,is_current,joined_at,left_at,students(id,name,admission_number,deleted_at)').eq('school_id',c.school_id).eq('class_id',classId).order('joined_at',{ascending:false})
+      const enrollment=await supabase.from('student_classes').select('student_id,is_current,joined_at,left_at,students(id,name,admission_number,deleted_at)').eq('school_id',context.school_id).eq('class_id',classId).order('joined_at',{ascending:false})
       if(enrollment.error)throw enrollment.error
       const deduped=new Map<string,Learner>()
-      for(const row of enrollment.data??[]){
-        const s:any=Array.isArray((row as any).students)?(row as any).students[0]:(row as any).students
-        if(!s||s.deleted_at||!s.id)continue
-        const candidate:Learner={id:s.id,name:s.name,admission_number:s.admission_number??null,isCurrent:Boolean((row as any).is_current),joinedAt:(row as any).joined_at??null,leftAt:(row as any).left_at??null}
+      for(const row of (enrollment.data??[]) as unknown as EnrollmentRow[]){
+        const student=Array.isArray(row.students)?row.students[0]:row.students
+        if(!student||student.deleted_at||!student.id)continue
+        const candidate:Learner={id:student.id,name:student.name,admission_number:student.admission_number??null,isCurrent:Boolean(row.is_current),joinedAt:row.joined_at??null,leftAt:row.left_at??null}
         const existing=deduped.get(candidate.id)
         if(!existing||candidate.isCurrent)deduped.set(candidate.id,candidate)
       }
       setLearners(Array.from(deduped.values()))
 
-      const er=await supabase.from('competency_evidence_ledger').select('student_id,score,max_score,proficiency,observed_at').eq('school_id',c.school_id).eq('class_id',classId).order('observed_at',{ascending:false}).limit(3000)
+      const er=await supabase.from('competency_evidence_ledger').select('student_id,score,max_score,proficiency,observed_at').eq('school_id',context.school_id).eq('class_id',classId).order('observed_at',{ascending:false}).limit(3000)
       if(er.error)throw er.error
-      setEvidence((er.data??[]).map((r:any)=>({...r,score:r.score==null?null:Number(r.score),max_score:r.max_score==null?null:Number(r.max_score)})))
+      const evidenceRows=(er.data??[]) as unknown as EvidenceRow[]
+      setEvidence(evidenceRows.map(row=>({student_id:row.student_id,score:row.score==null?null:Number(row.score),max_score:row.max_score==null?null:Number(row.max_score),proficiency:row.proficiency,observed_at:row.observed_at})))
     }catch(e){console.error('[ClassStudentProgress] load',e);setError(e instanceof Error?e.message:'Class progress could not be loaded.')}finally{setLoading(false)}
   },[classId,router])
   useEffect(()=>{void load()},[load])
