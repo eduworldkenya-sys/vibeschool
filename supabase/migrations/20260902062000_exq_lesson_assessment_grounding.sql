@@ -102,31 +102,17 @@ begin
       raise exception 'generation_request_key_conflict';
     end if;
     if existing.status not in ('draft', 'review') then
-      return jsonb_build_object(
-        'ok', true,
-        'assessment_id', existing.id,
-        'needs_generation', false,
-        'generation_status', existing.generation_status,
-        'status', existing.status
-      );
+      return jsonb_build_object('ok', true, 'assessment_id', existing.id, 'needs_generation', false, 'generation_status', existing.generation_status, 'status', existing.status);
     end if;
     if existing.generation_status = 'generated'
        and existing.generation_metadata->>'generator_version' = 'curriculum-outcome-assessment-v4'
     then
-      return jsonb_build_object(
-        'ok', true,
-        'assessment_id', existing.id,
-        'needs_generation', false,
-        'generation_status', existing.generation_status,
-        'status', existing.status
-      );
+      return jsonb_build_object('ok', true, 'assessment_id', existing.id, 'needs_generation', false, 'generation_status', existing.generation_status, 'status', existing.status);
     end if;
     if existing.generation_status = 'generating'
        and existing.generation_started_at is not null
        and existing.generation_started_at > now() - interval '2 minutes'
-    then
-      raise exception 'assessment_generation_in_progress';
-    end if;
+    then raise exception 'assessment_generation_in_progress'; end if;
   else
     select * into existing
     from public.assessment_definitions ad
@@ -142,9 +128,7 @@ begin
        and existing.generation_status = 'generating'
        and existing.generation_started_at is not null
        and existing.generation_started_at > now() - interval '2 minutes'
-    then
-      raise exception 'assessment_generation_in_progress';
-    end if;
+    then raise exception 'assessment_generation_in_progress'; end if;
   end if;
 
   if found then
@@ -175,14 +159,7 @@ begin
         updated_at = now()
     where id = existing.id;
 
-    return jsonb_build_object(
-      'ok', true,
-      'assessment_id', existing.id,
-      'needs_generation', true,
-      'generation_status', 'generating',
-      'status', 'draft',
-      'reset_existing', true
-    );
+    return jsonb_build_object('ok', true, 'assessment_id', existing.id, 'needs_generation', true, 'generation_status', 'generating', 'status', 'draft', 'reset_existing', true);
   end if;
 
   insert into public.assessment_definitions(
@@ -197,85 +174,13 @@ begin
     'generating', normalized_key, 0, now(), lp.updated_at
   ) returning id into result_id;
 
-  return jsonb_build_object(
-    'ok', true,
-    'assessment_id', result_id,
-    'needs_generation', true,
-    'generation_status', 'generating',
-    'status', 'draft',
-    'reset_existing', false
-  );
-end;
-$$;
-
-create or replace function public.exq_assign_lesson_assessment_once(
-  p_assessment_id uuid,
-  p_class_id uuid,
-  p_time_limit_minutes integer default null,
-  p_show_score_policy text default 'after_review'
-)
-returns jsonb
-language plpgsql
-security definer
-set search_path = public, pg_temp
-as $$
-declare
-  caller uuid := auth.uid();
-  ad public.assessment_definitions%rowtype;
-  existing public.assessment_assignments%rowtype;
-  assignment_id uuid;
-begin
-  if caller is null then raise exception 'not_authenticated'; end if;
-
-  perform pg_advisory_xact_lock(hashtextextended(p_assessment_id::text || ':' || p_class_id::text, 0));
-
-  select * into ad from public.assessment_definitions where id = p_assessment_id for update;
-  if not found then raise exception 'assessment_not_found'; end if;
-  if ad.teacher_id is distinct from caller then raise exception 'assessment_not_owned'; end if;
-  if ad.lesson_plan_id is null then raise exception 'lesson_assessment_required'; end if;
-  if ad.class_id is distinct from p_class_id then raise exception 'assessment_class_mismatch'; end if;
-  if ad.generation_status <> 'generated' then raise exception 'assessment_generation_incomplete'; end if;
-
-  if exists (
-    select 1
-    from public.assessment_items ai
-    where ai.assessment_id = ad.id
-      and ai.status <> 'retired'
-      and not exists (
-        select 1 from public.assessment_item_outcomes aio
-        where aio.assessment_item_id = ai.id
-      )
-  ) then raise exception 'assessment_item_outcome_lineage_required'; end if;
-
-  select * into existing
-  from public.assessment_assignments
-  where assessment_id = p_assessment_id
-    and class_id = p_class_id
-    and target_group_id is null
-    and status in ('assigned', 'open')
-  order by assigned_at desc
-  limit 1;
-
-  if found then
-    return jsonb_build_object('ok', true, 'created', false, 'assignment_id', existing.id, 'status', existing.status);
-  end if;
-
-  if ad.status <> 'approved' then raise exception 'assessment_not_approved'; end if;
-
-  assignment_id := public.exq_assign_assessment(
-    p_assessment_id, p_class_id, null, null, null,
-    p_time_limit_minutes, 1, false, false, p_show_score_policy
-  );
-
-  return jsonb_build_object('ok', true, 'created', true, 'assignment_id', assignment_id, 'status', 'open');
+  return jsonb_build_object('ok', true, 'assessment_id', result_id, 'needs_generation', true, 'generation_status', 'generating', 'status', 'draft', 'reset_existing', false);
 end;
 $$;
 
 revoke all on function public.exq_resolve_lesson_assessment_outcomes(uuid) from public, anon;
 revoke all on function public.exq_prepare_grounded_lesson_assessment(uuid, text, text, text, jsonb) from public, anon;
-revoke all on function public.exq_assign_lesson_assessment_once(uuid, uuid, integer, text) from public, anon;
 grant execute on function public.exq_resolve_lesson_assessment_outcomes(uuid) to authenticated, service_role;
 grant execute on function public.exq_prepare_grounded_lesson_assessment(uuid, text, text, text, jsonb) to authenticated, service_role;
-grant execute on function public.exq_assign_lesson_assessment_once(uuid, uuid, integer, text) to authenticated, service_role;
 
 commit;
