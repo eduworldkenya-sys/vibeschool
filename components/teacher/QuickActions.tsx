@@ -1,6 +1,7 @@
 "use client";
 
 import type { Slot } from "@/lib/types";
+import { nairobiDateStr } from "@/lib/time";
 
 interface ActionItem {
   label: string;
@@ -34,7 +35,7 @@ function IconMarking() { return <svg {...iconProps}><path d="M5 4h14v16H5z"/><pa
 function IconTimetable() { return <svg {...iconProps}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>; }
 
 function exactLessonUrl(slot: Slot): string {
-  const occurrenceDate = slot.teaching_workspace?.key.occurrenceDate ?? new Date().toISOString().slice(0, 10);
+  const occurrenceDate = slot.teaching_workspace?.key.occurrenceDate ?? nairobiDateStr();
   return `/teacher/lessonplan?timetableSlotId=${encodeURIComponent(slot.id)}&date=${encodeURIComponent(occurrenceDate)}&subjectId=${encodeURIComponent(slot.subject_id)}&classId=${encodeURIComponent(slot.class_id)}`;
 }
 
@@ -69,7 +70,7 @@ function actionsFor(slot?: Slot): ActionItem[] {
   if (slot.attendance_status !== "completed") {
     return [
       { label: "Lesson notes", href: notesUrl, icon: <IconNotes /> },
-      { label: "Attendance", href: `/teacher/attendance?mode=lesson&classId=${encodeURIComponent(slot.class_id)}&timetableSlotId=${encodeURIComponent(slot.id)}&subjectId=${encodeURIComponent(slot.subject_id)}`, icon: <IconAttendance /> },
+      { label: "Attendance", href: `/teacher/attendance?mode=lesson&classId=${encodeURIComponent(slot.class_id)}&timetableSlotId=${encodeURIComponent(slot.id)}&date=${encodeURIComponent(slot.teaching_workspace?.key.occurrenceDate ?? nairobiDateStr())}&subjectId=${encodeURIComponent(slot.subject_id)}`, icon: <IconAttendance /> },
       { label: "Homework", href: homeworkUrl, icon: <IconHomework /> },
       { label: "Resources", href: "/teacher/resources", icon: <IconFolder /> },
     ];
