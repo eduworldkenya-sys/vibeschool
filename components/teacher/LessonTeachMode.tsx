@@ -161,7 +161,12 @@ export default function LessonTeachMode({ subject, className, topic, sections, o
             {packView === 'notes' && <PreparedNotes sections={sections} />}
             {packView === 'resources' && <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: 13, color: '#0f172a' }}>{sections.resources}</div>}
             {packView === 'assessment' && <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: 13, color: '#0f172a' }}>{sections.assessmentHook}</div>}
-            {packView === 'homework' && <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: 13, color: '#0f172a' }}>{sections.homework}</div>}
+            {packView === 'homework' && (
+              <div>
+                <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, fontSize: 13, color: '#0f172a' }}>{sections.homework}</div>
+                <div style={{ marginTop: 10, fontSize: 11, fontWeight: 900, color: '#4338ca' }}>View · Edit · Assign · Share</div>
+              </div>
+            )}
           </div>
         </section>
 
