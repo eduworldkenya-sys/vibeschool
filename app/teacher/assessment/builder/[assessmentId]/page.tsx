@@ -19,8 +19,11 @@ import {
   reorderBuilderSections,
   updateBuilderSection,
   type BuilderAssessment,
+  type BuilderItemSummary,
   type BuilderSection,
 } from '@/lib/assessment/builder'
+
+const GROUNDING_AUTHORITY = 'linked_scheme_curriculum_learning_outcomes'
 
 export default function AssessmentBuilderPage() {
   const params = useParams<{ assessmentId: string }>()
@@ -38,6 +41,7 @@ export default function AssessmentBuilderPage() {
   const [bankActionId, setBankActionId] = useState<string | null>(null)
   const [bankMessage, setBankMessage] = useState('')
 
+  const isGrounded = assessment?.groundingAuthority === GROUNDING_AUTHORITY
   const allItems = useMemo(
     () => assessment
       ? [...assessment.sections.flatMap(section => section.items), ...assessment.unsectionedItems]
@@ -61,7 +65,12 @@ export default function AssessmentBuilderPage() {
     setBankLoading(true)
     setBankMessage('')
     try {
-      setBankItems(await listQuestionBank({ search, limit: 50 }))
+      const rows = await listQuestionBank({
+        search,
+        subjectId: assessment?.subjectId ?? null,
+        limit: 50,
+      })
+      setBankItems(isGrounded ? rows.filter(item => Boolean(item.learningOutcomeId)) : rows)
     } catch (cause) {
       setBankMessage(cause instanceof Error ? cause.message : 'Question Bank could not be loaded.')
     } finally {
@@ -167,12 +176,16 @@ export default function AssessmentBuilderPage() {
     }
   }
 
-  async function saveItemToBank(itemId: string) {
+  async function saveItemToBank(item: BuilderItemSummary) {
     if (bankActionId) return
-    setBankActionId(itemId)
+    if (isGrounded && item.outcomeCount !== 1) {
+      setBankMessage('This grounded question spans multiple or missing outcomes, so it cannot become one reusable Question Bank item without changing its curriculum meaning.')
+      return
+    }
+    setBankActionId(item.id)
     setBankMessage('')
     try {
-      const promoted = await promoteAssessmentItemToQuestionBank({ assessmentItemId: itemId })
+      const promoted = await promoteAssessmentItemToQuestionBank({ assessmentItemId: item.id })
       await approveQuestionBankItem(promoted.questionId)
       setBankMessage(promoted.created ? 'Question saved and approved in the Question Bank.' : 'Question already exists in the Question Bank.')
       if (bankOpen) await refreshBank()
@@ -195,7 +208,7 @@ export default function AssessmentBuilderPage() {
       })
       await refresh()
       await refreshBank()
-      setBankMessage('Question added to this assessment draft.')
+      setBankMessage('Question added to this assessment draft with its curriculum lineage preserved.')
     } catch (cause) {
       setBankMessage(cause instanceof Error ? cause.message : 'Question could not be added to this assessment.')
     } finally {
@@ -203,15 +216,17 @@ export default function AssessmentBuilderPage() {
     }
   }
 
-  function renderQuestionActions(itemId: string) {
+  function renderQuestionActions(item: BuilderItemSummary) {
+    const bankEligible = !isGrounded || item.outcomeCount === 1
     return (
       <button
         type="button"
-        disabled={Boolean(bankActionId)}
-        onClick={() => void saveItemToBank(itemId)}
-        style={bankButton}
+        disabled={Boolean(bankActionId) || !bankEligible}
+        onClick={() => void saveItemToBank(item)}
+        title={bankEligible ? 'Save this question for reuse' : 'Grounded Question Bank items must represent exactly one curriculum outcome'}
+        style={{ ...bankButton, opacity: bankEligible ? 1 : 0.5, cursor: bankEligible ? 'pointer' : 'not-allowed' }}
       >
-        {bankActionId === itemId ? 'Saving…' : 'Save to Bank'}
+        {bankActionId === item.id ? 'Saving…' : bankEligible ? 'Save to Bank' : 'Multi-outcome'}
       </button>
     )
   }
@@ -220,15 +235,20 @@ export default function AssessmentBuilderPage() {
     <main style={shell}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <section style={card}>
-          <div style={eyebrow}>Assessment Builder</div>
+          <div style={eyebrow}>Assessment Builder · Advanced</div>
           <h1 style={{ margin: '6px 0' }}>{assessment?.title ?? 'Assessment'}</h1>
           <p style={{ margin: 0, color: '#6b7280' }}>
-            Organize questions, save strong items to the Question Bank, and reuse approved questions without changing assessment authority.
+            Organize questions and reuse compatible Question Bank items. Curriculum grounding is preserved automatically.
           </p>
+          {isGrounded && (
+            <div style={{ ...emptyBox, marginTop: 10 }}>
+              Grounded assessment: Question Bank results are restricted to this subject and to questions with curriculum outcome lineage.
+            </div>
+          )}
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
-        {bankMessage && <section style={{ ...card, color: bankMessage.includes('could not') ? '#b91c1c' : '#065f46' }}>{bankMessage}</section>}
+        {bankMessage && <section style={{ ...card, color: bankMessage.includes('could not') || bankMessage.includes('cannot') ? '#b91c1c' : '#065f46' }}>{bankMessage}</section>}
 
         {loading ? (
           <section style={card}>Loading builder…</section>
@@ -254,39 +274,28 @@ export default function AssessmentBuilderPage() {
 
             {bankOpen && (
               <section style={card}>
-                <div style={eyebrow}>Question Bank</div>
+                <div style={eyebrow}>Compatible Question Bank</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginTop: 10 }}>
-                  <input
-                    value={bankSearch}
-                    onChange={event => setBankSearch(event.target.value)}
-                    placeholder="Search approved questions"
-                    style={input}
-                  />
-                  <button type="button" onClick={() => void refreshBank()} disabled={bankLoading} style={secondaryButton}>
-                    {bankLoading ? 'Searching…' : 'Search'}
-                  </button>
+                  <input value={bankSearch} onChange={event => setBankSearch(event.target.value)} placeholder="Search approved questions" style={input} />
+                  <button type="button" onClick={() => void refreshBank()} disabled={bankLoading} style={secondaryButton}>{bankLoading ? 'Searching…' : 'Search'}</button>
                 </div>
                 <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
                   {!bankLoading && bankItems.length === 0 ? (
-                    <div style={emptyBox}>No approved Question Bank items match this search.</div>
-                  ) : bankItems.map(question => (
-                    <div key={question.id} style={itemRow}>
+                    <div style={emptyBox}>No compatible approved Question Bank items match this search.</div>
+                  ) : bankItems.map(bankItem => (
+                    <div key={bankItem.id} style={itemRow}>
                       <div style={{ flex: 1 }}>
-                        <strong>{question.questionText}</strong>
+                        <strong>{bankItem.questionText}</strong>
                         <div style={muted}>
-                          {question.questionType.replaceAll('_', ' ')} · {question.marks} marks
-                          {question.difficulty ? ` · ${question.difficulty}` : ''}
-                          {question.bloomLevel ? ` · ${question.bloomLevel}` : ''}
-                          {` · used ${question.usageCount} times`}
+                          {bankItem.questionType.replaceAll('_', ' ')} · {bankItem.marks} marks
+                          {bankItem.difficulty ? ` · ${bankItem.difficulty}` : ''}
+                          {bankItem.bloomLevel ? ` · ${bankItem.bloomLevel}` : ''}
+                          {bankItem.learningOutcomeId ? ' · outcome-linked' : ''}
+                          {` · used ${bankItem.usageCount} times`}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        disabled={Boolean(bankActionId)}
-                        onClick={() => void reuseBankItem(question.id)}
-                        style={primaryButton}
-                      >
-                        {bankActionId === question.id ? 'Adding…' : 'Add'}
+                      <button type="button" disabled={Boolean(bankActionId)} onClick={() => void reuseBankItem(bankItem.id)} style={primaryButton}>
+                        {bankActionId === bankItem.id ? 'Adding…' : 'Add'}
                       </button>
                     </div>
                   ))}
@@ -327,16 +336,11 @@ export default function AssessmentBuilderPage() {
                   </div>
 
                   <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
-                    {section.items.length === 0 ? (
-                      <div style={emptyBox}>No questions in this section.</div>
-                    ) : section.items.map(item => (
+                    {section.items.length === 0 ? <div style={emptyBox}>No questions in this section.</div> : section.items.map(item => (
                       <div key={item.id} style={itemRow}>
-                        <div style={{ flex: 1 }}>
-                          <strong>{item.orderNum}. {item.prompt}</strong>
-                          <div style={muted}>{item.questionType.replaceAll('_', ' ')} · {item.marks} marks</div>
-                        </div>
+                        <div style={{ flex: 1 }}><strong>{item.orderNum}. {item.prompt}</strong><div style={muted}>{item.questionType.replaceAll('_', ' ')} · {item.marks} marks · {item.outcomeCount} outcome link{item.outcomeCount === 1 ? '' : 's'}</div></div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                          {renderQuestionActions(item.id)}
+                          {renderQuestionActions(item)}
                           <select disabled={busy} value={section.id} onChange={event => void placeItem(item.id, event.target.value || null)} style={select}>
                             <option value="">Unsectioned</option>
                             {assessment.sections.map(option => <option key={option.id} value={option.id}>{option.title}</option>)}
@@ -351,16 +355,11 @@ export default function AssessmentBuilderPage() {
 
             <section style={card}>
               <h2 style={{ marginTop: 0, fontSize: 18 }}>Unsectioned questions</h2>
-              {assessment.unsectionedItems.length === 0 ? (
-                <div style={emptyBox}>All questions are organized into sections.</div>
-              ) : assessment.unsectionedItems.map(item => (
+              {assessment.unsectionedItems.length === 0 ? <div style={emptyBox}>All questions are organized into sections.</div> : assessment.unsectionedItems.map(item => (
                 <div key={item.id} style={itemRow}>
-                  <div style={{ flex: 1 }}>
-                    <strong>{item.orderNum}. {item.prompt}</strong>
-                    <div style={muted}>{item.questionType.replaceAll('_', ' ')} · {item.marks} marks</div>
-                  </div>
+                  <div style={{ flex: 1 }}><strong>{item.orderNum}. {item.prompt}</strong><div style={muted}>{item.questionType.replaceAll('_', ' ')} · {item.marks} marks · {item.outcomeCount} outcome link{item.outcomeCount === 1 ? '' : 's'}</div></div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {renderQuestionActions(item.id)}
+                    {renderQuestionActions(item)}
                     <select disabled={busy} value="" onChange={event => void placeItem(item.id, event.target.value || null)} style={select}>
                       <option value="">Choose section</option>
                       {assessment.sections.map(section => <option key={section.id} value={section.id}>{section.title}</option>)}

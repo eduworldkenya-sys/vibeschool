@@ -102,8 +102,8 @@ requireText(lessonModal.includes('completeLessonOccurrence'), 'lesson completion
 requireText(lessonModal.includes('markLessonSchemeCovered'), 'completed teaching can update linked scheme through guarded authority')
 
 const assessmentStudio = read('app/teacher/assessment/new/page.tsx')
-requireText(assessmentStudio.includes('requestLessonAssessment'), 'lesson assessment uses canonical idempotent assessment authority')
-requireText(assessmentStudio.includes('requestKey:'), 'assessment generation carries retry/idempotency key')
+requireText(assessmentStudio.includes('exq_prepare_grounded_lesson_assessment'), 'lesson assessment uses canonical guarded grounded assessment authority')
+requireText(assessmentStudio.includes('p_request_key:'), 'assessment generation carries retry/idempotency key')
 requireText(assessmentStudio.includes('teacher_review_required'), 'generated assessment remains teacher-reviewed before release')
 
 const teacherError = read('app/teacher/error.tsx')
