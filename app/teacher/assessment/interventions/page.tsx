@@ -60,10 +60,6 @@ export default function AssessmentInterventionsPage() {
 
   async function changeStatus(item: InterventionQueueItem, status: InterventionStatus) {
     const note = notes[item.interventionId]?.trim() ?? ''
-    if (status === 'completed' && note.length < 3) {
-      setError('Add a short completion note before marking an intervention complete.')
-      return
-    }
     setBusyId(item.interventionId)
     setError('')
     setMessage('')
@@ -152,13 +148,12 @@ export default function AssessmentInterventionsPage() {
                 rows={2}
                 value={notes[item.interventionId] ?? ''}
                 onChange={event => setNotes(current => ({ ...current, [item.interventionId]: event.target.value }))}
-                placeholder="Completion note or follow-up observation"
+                placeholder="Follow-up observation"
                 style={{ ...input, marginTop: 12, resize: 'vertical' }}
               />
 
               <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'in_progress')} style={secondaryButton}>Start</button>
-                <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'completed')} style={secondaryButton}>Complete manually</button>
                 <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'dismissed')} style={secondaryButton}>Dismiss</button>
               </div>
             </section>
