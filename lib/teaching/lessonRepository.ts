@@ -20,6 +20,7 @@ export interface ExistingLessonPlan {
   curriculum_id: string | null
   strand_id: string | null
   scheme_id: string | null
+  previous_lesson_plan_id: string | null
 }
 
 export interface SaveGeneratedLessonPlanInput {
@@ -41,6 +42,7 @@ export interface SaveGeneratedLessonPlanInput {
     curriculum_id: string | null
     strand_id: string | null
     scheme_id: string | null
+    previous_lesson_plan_id: string | null
   }
   expectedIdentity: LessonPlanSourceIdentity
 }
@@ -70,7 +72,7 @@ export async function loadLessonPlanForOccurrence({
   const { data, error } = await supabase
     .from('lesson_plans')
     .select(
-      'id, title, body, topic, status, curriculum_id, strand_id, scheme_id',
+      'id, title, body, topic, status, curriculum_id, strand_id, scheme_id, previous_lesson_plan_id',
     )
     .eq('teacher_id', teacherId)
     .eq('timetable_slot_id', timetableSlotId)
