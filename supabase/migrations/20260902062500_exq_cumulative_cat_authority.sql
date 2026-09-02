@@ -11,6 +11,8 @@ as $$
 declare
   caller uuid := auth.uid();
   seed public.lesson_plans%rowtype;
+  seed_scheme public.scheme_of_work%rowtype;
+  effective_term integer;
   payload jsonb;
   completed_lessons integer;
 begin
@@ -20,10 +22,22 @@ begin
   if not found then raise exception 'lesson_plan_not_found'; end if;
   if seed.teacher_id is distinct from caller then raise exception 'lesson_plan_not_owned'; end if;
   if seed.class_id is null or seed.subject_id is null then raise exception 'lesson_context_required'; end if;
+  if seed.scheme_id is null then raise exception 'lesson_plan_scheme_required'; end if;
+
+  select * into seed_scheme from public.scheme_of_work where id = seed.scheme_id;
+  if not found then raise exception 'scheme_item_not_found'; end if;
+  if seed_scheme.teacher_id is distinct from caller
+     or seed_scheme.class_id is distinct from seed.class_id
+     or seed_scheme.subject_id is distinct from seed.subject_id
+  then raise exception 'lesson_scheme_mismatch'; end if;
+
+  effective_term := coalesce(seed.term, seed_scheme.term);
+  if effective_term is null then raise exception 'cat_term_authority_required'; end if;
 
   with completed as (
     select distinct lp.id, lp.body, lp.scheme_id
     from public.lesson_plans lp
+    join public.scheme_of_work sow on sow.id = lp.scheme_id
     join public.teaching_occurrences occ
       on occ.timetable_slot_id = lp.timetable_slot_id
      and occ.occurrence_date = lp.taught_date
@@ -34,8 +48,7 @@ begin
     where lp.teacher_id = caller
       and lp.class_id = seed.class_id
       and lp.subject_id = seed.subject_id
-      and lp.term is not distinct from seed.term
-      and lp.scheme_id is not null
+      and coalesce(lp.term, sow.term) = effective_term
   ), resolved as (
     select distinct clo.id, clo.outcome_text, clo.outcome_code, clo.status
     from completed c
@@ -62,14 +75,14 @@ begin
     'seed_lesson_plan_id', seed.id,
     'class_id', seed.class_id,
     'subject_id', seed.subject_id,
-    'term', seed.term,
+    'term', effective_term,
     'completed_lesson_count', coalesce(completed_lessons, 0),
     'outcomes', payload
   );
 end;
 $$;
 
-create or replace function public.exq_prepare_grounded_cat_assessment(
+create or replace function public.exq_prepare_certified_cat_assessment(
   p_seed_lesson_plan_id uuid,
   p_request_key text,
   p_title text,
@@ -83,6 +96,10 @@ as $$
 declare
   caller uuid := auth.uid();
   seed public.lesson_plans%rowtype;
+  truth jsonb;
+  completed_count integer;
+  outcome_count integer;
+  effective_term integer;
   existing public.assessment_definitions%rowtype;
   result_id uuid;
   normalized_key text := nullif(btrim(coalesce(p_request_key, '')), '');
@@ -104,7 +121,14 @@ begin
       and tc.subject_id = seed.subject_id
   ) then raise exception 'teacher_not_assigned'; end if;
 
-  perform pg_advisory_xact_lock(hashtextextended(caller::text || ':' || seed.class_id::text || ':' || seed.subject_id::text || ':' || coalesce(seed.term::text, 'none') || ':cat', 0));
+  truth := public.exq_resolve_cumulative_cat_outcomes(p_seed_lesson_plan_id);
+  completed_count := coalesce((truth->>'completed_lesson_count')::integer, 0);
+  outcome_count := jsonb_array_length(coalesce(truth->'outcomes', '[]'::jsonb));
+  effective_term := (truth->>'term')::integer;
+  if completed_count < 2 then raise exception 'cat_requires_multiple_completed_lessons'; end if;
+  if outcome_count < 2 then raise exception 'cat_requires_multiple_taught_outcomes'; end if;
+
+  perform pg_advisory_xact_lock(hashtextextended(caller::text || ':' || seed.class_id::text || ':' || seed.subject_id::text || ':' || effective_term::text || ':cat', 0));
 
   select * into existing
   from public.assessment_definitions ad
@@ -120,25 +144,21 @@ begin
     if existing.status not in ('draft', 'review') then
       return jsonb_build_object('ok', true, 'assessment_id', existing.id, 'needs_generation', false, 'generation_status', existing.generation_status, 'status', existing.status);
     end if;
-
     if existing.generation_status = 'generated'
        and existing.generation_metadata->>'generator_version' = 'curriculum-outcome-cat-v1'
     then
       return jsonb_build_object('ok', true, 'assessment_id', existing.id, 'needs_generation', false, 'generation_status', existing.generation_status, 'status', existing.status);
     end if;
-
     if existing.generation_status = 'generating'
        and existing.generation_started_at is not null
        and existing.generation_started_at > now() - interval '2 minutes'
     then raise exception 'assessment_generation_in_progress'; end if;
-
     if exists (select 1 from public.assessment_assignments aa where aa.assessment_id = existing.id) then
       raise exception 'working_draft_has_assignment';
     end if;
 
     delete from public.assessment_items where assessment_id = existing.id;
     delete from public.assessment_sections where assessment_id = existing.id;
-
     update public.assessment_definitions
     set title = coalesce(nullif(btrim(coalesce(p_title, '')), ''), title),
         status = 'draft',
@@ -154,6 +174,7 @@ begin
         generation_error_message = null,
         approved_by = null,
         approved_at = null,
+        source_lesson_updated_at = seed.updated_at,
         updated_at = now()
     where id = existing.id;
 
@@ -202,6 +223,9 @@ begin
   if ad.class_id is distinct from p_class_id then raise exception 'assessment_class_mismatch'; end if;
   if ad.generation_source = 'teacher_authored' then raise exception 'grounded_assessment_required'; end if;
   if ad.generation_status <> 'generated' then raise exception 'assessment_generation_incomplete'; end if;
+  if not exists (select 1 from public.assessment_items ai where ai.assessment_id = ad.id and ai.status <> 'retired') then
+    raise exception 'assessment_has_no_items';
+  end if;
 
   if exists (
     select 1 from public.assessment_items ai
@@ -225,7 +249,6 @@ begin
   if found then
     return jsonb_build_object('ok', true, 'created', false, 'assignment_id', existing.id, 'status', existing.status);
   end if;
-
   if ad.status <> 'approved' then raise exception 'assessment_not_approved'; end if;
 
   assignment_id := public.exq_assign_assessment(
@@ -238,10 +261,10 @@ end;
 $$;
 
 revoke all on function public.exq_resolve_cumulative_cat_outcomes(uuid) from public, anon;
-revoke all on function public.exq_prepare_grounded_cat_assessment(uuid, text, text, jsonb) from public, anon;
+revoke all on function public.exq_prepare_certified_cat_assessment(uuid, text, text, jsonb) from public, anon;
 revoke all on function public.exq_assign_grounded_assessment_once(uuid, uuid, integer, text) from public, anon;
 grant execute on function public.exq_resolve_cumulative_cat_outcomes(uuid) to authenticated, service_role;
-grant execute on function public.exq_prepare_grounded_cat_assessment(uuid, text, text, jsonb) to authenticated, service_role;
+grant execute on function public.exq_prepare_certified_cat_assessment(uuid, text, text, jsonb) to authenticated, service_role;
 grant execute on function public.exq_assign_grounded_assessment_once(uuid, uuid, integer, text) to authenticated, service_role;
 
 commit;
