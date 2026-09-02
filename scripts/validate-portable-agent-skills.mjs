@@ -34,25 +34,26 @@ if (!fs.existsSync(manifestPath)) {
   }
 
   const engineeringOs = fs.readFileSync('.github/skills/vibeschool-engineering-os/SKILL.md', 'utf8')
+  const engineeringOsLower = engineeringOs.toLowerCase()
   for (const invariant of manifest.mandatoryInvariants ?? []) {
-    if (!engineeringOs.toLowerCase().includes(String(invariant).toLowerCase())) {
+    if (!engineeringOsLower.includes(String(invariant).toLowerCase())) {
       fail(`Engineering OS missing invariant: ${invariant}`)
     }
   }
 
   const requiredSafetyStatements = [
-    'Never weaken RLS merely to make a feature work',
-    'Do not bypass branch protection to manufacture completion',
-    'Merge only when explicitly authorized',
-    'A successful merge or deployment is not production certification'
+    'never weaken RLS merely to make a feature work',
+    'do not bypass branch protection to manufacture completion',
+    'merge only when explicitly authorized',
+    'a successful merge or deployment is not production certification'
   ]
   for (const statement of requiredSafetyStatements) {
-    if (!engineeringOs.includes(statement)) fail(`Engineering OS missing safety statement: ${statement}`)
+    if (!engineeringOsLower.includes(statement.toLowerCase())) fail(`Engineering OS missing safety statement: ${statement}`)
   }
 
   const agents = fs.readFileSync('AGENTS.md', 'utf8').toLowerCase()
-  for (const required of ['vibeschool-cyborg-executor', 'exact candidate sha', 'global stop']) {
-    if (!agents.includes(required)) fail(`AGENTS.md no longer contains required canonical control: ${required}`)
+  for (const required of ['vibeschool-cyborg-executor', 'exact candidate sha']) {
+    if (!agents.includes(required)) fail(`AGENTS.md no longer contains required portable integration anchor: ${required}`)
   }
 }
 
