@@ -1,5 +1,23 @@
--- Layer 2 already exists as curriculum_content — this only adds versioning, nothing structural.
+-- Layer 2 already exists as curriculum_content. Production also carries the
+-- pre-tracked workflow columns below; restore them here so a zero-to-current
+-- reconstruction reaches the same authoritative shape before later Scheme
+-- provenance migrations depend on them.
 alter table curriculum_content add column if not exists version integer not null default 1;
+alter table curriculum_content add column if not exists status text not null default 'confirmed';
+alter table curriculum_content add column if not exists author_id uuid references profiles(id) on delete set null;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid='public.curriculum_content'::regclass
+      and conname='curriculum_content_status_check'
+  ) then
+    alter table curriculum_content
+      add constraint curriculum_content_status_check
+      check (status in ('draft','pending','confirmed'));
+  end if;
+end $$;
 
 -- Layer 3: reusable, queryable assessment question bank
 create table assessment_questions (
