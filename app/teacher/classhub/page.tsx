@@ -56,7 +56,7 @@ export default function ClassHubPage() {
 
       const [classResult, enrollmentResult] = await Promise.all([
         supabase.from('classes').select('id,name,stream,subject').in('id', classIds).order('name'),
-        supabase.from('student_classes').select('class_id').in('class_id', classIds),
+        supabase.from('student_classes').select('class_id').in('class_id', classIds).eq('is_current', true),
       ])
 
       if (classResult.error) {
@@ -88,12 +88,12 @@ export default function ClassHubPage() {
       <div style={{ marginBottom: 20 }}>
         <p style={{ margin: 0, color: C.textMuted, fontSize: 12, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase' }}>Classes</p>
         <h1 style={{ margin: '6px 0 4px', fontSize: 28, fontWeight: 900 }}>My Classes</h1>
-        <p style={{ margin: 0, color: C.textMuted, fontSize: 14 }}>Open a class to manage its students, attendance, homework and teaching work.</p>
+        <p style={{ margin: 0, color: C.textMuted, fontSize: 14 }}>Open a class to manage teaching work, or go directly to evidence-backed Student progress.</p>
       </div>
 
       {loading && (
         <div aria-live="polite" style={{ display: 'grid', gap: 12 }}>
-          {[1, 2, 3].map(i => <div key={i} style={{ height: 92, borderRadius: 18, background: '#f3f4f6' }} />)}
+          {[1, 2, 3].map(i => <div key={i} style={{ height: 108, borderRadius: 18, background: '#f3f4f6' }} />)}
         </div>
       )}
 
@@ -114,20 +114,14 @@ export default function ClassHubPage() {
       {!loading && !error && classes.length > 0 && (
         <div style={{ display: 'grid', gap: 12 }}>
           {classes.map(cls => (
-            <button
-              key={cls.id}
-              type="button"
-              onClick={() => router.push(`/teacher/classhub/${cls.id}`)}
-              style={{ width: '100%', padding: 16, border: `1px solid ${C.border}`, borderRadius: 18, background: C.bg, color: C.textPrimary, textAlign: 'left', cursor: 'pointer', font: 'inherit' }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 17, fontWeight: 900 }}>{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</div>
-                  <div style={{ marginTop: 5, color: C.textMuted, fontSize: 13 }}>{cls.subject || 'Class workspace'} · {counts[cls.id] ?? 0} students</div>
-                </div>
-                <span aria-hidden="true" style={{ fontSize: 24 }}>›</span>
+            <section key={cls.id} style={{ width: '100%', padding: 16, border: `1px solid ${C.border}`, borderRadius: 18, background: C.bg, color: C.textPrimary }}>
+              <div style={{ fontSize: 17, fontWeight: 900 }}>{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</div>
+              <div style={{ marginTop: 5, color: C.textMuted, fontSize: 13 }}>{cls.subject || 'Class workspace'} · {counts[cls.id] ?? 0} current students</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
+                <button type="button" onClick={() => router.push(`/teacher/classhub/${cls.id}`)} style={{ minHeight: 44, border: `1px solid ${C.border}`, borderRadius: 12, background: '#fff', color: C.textPrimary, fontWeight: 900, cursor: 'pointer', font: 'inherit' }}>Open class</button>
+                <button type="button" onClick={() => router.push(`/teacher/classhub/${cls.id}/progress`)} style={{ minHeight: 44, border: 0, borderRadius: 12, background: '#111827', color: '#fff', fontWeight: 900, cursor: 'pointer', font: 'inherit' }}>Student progress</button>
               </div>
-            </button>
+            </section>
           ))}
         </div>
       )}
