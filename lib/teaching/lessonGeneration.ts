@@ -17,6 +17,13 @@ export interface GenerateLessonPlanInput {
   topic: string
   focus?: string
   previousTopic?: string | null
+  /**
+   * Compatibility input for older workspace consumers. Callers must supply
+   * only completed-teaching history. The generator intentionally uses at most
+   * one previous lesson because "previous lesson" is singular curriculum
+   * context, not a list of recently-created plans.
+   */
+  previousTopics?: string[]
   curriculumStrand?: string
   curriculumSubStrand?: string
   curriculumObjectives?: string | null
@@ -67,6 +74,7 @@ export async function generateLessonPlan({
   topic,
   focus,
   previousTopic,
+  previousTopics,
   curriculumStrand,
   curriculumSubStrand,
   curriculumObjectives,
@@ -84,7 +92,7 @@ export async function generateLessonPlan({
   const assessment = splitList(assessmentMethods)
   const resources = splitList(learningResources)
   const inquiry = clean(keyInquiryQuestion)
-  const resolvedPreviousTopic = clean(previousTopic)
+  const resolvedPreviousTopic = clean(previousTopic ?? previousTopics?.[0])
   const curriculumPath = joinNonEmpty([curriculumStrand, curriculumSubStrand], ' → ')
   const timing = allocateLessonTiming(parseLessonDurationMinutes(duration))
   const ranges = lessonTimingRanges(timing)
