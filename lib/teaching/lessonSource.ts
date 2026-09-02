@@ -93,6 +93,23 @@ const SCHEME_SOURCE_COLUMNS = [
   'sequence_number',
 ].join(',')
 
+const LEGACY_RESOURCE_PROVENANCE_ONLY = [
+  /^published\s+vibeschool\s+chapter\s+linked\.?$/i,
+  /^vibeschool\s+published\s+chapter\.?$/i,
+  /^published\s+chapter\s+linked\.?$/i,
+]
+
+export function normalizeSchemeLearningResources(
+  value: string | null | undefined,
+): string | null {
+  const normalized = value?.trim() ?? ''
+  if (!normalized) return null
+  if (LEGACY_RESOURCE_PROVENANCE_ONLY.some(pattern => pattern.test(normalized))) {
+    return null
+  }
+  return normalized
+}
+
 function meaningful(value: string | null | undefined): boolean {
   return typeof value === 'string' && value.trim().length > 0
 }
@@ -115,7 +132,7 @@ export function lessonSourceCompleteness(
   const fields = [
     source.objectives,
     source.keyInquiryQuestion,
-    source.learningResources,
+    normalizeSchemeLearningResources(source.learningResources),
     source.learningExperiences,
     source.assessmentMethods,
   ]
@@ -140,7 +157,7 @@ function toSuggestion(
     schemeId: row.id,
     objectives: row.objectives ?? null,
     keyInquiryQuestion: row.key_inquiry_question ?? null,
-    learningResources: row.learning_resources ?? null,
+    learningResources: normalizeSchemeLearningResources(row.learning_resources),
     resources: row.resources ?? null,
     reference: row.reference ?? null,
     learningExperiences: row.learning_experiences ?? null,
