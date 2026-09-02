@@ -11,7 +11,7 @@ assert.match(component, /google-add-preferred-source-btn/, 'official declarative
 assert.match(component, /https:\/\/www\.google\.com\/preferences\/source\?q=/, 'official source-preferences deeplink must exist')
 assert.match(component, /vibeschool\.co\.ke/, 'VibeSchool domain must be the preferred-source target')
 assert.match(article, /PreferredSourceButton/, 'published articles must expose the Preferred Sources control')
-assert.match(article, /'@type':'NewsArticle'/, 'news surface must expose NewsArticle structured data')
+assert.match(article, /'@type':'Article'/, 'mixed news and guide surface must retain truthful Article structured data')
 assert.match(article, /alternates:\{canonical\}/, 'articles must retain canonical metadata')
 assert.match(article, /robots:\{index:true,follow:true\}/, 'published articles must remain indexable')
 assert.match(sitemap, /`\$\{SITE_URL\}\/blog`/, 'blog hub must remain in sitemap')
