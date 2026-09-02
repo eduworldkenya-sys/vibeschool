@@ -39,7 +39,7 @@
     "Facts before action",
     "exact current main",
     "isolated branch",
-    "do not weaken RLS",
+    "weaken RLS",
     "exact certified head",
     "production verification",
     "runtime",
