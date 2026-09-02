@@ -16,7 +16,7 @@ export interface GenerateLessonPlanInput {
   duration: string
   topic: string
   focus?: string
-  previousTopics: string[]
+  previousTopic?: string | null
   curriculumStrand?: string
   curriculumSubStrand?: string
   curriculumObjectives?: string | null
@@ -55,14 +55,18 @@ function joinNonEmpty(values: Array<string | null | undefined>, separator = '\n'
   return values.map(clean).filter(Boolean).join(separator)
 }
 
-/** Scheme-only deterministic baseline used when no certified content exists. */
+/**
+ * Deterministic curriculum/Scheme baseline used when no certified teaching
+ * resource exists. Provenance belongs in workspace metadata/UI; this function
+ * returns classroom-ready instructional content only.
+ */
 export async function generateLessonPlan({
   className,
   studentCount,
   duration,
   topic,
   focus,
-  previousTopics,
+  previousTopic,
   curriculumStrand,
   curriculumSubStrand,
   curriculumObjectives,
@@ -80,7 +84,7 @@ export async function generateLessonPlan({
   const assessment = splitList(assessmentMethods)
   const resources = splitList(learningResources)
   const inquiry = clean(keyInquiryQuestion)
-  const previousTopic = previousTopics.map(clean).filter(Boolean).at(-1) ?? ''
+  const resolvedPreviousTopic = clean(previousTopic)
   const curriculumPath = joinNonEmpty([curriculumStrand, curriculumSubStrand], ' → ')
   const timing = allocateLessonTiming(parseLessonDurationMinutes(duration))
   const ranges = lessonTimingRanges(timing)
@@ -88,23 +92,22 @@ export async function generateLessonPlan({
   const sections: LessonPlanSections = {
     objectives: numbered(objectives, 'No authoritative learning objective is attached to this lesson yet. Add or link the Scheme of Work objective before teaching.'),
     resources: joinNonEmpty([
-      'Scheme-approved resources:',
-      numbered(resources, '1. Use the learning resources attached to the Scheme source.'),
+      'Learning resources:',
+      numbered(resources, '1. Use the learning resources specified in the Scheme of Work for this lesson.'),
       reference ? `\nCurriculum reference:\n• ${reference}` : null,
     ]),
     introduction: joinNonEmpty([
       `Timing: ${ranges.introduction} (${timing.introduction} min).`,
       `1. Introduce the lesson focus: ${resolvedTopic}.`,
-      previousTopic ? `2. Connect to the previous lesson: ${previousTopic}.` : null,
+      resolvedPreviousTopic ? `2. Connect to the previous completed lesson: ${resolvedPreviousTopic}.` : null,
       inquiry ? `3. Ask the key inquiry question: ${inquiry}` : null,
       `Class: ${className}${studentCount > 0 ? ` (${studentCount} learners)` : ''}.`,
     ]),
     development: joinNonEmpty([
       `Timing: ${ranges.development} (${timing.development} min).`,
       curriculumPath ? `Curriculum path: ${curriculumPath}.` : null,
-      `\nLearner activities from the Scheme:\n${numbered(experiences, '1. Follow the approved Scheme learning sequence. No additional curriculum content has been invented.')}`,
-      focus ? `\nTeacher-requested adaptation:\n• ${focus}` : null,
-      '\nTeacher note: this is a Scheme-only baseline. Attach certified VibeSchool content before marking the plan Ready to Teach when rich content is required.',
+      `\nLearner activities:\n${numbered(experiences, '1. Follow the learning sequence in the approved Scheme of Work, keeping learners focused on the stated objective.')}`,
+      focus ? `\nTeacher adaptation:\n• ${focus}` : null,
     ], '\n\n'),
     consolidation: joinNonEmpty([
       `Timing: ${ranges.consolidation} (${timing.consolidation} min).`,
@@ -119,7 +122,7 @@ export async function generateLessonPlan({
         ? `\nScheme assessment method(s):\n${bullets(assessment, '')}`
         : '\nAssessment: use an objective-linked oral or written check and record Mastered, Developing or Needs support.',
     ]),
-    homework: 'No certified homework task is attached. Do not invent one automatically; add a teacher task or attach approved VibeSchool content.',
+    homework: 'No homework task is attached to this lesson. Add a teacher-authored task or attach a certified VibeSchool task before assigning homework.',
     differentiation: joinNonEmpty([
       '1. Support: adjust prompts, grouping, pacing and resource support without changing the Scheme objective.',
       '2. Core: complete the Scheme learning experience as written.',
