@@ -17,7 +17,13 @@ export interface LessonContext {
   schoolName: string
   schoolId: string
   studentCount: number
-  previousLesson: PreviousCompletedLesson | null
+  /**
+   * Canonical predecessor. Optional only so the legacy modal's pre-load state
+   * can exist before `loadLessonContext` resolves; every loaded context always
+   * supplies this field explicitly (including null when there is no completed
+   * predecessor).
+   */
+  previousLesson?: PreviousCompletedLesson | null
   /**
    * Compatibility view for older lesson-workspace consumers. This is never a
    * query of recent lesson-plan drafts: it is derived only from
