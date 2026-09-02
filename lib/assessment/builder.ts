@@ -35,6 +35,7 @@ export interface BuilderAssessment {
   subjectId: string | null
   generationSource: string
   generationStatus: string
+  groundingAuthority: string | null
   sections: BuilderSection[]
   unsectionedItems: BuilderItemSummary[]
 }
@@ -98,6 +99,7 @@ export async function loadBuilderAssessment(assessmentId: string): Promise<Build
     subjectId: text(assessment.subject_id),
     generationSource: text(assessment.generation_source) ?? 'teacher_authored',
     generationStatus: text(assessment.generation_status) ?? 'not_requested',
+    groundingAuthority: text(assessment.grounding_authority),
     sections: sections.map(value => {
       const section = record(value)
       const items = Array.isArray(section.items) ? section.items : []
