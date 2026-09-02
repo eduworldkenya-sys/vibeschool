@@ -2,6 +2,7 @@ do $$
 declare
   v_ok boolean;
   v_def text;
+  v_routine regprocedure;
 begin
   if to_regprocedure('public.scheme_lesson_title_is_instructional(text)') is null then
     raise exception 'missing lesson title quality predicate';
@@ -67,4 +68,21 @@ begin
      or position('objectives' in v_def) = 0 then
     raise exception 'Scheme completeness guard is missing required planning fields';
   end if;
+
+  foreach v_routine in array array[
+    'public.resolve_academic_term_for_date(uuid,date)'::regprocedure,
+    'public.resolve_instructional_week_for_date(uuid,date)'::regprocedure,
+    'public.resolve_subject_weekly_allocation(uuid,uuid)'::regprocedure,
+    'public.commit_custom_scheme_item(uuid,uuid,uuid,integer,text,text,uuid,text)'::regprocedure
+  ] loop
+    if has_function_privilege('public', v_routine, 'EXECUTE') then
+      raise exception 'PUBLIC still has execute on %', v_routine;
+    end if;
+    if has_function_privilege('anon', v_routine, 'EXECUTE') then
+      raise exception 'anon still has execute on %', v_routine;
+    end if;
+    if not has_function_privilege('authenticated', v_routine, 'EXECUTE') then
+      raise exception 'authenticated lost execute on %', v_routine;
+    end if;
+  end loop;
 end $$;
