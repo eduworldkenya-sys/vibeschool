@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit --pretty false",
-    "validate": "npm run typecheck && npm run lint && npm run build"
+    "test:preferred-sources": "node scripts/preferred-sources-contract-test.mjs",
+    "validate": "npm run typecheck && npm run lint && npm run test:preferred-sources && npm run build"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
