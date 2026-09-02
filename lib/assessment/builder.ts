@@ -10,6 +10,7 @@ export interface BuilderItemSummary {
   bloomLevel: string | null
   orderNum: number
   status: string
+  outcomeCount: number
 }
 
 export interface BuilderSection {
@@ -31,6 +32,9 @@ export interface BuilderAssessment {
   status: string
   totalMarks: number
   estimatedMinutes: number | null
+  subjectId: string | null
+  generationSource: string
+  generationStatus: string
   sections: BuilderSection[]
   unsectionedItems: BuilderItemSummary[]
 }
@@ -67,6 +71,7 @@ function mapItem(value: unknown): BuilderItemSummary {
     bloomLevel: text(item.bloom_level),
     orderNum: numberOrNull(item.order_num) ?? 0,
     status: text(item.status) ?? 'draft',
+    outcomeCount: numberOrNull(item.outcome_count) ?? 0,
   }
 }
 
@@ -90,6 +95,9 @@ export async function loadBuilderAssessment(assessmentId: string): Promise<Build
     status: text(assessment.status) ?? 'draft',
     totalMarks: numberOrNull(assessment.total_marks) ?? 0,
     estimatedMinutes: numberOrNull(assessment.estimated_minutes),
+    subjectId: text(assessment.subject_id),
+    generationSource: text(assessment.generation_source) ?? 'teacher_authored',
+    generationStatus: text(assessment.generation_status) ?? 'not_requested',
     sections: sections.map(value => {
       const section = record(value)
       const items = Array.isArray(section.items) ? section.items : []
