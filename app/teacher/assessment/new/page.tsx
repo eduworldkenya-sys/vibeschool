@@ -9,11 +9,9 @@ import {
   addDraftItem,
   completeLessonAssessmentGeneration,
   failLessonAssessmentGeneration,
-  requestLessonAssessment,
 } from '@/lib/assessment'
 import type {
   AutoMarkingMode,
-  LessonAssessmentType,
   QuestionType,
 } from '@/lib/assessment'
 
@@ -119,9 +117,9 @@ function questionsFor(type: StudioType, body: string): DraftQuestion[] {
   return []
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
+function asRecord(value: unknown, label = 'Assessment authority'): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('Curriculum outcome authority returned an invalid payload.')
+    throw new Error(`${label} returned an invalid payload.`)
   }
   return value as Record<string, unknown>
 }
@@ -135,10 +133,10 @@ async function resolveOutcomeRefs(lessonPlanId: string, texts: string[]): Promis
   })
   if (error) throw new Error(`Curriculum outcome resolution failed: ${error.message ?? 'unknown error'}`)
 
-  const payload = asRecord(data)
+  const payload = asRecord(data, 'Curriculum outcome authority')
   const outcomes = Array.isArray(payload.outcomes) ? payload.outcomes : []
   const refs = outcomes.flatMap(value => {
-    const row = asRecord(value)
+    const row = asRecord(value, 'Curriculum outcome')
     return typeof row.id === 'string' && typeof row.outcome_text === 'string'
       ? [{ id: row.id, text: row.outcome_text }]
       : []
@@ -215,7 +213,7 @@ function Studio() {
   const marks = questions.reduce((sum, question) => sum + question.marks, 0)
 
   async function prepare(advanced: boolean) {
-    if (!lessonPlanId || !lesson || saving || !questions.length) return
+    if (!lessonPlanId || !lesson || saving || !questions.length || type === 'test') return
     setSaving(true)
     setError('')
     let assessmentId: string | null = null
@@ -223,28 +221,35 @@ function Studio() {
     try {
       const allOutcomeTexts = questions.flatMap(question => question.outcomeTexts)
       const outcomeRefs = await resolveOutcomeRefs(lessonPlanId, allOutcomeTexts)
-      const request = await requestLessonAssessment({
-        lessonPlanId,
-        assessmentType: type as LessonAssessmentType,
-        requestKey: `lesson:${lessonPlanId}:${type}:v4`,
-        title: `${LABEL[type]} — lesson outcomes`,
-        generationMetadata: {
-          generator_version: 'curriculum-outcome-assessment-v4',
-          ai_used: false,
-          source: 'authoritative_lesson_body',
-          authority: 'linked_scheme_curriculum_learning_outcomes',
-          blueprint: {
-            question_count: questions.length,
-            estimated_minutes: SPEC[type].minutes,
-            outcome_count: outcomeRefs.length,
-            difficulty_progression: questions.map(question => question.difficulty),
-            bloom_distribution: questions.map(question => question.bloomLevel),
-          },
+      const generationMetadata = {
+        generator_version: 'curriculum-outcome-assessment-v4',
+        ai_used: false,
+        source: 'authoritative_lesson_body',
+        authority: 'linked_scheme_curriculum_learning_outcomes',
+        blueprint: {
+          question_count: questions.length,
+          estimated_minutes: SPEC[type].minutes,
+          outcome_count: outcomeRefs.length,
+          difficulty_progression: questions.map(question => question.difficulty),
+          bloom_distribution: questions.map(question => question.bloomLevel),
         },
-      })
+      }
 
-      assessmentId = request.assessmentId
-      if (request.created) {
+      const { data: preparedData, error: prepareError } = await rpc<unknown>('exq_prepare_grounded_lesson_assessment', {
+        p_lesson_plan_id: lessonPlanId,
+        p_assessment_type: type,
+        p_request_key: `lesson:${lessonPlanId}:${type}:v4`,
+        p_title: `${LABEL[type]} — lesson outcomes`,
+        p_generation_metadata: generationMetadata,
+      })
+      if (prepareError) throw new Error(prepareError.message ?? 'Assessment preparation failed.')
+
+      const prepared = asRecord(preparedData, 'Grounded assessment preparation')
+      if (typeof prepared.assessment_id !== 'string') throw new Error('Grounded assessment preparation did not return an assessment ID.')
+      assessmentId = prepared.assessment_id
+      const needsGeneration = prepared.needs_generation === true
+
+      if (needsGeneration) {
         for (let index = 0; index < questions.length; index += 1) {
           const question = questions[index]
           const itemId = await addDraftItem({
@@ -271,6 +276,7 @@ function Studio() {
           generationMetadata: {
             generated_from: 'authoritative_lesson_body',
             authority: 'linked_scheme_curriculum_learning_outcomes',
+            generator_version: 'curriculum-outcome-assessment-v4',
             ai_used: false,
             teacher_review_required: true,
           },
@@ -363,14 +369,18 @@ function Studio() {
         </section>
 
         {error && <div style={errorBox}>{error}</div>}
-        {questions.length > 0 && (
+        {type === 'test' ? (
+          <button type="button" onClick={() => router.push(`/teacher/assessment?mode=cat&classId=${lesson?.classId ?? ''}&subjectId=${lesson?.subjectId ?? ''}`)} style={{ ...secondary, width: '100%' }}>
+            Open cumulative CAT workspace
+          </button>
+        ) : questions.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <button type="button" disabled={saving} onClick={() => void prepare(false)} style={primary}>
               {saving ? 'Preparing…' : 'Review & assign'}
             </button>
             <button type="button" disabled={saving} onClick={() => void prepare(true)} style={secondary}>Advanced Edit</button>
           </div>
-        )}
+        ) : null}
       </div>
     </main>
   )
