@@ -1,0 +1,32 @@
+name: Teacher Resource OS
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/resources/**'
+      - 'components/teacher/LessonTeachMode.tsx'
+      - 'scripts/teacher-resource-os-contract.test.mjs'
+      - '.github/workflows/teacher-resource-os.yml'
+  push:
+    branches:
+      - 'feat/teacher-resource-operating-system'
+    paths:
+      - 'app/teacher/resources/**'
+      - 'components/teacher/LessonTeachMode.tsx'
+      - 'scripts/teacher-resource-os-contract.test.mjs'
+      - '.github/workflows/teacher-resource-os.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  resource-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Teacher Resource OS contract
+        run: node scripts/teacher-resource-os-contract.test.mjs

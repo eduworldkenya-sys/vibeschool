@@ -1,15 +1,18 @@
-"use client";
-export const dynamic = "force-dynamic";
+'use client'
+export const dynamic = 'force-dynamic'
 
-import { useEffect, useState, useCallback, Suspense } from 'react'
+import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
 
-interface Resource {
+type ResourceType = 'notes' | 'assessment' | 'exercise' | 'quiz' | 'video' | 'other'
+
+type TeacherResource = {
   id: string
   title: string
   description: string
-  type: string
+  type: ResourceType
   subject: string
   external_url: string | null
   content: string | null
@@ -18,360 +21,387 @@ interface Resource {
   created_at: string
 }
 
-interface ClassOption { id: string; name: string; stream: string }
-
-interface FormState {
-  title: string; description: string; type: string; subject: string
-  external_url: string; content: string; class_id: string
+type Assignment = { class_id: string; subject_id: string }
+type ClassOption = { id: string; name: string; stream: string; label: string }
+type SubjectOption = { id: string; name: string }
+type SchemeLesson = {
+  id: string
+  class_id: string
+  subject_id: string
+  topic: string | null
+  sub_strand: string | null
+  strand: string | null
+  week: number | null
+  lesson_number: number | null
+  sequence_number: number | null
+}
+type LinkedResourceRow = {
+  id: string
+  scheme_lesson_id: string
+  resource_id: string
+  publication_id: string
+  chapter_id: string
+  resource_role: string
+  sequence: number
+  page_start: number | null
+  page_end: number | null
+}
+type LearningResource = {
+  id: string
+  title: string
+  description: string | null
+  subject: string | null
+  grade: string | null
+  asset_kind: string | null
+  purpose: string | null
+  status: string
+  visibility: string
+  publication_id: string | null
+  chapter_id: string | null
+}
+type ReadyPack = {
+  scheme: SchemeLesson
+  classLabel: string
+  subjectLabel: string
+  resources: Array<LinkedResourceRow & { resource: LearningResource | null }>
+}
+type FormState = {
+  type: ResourceType
+  title: string
+  class_id: string
+  subject_id: string
+  description: string
+  external_url: string
+  content: string
 }
 
-const TYPES = [
-  { value: 'notes',      label: 'Notes',      icon: '📄', color: '#1d4ed8', bg: '#dbeafe' },
-  { value: 'assessment', label: 'Assessment', icon: '📝', color: '#065f46', bg: '#d1fae5' },
-  { value: 'exercise',   label: 'Exercise',   icon: '🏋️', color: '#92400e', bg: '#fef3c7' },
-  { value: 'quiz',       label: 'Quiz',       icon: '🧪', color: '#6d28d9', bg: '#ede9fe' },
-  { value: 'video',      label: 'Video',      icon: '📺', color: '#991b1b', bg: '#fee2e2' },
-  { value: 'other',      label: 'Other',      icon: '📁', color: '#374151', bg: '#f3f4f6' },
+const TYPES: Array<{ value: ResourceType; label: string; icon: string }> = [
+  { value: 'notes', label: 'Notes', icon: '📄' },
+  { value: 'assessment', label: 'Assessment', icon: '📝' },
+  { value: 'exercise', label: 'Exercise', icon: '✍️' },
+  { value: 'quiz', label: 'Quiz', icon: '🧪' },
+  { value: 'video', label: 'Video', icon: '🎬' },
+  { value: 'other', label: 'Other', icon: '📎' },
 ]
 
-const EMPTY_FORM: FormState = {
-  title: '', description: '', type: 'notes', subject: '',
-  external_url: '', content: '', class_id: '',
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '11px 12px', borderRadius: 10, border: '1px solid #dbe3ea',
+  fontSize: 14, color: C.textPrimary, background: '#fff', boxSizing: 'border-box', fontFamily: 'inherit',
+}
+const labelStyle: React.CSSProperties = {
+  display: 'block', marginBottom: 5, fontSize: 11, fontWeight: 800, color: C.textMuted,
+  textTransform: 'uppercase', letterSpacing: '.05em',
 }
 
-function typeMeta(type: string) {
-  return TYPES.find(t => t.value === type) ?? TYPES[5]
+function todayIso() { return new Date().toISOString().slice(0, 10) }
+function typeMeta(type: string) { return TYPES.find(item => item.value === type) ?? TYPES[TYPES.length - 1] }
+function unique<T>(values: T[]) { return Array.from(new Set(values)) }
+function orderScheme(a: SchemeLesson, b: SchemeLesson) {
+  return (a.sequence_number ?? 999999) - (b.sequence_number ?? 999999)
+    || (a.lesson_number ?? 999999) - (b.lesson_number ?? 999999)
+    || a.id.localeCompare(b.id)
 }
-
+function readerHref(row: LinkedResourceRow & { resource: LearningResource | null }) {
+  const publicationId = row.publication_id || row.resource?.publication_id
+  const chapterId = row.chapter_id || row.resource?.chapter_id
+  return publicationId && chapterId ? `/read/textbook/${publicationId}/${chapterId}` : null
+}
 function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
+  const value = new Date(iso).getTime()
+  if (!Number.isFinite(value)) return ''
+  const minutes = Math.max(0, Math.floor((Date.now() - value) / 60000))
+  if (minutes < 60) return `${minutes}m ago`
+  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`
+  return `${Math.floor(minutes / 1440)}d ago`
+}
+function isSafeUrl(value: string) {
+  try { return ['http:', 'https:'].includes(new URL(value).protocol) } catch { return false }
 }
 
-function isSafeUrl(url: string): boolean {
-  try { return ['http:', 'https:'].includes(new URL(url).protocol) }
-  catch { return false }
-}
+export default function TeacherResourcesPage() {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [teacherId, setTeacherId] = useState<string | null>(null)
+  const [schoolId, setSchoolId] = useState<string | null>(null)
+  const [week, setWeek] = useState<number | null>(null)
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [classes, setClasses] = useState<ClassOption[]>([])
+  const [subjects, setSubjects] = useState<SubjectOption[]>([])
+  const [library, setLibrary] = useState<TeacherResource[]>([])
+  const [packs, setPacks] = useState<ReadyPack[]>([])
+  const [showAdd, setShowAdd] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState('')
+  const [filter, setFilter] = useState<'all' | ResourceType>('all')
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
+  const [form, setForm] = useState<FormState>({
+    type: 'notes', title: '', class_id: '', subject_id: '', description: '', external_url: '', content: '',
+  })
 
-function ResourcesInner() {
-  const [resources,  setResources]  = useState<Resource[]>([])
-  const [classes,    setClasses]    = useState<ClassOption[]>([])
-  const [subjects,   setSubjects]   = useState<{ id: string; name: string }[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [pageError,  setPageError]  = useState('')
-  const [showForm,   setShowForm]   = useState(false)
-  const [saving,     setSaving]     = useState(false)
-  const [formError,  setFormError]  = useState('')
-  const [filterType, setFilterType] = useState('all')
-  const [expanded,   setExpanded]   = useState<string | null>(null)
-  const [userId,     setUserId]     = useState<string | null>(null)
-  const [schoolId,   setSchoolId]   = useState<string | null>(null)
-  const [deleting,   setDeleting]   = useState<string | null>(null)
-  const [form,       setForm]       = useState<FormState>(EMPTY_FORM)
+  const classById = useMemo(() => new Map(classes.map(row => [row.id, row])), [classes])
+  const subjectById = useMemo(() => new Map(subjects.map(row => [row.id, row])), [subjects])
+  const allowedSubjects = useMemo(() => {
+    if (!form.class_id) return subjects
+    const ids = new Set(assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id))
+    return subjects.filter(row => ids.has(row.id))
+  }, [assignments, form.class_id, subjects])
+  const visibleLibrary = useMemo(() => filter === 'all' ? library : library.filter(row => row.type === filter), [filter, library])
+  const readyCount = useMemo(() => packs.reduce((sum, pack) => sum + pack.resources.length, 0), [packs])
+
+  const openAdd = useCallback(() => {
+    const classId = classes[0]?.id ?? ''
+    const subjectIds = assignments.filter(row => row.class_id === classId).map(row => row.subject_id)
+    setForm({ type: 'notes', title: '', class_id: classId, subject_id: subjectIds[0] ?? '', description: '', external_url: '', content: '' })
+    setFormError('')
+    setShowAdd(true)
+  }, [assignments, classes])
 
   const load = useCallback(async () => {
     setLoading(true)
-    setPageError('')
+    setError('')
+    try {
+      const auth = await supabase.auth.getUser()
+      if (auth.error) throw auth.error
+      const user = auth.data.user
+      if (!user) throw new Error('Not signed in.')
+      setTeacherId(user.id)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setPageError('Not signed in.'); setLoading(false); return }
-    setUserId(user.id)
+      const [teacherProfile, member, profile, assignmentResult, resourceResult] = await Promise.all([
+        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
+        supabase.from('profiles').select('school_id').eq('id', user.id).maybeSingle(),
+        supabase.from('teacher_classes').select('class_id,subject_id').eq('teacher_id', user.id),
+        supabase.from('resources').select('*').eq('teacher_id', user.id).order('created_at', { ascending: false }),
+      ])
+      if (assignmentResult.error) throw assignmentResult.error
+      if (resourceResult.error) throw resourceResult.error
+      const resolvedSchoolId = member.data?.school_id ?? teacherProfile.data?.school_id ?? profile.data?.school_id ?? null
+      if (!resolvedSchoolId) throw new Error('Teacher school could not be resolved.')
+      setSchoolId(resolvedSchoolId)
 
-const [teacherRes, memberRes, profileRes] = await Promise.all([
-      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('profiles').select('school_id').eq('id', user.id).single(),
-    ])
-    const sid = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
-    setSchoolId(sid)
+      const teacherAssignments = (assignmentResult.data ?? []) as Assignment[]
+      setAssignments(teacherAssignments)
+      const classIds = unique(teacherAssignments.map(row => row.class_id))
+      const subjectIds = unique(teacherAssignments.map(row => row.subject_id))
 
-    const [resRes, tcRes, subjRes] = await Promise.all([
-      supabase.from('resources').select('*').eq('teacher_id', user.id).order('created_at', { ascending: false }),
-      supabase.from('teacher_classes').select('class_id').eq('teacher_id', user.id),
-      supabase.from('subjects').select('id, name').order('name'),
-    ])
+      const [classResult, subjectResult, calendar] = await Promise.all([
+        classIds.length ? supabase.from('classes').select('id,name,stream').eq('school_id', resolvedSchoolId).in('id', classIds) : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? supabase.from('subjects').select('id,name').in('id', subjectIds).order('name') : Promise.resolve({ data: [], error: null }),
+        supabase.rpc('resolve_instructional_week_for_date', { p_school_id: resolvedSchoolId, p_date: todayIso() }),
+      ])
+      if (classResult.error) throw classResult.error
+      if (subjectResult.error) throw subjectResult.error
 
-    if (resRes.error)  { setPageError('Failed to load resources.'); setLoading(false); return }
-    if (subjRes.error) { setPageError('Failed to load subjects.');  setLoading(false); return }
-
-    const normalizedResources: Resource[] = (resRes.data ?? []).map(row => ({
-      id: row.id,
-      title: row.title,
-      description: row.description ?? "",
-      type: row.type,
-      subject: row.subject ?? "General",
-      external_url: row.external_url,
-      content: row.content,
-      is_school_wide: row.is_school_wide ?? false,
-      class_id: row.class_id,
-      created_at: row.created_at ?? new Date(0).toISOString(),
-    }))
-
-    setResources(normalizedResources)
-    setSubjects(subjRes.data ?? [])
-
-    const classIds = Array.from(new Set((tcRes.data ?? []).map((r: { class_id: string }) => r.class_id)))
-    if (classIds.length > 0) {
-      const { data: classData, error: clsErr } = await supabase.from('classes').select('id, name, stream').in('id', classIds)
-      if (clsErr) { setPageError('Failed to load classes.'); setLoading(false); return }
-      const normalizedClasses: ClassOption[] = (classData ?? []).map(row => ({
+      const classRows: ClassOption[] = (classResult.data ?? []).map(row => ({ id: row.id, name: row.name, stream: row.stream ?? '', label: row.stream ? `${row.name} ${row.stream}` : row.name }))
+      const subjectRows = (subjectResult.data ?? []) as SubjectOption[]
+      setClasses(classRows)
+      setSubjects(subjectRows)
+      setLibrary((resourceResult.data ?? []).map(row => ({
         id: row.id,
-        name: row.name,
-        stream: row.stream ?? "",
-      }))
-      setClasses(normalizedClasses)
+        title: row.title,
+        description: row.description ?? '',
+        type: (TYPES.some(t => t.value === row.type) ? row.type : 'other') as ResourceType,
+        subject: row.subject ?? 'General',
+        external_url: row.external_url,
+        content: row.content,
+        is_school_wide: row.is_school_wide ?? false,
+        class_id: row.class_id,
+        created_at: row.created_at ?? new Date(0).toISOString(),
+      })))
+
+      const calendarRow = !calendar.error && Array.isArray(calendar.data) && calendar.data.length === 1 ? calendar.data[0] : null
+      const resolvedWeek = calendarRow?.week_number ?? null
+      const termId = calendarRow?.term_id ?? null
+      setWeek(resolvedWeek)
+      if (!resolvedWeek || !termId || !classIds.length) { setPacks([]); return }
+
+      const schemeResult = await supabase
+        .from('scheme_of_work')
+        .select('id,class_id,subject_id,topic,sub_strand,strand,week,lesson_number,sequence_number')
+        .eq('teacher_id', user.id)
+        .eq('school_id', resolvedSchoolId)
+        .eq('academic_term_id', termId)
+        .eq('week', resolvedWeek)
+        .in('class_id', classIds)
+      if (schemeResult.error) throw schemeResult.error
+      const schemes = ((schemeResult.data ?? []) as SchemeLesson[]).sort(orderScheme)
+      if (!schemes.length) { setPacks([]); return }
+
+      const linkResult = await supabase.rpc('list_scheme_lesson_resources_batch', { p_scheme_ids: schemes.map(row => row.id) })
+      if (linkResult.error) throw linkResult.error
+      const links = (linkResult.data ?? []) as LinkedResourceRow[]
+      const resourceIds = unique(links.map(row => row.resource_id).filter(Boolean))
+      const learningResult = resourceIds.length
+        ? await supabase.from('learning_resources').select('id,title,description,subject,grade,asset_kind,purpose,status,visibility,publication_id,chapter_id').in('id', resourceIds).eq('status', 'active').eq('visibility', 'public')
+        : { data: [], error: null }
+      if (learningResult.error) throw learningResult.error
+      const learningMap = new Map(((learningResult.data ?? []) as LearningResource[]).map(row => [row.id, row]))
+      const linkMap = new Map<string, LinkedResourceRow[]>()
+      for (const row of links) linkMap.set(row.scheme_lesson_id, [...(linkMap.get(row.scheme_lesson_id) ?? []), row])
+      for (const rows of linkMap.values()) rows.sort((a, b) => a.sequence - b.sequence || a.id.localeCompare(b.id))
+
+      const classMap = new Map(classRows.map(row => [row.id, row.label]))
+      const subjectMap = new Map(subjectRows.map(row => [row.id, row.name]))
+      setPacks(schemes.map(scheme => ({
+        scheme,
+        classLabel: classMap.get(scheme.class_id) ?? 'Class',
+        subjectLabel: subjectMap.get(scheme.subject_id) ?? 'Subject',
+        resources: (linkMap.get(scheme.id) ?? []).map(link => ({ ...link, resource: learningMap.get(link.resource_id) ?? null })).filter(item => item.resource !== null),
+      })))
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Resources could not be loaded.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { void load() }, [load])
 
-  async function handleSubmit() {
+  useEffect(() => {
+    if (!form.class_id) return
+    const ids = assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id)
+    if (!ids.includes(form.subject_id)) setForm(current => ({ ...current, subject_id: ids[0] ?? '' }))
+  }, [assignments, form.class_id, form.subject_id])
+
+  async function saveResource() {
     setFormError('')
-    if (!form.title.trim()) { setFormError('Title is required'); return }
-    if (form.external_url.trim() && !isSafeUrl(form.external_url.trim())) {
-      setFormError('External link must start with http:// or https://'); return
-    }
-    if (!userId) { setFormError('Not signed in'); return }
+    if (!teacherId || !schoolId) return setFormError('Teacher identity is not ready.')
+    if (!form.title.trim()) return setFormError('Add a short title.')
+    if (!form.class_id) return setFormError('Choose a class.')
+    if (!form.subject_id) return setFormError('Choose a subject.')
+    if (!form.external_url.trim() && !form.content.trim()) return setFormError('Paste a link or add the resource content.')
+    if (form.external_url.trim() && !isSafeUrl(form.external_url.trim())) return setFormError('Link must start with http:// or https://.')
+    if (!assignments.some(row => row.class_id === form.class_id && row.subject_id === form.subject_id)) return setFormError('That class and subject are not assigned to this teacher.')
+    const subjectName = subjectById.get(form.subject_id)?.name
+    if (!subjectName) return setFormError('Subject could not be resolved.')
 
     setSaving(true)
-    const isSchoolWide = !form.class_id
-
-    const { data: inserted, error: err } = await supabase.from('resources').insert({
-      teacher_id:     userId,
-      school_id:      schoolId,
-      title:          form.title.trim(),
-      description:    form.description.trim(),
-      type:           form.type,
-      subject:        form.subject.trim(),
-      external_url:   form.external_url.trim() || null,
-      content:        form.content.trim() || null,
-      class_id:       form.class_id || null,
-      is_school_wide: isSchoolWide,
+    const inserted = await supabase.from('resources').insert({
+      teacher_id: teacherId,
+      school_id: schoolId,
+      class_id: form.class_id,
+      is_school_wide: false,
+      subject: subjectName,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      type: form.type,
+      external_url: form.external_url.trim() || null,
+      content: form.content.trim() || null,
     }).select('*').single()
-
     setSaving(false)
-    if (err || !inserted) { setFormError(err?.message ?? 'Failed to save'); return }
-
-    // Optimistic prepend
-    setResources(prev => [inserted as Resource, ...prev])
-    setForm(EMPTY_FORM)
-    setShowForm(false)
+    if (inserted.error || !inserted.data) return setFormError(inserted.error?.message ?? 'Resource could not be saved.')
+    const row = inserted.data
+    setLibrary(current => [{
+      id: row.id, title: row.title, description: row.description ?? '', type: row.type as ResourceType,
+      subject: row.subject ?? subjectName, external_url: row.external_url, content: row.content,
+      is_school_wide: row.is_school_wide ?? false, class_id: row.class_id, created_at: row.created_at ?? new Date().toISOString(),
+    }, ...current])
+    setShowAdd(false)
   }
 
-  async function handleDelete(e: React.MouseEvent, r: Resource) {
-    e.stopPropagation()
-    if (!confirm(`Delete "${r.title}"? This cannot be undone.`)) return
-    setDeleting(r.id)
-    const { error: err } = await supabase.from('resources').delete().eq('id', r.id)
-    if (err) { setDeleting(null); return }
-    setResources(prev => prev.filter(x => x.id !== r.id))
-    if (expanded === r.id) setExpanded(null)
+  async function deleteResource(resource: TeacherResource) {
+    if (!teacherId || !confirm(`Delete “${resource.title}”?`)) return
+    setDeleting(resource.id)
+    const result = await supabase.from('resources').delete().eq('id', resource.id).eq('teacher_id', teacherId)
     setDeleting(null)
+    if (result.error) return setError('Resource could not be deleted.')
+    setLibrary(current => current.filter(row => row.id !== resource.id))
   }
 
-  const filtered = filterType === 'all' ? resources : resources.filter(r => r.type === filterType)
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%', padding: '11px 14px', borderRadius: 10,
-    border: '1px solid #e5e7eb', fontSize: 14, color: C.textPrimary,
-    outline: 'none', fontFamily: 'inherit', background: '#f9fafb', boxSizing: 'border-box',
-  }
-  const labelStyle: React.CSSProperties = {
-    fontSize: 11, fontWeight: 700, color: C.textMuted,
-    textTransform: 'uppercase' as const, letterSpacing: 0.8, marginBottom: 6, display: 'block',
-  }
+  if (loading) return <div style={{ padding: 24, color: C.textMuted }}>Preparing your teaching resources…</div>
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: '100%' }}>
-      <style>{`@keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }`}</style>
-
-      {/* HEADER */}
-      <div style={{ background: 'linear-gradient(135deg, #0f4c75 0%, #1b6ca8 100%)', padding: '20px 16px 28px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>📚 Resources</h1>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', margin: '2px 0 0' }}>Notes, exercises, quizzes & more</p>
-          </div>
-          <button
-            onClick={() => { setShowForm(v => !v); setFormError('') }}
-            style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: showForm ? 'rgba(255,255,255,0.15)' : '#fff', color: showForm ? '#fff' : '#0f4c75', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            {showForm ? 'Cancel' : '+ New'}
-          </button>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {[
-            { label: 'Total',   value: resources.length },
-            { label: 'Notes',   value: resources.filter(r => r.type === 'notes').length },
-            { label: 'Quizzes', value: resources.filter(r => r.type === 'quiz').length },
-            { label: 'Videos',  value: resources.filter(r => r.type === 'video').length },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '8px 4px', textAlign: 'center' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>{s.label}</div>
+    <main style={{ minHeight: '100vh', background: '#f7f9fc', color: C.textPrimary, paddingBottom: 80 }}>
+      <header style={{ background: 'linear-gradient(135deg,#0f4c75,#1b6ca8)', color: '#fff', padding: '22px 16px 28px' }}>
+        <div style={{ maxWidth: 980, margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.08em', textTransform: 'uppercase', opacity: .72 }}>Teaching resource operating system</div>
+              <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 900 }}>Resources that are already connected to the lesson</h1>
+              <p style={{ margin: 0, fontSize: 13, maxWidth: 680, opacity: .82 }}>VibeSchool follows the instructional calendar and your Scheme so the right lesson materials are ready before you teach. Your own notes remain available as supplements, not another preparation burden.</p>
             </div>
-          ))}
+            <button type="button" onClick={openAdd} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: '#0f4c75', fontWeight: 900, whiteSpace: 'nowrap' }}>+ Add mine</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginTop: 18 }}>
+            {[
+              ['Current week', week ?? '—'],
+              ['Ready resources', readyCount],
+              ['My saved resources', library.length],
+            ].map(([label, value]) => <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: 10, textAlign: 'center' }}><div style={{ fontSize: 19, fontWeight: 900 }}>{value}</div><div style={{ fontSize: 10, opacity: .72 }}>{label}</div></div>)}
+          </div>
         </div>
+      </header>
+
+      <div style={{ maxWidth: 980, margin: '0 auto', padding: 16 }}>
+        {error && <div role="alert" style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
+
+        <section style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 10 }}>
+            <div><h2 style={{ fontSize: 18, margin: 0 }}>Ready this week</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>Exact Scheme-linked VibeSchool resources. These feed the lesson-preparation and Teach Now journey; nothing here is title-matched or guessed.</p></div>
+          </div>
+          {packs.length === 0 ? (
+            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 15, padding: 18 }}>
+              <strong>No linked lesson pack is available for this instructional week.</strong>
+              <p style={{ margin: '6px 0 0', color: C.textMuted, lineHeight: 1.6 }}>This does not mean VibeSchool has no content. It means no canonical resource is currently linked to this teacher’s Scheme lessons for the resolved week, so Resources fails closed instead of guessing.</p>
+            </div>
+          ) : packs.map(pack => (
+            <article key={pack.scheme.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 14, marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+                <div><div style={{ fontSize: 11, fontWeight: 900, color: '#0f4c75' }}>{pack.classLabel} · {pack.subjectLabel} · Lesson {pack.scheme.lesson_number ?? '—'}</div><h3 style={{ margin: '4px 0 3px', fontSize: 15 }}>{pack.scheme.topic || pack.scheme.sub_strand || pack.scheme.strand || 'Scheme lesson'}</h3></div>
+                <span style={{ background: pack.resources.length ? '#ecfdf5' : '#fff7ed', color: pack.resources.length ? '#065f46' : '#9a3412', borderRadius: 999, padding: '5px 8px', fontSize: 10, fontWeight: 900 }}>{pack.resources.length} ready</span>
+              </div>
+              {pack.resources.length === 0 ? <p style={{ margin: '9px 0 0', color: C.textMuted, fontSize: 12 }}>No canonical resource link is attached to this exact Scheme lesson yet.</p> : (
+                <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+                  {pack.resources.map(item => {
+                    const href = readerHref(item)
+                    return <div key={item.id} style={{ border: '1px solid #eef2f7', background: '#fafcff', borderRadius: 12, padding: 11, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                      <div><div style={{ fontSize: 10, color: '#6366f1', fontWeight: 900, textTransform: 'uppercase' }}>{item.resource_role || item.resource?.purpose || item.resource?.asset_kind || 'Lesson resource'}</div><div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>{item.resource?.title ?? 'Canonical resource'}</div>{item.resource?.description && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{item.resource.description}</div>}</div>
+                      {href ? <Link href={href} style={{ textDecoration: 'none', borderRadius: 9, background: '#0f4c75', color: '#fff', padding: '8px 10px', fontSize: 11, fontWeight: 900 }}>Open</Link> : <span style={{ fontSize: 10, color: C.textMuted }}>Linked</span>}
+                    </div>
+                  })}
+                </div>
+              )}
+            </article>
+          ))}
+        </section>
+
+        <section>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'end', marginBottom: 10 }}>
+            <div><h2 style={{ fontSize: 18, margin: 0 }}>My teaching library</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>Personal supplementary resources. Teacher-added resources stay class-scoped.</p></div>
+          </div>
+          <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 10 }}>
+            {(['all', ...TYPES.map(t => t.value)] as Array<'all' | ResourceType>).map(value => <button type="button" key={value} onClick={() => setFilter(value)} style={{ border: '1px solid #dbe3ea', background: filter === value ? '#e0f2fe' : '#fff', color: filter === value ? '#075985' : C.textMuted, borderRadius: 999, padding: '7px 10px', fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap' }}>{value === 'all' ? 'All' : typeMeta(value).label}</button>)}
+          </div>
+
+          {visibleLibrary.length === 0 ? <div style={{ background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 14, padding: 18, color: C.textMuted }}>You have no saved {filter === 'all' ? '' : typeMeta(filter).label.toLowerCase() + ' '}resources yet. VibeSchool lesson resources above remain available independently.</div> : visibleLibrary.map(resource => {
+            const meta = typeMeta(resource.type)
+            const classLabel = resource.class_id ? classById.get(resource.class_id)?.label ?? 'Class' : 'Legacy school-wide'
+            const isExpanded = expanded === resource.id
+            return <article key={resource.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, marginBottom: 8, overflow: 'hidden' }}>
+              <button type="button" onClick={() => setExpanded(isExpanded ? null : resource.id)} aria-expanded={isExpanded} style={{ border: 0, width: '100%', background: '#fff', textAlign: 'left', padding: 13, display: 'flex', gap: 10, alignItems: 'center' }}>
+                <span style={{ fontSize: 19 }}>{meta.icon}</span><span style={{ flex: 1 }}><strong style={{ display: 'block', color: C.textPrimary }}>{resource.title}</strong><span style={{ fontSize: 11, color: C.textMuted }}>{resource.subject} · {classLabel} · {timeAgo(resource.created_at)}</span></span><span>{isExpanded ? '⌃' : '⌄'}</span>
+              </button>
+              {isExpanded && <div style={{ padding: '0 13px 13px' }}>{resource.description && <p style={{ lineHeight: 1.6 }}>{resource.description}</p>}{resource.content && <div style={{ whiteSpace: 'pre-wrap', background: '#f8fafc', borderRadius: 10, padding: 11, lineHeight: 1.65 }}>{resource.content}</div>}{resource.external_url && <a href={resource.external_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 9 }}>Open external resource ↗</a>}<button type="button" disabled={deleting === resource.id} onClick={() => void deleteResource(resource)} style={{ display: 'block', marginTop: 10, border: '1px solid #fecaca', background: '#fff', color: '#991b1b', borderRadius: 9, padding: '7px 9px', fontWeight: 800 }}>{deleting === resource.id ? 'Deleting…' : 'Delete'}</button></div>}
+            </article>
+          })}
+        </section>
       </div>
 
-      <div style={{ padding: '16px' }}>
-
-        {/* PAGE ERROR */}
-        {pageError && (
-          <div style={{ padding: '12px 14px', borderRadius: 12, background: '#fef2f2', color: C.error, fontSize: 13, marginBottom: 14 }}>
-            ⚠️ {pageError}
-          </div>
-        )}
-
-        {/* CREATE FORM */}
-        {showForm && (
-          <div style={{ background: '#fff', borderRadius: 20, padding: '20px', marginBottom: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', animation: 'slideDown 0.2s ease' }}>
-            <p style={{ fontSize: 12, fontWeight: 800, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, margin: '0 0 16px' }}>New Resource</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-              <div>
-                <label style={labelStyle}>Type *</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {TYPES.map(t => (
-                    <button key={t.value} onClick={() => setForm(f => ({ ...f, type: t.value }))} style={{ padding: '6px 12px', borderRadius: 20, border: '1.5px solid', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', borderColor: form.type === t.value ? t.color : '#e5e7eb', background: form.type === t.value ? t.bg : '#fafafa', color: form.type === t.value ? t.color : '#6b7280' }}>
-                      {t.icon} {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Title *</label>
-                <input style={inputStyle} placeholder="e.g. Fractions — Notes Term 2" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-              </div>
-
-              <div>
-                <label style={labelStyle}>Subject</label>
-                <select style={inputStyle} value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}>
-                  <option value="">-- Select subject --</option>
-                  {subjects.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label style={labelStyle}>Class</label>
-                <select style={inputStyle} value={form.class_id} onChange={e => setForm(f => ({ ...f, class_id: e.target.value }))}>
-                  <option value="">-- School-wide (all classes) --</option>
-                  {classes.map(c => <option key={c.id} value={c.id}>{c.name}{c.stream ? ' ' + c.stream : ''}</option>)}
-                </select>
-                {!form.class_id && (
-                  <p style={{ fontSize: 11, color: '#6366f1', margin: '4px 0 0', fontWeight: 600 }}>ℹ️ No class selected — resource will be school-wide</p>
-                )}
-              </div>
-
-              <div>
-                <label style={labelStyle}>Description</label>
-                <textarea style={{ ...inputStyle, minHeight: 70, resize: 'vertical' }} placeholder="Brief description…" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
-              </div>
-
-              <div>
-                <label style={labelStyle}>External Link (Google Drive, YouTube, etc.)</label>
-                <input style={inputStyle} placeholder="https://drive.google.com/…" value={form.external_url} onChange={e => setForm(f => ({ ...f, external_url: e.target.value }))} />
-              </div>
-
-              <div>
-                <label style={labelStyle}>Or Type Notes Directly</label>
-                <textarea style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }} placeholder="Type your notes, questions, or content here…" value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
-              </div>
-
-            </div>
-
-            {formError && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>⚠️ {formError}</p>}
-
-            <button onClick={handleSubmit} disabled={saving} style={{ marginTop: 16, width: '100%', padding: '12px', borderRadius: 12, border: 'none', background: saving ? '#d1d5db' : '#0f4c75', color: '#fff', fontWeight: 700, fontSize: 14, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>
-              {saving ? 'Saving…' : '📤 Publish Resource'}
-            </button>
-          </div>
-        )}
-
-        {/* FILTER TABS */}
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 14, paddingBottom: 2 }} role="tablist">
-          {[{ value: 'all', label: 'All', icon: '📚' }, ...TYPES].map(t => (
-            <button key={t.value} role="tab" aria-selected={filterType === t.value} onClick={() => setFilterType(t.value)} style={{ flexShrink: 0, padding: '6px 12px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'inherit', background: filterType === t.value ? '#0f4c75' : '#f3f4f6', color: filterType === t.value ? '#fff' : '#6b7280' }}>
-              {t.icon} {t.label}
-            </button>
-          ))}
+      {showAdd && <div role="dialog" aria-modal="true" aria-label="Add teaching resource" style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,23,42,.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 620, background: '#fff', borderRadius: '20px 20px 0 0', padding: 18, maxHeight: '88vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}><div><h2 style={{ margin: 0, fontSize: 18 }}>Add my resource</h2><p style={{ margin: '4px 0 0', color: C.textMuted, fontSize: 12 }}>Class and subject are constrained to your actual teaching assignments.</p></div><button type="button" onClick={() => setShowAdd(false)} aria-label="Close" style={{ border: 0, background: '#f1f5f9', borderRadius: 999, width: 32, height: 32 }}>×</button></div>
+        <div style={{ display: 'grid', gap: 13, marginTop: 16 }}>
+          <div><label style={labelStyle}>Type</label><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{TYPES.map(item => <button type="button" key={item.value} onClick={() => setForm(current => ({ ...current, type: item.value }))} style={{ border: form.type === item.value ? '1px solid #0f4c75' : '1px solid #dbe3ea', background: form.type === item.value ? '#e0f2fe' : '#fff', borderRadius: 999, padding: '7px 9px', fontWeight: 800 }}>{item.icon} {item.label}</button>)}</div></div>
+          <div><label style={labelStyle}>Class</label><select style={inputStyle} value={form.class_id} onChange={event => setForm(current => ({ ...current, class_id: event.target.value }))}><option value="">Choose class</option>{classes.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}</select></div>
+          <div><label style={labelStyle}>Subject</label><select style={inputStyle} value={form.subject_id} onChange={event => setForm(current => ({ ...current, subject_id: event.target.value }))}><option value="">Choose subject</option>{allowedSubjects.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></div>
+          <div><label style={labelStyle}>Title</label><input style={inputStyle} value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} placeholder="Short useful title" /></div>
+          <div><label style={labelStyle}>Description</label><textarea style={{ ...inputStyle, minHeight: 64 }} value={form.description} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} /></div>
+          <div><label style={labelStyle}>Paste link</label><input style={inputStyle} value={form.external_url} onChange={event => setForm(current => ({ ...current, external_url: event.target.value }))} placeholder="https://…" /></div>
+          <div><label style={labelStyle}>Or add content</label><textarea style={{ ...inputStyle, minHeight: 110 }} value={form.content} onChange={event => setForm(current => ({ ...current, content: event.target.value }))} placeholder="Notes, questions, instructions…" /></div>
         </div>
-
-        {/* LIST */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: C.textMuted }}>Loading…</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ background: '#fff', borderRadius: 20, padding: '32px 20px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, margin: '0 0 8px' }}>No resources yet</h2>
-            <p style={{ fontSize: 13, color: C.textMuted, margin: '0 0 20px', lineHeight: 1.5 }}>Share notes, exercises, quizzes and more with your students.</p>
-            <button onClick={() => setShowForm(true)} style={{ padding: '10px 24px', borderRadius: 12, border: 'none', background: '#0f4c75', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>+ Add First Resource</button>
-          </div>
-        ) : (
-          <div role="list" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {filtered.map(r => {
-              const meta   = typeMeta(r.type)
-              const isOpen = expanded === r.id
-              return (
-                <div key={r.id} role="listitem" style={{ background: '#fff', borderRadius: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: `4px solid ${meta.color}`, overflow: 'hidden' }}>
-                  <button
-                    aria-expanded={isOpen}
-                    onClick={() => setExpanded(isOpen ? null : r.id)}
-                    style={{ width: '100%', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit', textAlign: 'left' }}
-                  >
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: meta.bg, color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }} aria-hidden="true">{meta.icon}</div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</p>
-                      <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap' }}>
-                        {r.subject && <span style={{ fontSize: 10, color: meta.color, fontWeight: 700 }}>{r.subject}</span>}
-                        <span style={{ fontSize: 10, color: C.textMuted }}>{timeAgo(r.created_at)}</span>
-                        {r.is_school_wide && <span style={{ fontSize: 10, color: '#6366f1', fontWeight: 700 }}>🏫 School-wide</span>}
-                        {r.external_url && <span style={{ fontSize: 10, color: '#6366f1', fontWeight: 700 }}>🔗 Link</span>}
-                        {r.content && <span style={{ fontSize: 10, color: '#059669', fontWeight: 700 }}>📝 Notes</span>}
-                      </div>
-                    </div>
-                    <span style={{ fontSize: 14, color: C.textMuted, flexShrink: 0 }} aria-hidden="true">{isOpen ? '▲' : '▼'}</span>
-                  </button>
-
-                  {isOpen && (
-                    <div style={{ padding: '0 16px 16px', borderTop: '1px solid #f3f4f6' }}>
-                      {r.description && <p style={{ fontSize: 13, color: C.textMuted, margin: '12px 0 0', lineHeight: 1.6 }}>{r.description}</p>}
-                      {r.content && (
-                        <div style={{ marginTop: 12, padding: '12px', background: '#f8fafc', borderRadius: 10, fontSize: 13, color: C.textPrimary, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-                          {r.content}
-                        </div>
-                      )}
-                      {r.external_url && isSafeUrl(r.external_url) && (
-                        <a href={r.external_url} target="_blank" rel="noreferrer noopener" style={{ display: 'inline-block', marginTop: 12, padding: '10px 16px', borderRadius: 10, background: '#6366f1', color: '#fff', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
-                          🔗 Open Link →
-                        </a>
-                      )}
-                      <button
-                        onClick={e => handleDelete(e, r)}
-                        disabled={deleting === r.id}
-                        aria-label={`Delete ${r.title}`}
-                        style={{ display: 'block', marginTop: 12, padding: '8px 14px', borderRadius: 10, border: '1px solid #fca5a5', background: 'transparent', color: '#991b1b', fontSize: 12, fontWeight: 700, cursor: deleting === r.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
-                      >
-                        {deleting === r.id ? 'Deleting…' : '🗑 Delete'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+        {formError && <div role="alert" style={{ marginTop: 10, color: '#991b1b', fontSize: 12 }}>{formError}</div>}
+        <button type="button" onClick={() => void saveResource()} disabled={saving} style={{ width: '100%', marginTop: 14, border: 0, borderRadius: 11, padding: 12, background: '#0f4c75', color: '#fff', fontWeight: 900 }}>{saving ? 'Saving…' : 'Save to my class library'}</button>
+      </div></div>}
+    </main>
   )
-}
-
-export default function ResourcesPage() {
-  return <ResourcesInner />
 }
