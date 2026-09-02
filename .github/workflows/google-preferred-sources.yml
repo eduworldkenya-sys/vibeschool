@@ -1,0 +1,38 @@
+name: Google Preferred Sources
+
+on:
+  pull_request:
+    paths:
+      - 'components/google/PreferredSourceButton.tsx'
+      - 'app/blog/[id]/page.tsx'
+      - 'app/blog/[id]/article.module.css'
+      - 'lib/searchAuthority.ts'
+      - 'app/sitemap.ts'
+      - 'app/robots.ts'
+      - 'scripts/preferred-sources-contract-test.mjs'
+      - '.github/workflows/google-preferred-sources.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'components/google/PreferredSourceButton.tsx'
+      - 'app/blog/[id]/page.tsx'
+      - 'app/blog/[id]/article.module.css'
+      - 'lib/searchAuthority.ts'
+      - 'app/sitemap.ts'
+      - 'app/robots.ts'
+      - 'scripts/preferred-sources-contract-test.mjs'
+      - '.github/workflows/google-preferred-sources.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Preferred Sources contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/preferred-sources-contract-test.mjs
