@@ -1,0 +1,39 @@
+name: Portable Agent Skills
+
+on:
+  pull_request:
+    paths:
+      - '.github/skills/**'
+      - 'docs/ai-governance/PORTABLE_AGENT_SKILLS.json'
+      - 'scripts/validate-portable-agent-skills.mjs'
+      - 'AGENTS.md'
+      - 'docs/ai-governance/SKILL_REGISTRY.json'
+      - 'docs/ai-governance/CYBORG_EXECUTOR.md'
+      - 'docs/ai-governance/CANONICAL_AGENT_GUARDRAILS.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/skills/**'
+      - 'docs/ai-governance/PORTABLE_AGENT_SKILLS.json'
+      - 'scripts/validate-portable-agent-skills.mjs'
+      - 'AGENTS.md'
+      - 'docs/ai-governance/SKILL_REGISTRY.json'
+      - 'docs/ai-governance/CYBORG_EXECUTOR.md'
+      - 'docs/ai-governance/CANONICAL_AGENT_GUARDRAILS.md'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate portable Agent Skills
+        run: node scripts/validate-portable-agent-skills.mjs
+      - name: Validate canonical agent governance
+        run: node scripts/validate-agent-governance.mjs
