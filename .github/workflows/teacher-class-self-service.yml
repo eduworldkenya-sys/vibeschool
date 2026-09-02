@@ -1,0 +1,36 @@
+name: Teacher Class Self Service
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/classhub/**'
+      - 'app/teacher/onboarding/class/page.tsx'
+      - 'components/teacher/TeacherClassForm.tsx'
+      - 'lib/teacher/classOptions.ts'
+      - 'supabase/migrations/20260902095200_teacher_class_self_service_current.sql'
+      - 'scripts/teacher-class-self-service-contract.test.mjs'
+      - '.github/workflows/teacher-class-self-service.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/teacher/classhub/**'
+      - 'app/teacher/onboarding/class/page.tsx'
+      - 'components/teacher/TeacherClassForm.tsx'
+      - 'lib/teacher/classOptions.ts'
+      - 'supabase/migrations/20260902095200_teacher_class_self_service_current.sql'
+      - 'scripts/teacher-class-self-service-contract.test.mjs'
+      - '.github/workflows/teacher-class-self-service.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Teacher class self-service contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/teacher-class-self-service-contract.test.mjs

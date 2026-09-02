@@ -87,8 +87,11 @@ export default function ClassHubPage() {
     <div style={{ padding: '20px 16px 32px', color: C.textPrimary }}>
       <div style={{ marginBottom: 20 }}>
         <p style={{ margin: 0, color: C.textMuted, fontSize: 12, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase' }}>Classes</p>
-        <h1 style={{ margin: '6px 0 4px', fontSize: 28, fontWeight: 900 }}>My Classes</h1>
-        <p style={{ margin: 0, color: C.textMuted, fontSize: 14 }}>Open a class to manage teaching work, or go directly to evidence-backed Student progress.</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6 }}>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900 }}>My Classes</h1>
+          <button type="button" onClick={() => router.push('/teacher/classhub/add')} style={{ minHeight: 42, border: 0, borderRadius: 12, padding: '0 14px', background: C.accent, color: '#fff', fontWeight: 900, cursor: 'pointer' }}>+ Add class</button>
+        </div>
+        <p style={{ margin: '6px 0 0', color: C.textMuted, fontSize: 14 }}>Open a class to manage teaching work, or go directly to evidence-backed Student progress.</p>
       </div>
 
       {loading && (
@@ -107,7 +110,8 @@ export default function ClassHubPage() {
       {!loading && !error && classes.length === 0 && (
         <div style={{ padding: '32px 20px', border: `1px solid ${C.border}`, borderRadius: 18, background: C.bg, textAlign: 'center' }}>
           <h2 style={{ margin: 0, fontSize: 18 }}>No classes assigned yet</h2>
-          <p style={{ margin: '8px 0 0', color: C.textMuted, lineHeight: 1.5 }}>Your Classes page shows classes assigned to you by the school. Once a class is assigned, it will appear here automatically.</p>
+          <p style={{ margin: '8px 0 14px', color: C.textMuted, lineHeight: 1.5 }}>Add the class and subject you teach. If the class already exists at your verified school, VibeSchool reuses it.</p>
+          <button type="button" onClick={() => router.push('/teacher/classhub/add')} style={{ minHeight: 44, border: 0, borderRadius: 12, padding: '0 16px', background: C.dark, color: '#fff', fontWeight: 900, cursor: 'pointer' }}>Add or join class</button>
         </div>
       )}
 
