@@ -36,11 +36,15 @@ type OccurrenceContext = {
   school_id: string;
   class_id: string;
   subject_id: string;
+  timetable_slot_id: string;
   occurrence_date: string;
   lifecycle: string;
   classes: { name: string; stream: string | null } | null;
   subjects: { name: string } | null;
 };
+
+type LessonPlanPrefill = { id: string; title: string | null; topic: string | null };
+type HomeworkPrefill = { title: string; instructions: string | null };
 
 type FormState = {
   whatWasTaught: string;
@@ -60,9 +64,18 @@ const EMPTY_FORM: FormState = {
   nextSteps: "",
 };
 
+function typed<T>(value: unknown): T {
+  return value as T;
+}
+
 function clean(value: string) {
   const trimmed = value.trim();
   return trimmed || null;
+}
+
+function homeworkText(homework: HomeworkPrefill | null) {
+  if (!homework) return "";
+  return [homework.title?.trim(), homework.instructions?.trim()].filter(Boolean).join(" — ");
 }
 
 function messageFor(error: unknown) {
@@ -84,6 +97,7 @@ function ProgressInner() {
   const [occurrence, setOccurrence] = useState<OccurrenceContext | null>(null);
   const [records, setRecords] = useState<ProgressRow[]>([]);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [prefilled, setPrefilled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,12 +108,13 @@ function ProgressInner() {
       p_requested_school_id: requestedSchoolId ?? undefined,
     });
     if (contextError) throw contextError;
-    return data as unknown as Context;
+    return typed<Context>(data);
   }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setPrefilled(false);
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth.user) {
@@ -113,7 +128,7 @@ function ProgressInner() {
         return;
       }
 
-      const db = supabase as any;
+      const db = supabase as typeof supabase;
       const recordsRes = await db
         .from("progress_records")
         .select("id,teaching_occurrence_id,lesson_plan_id,taught_date,what_was_taught,participation_score,challenges,homework_set,teacher_remarks,next_steps,class_id,subject_id,classes(name,stream),subjects(name)")
@@ -124,24 +139,25 @@ function ProgressInner() {
         .order("updated_at", { ascending: false })
         .limit(100);
       if (recordsRes.error) throw recordsRes.error;
-      setRecords((recordsRes.data ?? []) as ProgressRow[]);
+      const progressRows = typed<ProgressRow[]>(recordsRes.data ?? []);
+      setRecords(progressRows);
 
       if (occurrenceId) {
         const occurrenceRes = await db
           .from("teaching_occurrences")
-          .select("id,school_id,class_id,subject_id,occurrence_date,lifecycle,classes(name,stream),subjects(name)")
+          .select("id,school_id,class_id,subject_id,timetable_slot_id,occurrence_date,lifecycle,classes(name,stream),subjects(name)")
           .eq("id", occurrenceId)
           .eq("teacher_id", auth.user.id)
           .eq("school_id", ctx.school_id)
           .maybeSingle();
         if (occurrenceRes.error) throw occurrenceRes.error;
         if (!occurrenceRes.data) throw new Error("Teaching occurrence not found in your active school.");
-        const exact = occurrenceRes.data as OccurrenceContext;
+        const exact = typed<OccurrenceContext>(occurrenceRes.data);
         setOccurrence(exact);
         if (exact.lifecycle !== "completed") {
           setError("Complete the lesson before recording its progress note.");
         }
-        const existing = (recordsRes.data ?? []).find((row: ProgressRow) => row.teaching_occurrence_id === occurrenceId);
+        const existing = progressRows.find(row => row.teaching_occurrence_id === occurrenceId);
         if (existing) {
           setForm({
             whatWasTaught: existing.what_was_taught ?? "",
@@ -151,9 +167,41 @@ function ProgressInner() {
             teacherRemarks: existing.teacher_remarks ?? "",
             nextSteps: existing.next_steps ?? "",
           });
+        } else {
+          const planRes = await db
+            .from("lesson_plans")
+            .select("id,title,topic")
+            .eq("teacher_id", auth.user.id)
+            .eq("school_id", ctx.school_id)
+            .eq("timetable_slot_id", exact.timetable_slot_id)
+            .eq("taught_date", exact.occurrence_date)
+            .maybeSingle();
+          if (planRes.error) throw planRes.error;
+          const plan = typed<LessonPlanPrefill | null>(planRes.data);
+          if (!plan) throw new Error("The exact lesson plan for this completed lesson could not be found.");
+
+          const homeworkRes = await db
+            .from("homework")
+            .select("title,instructions")
+            .eq("teacher_id", auth.user.id)
+            .eq("school_id", ctx.school_id)
+            .eq("lesson_plan_id", plan.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (homeworkRes.error) throw homeworkRes.error;
+          const homework = typed<HomeworkPrefill | null>(homeworkRes.data);
+
+          setForm({
+            ...EMPTY_FORM,
+            whatWasTaught: plan.topic?.trim() || plan.title?.trim() || "",
+            homeworkSet: homeworkText(homework),
+          });
+          setPrefilled(true);
         }
       } else {
         setOccurrence(null);
+        setForm(EMPTY_FORM);
       }
     } catch (loadError) {
       console.error("[TeacherProgress] load", loadError);
@@ -216,17 +264,17 @@ function ProgressInner() {
 
   if (loading) return <div style={{ padding: 18 }} aria-label="Loading lesson progress"><div style={{ height: 150, borderRadius: 18, background: "#e5e7eb" }} /></div>;
 
-  const activeSchool = context?.schools.find((school) => school.id === context.school_id)?.name ?? "No active school";
+  const activeSchool = context?.schools.find(school => school.id === context.school_id)?.name ?? "No active school";
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
       <section style={{ background: "linear-gradient(135deg,#1d4ed8,#2563eb)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
         <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>Teaching evidence</div>
         <h1 style={{ margin: "4px 0", fontSize: 23 }}>Lesson progress & next steps</h1>
-        <div style={{ fontSize: 12, opacity: .78 }}>Only completed teaching occurrences can create or update progress records.</div>
+        <div style={{ fontSize: 12, opacity: .78 }}>The lesson and homework are prefilled from the exact completed occurrence. You only confirm or add what requires teacher judgement.</div>
         {context && context.schools.length > 1 && (
           <select value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={{ marginTop: 12, width: "100%", minHeight: 44, border: 0, borderRadius: 12, padding: "0 12px", background: "#fff", color: "#111827", fontWeight: 800 }}>
-            {context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
+            {context.schools.map(school => <option key={school.id} value={school.id}>{school.name}</option>)}
           </select>
         )}
       </section>
@@ -241,15 +289,16 @@ function ProgressInner() {
           <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>COMPLETED LESSON</div>
           <h2 style={{ margin: "5px 0 3px", fontSize: 17, color: "#111827" }}>{occurrence.subjects?.name ?? "Subject"} · {occurrence.classes?.name ?? "Class"}{occurrence.classes?.stream ? ` ${occurrence.classes.stream}` : ""}</h2>
           <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 13 }}>{occurrence.occurrence_date} · {activeSchool}</div>
+          {prefilled && <div role="status" style={{ marginBottom: 12, padding: 11, borderRadius: 12, background: "#eff6ff", color: "#1e40af", fontSize: 12 }}><strong>Prefilled for you.</strong> Lesson identity and linked homework came from the exact lesson plan. Participation, challenges and reflection stay blank until you confirm what actually happened.</div>}
           <div style={{ display: "grid", gap: 11 }}>
-            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>WHAT WAS TAUGHT *</span><textarea required rows={4} value={form.whatWasTaught} onChange={(event) => setForm((current) => ({ ...current, whatWasTaught: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11, resize: "vertical" }} /></label>
-            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>LEARNER PARTICIPATION (1–5)</span><input type="number" min={1} max={5} value={form.participationScore} onChange={(event) => setForm((current) => ({ ...current, participationScore: event.target.value }))} style={{ width: "100%", minHeight: 44, boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: "0 11px" }} /></label>
-            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>WHAT LEARNERS STRUGGLED WITH</span><textarea rows={3} value={form.challenges} onChange={(event) => setForm((current) => ({ ...current, challenges: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11 }} /></label>
-            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>HOMEWORK / EXERCISE SET</span><textarea rows={2} value={form.homeworkSet} onChange={(event) => setForm((current) => ({ ...current, homeworkSet: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11 }} /></label>
-            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>TEACHER REFLECTION</span><textarea rows={3} value={form.teacherRemarks} onChange={(event) => setForm((current) => ({ ...current, teacherRemarks: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11 }} /></label>
-            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>NEXT ACTION / REMEDIATION / ENRICHMENT</span><textarea rows={3} value={form.nextSteps} onChange={(event) => setForm((current) => ({ ...current, nextSteps: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11 }} /></label>
+            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>WHAT WAS TAUGHT *</span><textarea required rows={3} value={form.whatWasTaught} onChange={(event) => setForm(current => ({ ...current, whatWasTaught: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11, resize: "vertical" }} /></label>
+            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>LEARNER PARTICIPATION (1–5)</span><input type="number" min={1} max={5} value={form.participationScore} onChange={(event) => setForm(current => ({ ...current, participationScore: event.target.value }))} style={{ width: "100%", minHeight: 44, boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: "0 11px" }} /></label>
+            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>WHAT LEARNERS STRUGGLED WITH</span><textarea rows={2} value={form.challenges} onChange={(event) => setForm(current => ({ ...current, challenges: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11 }} /></label>
+            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>HOMEWORK / EXERCISE SET</span><textarea rows={2} value={form.homeworkSet} onChange={(event) => setForm(current => ({ ...current, homeworkSet: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11 }} /></label>
+            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>TEACHER REFLECTION</span><textarea rows={2} value={form.teacherRemarks} onChange={(event) => setForm(current => ({ ...current, teacherRemarks: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11 }} /></label>
+            <label><span style={{ display: "block", fontSize: 10, fontWeight: 900, color: "#6b7280", marginBottom: 5 }}>NEXT ACTION / REMEDIATION / ENRICHMENT</span><textarea rows={2} value={form.nextSteps} onChange={(event) => setForm(current => ({ ...current, nextSteps: event.target.value }))} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11 }} /></label>
           </div>
-          <button type="submit" disabled={saving || occurrence.lifecycle !== "completed"} style={{ width: "100%", minHeight: 49, marginTop: 13, border: 0, borderRadius: 12, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 900 }}>{saving ? "Saving…" : "Save lesson progress"}</button>
+          <button type="submit" disabled={saving || occurrence.lifecycle !== "completed"} style={{ width: "100%", minHeight: 49, marginTop: 13, border: 0, borderRadius: 12, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 900 }}>{saving ? "Saving…" : "Confirm & save progress"}</button>
         </form>
       ) : (
         <section style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 16, padding: 14, marginBottom: 12, color: "#1e40af", fontSize: 13, lineHeight: 1.5 }}>
@@ -260,7 +309,7 @@ function ProgressInner() {
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", marginBottom: 11 }}><div><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>RECENT COMPLETED LESSON RECORDS</div><div style={{ marginTop: 3, fontSize: 11, color: "#9ca3af" }}>{activeSchool}</div></div><span style={{ fontSize: 12, fontWeight: 900, color: "#1d4ed8" }}>{records.length}</span></div>
-        {records.length === 0 ? <div style={{ padding: "22px 4px", color: "#6b7280", fontSize: 13, textAlign: "center" }}>No completed lesson progress records yet.</div> : <div style={{ display: "grid", gap: 9 }}>{records.map((row) => <button key={row.id} type="button" onClick={() => row.teaching_occurrence_id && router.push(`/teacher/progress?occurrenceId=${encodeURIComponent(row.teaching_occurrence_id)}`)} style={{ width: "100%", textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", padding: 12 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{row.subjects?.name ?? "Subject"} · {row.classes?.name ?? "Class"}{row.classes?.stream ? ` ${row.classes.stream}` : ""}</div><div style={{ marginTop: 3, fontSize: 11, color: "#6b7280" }}>{row.taught_date}</div></div>{row.participation_score && <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, color: "#1d4ed8" }}>{row.participation_score}/5</span>}</div><div style={{ marginTop: 8, fontSize: 12, color: "#374151", lineHeight: 1.45 }}>{row.what_was_taught}</div>{row.next_steps && <div style={{ marginTop: 7, fontSize: 11, color: "#92400e" }}>Next: {row.next_steps}</div>}</button>)}</div>}
+        {records.length === 0 ? <div style={{ padding: "22px 4px", color: "#6b7280", fontSize: 13, textAlign: "center" }}>No completed lesson progress records yet.</div> : <div style={{ display: "grid", gap: 9 }}>{records.map(row => <button key={row.id} type="button" onClick={() => row.teaching_occurrence_id && router.push(`/teacher/progress?occurrenceId=${encodeURIComponent(row.teaching_occurrence_id)}`)} style={{ width: "100%", textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 14, background: "#fff", padding: 12 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{row.subjects?.name ?? "Subject"} · {row.classes?.name ?? "Class"}{row.classes?.stream ? ` ${row.classes.stream}` : ""}</div><div style={{ marginTop: 3, fontSize: 11, color: "#6b7280" }}>{row.taught_date}</div></div>{row.participation_score && <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 900, color: "#1d4ed8" }}>{row.participation_score}/5</span>}</div><div style={{ marginTop: 8, fontSize: 12, color: "#374151", lineHeight: 1.45 }}>{row.what_was_taught}</div>{row.next_steps && <div style={{ marginTop: 7, fontSize: 11, color: "#92400e" }}>Next: {row.next_steps}</div>}</button>)}</div>}
       </section>
     </div>
   );
