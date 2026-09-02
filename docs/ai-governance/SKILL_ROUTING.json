@@ -1,7 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
   "owner": "vibeschool-cyborg-executor",
-  "defaultCore": ["repo-truth-first","contract-integrity","preflight-before-ci","evidence-and-certification","dependency-integrity-loop","escape-hatch-auditor","merge-certification-gate","regression-learning","resource-conservation"],
+  "defaultCore": ["repo-truth-first","contract-integrity","pr-convergence-loop","preflight-before-ci","evidence-and-certification","dependency-integrity-loop","escape-hatch-auditor","merge-certification-gate","regression-learning","resource-conservation"],
   "routes": [
     {"patterns":["supabase/**","**/migrations/**"],"skills":["supabase-rls-security","security-authority-gate","production-readiness"]},
     {"patterns":["lib/hq/workforce/**","app/**/workforce/**","**/worker-engine/**"],"skills":["worker-engine-governance","observability-watchdog-reliability","security-authority-gate"]},
@@ -13,5 +13,11 @@
     {"patterns":["**/auth/**","**/authorization/**","**/payments/**","**/publishing/**"],"skills":["security-authority-gate"]},
     {"patterns":["**/telemetry/**","**/observability/**","**/watchdog*","**/heartbeat*"],"skills":["observability-watchdog-reliability"]}
   ],
-  "failureTriggers": {"requiredCiFailure":["ci-failure-repair-loop"]}
+  "failureTriggers": {
+    "requiredCiFailure":["pr-convergence-loop","ci-failure-repair-loop"],
+    "mergeConflict":["pr-convergence-loop"],
+    "stalePrHead":["pr-convergence-loop"],
+    "baseMoved":["pr-convergence-loop"],
+    "migrationCollision":["pr-convergence-loop","dependency-integrity-loop"]
+  }
 }
