@@ -72,7 +72,8 @@ begin
       'estimated_minutes', ad.estimated_minutes,
       'subject_id', ad.subject_id,
       'generation_source', ad.generation_source,
-      'generation_status', ad.generation_status
+      'generation_status', ad.generation_status,
+      'grounding_authority', ad.generation_metadata->>'authority'
     ),
     'sections', sections,
     'unsectioned_items', unsectioned
