@@ -29,6 +29,25 @@ export interface LoadLessonContextInput {
   occurrenceDate: string
 }
 
+type EnrollmentLearner = {
+  id: string
+  name: string
+  profile_id: string | null
+  deleted_at: string | null
+}
+
+type EnrollmentRow = {
+  student_id: string
+  students: EnrollmentLearner | EnrollmentLearner[] | null
+}
+
+function singleEnrollmentLearner(
+  value: EnrollmentRow['students'],
+): EnrollmentLearner | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value
+}
+
 /**
  * Loads the exact teacher → school → class → subject → learner context for one
  * lesson. The teaching assignment is the school authority; neither a stale
@@ -155,8 +174,9 @@ export async function loadLessonContext({
 
   const students: LessonContextStudent[] = []
   const seen = new Set<string>()
-  for (const row of enrollmentResult.data ?? []) {
-    const learner = (row as any).students
+  const enrollmentRows: EnrollmentRow[] = enrollmentResult.data ?? []
+  for (const row of enrollmentRows) {
+    const learner = singleEnrollmentLearner(row.students)
     if (!learner || learner.deleted_at || seen.has(learner.id)) continue
     seen.add(learner.id)
     students.push({
