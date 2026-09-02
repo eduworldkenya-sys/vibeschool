@@ -7,6 +7,7 @@ import type {
 } from '@/lib/teaching/lessonContext'
 import {
   lessonSourceCompleteness,
+  normalizeSchemeLearningResources,
   resolveLessonSource,
 } from '@/lib/teaching/lessonSource'
 import type {
@@ -125,7 +126,9 @@ async function restorePersistedLessonSource(
       schemeId: schemeRow.id,
       objectives: schemeRow.objectives ?? null,
       keyInquiryQuestion: schemeRow.key_inquiry_question ?? null,
-      learningResources: schemeRow.learning_resources ?? null,
+      learningResources: normalizeSchemeLearningResources(
+        schemeRow.learning_resources,
+      ),
       resources: schemeRow.resources ?? null,
       reference: schemeRow.reference ?? null,
       learningExperiences: schemeRow.learning_experiences ?? null,
