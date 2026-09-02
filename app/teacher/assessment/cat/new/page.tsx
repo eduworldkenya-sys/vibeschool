@@ -83,8 +83,8 @@ function CatWorkspace() {
     setSaving(true); setError(''); let assessmentId: string | null = null
     try {
       const title = `CAT${context.term ? ` · Term ${context.term}` : ''} · ${context.completedLessonCount} completed lessons`
-      const metadata = { generator_version: 'curriculum-outcome-cat-v2', ai_used: false, source: 'completed_teaching_occurrences', authority: 'linked_scheme_curriculum_learning_outcomes', completed_lesson_count: context.completedLessonCount, outcome_count: context.outcomes.length, selected_outcome_count: questions.length, bloom_distribution: questions.map(item => item.bloom), difficulty_progression: questions.map(item => item.difficulty) }
-      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_certified_cat_assessment', { p_seed_lesson_plan_id: seedLessonPlanId, p_request_key: `cat:${context.classId}:${context.subjectId}:term:${context.term ?? 'none'}:v2`, p_title: title, p_generation_metadata: metadata })
+      const metadata = { generator_version: 'curriculum-outcome-cat-v1', question_blueprint_version: 'cat-quality-v2', ai_used: false, source: 'completed_teaching_occurrences', authority: 'linked_scheme_curriculum_learning_outcomes', completed_lesson_count: context.completedLessonCount, outcome_count: context.outcomes.length, selected_outcome_count: questions.length, bloom_distribution: questions.map(item => item.bloom), difficulty_progression: questions.map(item => item.difficulty) }
+      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_certified_cat_assessment', { p_seed_lesson_plan_id: seedLessonPlanId, p_request_key: `cat:${context.classId}:${context.subjectId}:term:${context.term ?? 'none'}:v1:quality2`, p_title: title, p_generation_metadata: metadata })
       if (prepareError) throw new Error(prepareError.message ?? 'CAT preparation failed.')
       const prepared = record(data, 'CAT preparation')
       if (typeof prepared.assessment_id !== 'string') throw new Error('CAT preparation did not return an assessment ID.')
