@@ -4,40 +4,57 @@ import type { VibePublication } from '@/lib/publishTypes'
 export const SITE_URL = 'https://www.vibeschool.co.ke'
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`
 
-type ContentKind = 'news' | 'revision' | 'curriculum' | 'teacher-guide' | 'education-guide'
-
-type AuthorityContext = {
+export type ContentKind = 'news' | 'revision' | 'curriculum' | 'teacher-guide' | 'education-guide'
+export type AuthorityContext = {
   kind: ContentKind
   audience: 'teacher' | 'learner' | 'parent' | 'general'
+  framework?: string
   subject?: string
   grade?: string
   programme?: 'KCSE' | 'KJSEA' | 'KPSEA'
   topics: string[]
+  authoritySource: 'curriculum' | 'editorial'
 }
 
 const clean = (value?: string | null) => value?.trim() || undefined
+const normalize = (value?: string | null) => clean(value?.replaceAll('_', ' ').replace(/\s+/g, ' '))
 const unique = (values: Array<string | undefined>) => [...new Set(values.filter((value): value is string => Boolean(value)))]
 
+function programmeFromEvidence(evidence: string): AuthorityContext['programme'] {
+  if (/\bkcse\b/i.test(evidence)) return 'KCSE'
+  if (/\bkjsea\b/i.test(evidence)) return 'KJSEA'
+  if (/\bkpsea\b/i.test(evidence)) return 'KPSEA'
+  return undefined
+}
+
 export function classifyPublication(publication: VibePublication): AuthorityContext {
-  const evidence = `${publication.title ?? ''} ${publication.description ?? ''} ${(publication.tags ?? []).join(' ')}`.toLowerCase()
-  const programme = /kcse/.test(evidence) ? 'KCSE' : /kjsea/.test(evidence) ? 'KJSEA' : /kpsea/.test(evidence) ? 'KPSEA' : undefined
-  const kind: ContentKind = /revision|exam|practice|past paper/.test(evidence)
+  const editorialEvidence = `${publication.title ?? ''} ${publication.description ?? ''} ${(publication.tags ?? []).join(' ')}`
+  const framework = normalize(publication.cbc_framework)
+  const subject = normalize(publication.cbc_subject)
+  const gradeRaw = normalize(publication.cbc_grade)
+  const grade = gradeRaw?.replace(/^grade\s*/i, 'Grade ').replace(/^form\s*/i, 'Form ')
+  const hasCurriculumAuthority = Boolean(publication.cbc_aligned || framework || subject || grade)
+  const programme = programmeFromEvidence(`${framework ?? ''} ${grade ?? ''} ${editorialEvidence}`)
+  const lower = editorialEvidence.toLowerCase()
+  const kind: ContentKind = /\brevision\b|\bexam(s|ination)?\b|\bpractice\b|\bpast papers?\b/.test(lower)
     ? 'revision'
-    : publication.cbc_aligned || publication.cbc_subject || publication.cbc_grade
+    : hasCurriculumAuthority
       ? 'curriculum'
-      : /tsc|teacher|lesson plan|scheme of work/.test(evidence)
+      : /\btsc\b|\bteacher(s)?\b|lesson plans?|schemes? of work/.test(lower)
         ? 'teacher-guide'
-        : /news|court|announces|announced|launch|results|deadline/.test(evidence)
+        : /\bnews\b|\bcourt\b|announces?|announced|launch(?:es|ed)?|results?|deadline/.test(lower)
           ? 'news'
           : 'education-guide'
   const audience = kind === 'teacher-guide' ? 'teacher' : kind === 'revision' || kind === 'curriculum' ? 'learner' : 'general'
   return {
     kind,
     audience,
-    subject: clean(publication.cbc_subject?.replaceAll('_', ' ')),
-    grade: clean(publication.cbc_grade?.replace(/^grade/, 'Grade ').replace(/^form/, 'Form ')),
+    framework,
+    subject,
+    grade,
     programme,
     topics: unique(publication.tags ?? []).slice(0, 8),
+    authoritySource: hasCurriculumAuthority ? 'curriculum' : 'editorial',
   }
 }
 
@@ -76,7 +93,7 @@ export function buildArticleSchemas(publication: VibePublication, authorName: st
     inLanguage: publication.language === 'sw' ? 'sw-KE' : 'en-KE',
     datePublished: publication.published_at, dateModified: publication.updated_at,
     isAccessibleForFree: true,
-    about: unique([context.programme, context.grade, context.subject, ...context.topics]).map(name => ({ '@type': 'Thing', name })),
+    about: unique([context.framework, context.programme, context.grade, context.subject, ...context.topics]).map(name => ({ '@type': 'Thing', name })),
     ...(publication.cover_url ? { image: publication.cover_url } : {}),
   }
   const breadcrumb = {
@@ -91,7 +108,7 @@ export function buildArticleSchemas(publication: VibePublication, authorName: st
 }
 
 export function relatedSearchHref(context: AuthorityContext) {
-  const query = context.subject ?? context.programme ?? context.topics[0] ?? 'Kenya education'
+  const query = context.subject ?? context.programme ?? context.framework ?? context.topics[0] ?? 'Kenya education'
   return `/blog?search=${encodeURIComponent(query)}`
 }
 
