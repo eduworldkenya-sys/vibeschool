@@ -2,11 +2,13 @@ import fs from 'node:fs'
 
 function read(path){return fs.readFileSync(path,'utf8')}
 function requireText(text,needle,label){if(!text.includes(needle))throw new Error(`${label}: missing ${needle}`)}
+function forbidText(text,needle,label){if(text.includes(needle))throw new Error(`${label}: prohibited ${needle}`)}
 
 const model=read('lib/learner-intelligence/progress-record.ts')
 const learner=read('app/teacher/classhub/[id]/student/[studentId]/progress/page.tsx')
 const klass=read('app/teacher/classhub/[id]/progress/page.tsx')
 const hub=read('app/teacher/classhub/page.tsx')
+const lessonProgress=read('app/teacher/progress/page.tsx')
 
 requireText(model,"'EE' | 'ME' | 'AE' | 'BE' | 'NE'",'professional performance bands')
 requireText(model,'buildOutcomeProgress','outcome projection')
@@ -29,4 +31,18 @@ requireText(klass,'Needs support','teacher triage filter')
 requireText(klass,".order('joined_at',{ascending:false})",'enrollment history retrieval')
 requireText(klass,'archive does not delete','archive retention contract')
 requireText(hub,'Student progress','class hub discoverability')
+
+requireText(lessonProgress,'timetable_slot_id','exact teaching occurrence identity')
+requireText(lessonProgress,'.from("lesson_plans")','canonical lesson plan prefill')
+requireText(lessonProgress,'.eq("timetable_slot_id", exact.timetable_slot_id)','lesson occurrence binding')
+requireText(lessonProgress,'.eq("taught_date", exact.occurrence_date)','dated lesson binding')
+requireText(lessonProgress,'.from("homework")','linked homework prefill')
+requireText(lessonProgress,'.eq("lesson_plan_id", plan.id)','homework lesson lineage')
+requireText(lessonProgress,'Prefilled for you.','teacher confirmation UX')
+requireText(lessonProgress,'Participation, challenges and reflection stay blank','no invented post-lesson judgement')
+requireText(lessonProgress,'Confirm & save progress','low-friction confirmation action')
+
+forbidText(klass,'as any','class progress escape hatch')
+forbidText(learner,'as any','learner progress escape hatch')
+
 console.log('student progress record contract: PASS')
