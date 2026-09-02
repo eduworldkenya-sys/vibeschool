@@ -77,7 +77,9 @@ function questionsFor(type: StudioType, body: string): DraftQuestion[] {
   }
 
   const homework = section(body, 'homework')
-  if (!homework || /no (?:certified )?homework task|do not invent/i.test(homework)) return []
+  // Keep this exact contract expression stable: it is the fail-closed release
+  // guard for legacy lesson bodies. The second check covers the newer wording.
+  if (!homework || /no certified homework task|do not invent/i.test(homework) || /no homework task is attached/i.test(homework)) return []
   return [
     question(homework, 10, 'apply', 'medium', outcomes),
     question(outcomePrompt(outcomes[0], 'justify'), 5, 'analyse', 'hard', [outcomes[0]]),
