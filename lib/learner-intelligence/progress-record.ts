@@ -29,6 +29,20 @@ export type OutcomeProgress = {
   evidence: ProgressEvidence[]
 }
 
+export type ProgressHistoryEvent = {
+  id: string
+  observedAt: string
+  source: string
+  subjectId: string | null
+  outcomeId: string | null
+  outcomeText: string
+  outcomeCode: string | null
+  band: ProgressBand
+  percentage: number | null
+  proficiency: string | null
+  notes: string | null
+}
+
 const BAND_LABELS: Record<ProgressBand, string> = {
   EE: 'Exceeding expectation', ME: 'Meeting expectation', AE: 'Approaching expectation', BE: 'Below expectation', NE: 'Not enough evidence',
 }
@@ -48,14 +62,14 @@ export function normalizeProgressBand(proficiency: string | null, percentage: nu
   return 'BE'
 }
 
-function pct(row: ProgressEvidence) {
+export function evidencePercentage(row: ProgressEvidence) {
   return row.score != null && row.maxScore != null && row.maxScore > 0 ? Math.round((row.score / row.maxScore) * 1000) / 10 : null
 }
 
 function weightedPercentage(rows: ProgressEvidence[]) {
   let numerator = 0, denominator = 0
   for (const row of rows) {
-    const value = pct(row)
+    const value = evidencePercentage(row)
     if (value == null) continue
     const weight = Number.isFinite(row.weight) && row.weight > 0 ? row.weight : 1
     numerator += value * weight
@@ -65,7 +79,7 @@ function weightedPercentage(rows: ProgressEvidence[]) {
 }
 
 function trend(rows: ProgressEvidence[]): OutcomeProgress['trend'] {
-  const scored = [...rows].sort((a,b) => a.observedAt.localeCompare(b.observedAt)).map(pct).filter((v): v is number => v != null)
+  const scored = [...rows].sort((a,b) => a.observedAt.localeCompare(b.observedAt)).map(evidencePercentage).filter((v): v is number => v != null)
   if (scored.length < 2) return 'insufficient'
   const split = Math.max(1, Math.floor(scored.length / 2))
   const before = scored.slice(0, split).reduce((a,b) => a+b, 0) / split
@@ -99,6 +113,27 @@ export function buildOutcomeProgress(rows: ProgressEvidence[]): OutcomeProgress[
       evidence,
     }
   }).sort((a,b) => b.latestObservedAt.localeCompare(a.latestObservedAt))
+}
+
+export function buildProgressHistory(rows: ProgressEvidence[]): ProgressHistoryEvent[] {
+  return [...rows]
+    .sort((a,b) => b.observedAt.localeCompare(a.observedAt))
+    .map(row => {
+      const percentage = evidencePercentage(row)
+      return {
+        id: row.id,
+        observedAt: row.observedAt,
+        source: row.source,
+        subjectId: row.subjectId,
+        outcomeId: row.outcomeId,
+        outcomeText: row.outcomeText || 'Curriculum outcome',
+        outcomeCode: row.outcomeCode,
+        band: normalizeProgressBand(row.proficiency, percentage),
+        percentage,
+        proficiency: row.proficiency,
+        notes: row.notes,
+      }
+    })
 }
 
 export function progressSummary(outcomes: OutcomeProgress[]) {
