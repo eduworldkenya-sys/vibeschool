@@ -18,11 +18,7 @@ import type {
 } from '@/lib/assessment'
 
 type StudioType = 'exercise' | 'quiz' | 'homework' | 'test'
-type LessonTruth = {
-  body: string
-  classId: string
-  subjectId: string
-}
+type LessonTruth = { body: string; classId: string; subjectId: string }
 type OutcomeRef = { id: string; text: string }
 type DraftQuestion = {
   prompt: string
@@ -33,6 +29,9 @@ type DraftQuestion = {
   bloomLevel: string
   outcomeTexts: string[]
 }
+type RpcResult<T> = { data: T | null; error: { message?: string } | null }
+type GenericRpc = <T>(name: string, args: Record<string, unknown>) => PromiseLike<RpcResult<T>>
+const rpc = supabase.rpc.bind(supabase) as unknown as GenericRpc
 
 const LABEL: Record<StudioType, string> = {
   exercise: 'Class Exercise',
@@ -116,31 +115,39 @@ function questionsFor(type: StudioType, body: string): DraftQuestion[] {
     ]
   }
 
-  // A CAT must not silently pretend one lesson is cumulative.
-  // The per-lesson material surface therefore fails closed here; formal CAT
-  // construction belongs to the cumulative assessment workspace.
+  // A formal CAT must not silently pretend one lesson is cumulative.
   return []
 }
 
-async function resolveOutcomeRefs(texts: string[]): Promise<OutcomeRef[]> {
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Curriculum outcome authority returned an invalid payload.')
+  }
+  return value as Record<string, unknown>
+}
+
+async function resolveOutcomeRefs(lessonPlanId: string, texts: string[]): Promise<OutcomeRef[]> {
   const uniqueTexts = [...new Set(texts)]
   if (!uniqueTexts.length) return []
 
-  const { data, error } = await supabase
-    .from('curriculum_learning_outcomes')
-    .select('id,outcome_text,status')
-    .in('outcome_text', uniqueTexts)
-    .neq('status', 'retired')
+  const { data, error } = await rpc<unknown>('exq_resolve_lesson_assessment_outcomes', {
+    p_lesson_plan_id: lessonPlanId,
+  })
+  if (error) throw new Error(`Curriculum outcome resolution failed: ${error.message ?? 'unknown error'}`)
 
-  if (error) throw new Error(`Curriculum outcome resolution failed: ${error.message}`)
+  const payload = asRecord(data)
+  const outcomes = Array.isArray(payload.outcomes) ? payload.outcomes : []
+  const refs = outcomes.flatMap(value => {
+    const row = asRecord(value)
+    return typeof row.id === 'string' && typeof row.outcome_text === 'string'
+      ? [{ id: row.id, text: row.outcome_text }]
+      : []
+  })
 
-  const refs = (data ?? []).flatMap(row =>
-    row.id && row.outcome_text ? [{ id: row.id, text: row.outcome_text }] : [],
-  )
   const resolved = new Set(refs.map(ref => ref.text))
   const missing = uniqueTexts.filter(text => !resolved.has(text))
   if (missing.length) {
-    throw new Error(`Assessment blocked: ${missing.length} lesson outcome${missing.length === 1 ? '' : 's'} could not be resolved to canonical curriculum authority.`)
+    throw new Error(`Assessment blocked: ${missing.length} lesson outcome${missing.length === 1 ? '' : 's'} could not be resolved through the linked Scheme curriculum authority.`)
   }
   return refs
 }
@@ -154,12 +161,12 @@ async function linkItemOutcomes(
   for (const text of [...new Set(outcomeTextsForItem)]) {
     const outcomeId = byText.get(text)
     if (!outcomeId) throw new Error('Assessment item outcome lineage could not be resolved.')
-    const { error } = await supabase.rpc('exq_link_item_outcome', {
+    const { error } = await rpc<unknown>('exq_link_item_outcome', {
       p_assessment_item_id: assessmentItemId,
       p_outcome_id: outcomeId,
       p_weight: 1,
     })
-    if (error) throw new Error(`Assessment outcome lineage failed: ${error.message}`)
+    if (error) throw new Error(`Assessment outcome lineage failed: ${error.message ?? 'unknown error'}`)
   }
 }
 
@@ -215,7 +222,7 @@ function Studio() {
 
     try {
       const allOutcomeTexts = questions.flatMap(question => question.outcomeTexts)
-      const outcomeRefs = await resolveOutcomeRefs(allOutcomeTexts)
+      const outcomeRefs = await resolveOutcomeRefs(lessonPlanId, allOutcomeTexts)
       const request = await requestLessonAssessment({
         lessonPlanId,
         assessmentType: type as LessonAssessmentType,
@@ -225,7 +232,7 @@ function Studio() {
           generator_version: 'curriculum-outcome-assessment-v4',
           ai_used: false,
           source: 'authoritative_lesson_body',
-          authority: 'curriculum_learning_outcomes',
+          authority: 'linked_scheme_curriculum_learning_outcomes',
           blueprint: {
             question_count: questions.length,
             estimated_minutes: SPEC[type].minutes,
@@ -263,7 +270,7 @@ function Studio() {
           estimatedMinutes: SPEC[type].minutes,
           generationMetadata: {
             generated_from: 'authoritative_lesson_body',
-            authority: 'curriculum_learning_outcomes',
+            authority: 'linked_scheme_curriculum_learning_outcomes',
             ai_used: false,
             teacher_review_required: true,
           },
