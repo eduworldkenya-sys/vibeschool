@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
+import { listInterventionQueue, type InterventionQueueItem } from "@/lib/assessment/interventions";
 
 type ClassContext = { class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string };
 type Context = { teacher_id: string; school_id: string | null; classes: ClassContext[] };
@@ -77,6 +78,7 @@ export default function TeacherStudentProgressPage() {
   const [cbc, setCbc] = useState<CbcRow[]>([]);
   const [exams, setExams] = useState<ExamRow[]>([]);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
+  const [interventions, setInterventions] = useState<InterventionQueueItem[]>([]);
   const [tab, setTab] = useState<Tab>("now");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,13 +104,14 @@ export default function TeacherStudentProgressPage() {
       setStudent(learner);
 
       const subjectIds = Array.from(new Set(ctx.classes.filter((item) => item.class_id === classId).map((item) => item.subject_id)));
-      const [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes] = await Promise.all([
+      const [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, interventionRows] = await Promise.all([
         supabase.from("attendance").select("date,status,is_late").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).order("date", { ascending: false }).limit(120),
         supabase.from("homework").select("id,title,subject,due_date,type").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("due_date", { ascending: false }).limit(80),
         subjectIds.length ? supabase.from("assessment_gradebook_entries").select("assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("released_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("cbc_assessments").select("id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("exam_results").select("id,exam_id,subject_id,marks,is_absent,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("subjects").select("id,name").in("id", subjectIds) : Promise.resolve({ data: [], error: null }),
+        listInterventionQueue(classId),
       ]);
       for (const result of [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes]) if (result.error) throw result.error;
 
@@ -123,6 +126,7 @@ export default function TeacherStudentProgressPage() {
       setCbc(cbcRes.data ?? []);
       setExams(examRes.data ?? []);
       setSubjects(subjectRes.data ?? []);
+      setInterventions(interventionRows.filter((item) => item.studentId === studentId));
     } catch (loadError) {
       console.error("[LearnerWorkspace] load", loadError);
       setError(loadError instanceof Error ? loadError.message : "Learner workspace could not be loaded.");
@@ -155,6 +159,11 @@ export default function TeacherStudentProgressPage() {
     {tab === "now" && <div style={{ display: "grid", gap: 10 }}>
       <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>WHAT NEEDS ATTENTION</div>{truth.signals.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>{truth.evidenceState === "sufficient" ? "No current deterministic attention signal is supported by the recorded evidence." : "No learner risk label has been created because the evidence is insufficient."}</div> : <div style={{ display: "grid", gap: 8 }}>{truth.signals.map((signal) => <div key={signal.id} style={{ background: signal.id === "missing_work" ? "#fffbeb" : "#fef2f2", color: signal.id === "missing_work" ? "#92400e" : "#991b1b", borderRadius: 12, padding: 11, fontSize: 12 }}><strong>{signal.id === "missing_work" ? "Missing required work" : signal.id === "repeated_low_assessment" ? "Repeated low comparable assessment evidence" : "Repeated CBC support evidence"}</strong><div style={{ marginTop: 3 }}>{signal.reason}</div><div style={{ marginTop: 5, fontSize: 10 }}>{signal.evidenceCount} evidence record{signal.evidenceCount === 1 ? "" : "s"} · {signal.confidence} confidence</div></div>)}</div>}</Card>
       <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>WHAT CHANGED</div>{!truth.trend ? <div style={{ color: "#6b7280", fontSize: 13 }}>A trend is shown only after at least four released assessments of the same subject and assessment type.</div> : <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><span>{subjectNames.get(truth.trend.subjectId) ?? "Subject"} · {truth.trend.assessmentType}</span><Badge text={`${truth.trend.delta > 0 ? "+" : ""}${truth.trend.delta} pts`} tone={truth.trend.delta >= 5 ? "good" : truth.trend.delta <= -5 ? "bad" : "neutral"} /></div>}</Card>
+      <Card>
+        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>CANONICAL INTERVENTION LOOP</div>
+        {interventions.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>{truth.evidenceState === "sufficient" ? "No active outcome intervention is currently required." : "No intervention has been invented. Outcome-level evidence is required before the intervention engine can create a learner action."}</div> : <div style={{ display: "grid", gap: 10 }}>{interventions.map((item) => <div key={item.interventionId} style={{ border: "1px solid #e5e7eb", borderRadius: 12, padding: 11 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong>{item.subjectName} · {item.outcomeCode ?? "Outcome"}</strong><Badge text={item.status} tone={item.status === "completed" ? "good" : item.status === "escalated" ? "bad" : "warn"} /></div><div style={{ marginTop: 6 }}>{item.recommendation}</div><div style={{ marginTop: 5, fontSize: 11, color: "#6b7280" }}>{item.evidenceCount} evidence · mastery {Math.round(item.masteryScore)}% · confidence {Math.round(item.confidenceScore)}%</div>{item.evaluatedAt ? <div style={{ marginTop: 7 }}><Badge text={`${item.masteryChange != null && item.masteryChange > 0 ? "+" : ""}${item.masteryChange ?? 0} mastery`} tone={(item.masteryChange ?? 0) >= 10 ? "good" : (item.masteryChange ?? 0) < 5 ? "bad" : "warn"} /></div> : item.remedialAssignmentId ? <div style={{ marginTop: 7, fontSize: 11 }}>Student OS handoff exists. Effectiveness remains pending until released follow-up evidence exists.</div> : <div style={{ marginTop: 7, fontSize: 11 }}>Teacher action exists, but no Student OS reassessment has been assigned yet.</div>}</div>)}</div>}
+        <button type="button" onClick={() => router.push(`/teacher/assessment/interventions?classId=${classId}`)} style={{ marginTop: 12, minHeight: 44, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", fontWeight: 900, padding: "0 14px" }}>Open intervention workspace</button>
+      </Card>
       <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>TEACHER ACTIONS</div><div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#0f766e", color: "#fff", fontWeight: 900 }}>Assign / review work</button><button type="button" onClick={() => router.push(`/teacher/assessment?classId=${classId}`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#92400e", color: "#fff", fontWeight: 900 }}>Assess learner</button><button type="button" onClick={() => router.push(`/teacher/attendance?classId=${classId}`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#065f46", color: "#fff", fontWeight: 900 }}>Attendance</button><button type="button" onClick={() => setTab("assessment")} style={{ minHeight: 46, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", fontWeight: 900 }}>Inspect evidence</button></div></Card>
     </div>}
 
