@@ -128,7 +128,7 @@ export default function LessonTeachMode({ subject, className, topic, sections, o
 
         {total === null && (
           <div style={{ background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', borderRadius: 12, padding: 12, marginBottom: 14, fontSize: 12, fontWeight: 700 }}>
-            This saved plan has no authoritative timing metadata. The timer is disabled rather than assuming a conventional period.
+            This saved plan has no authoritative timing metadata. The timer is disabled rather than assuming a 40-minute period.
           </div>
         )}
 
