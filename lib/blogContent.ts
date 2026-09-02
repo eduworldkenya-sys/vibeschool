@@ -6,7 +6,7 @@ import type { ContentBlock, VibePublication } from '@/lib/publishTypes'
 
 export type PublishedBlogArticle = Pick<VibePublication,
   'id' | 'title' | 'subtitle' | 'description' | 'cover_url' | 'genre' | 'tags' |
-  'language' | 'published_at' | 'updated_at'
+  'language' | 'published_at' | 'updated_at' | 'cbc_aligned' | 'cbc_subject' | 'cbc_grade' | 'cbc_framework'
 >
 
 export type PublishedBlogChapter = {
@@ -23,8 +23,8 @@ export type PublishedBlogStory = {
   authorName: string
 }
 
-const SITE_URL = 'https://vibeschool.co.ke'
-const ARTICLE_FIELDS = 'id,title,subtitle,description,cover_url,genre,tags,language,published_at,updated_at'
+const SITE_URL = 'https://www.vibeschool.co.ke'
+const ARTICLE_FIELDS = 'id,title,subtitle,description,cover_url,genre,tags,language,published_at,updated_at,cbc_aligned,cbc_subject,cbc_grade,cbc_framework'
 const BLOCK_TYPES: string[] = [
   'paragraph','heading1','heading2','heading3','quote','bulletList','numberedList','image','diagram','table','equation',
   'video','audio','model3d','simulation','divider','callout','definition','example','workedExample','summary','keyPoints','code',
