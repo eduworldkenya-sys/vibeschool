@@ -6,9 +6,11 @@ import type {
   LessonContext,
 } from '@/lib/teaching/lessonContext'
 import {
+  lessonSourceCompleteness,
   resolveLessonSource,
 } from '@/lib/teaching/lessonSource'
 import type {
+  LessonSourceCompleteness,
   LessonSourceSuggestion,
 } from '@/lib/teaching/lessonSource'
 import {
@@ -29,6 +31,7 @@ import {
 import type {
   CanonicalLessonSourceBundle,
   CertifiedLessonContentAsset,
+  LessonResourceAuthority,
 } from '@/lib/teaching/lessonSourceBundle'
 
 export interface LoadLessonWorkspaceInput {
@@ -55,6 +58,12 @@ export interface LessonCanonicalSourceIdentity {
   certifiedContent: CertifiedLessonContentAsset[]
 }
 
+export interface LessonProvenanceStatus {
+  schemeCompleteness: LessonSourceCompleteness
+  resourceAuthority: LessonResourceAuthority
+  generationMode: 'certified_content' | 'deterministic_curriculum'
+}
+
 export interface LessonWorkspaceBootResult {
   teacherId: string
   context: LessonContext
@@ -65,6 +74,7 @@ export interface LessonWorkspaceBootResult {
   sourceBundle: CanonicalLessonSourceBundle | null
   sourceBundleError: string | null
   canonicalIdentity: LessonCanonicalSourceIdentity | null
+  provenanceStatus: LessonProvenanceStatus
   occurrence: TeachingOccurrence | null
   occurrenceError: string | null
 }
@@ -81,6 +91,7 @@ function emptySourceDetails() {
     lessonNumber: null,
     period: null,
     sequenceNumber: null,
+    completeness: 'missing' as const,
   }
 }
 
@@ -102,7 +113,7 @@ async function restorePersistedLessonSource(
 
     if (schemeError) throw schemeError
 
-    return {
+    const restored: LessonSourceSuggestion = {
       id: schemeRow.curriculum_id ?? existingPlan.curriculum_id ?? null,
       strand: schemeRow.strand ?? '',
       subStrand: schemeRow.sub_strand ?? '',
@@ -122,7 +133,10 @@ async function restorePersistedLessonSource(
       lessonNumber: schemeRow.lesson_number ?? null,
       period: schemeRow.period ?? null,
       sequenceNumber: schemeRow.sequence_number ?? null,
+      completeness: 'missing',
     }
+    restored.completeness = lessonSourceCompleteness(restored)
+    return restored
   }
 
   if (existingPlan.curriculum_id) {
@@ -160,11 +174,12 @@ function buildCanonicalIdentity(
 ): LessonCanonicalSourceIdentity | null {
   const source = sourceBundle?.scheme
 
-  // The reusable-content path is allowed only when exact certified assets are
-  // present. Otherwise the modal deliberately falls back to the deterministic
-  // Scheme/template builder and remains completely model-independent.
+  // Reusable-content generation is allowed only when the source bundle proves
+  // exact certified assets. Candidate/verified resources are review states,
+  // never lesson-generation authority.
   if (
     !sourceBundle ||
+    sourceBundle.resourceAuthority !== 'resource_certified' ||
     sourceBundle.certifiedContent.length === 0 ||
     !source?.id ||
     !source.strandId ||
@@ -219,6 +234,7 @@ export async function loadLessonWorkspace({
       userId: user.id,
       classId,
       subjectId,
+      occurrenceDate,
     }),
     loadLessonPlanForOccurrence({
       teacherId: user.id,
@@ -299,7 +315,7 @@ export async function loadLessonWorkspace({
       bundleError,
     )
     sourceBundleError =
-      'Certified content could not be resolved. The Scheme-derived baseline remains available.'
+      'VibeSchool resource authority could not be resolved. The curriculum/Scheme baseline remains available, but no reusable VibeSchool resource will be treated as certified.'
   }
 
   const canonicalIdentity = buildCanonicalIdentity(
@@ -307,6 +323,16 @@ export async function loadLessonWorkspace({
     subjectId,
     context.grade,
   )
+
+  const provenanceStatus: LessonProvenanceStatus = {
+    schemeCompleteness: source?.completeness ?? 'missing',
+    resourceAuthority:
+      sourceBundle?.resourceAuthority ??
+      (sourceBundleError ? 'resource_unavailable' : 'curriculum_only'),
+    generationMode: canonicalIdentity
+      ? 'certified_content'
+      : 'deterministic_curriculum',
+  }
 
   let occurrence: TeachingOccurrence | null = null
   let occurrenceError: string | null = null
@@ -335,6 +361,7 @@ export async function loadLessonWorkspace({
     sourceBundle,
     sourceBundleError,
     canonicalIdentity,
+    provenanceStatus,
     occurrence,
     occurrenceError,
   }
