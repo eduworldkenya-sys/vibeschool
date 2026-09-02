@@ -18,6 +18,13 @@ export interface LessonContext {
   schoolId: string
   studentCount: number
   previousLesson: PreviousCompletedLesson | null
+  /**
+   * Compatibility view for older lesson-workspace consumers. This is never a
+   * query of recent lesson-plan drafts: it is derived only from
+   * `previousLesson`, whose authority is the last completed teaching
+   * occurrence for the same teacher/class/subject.
+   */
+  previousTopics: string[]
   students: LessonContextStudent[]
   grade: string | null
 }
@@ -193,6 +200,7 @@ export async function loadLessonContext({
     schoolId,
     studentCount: students.length,
     previousLesson,
+    previousTopics: previousLesson ? [previousLesson.topic] : [],
     students,
     grade: classResult.data?.name ?? null,
   }
