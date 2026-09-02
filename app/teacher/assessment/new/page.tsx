@@ -11,18 +11,13 @@ import type { AutoMarkingMode, QuestionType } from '@/lib/assessment'
 type StudioType = 'exercise' | 'quiz' | 'homework' | 'test'
 type LessonTruth = { body: string; classId: string; subjectId: string }
 type OutcomeRef = { id: string; text: string }
-type DraftQuestion = {
-  prompt: string
-  marks: number
-  questionType: QuestionType
-  autoMarkingMode: AutoMarkingMode
-  difficulty: 'easy' | 'medium' | 'hard'
-  bloomLevel: string
-  outcomeTexts: string[]
-}
+type DraftQuestion = { prompt: string; marks: number; questionType: QuestionType; autoMarkingMode: AutoMarkingMode; difficulty: 'easy' | 'medium' | 'hard'; bloomLevel: string; outcomeTexts: string[] }
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type GenericRpc = <T>(name: string, args: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as GenericRpc
+
+async function rpc<T>(name: string, args: Record<string, unknown>): Promise<RpcResult<T>> {
+  const result = await supabase.rpc(name as never, args as never)
+  return { data: result.data as T | null, error: result.error }
+}
 
 const LABEL: Record<StudioType, string> = { exercise: 'Class Exercise', quiz: 'Quick Quiz', homework: 'Homework', test: 'CAT' }
 const SPEC: Record<StudioType, { minutes: number; purpose: string }> = {
@@ -32,45 +27,18 @@ const SPEC: Record<StudioType, { minutes: number; purpose: string }> = {
   test: { minutes: 40, purpose: 'Formal cumulative assessment across completed teaching.' },
 }
 
-function section(body: string, name: string): string {
-  return body.match(new RegExp(`<${name}>([\\s\\S]*?)<\\/${name}>`, 'i'))?.[1]?.trim() ?? ''
-}
-
-function objectiveTexts(body: string): string[] {
-  return section(body, 'objectives').split('\n').map(value => value.replace(/^\s*\d+[.)]\s*/, '').trim()).filter(Boolean)
-}
-
-function question(prompt: string, marks: number, bloomLevel: string, difficulty: 'easy' | 'medium' | 'hard', outcomes: string[]): DraftQuestion {
-  return { prompt, marks, questionType: 'structured', autoMarkingMode: 'none', difficulty, bloomLevel, outcomeTexts: outcomes }
-}
+function section(body: string, name: string): string { return body.match(new RegExp(`<${name}>([\\s\\S]*?)<\\/${name}>`, 'i'))?.[1]?.trim() ?? '' }
+function objectiveTexts(body: string): string[] { return section(body, 'objectives').split('\n').map(value => value.replace(/^\s*\d+[.)]\s*/, '').trim()).filter(Boolean) }
+function question(prompt: string, marks: number, bloomLevel: string, difficulty: 'easy' | 'medium' | 'hard', outcomes: string[]): DraftQuestion { return { prompt, marks, questionType: 'structured', autoMarkingMode: 'none', difficulty, bloomLevel, outcomeTexts: outcomes } }
 
 function questionsFor(type: StudioType, body: string): DraftQuestion[] {
   const outcomes = objectiveTexts(body)
   if (!outcomes.length || type === 'test') return []
-  if (type === 'exercise') {
-    return outcomes.map((outcome, index) => question(
-      `${outcome} Use relevant lesson evidence or an example where appropriate.`,
-      index === 0 ? 2 : 4,
-      index === 0 ? 'understand' : 'apply',
-      index === 0 ? 'easy' : 'medium',
-      [outcome],
-    ))
-  }
-  if (type === 'quiz') {
-    return outcomes.slice(0, 3).map((outcome, index) => question(
-      outcome,
-      index === 0 ? 2 : 3,
-      index === 0 ? 'remember' : 'understand',
-      index === 0 ? 'easy' : 'medium',
-      [outcome],
-    ))
-  }
+  if (type === 'exercise') return outcomes.map((outcome, index) => question(`${outcome} Use relevant lesson evidence or an example where appropriate.`, index === 0 ? 2 : 4, index === 0 ? 'understand' : 'apply', index === 0 ? 'easy' : 'medium', [outcome]))
+  if (type === 'quiz') return outcomes.slice(0, 3).map((outcome, index) => question(outcome, index === 0 ? 2 : 3, index === 0 ? 'remember' : 'understand', index === 0 ? 'easy' : 'medium', [outcome]))
   const homework = section(body, 'homework')
   if (!homework || /no certified homework task|do not invent/i.test(homework)) return []
-  return [
-    question(homework, 10, 'apply', 'medium', outcomes),
-    question(`Apply this taught outcome in a new context: ${outcomes[0]}`, 5, 'create', 'hard', [outcomes[0]]),
-  ]
+  return [question(homework, 10, 'apply', 'medium', outcomes), question(`Apply this taught outcome in a new context: ${outcomes[0]}`, 5, 'create', 'hard', [outcomes[0]])]
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -104,16 +72,10 @@ async function linkItemOutcomes(itemId: string, texts: string[], refs: OutcomeRe
 }
 
 function Studio() {
-  const router = useRouter()
-  const params = useSearchParams()
-  const lessonPlanId = params.get('lessonPlanId') ?? ''
-  const requested = params.get('type')
+  const router = useRouter(), params = useSearchParams()
+  const lessonPlanId = params.get('lessonPlanId') ?? '', requested = params.get('type')
   const initial: StudioType = requested === 'exercise' || requested === 'homework' || requested === 'test' ? requested : 'quiz'
-  const [type, setType] = useState<StudioType>(initial)
-  const [lesson, setLesson] = useState<LessonTruth | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const [type, setType] = useState<StudioType>(initial), [lesson, setLesson] = useState<LessonTruth | null>(null), [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [error, setError] = useState('')
 
   useEffect(() => {
     let active = true
@@ -134,82 +96,32 @@ function Studio() {
 
   async function prepare(advanced: boolean) {
     if (!lesson || !lessonPlanId || saving || type === 'test' || !questions.length) return
-    setSaving(true)
-    setError('')
-    let assessmentId: string | null = null
+    setSaving(true); setError(''); let assessmentId: string | null = null
     try {
       const outcomeRefs = await resolveOutcomeRefs(lessonPlanId, questions.flatMap(item => item.outcomeTexts))
-      const metadata = {
-        generator_version: 'curriculum-outcome-assessment-v4',
-        ai_used: false,
-        source: 'authoritative_lesson_body',
-        authority: 'linked_scheme_curriculum_learning_outcomes',
-        blueprint: {
-          question_count: questions.length,
-          estimated_minutes: SPEC[type].minutes,
-          outcome_count: outcomeRefs.length,
-          difficulty_progression: questions.map(item => item.difficulty),
-          bloom_distribution: questions.map(item => item.bloomLevel),
-        },
-      }
-      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_grounded_lesson_assessment', {
-        p_lesson_plan_id: lessonPlanId,
-        p_assessment_type: type,
-        p_request_key: `lesson:${lessonPlanId}:${type}:v4`,
-        p_title: `${LABEL[type]} — lesson outcomes`,
-        p_generation_metadata: metadata,
-      })
+      const metadata = { generator_version: 'curriculum-outcome-assessment-v4', ai_used: false, source: 'authoritative_lesson_body', authority: 'linked_scheme_curriculum_learning_outcomes', blueprint: { question_count: questions.length, estimated_minutes: SPEC[type].minutes, outcome_count: outcomeRefs.length, difficulty_progression: questions.map(item => item.difficulty), bloom_distribution: questions.map(item => item.bloomLevel) } }
+      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_grounded_lesson_assessment', { p_lesson_plan_id: lessonPlanId, p_assessment_type: type, p_request_key: `lesson:${lessonPlanId}:${type}:v4`, p_title: `${LABEL[type]} — lesson outcomes`, p_generation_metadata: metadata })
       if (prepareError) throw new Error(prepareError.message ?? 'Assessment preparation failed.')
       const prepared = record(data, 'Grounded assessment preparation')
       if (typeof prepared.assessment_id !== 'string') throw new Error('Grounded assessment preparation did not return an assessment ID.')
       assessmentId = prepared.assessment_id
-
       if (prepared.needs_generation === true) {
         for (let index = 0; index < questions.length; index += 1) {
           const item = questions[index]
-          const itemId = await addDraftItem({
-            assessmentId,
-            questionType: item.questionType,
-            prompt: item.prompt,
-            marks: item.marks,
-            orderNum: index + 1,
-            acceptedAnswers: [],
-            correctAnswer: null,
-            autoMarkingMode: item.autoMarkingMode,
-            difficulty: item.difficulty,
-            bloomLevel: item.bloomLevel,
-            generatedBy: 'curriculum_outcome_material',
-          })
+          const itemId = await addDraftItem({ assessmentId, questionType: item.questionType, prompt: item.prompt, marks: item.marks, orderNum: index + 1, acceptedAnswers: [], correctAnswer: null, autoMarkingMode: item.autoMarkingMode, difficulty: item.difficulty, bloomLevel: item.bloomLevel, generatedBy: 'curriculum_outcome_material' })
           await linkItemOutcomes(itemId, item.outcomeTexts, outcomeRefs)
         }
-        await completeLessonAssessmentGeneration({
-          assessmentId,
-          itemCount: questions.length,
-          totalMarks,
-          estimatedMinutes: SPEC[type].minutes,
-          generationMetadata: { ...metadata, generated_from: 'authoritative_lesson_body', teacher_review_required: true },
-        })
+        await completeLessonAssessmentGeneration({ assessmentId, itemCount: questions.length, totalMarks, estimatedMinutes: SPEC[type].minutes, generationMetadata: { ...metadata, generated_from: 'authoritative_lesson_body', teacher_review_required: true } })
       }
       router.push(advanced ? `/teacher/assessment/builder/${assessmentId}` : `/teacher/assessment/review/${assessmentId}`)
     } catch (cause) {
-      if (assessmentId) {
-        try { await failLessonAssessmentGeneration({ assessmentId, errorCode: 'curriculum_grounded_generation_failed', errorMessage: cause instanceof Error ? cause.message : null }) }
-        catch (recordError) { console.error('[LessonAssessmentStudio] failure recording failed', recordError) }
-      }
+      if (assessmentId) { try { await failLessonAssessmentGeneration({ assessmentId, errorCode: 'curriculum_grounded_generation_failed', errorMessage: cause instanceof Error ? cause.message : null }) } catch (recordError) { console.error('[LessonAssessmentStudio] failure recording failed', recordError) } }
       setError(cause instanceof Error ? cause.message : 'Material could not be prepared.')
-    } finally {
-      setSaving(false)
-    }
+    } finally { setSaving(false) }
   }
 
   if (!lessonPlanId) return <main style={page}><section style={card}><h1>Lesson Materials</h1><p>Open materials from a saved lesson plan.</p></section></main>
-
-  const blocked = type === 'homework'
-    ? 'No certified homework is attached. VibeSchool will not invent one.'
-    : type === 'test'
-      ? 'CAT is cumulative. It is built from outcomes across completed teaching, not cloned from this one lesson.'
-      : 'Automatic generation is blocked because authoritative lesson outcomes are unavailable.'
-
+  const blocked = type === 'homework' ? 'No certified homework is attached. VibeSchool will not invent one.' : type === 'test' ? 'CAT is cumulative. It is built from outcomes across completed teaching, not cloned from this one lesson.' : 'Automatic generation is blocked because authoritative lesson outcomes are unavailable.'
   return <main style={page}><div style={{ maxWidth: 760, margin: '0 auto' }}>
     <button type="button" onClick={() => router.back()} style={secondary}>← Back to lesson</button>
     <section style={card}><div style={eyebrow}>Prepared assessment pack · No AI</div><h1>Ready from authoritative lesson outcomes</h1><p style={{ color: '#6b7280' }}>Curriculum outcomes—not activity labels—drive generated work. Advanced authoring is optional.</p></section>
@@ -227,7 +139,4 @@ const primary: React.CSSProperties = { border: 'none', borderRadius: 12, padding
 const secondary: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }
 const notice: React.CSSProperties = { padding: 12, borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', lineHeight: 1.5 }
 const errorBox: React.CSSProperties = { padding: 12, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', marginBottom: 12 }
-
-export default function NewAssessmentPage() {
-  return <Suspense fallback={<main style={{ padding: 20 }}>Loading lesson materials…</main>}><Studio /></Suspense>
-}
+export default function NewAssessmentPage() { return <Suspense fallback={<main style={{ padding: 20 }}>Loading lesson materials…</main>}><Studio /></Suspense> }
