@@ -22,14 +22,31 @@ function record(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
+function catPrompt(outcome: string, mode: 'explain' | 'apply' | 'analyse' | 'evaluate'): string {
+  switch (mode) {
+    case 'explain':
+      return `Explain the knowledge or skill demonstrated by this taught outcome. Support your response with one accurate example: ${outcome}`
+    case 'apply':
+      return `Apply this taught outcome to a different example, situation or problem. Show your working, evidence or reasoning: ${outcome}`
+    case 'analyse':
+      return `Analyse this taught outcome by breaking the response into its important parts and explaining how they connect: ${outcome}`
+    case 'evaluate':
+      return `Give a reasoned response for this taught outcome and justify your conclusion using evidence or criteria learned in class: ${outcome}`
+  }
+}
+
 function buildQuestions(outcomes: OutcomeRef[]): CatQuestion[] {
-  return outcomes.slice(0, 10).map((outcome, index) => ({
-    prompt: index % 3 === 0 ? outcome.text : index % 3 === 1 ? `Apply this taught outcome using relevant evidence or an example: ${outcome.text}` : `Explain and justify your response for this taught outcome: ${outcome.text}`,
-    marks: index % 3 === 0 ? 4 : 6,
-    bloom: index % 3 === 0 ? 'understand' : index % 3 === 1 ? 'apply' : 'analyse',
-    difficulty: index % 3 === 0 ? 'medium' : 'hard',
-    outcome,
-  }))
+  const modes: Array<'explain' | 'apply' | 'analyse' | 'evaluate'> = ['explain', 'apply', 'analyse', 'evaluate']
+  return outcomes.slice(0, 10).map((outcome, index) => {
+    const mode = modes[index % modes.length]
+    return {
+      prompt: catPrompt(outcome.text, mode),
+      marks: mode === 'explain' ? 4 : 6,
+      bloom: mode === 'explain' ? 'understand' : mode,
+      difficulty: mode === 'explain' || mode === 'apply' ? 'medium' : 'hard',
+      outcome,
+    }
+  })
 }
 
 function CatWorkspace() {
@@ -66,8 +83,8 @@ function CatWorkspace() {
     setSaving(true); setError(''); let assessmentId: string | null = null
     try {
       const title = `CAT${context.term ? ` · Term ${context.term}` : ''} · ${context.completedLessonCount} completed lessons`
-      const metadata = { generator_version: 'curriculum-outcome-cat-v1', ai_used: false, source: 'completed_teaching_occurrences', authority: 'linked_scheme_curriculum_learning_outcomes', completed_lesson_count: context.completedLessonCount, outcome_count: context.outcomes.length, selected_outcome_count: questions.length }
-      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_certified_cat_assessment', { p_seed_lesson_plan_id: seedLessonPlanId, p_request_key: `cat:${context.classId}:${context.subjectId}:term:${context.term ?? 'none'}:v1`, p_title: title, p_generation_metadata: metadata })
+      const metadata = { generator_version: 'curriculum-outcome-cat-v2', ai_used: false, source: 'completed_teaching_occurrences', authority: 'linked_scheme_curriculum_learning_outcomes', completed_lesson_count: context.completedLessonCount, outcome_count: context.outcomes.length, selected_outcome_count: questions.length, bloom_distribution: questions.map(item => item.bloom), difficulty_progression: questions.map(item => item.difficulty) }
+      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_certified_cat_assessment', { p_seed_lesson_plan_id: seedLessonPlanId, p_request_key: `cat:${context.classId}:${context.subjectId}:term:${context.term ?? 'none'}:v2`, p_title: title, p_generation_metadata: metadata })
       if (prepareError) throw new Error(prepareError.message ?? 'CAT preparation failed.')
       const prepared = record(data, 'CAT preparation')
       if (typeof prepared.assessment_id !== 'string') throw new Error('CAT preparation did not return an assessment ID.')
