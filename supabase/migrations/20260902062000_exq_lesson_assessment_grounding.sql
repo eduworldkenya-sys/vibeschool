@@ -121,6 +121,12 @@ begin
         'status', existing.status
       );
     end if;
+    if existing.generation_status = 'generating'
+       and existing.generation_started_at is not null
+       and existing.generation_started_at > now() - interval '2 minutes'
+    then
+      raise exception 'assessment_generation_in_progress';
+    end if;
   else
     select * into existing
     from public.assessment_definitions ad
@@ -131,6 +137,14 @@ begin
       and ad.status in ('draft', 'review')
     order by ad.created_at desc
     limit 1;
+
+    if found
+       and existing.generation_status = 'generating'
+       and existing.generation_started_at is not null
+       and existing.generation_started_at > now() - interval '2 minutes'
+    then
+      raise exception 'assessment_generation_in_progress';
+    end if;
   end if;
 
   if found then
@@ -148,9 +162,9 @@ begin
         estimated_minutes = null,
         generation_source = 'lesson_generator',
         generation_metadata = coalesce(generation_metadata, '{}'::jsonb) || coalesce(p_generation_metadata, '{}'::jsonb),
-        generation_status = 'queued',
+        generation_status = 'generating',
         generation_request_key = normalized_key,
-        generation_started_at = null,
+        generation_started_at = now(),
         generation_completed_at = null,
         generation_failed_at = null,
         generation_error_code = null,
@@ -165,7 +179,7 @@ begin
       'ok', true,
       'assessment_id', existing.id,
       'needs_generation', true,
-      'generation_status', 'queued',
+      'generation_status', 'generating',
       'status', 'draft',
       'reset_existing', true
     );
@@ -174,19 +188,20 @@ begin
   insert into public.assessment_definitions(
     school_id, teacher_id, class_id, subject_id, lesson_plan_id,
     assessment_type, title, status, generation_source, generation_metadata,
-    generation_status, generation_request_key, generation_attempt, source_lesson_updated_at
+    generation_status, generation_request_key, generation_attempt,
+    generation_started_at, source_lesson_updated_at
   ) values (
     lp.school_id, caller, lp.class_id, lp.subject_id, lp.id,
     normalized_type, coalesce(nullif(btrim(coalesce(p_title, '')), ''), 'Lesson assessment'),
     'draft', 'lesson_generator', coalesce(p_generation_metadata, '{}'::jsonb),
-    'queued', normalized_key, 0, lp.updated_at
+    'generating', normalized_key, 0, now(), lp.updated_at
   ) returning id into result_id;
 
   return jsonb_build_object(
     'ok', true,
     'assessment_id', result_id,
     'needs_generation', true,
-    'generation_status', 'queued',
+    'generation_status', 'generating',
     'status', 'draft',
     'reset_existing', false
   );
@@ -219,6 +234,18 @@ begin
   if ad.teacher_id is distinct from caller then raise exception 'assessment_not_owned'; end if;
   if ad.lesson_plan_id is null then raise exception 'lesson_assessment_required'; end if;
   if ad.class_id is distinct from p_class_id then raise exception 'assessment_class_mismatch'; end if;
+  if ad.generation_status <> 'generated' then raise exception 'assessment_generation_incomplete'; end if;
+
+  if exists (
+    select 1
+    from public.assessment_items ai
+    where ai.assessment_id = ad.id
+      and ai.status <> 'retired'
+      and not exists (
+        select 1 from public.assessment_item_outcomes aio
+        where aio.assessment_item_id = ai.id
+      )
+  ) then raise exception 'assessment_item_outcome_lineage_required'; end if;
 
   select * into existing
   from public.assessment_assignments
