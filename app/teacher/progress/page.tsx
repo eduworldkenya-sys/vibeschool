@@ -64,6 +64,10 @@ const EMPTY_FORM: FormState = {
   nextSteps: "",
 };
 
+function typed<T>(value: unknown): T {
+  return value as T;
+}
+
 function clean(value: string) {
   const trimmed = value.trim();
   return trimmed || null;
@@ -104,7 +108,7 @@ function ProgressInner() {
       p_requested_school_id: requestedSchoolId ?? undefined,
     });
     if (contextError) throw contextError;
-    return data as unknown as Context;
+    return typed<Context>(data);
   }, []);
 
   const load = useCallback(async () => {
@@ -135,7 +139,7 @@ function ProgressInner() {
         .order("updated_at", { ascending: false })
         .limit(100);
       if (recordsRes.error) throw recordsRes.error;
-      const progressRows = (recordsRes.data ?? []) as unknown as ProgressRow[];
+      const progressRows = typed<ProgressRow[]>(recordsRes.data ?? []);
       setRecords(progressRows);
 
       if (occurrenceId) {
@@ -148,7 +152,7 @@ function ProgressInner() {
           .maybeSingle();
         if (occurrenceRes.error) throw occurrenceRes.error;
         if (!occurrenceRes.data) throw new Error("Teaching occurrence not found in your active school.");
-        const exact = occurrenceRes.data as unknown as OccurrenceContext;
+        const exact = typed<OccurrenceContext>(occurrenceRes.data);
         setOccurrence(exact);
         if (exact.lifecycle !== "completed") {
           setError("Complete the lesson before recording its progress note.");
@@ -173,7 +177,7 @@ function ProgressInner() {
             .eq("taught_date", exact.occurrence_date)
             .maybeSingle();
           if (planRes.error) throw planRes.error;
-          const plan = planRes.data as unknown as LessonPlanPrefill | null;
+          const plan = typed<LessonPlanPrefill | null>(planRes.data);
           if (!plan) throw new Error("The exact lesson plan for this completed lesson could not be found.");
 
           const homeworkRes = await db
@@ -186,7 +190,7 @@ function ProgressInner() {
             .limit(1)
             .maybeSingle();
           if (homeworkRes.error) throw homeworkRes.error;
-          const homework = homeworkRes.data as unknown as HomeworkPrefill | null;
+          const homework = typed<HomeworkPrefill | null>(homeworkRes.data);
 
           setForm({
             ...EMPTY_FORM,
