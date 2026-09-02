@@ -1,0 +1,19 @@
+name: Governed Teacher School
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/onboarding/school/**'
+      - 'supabase/migrations/20260902104000_governed_teacher_school_claims_current.sql'
+      - 'scripts/governed-teacher-school-contract.test.mjs'
+      - '.github/workflows/governed-teacher-school.yml'
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/governed-teacher-school-contract.test.mjs
