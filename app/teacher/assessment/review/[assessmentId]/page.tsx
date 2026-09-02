@@ -11,8 +11,11 @@ import { supabase } from '@/lib/supabase'
 type DefinitionContext = { classId: string; status: string; estimatedMinutes: number | null }
 type ExistingAssignment = { id: string; status: string }
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type GenericRpc = <T>(name: string, args: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as GenericRpc
+
+async function rpc<T>(name: string, args: Record<string, unknown>): Promise<RpcResult<T>> {
+  const result = await supabase.rpc(name as never, args as never)
+  return { data: result.data as T | null, error: result.error }
+}
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Assignment authority returned an invalid payload.')
@@ -31,8 +34,7 @@ export default function AssessmentReviewPage() {
   const [error, setError] = useState('')
 
   const items = useMemo(() => assessment
-    ? [...assessment.sections.flatMap(section => section.items), ...assessment.unsectionedItems]
-      .sort((a, b) => a.orderNum - b.orderNum)
+    ? [...assessment.sections.flatMap(section => section.items), ...assessment.unsectionedItems].sort((a, b) => a.orderNum - b.orderNum)
     : [], [assessment])
 
   async function load() {
@@ -66,7 +68,6 @@ export default function AssessmentReviewPage() {
     setError('')
     try {
       if (items.length === 0) throw new Error('Assessment has no questions and cannot be assigned.')
-
       let status = context.status
       if (status === 'draft' || status === 'review') {
         await approveAssessment(assessmentId)
@@ -82,9 +83,7 @@ export default function AssessmentReviewPage() {
       })
       if (assignError) throw new Error(assignError.message ?? 'Assessment assignment failed.')
       const payload = record(data)
-      if (typeof payload.assignment_id !== 'string' || typeof payload.status !== 'string') {
-        throw new Error('Assessment assignment authority did not return a valid assignment.')
-      }
+      if (typeof payload.assignment_id !== 'string' || typeof payload.status !== 'string') throw new Error('Assessment assignment authority did not return a valid assignment.')
 
       setAssignment({ id: payload.assignment_id, status: payload.status })
       setContext(current => current ? { ...current, status: payload.status as string } : current)
@@ -105,9 +104,7 @@ export default function AssessmentReviewPage() {
           <h1 style={{ margin: '6px 0' }}>{assessment?.title ?? 'Assessment'}</h1>
           <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>VibeSchool prepared this from authoritative curriculum outcomes. Check the questions, then assign in one tap. Full Builder controls are optional before release.</p>
         </section>
-
         {error && <section style={errorBox}>{error}</section>}
-
         {loading ? <section style={card}>Loading assessment…</section> : !assessment || !context ? null : <>
           <section style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
@@ -118,18 +115,13 @@ export default function AssessmentReviewPage() {
               {items.map(item => <li key={item.id} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong><div style={{ fontSize: 11, color: '#6b7280', marginTop: 3 }}>{item.bloomLevel ?? 'outcome check'}{item.difficulty ? ` · ${item.difficulty}` : ''}</div></li>)}
             </ol>
           </section>
-
-          {assignment ? (
-            <>
-              <section style={successBox}><strong>✓ Assigned to the class</strong><div style={{ marginTop: 5 }}>Learners can now receive this assessment through the canonical assessment assignment flow.</div></section>
-              <button type="button" onClick={() => router.push('/teacher/assessment')} style={{ ...secondary, width: '100%', marginTop: 10 }}>Done · Assessment workspace</button>
-            </>
-          ) : (
-            <>
-              <button type="button" disabled={busy || items.length === 0} onClick={() => void assignNow()} style={{ ...primary, width: '100%' }}>{busy ? 'Assigning…' : 'Assign now'}</button>
-              <button type="button" onClick={() => router.push(`/teacher/assessment/builder/${assessmentId}`)} style={{ ...secondary, width: '100%', marginTop: 10 }}>Advanced Edit · Sections · Question Bank</button>
-            </>
-          )}
+          {assignment ? <>
+            <section style={successBox}><strong>✓ Assigned to the class</strong><div style={{ marginTop: 5 }}>Learners can now receive this assessment through the canonical assessment assignment flow.</div></section>
+            <button type="button" onClick={() => router.push('/teacher/assessment')} style={{ ...secondary, width: '100%', marginTop: 10 }}>Done · Assessment workspace</button>
+          </> : <>
+            <button type="button" disabled={busy || items.length === 0} onClick={() => void assignNow()} style={{ ...primary, width: '100%' }}>{busy ? 'Assigning…' : 'Assign now'}</button>
+            <button type="button" onClick={() => router.push(`/teacher/assessment/builder/${assessmentId}`)} style={{ ...secondary, width: '100%', marginTop: 10 }}>Advanced Edit · Sections · Question Bank</button>
+          </>}
         </>}
       </div>
     </main>
