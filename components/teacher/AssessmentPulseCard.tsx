@@ -25,41 +25,60 @@ export default function AssessmentPulseCard({ schoolId }: { schoolId?: string })
     ? summary.awaitingMarking + summary.partiallyMarked + summary.readyToRelease + summary.pendingModeration + summary.highPriorityInterventions
     : 0
 
+  if (summary && total === 0) {
+    return (
+      <section style={card} aria-label="Assessment workload">
+        <div style={headerRow}>
+          <div>
+            <div style={eyebrow}>Assessment</div>
+            <h2 style={{ margin: '5px 0 3px', fontSize: 16, color: '#111827' }}>Nothing awaiting review</h2>
+            <div style={muted}>Your marking workload is clear.</div>
+          </div>
+          <div aria-hidden="true" style={clearBadge}>✓</div>
+        </div>
+        <button type="button" onClick={() => router.push('/teacher/assessment/gradebook')} style={quietButton}>Open gradebook</button>
+      </section>
+    )
+  }
+
   return (
-    <section style={card}>
+    <section style={card} aria-label="Assessment workload">
       <div style={headerRow}>
         <div>
           <div style={eyebrow}>Assessment workload</div>
-          <h2 style={{ margin: '5px 0 0', fontSize: 17 }}>Mark, release and support</h2>
+          <h2 style={{ margin: '5px 0 0', fontSize: 17, color: '#111827' }}>Needs your attention</h2>
         </div>
         <strong style={{ fontSize: 22, color: total > 0 ? '#b45309' : '#065f46' }}>{summary ? total : '—'}</strong>
       </div>
 
-      {!summary ? <div style={muted}>Loading assessment workload…</div> : <div style={grid}>
-        <Metric label="Awaiting marking" value={summary.awaitingMarking} urgent={summary.awaitingMarking > 0} />
-        <Metric label="Partially marked" value={summary.partiallyMarked} urgent={summary.partiallyMarked > 0} />
-        <Metric label="Ready to release" value={summary.readyToRelease} urgent={summary.readyToRelease > 0} />
-        <Metric label="Moderation" value={summary.pendingModeration} urgent={summary.pendingModeration > 0} />
-        <Metric label="High-priority support" value={summary.highPriorityInterventions} urgent={summary.highPriorityInterventions > 0} />
+      {!summary ? <div style={{ ...muted, marginTop: 12 }}>Loading assessment workload…</div> : <div style={grid}>
+        {summary.awaitingMarking > 0 && <Metric label="Awaiting marking" value={summary.awaitingMarking} />}
+        {summary.partiallyMarked > 0 && <Metric label="Partially marked" value={summary.partiallyMarked} />}
+        {summary.readyToRelease > 0 && <Metric label="Ready to release" value={summary.readyToRelease} />}
+        {summary.pendingModeration > 0 && <Metric label="Moderation" value={summary.pendingModeration} />}
+        {summary.highPriorityInterventions > 0 && <Metric label="High-priority support" value={summary.highPriorityInterventions} />}
       </div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginTop: 12 }}>
-        <button type="button" onClick={() => router.push('/teacher/assessment/marking')} style={primaryButton}>Open Marking Centre</button>
-        <button type="button" onClick={() => router.push('/teacher/assessment/gradebook')} style={secondaryButton}>Open Gradebook</button>
+      <div style={buttonGrid}>
+        <button type="button" onClick={() => router.push('/teacher/assessment/marking')} style={primaryButton}>Open marking centre</button>
+        <button type="button" onClick={() => router.push('/teacher/assessment/gradebook')} style={secondaryButton}>Gradebook</button>
       </div>
     </section>
   )
 }
 
-function Metric({ label, value, urgent }: { label: string; value: number; urgent: boolean }) {
-  return <div style={{ ...metric, borderColor: urgent ? '#fcd34d' : '#e5e7eb', background: urgent ? '#fffbeb' : '#f8fafc' }}><strong style={{ fontSize: 18, color: urgent ? '#b45309' : '#111827' }}>{value}</strong><span style={muted}>{label}</span></div>
+function Metric({ label, value }: { label: string; value: number }) {
+  return <div style={metric}><strong style={{ fontSize: 18, color: '#92400e' }}>{value}</strong><span style={muted}>{label}</span></div>
 }
 
-const card: React.CSSProperties = { background: '#fff', borderRadius: 20, padding: 16, marginBottom: 12, boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }
+const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 18, padding: 16, marginBottom: 12, boxShadow: '0 1px 3px rgba(15,23,42,0.05)' }
 const headerRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 900, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
-const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 8, marginTop: 12 }
-const metric: React.CSSProperties = { border: '1px solid #e5e7eb', borderRadius: 12, padding: 10, display: 'flex', flexDirection: 'column', gap: 3 }
-const muted: React.CSSProperties = { fontSize: 11, color: '#6b7280' }
-const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 10, padding: '11px 12px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
-const secondaryButton: React.CSSProperties = { border: '1px solid #c7d2fe', borderRadius: 10, padding: '11px 12px', background: '#eef2ff', color: '#3730a3', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 900, color: '#047857', textTransform: 'uppercase', letterSpacing: 1 }
+const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 8, marginTop: 12 }
+const metric: React.CSSProperties = { border: '1px solid #fde68a', background: '#fffbeb', borderRadius: 12, padding: 10, display: 'flex', flexDirection: 'column', gap: 3, minHeight: 58 }
+const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', lineHeight: 1.4 }
+const clearBadge: React.CSSProperties = { width: 34, height: 34, borderRadius: 12, background: '#ecfdf5', color: '#047857', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 900, flexShrink: 0 }
+const buttonGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', gap: 8, marginTop: 12 }
+const primaryButton: React.CSSProperties = { minHeight: 44, border: 'none', borderRadius: 12, padding: '11px 12px', background: '#10b981', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const secondaryButton: React.CSSProperties = { minHeight: 44, border: '1px solid #d1d5db', borderRadius: 12, padding: '11px 12px', background: '#fff', color: '#374151', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const quietButton: React.CSSProperties = { marginTop: 12, minHeight: 44, width: '100%', border: '1px solid #d1fae5', borderRadius: 12, padding: '10px 12px', background: '#f0fdf4', color: '#047857', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
