@@ -377,7 +377,7 @@ export default function PulsePage() {
 
       <AssessmentPulseCard schoolId={activeSchoolId ?? snap.schoolId} />
 
-      <QuickActions onNavigate={(href) => router.push(href)} />
+      <QuickActions slot={focusSlot} onNavigate={(href) => router.push(href)} />
 
       <WeekOverview overview={snap.weekOverview} />
 
