@@ -21,6 +21,7 @@ type View = 'record'|'history'
 const bands: ProgressBand[] = ['EE','ME','AE','BE','NE']
 const tone: Record<ProgressBand,{background:string;color:string}> = { EE:{background:'#ecfdf5',color:'#065f46'}, ME:{background:'#eff6ff',color:'#1e40af'}, AE:{background:'#fffbeb',color:'#92400e'}, BE:{background:'#fef2f2',color:'#991b1b'}, NE:{background:'#f3f4f6',color:'#4b5563'} }
 
+function typed<T>(value:unknown):T{return value as T}
 function dateLabel(value:string){ const d=new Date(value); return Number.isFinite(d.getTime())?d.toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'}):value }
 function cutoff(period:Period){ if(period==='all') return null; const d=new Date(); d.setDate(d.getDate()-(period==='30'?30:period==='90'?90:120)); return d.toISOString() }
 
@@ -33,13 +34,13 @@ export default function StudentProgressRecordPage(){
   const load=useCallback(async()=>{ setLoading(true);setError(''); try{
     const {data:auth,error:authError}=await supabase.auth.getUser(); if(authError||!auth.user){router.replace('/login');return}
     const {data:ctx,error:ctxError}=await supabase.rpc('teacher_get_operating_context'); if(ctxError) throw ctxError
-    const context=ctx as unknown as TeacherOperatingContext
+    const context=typed<TeacherOperatingContext>(ctx)
     const classAssignments=Array.isArray(context.classes)?context.classes:[]
     if(!context.school_id||!classAssignments.some(item=>item.class_id===classId)) throw new Error('This class is not assigned to you in the active school.')
 
     const enrollmentRes=await supabase.from('student_classes').select('is_current,joined_at,left_at,students(id,name,admission_number,deleted_at)').eq('school_id',context.school_id).eq('class_id',classId).eq('student_id',studentId).order('is_current',{ascending:false}).order('joined_at',{ascending:false}).limit(1).maybeSingle()
     if(enrollmentRes.error) throw enrollmentRes.error
-    const enrollmentRow=enrollmentRes.data as unknown as EnrollmentRow|null
+    const enrollmentRow=typed<EnrollmentRow|null>(enrollmentRes.data)
     const nested=enrollmentRow?.students??null; const learner=Array.isArray(nested)?nested[0]:nested
     if(!learner||learner.deleted_at) throw new Error('Learner is not associated with this class.')
     setStudent({id:learner.id,name:learner.name,admission_number:learner.admission_number??null})
@@ -50,8 +51,8 @@ export default function StudentProgressRecordPage(){
       subjectIds.length?supabase.from('subjects').select('id,name').in('id',subjectIds):Promise.resolve({data:[],error:null}),
       supabase.from('competency_evidence_ledger').select('id,student_id,subject_id,outcome_id,evidence_source,evidence_id,score,max_score,proficiency,observed_at,notes,weight,curriculum_learning_outcomes(outcome_text,outcome_code)').eq('school_id',context.school_id).eq('class_id',classId).eq('student_id',studentId).in('subject_id',subjectIds.length?subjectIds:['00000000-0000-0000-0000-000000000000']).order('observed_at',{ascending:false}).limit(1000)
     ])
-    if(subjectRes.error) throw subjectRes.error; if(evidenceRes.error) throw evidenceRes.error; setSubjects((subjectRes.data??[]) as Subject[])
-    const evidenceRows=(evidenceRes.data??[]) as unknown as EvidenceRow[]
+    if(subjectRes.error) throw subjectRes.error; if(evidenceRes.error) throw evidenceRes.error; setSubjects(typed<Subject[]>(subjectRes.data??[]))
+    const evidenceRows=typed<EvidenceRow[]>(evidenceRes.data??[])
     setRows(evidenceRows.map(row=>{const nestedOutcome=row.curriculum_learning_outcomes; const outcome=Array.isArray(nestedOutcome)?nestedOutcome[0]:nestedOutcome; return {id:row.id,studentId:row.student_id,subjectId:row.subject_id,outcomeId:row.outcome_id,outcomeText:outcome?.outcome_text??null,outcomeCode:outcome?.outcome_code??null,source:row.evidence_source||'evidence',sourceId:row.evidence_id,observedAt:row.observed_at,score:row.score==null?null:Number(row.score),maxScore:row.max_score==null?null:Number(row.max_score),proficiency:row.proficiency,notes:row.notes,weight:row.weight==null?1:Number(row.weight)} as ProgressEvidence}))
   }catch(e){console.error('[StudentProgressRecord] load',e);setError(e instanceof Error?e.message:'Progress record could not be loaded.')}finally{setLoading(false)} },[classId,studentId,router])
   useEffect(()=>{void load()},[load])
