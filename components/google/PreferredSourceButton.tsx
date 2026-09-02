@@ -20,6 +20,7 @@ declare global {
 
 export function PreferredSourceButton({ theme = 'light', placement = 'article-footer' }: PreferredSourceButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null)
+  const googleAttribute = { 'google-add-preferred-source-btn': '' }
 
   useEffect(() => {
     const container = containerRef.current
@@ -42,7 +43,7 @@ export function PreferredSourceButton({ theme = 'light', placement = 'article-fo
       <Script src={GOOGLE_PREFERRED_SOURCE_SCRIPT} strategy="afterInteractive" />
       <div
         ref={containerRef}
-        google-add-preferred-source-btn=""
+        {...googleAttribute}
         data-theme={theme}
         data-lang="en"
         data-placement={placement}
