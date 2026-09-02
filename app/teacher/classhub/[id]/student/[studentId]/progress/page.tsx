@@ -10,6 +10,12 @@ export const dynamic = 'force-dynamic'
 type Student = { id:string; name:string; admission_number:string|null }
 type Subject = { id:string; name:string }
 type Enrollment = { isCurrent:boolean; joinedAt:string|null; leftAt:string|null }
+type TeacherClassAssignment = { class_id:string; subject_id:string|null }
+type TeacherOperatingContext = { school_id:string|null; classes?:TeacherClassAssignment[] }
+type StudentNested = { id:string; name:string; admission_number:string|null; deleted_at:string|null }
+type EnrollmentRow = { is_current:boolean|null; joined_at:string|null; left_at:string|null; students:StudentNested|StudentNested[]|null }
+type OutcomeNested = { outcome_text:string|null; outcome_code:string|null }
+type EvidenceRow = { id:string; student_id:string; subject_id:string|null; outcome_id:string|null; evidence_source:string|null; evidence_id:string|null; score:number|string|null; max_score:number|string|null; proficiency:string|null; observed_at:string; notes:string|null; weight:number|string|null; curriculum_learning_outcomes:OutcomeNested|OutcomeNested[]|null }
 type Period = '30'|'90'|'term'|'all'
 type View = 'record'|'history'
 const bands: ProgressBand[] = ['EE','ME','AE','BE','NE']
@@ -27,22 +33,26 @@ export default function StudentProgressRecordPage(){
   const load=useCallback(async()=>{ setLoading(true);setError(''); try{
     const {data:auth,error:authError}=await supabase.auth.getUser(); if(authError||!auth.user){router.replace('/login');return}
     const {data:ctx,error:ctxError}=await supabase.rpc('teacher_get_operating_context'); if(ctxError) throw ctxError
-    const context=ctx as any; if(!context?.school_id||!Array.isArray(context.classes)||!context.classes.some((c:any)=>c.class_id===classId)) throw new Error('This class is not assigned to you in the active school.')
+    const context=ctx as unknown as TeacherOperatingContext
+    const classAssignments=Array.isArray(context.classes)?context.classes:[]
+    if(!context.school_id||!classAssignments.some(item=>item.class_id===classId)) throw new Error('This class is not assigned to you in the active school.')
 
     const enrollmentRes=await supabase.from('student_classes').select('is_current,joined_at,left_at,students(id,name,admission_number,deleted_at)').eq('school_id',context.school_id).eq('class_id',classId).eq('student_id',studentId).order('is_current',{ascending:false}).order('joined_at',{ascending:false}).limit(1).maybeSingle()
     if(enrollmentRes.error) throw enrollmentRes.error
-    const nested:any=(enrollmentRes.data as any)?.students; const learner=Array.isArray(nested)?nested[0]:nested
+    const enrollmentRow=enrollmentRes.data as unknown as EnrollmentRow|null
+    const nested=enrollmentRow?.students??null; const learner=Array.isArray(nested)?nested[0]:nested
     if(!learner||learner.deleted_at) throw new Error('Learner is not associated with this class.')
     setStudent({id:learner.id,name:learner.name,admission_number:learner.admission_number??null})
-    setEnrollment({isCurrent:Boolean((enrollmentRes.data as any)?.is_current),joinedAt:(enrollmentRes.data as any)?.joined_at??null,leftAt:(enrollmentRes.data as any)?.left_at??null})
+    setEnrollment({isCurrent:Boolean(enrollmentRow?.is_current),joinedAt:enrollmentRow?.joined_at??null,leftAt:enrollmentRow?.left_at??null})
 
-    const subjectIds=Array.from(new Set(context.classes.filter((c:any)=>c.class_id===classId).map((c:any)=>c.subject_id).filter(Boolean))) as string[]
+    const subjectIds=Array.from(new Set(classAssignments.filter(item=>item.class_id===classId).map(item=>item.subject_id).filter((value):value is string=>Boolean(value))))
     const [subjectRes,evidenceRes]=await Promise.all([
       subjectIds.length?supabase.from('subjects').select('id,name').in('id',subjectIds):Promise.resolve({data:[],error:null}),
       supabase.from('competency_evidence_ledger').select('id,student_id,subject_id,outcome_id,evidence_source,evidence_id,score,max_score,proficiency,observed_at,notes,weight,curriculum_learning_outcomes(outcome_text,outcome_code)').eq('school_id',context.school_id).eq('class_id',classId).eq('student_id',studentId).in('subject_id',subjectIds.length?subjectIds:['00000000-0000-0000-0000-000000000000']).order('observed_at',{ascending:false}).limit(1000)
     ])
     if(subjectRes.error) throw subjectRes.error; if(evidenceRes.error) throw evidenceRes.error; setSubjects((subjectRes.data??[]) as Subject[])
-    setRows((evidenceRes.data??[]).map((r:any)=>{const o=Array.isArray(r.curriculum_learning_outcomes)?r.curriculum_learning_outcomes[0]:r.curriculum_learning_outcomes; return {id:r.id,studentId:r.student_id,subjectId:r.subject_id,outcomeId:r.outcome_id,outcomeText:o?.outcome_text??null,outcomeCode:o?.outcome_code??null,source:r.evidence_source||'evidence',sourceId:r.evidence_id,observedAt:r.observed_at,score:r.score==null?null:Number(r.score),maxScore:r.max_score==null?null:Number(r.max_score),proficiency:r.proficiency,notes:r.notes,weight:r.weight==null?1:Number(r.weight)} as ProgressEvidence}))
+    const evidenceRows=(evidenceRes.data??[]) as unknown as EvidenceRow[]
+    setRows(evidenceRows.map(row=>{const nestedOutcome=row.curriculum_learning_outcomes; const outcome=Array.isArray(nestedOutcome)?nestedOutcome[0]:nestedOutcome; return {id:row.id,studentId:row.student_id,subjectId:row.subject_id,outcomeId:row.outcome_id,outcomeText:outcome?.outcome_text??null,outcomeCode:outcome?.outcome_code??null,source:row.evidence_source||'evidence',sourceId:row.evidence_id,observedAt:row.observed_at,score:row.score==null?null:Number(row.score),maxScore:row.max_score==null?null:Number(row.max_score),proficiency:row.proficiency,notes:row.notes,weight:row.weight==null?1:Number(row.weight)} as ProgressEvidence}))
   }catch(e){console.error('[StudentProgressRecord] load',e);setError(e instanceof Error?e.message:'Progress record could not be loaded.')}finally{setLoading(false)} },[classId,studentId,router])
   useEffect(()=>{void load()},[load])
 
