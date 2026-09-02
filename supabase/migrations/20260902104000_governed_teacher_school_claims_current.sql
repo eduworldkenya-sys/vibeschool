@@ -1,5 +1,6 @@
 begin;
 
+-- authorization-test: public.teacher_school_claims supabase/tests/governed_teacher_school_current_contract.sql
 create table if not exists public.teacher_school_claims (
   id uuid primary key default gen_random_uuid(),
   reference_code text not null unique default ('VS-' || upper(substr(replace(gen_random_uuid()::text,'-',''),1,10))),
