@@ -19,6 +19,7 @@ declare
   normalized_fingerprint text;
   resolved_outcome_id uuid := p_learning_outcome_id;
   linked_outcome_count integer;
+  is_grounded boolean;
 begin
   if caller is null then raise exception 'not_authenticated'; end if;
   select * into item from public.assessment_items where id = p_assessment_item_id;
@@ -27,6 +28,8 @@ begin
   if not found then raise exception 'assessment_not_found'; end if;
   if definition.teacher_id is distinct from caller then raise exception 'assessment_not_owned'; end if;
   if item.status = 'retired' then raise exception 'assessment_item_retired'; end if;
+
+  is_grounded := coalesce(definition.generation_metadata->>'authority', '') = 'linked_scheme_curriculum_learning_outcomes';
 
   if resolved_outcome_id is null then
     select count(*) into linked_outcome_count
@@ -43,7 +46,7 @@ begin
     end if;
   end if;
 
-  if definition.generation_source <> 'teacher_authored' and resolved_outcome_id is null then
+  if is_grounded and resolved_outcome_id is null then
     raise exception 'grounded_question_bank_outcome_required';
   end if;
 
@@ -57,7 +60,7 @@ begin
   limit 1;
 
   if existing_id is not null then
-    if definition.generation_source <> 'teacher_authored'
+    if is_grounded
        and not exists (
          select 1 from public.assessment_questions q
          where q.id = existing_id
@@ -101,6 +104,7 @@ declare
   q public.assessment_questions%rowtype;
   ad public.assessment_definitions%rowtype;
   item_id uuid;
+  is_grounded boolean;
 begin
   if caller is null then raise exception 'not_authenticated'; end if;
   if p_order_num <= 0 then raise exception 'invalid_order_num'; end if;
@@ -114,7 +118,8 @@ begin
   if ad.teacher_id is distinct from caller then raise exception 'assessment_not_owned'; end if;
   if ad.status not in ('draft', 'review') then raise exception 'assessment_locked'; end if;
 
-  if ad.generation_source <> 'teacher_authored' then
+  is_grounded := coalesce(ad.generation_metadata->>'authority', '') = 'linked_scheme_curriculum_learning_outcomes';
+  if is_grounded then
     if q.learning_outcome_id is null then raise exception 'question_bank_outcome_required'; end if;
     if q.subject_id is distinct from ad.subject_id then raise exception 'question_bank_subject_mismatch'; end if;
   end if;
