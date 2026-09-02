@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'VibeGlobal — Free Kenyan Educational Content',
     description: 'Discover free CBC and Secondary school ebooks, past papers, stories and study materials created by Kenyan educators.',
-    url: 'https://www.vibeschool.co.ke/global',
+    url: 'https://vibeschool.co.ke/global',
     siteName: 'VibeSchool',
     locale: 'en_KE',
     type: 'website',
