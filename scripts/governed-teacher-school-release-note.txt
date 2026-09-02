@@ -1,1 +1,0 @@
-Supersedes stale PR #593. Do not merge #593 after this current-main replacement lands.
