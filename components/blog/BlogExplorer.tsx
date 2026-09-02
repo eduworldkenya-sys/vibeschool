@@ -7,71 +7,19 @@ import type { KnowledgeArticle } from '@/lib/educationKnowledge'
 import styles from '@/app/blog/blog.module.css'
 
 type Category = 'All' | 'KCSE' | 'KJSEA' | 'KPSEA' | 'Revision' | 'Careers' | 'Teachers' | 'Parents'
-type Story = {
-  id: string
-  href: string
-  title: string
-  description: string
-  coverUrl: string | null
-  label: string
-  categoryText: string
-  publishedAt: string | null
-  kind: 'article' | 'guide'
-}
+type Story = { id:string; href:string; title:string; description:string; coverUrl:string|null; label:string; categoryText:string; publishedAt:string|null; kind:'article'|'guide' }
+const categories:Category[]=['All','KCSE','KJSEA','KPSEA','Revision','Careers','Teachers','Parents']
 
-const categories: Category[] = ['All','KCSE','KJSEA','KPSEA','Revision','Careers','Teachers','Parents']
-
-function articleCategory(article: PublishedBlogArticle){
-  return [article.genre, ...(article.tags ?? [])].join(' ').toLowerCase()
+function articleCategory(article:PublishedBlogArticle){
+  return [article.genre,article.cbc_framework,article.cbc_grade,article.cbc_subject,...(article.tags??[])].filter(Boolean).join(' ').toLowerCase()
 }
-
-function matchesCategory(story: Story, category: Category){
-  if(category === 'All') return true
-  const text = story.categoryText.toLowerCase()
-  const aliases: Record<Exclude<Category,'All'>,string[]> = {
-    KCSE:['kcse','form 4','grade 12'], KJSEA:['kjsea','grade 9','junior school'], KPSEA:['kpsea','grade 6','primary'],
-    Revision:['revision','academic','exam','mathematics','chemistry'], Careers:['career','pathway','school choice'],
-    Teachers:['teacher'], Parents:['parent','family','learner · family'],
-  }
-  return aliases[category].some(alias=>text.includes(alias))
-}
-
-function formatDate(value:string|null){
-  if(!value) return ''
-  return new Intl.DateTimeFormat('en-KE',{day:'numeric',month:'short',year:'numeric'}).format(new Date(value))
-}
+function matchesCategory(story:Story,category:Category){if(category==='All')return true;const text=story.categoryText.toLowerCase();const aliases:Record<Exclude<Category,'All'>,string[]>={KCSE:['kcse','form 4','grade 12'],KJSEA:['kjsea','grade 9','junior school'],KPSEA:['kpsea','grade 6','primary'],Revision:['revision','academic','exam','mathematics','chemistry'],Careers:['career','pathway','school choice'],Teachers:['teacher','tsc','lesson plan','scheme of work'],Parents:['parent','family','learner · family']};return aliases[category].some(alias=>text.includes(alias))}
+function formatDate(value:string|null){if(!value)return '';return new Intl.DateTimeFormat('en-KE',{day:'numeric',month:'short',year:'numeric'}).format(new Date(value))}
 
 export function BlogExplorer({publications,guides}:{publications:PublishedBlogArticle[];guides:KnowledgeArticle[]}){
-  const [query,setQuery]=useState('')
-  const [category,setCategory]=useState<Category>('All')
-  const deferredQuery=useDeferredValue(query.trim().toLowerCase())
-  const stories=useMemo<Story[]>(()=>[
-    ...publications.map(article=>({id:article.id,href:`/blog/${article.id}`,title:article.title?.trim()||'Untitled article',description:article.description?.trim()||article.subtitle?.trim()||'A VibeSchool education article.',coverUrl:article.cover_url,label:'VIBESCHOOL ARTICLE',categoryText:articleCategory(article),publishedAt:article.published_at,kind:'article' as const})),
-    ...guides.map(guide=>({id:guide.slug,href:`/kenya-education/${guide.slug}`,title:guide.title,description:guide.description,coverUrl:null,label:'SOURCE-BACKED GUIDE',categoryText:`${guide.title} ${guide.description} ${guide.audience.join(' ')}`,publishedAt:guide.updated_on,kind:'guide' as const})),
-  ],[publications,guides])
-  const filtered=useMemo(()=>stories.filter(story=>{
-    const haystack=`${story.title} ${story.description} ${story.categoryText}`.toLowerCase()
-    return matchesCategory(story,category)&&(!deferredQuery||haystack.includes(deferredQuery))
-  }),[stories,category,deferredQuery])
-  const featured=filtered[0]
-  const rest=filtered.slice(1)
-
-  return <>
-    <section className={styles.mast}>
-      <div className={styles.wrap}><p className={styles.eyebrow}>KENYA EDUCATION HUB</p><h1>Understand education.<br/>Take the next useful step.</h1><label className={styles.search}><span aria-hidden="true">⌕</span><span className={styles.srOnly}>Search education news and guides</span><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search revision, exams, careers and education news"/></label></div>
-    </section>
-    <nav className={styles.categories} aria-label="Article categories"><div className={styles.wrap}>{categories.map(item=><button key={item} type="button" aria-pressed={category===item} onClick={()=>setCategory(item)}>{item}</button>)}</div></nav>
-    <section className={`${styles.content} ${styles.wrap}`} aria-live="polite">
-      <div className={styles.resultsHeader}><div><p className={styles.eyebrowDark}>{category==='All'?'LATEST':category.toUpperCase()}</p><h2>{deferredQuery?`Results for “${query.trim()}”`:'Latest articles and guides'}</h2></div><span>{filtered.length} {filtered.length===1?'result':'results'}</span></div>
-      {featured?<>
-        <Link className={styles.featured} href={featured.href}><StoryMedia story={featured} featured/><div className={styles.featuredCopy}><small>{featured.label}</small><h2>{featured.title}</h2><p>{featured.description}</p><span>{formatDate(featured.publishedAt)}</span><strong>Read {featured.kind==='guide'?'guide':'article'} →</strong></div></Link>
-        <div className={styles.grid}>{rest.map(story=><Link key={`${story.kind}-${story.id}`} href={story.href}><StoryMedia story={story}/><div className={styles.cardCopy}><small>{story.label}</small><h3>{story.title}</h3><p>{story.description}</p><span>{formatDate(story.publishedAt)}</span></div></Link>)}</div>
-      </>:<div className={styles.empty}><h2>No matching guides yet.</h2><p>Try another search or choose All to see every verified guide and published article.</p><button type="button" onClick={()=>{setQuery('');setCategory('All')}}>Show all articles</button></div>}
-    </section>
-    <section className={styles.cta}><div className={styles.wrap}><div><small>FROM READING TO LEARNING</small><h2>Don’t stop at the article.</h2><p>Continue into explanations, practice and VibeSchool learning experiences.</p></div><Link href="/global/read">Start learning →</Link></div></section>
-  </>
+  const [query,setQuery]=useState('');const [category,setCategory]=useState<Category>('All');const deferredQuery=useDeferredValue(query.trim().toLowerCase())
+  const stories=useMemo<Story[]>(()=>[...publications.map(article=>({id:article.id,href:`/blog/${article.id}`,title:article.title?.trim()||'Untitled article',description:article.description?.trim()||article.subtitle?.trim()||'A VibeSchool education article.',coverUrl:article.cover_url,label:article.cbc_subject?`${article.cbc_subject.replaceAll('_',' ').toUpperCase()} · VIBESCHOOL`:'VIBESCHOOL ARTICLE',categoryText:articleCategory(article),publishedAt:article.published_at,kind:'article' as const})),...guides.map(guide=>({id:guide.slug,href:`/kenya-education/${guide.slug}`,title:guide.title,description:guide.description,coverUrl:null,label:'SOURCE-BACKED GUIDE',categoryText:`${guide.title} ${guide.description} ${guide.audience.join(' ')}`,publishedAt:guide.updated_on,kind:'guide' as const}))],[publications,guides])
+  const filtered=useMemo(()=>stories.filter(story=>{const haystack=`${story.title} ${story.description} ${story.categoryText}`.toLowerCase();return matchesCategory(story,category)&&(!deferredQuery||haystack.includes(deferredQuery))}),[stories,category,deferredQuery]);const featured=filtered[0];const rest=filtered.slice(1)
+  return <><section className={styles.mast}><div className={styles.wrap}><p className={styles.eyebrow}>KENYA EDUCATION HUB</p><h1>Understand education.<br/>Take the next useful step.</h1><label className={styles.search}><span aria-hidden="true">⌕</span><span className={styles.srOnly}>Search education news and guides</span><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search revision, exams, careers and education news"/></label></div></section><nav className={styles.categories} aria-label="Article categories"><div className={styles.wrap}>{categories.map(item=><button key={item} type="button" aria-pressed={category===item} onClick={()=>setCategory(item)}>{item}</button>)}</div></nav><section className={`${styles.content} ${styles.wrap}`} aria-live="polite"><div className={styles.resultsHeader}><div><p className={styles.eyebrowDark}>{category==='All'?'LATEST':category.toUpperCase()}</p><h2>{deferredQuery?`Results for “${query.trim()}”`:'Latest articles and guides'}</h2></div><span>{filtered.length} {filtered.length===1?'result':'results'}</span></div>{featured?<><Link className={styles.featured} href={featured.href}><StoryMedia story={featured} featured/><div className={styles.featuredCopy}><small>{featured.label}</small><h2>{featured.title}</h2><p>{featured.description}</p><span>{formatDate(featured.publishedAt)}</span><strong>Read {featured.kind==='guide'?'guide':'article'} →</strong></div></Link><div className={styles.grid}>{rest.map(story=><Link key={`${story.kind}-${story.id}`} href={story.href}><StoryMedia story={story}/><div className={styles.cardCopy}><small>{story.label}</small><h3>{story.title}</h3><p>{story.description}</p><span>{formatDate(story.publishedAt)}</span></div></Link>)}</div></>:<div className={styles.empty}><h2>No matching guides yet.</h2><p>Try another search or choose All to see every verified guide and published article.</p><button type="button" onClick={()=>{setQuery('');setCategory('All')}}>Show all articles</button></div>}</section><section className={styles.cta}><div className={styles.wrap}><div><small>FROM READING TO LEARNING</small><h2>Don’t stop at the article.</h2><p>Continue into explanations, practice and VibeSchool learning experiences.</p></div><Link href="/global/read">Start learning →</Link></div></section></>
 }
-
-function StoryMedia({story,featured=false}:{story:Story;featured?:boolean}){
-  return <div className={featured?styles.cover:styles.thumb}>{story.coverUrl?<img src={story.coverUrl} alt={`Cover for ${story.title}`}/>:<div className={story.kind==='guide'?styles.guideFallback:styles.articleFallback}><span>{story.kind==='guide'?'GUIDE':'V'}</span></div>}</div>
-}
+function StoryMedia({story,featured=false}:{story:Story;featured?:boolean}){return <div className={featured?styles.cover:styles.thumb}>{story.coverUrl?<img src={story.coverUrl} alt={`Cover for ${story.title}`}/>:<div className={story.kind==='guide'?styles.guideFallback:styles.articleFallback}><span>{story.kind==='guide'?'GUIDE':'V'}</span></div>}</div>}
