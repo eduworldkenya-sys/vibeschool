@@ -19,6 +19,7 @@ type SupportFilter = 'all'|'support'|'secure'|'no-evidence'
 const order:Record<ProgressBand,number>={BE:0,AE:1,NE:2,ME:3,EE:4}
 const label:Record<ProgressBand,string>={EE:'Exceeding',ME:'Meeting',AE:'Approaching',BE:'Below',NE:'No evidence'}
 
+function typed<T>(value:unknown):T{return value as T}
 function average(rows:Evidence[]){
   const scored=rows.filter(r=>r.score!=null&&r.max_score!=null&&r.max_score>0)
   return scored.length?Math.round(scored.reduce((n,r)=>n+(r.score!/r.max_score!)*100,0)/scored.length):null
@@ -35,7 +36,7 @@ export default function ClassStudentProgressPage(){
     try{
       const {data:auth,error:authError}=await supabase.auth.getUser(); if(authError||!auth.user){router.replace('/login');return}
       const {data:ctx,error:ce}=await supabase.rpc('teacher_get_operating_context'); if(ce)throw ce
-      const context=ctx as unknown as TeacherOperatingContext
+      const context=typed<TeacherOperatingContext>(ctx)
       const assignment=context.classes?.find(item=>item.class_id===classId)
       if(!context.school_id||!assignment)throw new Error('This class is not assigned to you in the active school.')
       setClassName(`${assignment.class_name}${assignment.stream?` ${assignment.stream}`:''}`)
@@ -43,7 +44,7 @@ export default function ClassStudentProgressPage(){
       const enrollment=await supabase.from('student_classes').select('student_id,is_current,joined_at,left_at,students(id,name,admission_number,deleted_at)').eq('school_id',context.school_id).eq('class_id',classId).order('joined_at',{ascending:false})
       if(enrollment.error)throw enrollment.error
       const deduped=new Map<string,Learner>()
-      for(const row of (enrollment.data??[]) as unknown as EnrollmentRow[]){
+      for(const row of typed<EnrollmentRow[]>(enrollment.data??[])){
         const student=Array.isArray(row.students)?row.students[0]:row.students
         if(!student||student.deleted_at||!student.id)continue
         const candidate:Learner={id:student.id,name:student.name,admission_number:student.admission_number??null,isCurrent:Boolean(row.is_current),joinedAt:row.joined_at??null,leftAt:row.left_at??null}
@@ -54,7 +55,7 @@ export default function ClassStudentProgressPage(){
 
       const er=await supabase.from('competency_evidence_ledger').select('student_id,score,max_score,proficiency,observed_at').eq('school_id',context.school_id).eq('class_id',classId).order('observed_at',{ascending:false}).limit(3000)
       if(er.error)throw er.error
-      const evidenceRows=(er.data??[]) as unknown as EvidenceRow[]
+      const evidenceRows=typed<EvidenceRow[]>(er.data??[])
       setEvidence(evidenceRows.map(row=>({student_id:row.student_id,score:row.score==null?null:Number(row.score),max_score:row.max_score==null?null:Number(row.max_score),proficiency:row.proficiency,observed_at:row.observed_at})))
     }catch(e){console.error('[ClassStudentProgress] load',e);setError(e instanceof Error?e.message:'Class progress could not be loaded.')}finally{setLoading(false)}
   },[classId,router])
