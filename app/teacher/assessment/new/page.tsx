@@ -79,7 +79,7 @@ function record(value: unknown, label: string): Record<string, unknown> {
 }
 
 async function resolveOutcomeRefs(lessonPlanId: string, texts: string[]): Promise<OutcomeRef[]> {
-  const uniqueTexts = [...new Set(texts)]
+  const uniqueTexts = Array.from(new Set(texts))
   const { data, error } = await rpc<unknown>('exq_resolve_lesson_assessment_outcomes', { p_lesson_plan_id: lessonPlanId })
   if (error) throw new Error(error.message ?? 'Curriculum outcome resolution failed.')
   const payload = record(data, 'Curriculum outcome authority')
@@ -95,7 +95,7 @@ async function resolveOutcomeRefs(lessonPlanId: string, texts: string[]): Promis
 
 async function linkItemOutcomes(itemId: string, texts: string[], refs: OutcomeRef[]): Promise<void> {
   const byText = new Map(refs.map(ref => [ref.text, ref.id]))
-  for (const text of [...new Set(texts)]) {
+  for (const text of Array.from(new Set(texts))) {
     const outcomeId = byText.get(text)
     if (!outcomeId) throw new Error('Assessment item outcome lineage could not be resolved.')
     const { error } = await rpc<unknown>('exq_link_item_outcome', { p_assessment_item_id: itemId, p_outcome_id: outcomeId, p_weight: 1 })
