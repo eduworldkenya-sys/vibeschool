@@ -29,12 +29,16 @@ begin
   if item.status = 'retired' then raise exception 'assessment_item_retired'; end if;
 
   if resolved_outcome_id is null then
-    select count(*), min(aio.outcome_id)
-    into linked_outcome_count, resolved_outcome_id
+    select count(*) into linked_outcome_count
     from public.assessment_item_outcomes aio
     where aio.assessment_item_id = item.id;
 
-    if linked_outcome_count <> 1 then
+    if linked_outcome_count = 1 then
+      select aio.outcome_id into resolved_outcome_id
+      from public.assessment_item_outcomes aio
+      where aio.assessment_item_id = item.id
+      limit 1;
+    else
       resolved_outcome_id := null;
     end if;
   end if;
