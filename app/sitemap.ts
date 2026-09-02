@@ -3,7 +3,7 @@ import { getSupabaseServerClient } from '@/lib/supabaseServer'
 import { listKnowledgeArticles } from '@/lib/educationKnowledge'
 import { isPublicBlogReady } from '@/lib/blogContent'
 
-const SITE_URL = 'https://www.vibeschool.co.ke'
+const SITE_URL = 'https://vibeschool.co.ke'
 
 export const revalidate = 3600
 
