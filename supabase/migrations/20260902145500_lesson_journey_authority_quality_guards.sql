@@ -137,3 +137,26 @@ before insert or update of
 on public.scheme_of_work
 for each row
 execute function public.guard_curriculum_scheme_instructional_completeness();
+
+-- The SOW calendar resolvers are authenticated teacher/admin APIs. Their
+-- bodies already fail closed on auth.uid() and school membership, but simply
+-- GRANTing authenticated did not remove PostgreSQL's default PUBLIC execute
+-- privilege. Revoke PUBLIC/anon explicitly so the transport boundary matches
+-- the function's authorization contract.
+revoke execute on function public.resolve_academic_term_for_date(uuid,date)
+  from public, anon;
+revoke execute on function public.resolve_instructional_week_for_date(uuid,date)
+  from public, anon;
+revoke execute on function public.resolve_subject_weekly_allocation(uuid,uuid)
+  from public, anon;
+revoke execute on function public.commit_custom_scheme_item(uuid,uuid,uuid,integer,text,text,uuid,text)
+  from public, anon;
+
+grant execute on function public.resolve_academic_term_for_date(uuid,date)
+  to authenticated;
+grant execute on function public.resolve_instructional_week_for_date(uuid,date)
+  to authenticated;
+grant execute on function public.resolve_subject_weekly_allocation(uuid,uuid)
+  to authenticated;
+grant execute on function public.commit_custom_scheme_item(uuid,uuid,uuid,integer,text,text,uuid,text)
+  to authenticated;
