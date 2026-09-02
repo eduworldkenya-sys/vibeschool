@@ -2,13 +2,15 @@ import fs from 'node:fs'
 
 function read(path){return fs.readFileSync(path,'utf8')}
 function requireText(text,needle,label){if(!text.includes(needle))throw new Error(`${label}: missing ${needle}`)}
-function forbidText(text,needle,label){if(text.includes(needle))throw new Error(`${label}: prohibited ${needle}`)}
+function forbidText(text,needle,label){if(text.includes(needle))throw new Error(`${label}: prohibited escape hatch`)}
 
 const model=read('lib/learner-intelligence/progress-record.ts')
 const learner=read('app/teacher/classhub/[id]/student/[studentId]/progress/page.tsx')
 const klass=read('app/teacher/classhub/[id]/progress/page.tsx')
 const hub=read('app/teacher/classhub/page.tsx')
 const lessonProgress=read('app/teacher/progress/page.tsx')
+const unsafeAny=['as','any'].join(' ')
+const unsafeUnknown=['as','unknown'].join(' ')
 
 requireText(model,"'EE' | 'ME' | 'AE' | 'BE' | 'NE'",'professional performance bands')
 requireText(model,'buildOutcomeProgress','outcome projection')
@@ -42,7 +44,9 @@ requireText(lessonProgress,'Prefilled for you.','teacher confirmation UX')
 requireText(lessonProgress,'Participation, challenges and reflection stay blank','no invented post-lesson judgement')
 requireText(lessonProgress,'Confirm & save progress','low-friction confirmation action')
 
-forbidText(klass,'as any','class progress escape hatch')
-forbidText(learner,'as any','learner progress escape hatch')
+for(const [source,label] of [[klass,'class progress'],[learner,'learner progress'],[lessonProgress,'lesson progress']]){
+  forbidText(source,unsafeAny,label)
+  forbidText(source,unsafeUnknown,label)
+}
 
 console.log('student progress record contract: PASS')
