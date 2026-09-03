@@ -3,6 +3,13 @@ import type { Json } from '@/lib/database.types'
 import type { LessonContext } from '@/lib/teaching/lessonContext'
 import type { LessonSourceSuggestion } from '@/lib/teaching/lessonSource'
 
+export type LessonResourceAuthority =
+  | 'curriculum_only'
+  | 'resource_candidate'
+  | 'resource_verified'
+  | 'resource_certified'
+  | 'resource_unavailable'
+
 export interface CertifiedLessonContentAsset {
   resourceId: string
   resourceVersionId: string
@@ -29,14 +36,20 @@ export interface CanonicalLessonSourceBundle {
     schoolId: string
     grade: string | null
     studentCount: number
-    previousTopics: string[]
+    previousLesson: {
+      lessonPlanId: string
+      topic: string
+      occurrenceDate: string
+    } | null
   }
   scheme: LessonSourceSuggestion | null
+  resourceAuthority: LessonResourceAuthority
   certifiedContent: CertifiedLessonContentAsset[]
   provenance: {
     schemeId: string | null
     curriculumId: string | null
     subStrandId: string | null
+    candidateResourceIds: string[]
     resourceIds: string[]
     resourceVersionIds: string[]
   }
@@ -49,9 +62,10 @@ interface ResourceCandidate {
   purpose: string | null
 }
 
-interface CertifiedVersionRow {
+interface ResourceVersionRow {
   id: string
   resource_id: string
+  lifecycle_status: string
   payload: Json
   content_sha256: string
   certification_policy_version: string | null
@@ -105,7 +119,7 @@ async function loadExplicitSchemeResources(
       resource.resource_id
         ? [{
             id: resource.resource_id,
-            title: resource.title ?? 'Certified learning resource',
+            title: resource.title ?? 'VibeSchool learning resource',
             asset_kind: resource.asset_kind ?? null,
             purpose: resource.purpose ?? null,
           }]
@@ -165,10 +179,24 @@ async function loadCurriculumResourceCandidates(
     .filter(isTeachingContentCandidate)
 }
 
-async function loadCertifiedVersions(
+function authorityRank(status: string): number {
+  switch (status) {
+    case 'certified': return 3
+    case 'verified': return 2
+    case 'candidate': return 1
+    default: return 0
+  }
+}
+
+async function loadResourceAuthority(
   candidates: ResourceCandidate[],
-): Promise<CertifiedLessonContentAsset[]> {
-  if (candidates.length === 0) return []
+): Promise<{
+  authority: LessonResourceAuthority
+  certifiedContent: CertifiedLessonContentAsset[]
+}> {
+  if (candidates.length === 0) {
+    return { authority: 'curriculum_only', certifiedContent: [] }
+  }
 
   const candidateById = new Map(
     candidates.map(candidate => [candidate.id, candidate]),
@@ -177,14 +205,20 @@ async function loadCertifiedVersions(
   const { data, error } = await supabase
     .from('learning_resource_versions')
     .select(
-      'id, resource_id, payload, content_sha256, certification_policy_version, certified_at',
+      'id, resource_id, lifecycle_status, payload, content_sha256, certification_policy_version, certified_at',
     )
     .in('resource_id', candidates.map(candidate => candidate.id))
-    .eq('lifecycle_status', 'certified')
 
   if (error) throw error
 
-  return ((data ?? []) as CertifiedVersionRow[]).flatMap(version => {
+  const versions = (data ?? []) as ResourceVersionRow[]
+  let highestRank = 0
+  for (const version of versions) {
+    highestRank = Math.max(highestRank, authorityRank(version.lifecycle_status))
+  }
+
+  const certifiedContent = versions.flatMap(version => {
+    if (version.lifecycle_status !== 'certified') return []
     const resource = candidateById.get(version.resource_id)
     if (
       !resource ||
@@ -206,6 +240,18 @@ async function loadCertifiedVersions(
       certifiedAt: version.certified_at,
     }]
   })
+
+  if (certifiedContent.length > 0) {
+    return { authority: 'resource_certified', certifiedContent }
+  }
+  if (highestRank >= 2) {
+    return { authority: 'resource_verified', certifiedContent: [] }
+  }
+  if (highestRank >= 1) {
+    return { authority: 'resource_candidate', certifiedContent: [] }
+  }
+
+  return { authority: 'resource_unavailable', certifiedContent: [] }
 }
 
 export async function buildCanonicalLessonSourceBundle({
@@ -241,7 +287,10 @@ export async function buildCanonicalLessonSourceBundle({
     ...curriculumResources,
   ])
 
-  const certifiedContent = await loadCertifiedVersions(candidates)
+  const {
+    authority: resourceAuthority,
+    certifiedContent,
+  } = await loadResourceAuthority(candidates)
 
   return {
     timetableOccurrence: {
@@ -257,14 +306,16 @@ export async function buildCanonicalLessonSourceBundle({
       schoolId: context.schoolId,
       grade: context.grade,
       studentCount: context.studentCount,
-      previousTopics: context.previousTopics,
+      previousLesson: context.previousLesson ?? null,
     },
     scheme: source,
+    resourceAuthority,
     certifiedContent,
     provenance: {
       schemeId: source?.schemeId ?? null,
       curriculumId: source?.id ?? null,
       subStrandId: source?.strandId ?? null,
+      candidateResourceIds: candidates.map(candidate => candidate.id),
       resourceIds: certifiedContent.map(asset => asset.resourceId),
       resourceVersionIds: certifiedContent.map(asset => asset.resourceVersionId),
     },

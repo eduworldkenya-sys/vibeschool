@@ -20,6 +20,7 @@ export interface ExistingLessonPlan {
   curriculum_id: string | null
   strand_id: string | null
   scheme_id: string | null
+  previous_lesson_plan_id: string | null
 }
 
 export interface SaveGeneratedLessonPlanInput {
@@ -41,6 +42,12 @@ export interface SaveGeneratedLessonPlanInput {
     curriculum_id: string | null
     strand_id: string | null
     scheme_id: string | null
+    /**
+     * Optional only during the migration window for older consumers. When the
+     * caller omits it, persistence derives the exact predecessor from the last
+     * completed teaching occurrence. A supplied value is still verified.
+     */
+    previous_lesson_plan_id?: string | null
   }
   expectedIdentity: LessonPlanSourceIdentity
 }
@@ -50,6 +57,47 @@ export interface SavedLessonPlanIdentity {
   curriculum_id: string | null
   strand_id: string | null
   scheme_id: string | null
+}
+
+type SavePayload = SaveGeneratedLessonPlanInput['payload']
+
+async function resolvePreviousCompletedLessonPlanId(
+  payload: SavePayload,
+): Promise<string | null> {
+  if (!payload.school_id) return null
+
+  const { data: occurrence, error: occurrenceError } = await supabase
+    .from('teaching_occurrences')
+    .select('timetable_slot_id,occurrence_date,completed_at')
+    .eq('teacher_id', payload.teacher_id)
+    .eq('school_id', payload.school_id)
+    .eq('class_id', payload.class_id)
+    .eq('subject_id', payload.subject_id)
+    .eq('lifecycle', 'completed')
+    .lt('occurrence_date', payload.taught_date)
+    .order('occurrence_date', { ascending: false })
+    .order('completed_at', { ascending: false, nullsFirst: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (occurrenceError) throw occurrenceError
+  if (!occurrence?.timetable_slot_id || !occurrence.occurrence_date) {
+    return null
+  }
+
+  const { data: previousPlan, error: previousPlanError } = await supabase
+    .from('lesson_plans')
+    .select('id')
+    .eq('teacher_id', payload.teacher_id)
+    .eq('school_id', payload.school_id)
+    .eq('class_id', payload.class_id)
+    .eq('subject_id', payload.subject_id)
+    .eq('timetable_slot_id', occurrence.timetable_slot_id)
+    .eq('taught_date', occurrence.occurrence_date)
+    .maybeSingle()
+
+  if (previousPlanError) throw previousPlanError
+  return previousPlan?.id ?? null
 }
 
 /**
@@ -70,7 +118,7 @@ export async function loadLessonPlanForOccurrence({
   const { data, error } = await supabase
     .from('lesson_plans')
     .select(
-      'id, title, body, topic, status, curriculum_id, strand_id, scheme_id',
+      'id, title, body, topic, status, curriculum_id, strand_id, scheme_id, previous_lesson_plan_id',
     )
     .eq('teacher_id', teacherId)
     .eq('timetable_slot_id', timetableSlotId)
@@ -85,28 +133,45 @@ export async function loadLessonPlanForOccurrence({
 }
 
 /**
- * Inserts or updates a generated plan and verifies the database-returned
- * curriculum identity before reporting success.
+ * Inserts or updates a generated plan and verifies both the educational source
+ * identity and the previous-completed-lesson lineage before reporting success.
  */
 export async function saveGeneratedLessonPlan({
   planId,
   payload,
   expectedIdentity,
 }: SaveGeneratedLessonPlanInput): Promise<SavedLessonPlanIdentity> {
+  const authoritativePreviousPlanId =
+    await resolvePreviousCompletedLessonPlanId(payload)
+
+  if (
+    payload.previous_lesson_plan_id !== undefined &&
+    payload.previous_lesson_plan_id !== authoritativePreviousPlanId
+  ) {
+    throw new Error(
+      'lessonRepository: previous lesson lineage did not match completed teaching history.',
+    )
+  }
+
+  const normalizedPayload = {
+    ...payload,
+    previous_lesson_plan_id: authoritativePreviousPlanId,
+  }
+
   const writeResult = planId
     ? await supabase
         .from('lesson_plans')
-        .update(payload)
+        .update(normalizedPayload)
         .eq('id', planId)
         .select(
-          'id, curriculum_id, strand_id, scheme_id',
+          'id, curriculum_id, strand_id, scheme_id, previous_lesson_plan_id',
         )
         .single()
     : await supabase
         .from('lesson_plans')
-        .insert(payload)
+        .insert(normalizedPayload)
         .select(
-          'id, curriculum_id, strand_id, scheme_id',
+          'id, curriculum_id, strand_id, scheme_id, previous_lesson_plan_id',
         )
         .single()
 
@@ -133,6 +198,15 @@ export async function saveGeneratedLessonPlan({
   if (!identityMatches) {
     throw new Error(
       'lessonRepository: saved curriculum identity did not match the selected source.',
+    )
+  }
+
+  if (
+    (saved.previous_lesson_plan_id ?? null) !==
+    authoritativePreviousPlanId
+  ) {
+    throw new Error(
+      'lessonRepository: saved previous lesson lineage did not match completed teaching history.',
     )
   }
 

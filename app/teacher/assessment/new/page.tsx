@@ -31,14 +31,59 @@ function section(body: string, name: string): string { return body.match(new Reg
 function objectiveTexts(body: string): string[] { return section(body, 'objectives').split('\n').map(value => value.replace(/^\s*\d+[.)]\s*/, '').trim()).filter(Boolean) }
 function question(prompt: string, marks: number, bloomLevel: string, difficulty: 'easy' | 'medium' | 'hard', outcomes: string[]): DraftQuestion { return { prompt, marks, questionType: 'structured', autoMarkingMode: 'none', difficulty, bloomLevel, outcomeTexts: outcomes } }
 
+function outcomePrompt(outcome: string, mode: 'explain' | 'apply' | 'evidence' | 'justify'): string {
+  switch (mode) {
+    case 'explain':
+      return `Explain in your own words what you learned for this outcome, then give one accurate example: ${outcome}`
+    case 'apply':
+      return `Apply this taught outcome to a new example or situation. Show the steps, evidence or reasoning you used: ${outcome}`
+    case 'evidence':
+      return `Give one clear piece of evidence, example or worked response that demonstrates mastery of this taught outcome: ${outcome}`
+    case 'justify':
+      return `Respond to this taught outcome, then justify why your response is correct using lesson evidence or reasoning: ${outcome}`
+  }
+}
+
 function questionsFor(type: StudioType, body: string): DraftQuestion[] {
   const outcomes = objectiveTexts(body)
   if (!outcomes.length || type === 'test') return []
-  if (type === 'exercise') return outcomes.map((outcome, index) => question(`${outcome} Use relevant lesson evidence or an example where appropriate.`, index === 0 ? 2 : 4, index === 0 ? 'understand' : 'apply', index === 0 ? 'easy' : 'medium', [outcome]))
-  if (type === 'quiz') return outcomes.slice(0, 3).map((outcome, index) => question(outcome, index === 0 ? 2 : 3, index === 0 ? 'remember' : 'understand', index === 0 ? 'easy' : 'medium', [outcome]))
+
+  if (type === 'exercise') {
+    return outcomes.map((outcome, index) => {
+      const cycle: Array<'explain' | 'apply' | 'justify'> = ['explain', 'apply', 'justify']
+      const mode = cycle[index % cycle.length]
+      return question(
+        outcomePrompt(outcome, mode),
+        mode === 'explain' ? 2 : 4,
+        mode === 'explain' ? 'understand' : mode === 'apply' ? 'apply' : 'analyse',
+        mode === 'explain' ? 'easy' : 'medium',
+        [outcome],
+      )
+    })
+  }
+
+  if (type === 'quiz') {
+    const cycle: Array<'explain' | 'apply' | 'evidence'> = ['explain', 'apply', 'evidence']
+    return outcomes.slice(0, 3).map((outcome, index) => {
+      const mode = cycle[index]
+      return question(
+        outcomePrompt(outcome, mode),
+        index === 0 ? 2 : 3,
+        index === 0 ? 'understand' : 'apply',
+        index === 0 ? 'easy' : 'medium',
+        [outcome],
+      )
+    })
+  }
+
   const homework = section(body, 'homework')
-  if (!homework || /no certified homework task|do not invent/i.test(homework)) return []
-  return [question(homework, 10, 'apply', 'medium', outcomes), question(`Apply this taught outcome in a new context: ${outcomes[0]}`, 5, 'create', 'hard', [outcomes[0]])]
+  // Keep this exact contract expression stable: it is the fail-closed release
+  // guard for legacy lesson bodies. The second check covers the newer wording.
+  if (!homework || /no certified homework task|do not invent/i.test(homework) || /no homework task is attached/i.test(homework)) return []
+  return [
+    question(homework, 10, 'apply', 'medium', outcomes),
+    question(outcomePrompt(outcomes[0], 'justify'), 5, 'analyse', 'hard', [outcomes[0]]),
+  ]
 }
 
 function record(value: unknown, label: string): Record<string, unknown> {
@@ -99,8 +144,8 @@ function Studio() {
     setSaving(true); setError(''); let assessmentId: string | null = null
     try {
       const outcomeRefs = await resolveOutcomeRefs(lessonPlanId, questions.flatMap(item => item.outcomeTexts))
-      const metadata = { generator_version: 'curriculum-outcome-assessment-v4', ai_used: false, source: 'authoritative_lesson_body', authority: 'linked_scheme_curriculum_learning_outcomes', blueprint: { question_count: questions.length, estimated_minutes: SPEC[type].minutes, outcome_count: outcomeRefs.length, difficulty_progression: questions.map(item => item.difficulty), bloom_distribution: questions.map(item => item.bloomLevel) } }
-      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_grounded_lesson_assessment', { p_lesson_plan_id: lessonPlanId, p_assessment_type: type, p_request_key: `lesson:${lessonPlanId}:${type}:v4`, p_title: `${LABEL[type]} — lesson outcomes`, p_generation_metadata: metadata })
+      const metadata = { generator_version: 'curriculum-outcome-assessment-v4', question_blueprint_version: 'lesson-quality-v2', ai_used: false, source: 'authoritative_lesson_body', authority: 'linked_scheme_curriculum_learning_outcomes', blueprint: { question_count: questions.length, estimated_minutes: SPEC[type].minutes, outcome_count: outcomeRefs.length, difficulty_progression: questions.map(item => item.difficulty), bloom_distribution: questions.map(item => item.bloomLevel) } }
+      const { data, error: prepareError } = await rpc<unknown>('exq_prepare_grounded_lesson_assessment', { p_lesson_plan_id: lessonPlanId, p_assessment_type: type, p_request_key: `lesson:${lessonPlanId}:${type}:v4:quality2`, p_title: `${LABEL[type]} — lesson outcomes`, p_generation_metadata: metadata })
       if (prepareError) throw new Error(prepareError.message ?? 'Assessment preparation failed.')
       const prepared = record(data, 'Grounded assessment preparation')
       if (typeof prepared.assessment_id !== 'string') throw new Error('Grounded assessment preparation did not return an assessment ID.')

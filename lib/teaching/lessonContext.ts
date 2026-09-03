@@ -6,11 +6,30 @@ export interface LessonContextStudent {
   profile_id: string | null
 }
 
+export interface PreviousCompletedLesson {
+  lessonPlanId: string
+  topic: string
+  occurrenceDate: string
+}
+
 export interface LessonContext {
   teacherName: string
   schoolName: string
   schoolId: string
   studentCount: number
+  /**
+   * Canonical predecessor. Optional only so the legacy modal's pre-load state
+   * can exist before `loadLessonContext` resolves; every loaded context always
+   * supplies this field explicitly (including null when there is no completed
+   * predecessor).
+   */
+  previousLesson?: PreviousCompletedLesson | null
+  /**
+   * Compatibility view for older lesson-workspace consumers. This is never a
+   * query of recent lesson-plan drafts: it is derived only from
+   * `previousLesson`, whose authority is the last completed teaching
+   * occurrence for the same teacher/class/subject.
+   */
   previousTopics: string[]
   students: LessonContextStudent[]
   grade: string | null
@@ -20,12 +39,37 @@ export interface LoadLessonContextInput {
   userId: string
   classId: string
   subjectId: string
+  occurrenceDate: string
+}
+
+type EnrollmentLearner = {
+  id: string
+  name: string
+  profile_id: string | null
+  deleted_at: string | null
+}
+
+type EnrollmentRow = {
+  student_id: string
+  students: EnrollmentLearner | EnrollmentLearner[] | null
+}
+
+function singleEnrollmentLearner(
+  value: EnrollmentRow['students'],
+): EnrollmentLearner | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value
 }
 
 /**
  * Loads the exact teacher → school → class → subject → learner context for one
  * lesson. The teaching assignment is the school authority; neither a stale
  * profile school pointer nor students.class_id may decide lesson identity.
+ *
+ * "Previous lesson" has one canonical meaning here: the latest COMPLETED
+ * teaching occurrence strictly before the occurrence currently being opened,
+ * for the same teacher + school + class + subject, with its persisted lesson
+ * plan. Recently-created drafts are never treated as teaching history.
  *
  * Opening a valid lesson also activates that exact authorized school through
  * the guarded context RPC. This keeps older teacher consumers that still read
@@ -36,6 +80,7 @@ export async function loadLessonContext({
   userId,
   classId,
   subjectId,
+  occurrenceDate,
 }: LoadLessonContextInput): Promise<LessonContext> {
   const [profileResult, assignmentResult, classResult] = await Promise.all([
     supabase
@@ -63,6 +108,9 @@ export async function loadLessonContext({
   if (!assignmentResult.data?.school_id) {
     throw new Error('lesson_context_assignment_not_authorized')
   }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(occurrenceDate)) {
+    throw new Error('lesson_context_occurrence_date_required')
+  }
 
   const schoolId = assignmentResult.data.school_id
   if (classResult.data.school_id !== schoolId) {
@@ -75,38 +123,73 @@ export async function loadLessonContext({
   )
   if (activateError) throw activateError
 
-  const [schoolResult, enrollmentResult, previousResult] = await Promise.all([
-    supabase
-      .from('schools')
-      .select('name')
-      .eq('id', schoolId)
-      .single(),
-    supabase
-      .from('student_classes')
-      .select('student_id,students(id,name,profile_id,deleted_at)')
-      .eq('school_id', schoolId)
-      .eq('class_id', classId)
-      .eq('is_current', true),
-    supabase
+  const [schoolResult, enrollmentResult, previousOccurrenceResult] =
+    await Promise.all([
+      supabase
+        .from('schools')
+        .select('name')
+        .eq('id', schoolId)
+        .single(),
+      supabase
+        .from('student_classes')
+        .select('student_id,students(id,name,profile_id,deleted_at)')
+        .eq('school_id', schoolId)
+        .eq('class_id', classId)
+        .eq('is_current', true),
+      supabase
+        .from('teaching_occurrences')
+        .select('timetable_slot_id,occurrence_date,completed_at')
+        .eq('teacher_id', userId)
+        .eq('school_id', schoolId)
+        .eq('class_id', classId)
+        .eq('subject_id', subjectId)
+        .eq('lifecycle', 'completed')
+        .lt('occurrence_date', occurrenceDate)
+        .order('occurrence_date', { ascending: false })
+        .order('completed_at', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
+
+  if (schoolResult.error) throw schoolResult.error
+  if (enrollmentResult.error) throw enrollmentResult.error
+  if (previousOccurrenceResult.error) throw previousOccurrenceResult.error
+
+  let previousLesson: PreviousCompletedLesson | null = null
+  const previousOccurrence = previousOccurrenceResult.data
+  if (
+    previousOccurrence?.timetable_slot_id &&
+    previousOccurrence.occurrence_date
+  ) {
+    const { data: previousPlan, error: previousPlanError } = await supabase
       .from('lesson_plans')
-      .select('topic')
+      .select('id,topic')
       .eq('teacher_id', userId)
       .eq('school_id', schoolId)
       .eq('class_id', classId)
       .eq('subject_id', subjectId)
+      .eq('timetable_slot_id', previousOccurrence.timetable_slot_id)
+      .eq('taught_date', previousOccurrence.occurrence_date)
       .not('topic', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(5),
-  ])
+      .maybeSingle()
 
-  if (schoolResult.error) throw schoolResult.error
-  if (enrollmentResult.error) throw enrollmentResult.error
-  if (previousResult.error) throw previousResult.error
+    if (previousPlanError) throw previousPlanError
+
+    const previousTopic = previousPlan?.topic?.trim()
+    if (previousPlan?.id && previousTopic) {
+      previousLesson = {
+        lessonPlanId: previousPlan.id,
+        topic: previousTopic,
+        occurrenceDate: previousOccurrence.occurrence_date,
+      }
+    }
+  }
 
   const students: LessonContextStudent[] = []
   const seen = new Set<string>()
-  for (const row of enrollmentResult.data ?? []) {
-    const learner = (row as any).students
+  const enrollmentRows: EnrollmentRow[] = enrollmentResult.data ?? []
+  for (const row of enrollmentRows) {
+    const learner = singleEnrollmentLearner(row.students)
     if (!learner || learner.deleted_at || seen.has(learner.id)) continue
     seen.add(learner.id)
     students.push({
@@ -117,19 +200,13 @@ export async function loadLessonContext({
   }
   students.sort((a, b) => a.name.localeCompare(b.name))
 
-  const previousTopics = (previousResult.data ?? [])
-    .map(row => row.topic)
-    .filter(
-      (topic): topic is string =>
-        typeof topic === 'string' && topic.trim().length > 0,
-    )
-
   return {
     teacherName: profileResult.data.full_name ?? 'Teacher',
     schoolName: schoolResult.data?.name ?? 'the school',
     schoolId,
     studentCount: students.length,
-    previousTopics,
+    previousLesson,
+    previousTopics: previousLesson ? [previousLesson.topic] : [],
     students,
     grade: classResult.data?.name ?? null,
   }

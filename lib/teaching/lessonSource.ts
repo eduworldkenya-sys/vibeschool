@@ -11,6 +11,8 @@ import type {
   CurriculumSuggestion,
 } from '@/lib/types'
 
+export type LessonSourceCompleteness = 'complete' | 'partial' | 'missing'
+
 export interface LessonSourceSuggestion extends CurriculumSuggestion {
   objectives: string | null
   keyInquiryQuestion: string | null
@@ -22,6 +24,7 @@ export interface LessonSourceSuggestion extends CurriculumSuggestion {
   lessonNumber: number | null
   period: number | null
   sequenceNumber: number | null
+  completeness: LessonSourceCompleteness
 }
 
 export interface ResolveLessonSourceInput {
@@ -90,11 +93,60 @@ const SCHEME_SOURCE_COLUMNS = [
   'sequence_number',
 ].join(',')
 
+const LEGACY_RESOURCE_PROVENANCE_ONLY = [
+  /^published\s+vibeschool\s+chapter\s+linked\.?$/i,
+  /^vibeschool\s+published\s+chapter\.?$/i,
+  /^published\s+chapter\s+linked\.?$/i,
+]
+
+export function normalizeSchemeLearningResources(
+  value: string | null | undefined,
+): string | null {
+  const normalized = value?.trim() ?? ''
+  if (!normalized) return null
+  if (LEGACY_RESOURCE_PROVENANCE_ONLY.some(pattern => pattern.test(normalized))) {
+    return null
+  }
+  return normalized
+}
+
+function meaningful(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.trim().length > 0
+}
+
+/**
+ * Completeness is derived from the actual instructional fields rather than a
+ * legacy status label or resource marketing string. A published/candidate
+ * chapter can never turn an otherwise incomplete Scheme row into "complete".
+ */
+export function lessonSourceCompleteness(
+  source: Pick<
+    LessonSourceSuggestion,
+    | 'objectives'
+    | 'keyInquiryQuestion'
+    | 'learningResources'
+    | 'learningExperiences'
+    | 'assessmentMethods'
+  >,
+): LessonSourceCompleteness {
+  const fields = [
+    source.objectives,
+    source.keyInquiryQuestion,
+    normalizeSchemeLearningResources(source.learningResources),
+    source.learningExperiences,
+    source.assessmentMethods,
+  ]
+  const populated = fields.filter(meaningful).length
+  if (populated === fields.length) return 'complete'
+  if (populated > 0) return 'partial'
+  return 'missing'
+}
+
 function toSuggestion(
   row: SchemeSourceRow,
   termNumber: number,
 ): LessonSourceSuggestion {
-  return {
+  const suggestion: LessonSourceSuggestion = {
     id: row.curriculum_id,
     strand: row.strand ?? '',
     subStrand: row.sub_strand ?? '',
@@ -105,7 +157,7 @@ function toSuggestion(
     schemeId: row.id,
     objectives: row.objectives ?? null,
     keyInquiryQuestion: row.key_inquiry_question ?? null,
-    learningResources: row.learning_resources ?? null,
+    learningResources: normalizeSchemeLearningResources(row.learning_resources),
     resources: row.resources ?? null,
     reference: row.reference ?? null,
     learningExperiences: row.learning_experiences ?? null,
@@ -113,7 +165,10 @@ function toSuggestion(
     lessonNumber: row.lesson_number ?? null,
     period: row.period ?? null,
     sequenceNumber: row.sequence_number ?? null,
+    completeness: 'missing',
   }
+  suggestion.completeness = lessonSourceCompleteness(suggestion)
+  return suggestion
 }
 
 function isSchemeSourceRow(value: object | null): value is SchemeSourceRow {
@@ -438,5 +493,6 @@ export async function resolveLessonSource({
     lessonNumber: null,
     period: null,
     sequenceNumber: null,
+    completeness: 'missing',
   }
 }

@@ -50,10 +50,15 @@ require(canonical, 'Expected answer', 'canonical answers')
 require(canonical, 'Misconceptions to watch', 'canonical misconceptions')
 require(canonical, 'Teacher actions: View · Edit · Assign · Share.', 'preloaded material actions')
 
-# Exact Scheme resource boundary and certified content authority.
+# Exact Scheme resource boundary and certified content authority. The resolver
+# intentionally loads the exact linked version before classifying it so the UI
+# can distinguish candidate/verified/certified/unavailable truth. Canonical
+# generation still fails closed unless that exact version is certified.
 require(source_bundle, 'if (source?.schemeId)', 'exact Scheme boundary')
 require(source_bundle, 'loadExplicitSchemeResources(source.schemeId)', 'exact Scheme resources')
-require(source_bundle, ".eq('lifecycle_status', 'certified')", 'certified resource version')
+require(source_bundle, 'resourceVersionLifecycle', 'exact resource lifecycle')
+require(source_bundle, "resourceVersionLifecycle !== 'certified'", 'certified resource version')
+require(source_bundle, "authorityState === 'resource_certified'", 'certified resource authority')
 require(source_bundle, '!version.certification_policy_version', 'resource certification policy')
 require(source_bundle, '!version.certified_at', 'resource certification timestamp')
 
