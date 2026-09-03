@@ -32,6 +32,7 @@ lifecycle_code = executable_text(lifecycle)
 attendance = text('lib/teaching/lessonAttendance.ts')
 coverage = text('components/teacher/CoverageSheet.tsx')
 coverage_code = executable_text(coverage)
+evidence = text('components/teacher/EvidenceCaptureSheet.tsx')
 source_bundle = text('lib/teaching/lessonSourceBundle.ts')
 delivery = text('lib/teaching/lessonDelivery.ts')
 
@@ -90,6 +91,20 @@ require(attendance, ".eq('date', occurrenceDate)", 'attendance exact date')
 require(attendance, 'expectedStudentCount > 0', 'attendance non-empty roster completion')
 require(attendance, 'recordedStudentCount === expectedStudentCount', 'attendance full roster completion')
 forbid(attendance, '(attendanceResult.count ?? 0) > 0', 'partial attendance cannot mean complete')
+
+# Evidence capture is a light sheet rendered inside a globally dark application.
+# Never rely on inherited body text color for white form controls: teachers must
+# be able to read persisted/default titles such as "Locate and investigate"
+# without selecting the text first.
+require(evidence, 'colorScheme: "light"', 'evidence light form color scheme')
+require(evidence, 'color: "#111827"', 'evidence readable foreground')
+require(evidence, 'caretColor: "#111827"', 'evidence visible caret')
+for field in (
+    'placeholder="e.g. Group experiment on plant growth"',
+    'placeholder="What did you observe?"',
+    'placeholder="e.g. 8"',
+):
+    require(evidence, field, f'evidence visible field {field}')
 
 # Consequence boundary — weak/placeholder plans may be saved for teacher review,
 # but they cannot be published or shared downstream as if teaching-ready.
