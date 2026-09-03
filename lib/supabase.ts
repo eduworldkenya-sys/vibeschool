@@ -89,9 +89,13 @@ export async function getTeacherProfile(userId: string) {
     .single()
   if (profileErr) { console.error('getTeacherProfile error:', profileErr); return null }
 
+  const joinedSchool = Array.isArray(profile?.schools)
+    ? profile.schools[0] ?? null
+    : profile?.schools ?? null
+
   return {
     name:   profile?.full_name ?? '',
-    school: (profile?.schools as unknown as { name: string } | null)?.name ?? '',
+    school: joinedSchool?.name ?? '',
     phone:  profile?.phone ?? '',
   }
 }
