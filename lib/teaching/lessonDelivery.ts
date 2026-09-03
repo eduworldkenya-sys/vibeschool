@@ -41,6 +41,8 @@ export interface ShareLessonToParentsInput {
 /**
  * Publishes the lesson and notifies linked learner profiles.
  * The lesson-plan repository remains the only lesson_plans write boundary.
+ * Notification identity is unique by learner + type + related lesson, making
+ * the consequence delivery safe to retry after a transient failure.
  */
 export async function publishLessonToStudents({
   lessonPlanId,
@@ -61,7 +63,7 @@ export async function publishLessonToStudents({
 
   const { error } = await supabase
     .from('notifications')
-    .insert(
+    .upsert(
       linkedStudents.map(student => ({
         school_id: schoolId || null,
         user_id: student.profile_id,
@@ -70,6 +72,10 @@ export async function publishLessonToStudents({
         type: 'lesson_plan',
         related_id: lessonPlanId,
       })),
+      {
+        onConflict: 'user_id,type,related_id',
+        ignoreDuplicates: true,
+      },
     )
 
   if (error) throw error
