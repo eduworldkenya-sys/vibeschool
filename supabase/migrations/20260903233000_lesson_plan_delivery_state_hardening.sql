@@ -30,9 +30,9 @@ comment on column public.lesson_plans.student_recipient_count is
 comment on column public.lesson_plans.parent_recipient_count is
   'Number of active learners with parent-message delivery rows in the most recent successful parent share.';
 
--- Do not permit a delivered lesson to be silently returned to draft through an
--- alternate caller. A later explicit revision workflow must model revision as
--- its own operation rather than erasing delivery history.
+-- Status-only rollback is forbidden. A genuine content revision is allowed to
+-- reopen the lesson as draft, but its prior delivery evidence becomes stale and
+-- is cleared so the revised content must be explicitly republished/re-shared.
 create or replace function public.lesson_plan_guard_delivery_transition()
 returns trigger
 language plpgsql
@@ -42,8 +42,17 @@ begin
   if tg_op = 'UPDATE'
      and new.status = 'draft'
      and old.status is distinct from 'draft' then
-    raise exception 'lesson_plan_delivery_cannot_return_to_draft';
+    if new.body is not distinct from old.body
+       and new.title is not distinct from old.title
+       and new.topic is not distinct from old.topic then
+      raise exception 'lesson_plan_delivery_status_only_draft_rollback_denied';
+    end if;
+
+    new.parent_shared_at := null;
+    new.student_recipient_count := 0;
+    new.parent_recipient_count := 0;
   end if;
+
   return new;
 end;
 $$;
