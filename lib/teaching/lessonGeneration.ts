@@ -7,6 +7,8 @@ import {
 } from '@/lib/teaching/lessonTiming'
 
 export interface GenerateLessonPlanInput {
+  // Retained for call-site compatibility while the deterministic fallback is
+  // provider-free. These identity/display fields are not curriculum authority.
   accessToken: string
   teacherName: string
   schoolName: string
@@ -36,9 +38,16 @@ function clean(value?: string | null): string {
 }
 
 function splitList(value?: string | null): string[] {
-  const normalized = clean(value)
-  if (!normalized) return []
-  return normalized.split(/\s*[|;]\s*|\n+/).map(clean).filter(Boolean)
+  const raw = value?.trim() ?? ''
+  if (!raw) return []
+
+  // Split before whitespace normalization so line-separated Scheme authority
+  // remains distinct. Collapsing newlines first turns multiple objectives or
+  // activities into one synthetic item and weakens downstream grounding.
+  return raw
+    .split(/\s*[|;]\s*|\n+/)
+    .map(clean)
+    .filter(Boolean)
 }
 
 function numbered(values: string[], fallback: string): string {
