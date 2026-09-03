@@ -85,7 +85,6 @@ function emptySourceDetails() {
   }
 }
 
-/** Restores persisted educational identity, then fills only blank fields from CBC authority. */
 async function restorePersistedLessonSource(
   existingPlan: ExistingLessonPlan,
 ): Promise<LessonSourceSuggestion | null> {
@@ -198,7 +197,12 @@ export async function loadLessonWorkspace({
   if (!user) return null
 
   const [context, existingPlan] = await Promise.all([
-    loadLessonContext({ userId: user.id, classId, subjectId }),
+    loadLessonContext({
+      userId: user.id,
+      classId,
+      subjectId,
+      occurrenceDate,
+    }),
     loadLessonPlanForOccurrence({
       teacherId: user.id,
       timetableSlotId,
