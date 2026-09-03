@@ -4,8 +4,8 @@
     "environment": "PRODUCTION",
     "project_ref": "yauqsxggtuxuykcbrtzf",
     "captured_at": "2026-08-03",
-    "target_updated_at": "2026-08-31",
-    "target_semantics": "Reviewed canonical post-migration structural target, reconciled against current production on 2026-08-31. Redundant legacy production-only timetable checks and the obsolete production-only enforce_timetable_context trigger are intentionally not promoted into migration history; production preflight must verify the forward delta before promotion.",
+    "target_updated_at": "2026-09-03",
+    "target_semantics": "Reviewed canonical post-migration structural target. The baseline was reconciled against production on 2026-08-31. PR #647 intentionally adds trg_bind_lesson_homework_on_occurrence_start so lesson-owned homework converges onto the exact teaching occurrence when teaching starts; that forward-only trigger is part of the reviewed post-migration target and is not expected on production before merge. Redundant legacy production-only timetable checks and the obsolete production-only enforce_timetable_context trigger remain intentionally excluded from migration history; production preflight must verify the forward delta before promotion.",
     "scope": [
       "school_periods",
       "teacher_classes",
@@ -42,7 +42,7 @@
       "columns_hash": "92b1f82577f37230be82d377f0c6522a",
       "constraints_hash": "81e1f877d89eb6639559fae3c0084bbd",
       "indexes_hash": "a34ee9aa568c8eda740da19391459458",
-      "triggers_hash": "9d2f6a3e4d8ae4dd8a641b5372cd5340"
+      "triggers_hash": "5efa98bf778e8fd1ebf960ca0b09d354"
     }
   }
 }
