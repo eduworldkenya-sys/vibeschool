@@ -5,11 +5,14 @@ on:
     paths:
       - 'components/teacher/LessonPlanModal.tsx'
       - 'components/teacher/LessonTeachMode.tsx'
+      - 'components/teacher/EvidenceCaptureSheet.tsx'
       - 'lib/teaching/**'
       - 'supabase/functions/generate-lesson-plan/**'
       - 'supabase/functions/generate-canonical-lesson-plan/**'
       - 'supabase/migrations/**lesson_package_cache.sql'
+      - 'supabase/migrations/**lesson_plan_spine*.sql'
       - 'scripts/test-lesson-system-release-contract.py'
+      - 'scripts/test-lesson-plan-spine-security-contract.py'
       - 'scripts/test-lesson-timing-contract.cjs'
       - '.github/workflows/lesson-system-release-gate.yml'
   push:
@@ -17,11 +20,14 @@ on:
     paths:
       - 'components/teacher/LessonPlanModal.tsx'
       - 'components/teacher/LessonTeachMode.tsx'
+      - 'components/teacher/EvidenceCaptureSheet.tsx'
       - 'lib/teaching/**'
       - 'supabase/functions/generate-lesson-plan/**'
       - 'supabase/functions/generate-canonical-lesson-plan/**'
       - 'supabase/migrations/**lesson_package_cache.sql'
+      - 'supabase/migrations/**lesson_plan_spine*.sql'
       - 'scripts/test-lesson-system-release-contract.py'
+      - 'scripts/test-lesson-plan-spine-security-contract.py'
       - 'scripts/test-lesson-timing-contract.cjs'
       - '.github/workflows/lesson-system-release-gate.yml'
 
@@ -43,6 +49,7 @@ jobs:
           prebuild_command: |
             npm run typecheck
             python scripts/test-lesson-system-release-contract.py
+            python scripts/test-lesson-plan-spine-security-contract.py
             npx tsc lib/teaching/lessonTiming.ts --target ES2020 --module commonjs --outDir /tmp/vibeschool-lesson-timing --skipLibCheck
             node scripts/test-lesson-timing-contract.cjs /tmp/vibeschool-lesson-timing/lessonTiming.js
             npm run lint
