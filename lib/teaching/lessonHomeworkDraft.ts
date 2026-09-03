@@ -81,8 +81,8 @@ export async function ensureLessonHomeworkDraft(input: EnsureLessonHomeworkDraft
     source_outcome_id: optionalId(input.sourceOutcomeId),
   }
 
-  // Provenance columns are live in production but may temporarily lead generated database.types.ts.
-  const insertResult = await (supabase.from('homework') as any)
+  const insertResult = await supabase
+    .from('homework')
     .insert(homeworkPayload)
     .select('id')
     .single()
