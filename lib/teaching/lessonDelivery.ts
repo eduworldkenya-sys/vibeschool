@@ -18,6 +18,9 @@ import type {
 import type {
   LessonContextStudent,
 } from '@/lib/teaching/lessonContext'
+import {
+  evaluateLessonReadiness,
+} from '@/lib/teaching/lessonReadiness'
 
 export interface PublishLessonToStudentsInput {
   lessonPlanId: string
@@ -38,6 +41,29 @@ export interface ShareLessonToParentsInput {
   sections: LessonPlanSections
 }
 
+async function assertLessonReadyForDelivery(
+  lessonPlanId: string,
+  expectedSchoolId: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('lesson_plans')
+    .select('id,school_id,body')
+    .eq('id', lessonPlanId)
+    .single()
+
+  if (error) throw error
+  if (!data || data.school_id !== expectedSchoolId) {
+    throw new Error('lesson_delivery_authority_mismatch')
+  }
+
+  const readiness = evaluateLessonReadiness(data.body ?? '')
+  if (!readiness.ready) {
+    throw new Error(
+      `lesson_not_ready_for_delivery:${readiness.reasons.join(' | ')}`,
+    )
+  }
+}
+
 /**
  * Publishes the lesson and notifies linked learner profiles.
  * The lesson-plan repository remains the only lesson_plans write boundary.
@@ -52,6 +78,7 @@ export async function publishLessonToStudents({
   teacherName,
   students,
 }: PublishLessonToStudentsInput): Promise<void> {
+  await assertLessonReadyForDelivery(lessonPlanId, schoolId)
   await updateLessonPlanStatus({ lessonPlanId, status: 'published' })
 
   const linkedStudents = students.filter(
@@ -97,6 +124,8 @@ export async function shareLessonToParents({
   topic,
   sections,
 }: ShareLessonToParentsInput): Promise<void> {
+  await assertLessonReadyForDelivery(lessonPlanId, schoolId)
+
   if (sections.homework.trim() !== '') {
     const homeworkResult = await ensureLessonHomeworkDraft({
       lessonPlanId,
