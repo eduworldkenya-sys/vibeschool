@@ -149,10 +149,9 @@ begin
     raise exception 'lesson_evidence_occurrence_required';
   end if;
 
-  select *
-    into v_occ
-    from public.teaching_occurrences
-   where id = new.teaching_occurrence_id;
+  select * into v_occ
+  from public.teaching_occurrences
+  where id = new.teaching_occurrence_id;
 
   if not found then
     raise exception 'lesson_evidence_occurrence_not_found';
@@ -162,16 +161,15 @@ begin
     raise exception 'lesson_evidence_occurrence_not_teachable';
   end if;
 
-  select *
-    into v_plan
-    from public.lesson_plans
-   where id = new.lesson_id
-     and timetable_slot_id = v_occ.timetable_slot_id
-     and taught_date = v_occ.occurrence_date
-     and school_id = v_occ.school_id
-     and teacher_id = v_occ.teacher_id
-     and class_id = v_occ.class_id
-     and subject_id = v_occ.subject_id;
+  select * into v_plan
+  from public.lesson_plans
+  where id = new.lesson_id
+    and timetable_slot_id = v_occ.timetable_slot_id
+    and taught_date = v_occ.occurrence_date
+    and school_id = v_occ.school_id
+    and teacher_id = v_occ.teacher_id
+    and class_id = v_occ.class_id
+    and subject_id = v_occ.subject_id;
 
   if not found then
     raise exception 'lesson_evidence_plan_occurrence_mismatch';
@@ -188,12 +186,11 @@ begin
   new.class_id := v_occ.class_id;
 
   if new.student_id is not null and not exists (
-    select 1
-      from public.student_classes sc
-     where sc.student_id = new.student_id
-       and sc.school_id = v_occ.school_id
-       and sc.class_id = v_occ.class_id
-       and sc.is_current = true
+    select 1 from public.student_classes sc
+    where sc.student_id = new.student_id
+      and sc.school_id = v_occ.school_id
+      and sc.class_id = v_occ.class_id
+      and sc.is_current = true
   ) then
     raise exception 'lesson_evidence_student_not_enrolled';
   end if;
