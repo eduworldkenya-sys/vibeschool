@@ -16,12 +16,20 @@ def forbid(src: str, needle: str, label: str) -> None:
 
 baseline = text('lib/teaching/lessonGeneration.ts')
 canonical = text('lib/teaching/canonicalLessonGeneration.ts')
+source = text('lib/teaching/lessonSource.ts')
 source_bundle = text('lib/teaching/lessonSourceBundle.ts')
+workspace = text('lib/teaching/lessonWorkspace.ts')
+context = text('lib/teaching/lessonContext.ts')
+occurrence = text('lib/teaching/occurrence.ts')
+repository = text('lib/teaching/lessonRepository.ts')
+delivery = text('lib/teaching/lessonDelivery.ts')
 package_cache = text('lib/teaching/lessonPackageCache.ts')
 package_migration = text('supabase/migrations/20260831203000_lesson_package_cache.sql')
 legacy_ai = text('supabase/functions/generate-lesson-plan/index.ts')
 canonical_ai = text('supabase/functions/generate-canonical-lesson-plan/index.ts')
 modal = text('components/teacher/LessonPlanModal.tsx')
+reflection = text('components/teacher/ReflectionSheet.tsx')
+lesson_page = text('app/teacher/lessonplan/page.tsx')
 teach_mode = text('components/teacher/LessonTeachMode.tsx')
 
 # Scheme-only baseline remains deterministic and provider-free.
@@ -50,12 +58,62 @@ require(canonical, 'Expected answer', 'canonical answers')
 require(canonical, 'Misconceptions to watch', 'canonical misconceptions')
 require(canonical, 'Teacher actions: View · Edit · Assign · Share.', 'preloaded material actions')
 
+# Lesson source authority: Scheme values win, but blank pedagogical fields may
+# inherit only from the already-linked CBC sub-strand authority. Never invent.
+require(source, 'enrichLessonSourceFromCurriculum', 'curriculum source enrichment')
+require(source, ".from('cbc_strands')", 'CBC sub-strand authority')
+require(source, 'learning_outcomes,key_inquiry_questions,suggested_experiences,source_ref', 'CBC detail projection')
+require(source, 'meaningful(source.objectives) ?? authorityList(authority.learning_outcomes)', 'Scheme objectives win')
+require(source, 'meaningful(source.keyInquiryQuestion) ?? authorityList(authority.key_inquiry_questions)', 'Scheme inquiry wins')
+require(source, 'meaningful(source.learningExperiences) ?? authorityList(authority.suggested_experiences)', 'Scheme experiences win')
+
 # Exact Scheme resource boundary and certified content authority.
 require(source_bundle, 'if (source?.schemeId)', 'exact Scheme boundary')
 require(source_bundle, 'loadExplicitSchemeResources(source.schemeId)', 'exact Scheme resources')
 require(source_bundle, ".eq('lifecycle_status', 'certified')", 'certified resource version')
 require(source_bundle, '!version.certification_policy_version', 'resource certification policy')
 require(source_bundle, '!version.certified_at', 'resource certification timestamp')
+
+# Workspace/context truth is exact-occurrence scoped. “Previous” means a
+# completed lesson before the target date, and learners come from enrollment.
+require(workspace, 'occurrenceDate,', 'workspace occurrence date')
+require(workspace, 'loadLessonContext({', 'workspace context authority')
+require(context, 'occurrenceDate: string', 'context target occurrence')
+require(context, ".lt('occurrence_date', occurrenceDate)", 'previous lesson date boundary')
+require(context, ".from('student_classes')", 'canonical learner enrollment')
+forbid(context, ".from('lesson_plans')\n      .select('topic')", 'recent-plan previous lesson heuristic')
+
+# Occurrence projections use canonical enrollment and Nairobi wall-clock truth.
+require(occurrence, ".from('student_classes')", 'occurrence canonical enrollment')
+forbid(occurrence, ".from('students').select('id')", 'legacy attendance denominator')
+require(occurrence, "new Date(`${occurrenceDate}T${slotEndTime}+03:00`)", 'Nairobi missed lifecycle')
+
+# Persistence boundary revalidates auth + timetable assignment and never lets
+# a stale profile/client school pointer move an occurrence.
+require(repository, 'resolveWriteAuthority(payload)', 'lesson write authority')
+require(repository, ".from('timetable_slots')", 'timetable write source')
+require(repository, 'school_id: slot.school_id', 'slot school authority')
+require(repository, 'dayOfWeek === slot.day_of_week', 'occurrence weekday validation')
+require(repository, ".eq('teacher_id', slot.teacher_id)", 'owned update constraint')
+
+# Parent delivery prepares idempotent lesson-owned work before claiming shared
+# state, and due dates use Nairobi calendar arithmetic.
+require(delivery, 'nairobiDateAdd(nairobiDateStr(), 1)', 'Nairobi homework due date')
+homework_prepare = delivery.index('ensureLessonHomeworkDraft')
+parent_deliver = delivery.index('deliverLessonPlanToParents({')
+shared_status = delivery.index("status: 'shared_to_parents'")
+assert homework_prepare < parent_deliver < shared_status, 'delivery: drafts -> parent delivery -> shared status order required'
+
+# Exact completed occurrence continues into the authoritative Record of Progress.
+require(reflection, '/teacher/progress?occurrenceId=', 'reflection progress handoff')
+require(reflection, 'Save & record progress', 'teacher progress continuation')
+forbid(reflection, 'const ENGAGEMENT', 'non-persisted reflection engagement control')
+
+# Lesson-plan index cannot equate publication with teaching completion.
+require(lesson_page, 'Open Teaching Workspace', 'lesson page lifecycle entry')
+forbid(lesson_page, 'Mark as Taught', 'publication is not teaching completion')
+require(lesson_page, "teacher_get_operating_context", 'lesson page active-school authority')
+require(lesson_page, 'refreshNonce', 'parent/modal canonical refresh')
 
 # Exact assembled package cache. Teacher writes remain Scheme-scoped; global
 # reuse requires independent package certification and exact source bindings.
