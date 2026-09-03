@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabaseClient, supabase } from '@/lib/supabase'
 import type { OccurrenceKey, Lifecycle, TeachingOccurrence } from '@/lib/teaching/types'
 
 export type StartOccurrenceErrorCode =
@@ -287,27 +287,17 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
 
   const lessonPlanId = lessonPlanRes.data?.id ?? null
   const persistedOccurrence = occurrenceRes.data as { id: string; lifecycle: Lifecycle } | null
-
-  type ProgressRecordRead = {
-    data: { id: string; teacher_remarks: string | null; next_steps: string | null } | null
-    error: { message?: string } | null
-  }
-  type LiveProgressRecordQuery = {
-    select(columns: string): {
-      eq(column: 'teaching_occurrence_id' | 'lesson_plan_id', value: string): {
-        maybeSingle(): PromiseLike<ProgressRecordRead>
-      }
-    }
-  }
-  const progressRecords = supabase.from('progress_records') as unknown as LiveProgressRecordQuery
+  const typedSupabase = getSupabaseClient()
 
   const progressQuery = persistedOccurrence
-    ? progressRecords
+    ? typedSupabase
+        .from('progress_records')
         .select('id, teacher_remarks, next_steps')
         .eq('teaching_occurrence_id', persistedOccurrence.id)
         .maybeSingle()
     : lessonPlanId
-      ? progressRecords
+      ? typedSupabase
+          .from('progress_records')
           .select('id, teacher_remarks, next_steps')
           .eq('lesson_plan_id', lessonPlanId)
           .maybeSingle()
