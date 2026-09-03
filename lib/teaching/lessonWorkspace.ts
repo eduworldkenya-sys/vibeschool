@@ -6,6 +6,7 @@ import type {
   LessonContext,
 } from '@/lib/teaching/lessonContext'
 import {
+  enrichLessonSourceFromCurriculum,
   resolveLessonSource,
 } from '@/lib/teaching/lessonSource'
 import type {
@@ -84,10 +85,7 @@ function emptySourceDetails() {
   }
 }
 
-/**
- * Restores the educational identity persisted on an existing lesson plan.
- * Persisted scheme_id is authoritative over a newly resolved suggestion.
- */
+/** Restores persisted educational identity, then fills only blank fields from CBC authority. */
 async function restorePersistedLessonSource(
   existingPlan: ExistingLessonPlan,
 ): Promise<LessonSourceSuggestion | null> {
@@ -102,15 +100,14 @@ async function restorePersistedLessonSource(
 
     if (schemeError) throw schemeError
 
-    return {
+    return enrichLessonSourceFromCurriculum({
       id: schemeRow.curriculum_id ?? existingPlan.curriculum_id ?? null,
       strand: schemeRow.strand ?? '',
       subStrand: schemeRow.sub_strand ?? '',
       topic: schemeRow.topic,
       term: schemeRow.term,
       week: schemeRow.week,
-      strandId:
-        schemeRow.sub_strand_id ?? existingPlan.strand_id ?? null,
+      strandId: schemeRow.sub_strand_id ?? existingPlan.strand_id ?? null,
       schemeId: schemeRow.id,
       objectives: schemeRow.objectives ?? null,
       keyInquiryQuestion: schemeRow.key_inquiry_question ?? null,
@@ -122,32 +119,30 @@ async function restorePersistedLessonSource(
       lessonNumber: schemeRow.lesson_number ?? null,
       period: schemeRow.period ?? null,
       sequenceNumber: schemeRow.sequence_number ?? null,
-    }
+    })
   }
 
   if (existingPlan.curriculum_id) {
     const { data: curriculumRow, error: curriculumError } = await supabase
       .from('curriculum')
-      .select(
-        'id, sub_strand_id, strand, sub_strand, topic, week, term',
-      )
+      .select('id, sub_strand_id, strand, sub_strand, topic, week, term, reference')
       .eq('id', existingPlan.curriculum_id)
       .single()
 
     if (curriculumError) throw curriculumError
 
-    return {
+    return enrichLessonSourceFromCurriculum({
       id: curriculumRow.id,
       strand: curriculumRow.strand,
       subStrand: curriculumRow.sub_strand,
       topic: curriculumRow.topic,
       term: curriculumRow.term,
       week: curriculumRow.week,
-      strandId:
-        curriculumRow.sub_strand_id ?? existingPlan.strand_id ?? null,
+      strandId: curriculumRow.sub_strand_id ?? existingPlan.strand_id ?? null,
       schemeId: null,
       ...emptySourceDetails(),
-    }
+      reference: curriculumRow.reference ?? null,
+    })
   }
 
   return null
@@ -187,13 +182,6 @@ function buildCanonicalIdentity(
   }
 }
 
-/**
- * Loads all read-only state required to open one exact Lesson Workspace.
- *
- * Authority order is preserved as:
- * dated timetable occurrence -> Scheme -> certified VibeSchool content ->
- * class context. The bundle is read-only and never invents missing authority.
- */
 export async function loadLessonWorkspace({
   timetableSlotId,
   occurrenceDate,
@@ -203,20 +191,14 @@ export async function loadLessonWorkspace({
   requestedSchemeId = null,
 }: LoadLessonWorkspaceInput): Promise<LessonWorkspaceBootResult | null> {
   if (!occurrenceDate) {
-    throw new Error(
-      'lessonWorkspace: occurrenceDate is required.',
-    )
+    throw new Error('lessonWorkspace: occurrenceDate is required.')
   }
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
   const [context, existingPlan] = await Promise.all([
-    loadLessonContext({
-      userId: user.id,
-      classId,
-      subjectId,
-    }),
+    loadLessonContext({ userId: user.id, classId, subjectId }),
     loadLessonPlanForOccurrence({
       teacherId: user.id,
       timetableSlotId,
@@ -248,10 +230,7 @@ export async function loadLessonWorkspace({
           "Scheme connection needs attention. VibeSchool knows this scheduled class, but couldn't resolve its Scheme lesson. You can still create a custom lesson."
       }
     } catch (sourceResolutionError) {
-      console.error(
-        '[lessonWorkspace] lesson source resolution failed',
-        sourceResolutionError,
-      )
+      console.error('[lessonWorkspace] lesson source resolution failed', sourceResolutionError)
       sourceError =
         "Scheme connection needs attention. VibeSchool couldn't resolve the scheduled Scheme lesson. You can still create a custom lesson."
     }
@@ -259,19 +238,14 @@ export async function loadLessonWorkspace({
 
   if (existingPlan) {
     try {
-      const persistedSource =
-        await restorePersistedLessonSource(existingPlan)
-
+      const persistedSource = await restorePersistedLessonSource(existingPlan)
       if (persistedSource) {
         source = persistedSource
         sourceLinked = true
         sourceError = null
       }
     } catch (sourceResolutionError) {
-      console.error(
-        '[lessonWorkspace] persisted source restoration failed',
-        sourceResolutionError,
-      )
+      console.error('[lessonWorkspace] persisted source restoration failed', sourceResolutionError)
       sourceError =
         "Scheme connection needs attention. VibeSchool couldn't restore this plan's linked Scheme lesson."
     }
@@ -291,10 +265,7 @@ export async function loadLessonWorkspace({
       source,
     })
   } catch (bundleError) {
-    console.error(
-      '[lessonWorkspace] canonical source bundle failed',
-      bundleError,
-    )
+    console.error('[lessonWorkspace] canonical source bundle failed', bundleError)
     sourceBundleError =
       'Using the Scheme of Work baseline because certified VibeSchool teaching content could not be loaded for this lesson.'
     sourceError = sourceError ?? sourceBundleError
@@ -315,12 +286,8 @@ export async function loadLessonWorkspace({
       occurrenceDate,
     })
   } catch (workspaceError) {
-    console.error(
-      '[lessonWorkspace] occurrence load failed',
-      workspaceError,
-    )
-    occurrenceError =
-      'Could not load the lesson teaching state.'
+    console.error('[lessonWorkspace] occurrence load failed', workspaceError)
+    occurrenceError = 'Could not load the lesson teaching state.'
   }
 
   return {
