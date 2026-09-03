@@ -27,9 +27,11 @@ import {
   pinCanonicalLessonResource,
 } from '@/lib/teaching/canonicalLessonResource'
 import {
+  lessonDeliveryErrorMessage,
   publishLessonToStudents,
   shareLessonToParents,
 } from '@/lib/teaching/lessonDelivery'
+import { evaluateLessonReadiness } from '@/lib/teaching/lessonReadiness'
 import {
   loadLessonWorkspace,
 } from '@/lib/teaching/lessonWorkspace'
@@ -1211,7 +1213,7 @@ export default function LessonPlanModal({
     setBusy('publishing')
 
     try {
-      await publishLessonToStudents({
+      const result = await publishLessonToStudents({
         lessonPlanId: currentId,
         schoolId: ctx.schoolId,
         topic,
@@ -1221,13 +1223,18 @@ export default function LessonPlanModal({
       })
 
       setStatus('published')
-      showToast('Published to students ✓')
+      setError('')
+      showToast(
+        result.recipientCount > 0
+          ? `Published · ${result.recipientCount} learner${result.recipientCount === 1 ? '' : 's'} notified ✓`
+          : 'Published · no linked learner accounts to notify',
+      )
     } catch (err) {
       console.error(
         '[LessonPlanModal] publish',
         err,
       )
-      setError('Publish failed. Try again.')
+      setError(lessonDeliveryErrorMessage(err))
     } finally {
       setBusy('idle')
     }
@@ -1253,7 +1260,7 @@ export default function LessonPlanModal({
     setBusy('sharing')
 
     try {
-      await shareLessonToParents({
+      const result = await shareLessonToParents({
         lessonPlanId: currentId,
         classId: slot.class_id,
         teacherId,
@@ -1264,15 +1271,16 @@ export default function LessonPlanModal({
       })
 
       setStatus('shared_to_parents')
+      setError('')
       showToast(
-        'Shared to parents + lesson work synced ✓',
+        `Shared with ${result.recipientCount} parent recipient${result.recipientCount === 1 ? '' : 's'} · lesson work synced ✓`,
       )
     } catch (err) {
       console.error(
         '[LessonPlanModal] shareToParents',
         err,
       )
-      setError('Share failed. Try again.')
+      setError(lessonDeliveryErrorMessage(err))
     } finally {
       setBusy('idle')
     }
@@ -1401,6 +1409,10 @@ export default function LessonPlanModal({
   }
 
   const isbusy      = busy !== 'idle'
+  const deliveryReadiness = planId
+    ? evaluateLessonReadiness(serializeLessonPlanBody(sections))
+    : null
+  const deliveryReady = deliveryReadiness?.ready === true
   const statusBadge = STATUS_BADGE[status]
 
   return (
@@ -2049,6 +2061,26 @@ export default function LessonPlanModal({
 
               {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
 
+              {deliveryReadiness && !deliveryReadiness.ready && (
+                <div style={{
+                  marginBottom: 14,
+                  padding: '12px 14px',
+                  borderRadius: 12,
+                  background: '#fffbeb',
+                  border: '1px solid #fcd34d',
+                  color: '#92400e',
+                  fontSize: 11,
+                  lineHeight: 1.55,
+                }}>
+                  <div style={{ fontWeight: 800, marginBottom: 5 }}>
+                    Complete this draft before publishing or sharing
+                  </div>
+                  {deliveryReadiness.reasons.slice(0, 4).map(reason => (
+                    <div key={reason}>• {reason}</div>
+                  ))}
+                </div>
+              )}
+
               <div style={{
                 marginTop: 8,
                 marginBottom: 16,
@@ -2313,8 +2345,8 @@ export default function LessonPlanModal({
                   </div>
                 )}
 
-                {status === 'draft' && (
-                  <button onClick={handlePublish} disabled={isbusy} style={{
+                {status !== 'published' && (
+                  <button onClick={handlePublish} disabled={isbusy || !deliveryReady} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: 'none',
                     background: C.accent, color: '#fff', fontSize: 13, fontWeight: 800,
                     cursor: isbusy ? 'not-allowed' : 'pointer', opacity: isbusy ? 0.7 : 1, fontFamily: 'inherit',
@@ -2323,7 +2355,7 @@ export default function LessonPlanModal({
                   </button>
                 )}
                 {status !== 'shared_to_parents' && (
-                  <button onClick={handleShareToParents} disabled={isbusy} style={{
+                  <button onClick={handleShareToParents} disabled={isbusy || !deliveryReady} style={{
                     width: '100%', padding: '13px', borderRadius: 12,
                     border: '1.5px solid #1e40af', background: '#eff6ff', color: '#1e40af',
                     fontSize: 13, fontWeight: 800, cursor: isbusy ? 'not-allowed' : 'pointer',
