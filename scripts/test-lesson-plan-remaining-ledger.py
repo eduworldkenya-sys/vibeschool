@@ -23,6 +23,7 @@ lifecycle = text('lib/teaching/lessonLifecycle.ts')
 attendance = text('lib/teaching/lessonAttendance.ts')
 coverage = text('components/teacher/CoverageSheet.tsx')
 source_bundle = text('lib/teaching/lessonSourceBundle.ts')
+delivery = text('lib/teaching/lessonDelivery.ts')
 
 # File 2 — modal must orchestrate through canonical boundaries rather than
 # becoming an independent persistence/lifecycle implementation.
@@ -79,6 +80,20 @@ require(attendance, ".eq('date', occurrenceDate)", 'attendance exact date')
 require(attendance, 'expectedStudentCount > 0', 'attendance non-empty roster completion')
 require(attendance, 'recordedStudentCount === expectedStudentCount', 'attendance full roster completion')
 forbid(attendance, '(attendanceResult.count ?? 0) > 0', 'partial attendance cannot mean complete')
+
+# Consequence boundary — weak/placeholder plans may be saved for teacher review,
+# but they cannot be published or shared downstream as if teaching-ready.
+require(delivery, 'evaluateLessonReadiness', 'delivery readiness evaluator')
+require(delivery, 'assertLessonReadyForDelivery', 'delivery readiness boundary')
+require(delivery, 'lesson_delivery_authority_mismatch', 'delivery school authority')
+require(delivery, 'lesson_not_ready_for_delivery', 'delivery fail-closed readiness')
+publish_guard = delivery.index('await assertLessonReadyForDelivery(lessonPlanId, schoolId)')
+publish_status = delivery.index("await updateLessonPlanStatus({ lessonPlanId, status: 'published' })")
+assert publish_guard < publish_status, 'delivery: readiness must precede publication status'
+share_fn = delivery.index('export async function shareLessonToParents')
+share_guard = delivery.index('await assertLessonReadyForDelivery(lessonPlanId, schoolId)', share_fn)
+parent_delivery = delivery.index('deliverLessonPlanToParents({', share_fn)
+assert share_guard < parent_delivery, 'delivery: readiness must precede parent consequences'
 
 # File 15 — coverage sheet stays presentation-only; guarded mutation ownership
 # remains in the modal/lifecycle boundary and errors remain visible/retryable.
