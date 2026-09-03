@@ -22,6 +22,43 @@ export interface LoadLessonContextInput {
   subjectId: string
 }
 
+interface EnrollmentLearnerRow {
+  id: string
+  name: string
+  profile_id: string | null
+  deleted_at: string | null
+}
+
+interface StudentClassJoinRow {
+  student_id: string
+  students: EnrollmentLearnerRow | EnrollmentLearnerRow[] | null
+}
+
+interface CompletedOccurrenceRow {
+  timetable_slot_id: string
+  occurrence_date: string
+}
+
+interface PreviousPlanRow {
+  timetable_slot_id: string
+  taught_date: string
+  topic: string | null
+}
+
+function firstJoinedLearner(
+  value: EnrollmentLearnerRow | EnrollmentLearnerRow[] | null,
+): EnrollmentLearnerRow | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value
+}
+
+function occurrenceKey(
+  timetableSlotId: string,
+  occurrenceDate: string,
+): string {
+  return `${timetableSlotId}:${occurrenceDate}`
+}
+
 /**
  * Loads the exact teacher → school → class → subject → learner context for one
  * lesson. The teaching assignment is the school authority; neither a stale
@@ -75,7 +112,7 @@ export async function loadLessonContext({
   )
   if (activateError) throw activateError
 
-  const [schoolResult, enrollmentResult, previousResult] = await Promise.all([
+  const [schoolResult, enrollmentResult, completedResult] = await Promise.all([
     supabase
       .from('schools')
       .select('name')
@@ -88,25 +125,26 @@ export async function loadLessonContext({
       .eq('class_id', classId)
       .eq('is_current', true),
     supabase
-      .from('lesson_plans')
-      .select('topic')
+      .from('teaching_occurrences')
+      .select('timetable_slot_id,occurrence_date')
       .eq('teacher_id', userId)
       .eq('school_id', schoolId)
       .eq('class_id', classId)
       .eq('subject_id', subjectId)
-      .not('topic', 'is', null)
-      .order('created_at', { ascending: false })
+      .eq('lifecycle', 'completed')
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false })
       .limit(5),
   ])
 
   if (schoolResult.error) throw schoolResult.error
   if (enrollmentResult.error) throw enrollmentResult.error
-  if (previousResult.error) throw previousResult.error
+  if (completedResult.error) throw completedResult.error
 
   const students: LessonContextStudent[] = []
   const seen = new Set<string>()
-  for (const row of enrollmentResult.data ?? []) {
-    const learner = (row as any).students
+  for (const row of (enrollmentResult.data ?? []) as StudentClassJoinRow[]) {
+    const learner = firstJoinedLearner(row.students)
     if (!learner || learner.deleted_at || seen.has(learner.id)) continue
     seen.add(learner.id)
     students.push({
@@ -117,12 +155,49 @@ export async function loadLessonContext({
   }
   students.sort((a, b) => a.name.localeCompare(b.name))
 
-  const previousTopics = (previousResult.data ?? [])
-    .map(row => row.topic)
-    .filter(
-      (topic): topic is string =>
-        typeof topic === 'string' && topic.trim().length > 0,
+  const completedOccurrences =
+    (completedResult.data ?? []) as CompletedOccurrenceRow[]
+
+  let previousTopics: string[] = []
+
+  if (completedOccurrences.length > 0) {
+    const slotIds = Array.from(
+      new Set(completedOccurrences.map(row => row.timetable_slot_id)),
     )
+    const taughtDates = Array.from(
+      new Set(completedOccurrences.map(row => row.occurrence_date)),
+    )
+
+    const { data: planRows, error: planError } = await supabase
+      .from('lesson_plans')
+      .select('timetable_slot_id,taught_date,topic')
+      .eq('teacher_id', userId)
+      .eq('school_id', schoolId)
+      .eq('class_id', classId)
+      .eq('subject_id', subjectId)
+      .in('timetable_slot_id', slotIds)
+      .in('taught_date', taughtDates)
+
+    if (planError) throw planError
+
+    const topicByOccurrence = new Map<string, string>()
+    for (const row of (planRows ?? []) as PreviousPlanRow[]) {
+      if (typeof row.topic !== 'string' || row.topic.trim().length === 0) {
+        continue
+      }
+      topicByOccurrence.set(
+        occurrenceKey(row.timetable_slot_id, row.taught_date),
+        row.topic.trim(),
+      )
+    }
+
+    previousTopics = completedOccurrences.flatMap(row => {
+      const topic = topicByOccurrence.get(
+        occurrenceKey(row.timetable_slot_id, row.occurrence_date),
+      )
+      return topic ? [topic] : []
+    })
+  }
 
   return {
     teacherName: profileResult.data.full_name ?? 'Teacher',
