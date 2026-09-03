@@ -1,16 +1,15 @@
 begin;
 
--- A teacher can be viewing a completed lesson while another earlier/later started
--- slot still lacks attendance. The old copy sounded like the currently visible
--- lesson was incomplete. Preserve the deterministic attendance truth while making
--- the scope explicit. Patch both supported overloads fail-closed from their
--- authoritative definitions so no parallel Twin implementation is introduced.
-do $$
+-- A teacher can be viewing a completed lesson while another started slot still
+-- lacks attendance. Preserve the deterministic attendance truth while making the
+-- scope explicit. Patch both supported overloads from their authoritative stored
+-- definitions so no parallel Twin implementation is introduced.
+do $do$
 declare
   target regprocedure;
   definition text;
-  old_text text := $$'reason',format('%s started timetable slot%s have no attendance record today.',v_attendance_pending,case when v_attendance_pending=1 then '' else 's' end)$$;
-  new_text text := $$'reason',format('%s started timetable slot%s elsewhere in today''s schedule %s no attendance record.',v_attendance_pending,case when v_attendance_pending=1 then '' else 's' end,case when v_attendance_pending=1 then 'has' else 'have' end)$$;
+  old_text text := $txt$'reason',format('%s started timetable slot%s have no attendance record today.',v_attendance_pending,case when v_attendance_pending=1 then '' else 's' end)$txt$;
+  new_text text := $txt$'reason',format('%s started timetable slot%s elsewhere in today''s schedule %s no attendance record.',v_attendance_pending,case when v_attendance_pending=1 then '' else 's' end,case when v_attendance_pending=1 then 'has' else 'have' end)$txt$;
 begin
   foreach target in array array[
     to_regprocedure('public.teacher_get_twin_brain(uuid)'),
@@ -26,6 +25,6 @@ begin
     end if;
   end loop;
 end;
-$$;
+$do$;
 
 commit;
