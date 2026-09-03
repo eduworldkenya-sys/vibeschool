@@ -18,6 +18,9 @@ interface SlotWithPlan {
   plan: PlanRow | null
 }
 
+type ReadinessState = 'ready' | 'needs_review' | 'no_plan'
+type ReadinessFilter = 'all' | ReadinessState
+
 interface TeacherOperatingContext {
   school_id: string | null
 }
@@ -85,12 +88,17 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   draft:             { label: 'Draft',             bg: '#f3f4f6', color: '#6b7280' },
   published:         { label: 'Published',         bg: '#d1fae5', color: '#065f46' },
   shared_to_parents: { label: 'Shared to Parents', bg: '#dbeafe', color: '#1e40af' },
-  missing:           { label: 'No Plan',           bg: '#fee2e2', color: '#991b1b' },
 }
 
-function hasDifferentiation(body: string): boolean {
-  const m = body.match(/<differentiation>([\s\S]*?)<\/differentiation>/)
-  return !!(m && m[1].trim().length > 0)
+const READINESS_BADGE: Record<ReadinessState, { label: string; bg: string; color: string }> = {
+  ready:        { label: 'Ready to Teach', bg: '#d1fae5', color: '#065f46' },
+  needs_review: { label: 'Needs Review',   bg: '#fef3c7', color: '#92400e' },
+  no_plan:      { label: 'No Plan',        bg: '#fee2e2', color: '#991b1b' },
+}
+
+function readinessState(plan: PlanRow | null): ReadinessState {
+  if (!plan) return 'no_plan'
+  return isLessonPlanReadyToTeach(plan.body) ? 'ready' : 'needs_review'
 }
 
 function weekStartForDate(date: string): string {
@@ -122,7 +130,7 @@ function LessonPlanInner() {
   const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
   const [toast,       setToast]       = useState('')
   const [loadError,   setLoadError]   = useState<string | null>(null)
-  const [diffFilter,  setDiffFilter]  = useState<'all' | 'published' | 'draft' | 'missing'>('all')
+  const [readinessFilter, setReadinessFilter] = useState<ReadinessFilter>('all')
   const [refreshNonce, setRefreshNonce] = useState(0)
   const autoOpenedKeyRef = useRef<string | null>(null)
 
@@ -365,16 +373,14 @@ function LessonPlanInner() {
     void loadHistory()
   }, [urlClassId, activeSlot, refreshNonce])
 
-  const readyCount = items.filter(i => i.plan && isLessonPlanReadyToTeach(i.plan.body)).length
-  const missingCount = items.length - readyCount
-  const isThisWeek   = weekStart === nairobiWeekStart()
+  const readyCount = items.filter(({ plan }) => readinessState(plan) === 'ready').length
+  const needsReviewCount = items.filter(({ plan }) => readinessState(plan) === 'needs_review').length
+  const noPlanCount = items.filter(({ plan }) => readinessState(plan) === 'no_plan').length
+  const isThisWeek = weekStart === nairobiWeekStart()
 
   const visibleItems = items.filter(({ plan }) => {
-    if (diffFilter === 'all')       return true
-    if (diffFilter === 'missing')   return !plan || !isLessonPlanReadyToTeach(plan.body)
-    if (diffFilter === 'draft')     return !!plan && plan.status === 'draft'
-    if (diffFilter === 'published') return !!plan && (plan.status === 'published' || plan.status === 'shared_to_parents')
-    return true
+    if (readinessFilter === 'all') return true
+    return readinessState(plan) === readinessFilter
   })
 
   return (
@@ -411,13 +417,13 @@ function LessonPlanInner() {
         {!loading && !loadError && (
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             {[
-              { label: 'Ready',   value: readyCount,   bg: 'rgba(16,185,129,0.25)' },
-              { label: 'Missing', value: missingCount, bg: 'rgba(239,68,68,0.25)'  },
-              { label: 'Total',   value: items.length, bg: 'rgba(255,255,255,0.12)' },
+              { label: 'Ready to Teach', value: readyCount,       bg: 'rgba(16,185,129,0.25)' },
+              { label: 'Needs Review',   value: needsReviewCount, bg: 'rgba(245,158,11,0.25)' },
+              { label: 'No Plan',        value: noPlanCount,      bg: 'rgba(239,68,68,0.25)' },
             ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
+              <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -431,9 +437,9 @@ function LessonPlanInner() {
               ? 'Choose Timetable Occurrence'
               : 'Today & Upcoming'}
           </SectionLabel>
-          {diffFilter !== 'all' && (
+          {readinessFilter !== 'all' && (
             <button
-              onClick={() => setDiffFilter('all')}
+              onClick={() => setReadinessFilter('all')}
               style={{ fontSize: 11, fontWeight: 700, color: C.accent, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit' }}
             >
               ✕ Clear filter
@@ -456,11 +462,12 @@ function LessonPlanInner() {
               : 'No classes scheduled'}
           </div>
         ) : visibleItems.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No slots match this filter</div>
+          <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No lessons match this readiness filter</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {visibleItems.map(({ slot, plan }) => {
-              const badge = STATUS_BADGE[plan?.status ?? 'missing']
+              const state = readinessState(plan)
+              const badge = READINESS_BADGE[state]
               return (
                 <div key={slot.id} style={{ padding: '14px 0', borderBottom: '1px solid ' + C.border }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
@@ -471,12 +478,17 @@ function LessonPlanInner() {
                       <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
                         {slot.class} · {formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ' · ' + slot.room : ''}
                       </div>
+                      {plan && (
+                        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
+                          Plan status: {STATUS_BADGE[plan.status]?.label ?? 'Draft'}
+                        </div>
+                      )}
                     </div>
                     <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0 }}>{badge.label}</span>
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
                     <Btn small variant="ghost" onClick={() => setActiveSlot(slot)}>
-                      {plan ? '📝 Open Teaching Workspace' : '✦ Create Plan'}
+                      {state === 'no_plan' ? '✦ Create Plan' : state === 'needs_review' ? '📝 Review Plan' : '📝 Open Teaching Workspace'}
                     </Btn>
                   </div>
                 </div>
@@ -487,40 +499,53 @@ function LessonPlanInner() {
       </Card>
 
       <Card>
-        <SectionLabel>Differentiation Summary</SectionLabel>
+        <SectionLabel>Plan Readiness</SectionLabel>
         {loadError ? (
           <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: '#991b1b' }}>{loadError}</div>
-        ) : (() => {
-          const publishedItems = items.filter(i => i.plan?.status === 'published' || i.plan?.status === 'shared_to_parents')
-          const draftItems     = items.filter(i => i.plan?.status === 'draft')
-          const noPlan         = items.filter(i => !i.plan).length
-          const publishedDiff  = publishedItems.filter(i => i.plan && hasDifferentiation(i.plan.body)).length
-          const draftDiff      = draftItems.filter(i => i.plan && hasDifferentiation(i.plan.body)).length
-          return [
-            { key: 'published' as const, level: 'Published', color: '#7c3aed', bg: '#ede9fe', desc: 'Published or shared plans', count: publishedItems.length, diff: publishedDiff },
-            { key: 'draft'     as const, level: 'Draft',     color: C.accent,  bg: C.accentLight, desc: 'Plans saved as draft', count: draftItems.length, diff: draftDiff },
-            { key: 'missing'   as const, level: 'Missing',   color: '#d97706', bg: '#fef3c7', desc: 'Slots with no plan yet',  count: noPlan, diff: null },
+        ) : (
+          [
+            {
+              key: 'ready' as const,
+              level: 'Ready to Teach',
+              color: '#047857',
+              bg: '#d1fae5',
+              desc: 'The saved plan passes the teaching-readiness checks.',
+              count: readyCount,
+            },
+            {
+              key: 'needs_review' as const,
+              level: 'Needs Review',
+              color: '#92400e',
+              bg: '#fef3c7',
+              desc: 'A plan exists, but one or more teaching-readiness checks are incomplete.',
+              count: needsReviewCount,
+            },
+            {
+              key: 'no_plan' as const,
+              level: 'No Plan',
+              color: '#991b1b',
+              bg: '#fee2e2',
+              desc: 'No saved plan exists for this timetable occurrence.',
+              count: noPlanCount,
+            },
           ].map(d => (
             <div
               key={d.level}
-              onClick={() => setDiffFilter(f => f === d.key ? 'all' : d.key)}
+              onClick={() => setReadinessFilter(f => f === d.key ? 'all' : d.key)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10,
                 background: d.bg, marginBottom: 8, cursor: 'pointer',
-                border: '2px solid ' + (diffFilter === d.key ? d.color : 'transparent'),
+                border: '2px solid ' + (readinessFilter === d.key ? d.color : 'transparent'),
               }}
             >
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: d.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{d.count}</div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: d.color }}>{d.level}</div>
                 <div style={{ fontSize: 12, color: C.textMuted }}>{d.desc}</div>
-                {d.diff !== null && d.count > 0 && (
-                  <div style={{ fontSize: 11, color: d.color, fontWeight: 700, marginTop: 2 }}>⚡ {d.diff} of {d.count} have differentiated activities</div>
-                )}
               </div>
             </div>
           ))
-        })()}
+        )}
       </Card>
 
       <Card>
@@ -532,7 +557,7 @@ function LessonPlanInner() {
         ) : (
           <div>
             {history.map((h, i) => {
-              const badge = STATUS_BADGE[h.status ?? 'draft']
+              const badge = STATUS_BADGE[h.status ?? 'draft'] ?? STATUS_BADGE.draft
               return (
                 <div key={h.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderTop: i === 0 ? 'none' : '1px solid ' + C.border }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
