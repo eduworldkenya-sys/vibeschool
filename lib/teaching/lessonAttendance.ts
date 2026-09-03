@@ -11,6 +11,8 @@ export interface ExactLessonAttendanceSlot {
   end: string
   marked: boolean
   schoolId: string
+  expectedStudentCount: number
+  recordedStudentCount: number
 }
 
 export interface LoadExactLessonAttendanceInput {
@@ -22,12 +24,30 @@ export interface LoadExactLessonAttendanceInput {
   expectedSubjectId?: string | null
 }
 
+interface EnrollmentStudentRow {
+  id: string
+  deleted_at: string | null
+}
+
+interface EnrollmentRow {
+  student_id: string
+  students: EnrollmentStudentRow | EnrollmentStudentRow[] | null
+}
+
+function joinedStudent(
+  value: EnrollmentStudentRow | EnrollmentStudentRow[] | null,
+): EnrollmentStudentRow | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value
+}
+
 /**
  * Resolves one exact timetable lesson for attendance.
  *
- * This intentionally does not require the slot to remain in today's rebuilt
- * active timetable. Historical occurrences must remain markable after later
- * timetable edits, expiry or replacement.
+ * Historical occurrences remain addressable by exact slot/date after timetable
+ * edits. The `marked` flag means the complete canonical current class roster
+ * has an attendance record for this exact occurrence; one partial row must
+ * never make the lesson appear fully marked.
  */
 export async function loadExactLessonAttendance({
   teacherId,
@@ -37,6 +57,10 @@ export async function loadExactLessonAttendance({
   expectedClassId = null,
   expectedSubjectId = null,
 }: LoadExactLessonAttendanceInput): Promise<ExactLessonAttendanceSlot | null> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(occurrenceDate)) {
+    throw new Error('lessonAttendance: occurrenceDate must be YYYY-MM-DD.')
+  }
+
   const {
     data: slot,
     error: slotError,
@@ -50,36 +74,21 @@ export async function loadExactLessonAttendance({
     .eq('school_id', schoolId)
     .maybeSingle()
 
-  if (slotError) {
-    throw slotError
-  }
+  if (slotError) throw slotError
+  if (!slot) return null
 
-  if (!slot) {
-    return null
-  }
-
-  if (
-    expectedClassId &&
-    slot.class_id !== expectedClassId
-  ) {
-    return null
-  }
-
-  if (
-    expectedSubjectId &&
-    slot.subject_id !== expectedSubjectId
-  ) {
-    return null
-  }
+  if (expectedClassId && slot.class_id !== expectedClassId) return null
+  if (expectedSubjectId && slot.subject_id !== expectedSubjectId) return null
 
   const [
     subjectResult,
     classResult,
+    enrollmentResult,
     attendanceResult,
   ] = await Promise.all([
     supabase
       .from('subjects')
-      .select('name')
+      .select('name, school_id')
       .eq('id', slot.subject_id)
       .single(),
     supabase
@@ -88,11 +97,17 @@ export async function loadExactLessonAttendance({
       .eq('id', slot.class_id)
       .single(),
     supabase
+      .from('student_classes')
+      .select('student_id, students(id,deleted_at)')
+      .eq('school_id', schoolId)
+      .eq('class_id', slot.class_id)
+      .eq('is_current', true),
+    supabase
       .from('attendance')
-      .select('student_id', {
-        count: 'exact',
-        head: true,
-      })
+      .select('student_id')
+      .eq('school_id', schoolId)
+      .eq('class_id', slot.class_id)
+      .eq('teacher_id', teacherId)
       .eq('timetable_slot_id', slot.id)
       .eq('date', occurrenceDate),
   ])
@@ -100,11 +115,10 @@ export async function loadExactLessonAttendance({
   const firstError =
     subjectResult.error ??
     classResult.error ??
+    enrollmentResult.error ??
     attendanceResult.error
 
-  if (firstError) {
-    throw firstError
-  }
+  if (firstError) throw firstError
 
   const subjectRow = subjectResult.data
   const classRow = classResult.data
@@ -116,28 +130,46 @@ export async function loadExactLessonAttendance({
   }
 
   if (
-    classRow.school_id &&
-    classRow.school_id !== schoolId
+    classRow.school_id !== schoolId ||
+    subjectRow.school_id !== schoolId
   ) {
     return null
   }
+
+  const expectedStudentIds = new Set<string>()
+  for (const row of (enrollmentResult.data ?? []) as EnrollmentRow[]) {
+    const student = joinedStudent(row.students)
+    if (!student || student.deleted_at) continue
+    expectedStudentIds.add(row.student_id)
+  }
+
+  const recordedStudentIds = new Set(
+    (attendanceResult.data ?? [])
+      .map(row => row.student_id)
+      .filter((studentId): studentId is string => typeof studentId === 'string'),
+  )
+
+  const expectedStudentCount = expectedStudentIds.size
+  const recordedStudentCount = Array.from(expectedStudentIds)
+    .filter(studentId => recordedStudentIds.has(studentId))
+    .length
 
   return {
     id: slot.id,
     classId: slot.class_id,
     subjectId: slot.subject_id,
-    subject:
-      subjectRow.name ?? 'Unknown',
+    subject: subjectRow.name ?? 'Unknown',
     className:
       classRow.name +
-      (classRow.stream
-        ? ' ' + classRow.stream
-        : ''),
+      (classRow.stream ? ' ' + classRow.stream : ''),
     room: slot.room ?? '',
     start: slot.start_time,
     end: slot.end_time,
     marked:
-      (attendanceResult.count ?? 0) > 0,
+      expectedStudentCount > 0 &&
+      recordedStudentCount === expectedStudentCount,
     schoolId,
+    expectedStudentCount,
+    recordedStudentCount,
   }
 }
