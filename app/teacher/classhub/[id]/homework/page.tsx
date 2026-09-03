@@ -113,7 +113,7 @@ function HomeworkInner() {
       }
       const { data: contextData, error: contextError } = await supabase.rpc("teacher_get_operating_context");
       if (contextError) throw contextError;
-      const ctx = contextData as unknown as Context;
+      const ctx = contextData as Context;
       if (!ctx.school_id || !ctx.classes.some((item) => item.class_id === classId)) {
         router.replace("/teacher/classhub");
         return;
