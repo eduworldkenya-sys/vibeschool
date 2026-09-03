@@ -1,10 +1,10 @@
 "use client";
-import { nairobiDateStr, nairobiDateAdd, nairobiWeekStart } from '@/lib/time'
+import { nairobiDateAdd, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
 import type { CanonicalTimetableSlot } from '@/lib/timetable/engine'
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -16,6 +16,49 @@ import type { TimetableSlot, PlanRow, HistoryRow } from '@/lib/types'
 interface SlotWithPlan {
   slot: TimetableSlot
   plan: PlanRow | null
+}
+
+interface TeacherOperatingContext {
+  school_id: string | null
+}
+
+interface SubjectLookupRow {
+  id: string
+  name: string
+}
+
+interface ClassLookupRow {
+  id: string
+  name: string
+  stream: string | null
+}
+
+interface HistoryClassRow {
+  name: string
+  stream: string | null
+}
+
+interface HistoryCurriculumRow {
+  week: number | null
+  term: number | null
+  strand: string | null
+}
+
+interface HistoryQueryRow {
+  id: string
+  title: string | null
+  topic: string | null
+  created_at: string
+  status: HistoryRow['status']
+  curriculum_id: string | null
+  strand_id: string | null
+  classes: HistoryClassRow | HistoryClassRow[] | null
+  curriculum: HistoryCurriculumRow | HistoryCurriculumRow[] | null
+}
+
+function firstJoin<T>(value: T | T[] | null): T | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value
 }
 
 function formatTime(t: string) {
@@ -40,10 +83,6 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   missing:           { label: 'No Plan',           bg: '#fee2e2', color: '#991b1b' },
 }
 
-// The AI generator writes a <differentiation>...</differentiation> block into
-// plan.body (support/core/extension activities). A plan can exist but still
-// have no real differentiation content — this checks for that directly
-// instead of inferring it from status.
 function hasDifferentiation(body: string): boolean {
   const m = body.match(/<differentiation>([\s\S]*?)<\/differentiation>/)
   return !!(m && m[1].trim().length > 0)
@@ -77,9 +116,10 @@ function LessonPlanInner() {
   const [histLoading, setHistLoading] = useState(true)
   const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
   const [toast,       setToast]       = useState('')
-  const [schoolId,    setSchoolId]    = useState<string | null>(null)
   const [loadError,   setLoadError]   = useState<string | null>(null)
   const [diffFilter,  setDiffFilter]  = useState<'all' | 'published' | 'draft' | 'missing'>('all')
+  const [refreshNonce, setRefreshNonce] = useState(0)
+  const autoOpenedKeyRef = useRef<string | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -97,27 +137,24 @@ function LessonPlanInner() {
         return
       }
 
-      // Resolve schoolId — same 3-source fallback used in Assessment/Pulse
-      const [memberRes, teacherRes, profileRes] = await Promise.all([
-        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('profiles').select('school_id').eq('id', user.id).maybeSingle(),
-      ])
-      const resolvedSchoolId =
-        memberRes.data?.school_id ??
-        teacherRes.data?.school_id ??
-        profileRes.data?.school_id ??
-        null
-      setSchoolId(resolvedSchoolId)
+      const { data: contextData, error: contextError } = await supabase.rpc(
+        'teacher_get_operating_context',
+        {},
+      )
+      if (contextError) {
+        console.error('[LessonPlan] operating context failed:', contextError)
+        setLoadError('Could not load your teaching context.')
+        setLoading(false)
+        return
+      }
 
-      // Filter by overlap with the *selected* week, not "today" — this page
-      // navigates across weeks via weekStart/nairobiDateAdd, so a slot whose
-      // effective range covers a future or past week must still show up
-      // when that week is selected, even though it isn't active today.
+      const operatingContext = contextData as TeacherOperatingContext | null
+      const resolvedSchoolId = operatingContext?.school_id ?? null
+
       const weekEnd = nairobiDateAdd(weekStart, 6)
 
       if (!resolvedSchoolId) {
-        setLoadError('Your teacher profile is not connected to a school.')
+        setLoadError('Choose or connect a school before opening lesson plans.')
         setLoading(false)
         return
       }
@@ -151,6 +188,7 @@ function LessonPlanInner() {
         .from('lesson_plans')
         .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
         .eq('teacher_id', user.id)
+        .eq('school_id', resolvedSchoolId)
         .eq('week_start', weekStart)
 
       if (plansRes.error) {
@@ -173,11 +211,6 @@ function LessonPlanInner() {
         })
       }
 
-      // The SQL query above only confirms the slot's effective range overlaps
-      // the selected week somewhere — not that this slot's specific weekday
-      // occurrence in this week falls inside that range (e.g. a Monday slot
-      // effective from Wednesday shouldn't show for that week's Monday).
-      // day_of_week convention: Monday = 1 ... Sunday = 7.
       const slots = timetableSlots.filter(slot => {
         const occurrenceDate = nairobiDateAdd(weekStart, Number(slot.day_of_week) - 1)
         return (
@@ -192,16 +225,29 @@ function LessonPlanInner() {
         new Set(slots.map(s => s.class_id).filter(Boolean))
       )
       const [subjRes, clsRes] = await Promise.all([
-        subjectIds.length > 0 ? supabase.from('subjects').select('id,name').in('id', subjectIds) : Promise.resolve({ data: [] }),
-        classIds.length > 0   ? supabase.from('classes').select('id,name,stream').in('id', classIds) : Promise.resolve({ data: [] }),
+        subjectIds.length > 0
+          ? supabase.from('subjects').select('id,name').in('id', subjectIds)
+          : Promise.resolve({ data: [] as SubjectLookupRow[], error: null }),
+        classIds.length > 0
+          ? supabase.from('classes').select('id,name,stream').in('id', classIds)
+          : Promise.resolve({ data: [] as ClassLookupRow[], error: null }),
       ])
-      const subjMap = Object.fromEntries((subjRes.data ?? []).map((s: any) => [s.id, s.name]))
-      const clsMap  = Object.fromEntries((clsRes.data ?? []).map((c: any) => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]))
+
+      if (subjRes.error || clsRes.error) {
+        console.error('[LessonPlan] lookup query failed:', subjRes.error ?? clsRes.error)
+        setLoadError('Could not load class and subject names.')
+        setLoading(false)
+        return
+      }
+
+      const subjectRows = (subjRes.data ?? []) as SubjectLookupRow[]
+      const classRows = (clsRes.data ?? []) as ClassLookupRow[]
+      const subjMap = Object.fromEntries(subjectRows.map(s => [s.id, s.name]))
+      const clsMap = Object.fromEntries(
+        classRows.map(c => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]),
+      )
 
       const mapped: SlotWithPlan[] = slots.map(s => {
-        // Fix 14C: carry the browsed occurrence forward on the slot itself —
-        // day_of_week and occurrenceDate must survive into activeSlot, or the
-        // modal has no way to know which real-world date it's saving to.
         const occurrenceDate = nairobiDateAdd(
           weekStart,
           Number(s.day_of_week) - 1,
@@ -229,9 +275,6 @@ function LessonPlanInner() {
         }
       })
 
-      // FND-002C3: Scheme entry is source-scoped. The teacher may choose any
-      // valid occurrence for the selected week, but never an unrelated class
-      // or subject. Normal timetable/lesson-plan entry remains unfiltered.
       const selectableItems = urlSchemeId
         ? mapped.filter(({ slot }) =>
             slot.class_id === urlClassId &&
@@ -241,10 +284,6 @@ function LessonPlanInner() {
 
       setItems(selectableItems)
 
-      // TOS-001: a timetable CTA must open the selected occurrence directly,
-      // not merely land on the weekly lesson-plan index. The exact pair is
-      // the same identity used by LessonPlanModal and lesson_plans:
-      // (timetable_slot_id, taught_date).
       if (urlTimetableSlotId && urlOccurrenceDate) {
         const target = selectableItems.find(({ slot }) =>
           slot.id === urlTimetableSlotId &&
@@ -254,7 +293,11 @@ function LessonPlanInner() {
         )
 
         if (target) {
-          setActiveSlot(target.slot)
+          const autoOpenKey = `${urlTimetableSlotId}:${urlOccurrenceDate}`
+          if (autoOpenedKeyRef.current !== autoOpenKey) {
+            autoOpenedKeyRef.current = autoOpenKey
+            setActiveSlot(target.slot)
+          }
         } else {
           setLoadError('The selected timetable lesson is no longer available for this date.')
         }
@@ -262,7 +305,7 @@ function LessonPlanInner() {
 
       setLoading(false)
     }
-    load()
+    void load()
   }, [
     weekStart,
     urlClassId,
@@ -270,13 +313,17 @@ function LessonPlanInner() {
     urlTimetableSlotId,
     urlOccurrenceDate,
     urlSchemeId,
+    refreshNonce,
   ])
 
   useEffect(() => {
     async function loadHistory() {
       setHistLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setHistLoading(false)
+        return
+      }
       let q = supabase
         .from('lesson_plans')
         .select('id,title,topic,created_at,status,curriculum_id,strand_id,classes(name,stream),curriculum(week,term,strand)')
@@ -284,13 +331,20 @@ function LessonPlanInner() {
         .order('created_at', { ascending: false })
         .limit(15)
       if (urlClassId) q = q.eq('class_id', urlClassId)
-      const { data } = await q
-      setHistory((data ?? []).map((h: any) => {
-        const curr = Array.isArray(h.curriculum) ? h.curriculum[0] : h.curriculum
+      const { data, error } = await q
+      if (error) {
+        console.error('[LessonPlan] history query failed:', error)
+        setHistory([])
+        setHistLoading(false)
+        return
+      }
+      setHistory(((data ?? []) as HistoryQueryRow[]).map(h => {
+        const curr = firstJoin(h.curriculum)
+        const classRow = firstJoin(h.classes)
         return {
           id: h.id, title: h.title, topic: h.topic,
           created_at: h.created_at, status: h.status,
-          class_name: h.classes ? h.classes.name + (h.classes.stream ? ' ' + h.classes.stream : '') : '',
+          class_name: classRow ? classRow.name + (classRow.stream ? ' ' + classRow.stream : '') : '',
           curriculumId: h.curriculum_id ?? null,
           strandId: h.strand_id ?? null,
           week: curr?.week ?? null,
@@ -300,15 +354,13 @@ function LessonPlanInner() {
       }))
       setHistLoading(false)
     }
-    loadHistory()
-  }, [urlClassId, activeSlot])
+    void loadHistory()
+  }, [urlClassId, activeSlot, refreshNonce])
 
   const readyCount = items.filter(i => i.plan && isLessonPlanReadyToTeach(i.plan.body)).length
   const missingCount = items.length - readyCount
   const isThisWeek   = weekStart === nairobiWeekStart()
 
-  // Drives the "Today & Upcoming" list below when a Differentiation Summary
-  // row is tapped. 'all' means no filter is active.
   const visibleItems = items.filter(({ plan }) => {
     if (diffFilter === 'all')       return true
     if (diffFilter === 'missing')   return !plan || !isLessonPlanReadyToTeach(plan.body)
@@ -416,13 +468,8 @@ function LessonPlanInner() {
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
                     <Btn small variant="ghost" onClick={() => setActiveSlot(slot)}>
-                      {plan ? '📝 Open Plan' : '✦ Create Plan'}
+                      {plan ? '📝 Open Teaching Workspace' : '✦ Create Plan'}
                     </Btn>
-                    {(plan?.status === 'published' || plan?.status === 'shared_to_parents') && (
-                      <Btn small variant="ghost" onClick={() => router.push(`/teacher/progress?planId=${plan.id}&classId=${plan.classId}&subjectId=${plan.subjectId}`)}>
-                        ✓ Mark as Taught
-                      </Btn>
-                    )}
                   </div>
                 </div>
               )
@@ -503,13 +550,13 @@ function LessonPlanInner() {
         <LessonPlanModal
           slot={activeSlot}
           weekStart={weekStart}
-          // Fix 14C: occurrenceDate is always set in the `mapped` builder
-          // above — asserted rather than optional-chained so a future
-          // regression there fails loudly (as a save error) instead of
-          // silently writing to the wrong date.
           taughtDate={activeSlot.occurrenceDate!}
           requestedSchemeId={urlSchemeId}
-          onClose={() => setActiveSlot(null)}
+          onClose={() => {
+            setActiveSlot(null)
+            setRefreshNonce(value => value + 1)
+            showToast('Lesson workspace updated')
+          }}
         />
       )}
     </>
