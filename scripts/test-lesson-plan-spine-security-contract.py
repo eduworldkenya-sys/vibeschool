@@ -21,6 +21,9 @@ migration = text(
 homework_migration = text(
     "supabase/migrations/20260903104500_lesson_homework_occurrence_convergence.sql"
 )
+correction_migration = text(
+    "supabase/migrations/20260903111000_lesson_plan_publication_evidence_schema_correction.sql"
+)
 evidence = text("components/teacher/EvidenceCaptureSheet.tsx")
 
 # Gate 1: exact timetable occurrence is database authority, not only UI state.
@@ -44,14 +47,18 @@ require(
 )
 require(migration, "v_slot.effective_until", "slot effective range")
 
-# Gate 6: students never read a teacher's private draft plan.
-require(migration, "drop policy if exists lesson_plans_student_read", "student policy replacement")
+# Gate 6: learner publication is durable and independent from parent sharing.
+require(correction_migration, "lesson_plan_normalize_publication_state", "publication state trigger")
+require(correction_migration, "new.status = 'published' and new.published_at is null", "publication timestamp")
+require(correction_migration, "new.status = 'shared_to_parents'", "parent share preservation")
+require(correction_migration, "new.published_at := old.published_at", "durable learner publication")
+require(correction_migration, "published_at is not null", "student publication authority")
 require(
-    migration,
+    correction_migration,
     "status in ('published', 'shared_to_parents')",
-    "published-only student visibility",
+    "student-visible lifecycle states",
 )
-require(migration, "sc.school_id = lesson_plans.school_id", "student school scope")
+require(correction_migration, "sc.school_id = lesson_plans.school_id", "student school scope")
 
 # Gate 4/5/6: whole-class evidence is exact-occurrence scoped and private.
 require(migration, "'lesson-evidence',\n  'lesson-evidence',\n  false", "private evidence bucket")
@@ -61,9 +68,9 @@ require(migration, '"teacher reads own lesson evidence media"', "teacher evidenc
 require(migration, '"teacher deletes own lesson evidence media"', "teacher evidence delete policy")
 require(migration, "student_id is null", "whole-class evidence authorization")
 require(migration, "o.lifecycle in ('in_progress', 'completed')", "teachable occurrence evidence")
-require(migration, "lesson_evidence_enforce_occurrence_authority", "evidence authority trigger")
-require(migration, "new.school_id := v_occ.school_id", "evidence school derivation")
-require(migration, "lesson_evidence_plan_occurrence_mismatch", "evidence plan occurrence binding")
+require(correction_migration, "lesson_evidence_enforce_occurrence_authority", "final evidence authority trigger")
+require(correction_migration, "lesson_evidence_plan_occurrence_mismatch", "evidence plan occurrence binding")
+forbid(correction_migration, "new.school_id", "nonexistent evidence school column")
 
 # Gate 5/7: homework prepared before or after lesson start converges onto the
 # exact occurrence without guessing ambiguous legacy rows.
