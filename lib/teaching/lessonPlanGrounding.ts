@@ -3,7 +3,6 @@ import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
 export interface LessonPlanGroundingInput {
   sections: LessonPlanSections
   schemeObjectives?: string | null
-  allowedContentFragments?: string[]
 }
 
 export type LessonPlanGroundingResult =
@@ -15,18 +14,28 @@ function clean(value?: string | null): string {
 }
 
 function objectiveParts(value?: string | null): string[] {
-  const normalized = clean(value)
-  if (!normalized) return []
-  return normalized.split(/\s*[|;]\s*|\n+/).map(clean).filter(Boolean)
+  const raw = value?.trim() ?? ''
+  if (!raw) return []
+
+  // Preserve line boundaries until after splitting. Calling `clean()` first
+  // collapses newlines and can accidentally validate several Scheme outcomes
+  // as one combined substring instead of proving every objective independently.
+  return raw
+    .split(/\s*[|;]\s*|\n+/)
+    .map(clean)
+    .filter(Boolean)
 }
 
 function includesNormalized(haystack: string, needle: string): boolean {
-  return clean(haystack).toLocaleLowerCase().includes(clean(needle).toLocaleLowerCase())
+  const normalizedNeedle = clean(needle)
+  return normalizedNeedle.length > 0 &&
+    clean(haystack).toLocaleLowerCase().includes(normalizedNeedle.toLocaleLowerCase())
 }
 
 /**
- * Deterministic pre-save grounding/readiness gate for invariants that can be
- * proven without semantic model judgment.
+ * Deterministic pre-save grounding gate for invariants that can be proven
+ * without semantic-model judgment. Pedagogical depth is evaluated separately
+ * by lessonReadiness so this layer never invents missing teaching content.
  */
 export function validateLessonPlanGrounding({
   sections,
@@ -40,10 +49,18 @@ export function validateLessonPlanGrounding({
 
   for (const objective of objectiveParts(schemeObjectives)) {
     if (!includesNormalized(sections.objectives, objective)) {
-      return { ok: false, message: 'Grounding validation failed: a Scheme objective is missing from the lesson objectives.' }
+      return {
+        ok: false,
+        message:
+          'Grounding validation failed: a Scheme objective is missing from the lesson objectives.',
+      }
     }
     if (!includesNormalized(sections.assessmentHook, objective)) {
-      return { ok: false, message: 'Grounding validation failed: assessment is not explicitly tied to every Scheme objective.' }
+      return {
+        ok: false,
+        message:
+          'Grounding validation failed: assessment is not explicitly tied to every Scheme objective.',
+      }
     }
   }
 
