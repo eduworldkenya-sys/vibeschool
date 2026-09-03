@@ -63,13 +63,34 @@ interface TimetableWriteAuthority {
   effective_until: string | null
 }
 
-function isoDayOfWeek(date: string): number | null {
+function parseIsoDate(date: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null
   const [year, month, day] = date.split('-').map(Number)
   const parsed = new Date(Date.UTC(year, month - 1, day))
-  if (Number.isNaN(parsed.getTime())) return null
+  if (
+    Number.isNaN(parsed.getTime()) ||
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    return null
+  }
+  return parsed
+}
+
+function isoDayOfWeek(date: string): number | null {
+  const parsed = parseIsoDate(date)
+  if (!parsed) return null
   const jsDay = parsed.getUTCDay()
   return jsDay === 0 ? 7 : jsDay
+}
+
+function isoWeekStart(date: string): string | null {
+  const parsed = parseIsoDate(date)
+  if (!parsed) return null
+  const isoDay = parsed.getUTCDay() === 0 ? 7 : parsed.getUTCDay()
+  parsed.setUTCDate(parsed.getUTCDate() - (isoDay - 1))
+  return parsed.toISOString().slice(0, 10)
 }
 
 async function resolveWriteAuthority(
@@ -112,9 +133,7 @@ async function resolveWriteAuthority(
 
 /**
  * Loads the canonical lesson plan for one exact timetable occurrence.
- *
- * Occurrence identity is always:
- *   timetable_slot_id + taught_date
+ * Occurrence identity is always timetable_slot_id + taught_date.
  */
 export async function loadLessonPlanForOccurrence({
   teacherId,
@@ -127,9 +146,7 @@ export async function loadLessonPlanForOccurrence({
 }): Promise<ExistingLessonPlan | null> {
   const { data, error } = await supabase
     .from('lesson_plans')
-    .select(
-      'id, title, body, topic, status, curriculum_id, strand_id, scheme_id',
-    )
+    .select('id, title, body, topic, status, curriculum_id, strand_id, scheme_id')
     .eq('teacher_id', teacherId)
     .eq('timetable_slot_id', timetableSlotId)
     .eq('taught_date', taughtDate)
@@ -140,10 +157,9 @@ export async function loadLessonPlanForOccurrence({
 }
 
 /**
- * Inserts or updates one exact timetable occurrence. The timetable slot is the
- * write authority for school/teacher/class/subject/date identity; client state
- * cannot move a plan to another assignment. The persisted source identity is
- * then checked again before success is reported.
+ * Inserts or updates one exact timetable occurrence. Timetable assignment and
+ * taught_date determine all occurrence identity fields; client state cannot
+ * move a plan to another school, class, subject, weekday, or week.
  */
 export async function saveGeneratedLessonPlan({
   planId,
@@ -151,6 +167,11 @@ export async function saveGeneratedLessonPlan({
   expectedIdentity,
 }: SaveGeneratedLessonPlanInput): Promise<SavedLessonPlanIdentity> {
   const slot = await resolveWriteAuthority(payload)
+  const weekStart = isoWeekStart(payload.taught_date)
+  if (!weekStart) {
+    throw new Error('lessonRepository: invalid taught date.')
+  }
+
   const authoritativePayload = {
     ...payload,
     school_id: slot.school_id,
@@ -158,10 +179,11 @@ export async function saveGeneratedLessonPlan({
     class_id: slot.class_id,
     subject_id: slot.subject_id,
     day_of_week: slot.day_of_week,
+    week_start: weekStart,
   }
 
   const selectColumns =
-    'id,curriculum_id,strand_id,scheme_id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,taught_date'
+    'id,curriculum_id,strand_id,scheme_id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,taught_date,day_of_week,week_start'
 
   const writeResult = planId
     ? await supabase
@@ -191,7 +213,9 @@ export async function saveGeneratedLessonPlan({
     saved.class_id === slot.class_id &&
     saved.subject_id === slot.subject_id &&
     saved.timetable_slot_id === slot.id &&
-    saved.taught_date === payload.taught_date
+    saved.taught_date === payload.taught_date &&
+    saved.day_of_week === slot.day_of_week &&
+    saved.week_start === weekStart
 
   if (!occurrenceMatches) {
     throw new Error('lessonRepository: persisted occurrence identity changed during save.')
@@ -230,11 +254,7 @@ export async function updateLessonPlanBody({
 
   const { data, error } = await supabase
     .from('lesson_plans')
-    .update({
-      body,
-      title,
-      updated_at: new Date().toISOString(),
-    })
+    .update({ body, title, updated_at: new Date().toISOString() })
     .eq('id', lessonPlanId)
     .eq('teacher_id', user.id)
     .select('id')
