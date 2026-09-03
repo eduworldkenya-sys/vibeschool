@@ -49,7 +49,7 @@ interface HistoryQueryRow {
   title: string | null
   topic: string | null
   created_at: string
-  status: HistoryRow['status']
+  status: string | null
   curriculum_id: string | null
   strand_id: string | null
   classes: HistoryClassRow | HistoryClassRow[] | null
@@ -59,6 +59,11 @@ interface HistoryQueryRow {
 function firstJoin<T>(value: T | T[] | null): T | null {
   if (Array.isArray(value)) return value[0] ?? null
   return value
+}
+
+function historyStatus(value: string | null): HistoryRow['status'] {
+  if (value === 'published' || value === 'shared_to_parents') return value
+  return 'draft'
 }
 
 function formatTime(t: string) {
@@ -342,8 +347,11 @@ function LessonPlanInner() {
         const curr = firstJoin(h.curriculum)
         const classRow = firstJoin(h.classes)
         return {
-          id: h.id, title: h.title, topic: h.topic,
-          created_at: h.created_at, status: h.status,
+          id: h.id,
+          title: h.title ?? '',
+          topic: h.topic ?? '',
+          created_at: h.created_at,
+          status: historyStatus(h.status),
           class_name: classRow ? classRow.name + (classRow.stream ? ' ' + classRow.stream : '') : '',
           curriculumId: h.curriculum_id ?? null,
           strandId: h.strand_id ?? null,
