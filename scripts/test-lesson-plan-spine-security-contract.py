@@ -24,6 +24,10 @@ homework_migration = text(
 correction_migration = text(
     "supabase/migrations/20260903111000_lesson_plan_publication_evidence_schema_correction.sql"
 )
+truth_migration = text(
+    "supabase/migrations/20260903123000_lesson_plan_truth_convergence.sql"
+)
+repository = text("lib/teaching/lessonRepository.ts")
 evidence = text("components/teacher/EvidenceCaptureSheet.tsx")
 
 # Gate 1: exact timetable occurrence is database authority, not only UI state.
@@ -47,11 +51,42 @@ require(
 )
 require(migration, "v_slot.effective_until", "slot effective range")
 
-# Gate 6: learner publication is durable and independent from parent sharing.
-require(correction_migration, "lesson_plan_normalize_publication_state", "publication state trigger")
-require(correction_migration, "new.status = 'published' and new.published_at is null", "publication timestamp")
-require(correction_migration, "new.status = 'shared_to_parents'", "parent share preservation")
-require(correction_migration, "new.published_at := old.published_at", "durable learner publication")
+# Gate 1/6: legacy production truth must converge, not merely be protected from
+# future corruption. Ambiguous rows fail migration rather than being guessed.
+require(truth_migration, "update public.lesson_plans lp", "historical occurrence repair")
+require(
+    truth_migration,
+    "lp.week_start + (ts.day_of_week - 1)",
+    "deterministic occurrence derivation",
+)
+require(truth_migration, "not exists (", "occurrence collision guard")
+require(
+    truth_migration,
+    "lesson_plan_historical_occurrence_mismatch_requires_manual_reconciliation",
+    "fail closed on ambiguous historical truth",
+)
+
+# Repository writes must derive every occurrence field from timetable/date truth
+# and must not report success after an ownership-filtered zero-row mutation.
+require(repository, "function parseIsoDate", "strict ISO date parser")
+require(repository, "function isoWeekStart", "canonical week derivation")
+require(repository, "week_start: weekStart", "repository canonical week write")
+require(repository, "day_of_week: slot.day_of_week", "repository canonical weekday write")
+require(repository, ".eq('teacher_id', user.id)", "owned mutation filter")
+require(repository, ".select('id')", "mutation row verification")
+require(
+    repository,
+    "lesson plan was not found for this teacher",
+    "zero-row mutation failure",
+)
+require(
+    repository,
+    "persisted occurrence identity changed during save",
+    "post-write occurrence verification",
+)
+
+# Gate 6: learner publication is durable, status-constrained, independent from
+# parent sharing, and published_at cannot be used as a direct visibility bypass.
 require(correction_migration, "published_at is not null", "student publication authority")
 require(
     correction_migration,
@@ -59,6 +94,23 @@ require(
     "student-visible lifecycle states",
 )
 require(correction_migration, "sc.school_id = lesson_plans.school_id", "student school scope")
+require(truth_migration, "lesson_plans_status_check", "database status contract")
+require(
+    truth_migration,
+    "status in ('draft', 'published', 'shared_to_parents')",
+    "allowed lesson plan statuses",
+)
+require(truth_migration, "lesson_plan_normalize_publication_state", "final publication trigger")
+require(
+    truth_migration,
+    "before insert or update of status, published_at",
+    "published_at tamper resistance",
+)
+require(truth_migration, "new.status = 'published'", "learner publication transition")
+require(truth_migration, "new.published_at := coalesce(old.published_at, now())", "durable first publication")
+require(truth_migration, "new.status = 'shared_to_parents'", "parent share transition")
+require(truth_migration, "new.published_at := old.published_at", "parent share preserves learner publication")
+require(truth_migration, "lesson_plans_publication_state_check", "publication consistency constraint")
 
 # Gate 4/5/6: whole-class evidence is exact-occurrence scoped and private.
 require(migration, "'lesson-evidence',\n  'lesson-evidence',\n  false", "private evidence bucket")
