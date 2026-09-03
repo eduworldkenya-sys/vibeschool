@@ -1,12 +1,8 @@
 "use client";
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 
-const ENGAGEMENT: { key: "low" | "medium" | "high"; label: string }[] = [
-  { key: "low", label: "Low" },
-  { key: "medium", label: "Medium" },
-  { key: "high", label: "High" },
-];
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function ReflectionSheet({
   lessonId, occurrenceId, classId, subjectId, teacherId, onClose, onSaved,
@@ -19,7 +15,7 @@ export default function ReflectionSheet({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [engagement, setEngagement] = useState<"low" | "medium" | "high">("medium");
+  const router = useRouter();
   const [reflectionText, setReflectionText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,16 +26,14 @@ export default function ReflectionSheet({
       return;
     }
     if (!occurrenceId) {
-      setError(
-        "This reflection is not linked to a teaching occurrence."
-      );
+      setError("This reflection is not linked to a teaching occurrence.");
       return;
     }
-
     if (!reflectionText.trim()) {
       setError("Add a short reflection before saving.");
       return;
     }
+
     setSaving(true);
     setError(null);
 
@@ -62,8 +56,16 @@ export default function ReflectionSheet({
       setError(insErr.message);
       return;
     }
+
+    // A completed lesson should continue into its exact Record of Progress,
+    // never a generic progress page or a plan-only shortcut. The progress page
+    // re-validates occurrence ownership/completion and prefills the lesson and
+    // homework from this same authoritative occurrence.
     onSaved();
     onClose();
+    router.push(
+      `/teacher/progress?occurrenceId=${encodeURIComponent(occurrenceId)}&planId=${encodeURIComponent(lessonId)}&classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subjectId)}`
+    );
   }
 
   return (
@@ -81,29 +83,11 @@ export default function ReflectionSheet({
           width: "100%", maxHeight: "85vh", overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 900, color: "#1e1b4b", marginBottom: 14 }}>
-          Write Reflection
+        <div style={{ fontSize: 16, fontWeight: 900, color: "#1e1b4b", marginBottom: 6 }}>
+          Quick lesson reflection
         </div>
-
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
-          How engaged were learners?
-        </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-          {ENGAGEMENT.map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setEngagement(opt.key)}
-              style={{
-                flex: 1, padding: "10px 0", borderRadius: 10, fontSize: 13, fontWeight: 700,
-                border: engagement === opt.key ? "1.5px solid #10b981" : "1px solid #e5e7eb",
-                background: engagement === opt.key ? "#ecfdf5" : "#fff",
-                color: engagement === opt.key ? "#059669" : "#6b7280",
-                cursor: "pointer",
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14, lineHeight: 1.5 }}>
+          Capture the teaching insight here. After saving, VibeSchool opens the exact completed lesson progress record for you to confirm participation, challenges and next steps.
         </div>
 
         <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
@@ -117,22 +101,25 @@ export default function ReflectionSheet({
           style={{
             width: "100%", padding: 12, borderRadius: 12, border: "1px solid #e5e7eb",
             fontSize: 13, fontFamily: "inherit", resize: "vertical", marginBottom: 12,
+            boxSizing: "border-box",
           }}
         />
 
         {error && (
-          <div style={{ fontSize: 12, color: "#dc2626", marginBottom: 12 }}>{error}</div>
+          <div role="alert" style={{ fontSize: 12, color: "#dc2626", marginBottom: 12 }}>{error}</div>
         )}
 
         <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={onClose}
+            disabled={saving}
             style={{
               flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid #e5e7eb",
-              background: "#fff", color: "#6b7280", fontWeight: 700, fontSize: 13, cursor: "pointer",
+              background: "#fff", color: "#6b7280", fontWeight: 700, fontSize: 13,
+              cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1,
             }}
           >
-            Cancel
+            Later
           </button>
           <button
             onClick={handleSave}
@@ -143,7 +130,7 @@ export default function ReflectionSheet({
               cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? "Saving…" : "Save Reflection"}
+            {saving ? "Saving…" : "Save & record progress →"}
           </button>
         </div>
       </div>
