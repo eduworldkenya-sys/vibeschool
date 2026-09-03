@@ -1192,8 +1192,9 @@ export default function LessonPlanModal({
         })
       }
       setSections(draft)
+      setStatus('draft')
       setPhase('view')
-      showToast('Plan saved')
+      showToast('Plan saved · publish/share again after review')
       refreshPulse('lesson')
     } catch (err) {
       console.error('[LessonPlanModal] saveEdit', err)
