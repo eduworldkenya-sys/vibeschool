@@ -6,6 +6,13 @@ export interface LessonContextStudent {
   profile_id: string | null
 }
 
+interface EnrollmentLearner {
+  id: string
+  name: string
+  profile_id: string | null
+  deleted_at: string | null
+}
+
 export interface LessonContext {
   teacherName: string
   schoolName: string
@@ -83,8 +90,10 @@ export async function loadLessonContext({
   const students: LessonContextStudent[] = []
   const seen = new Set<string>()
   for (const row of enrollmentResult.data ?? []) {
-    const learner = (row as any).students
-    if (!learner || learner.deleted_at || seen.has(learner.id)) continue
+    const learnerValue: unknown = row.students
+    if (!learnerValue || typeof learnerValue !== 'object' || Array.isArray(learnerValue)) continue
+    const learner = learnerValue as EnrollmentLearner
+    if (!learner.id || !learner.name || learner.deleted_at || seen.has(learner.id)) continue
     seen.add(learner.id)
     students.push({ id: learner.id, name: learner.name, profile_id: learner.profile_id ?? null })
   }
