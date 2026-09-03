@@ -1,10 +1,17 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def text(path: str) -> str:
     return (ROOT / path).read_text()
+
+
+def executable_text(src: str) -> str:
+    """Remove JS/TS comments before checking forbidden executable patterns."""
+    without_blocks = re.sub(r'/\*[\s\S]*?\*/', '', src)
+    return re.sub(r'//[^\n]*', '', without_blocks)
 
 
 def require(src: str, needle: str, label: str) -> None:
@@ -16,12 +23,15 @@ def forbid(src: str, needle: str, label: str) -> None:
 
 
 modal = text('components/teacher/LessonPlanModal.tsx')
+modal_code = executable_text(modal)
 canonical = text('lib/teaching/canonicalLessonGeneration.ts')
 baseline = text('lib/teaching/lessonGeneration.ts')
 grounding = text('lib/teaching/lessonPlanGrounding.ts')
 lifecycle = text('lib/teaching/lessonLifecycle.ts')
+lifecycle_code = executable_text(lifecycle)
 attendance = text('lib/teaching/lessonAttendance.ts')
 coverage = text('components/teacher/CoverageSheet.tsx')
+coverage_code = executable_text(coverage)
 source_bundle = text('lib/teaching/lessonSourceBundle.ts')
 delivery = text('lib/teaching/lessonDelivery.ts')
 
@@ -41,8 +51,8 @@ for required in (
     'planSchemeIdRef.current',
 ):
     require(modal, required, f'modal boundary {required}')
-forbid(modal, ".from('teaching_occurrences').insert", 'modal direct occurrence mutation')
-forbid(modal, ".from('scheme_of_work').update", 'modal direct Scheme mutation')
+forbid(modal_code, ".from('teaching_occurrences').insert", 'modal direct occurrence mutation')
+forbid(modal_code, ".from('scheme_of_work').update", 'modal direct Scheme mutation')
 
 # Files 5/6/7 — authoritative lists must preserve line granularity before
 # normalization, and canonical content selection must be exact/deterministic.
@@ -52,7 +62,7 @@ require(grounding, '.split(/\\s*[|;]\\s*|\\n+/)', 'grounding validates Scheme ob
 forbid(grounding, 'allowedContentFragments', 'grounding dead API')
 require(source_bundle, "if (source.strandId)", 'sub-strand resource authority')
 require(source_bundle, "return queryCurriculumCandidates('curriculum_id', source.id)", 'curriculum fallback authority')
-forbid(source_bundle, '.or(', 'broad canonical resource matching')
+forbid(executable_text(source_bundle), '.or(', 'broad canonical resource matching')
 require(source_bundle, ".order('certified_at', { ascending: false })", 'deterministic certified version order')
 require(source_bundle, 'newestCertifiedByResource', 'single deterministic certified version')
 require(source_bundle, 'return candidates.flatMap(resource =>', 'candidate order preserved')
@@ -66,8 +76,8 @@ for required in (
     'markSchemeItemCovered(occurrenceId)',
 ):
     require(lifecycle, required, f'lifecycle adapter {required}')
-forbid(lifecycle, "from('teaching_occurrences')", 'lifecycle direct occurrence query')
-forbid(lifecycle, "from('scheme_of_work')", 'lifecycle direct Scheme mutation')
+forbid(lifecycle_code, "from('teaching_occurrences')", 'lifecycle direct occurrence query')
+forbid(lifecycle_code, "from('scheme_of_work')", 'lifecycle direct Scheme mutation')
 
 # File 12 — attendance completion means every learner in canonical current
 # enrollment has a row for the exact school/class/teacher/slot/date occurrence.
@@ -100,7 +110,7 @@ assert share_guard < parent_delivery, 'delivery: readiness must precede parent c
 require(coverage, 'onMarkCovered: () => void', 'coverage callback boundary')
 require(coverage, 'error: string | null', 'coverage visible error')
 require(coverage, 'disabled={marking}', 'coverage duplicate-submit guard')
-forbid(coverage, 'supabase', 'coverage direct database access')
-forbid(coverage, 'scheme_of_work', 'coverage direct Scheme access')
+forbid(coverage_code, 'supabase', 'coverage direct database access')
+forbid(coverage_code, 'scheme_of_work', 'coverage direct Scheme access')
 
 print('lesson-plan remaining ledger: PASS')
