@@ -1,0 +1,91 @@
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def text(path: str) -> str:
+    return (ROOT / path).read_text()
+
+
+def require(src: str, needle: str, label: str) -> None:
+    assert needle in src, f"{label}: missing {needle!r}"
+
+
+def forbid(src: str, needle: str, label: str) -> None:
+    assert needle not in src, f"{label}: forbidden {needle!r}"
+
+
+modal = text('components/teacher/LessonPlanModal.tsx')
+canonical = text('lib/teaching/canonicalLessonGeneration.ts')
+baseline = text('lib/teaching/lessonGeneration.ts')
+grounding = text('lib/teaching/lessonPlanGrounding.ts')
+lifecycle = text('lib/teaching/lessonLifecycle.ts')
+attendance = text('lib/teaching/lessonAttendance.ts')
+coverage = text('components/teacher/CoverageSheet.tsx')
+source_bundle = text('lib/teaching/lessonSourceBundle.ts')
+
+# File 2 — modal must orchestrate through canonical boundaries rather than
+# becoming an independent persistence/lifecycle implementation.
+for required in (
+    'loadLessonWorkspace({',
+    'saveGeneratedLessonPlan({',
+    'updateLessonPlanBody({',
+    'generateCanonicalLessonPlan(',
+    'generateLessonPlan({',
+    'startLessonOccurrence({',
+    'completeLessonOccurrence({',
+    'markLessonSchemeCovered(',
+    'buildLessonAttendanceUrl({',
+    'coveragePromptOccurrenceId',
+    'planSchemeIdRef.current',
+):
+    require(modal, required, f'modal boundary {required}')
+forbid(modal, ".from('teaching_occurrences').insert", 'modal direct occurrence mutation')
+forbid(modal, ".from('scheme_of_work').update", 'modal direct Scheme mutation')
+
+# Files 5/6/7 — authoritative lists must preserve line granularity before
+# normalization, and canonical content selection must be exact/deterministic.
+require(canonical, 'splitAuthorityList', 'canonical authority list')
+require(baseline, '.split(/\\s*[|;]\\s*|\\n+/)', 'baseline preserves Scheme list lines')
+require(grounding, '.split(/\\s*[|;]\\s*|\\n+/)', 'grounding validates Scheme objectives independently')
+forbid(grounding, 'allowedContentFragments', 'grounding dead API')
+require(source_bundle, "if (source.strandId)", 'sub-strand resource authority')
+require(source_bundle, "return queryCurriculumCandidates('curriculum_id', source.id)", 'curriculum fallback authority')
+forbid(source_bundle, '.or(', 'broad canonical resource matching')
+require(source_bundle, ".order('certified_at', { ascending: false })", 'deterministic certified version order')
+require(source_bundle, 'newestCertifiedByResource', 'single deterministic certified version')
+require(source_bundle, 'return candidates.flatMap(resource =>', 'candidate order preserved')
+
+# File 10 — lifecycle remains a thin adapter over the canonical occurrence
+# authority. No second client-side lifecycle state machine or direct Supabase.
+for required in (
+    'resolveOccurrence(key)',
+    'startTeachingOccurrence(key)',
+    'completeTeachingOccurrence(key)',
+    'markSchemeItemCovered(occurrenceId)',
+):
+    require(lifecycle, required, f'lifecycle adapter {required}')
+forbid(lifecycle, "from('teaching_occurrences')", 'lifecycle direct occurrence query')
+forbid(lifecycle, "from('scheme_of_work')", 'lifecycle direct Scheme mutation')
+
+# File 12 — attendance completion means every learner in canonical current
+# enrollment has a row for the exact school/class/teacher/slot/date occurrence.
+require(attendance, ".from('student_classes')", 'attendance canonical roster')
+require(attendance, ".eq('is_current', true)", 'attendance current enrollment')
+require(attendance, ".eq('school_id', schoolId)", 'attendance school scope')
+require(attendance, ".eq('teacher_id', teacherId)", 'attendance teacher scope')
+require(attendance, ".eq('timetable_slot_id', slot.id)", 'attendance exact slot')
+require(attendance, ".eq('date', occurrenceDate)", 'attendance exact date')
+require(attendance, 'expectedStudentCount > 0', 'attendance non-empty roster completion')
+require(attendance, 'recordedStudentCount === expectedStudentCount', 'attendance full roster completion')
+forbid(attendance, '(attendanceResult.count ?? 0) > 0', 'partial attendance cannot mean complete')
+
+# File 15 — coverage sheet stays presentation-only; guarded mutation ownership
+# remains in the modal/lifecycle boundary and errors remain visible/retryable.
+require(coverage, 'onMarkCovered: () => void', 'coverage callback boundary')
+require(coverage, 'error: string | null', 'coverage visible error')
+require(coverage, 'disabled={marking}', 'coverage duplicate-submit guard')
+forbid(coverage, 'supabase', 'coverage direct database access')
+forbid(coverage, 'scheme_of_work', 'coverage direct Scheme access')
+
+print('lesson-plan remaining ledger: PASS')
