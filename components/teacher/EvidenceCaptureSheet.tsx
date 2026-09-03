@@ -100,8 +100,6 @@ export default function EvidenceCaptureSheet({
       throw new Error(`Evidence photo could not be uploaded: ${uploadError.message}`);
     }
 
-    // Private evidence never stores a public URL. Persist an object reference;
-    // authorized readers can exchange it for a short-lived signed URL later.
     return `${EVIDENCE_BUCKET}://${objectPath}`;
   }
 
@@ -220,6 +218,8 @@ export default function EvidenceCaptureSheet({
         onClick={(event) => event.stopPropagation()}
         style={{
           background: "#fff",
+          color: "#111827",
+          colorScheme: "light",
           borderRadius: "20px 20px 0 0",
           width: "100%",
           maxHeight: "88vh",
@@ -280,6 +280,9 @@ export default function EvidenceCaptureSheet({
             borderRadius: 10,
             padding: "10px 12px",
             fontSize: 13,
+            color: "#111827",
+            background: "#fff",
+            caretColor: "#111827",
             marginBottom: 14,
             boxSizing: "border-box",
           }}
@@ -299,6 +302,9 @@ export default function EvidenceCaptureSheet({
             borderRadius: 10,
             padding: "10px 12px",
             fontSize: 13,
+            color: "#111827",
+            background: "#fff",
+            caretColor: "#111827",
             marginBottom: 14,
             boxSizing: "border-box",
             fontFamily: "inherit",
@@ -322,6 +328,9 @@ export default function EvidenceCaptureSheet({
                 borderRadius: 10,
                 padding: "10px 12px",
                 fontSize: 13,
+                color: "#111827",
+                background: "#fff",
+                caretColor: "#111827",
                 boxSizing: "border-box",
               }}
             />
