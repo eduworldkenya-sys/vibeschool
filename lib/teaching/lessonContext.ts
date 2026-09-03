@@ -20,6 +20,7 @@ export interface LoadLessonContextInput {
   userId: string
   classId: string
   subjectId: string
+  occurrenceDate: string
 }
 
 interface EnrollmentLearnerRow {
@@ -59,21 +60,16 @@ function occurrenceKey(
   return `${timetableSlotId}:${occurrenceDate}`
 }
 
-/**
- * Loads the exact teacher → school → class → subject → learner context for one
- * lesson. The teaching assignment is the school authority; neither a stale
- * profile school pointer nor students.class_id may decide lesson identity.
- *
- * Opening a valid lesson also activates that exact authorized school through
- * the guarded context RPC. This keeps older teacher consumers that still read
- * legacy school pointers aligned with the canonical assignment during the
- * transition to teacher_get_operating_context.
- */
 export async function loadLessonContext({
   userId,
   classId,
   subjectId,
+  occurrenceDate,
 }: LoadLessonContextInput): Promise<LessonContext> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(occurrenceDate)) {
+    throw new Error('lesson_context_occurrence_date_required')
+  }
+
   const [profileResult, assignmentResult, classResult] = await Promise.all([
     supabase
       .from('profiles')
@@ -132,7 +128,9 @@ export async function loadLessonContext({
       .eq('class_id', classId)
       .eq('subject_id', subjectId)
       .eq('lifecycle', 'completed')
+      .lt('occurrence_date', occurrenceDate)
       .not('completed_at', 'is', null)
+      .order('occurrence_date', { ascending: false })
       .order('completed_at', { ascending: false })
       .limit(5),
   ])
@@ -182,9 +180,7 @@ export async function loadLessonContext({
 
     const topicByOccurrence = new Map<string, string>()
     for (const row of (planRows ?? []) as PreviousPlanRow[]) {
-      if (typeof row.topic !== 'string' || row.topic.trim().length === 0) {
-        continue
-      }
+      if (typeof row.topic !== 'string' || row.topic.trim().length === 0) continue
       topicByOccurrence.set(
         occurrenceKey(row.timetable_slot_id, row.taught_date),
         row.topic.trim(),
