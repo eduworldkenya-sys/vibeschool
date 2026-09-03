@@ -80,7 +80,9 @@ export async function generateLessonPlan({
   const assessment = splitList(assessmentMethods)
   const resources = splitList(learningResources)
   const inquiry = clean(keyInquiryQuestion)
-  const previousTopic = previousTopics.map(clean).filter(Boolean).at(-1) ?? ''
+  // Context is newest-first; the first item is the most recent authoritative
+  // previous topic. Do not use .at(-1), which selects the oldest retained item.
+  const previousTopic = previousTopics.map(clean).filter(Boolean)[0] ?? ''
   const curriculumPath = joinNonEmpty([curriculumStrand, curriculumSubStrand], ' → ')
   const timing = allocateLessonTiming(parseLessonDurationMinutes(duration))
   const ranges = lessonTimingRanges(timing)
@@ -102,9 +104,8 @@ export async function generateLessonPlan({
     development: joinNonEmpty([
       `Timing: ${ranges.development} (${timing.development} min).`,
       curriculumPath ? `Curriculum path: ${curriculumPath}.` : null,
-      `\nLearner activities from the Scheme:\n${numbered(experiences, '1. Follow the approved Scheme learning sequence. No additional curriculum content has been invented.')}`,
+      `\nLearner activities from the Scheme:\n${numbered(experiences, '1. Follow the approved Scheme learning sequence.')}`,
       focus ? `\nTeacher-requested adaptation:\n• ${focus}` : null,
-      '\nTeacher note: this is a Scheme-only baseline. Attach certified VibeSchool content before marking the plan Ready to Teach when rich content is required.',
     ], '\n\n'),
     consolidation: joinNonEmpty([
       `Timing: ${ranges.consolidation} (${timing.consolidation} min).`,
@@ -119,7 +120,7 @@ export async function generateLessonPlan({
         ? `\nScheme assessment method(s):\n${bullets(assessment, '')}`
         : '\nAssessment: use an objective-linked oral or written check and record Mastered, Developing or Needs support.',
     ]),
-    homework: 'No certified homework task is attached. Do not invent one automatically; add a teacher task or attach approved VibeSchool content.',
+    homework: 'No certified homework task is attached. Add a teacher task or attach approved VibeSchool content.',
     differentiation: joinNonEmpty([
       '1. Support: adjust prompts, grouping, pacing and resource support without changing the Scheme objective.',
       '2. Core: complete the Scheme learning experience as written.',
