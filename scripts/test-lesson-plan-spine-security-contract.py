@@ -68,7 +68,7 @@ require(evidence, 'const EVIDENCE_BUCKET = "lesson-evidence"', "canonical eviden
 require(evidence, "crypto.randomUUID()", "collision-safe media identity")
 require(evidence, "upsert: false", "no evidence overwrite")
 require(evidence, "Evidence photo could not be uploaded", "upload failure surfaced")
-require(evidence, "lesson-evidence://", "private media reference")
+require(evidence, "`${EVIDENCE_BUCKET}://${objectPath}`", "private media reference")
 require(evidence, "removeUploadedPhoto(mediaRef)", "orphan media cleanup")
 require(evidence, "teaching_occurrence_id: occurrenceId", "exact evidence occurrence")
 require(evidence, "student_id: null", "whole-class evidence semantics")
