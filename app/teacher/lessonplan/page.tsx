@@ -1,10 +1,10 @@
 "use client";
-import { nairobiDateStr, nairobiDateAdd, nairobiWeekStart } from '@/lib/time'
+import { nairobiDateAdd, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
 import type { CanonicalTimetableSlot } from '@/lib/timetable/engine'
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useRef, useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -16,6 +16,57 @@ import type { TimetableSlot, PlanRow, HistoryRow } from '@/lib/types'
 interface SlotWithPlan {
   slot: TimetableSlot
   plan: PlanRow | null
+}
+
+type ReadinessState = 'ready' | 'needs_review' | 'no_plan'
+type ReadinessFilter = 'all' | ReadinessState
+
+interface TeacherOperatingContext {
+  school_id: string | null
+}
+
+interface SubjectLookupRow {
+  id: string
+  name: string
+}
+
+interface ClassLookupRow {
+  id: string
+  name: string
+  stream: string | null
+}
+
+interface HistoryClassRow {
+  name: string
+  stream: string | null
+}
+
+interface HistoryCurriculumRow {
+  week: number | null
+  term: number | null
+  strand: string | null
+}
+
+interface HistoryQueryRow {
+  id: string
+  title: string | null
+  topic: string | null
+  created_at: string
+  status: string | null
+  curriculum_id: string | null
+  strand_id: string | null
+  classes: HistoryClassRow | HistoryClassRow[] | null
+  curriculum: HistoryCurriculumRow | HistoryCurriculumRow[] | null
+}
+
+function firstJoin<T>(value: T | T[] | null): T | null {
+  if (Array.isArray(value)) return value[0] ?? null
+  return value
+}
+
+function historyStatus(value: string | null): HistoryRow['status'] {
+  if (value === 'published' || value === 'shared_to_parents') return value
+  return 'draft'
 }
 
 function formatTime(t: string) {
@@ -37,16 +88,17 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
   draft:             { label: 'Draft',             bg: '#f3f4f6', color: '#6b7280' },
   published:         { label: 'Published',         bg: '#d1fae5', color: '#065f46' },
   shared_to_parents: { label: 'Shared to Parents', bg: '#dbeafe', color: '#1e40af' },
-  missing:           { label: 'No Plan',           bg: '#fee2e2', color: '#991b1b' },
 }
 
-// The AI generator writes a <differentiation>...</differentiation> block into
-// plan.body (support/core/extension activities). A plan can exist but still
-// have no real differentiation content — this checks for that directly
-// instead of inferring it from status.
-function hasDifferentiation(body: string): boolean {
-  const m = body.match(/<differentiation>([\s\S]*?)<\/differentiation>/)
-  return !!(m && m[1].trim().length > 0)
+const READINESS_BADGE: Record<ReadinessState, { label: string; bg: string; color: string }> = {
+  ready:        { label: 'Ready to Teach', bg: '#d1fae5', color: '#065f46' },
+  needs_review: { label: 'Needs Review',   bg: '#fef3c7', color: '#92400e' },
+  no_plan:      { label: 'No Plan',        bg: '#fee2e2', color: '#991b1b' },
+}
+
+function readinessState(plan: PlanRow | null): ReadinessState {
+  if (!plan) return 'no_plan'
+  return isLessonPlanReadyToTeach(plan.body) ? 'ready' : 'needs_review'
 }
 
 function weekStartForDate(date: string): string {
@@ -77,9 +129,10 @@ function LessonPlanInner() {
   const [histLoading, setHistLoading] = useState(true)
   const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
   const [toast,       setToast]       = useState('')
-  const [schoolId,    setSchoolId]    = useState<string | null>(null)
   const [loadError,   setLoadError]   = useState<string | null>(null)
-  const [diffFilter,  setDiffFilter]  = useState<'all' | 'published' | 'draft' | 'missing'>('all')
+  const [readinessFilter, setReadinessFilter] = useState<ReadinessFilter>('all')
+  const [refreshNonce, setRefreshNonce] = useState(0)
+  const autoOpenedKeyRef = useRef<string | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -97,27 +150,24 @@ function LessonPlanInner() {
         return
       }
 
-      // Resolve schoolId — same 3-source fallback used in Assessment/Pulse
-      const [memberRes, teacherRes, profileRes] = await Promise.all([
-        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('profiles').select('school_id').eq('id', user.id).maybeSingle(),
-      ])
-      const resolvedSchoolId =
-        memberRes.data?.school_id ??
-        teacherRes.data?.school_id ??
-        profileRes.data?.school_id ??
-        null
-      setSchoolId(resolvedSchoolId)
+      const { data: contextData, error: contextError } = await supabase.rpc(
+        'teacher_get_operating_context',
+        {},
+      )
+      if (contextError) {
+        console.error('[LessonPlan] operating context failed:', contextError)
+        setLoadError('Could not load your teaching context.')
+        setLoading(false)
+        return
+      }
 
-      // Filter by overlap with the *selected* week, not "today" — this page
-      // navigates across weeks via weekStart/nairobiDateAdd, so a slot whose
-      // effective range covers a future or past week must still show up
-      // when that week is selected, even though it isn't active today.
+      const operatingContext = contextData as TeacherOperatingContext | null
+      const resolvedSchoolId = operatingContext?.school_id ?? null
+
       const weekEnd = nairobiDateAdd(weekStart, 6)
 
       if (!resolvedSchoolId) {
-        setLoadError('Your teacher profile is not connected to a school.')
+        setLoadError('Choose or connect a school before opening lesson plans.')
         setLoading(false)
         return
       }
@@ -151,6 +201,7 @@ function LessonPlanInner() {
         .from('lesson_plans')
         .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
         .eq('teacher_id', user.id)
+        .eq('school_id', resolvedSchoolId)
         .eq('week_start', weekStart)
 
       if (plansRes.error) {
@@ -173,11 +224,6 @@ function LessonPlanInner() {
         })
       }
 
-      // The SQL query above only confirms the slot's effective range overlaps
-      // the selected week somewhere — not that this slot's specific weekday
-      // occurrence in this week falls inside that range (e.g. a Monday slot
-      // effective from Wednesday shouldn't show for that week's Monday).
-      // day_of_week convention: Monday = 1 ... Sunday = 7.
       const slots = timetableSlots.filter(slot => {
         const occurrenceDate = nairobiDateAdd(weekStart, Number(slot.day_of_week) - 1)
         return (
@@ -192,16 +238,29 @@ function LessonPlanInner() {
         new Set(slots.map(s => s.class_id).filter(Boolean))
       )
       const [subjRes, clsRes] = await Promise.all([
-        subjectIds.length > 0 ? supabase.from('subjects').select('id,name').in('id', subjectIds) : Promise.resolve({ data: [] }),
-        classIds.length > 0   ? supabase.from('classes').select('id,name,stream').in('id', classIds) : Promise.resolve({ data: [] }),
+        subjectIds.length > 0
+          ? supabase.from('subjects').select('id,name').in('id', subjectIds)
+          : Promise.resolve({ data: [] as SubjectLookupRow[], error: null }),
+        classIds.length > 0
+          ? supabase.from('classes').select('id,name,stream').in('id', classIds)
+          : Promise.resolve({ data: [] as ClassLookupRow[], error: null }),
       ])
-      const subjMap = Object.fromEntries((subjRes.data ?? []).map((s: any) => [s.id, s.name]))
-      const clsMap  = Object.fromEntries((clsRes.data ?? []).map((c: any) => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]))
+
+      if (subjRes.error || clsRes.error) {
+        console.error('[LessonPlan] lookup query failed:', subjRes.error ?? clsRes.error)
+        setLoadError('Could not load class and subject names.')
+        setLoading(false)
+        return
+      }
+
+      const subjectRows = (subjRes.data ?? []) as SubjectLookupRow[]
+      const classRows = (clsRes.data ?? []) as ClassLookupRow[]
+      const subjMap = Object.fromEntries(subjectRows.map(s => [s.id, s.name]))
+      const clsMap = Object.fromEntries(
+        classRows.map(c => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]),
+      )
 
       const mapped: SlotWithPlan[] = slots.map(s => {
-        // Fix 14C: carry the browsed occurrence forward on the slot itself —
-        // day_of_week and occurrenceDate must survive into activeSlot, or the
-        // modal has no way to know which real-world date it's saving to.
         const occurrenceDate = nairobiDateAdd(
           weekStart,
           Number(s.day_of_week) - 1,
@@ -229,9 +288,6 @@ function LessonPlanInner() {
         }
       })
 
-      // FND-002C3: Scheme entry is source-scoped. The teacher may choose any
-      // valid occurrence for the selected week, but never an unrelated class
-      // or subject. Normal timetable/lesson-plan entry remains unfiltered.
       const selectableItems = urlSchemeId
         ? mapped.filter(({ slot }) =>
             slot.class_id === urlClassId &&
@@ -241,10 +297,6 @@ function LessonPlanInner() {
 
       setItems(selectableItems)
 
-      // TOS-001: a timetable CTA must open the selected occurrence directly,
-      // not merely land on the weekly lesson-plan index. The exact pair is
-      // the same identity used by LessonPlanModal and lesson_plans:
-      // (timetable_slot_id, taught_date).
       if (urlTimetableSlotId && urlOccurrenceDate) {
         const target = selectableItems.find(({ slot }) =>
           slot.id === urlTimetableSlotId &&
@@ -254,7 +306,11 @@ function LessonPlanInner() {
         )
 
         if (target) {
-          setActiveSlot(target.slot)
+          const autoOpenKey = `${urlTimetableSlotId}:${urlOccurrenceDate}`
+          if (autoOpenedKeyRef.current !== autoOpenKey) {
+            autoOpenedKeyRef.current = autoOpenKey
+            setActiveSlot(target.slot)
+          }
         } else {
           setLoadError('The selected timetable lesson is no longer available for this date.')
         }
@@ -262,7 +318,7 @@ function LessonPlanInner() {
 
       setLoading(false)
     }
-    load()
+    void load()
   }, [
     weekStart,
     urlClassId,
@@ -270,13 +326,17 @@ function LessonPlanInner() {
     urlTimetableSlotId,
     urlOccurrenceDate,
     urlSchemeId,
+    refreshNonce,
   ])
 
   useEffect(() => {
     async function loadHistory() {
       setHistLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      if (!user) {
+        setHistLoading(false)
+        return
+      }
       let q = supabase
         .from('lesson_plans')
         .select('id,title,topic,created_at,status,curriculum_id,strand_id,classes(name,stream),curriculum(week,term,strand)')
@@ -284,13 +344,23 @@ function LessonPlanInner() {
         .order('created_at', { ascending: false })
         .limit(15)
       if (urlClassId) q = q.eq('class_id', urlClassId)
-      const { data } = await q
-      setHistory((data ?? []).map((h: any) => {
-        const curr = Array.isArray(h.curriculum) ? h.curriculum[0] : h.curriculum
+      const { data, error } = await q
+      if (error) {
+        console.error('[LessonPlan] history query failed:', error)
+        setHistory([])
+        setHistLoading(false)
+        return
+      }
+      setHistory(((data ?? []) as HistoryQueryRow[]).map(h => {
+        const curr = firstJoin(h.curriculum)
+        const classRow = firstJoin(h.classes)
         return {
-          id: h.id, title: h.title, topic: h.topic,
-          created_at: h.created_at, status: h.status,
-          class_name: h.classes ? h.classes.name + (h.classes.stream ? ' ' + h.classes.stream : '') : '',
+          id: h.id,
+          title: h.title ?? '',
+          topic: h.topic ?? '',
+          created_at: h.created_at,
+          status: historyStatus(h.status),
+          class_name: classRow ? classRow.name + (classRow.stream ? ' ' + classRow.stream : '') : '',
           curriculumId: h.curriculum_id ?? null,
           strandId: h.strand_id ?? null,
           week: curr?.week ?? null,
@@ -300,21 +370,17 @@ function LessonPlanInner() {
       }))
       setHistLoading(false)
     }
-    loadHistory()
-  }, [urlClassId, activeSlot])
+    void loadHistory()
+  }, [urlClassId, activeSlot, refreshNonce])
 
-  const readyCount = items.filter(i => i.plan && isLessonPlanReadyToTeach(i.plan.body)).length
-  const missingCount = items.length - readyCount
-  const isThisWeek   = weekStart === nairobiWeekStart()
+  const readyCount = items.filter(({ plan }) => readinessState(plan) === 'ready').length
+  const needsReviewCount = items.filter(({ plan }) => readinessState(plan) === 'needs_review').length
+  const noPlanCount = items.filter(({ plan }) => readinessState(plan) === 'no_plan').length
+  const isThisWeek = weekStart === nairobiWeekStart()
 
-  // Drives the "Today & Upcoming" list below when a Differentiation Summary
-  // row is tapped. 'all' means no filter is active.
   const visibleItems = items.filter(({ plan }) => {
-    if (diffFilter === 'all')       return true
-    if (diffFilter === 'missing')   return !plan || !isLessonPlanReadyToTeach(plan.body)
-    if (diffFilter === 'draft')     return !!plan && plan.status === 'draft'
-    if (diffFilter === 'published') return !!plan && (plan.status === 'published' || plan.status === 'shared_to_parents')
-    return true
+    if (readinessFilter === 'all') return true
+    return readinessState(plan) === readinessFilter
   })
 
   return (
@@ -351,13 +417,13 @@ function LessonPlanInner() {
         {!loading && !loadError && (
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
             {[
-              { label: 'Ready',   value: readyCount,   bg: 'rgba(16,185,129,0.25)' },
-              { label: 'Missing', value: missingCount, bg: 'rgba(239,68,68,0.25)'  },
-              { label: 'Total',   value: items.length, bg: 'rgba(255,255,255,0.12)' },
+              { label: 'Ready to Teach', value: readyCount,       bg: 'rgba(16,185,129,0.25)' },
+              { label: 'Needs Review',   value: needsReviewCount, bg: 'rgba(245,158,11,0.25)' },
+              { label: 'No Plan',        value: noPlanCount,      bg: 'rgba(239,68,68,0.25)' },
             ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 12, padding: '10px 12px', textAlign: 'center' }}>
+              <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{s.label}</div>
+                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -371,9 +437,9 @@ function LessonPlanInner() {
               ? 'Choose Timetable Occurrence'
               : 'Today & Upcoming'}
           </SectionLabel>
-          {diffFilter !== 'all' && (
+          {readinessFilter !== 'all' && (
             <button
-              onClick={() => setDiffFilter('all')}
+              onClick={() => setReadinessFilter('all')}
               style={{ fontSize: 11, fontWeight: 700, color: C.accent, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit' }}
             >
               ✕ Clear filter
@@ -396,11 +462,12 @@ function LessonPlanInner() {
               : 'No classes scheduled'}
           </div>
         ) : visibleItems.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No slots match this filter</div>
+          <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No lessons match this readiness filter</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {visibleItems.map(({ slot, plan }) => {
-              const badge = STATUS_BADGE[plan?.status ?? 'missing']
+              const state = readinessState(plan)
+              const badge = READINESS_BADGE[state]
               return (
                 <div key={slot.id} style={{ padding: '14px 0', borderBottom: '1px solid ' + C.border }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
@@ -411,18 +478,18 @@ function LessonPlanInner() {
                       <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
                         {slot.class} · {formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ' · ' + slot.room : ''}
                       </div>
+                      {plan && (
+                        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
+                          Plan status: {STATUS_BADGE[plan.status]?.label ?? 'Draft'}
+                        </div>
+                      )}
                     </div>
                     <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0 }}>{badge.label}</span>
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
                     <Btn small variant="ghost" onClick={() => setActiveSlot(slot)}>
-                      {plan ? '📝 Open Plan' : '✦ Create Plan'}
+                      {state === 'no_plan' ? '✦ Create Plan' : state === 'needs_review' ? '📝 Review Plan' : '📝 Open Teaching Workspace'}
                     </Btn>
-                    {(plan?.status === 'published' || plan?.status === 'shared_to_parents') && (
-                      <Btn small variant="ghost" onClick={() => router.push(`/teacher/progress?planId=${plan.id}&classId=${plan.classId}&subjectId=${plan.subjectId}`)}>
-                        ✓ Mark as Taught
-                      </Btn>
-                    )}
                   </div>
                 </div>
               )
@@ -432,40 +499,53 @@ function LessonPlanInner() {
       </Card>
 
       <Card>
-        <SectionLabel>Differentiation Summary</SectionLabel>
+        <SectionLabel>Plan Readiness</SectionLabel>
         {loadError ? (
           <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: '#991b1b' }}>{loadError}</div>
-        ) : (() => {
-          const publishedItems = items.filter(i => i.plan?.status === 'published' || i.plan?.status === 'shared_to_parents')
-          const draftItems     = items.filter(i => i.plan?.status === 'draft')
-          const noPlan         = items.filter(i => !i.plan).length
-          const publishedDiff  = publishedItems.filter(i => i.plan && hasDifferentiation(i.plan.body)).length
-          const draftDiff      = draftItems.filter(i => i.plan && hasDifferentiation(i.plan.body)).length
-          return [
-            { key: 'published' as const, level: 'Published', color: '#7c3aed', bg: '#ede9fe', desc: 'Published or shared plans', count: publishedItems.length, diff: publishedDiff },
-            { key: 'draft'     as const, level: 'Draft',     color: C.accent,  bg: C.accentLight, desc: 'Plans saved as draft', count: draftItems.length, diff: draftDiff },
-            { key: 'missing'   as const, level: 'Missing',   color: '#d97706', bg: '#fef3c7', desc: 'Slots with no plan yet',  count: noPlan, diff: null },
+        ) : (
+          [
+            {
+              key: 'ready' as const,
+              level: 'Ready to Teach',
+              color: '#047857',
+              bg: '#d1fae5',
+              desc: 'The saved plan passes the teaching-readiness checks.',
+              count: readyCount,
+            },
+            {
+              key: 'needs_review' as const,
+              level: 'Needs Review',
+              color: '#92400e',
+              bg: '#fef3c7',
+              desc: 'A plan exists, but one or more teaching-readiness checks are incomplete.',
+              count: needsReviewCount,
+            },
+            {
+              key: 'no_plan' as const,
+              level: 'No Plan',
+              color: '#991b1b',
+              bg: '#fee2e2',
+              desc: 'No saved plan exists for this timetable occurrence.',
+              count: noPlanCount,
+            },
           ].map(d => (
             <div
               key={d.level}
-              onClick={() => setDiffFilter(f => f === d.key ? 'all' : d.key)}
+              onClick={() => setReadinessFilter(f => f === d.key ? 'all' : d.key)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10,
                 background: d.bg, marginBottom: 8, cursor: 'pointer',
-                border: '2px solid ' + (diffFilter === d.key ? d.color : 'transparent'),
+                border: '2px solid ' + (readinessFilter === d.key ? d.color : 'transparent'),
               }}
             >
               <div style={{ width: 32, height: 32, borderRadius: '50%', background: d.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{d.count}</div>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 800, color: d.color }}>{d.level}</div>
                 <div style={{ fontSize: 12, color: C.textMuted }}>{d.desc}</div>
-                {d.diff !== null && d.count > 0 && (
-                  <div style={{ fontSize: 11, color: d.color, fontWeight: 700, marginTop: 2 }}>⚡ {d.diff} of {d.count} have differentiated activities</div>
-                )}
               </div>
             </div>
           ))
-        })()}
+        )}
       </Card>
 
       <Card>
@@ -477,7 +557,7 @@ function LessonPlanInner() {
         ) : (
           <div>
             {history.map((h, i) => {
-              const badge = STATUS_BADGE[h.status ?? 'draft']
+              const badge = STATUS_BADGE[h.status ?? 'draft'] ?? STATUS_BADGE.draft
               return (
                 <div key={h.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0', borderTop: i === 0 ? 'none' : '1px solid ' + C.border }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -503,13 +583,13 @@ function LessonPlanInner() {
         <LessonPlanModal
           slot={activeSlot}
           weekStart={weekStart}
-          // Fix 14C: occurrenceDate is always set in the `mapped` builder
-          // above — asserted rather than optional-chained so a future
-          // regression there fails loudly (as a save error) instead of
-          // silently writing to the wrong date.
           taughtDate={activeSlot.occurrenceDate!}
           requestedSchemeId={urlSchemeId}
-          onClose={() => setActiveSlot(null)}
+          onClose={() => {
+            setActiveSlot(null)
+            setRefreshNonce(value => value + 1)
+            showToast('Lesson workspace updated')
+          }}
         />
       )}
     </>

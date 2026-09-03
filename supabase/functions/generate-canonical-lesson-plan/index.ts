@@ -174,7 +174,9 @@ async function prepareGroundedPedagogy({
     .eq("lifecycle_status", "certified")
   if (versionsError) return json({ error: "grounded_content_lookup_failed" }, 500)
 
-  const versionById = new Map((versions ?? []).map((version: Record<string, unknown>) => [String(version.id), version]))
+  const versionById = new Map<string, Record<string, unknown>>(
+    (versions ?? []).map((version: Record<string, unknown>) => [String(version.id), version]),
+  )
   const verifiedSources = requestedAssets.flatMap(asset => {
     const version = versionById.get(asset.resourceVersionId)
     if (

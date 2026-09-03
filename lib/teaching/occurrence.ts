@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabaseClient, supabase } from '@/lib/supabase'
 import type { OccurrenceKey, Lifecycle, TeachingOccurrence } from '@/lib/teaching/types'
 
 export type StartOccurrenceErrorCode =
@@ -238,8 +238,14 @@ function deriveLifecycle(
     return persisted.lifecycle
   }
   if (lessonPlanId) return 'ready'
-  const slotEnd = new Date(`${occurrenceDate}T${slotEndTime}`)
-  if (Date.now() > slotEnd.getTime() + 3 * 60 * 60 * 1000) return 'missed'
+
+  // Timetable dates/times are Kenya school time. Parse them with an explicit
+  // Africa/Nairobi offset so lifecycle truth is independent of the browser or
+  // device timezone. Nairobi is UTC+03:00 year-round (no DST).
+  const slotEnd = new Date(`${occurrenceDate}T${slotEndTime}+03:00`)
+  if (!Number.isNaN(slotEnd.getTime()) && Date.now() > slotEnd.getTime()) {
+    return 'missed'
+  }
   return 'planned'
 }
 
@@ -255,7 +261,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
   if (slot.effective_from && key.occurrenceDate < slot.effective_from) return null
   if (slot.effective_until && key.occurrenceDate > slot.effective_until) return null
 
-  const [lessonPlanRes, occurrenceRes, expectedCountRes] = await Promise.all([
+  const [lessonPlanRes, occurrenceRes, expectedEnrollmentRes] = await Promise.all([
     supabase.from('lesson_plans')
       .select('id')
       .eq('timetable_slot_id', key.timetableSlotId)
@@ -266,38 +272,32 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
       .eq('timetable_slot_id', key.timetableSlotId)
       .eq('occurrence_date', key.occurrenceDate)
       .maybeSingle(),
-    supabase.from('students')
-      .select('id', { count: 'exact', head: true })
+    // student_classes is the enrollment authority. students.class_id is a
+    // legacy convenience pointer and must not drive attendance completeness.
+    supabase.from('student_classes')
+      .select('student_id,students!inner(id,deleted_at)')
+      .eq('school_id', slot.school_id)
       .eq('class_id', slot.class_id)
-      .is('deleted_at', null),
+      .eq('is_current', true)
+      .is('students.deleted_at', null),
   ])
 
-  const firstReadError = lessonPlanRes.error ?? occurrenceRes.error ?? expectedCountRes.error
+  const firstReadError = lessonPlanRes.error ?? occurrenceRes.error ?? expectedEnrollmentRes.error
   if (firstReadError) throw firstReadError
 
   const lessonPlanId = lessonPlanRes.data?.id ?? null
   const persistedOccurrence = occurrenceRes.data as { id: string; lifecycle: Lifecycle } | null
-
-  type ProgressRecordRead = {
-    data: { id: string; teacher_remarks: string | null; next_steps: string | null } | null
-    error: { message?: string } | null
-  }
-  type LiveProgressRecordQuery = {
-    select(columns: string): {
-      eq(column: 'teaching_occurrence_id' | 'lesson_plan_id', value: string): {
-        maybeSingle(): PromiseLike<ProgressRecordRead>
-      }
-    }
-  }
-  const progressRecords = supabase.from('progress_records') as unknown as LiveProgressRecordQuery
+  const typedSupabase = getSupabaseClient()
 
   const progressQuery = persistedOccurrence
-    ? progressRecords
+    ? typedSupabase
+        .from('progress_records')
         .select('id, teacher_remarks, next_steps')
         .eq('teaching_occurrence_id', persistedOccurrence.id)
         .maybeSingle()
     : lessonPlanId
-      ? progressRecords
+      ? typedSupabase
+          .from('progress_records')
           .select('id, teacher_remarks, next_steps')
           .eq('lesson_plan_id', lessonPlanId)
           .maybeSingle()
@@ -347,7 +347,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
   if (secondReadError) throw secondReadError
 
   const markedCount = attendanceRes.data?.length ?? 0
-  const expectedCount = expectedCountRes.count ?? 0
+  const expectedCount = expectedEnrollmentRes.data?.length ?? 0
   const attendanceState = markedCount === 0
     ? 'not_started'
     : markedCount < expectedCount

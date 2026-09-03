@@ -2,8 +2,40 @@ import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 import { getHQSupabaseClient } from './hq/supabase'
 
+type GeneratedHomeworkTable = Database['public']['Tables']['homework']
+
+type LiveHomeworkProvenance = {
+  source_publication_id: string | null
+  source_chapter_id: string | null
+  source_resource_id: string | null
+  source_block_id: string | null
+  source_outcome_id: string | null
+  teaching_occurrence_id: string | null
+}
+
+type LiveHomeworkTable = {
+  Row: GeneratedHomeworkTable['Row'] & LiveHomeworkProvenance
+  Insert: GeneratedHomeworkTable['Insert'] & Partial<LiveHomeworkProvenance>
+  Update: GeneratedHomeworkTable['Update'] & Partial<LiveHomeworkProvenance>
+  Relationships: GeneratedHomeworkTable['Relationships']
+}
+
+/**
+ * Production can briefly lead the checked-in generated Supabase snapshot.
+ * Keep verified drift precise here instead of weakening feature code with
+ * `any`/`unknown` casts. Regenerating database.types.ts can later collapse this
+ * overlay without changing callers.
+ */
+type LiveDatabase = Omit<Database, 'public'> & {
+  public: Omit<Database['public'], 'Tables'> & {
+    Tables: Omit<Database['public']['Tables'], 'homework'> & {
+      homework: LiveHomeworkTable
+    }
+  }
+}
+
 export function createSupabaseClient() {
-  return createBrowserClient<Database>(
+  return createBrowserClient<LiveDatabase>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -15,7 +47,7 @@ export function createSupabaseClient() {
   )
 }
 
-type TypedBrowserClient = ReturnType<typeof createBrowserClient<Database>>
+type TypedBrowserClient = ReturnType<typeof createBrowserClient<LiveDatabase>>
 type LiveSchemaCompatClient = TypedBrowserClient & {
   from(relation: string): any
   rpc(fn: string, args?: Record<string, unknown>): any
@@ -57,9 +89,13 @@ export async function getTeacherProfile(userId: string) {
     .single()
   if (profileErr) { console.error('getTeacherProfile error:', profileErr); return null }
 
+  const joinedSchool = Array.isArray(profile?.schools)
+    ? profile.schools[0] ?? null
+    : profile?.schools ?? null
+
   return {
     name:   profile?.full_name ?? '',
-    school: (profile?.schools as unknown as { name: string } | null)?.name ?? '',
+    school: joinedSchool?.name ?? '',
     phone:  profile?.phone ?? '',
   }
 }

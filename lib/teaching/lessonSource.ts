@@ -70,6 +70,13 @@ interface InstructionalWeekRow {
   week_number: number
 }
 
+interface CurriculumAuthorityDetailRow {
+  learning_outcomes: string[] | null
+  key_inquiry_questions: string[] | null
+  suggested_experiences: string[] | null
+  source_ref: string | null
+}
+
 const SCHEME_SOURCE_COLUMNS = [
   'id',
   'curriculum_id',
@@ -90,6 +97,16 @@ const SCHEME_SOURCE_COLUMNS = [
   'sequence_number',
 ].join(',')
 
+function meaningful(value: string | null | undefined): string | null {
+  const cleaned = value?.trim() ?? ''
+  return cleaned.length > 0 ? cleaned : null
+}
+
+function authorityList(values: string[] | null | undefined): string | null {
+  const cleaned = (values ?? []).map(value => value.trim()).filter(Boolean)
+  return cleaned.length > 0 ? cleaned.join('\n') : null
+}
+
 function toSuggestion(
   row: SchemeSourceRow,
   termNumber: number,
@@ -103,16 +120,57 @@ function toSuggestion(
     week: row.week,
     strandId: row.sub_strand_id ?? null,
     schemeId: row.id,
-    objectives: row.objectives ?? null,
-    keyInquiryQuestion: row.key_inquiry_question ?? null,
-    learningResources: row.learning_resources ?? null,
-    resources: row.resources ?? null,
-    reference: row.reference ?? null,
-    learningExperiences: row.learning_experiences ?? null,
-    assessmentMethods: row.assessment_methods ?? null,
+    objectives: meaningful(row.objectives),
+    keyInquiryQuestion: meaningful(row.key_inquiry_question),
+    learningResources: meaningful(row.learning_resources),
+    resources: meaningful(row.resources),
+    reference: meaningful(row.reference),
+    learningExperiences: meaningful(row.learning_experiences),
+    assessmentMethods: meaningful(row.assessment_methods),
     lessonNumber: row.lesson_number ?? null,
     period: row.period ?? null,
     sequenceNumber: row.sequence_number ?? null,
+  }
+}
+
+/**
+ * Fills blank Scheme pedagogical fields from the already-linked CBC curriculum
+ * authority. Scheme-authored values always win. This is read-time enrichment:
+ * it never mutates Scheme rows and never invents curriculum content.
+ */
+export async function enrichLessonSourceFromCurriculum(
+  source: LessonSourceSuggestion,
+): Promise<LessonSourceSuggestion> {
+  if (!source.strandId) return source
+
+  const needsAuthority =
+    !meaningful(source.objectives) ||
+    !meaningful(source.keyInquiryQuestion) ||
+    !meaningful(source.learningExperiences) ||
+    !meaningful(source.reference)
+
+  if (!needsAuthority) return source
+
+  const { data, error } = await supabase
+    .from('cbc_strands')
+    .select('learning_outcomes,key_inquiry_questions,suggested_experiences,source_ref')
+    .eq('id', source.strandId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return source
+
+  const authority = data as CurriculumAuthorityDetailRow
+  return {
+    ...source,
+    objectives:
+      meaningful(source.objectives) ?? authorityList(authority.learning_outcomes),
+    keyInquiryQuestion:
+      meaningful(source.keyInquiryQuestion) ?? authorityList(authority.key_inquiry_questions),
+    learningExperiences:
+      meaningful(source.learningExperiences) ?? authorityList(authority.suggested_experiences),
+    reference:
+      meaningful(source.reference) ?? meaningful(authority.source_ref),
   }
 }
 
@@ -139,7 +197,6 @@ async function resolveInstructionalWeekForDate(
       p_date: occurrenceDate,
     },
   )
-
   if (error) throw error
 
   const row = Array.isArray(data) ? data[0] : null
@@ -153,7 +210,6 @@ async function resolveInstructionalWeekForDate(
       `lessonSource: no authoritative instructional week for ${occurrenceDate}.`,
     )
   }
-
   return row as InstructionalWeekRow
 }
 
@@ -185,13 +241,9 @@ async function loadSchemeSourceById({
 
   if (error) throw error
   if (data === null) return null
-
   if (!isSchemeSourceRow(data)) {
-    throw new Error(
-      'lessonSource: Scheme source response is missing required fields.',
-    )
+    throw new Error('lessonSource: Scheme source response is missing required fields.')
   }
-
   return data
 }
 
@@ -208,15 +260,11 @@ async function loadCurrentSchemeProgression({
   subjectId: string
   academicTerm: ActiveTerm
 }): Promise<SchemeSourceRow | null> {
-  const { data, error } = await supabase.rpc(
-    'get_next_scheme_item',
-    {
-      p_class_id: classId,
-      p_subject_id: subjectId,
-      p_academic_term_id: academicTerm.id,
-    },
-  )
-
+  const { data, error } = await supabase.rpc('get_next_scheme_item', {
+    p_class_id: classId,
+    p_subject_id: subjectId,
+    p_academic_term_id: academicTerm.id,
+  })
   if (error) throw error
 
   const next = Array.isArray(data) ? data[0] : null
@@ -262,7 +310,7 @@ async function loadSchemeSourceForOccurrenceFallback({
   if (slotError) throw slotError
 
   const activeSlots = ((slotRows ?? []) as TimetableSourceRow[])
-    .filter((slot) =>
+    .filter(slot =>
       (!slot.effective_from || slot.effective_from <= occurrenceDate) &&
       (!slot.effective_until || slot.effective_until >= occurrenceDate),
     )
@@ -272,9 +320,7 @@ async function loadSchemeSourceForOccurrenceFallback({
       left.id.localeCompare(right.id),
     )
 
-  const weeklyPeriodIndex = activeSlots.findIndex(
-    (slot) => slot.id === timetableSlotId,
-  )
+  const weeklyPeriodIndex = activeSlots.findIndex(slot => slot.id === timetableSlotId)
   if (weeklyPeriodIndex < 0) return null
 
   const { data: exactScheme, error: exactSchemeError } = await supabase
@@ -292,33 +338,27 @@ async function loadSchemeSourceForOccurrenceFallback({
   if (exactSchemeError) throw exactSchemeError
   if (!exactScheme) return null
   if (!isSchemeSourceRow(exactScheme)) {
-    throw new Error(
-      'lessonSource: fallback occurrence Scheme source is missing required fields.',
-    )
+    throw new Error('lessonSource: fallback occurrence Scheme source is missing required fields.')
   }
-
   return exactScheme
+}
+
+async function enrichedSchemeSuggestion(
+  row: SchemeSourceRow,
+  termNumber: number,
+): Promise<LessonSourceSuggestion> {
+  return enrichLessonSourceFromCurriculum(toSuggestion(row, termNumber))
 }
 
 /**
  * Resolves the educational source for a lesson occurrence.
- *
  * Authority order:
- * 1. Occurrence date -> academic term containing that date.
- * 2. Explicit Scheme item selected by the teacher / persisted lesson plan.
- * 3. Persisted Scheme progression -> first sequence after the highest completed
- *    teaching occurrence. This is the current teaching truth.
- * 4. Exact dated timetable occurrence -> server-resolved instructional week +
- *    timetable ordinal, retained only as a compatibility fallback when no
- *    progression evidence exists yet.
- * 5. Curriculum fallback for the server-resolved instructional week.
- * 6. No source — the teacher may enter a custom topic.
- *
- * A completed Scheme lesson must never be resurrected merely because a new
- * timetable slot happens to map to the same week/period ordinal.
- *
- * This function is read-only. It never creates or updates lesson plans,
- * Scheme rows, curriculum rows, timetable slots or teaching occurrences.
+ * 1. occurrence date -> academic term
+ * 2. explicit/persisted Scheme item
+ * 3. completed-teaching Scheme progression
+ * 4. exact dated timetable ordinal compatibility fallback
+ * 5. curriculum fallback
+ * 6. custom teacher topic
  */
 export async function resolveLessonSource({
   userId,
@@ -346,14 +386,10 @@ export async function resolveLessonSource({
       subjectId,
       academicTermId: term.id,
     })
-
     if (!requestedScheme) {
-      throw new Error(
-        'The selected Scheme item does not belong to this lesson.',
-      )
+      throw new Error('The selected Scheme item does not belong to this lesson.')
     }
-
-    return toSuggestion(requestedScheme, term.term)
+    return enrichedSchemeSuggestion(requestedScheme, term.term)
   }
 
   const progressionScheme = await loadCurrentSchemeProgression({
@@ -363,25 +399,19 @@ export async function resolveLessonSource({
     subjectId,
     academicTerm: term,
   })
-
   if (progressionScheme) {
-    return toSuggestion(progressionScheme, term.term)
+    return enrichedSchemeSuggestion(progressionScheme, term.term)
   }
 
   let occurrenceWeek: number | null = null
-
   if (occurrenceDate) {
     const instructionalWeek = await resolveInstructionalWeekForDate(
       schoolId,
       occurrenceDate,
     )
-
     if (instructionalWeek.term_id !== term.id) {
-      throw new Error(
-        'lessonSource: term and instructional-week authorities disagree.',
-      )
+      throw new Error('lessonSource: term and instructional-week authorities disagree.')
     }
-
     occurrenceWeek = instructionalWeek.week_number
   }
 
@@ -396,30 +426,26 @@ export async function resolveLessonSource({
       subjectId,
       academicTerm: term,
     })
-
     if (occurrenceScheme) {
-      return toSuggestion(occurrenceScheme, term.term)
+      return enrichedSchemeSuggestion(occurrenceScheme, term.term)
     }
   }
 
   const curriculumWeek = occurrenceWeek ?? currentWeekOf(term)
-
-  const { data: curriculumRows, error: curriculumError } =
-    await supabase
-      .from('curriculum')
-      .select('id, strand, sub_strand, topic, sub_strand_id')
-      .eq('grade', grade)
-      .eq('subject', subjectName)
-      .eq('term', term.term)
-      .eq('week', curriculumWeek)
-      .limit(1)
+  const { data: curriculumRows, error: curriculumError } = await supabase
+    .from('curriculum')
+    .select('id, strand, sub_strand, topic, sub_strand_id, reference')
+    .eq('grade', grade)
+    .eq('subject', subjectName)
+    .eq('term', term.term)
+    .eq('week', curriculumWeek)
+    .limit(1)
 
   if (curriculumError) throw curriculumError
-
   const curriculumRow = curriculumRows?.[0]
   if (!curriculumRow) return null
 
-  return {
+  return enrichLessonSourceFromCurriculum({
     id: curriculumRow.id,
     strand: curriculumRow.strand,
     subStrand: curriculumRow.sub_strand,
@@ -432,11 +458,11 @@ export async function resolveLessonSource({
     keyInquiryQuestion: null,
     learningResources: null,
     resources: null,
-    reference: null,
+    reference: meaningful(curriculumRow.reference),
     learningExperiences: null,
     assessmentMethods: null,
     lessonNumber: null,
     period: null,
     sequenceNumber: null,
-  }
+  })
 }

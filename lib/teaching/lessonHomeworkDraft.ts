@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { getSupabaseClient } from '@/lib/supabase'
 
 export interface ContentProvenanceInput {
   sourcePublicationId?: string | null
@@ -21,9 +21,10 @@ export interface EnsureLessonHomeworkDraftInput extends ContentProvenanceInput {
 
 export type EnsureLessonHomeworkDraftResult =
   | { outcome: 'created'; homeworkId: string; questionsCreated: number }
-  | { outcome: 'preserved_existing'; homeworkId: string; questionsCreated: 0 }
+  | { outcome: 'preserved_existing'; homeworkId: string; questionsCreated: number }
 
 interface HomeworkIdRow { id: string }
+interface HomeworkQuestionOrderRow { order_num: number }
 
 function requireText(value: string, field: string): string {
   const normalized = value.trim()
@@ -51,18 +52,74 @@ function extractSuggestedQuestions(instructions: string): string[] {
     .slice(0, 5)
 }
 
+/**
+ * Repair-safe child synchronization for lesson-owned homework.
+ *
+ * Homework creation can succeed before its generated question insert fails.
+ * Retrying must therefore fill only missing generated positions and preserve any
+ * already-existing teacher work. The database unique index on
+ * (homework_id, order_num) makes concurrent retries safe as well.
+ */
+async function ensureSuggestedQuestions(
+  homeworkId: string,
+  suggestedQuestions: string[],
+): Promise<number> {
+  if (suggestedQuestions.length === 0) return 0
+
+  const db = getSupabaseClient()
+  const existingResult = await db
+    .from('homework_questions')
+    .select('order_num')
+    .eq('homework_id', homeworkId)
+
+  if (existingResult.error) throw existingResult.error
+
+  const existingOrders = new Set(
+    ((existingResult.data ?? []) as HomeworkQuestionOrderRow[])
+      .map(row => row.order_num),
+  )
+
+  const missingRows = suggestedQuestions.flatMap((question, index) => {
+    const orderNum = index + 1
+    return existingOrders.has(orderNum)
+      ? []
+      : [{ homework_id: homeworkId, question, order_num: orderNum }]
+  })
+
+  if (missingRows.length === 0) return 0
+
+  const insertResult = await db
+    .from('homework_questions')
+    .upsert(missingRows, {
+      onConflict: 'homework_id,order_num',
+      ignoreDuplicates: true,
+    })
+
+  if (insertResult.error) throw insertResult.error
+  return missingRows.length
+}
+
 export async function ensureLessonHomeworkDraft(input: EnsureLessonHomeworkDraftInput): Promise<EnsureLessonHomeworkDraftResult> {
+  const db = getSupabaseClient()
   const lessonPlanId = requireText(input.lessonPlanId, 'lessonPlanId')
   const teacherId = requireText(input.teacherId, 'teacherId')
   const schoolId = requireText(input.schoolId, 'schoolId')
   const title = requireText(input.title, 'title')
   const instructions = requireText(input.instructions, 'instructions')
   const suggestedDueDate = requireText(input.suggestedDueDate, 'suggestedDueDate')
+  const suggestedQuestions = extractSuggestedQuestions(instructions)
 
-  const existingResult = await supabase.from('homework').select('id').eq('lesson_plan_id', lessonPlanId).maybeSingle()
+  const existingResult = await db.from('homework').select('id').eq('lesson_plan_id', lessonPlanId).maybeSingle()
   if (existingResult.error) throw existingResult.error
   const existing = existingResult.data as HomeworkIdRow | null
-  if (existing?.id) return { outcome: 'preserved_existing', homeworkId: existing.id, questionsCreated: 0 }
+  if (existing?.id) {
+    const questionsCreated = await ensureSuggestedQuestions(existing.id, suggestedQuestions)
+    return {
+      outcome: 'preserved_existing',
+      homeworkId: existing.id,
+      questionsCreated,
+    }
+  }
 
   const homeworkPayload = {
     class_id: input.classId,
@@ -81,27 +138,28 @@ export async function ensureLessonHomeworkDraft(input: EnsureLessonHomeworkDraft
     source_outcome_id: optionalId(input.sourceOutcomeId),
   }
 
-  // Provenance columns are live in production but may temporarily lead generated database.types.ts.
-  const insertResult = await (supabase.from('homework') as any)
+  const insertResult = await db
+    .from('homework')
     .insert(homeworkPayload)
     .select('id')
     .single()
 
   if (insertResult.error) {
     if (insertResult.error.code === '23505') {
-      const racedResult = await supabase.from('homework').select('id').eq('lesson_plan_id', lessonPlanId).single()
+      const racedResult = await db.from('homework').select('id').eq('lesson_plan_id', lessonPlanId).single()
       if (racedResult.error) throw racedResult.error
       const raced = racedResult.data as HomeworkIdRow
-      return { outcome: 'preserved_existing', homeworkId: raced.id, questionsCreated: 0 }
+      const questionsCreated = await ensureSuggestedQuestions(raced.id, suggestedQuestions)
+      return {
+        outcome: 'preserved_existing',
+        homeworkId: raced.id,
+        questionsCreated,
+      }
     }
     throw insertResult.error
   }
 
   const created = insertResult.data as HomeworkIdRow
-  const suggestedQuestions = extractSuggestedQuestions(instructions)
-  if (suggestedQuestions.length > 0) {
-    const questionsResult = await supabase.from('homework_questions').insert(suggestedQuestions.map((question, index) => ({ homework_id: created.id, question, order_num: index + 1 })))
-    if (questionsResult.error) throw questionsResult.error
-  }
-  return { outcome: 'created', homeworkId: created.id, questionsCreated: suggestedQuestions.length }
+  const questionsCreated = await ensureSuggestedQuestions(created.id, suggestedQuestions)
+  return { outcome: 'created', homeworkId: created.id, questionsCreated }
 }

@@ -95,50 +95,41 @@ async function loadExplicitSchemeResources(
       title?: string
       asset_kind?: string | null
       purpose?: string | null
+      sequence?: number | null
     }>
   } | null
 
   if (!payload?.ok) return []
 
   return (payload.resources ?? [])
-    .flatMap(resource =>
+    .flatMap((resource, index) =>
       resource.resource_id
         ? [{
             id: resource.resource_id,
             title: resource.title ?? 'Certified learning resource',
             asset_kind: resource.asset_kind ?? null,
             purpose: resource.purpose ?? null,
+            sequence: resource.sequence ?? index + 1,
           }]
         : [],
     )
     .filter(isTeachingContentCandidate)
+    .sort((left, right) => left.sequence - right.sequence || left.id.localeCompare(right.id))
+    .map(({ sequence: _sequence, ...resource }) => resource)
 }
 
-async function loadCurriculumResourceCandidates(
-  source: LessonSourceSuggestion,
+async function queryCurriculumCandidates(
+  column: 'curriculum_id' | 'sub_strand_id',
+  id: string,
 ): Promise<ResourceCandidate[]> {
-  if (!source.id && !source.strandId) return []
-
-  // `asset_kind` and `purpose` exist in the canonical-resource migrations and
-  // production schema, while the generated Database type may lag that additive
-  // migration. Read the whole row and narrow those optional fields structurally
-  // at runtime rather than bypassing TypeScript with an escape-hatch cast.
-  let query = supabase
+  const { data, error } = await supabase
     .from('learning_resources')
     .select('*')
     .eq('status', 'active')
+    .eq(column, id)
+    .order('id', { ascending: true })
+    .limit(25)
 
-  if (source.id && source.strandId) {
-    query = query.or(
-      `curriculum_id.eq.${source.id},sub_strand_id.eq.${source.strandId}`,
-    )
-  } else if (source.id) {
-    query = query.eq('curriculum_id', source.id)
-  } else if (source.strandId) {
-    query = query.eq('sub_strand_id', source.strandId)
-  }
-
-  const { data, error } = await query.limit(25)
   if (error) throw error
 
   return (data ?? [])
@@ -165,6 +156,30 @@ async function loadCurriculumResourceCandidates(
     .filter(isTeachingContentCandidate)
 }
 
+/**
+ * Resolves curriculum-linked resource candidates without broad OR matching.
+ * Exact sub-strand authority wins; curriculum-level resources are a fallback
+ * only when no sub-strand resource exists. This prevents an adjacent resource
+ * from becoming the canonical source merely because it shares one identifier.
+ */
+async function loadCurriculumResourceCandidates(
+  source: LessonSourceSuggestion,
+): Promise<ResourceCandidate[]> {
+  if (source.strandId) {
+    const subStrandResources = await queryCurriculumCandidates(
+      'sub_strand_id',
+      source.strandId,
+    )
+    if (subStrandResources.length > 0) return subStrandResources
+  }
+
+  if (source.id) {
+    return queryCurriculumCandidates('curriculum_id', source.id)
+  }
+
+  return []
+}
+
 async function loadCertifiedVersions(
   candidates: ResourceCandidate[],
 ): Promise<CertifiedLessonContentAsset[]> {
@@ -181,13 +196,25 @@ async function loadCertifiedVersions(
     )
     .in('resource_id', candidates.map(candidate => candidate.id))
     .eq('lifecycle_status', 'certified')
+    .order('certified_at', { ascending: false })
+    .order('id', { ascending: true })
 
   if (error) throw error
 
-  return ((data ?? []) as CertifiedVersionRow[]).flatMap(version => {
-    const resource = candidateById.get(version.resource_id)
+  // Defensive convergence: if historic data ever contains more than one
+  // certified version for a resource, choose one deterministically rather than
+  // letting database return order alter the generated lesson package.
+  const newestCertifiedByResource = new Map<string, CertifiedVersionRow>()
+  for (const version of (data ?? []) as CertifiedVersionRow[]) {
+    if (!newestCertifiedByResource.has(version.resource_id)) {
+      newestCertifiedByResource.set(version.resource_id, version)
+    }
+  }
+
+  return candidates.flatMap(resource => {
+    const version = newestCertifiedByResource.get(resource.id)
     if (
-      !resource ||
+      !version ||
       !version.certification_policy_version ||
       !version.certified_at
     ) {
@@ -236,6 +263,8 @@ export async function buildCanonicalLessonSourceBundle({
     curriculumResources = await loadCurriculumResourceCandidates(source)
   }
 
+  // Explicit Scheme links are authoritative and retain their declared order.
+  // Curriculum-linked resources provide deterministic fallback coverage only.
   const candidates = uniqueById([
     ...explicitResources,
     ...curriculumResources,
