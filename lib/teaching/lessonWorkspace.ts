@@ -160,9 +160,6 @@ function buildCanonicalIdentity(
 ): LessonCanonicalSourceIdentity | null {
   const source = sourceBundle?.scheme
 
-  // The reusable-content path is allowed only when exact certified assets are
-  // present. Otherwise the modal deliberately falls back to the deterministic
-  // Scheme/template builder and remains completely model-independent.
   if (
     !sourceBundle ||
     sourceBundle.certifiedContent.length === 0 ||
@@ -299,7 +296,8 @@ export async function loadLessonWorkspace({
       bundleError,
     )
     sourceBundleError =
-      'Certified content could not be resolved. The Scheme-derived baseline remains available.'
+      'Using the Scheme of Work baseline because certified VibeSchool teaching content could not be loaded for this lesson.'
+    sourceError = sourceError ?? sourceBundleError
   }
 
   const canonicalIdentity = buildCanonicalIdentity(
