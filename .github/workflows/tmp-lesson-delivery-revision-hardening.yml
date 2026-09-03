@@ -70,12 +70,12 @@ jobs:
           patch(
             'components/teacher/LessonPlanModal.tsx',
             """      setSections(draft)
-                  setPhase('view')
-                  showToast('Plan saved')""",
+      setPhase('view')
+      showToast('Plan saved')""",
             """      setSections(draft)
-                  setStatus('draft')
-                  setPhase('view')
-                  showToast('Plan saved · publish/share again after review')""",
+      setStatus('draft')
+      setPhase('view')
+      showToast('Plan saved · publish/share again after review')""",
             'modal revision state',
           )
 
@@ -97,4 +97,4 @@ jobs:
           git commit -m 'fix: make lesson revisions invalidate delivery evidence'
           git push origin HEAD:lesson-plan-delivery-state-hardening
 
-# trigger: 2
+# trigger: 3
