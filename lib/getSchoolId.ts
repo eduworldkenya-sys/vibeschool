@@ -1,15 +1,8 @@
 import { supabase } from '@/lib/supabase'
 
-export async function getSchoolId(uid: string): Promise<string | null> {
-  const [memberRes, teacherRes, profileRes] = await Promise.all([
-    supabase.from('school_members').select('school_id').eq('profile_id', uid).maybeSingle(),
-    supabase.from('teacher_profiles').select('school_id').eq('profile_id', uid).maybeSingle(),
-    supabase.from('profiles').select('school_id').eq('id', uid).single(),
-  ])
-  return (
-    memberRes.data?.school_id ??
-    teacherRes.data?.school_id ??
-    profileRes.data?.school_id ??
-    null
-  )
+/** Resolve active school only when backed by school_members teacher authority. */
+export async function getSchoolId(_uid?: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc('get_my_teacher_school_context')
+  if (error) return null
+  return (data as { active_school_id?: string | null } | null)?.active_school_id ?? null
 }
