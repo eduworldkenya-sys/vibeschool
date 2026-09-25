@@ -557,7 +557,11 @@ export async function fetchPulseData(
   // plans or homework. Resolve each exact dated lesson through the same
   // authoritative occurrence resolver used by the timetable and lesson
   // workspace. A single failed resolution is isolated to that slot.
-  // Occurrence-dependent lifecycle reads wait for maintenance, while the independent\n  // timetable/term/class workload above is allowed to load in parallel.\n  await occurrenceGuard;\n\n  const workspaceEntries = await Promise.all(
+  // Occurrence-dependent lifecycle reads wait for maintenance, while the independent
+  // timetable/term/class workload above is allowed to load in parallel.
+  await occurrenceGuard;
+
+  const workspaceEntries = await Promise.all(
     todayBaseSlots.map(async (slot): Promise<
       readonly [string, TeachingWorkspace | null]
     > => {
