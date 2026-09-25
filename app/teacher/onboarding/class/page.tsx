@@ -21,56 +21,64 @@ export default function ClassOnboardingPage() {
 
   useEffect(() => {
     let cancelled = false
+
     async function load() {
+      // One server-authoritative request resolves both membership and active school.
+      // Avoid the previous auth -> school_members -> schools waterfall, which could
+      // leave a newly connected teacher staring at the loading shell on mobile.
       const timeout = window.setTimeout(() => {
         if (!cancelled) {
           setError('Class setup is taking too long to load. Please retry or enter Teacher OS and add a class later.')
           setLoading(false)
         }
-      }, 12000)
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (cancelled) return
-        if (authError || !user) { router.replace('/academy/signin?role=teacher'); return }
+      }, 6000)
 
-        const memberships = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).eq('role', 'teacher')
+      try {
+        const { data: context, error: contextError } = await supabase.rpc('get_my_teacher_school_context')
         if (cancelled) return
-        if (memberships.error) {
-          setError('Your verified school access could not be loaded.')
+
+        if (contextError) {
+          // Distinguish an expired session from a recoverable school-context failure.
+          const { data: { session } } = await supabase.auth.getSession()
+          if (cancelled) return
+          if (!session) {
+            router.replace('/academy/signin?role=teacher')
+            return
+          }
+          setError('Your verified school access could not be loaded. Please retry.')
           setLoading(false)
           return
         }
-        const ids = Array.from(new Set((memberships.data ?? []).map(row => row.school_id).filter(Boolean)))
-        if (!ids.length) {
+
+        const resolved = context as {
+          state?: 'unauthenticated' | 'needs_school' | 'ready'
+          active_school_id?: string | null
+          schools?: Array<{ id?: string | null; name?: string | null }>
+        } | null
+
+        if (resolved?.state === 'unauthenticated') {
+          router.replace('/academy/signin?role=teacher')
+          return
+        }
+
+        const rows: SchoolOption[] = (resolved?.schools ?? [])
+          .filter((school): school is { id: string; name?: string | null } => Boolean(school?.id))
+          .map(school => ({ id: school.id, name: school.name?.trim() || 'School' }))
+
+        if (!rows.length || resolved?.state === 'needs_school') {
           router.replace('/teacher/onboarding/school')
           return
         }
 
-        // The class form must not be blocked by the optional active-school preference
-        // RPC. Membership is the authorization boundary; render from verified membership
-        // as soon as the school names arrive, then reconcile the preferred school.
-        const result = await supabase.from('schools').select('id,name').in('id', ids).order('name')
-        if (cancelled) return
-        if (result.error) {
-          setError('Your school details could not be loaded.')
-          setLoading(false)
-          return
-        }
+        const active = resolved?.active_school_id
+        const selected = active && rows.some(school => school.id === active)
+          ? active
+          : rows[0].id
 
-        const rows = (result.data ?? []) as SchoolOption[]
-        const fallbackSchoolId = rows[0]?.id ?? ids[0] ?? ''
         setSchools(rows)
-        setSchoolId(fallbackSchoolId)
+        setSchoolId(selected)
+        setError('')
         setLoading(false)
-
-        // Preference lookup is deliberately non-blocking. If it is unavailable or slow,
-        // the verified membership fallback remains usable instead of leaving onboarding
-        // on a loading screen.
-        void supabase.rpc('get_my_teacher_school_context').then(({ data: context, error: contextError }) => {
-          if (cancelled || contextError) return
-          const active = (context as { active_school_id?: string | null } | null)?.active_school_id
-          if (active && ids.includes(active)) setSchoolId(active)
-        }, () => {})
       } catch {
         if (!cancelled) {
           setError('Class setup could not be loaded. You can retry or enter Teacher OS and add a class later.')
@@ -80,6 +88,7 @@ export default function ClassOnboardingPage() {
         window.clearTimeout(timeout)
       }
     }
+
     void load()
     return () => { cancelled = true }
   }, [router])
