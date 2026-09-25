@@ -87,7 +87,11 @@ export default function TwinDrawer({ open, onClose }: Props) {
   }, []);
 
   function toggleVoice() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const speechWindow = window as Window & {
+      SpeechRecognition?: new () => SpeechRecognition;
+      webkitSpeechRecognition?: new () => SpeechRecognition;
+    };
+    const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SR) return;
     if (listening) { recognRef.current?.stop(); setListening(false); return; }
     const r = new SR();
