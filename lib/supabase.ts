@@ -53,7 +53,17 @@ type LiveTeachingOccurrences = {
 }
 
 type LiveDatabase = Omit<Database, 'public'> & {
-  public: Omit<Database['public'], 'Tables'> & {
+  public: Omit<Database['public'], 'Tables' | 'Functions'> & {
+    Functions: Database['public']['Functions'] & {
+      preview_timetable_conflicts: { Args: { p_school_id: string; p_teacher_id: string; p_class_id: string; p_subject_id: string; p_day_of_week: number; p_start_time: string; p_end_time: string; p_room?: string | null; p_effective_from?: string | null; p_effective_until?: string | null; p_exclude_slot_id?: string | null }; Returns: { conflict_type: string; conflicting_slot_id: string; conflicting_teacher_id: string | null; conflicting_class_id: string; conflicting_subject_id: string; conflicting_room: string | null; detail: string }[] }
+      get_published_class_timetable: { Args: { p_class_id: string; p_on?: string | null }; Returns: LiveTimetableSlots['Row'][] }
+      get_published_teacher_timetable: { Args: { p_teacher_id: string; p_on?: string | null }; Returns: LiveTimetableSlots['Row'][] }
+      apply_teacher_absence: { Args: { p_absence_id: string }; Returns: number }
+      assign_occurrence_substitute: { Args: { p_occurrence_id: string; p_substitute_teacher_id: string; p_reason?: string | null }; Returns: LiveTeachingOccurrences['Row'] }
+      attach_active_slots_to_release: { Args: { p_release_id: string }; Returns: number }
+      transition_timetable_release: { Args: { p_release_id: string; p_target: string }; Returns: Record<string, string | number | boolean | null> }
+      suggest_school_timetable_candidates: { Args: { p_school_id: string; p_class_id: string; p_subject_id: string; p_teacher_id: string; p_effective_on?: string | null }; Returns: { day_of_week: number; period_id: string; start_time: string; end_time: string; score: number; explanation: string }[] }
+    }
     Tables: Omit<Database['public']['Tables'], 'homework' | 'timetable_slots' | 'teaching_occurrences'> & {
       homework: LiveHomeworkTable
       timetable_slots: LiveTimetableSlots
