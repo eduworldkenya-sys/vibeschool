@@ -34,7 +34,7 @@ create or replace function public.validate_school_period_overlap()
 returns trigger
 language plpgsql
 set search_path=public
-as $
+as $period_overlap$
 begin
   if exists (
     select 1 from public.school_periods sp
@@ -48,7 +48,7 @@ begin
   end if;
   return new;
 end
-$;
+$period_overlap$;
 
 drop trigger if exists school_period_overlap_guard on public.school_periods;
 create trigger school_period_overlap_guard
