@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { isIsoDate, type TimetableRecurrencePattern } from "@/lib/timetable/contracts";
 
 export interface CanonicalTimetableSlot {
   id: string;
@@ -10,6 +11,9 @@ export interface CanonicalTimetableSlot {
   start_time: string;
   end_time: string;
   room: string | null;
+  period_id: string | null;
+  allocation_units: number;
+  recurrence_pattern: TimetableRecurrencePattern;
   effective_from: string;
   effective_until: string | null;
 }
@@ -85,6 +89,9 @@ export async function loadActiveTeacherTimetable(
         "start_time",
         "end_time",
         "room",
+        "period_id",
+        "allocation_units",
+        "recurrence_pattern",
         "effective_from",
         "effective_until",
       ].join(",")
@@ -162,6 +169,9 @@ export async function loadTeacherTimetableForRange(
         "start_time",
         "end_time",
         "room",
+        "period_id",
+        "allocation_units",
+        "recurrence_pattern",
         "effective_from",
         "effective_until",
       ].join(",")
@@ -237,6 +247,9 @@ export async function loadActiveClassTimetable(
         "start_time",
         "end_time",
         "room",
+        "period_id",
+        "allocation_units",
+        "recurrence_pattern",
         "effective_from",
         "effective_until",
       ].join(",")
