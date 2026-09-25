@@ -177,15 +177,18 @@ export default function SchoolDiscovery() {
           ))}
         </div>
 
+        <label htmlFor="school-search" style={{ display: "block", marginTop: 14, marginBottom: 6, fontSize: 13, fontWeight: 700, color: "#344054" }}>School name or code</label>
         <input
-          disabled={!level}
+          id="school-search"
+          aria-label="School name or code"
+          disabled={!level>
           value={q}
           onChange={(e) => { setQ(e.target.value); setPicked(null); setMissingMode(false); setSent(false) }}
           placeholder={level ? "e.g. St Marys, Moi, Mangu, school code" : "Choose a level first"}
-          style={{ width: "100%", boxSizing: "border-box", marginTop: 14, padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16 }}
+          style={{ width: "100%", boxSizing: "border-box", padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16, color: "#101828", background: level ? "#fff" : "#f2f4f7", WebkitTextFillColor: level ? "#101828" : "#667085", opacity: 1 }}
         />
 
-        <select value={county} onChange={(e) => setCounty(e.target.value)} style={{ width: "100%", boxSizing: "border-box", marginTop: 8, padding: 14, borderRadius: 12, border: "1px solid #ccc" }}>
+        <label htmlFor="school-county" style={{ display: "block", marginTop: 10, marginBottom: 6, fontSize: 13, fontWeight: 700, color: "#344054" }}>County <span style={{ fontWeight: 400, color: "#667085" }}>(optional)</span></label>\n        <select id="school-county" aria-label="County" value={county} onChange={(e) => setCounty(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16, color: "#101828", background: "#fff", WebkitTextFillColor: "#101828", opacity: 1 }}>
           <option value="">Any county</option>
           {COUNTIES.map((c) => <option key={c}>{c}</option>)}
         </select>
