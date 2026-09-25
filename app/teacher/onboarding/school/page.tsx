@@ -169,7 +169,7 @@ export default function SchoolDiscovery() {
             <button
               key={value}
               onClick={() => { setLevel(value); setPicked(null); setMsg(""); setMissingMode(false); setSent(false) }}
-              style={{ padding: 12, borderRadius: 12, border: level === value ? "2px solid #16a34a" : "1px solid #ddd", background: level === value ? "#f0fdf4" : "#fff" }}
+              style={{ padding: 12, borderRadius: 12, border: level === value ? "2px solid #16a34a" : "1px solid #ddd", background: level === value ? "#f0fdf4" : "#fff", color: "#101828", WebkitTextFillColor: "#101828", opacity: 1 }}
             >
               <b>{label}</b>
               <small style={{ display: "block", marginTop: 4, color: "#667085" }}>{hint}</small>
