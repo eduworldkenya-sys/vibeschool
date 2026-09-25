@@ -104,7 +104,7 @@ export default function TeacherProfilePage() {
         gender: profileRes.data?.gender ?? "",
         dateOfBirth: profileRes.data?.date_of_birth ?? "",
         avatarUrl: profileRes.data?.avatar_url ?? "",
-        notificationPrefs: profileRes.data?.notification_prefs && typeof profileRes.data.notification_prefs === "object" ? profileRes.data.notification_prefs : {},
+        notificationPrefs: profileRes.data?.notification_prefs && !Array.isArray(profileRes.data.notification_prefs) && typeof profileRes.data.notification_prefs === "object" ? Object.fromEntries(Object.entries(profileRes.data.notification_prefs).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean")) : {},
         tscNumber: teacherRes.data?.tsc_number ?? "",
         employmentType: teacherRes.data?.employment_type ?? "",
         designation: teacherRes.data?.designation ?? "",
