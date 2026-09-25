@@ -90,7 +90,8 @@ export default function TeacherWeekViewPage() {
       const tcRes = await supabase
         .from("teacher_classes")
         .select("class_id, subject_id, classes(id,name), subjects(id,name)")
-        .eq("teacher_id", user.id)\n        .eq("school_id", sId);
+        .eq("teacher_id", user.id)
+        .eq("school_id", sId);
 
       const combos = ((tcRes.data ?? []) as Array<Record<string, unknown>>)
         .filter(r => r.class_id && r.subject_id)
