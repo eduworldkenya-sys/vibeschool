@@ -21,6 +21,8 @@ export default function TwinDrawer({ open, onClose }: Props) {
   const initialised = useRef(false);
   const stateRef = useRef<TeacherTwinState | null>(null);
   const recognRef = useRef<any>(null);
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (initialised.current) return;
@@ -40,12 +42,66 @@ export default function TwinDrawer({ open, onClose }: Props) {
       .finally(() => setLoading(false));
   }, []);
 
+  const stopVoice = useCallback(() => {
+    try { recognRef.current?.abort?.(); } catch {}
+    recognRef.current = null;
+    setListening(false);
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+  }, []);
+
+  const closeTwin = useCallback(() => {
+    stopVoice();
+    onClose();
+  }, [onClose, stopVoice]);
+
   useEffect(() => {
-    if (open && bottomRef.current) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
+    if (!open) {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      stopVoice();
+      return;
+    }
+    closeButtonRef.current?.focus({ preventScroll: true });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeTwin();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open, closeTwin, stopVoice]);
+
+  useEffect(() => {
+    if (!open || !bottomRef.current) return;
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 80);
+    return () => {
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    };
   }, [messages, thinking, open]);
 
+  useEffect(() => () => {
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+    try { recognRef.current?.abort?.(); } catch {}
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+  }, []);
+
   function toggleVoice() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    type BrowserSpeechRecognition = {
+      lang: string;
+      interimResults: boolean;
+      continuous: boolean;
+      onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+      onerror: (() => void) | null;
+      onend: (() => void) | null;
+      start: () => void;
+      stop: () => void;
+    };
+    const speechWindow = window as Window & {
+      SpeechRecognition?: new () => BrowserSpeechRecognition;
+      webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+    };
+    const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SR) return;
     if (listening) { recognRef.current?.stop(); setListening(false); return; }
     const r = new SR();
@@ -87,16 +143,16 @@ export default function TwinDrawer({ open, onClose }: Props) {
 
   return (
     <>
-      {open && <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 780, background: "rgba(0,0,0,0.25)" }} />}
-      <div style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: open ? 80 : -560, zIndex: 790, width: "calc(100% - 32px)", maxWidth: 600, background: "#fff", borderRadius: 20, boxShadow: "0 -4px 40px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", height: 480, transition: "bottom 0.34s cubic-bezier(0.34,1.56,0.64,1)", overflow: "hidden" }}>
+      {open && <div onClick={closeTwin} aria-hidden="true" style={{ position: "fixed", inset: 0, zIndex: 780, background: "rgba(0,0,0,0.25)" }} />}
+      <div role="dialog" aria-modal={open ? "true" : undefined} aria-label="Teacher Twin" aria-hidden={!open} style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: open ? 80 : -560, pointerEvents: open ? "auto" : "none", visibility: open ? "visible" : "hidden", zIndex: 790, width: "calc(100% - 32px)", maxWidth: 600, background: "#fff", borderRadius: 20, boxShadow: "0 -4px 40px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", height: 480, transition: "bottom 0.34s cubic-bezier(0.34,1.56,0.64,1)", overflow: "hidden" }}>
         <div style={{ background: headerBg, padding: "12px 14px 12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexShrink: 0, transition: "background 0.4s" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}><div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(16,185,129,0.2)", border: "1.5px solid rgba(16,185,129,0.5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: C.accent, flexShrink: 0 }}>✦</div><div style={{ minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>{firstName ? `${firstName}'s Twin` : "Teacher Twin"}</div><div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)" }}>{loading ? "Reading authorized teacher state…" : offline ? "Offline · last loaded state" : thinking ? "Checking school state…" : priority === "critical" ? "⚡ Action needed" : "Server-authoritative · No AI required"}</div></div></div>
-          <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><TwinRoleSwitcher currentRole="teacher" /><button onClick={onClose} aria-label="Close Teacher Twin" style={{ background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button></div>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><TwinRoleSwitcher currentRole="teacher" /><button ref={closeButtonRef} type="button" onClick={closeTwin} aria-label="Close Teacher Twin" style={{ minWidth: 44, minHeight: 44, background: "none", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 22, cursor: "pointer", lineHeight: 1 }}>×</button></div>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
           {loading && <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}><div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.accent }}>✦</div><TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} /></div>}
           {!loading && messages.map((m, i) => <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 6 }}><div style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8, width: "100%" }}>{m.role === "twin" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.source === "offline" ? "#fef3c7" : C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0, color: m.source === "offline" ? "#92400e" : C.accent }}>{m.source === "offline" ? "○" : "✦"}</div>}<div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "4px 16px 16px 16px", background: m.role === "user" ? C.accent : C.surface, color: m.role === "user" ? "#fff" : C.textPrimary, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{m.text}{m.role === "twin" && m.source !== "offline" && <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>authorized data · deterministic · no AI</div>}</div></div></div>)}
-          {lastAction && !thinking && <button onClick={() => { onClose(); router.push(lastAction.url); }} style={{ alignSelf: "flex-start", marginLeft: 34, padding: "7px 13px", borderRadius: 14, border: `1px solid ${C.accent}`, background: C.accentLight, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{lastAction.label} →</button>}
+          {lastAction && !thinking && <button onClick={() => { closeTwin(); router.push(lastAction.url); }} style={{ alignSelf: "flex-start", marginLeft: 34, padding: "7px 13px", borderRadius: 14, border: `1px solid ${C.accent}`, background: C.accentLight, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{lastAction.label} →</button>}
           {thinking && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.accent }}>✦</div><TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} /></div>}
           <div ref={bottomRef} />
         </div>
