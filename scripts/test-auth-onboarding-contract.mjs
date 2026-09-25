@@ -92,10 +92,14 @@ for (const pair of [
   ["'/parent'", "'parent'"],
   ["'/student'", "'student'"],
   ["'/admin'", "'admin'"],
-  ["'/global'", "'global_user'"],
 ]) {
   assert.ok(routing.includes(`${pair[0]}: ${pair[1]}`), `missing route contract ${pair.join(' -> ')}`)
 }
+// Global account workspace is intentionally paused: it must not regain a protected
+// /global -> global_user route contract accidentally. Public reader remains separate.
+assert.doesNotMatch(routing, /['"]\/global['"]\s*:\s*['"]global_user['"]/)
+assert.match(routing, /normalized === ['"]\/global\/read['"]/)
+
 assert.match(middleware, /get_my_auth_access_state/)
 assert.match(middleware, /get_my_onboarding_state/)
 assert.match(middleware, /www\.vibeschool\.co\.ke/)
