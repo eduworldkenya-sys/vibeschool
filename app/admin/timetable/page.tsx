@@ -30,7 +30,7 @@ export default function AdminTimetablePage(){
  async function addSchoolBlock(){
   if(!sid||!block.label.trim()||block.startTime>=block.endTime)return;
   setBusy(true);try{
-   const {error}=await (supabase as any).from("school_periods").insert({
+   const {error}=await supabase.from("school_periods").insert({
     school_id:sid,schedule_day:block.scheduleDay,period_number:block.periodNumber,
     label:block.label.trim(),start_time:block.startTime,end_time:block.endTime,
     kind:block.kind,protected:block.kind!=="lesson"
@@ -38,7 +38,7 @@ export default function AdminTimetablePage(){
   }catch(e){setMsg(e instanceof Error?e.message:"Could not add school-day block")}finally{setBusy(false)}
  }
  async function removeSchoolBlock(id:string){
-  setBusy(true);try{const {error}=await (supabase as any).from("school_periods").delete().eq("id",id).eq("school_id",sid);if(error)throw error;await load();setMsg("School-day block removed.");}catch(e){setMsg(e instanceof Error?e.message:"Could not remove block")}finally{setBusy(false)}
+  setBusy(true);try{const {error}=await supabase.from("school_periods").delete().eq("id",id).eq("school_id",sid);if(error)throw error;await load();setMsg("School-day block removed.");}catch(e){setMsg(e instanceof Error?e.message:"Could not remove block")}finally{setBusy(false)}
  }
  async function startRelease(){setBusy(true);try{const label=`Timetable ${new Date().toLocaleDateString()}`;const r=await createTimetableRelease({schoolId:sid,label,effectiveFrom:new Date().toISOString().slice(0,10)});await updateTimetableReleaseStatus(r.id,"review");setMsg("Draft created and submitted for review.")}catch(e){setMsg(e instanceof Error?e.message:"Could not create release")}finally{setBusy(false)}}
  const cm=useMemo(()=>new Map(classes.map(x=>[x.id,x.name+(x.stream?` ${x.stream}`:"")])),[classes]), sm=useMemo(()=>new Map(subjects.map(x=>[x.id,x.name])),[subjects]),tm=useMemo(()=>new Map(teachers.map(x=>[x.id,x.full_name])),[teachers]);
