@@ -186,7 +186,7 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
         return
       }
 
-      const rows = (data ?? []) as unknown as TeacherClassRow[]
+      const rows = (data ?? []) as TeacherClassRow[]
       const options: AssignmentOption[] = rows
         .filter(r => r.classes && r.subjects) // drop rows with a broken/deleted join target
         .map(r => ({
