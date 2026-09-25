@@ -147,6 +147,7 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
   const [room,           setRoom]           = useState(editSlot?.room ?? '')
   const [effectiveFrom,  setEffectiveFrom]  = useState(editSlot?.effectiveFrom ?? nairobiTodayISO())
   const [effectiveUntil, setEffectiveUntil] = useState(editSlot?.effectiveUntil ?? '')
+  const [allocationUnits, setAllocationUnits] = useState('1')
 
   // Synchronous guard against duplicate submission. `saving` (React state)
   // only disables the button on the *next* render — a fast double-tap can
@@ -283,7 +284,7 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
     // transaction (create_timetable_slot). school_id and teacher_id are
     // never sent from the client — the RPC derives both from the
     // caller's own auth identity and their teacher_classes assignment.
-    const { error: err } = await supabase.rpc('create_timetable_slot', {
+    const { error: err } = await supabase.rpc('create_timetable_slot_v2', {
       p_class_id:        classId,
       p_subject_id:      subjectId,
       p_day_of_week:     parseInt(dayOfWeek) || 1,
@@ -291,6 +292,9 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
       p_end_time:        endTime,
       p_room:            room.trim() || undefined,
       p_effective_from:  effectiveFrom || undefined,
+      p_effective_until: effectiveUntil || undefined,
+      p_allocation_units: Number(allocationUnits) || 1,
+      p_period_id: undefined,
     })
 
     setSaving(false)
@@ -423,6 +427,17 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
             <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
           </div>
         </div>
+
+        {!isEdit && (
+          <div>
+            <label style={labelStyle}>Lesson Units *</label>
+            <select value={allocationUnits} onChange={e => setAllocationUnits(e.target.value)} style={inputStyle}>
+              <option value="1">Single lesson</option>
+              <option value="2">Double lesson / practical</option>
+              <option value="3">Triple block</option>
+            </select>
+          </div>
+        )}
 
         <div>
           <label style={labelStyle}>Room (optional)</label>
