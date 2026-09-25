@@ -71,9 +71,12 @@ export default function TeacherWeekViewPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const { data: schoolContext, error: schoolContextError } = await supabase.rpc("get_my_teacher_school_context");
-      if (schoolContextError) throw new Error("Your active school could not be resolved.");
-      const sId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? "";
+      const [memberRes, profileRes, teacherProfRes] = await Promise.all([
+        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
+        supabase.from("profiles").select("school_id").eq("id", user.id).maybeSingle(),
+        supabase.from("teacher_profiles").select("school_id").eq("profile_id", user.id).maybeSingle(),
+      ]);
+      const sId = memberRes.data?.school_id ?? profileRes.data?.school_id ?? teacherProfRes.data?.school_id ?? "";
 
       if (!sId) { setError("No school linked to your account yet."); setLoading(false); return; }
 
@@ -90,23 +93,15 @@ export default function TeacherWeekViewPage() {
       const tcRes = await supabase
         .from("teacher_classes")
         .select("class_id, subject_id, classes(id,name), subjects(id,name)")
-        .eq("teacher_id", user.id)
-        .eq("school_id", sId);
+        .eq("teacher_id", user.id);
 
-      const relationName = (value: unknown, fallback: string): string => {
-        const row = Array.isArray(value) ? value[0] : value;
-        if (!row || typeof row !== "object") return fallback;
-        const name = (row as Record<string, unknown>).name;
-        return typeof name === "string" && name.trim() ? name : fallback;
-      };
-
-      const combos = ((tcRes.data ?? []) as Array<Record<string, unknown>>)
-        .filter(r => typeof r.class_id === "string" && typeof r.subject_id === "string")
+      const combos = ((tcRes.data ?? []) as any[])
+        .filter(r => r.class_id && r.subject_id)
         .map(r => ({
           classId: r.class_id as string,
-          className: relationName(r.classes, "Class"),
+          className: (Array.isArray(r.classes) ? r.classes[0]?.name : r.classes?.name) ?? "Class",
           subjectId: r.subject_id as string,
-          subjectName: relationName(r.subjects, "Subject"),
+          subjectName: (Array.isArray(r.subjects) ? r.subjects[0]?.name : r.subjects?.name) ?? "Subject",
         }));
 
       if (combos.length === 0) { setHasClasses(false); setRows([]); setLoading(false); return; }
@@ -115,7 +110,7 @@ export default function TeacherWeekViewPage() {
       const classIds = Array.from(new Set(combos.map(c => c.classId)));
 
       const classGradeRes = await supabase.from("classes").select("id,name").in("id", classIds);
-      const gradeMap = new Map(((classGradeRes.data ?? []) as Array<Record<string, unknown>>).map(c => [c.id, c.name as string]));
+      const gradeMap = new Map(((classGradeRes.data ?? []) as any[]).map(c => [c.id, c.name as string]));
 
       const [
         curriculumRes,
@@ -161,12 +156,12 @@ export default function TeacherWeekViewPage() {
           .in("class_id", classIds),
       ]);
 
-      const curriculumRows = (curriculumRes.data ?? []) as Array<Record<string, unknown>>;
-      const plans = (plansRes.data ?? []) as Array<Record<string, unknown>>;
-      const notes = (notesRes.data ?? []) as Array<Record<string, unknown>>;
-      const homework = (homeworkRes.data ?? []) as Array<Record<string, unknown>>;
-      const assessments = (assessRes.data ?? []) as Array<Record<string, unknown>>;
-      const strandProgress = (strandProgressRes.data ?? []) as Array<Record<string, unknown>>;
+      const curriculumRows = (curriculumRes.data ?? []) as any[];
+      const plans = (plansRes.data ?? []) as any[];
+      const notes = (notesRes.data ?? []) as any[];
+      const homework = (homeworkRes.data ?? []) as any[];
+      const assessments = (assessRes.data ?? []) as any[];
+      const strandProgress = (strandProgressRes.data ?? []) as any[];
 
       const result: SubjectWeekRow[] = combos.map(combo => {
         const grade = gradeMap.get(combo.classId) ?? "";
@@ -199,9 +194,9 @@ export default function TeacherWeekViewPage() {
           subjectId: combo.subjectId,
           subjectName: combo.subjectName,
           grade,
-          strand: typeof curr?.strand === "string" ? curr.strand : null,
-          subStrand: typeof curr?.sub_strand === "string" ? curr.sub_strand : null,
-          topic: typeof curr?.topic === "string" ? curr.topic : null,
+          strand: curr?.strand ?? null,
+          subStrand: curr?.sub_strand ?? null,
+          topic: curr?.topic ?? null,
           hasScheme, hasPlan, hasNotes, hasHomework, hasAssessment,
         };
       });
