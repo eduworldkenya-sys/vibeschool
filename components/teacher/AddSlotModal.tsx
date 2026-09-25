@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
 import { updateTimetableSlot, expireTimetableSlot, deleteTimetableSlot, SlotRpcError } from '@/lib/teaching/slots'
 import type { EditableSlot } from '@/lib/teaching/types'
+import { previewTimetableConflicts, type TimetableConflict } from '@/lib/timetable/engine'
 
 interface Props {
   teacherId: string
@@ -136,6 +137,8 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
   const [error,             setError]             = useState<string | null>(null)
   const [assignments,       setAssignments]       = useState<AssignmentOption[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(!isEdit)
+  const [conflicts, setConflicts] = useState<TimetableConflict[]>([])
+  const [checkingConflicts, setCheckingConflicts] = useState(false)
 
   const [teacherClassId, setTeacherClassId] = useState('')
   const [dayOfWeek,      setDayOfWeek]      = useState(editSlot ? String(editSlot.dayOfWeek) : '1')
@@ -203,6 +206,31 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
 
   const selectedAssignment = assignments.find(a => a.teacherClassId === teacherClassId) ?? null
 
+  async function checkConflicts(): Promise<boolean> {
+    if (!selectedAssignment || isEdit) return true
+    setCheckingConflicts(true)
+    try {
+      const rows = await previewTimetableConflicts({
+        schoolId: selectedAssignment.schoolId,
+        teacherId,
+        classId: selectedAssignment.classId,
+        dayOfWeek: parseInt(dayOfWeek) || 1,
+        startTime,
+        endTime,
+        room: room.trim() || null,
+        effectiveFrom: effectiveFrom || null,
+      })
+      setConflicts(rows)
+      return rows.length === 0
+    } catch {
+      // Preview is advisory. The transactional writer remains authoritative.
+      setConflicts([])
+      return true
+    } finally {
+      setCheckingConflicts(false)
+    }
+  }
+
   async function save() {
     // Synchronous re-entrancy guard — closes the double-tap gap that the
     // `saving` state alone can't catch (see submittingRef declaration above).
@@ -242,6 +270,12 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
     if (!selectedAssignment) { setError('Select a class and subject.'); return }
     const { classId, subjectId } = selectedAssignment
     if (!classId || !subjectId) { setError('This assignment is missing required data.'); return }
+
+    const clear = await checkConflicts()
+    if (!clear) {
+      setError('Resolve the timetable conflict before saving.')
+      return
+    }
 
     submittingRef.current = true
     setSaving(true)
@@ -336,6 +370,12 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
             {error}
           </div>
         )}
+        {conflicts.length > 0 && (
+          <div style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', padding: '10px 12px', borderRadius: 8 }}>
+            <strong>Schedule conflict</strong>
+            {conflicts.map(row => <div key={row.conflicting_slot_id} style={{ marginTop: 4 }}>{row.detail}</div>)}
+          </div>
+        )}
 
         {isEdit ? (
           <div>
@@ -403,9 +443,9 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
 
         <Btn
           onClick={save}
-          disabled={saving || deleting || (!isEdit && (assignmentsLoading || assignments.length === 0))}
+          disabled={saving || deleting || checkingConflicts || (!isEdit && (assignmentsLoading || assignments.length === 0))}
         >
-          {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Slot'}
+          {checkingConflicts ? 'Checking…' : saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Slot'}
         </Btn>
 
         {isEdit && (
