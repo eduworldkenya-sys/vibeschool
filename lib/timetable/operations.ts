@@ -68,13 +68,26 @@ export async function createTimetableRelease(input: { schoolId: string; label: s
 }
 
 export async function updateTimetableReleaseStatus(id: string, status: TimetableReleaseStatus) {
-  const patch: Record<string, unknown> = { status };
-  const now = new Date().toISOString();
-  if (status === "review") patch.reviewed_at = now;
-  if (status === "approved") patch.approved_at = now;
-  if (status === "published") patch.published_at = now;
-  const { data, error } = await supabase.from("timetable_releases").update(patch).eq("id", id)
-    .select("id,school_id,status,effective_from,label,created_at,reviewed_at,approved_at,published_at").single();
+  if (status === "draft") throw new Error("Draft is the creation state; use the governed release transition for later states.");
+  const { data, error } = await supabase.rpc("transition_timetable_release", { p_release_id: id, p_target: status });
   assertNoError(error, "Could not update timetable release.");
   return data;
+}
+
+export async function applyTeacherAbsence(absenceId: string) {
+  const { data, error } = await supabase.rpc("apply_teacher_absence", { p_absence_id: absenceId });
+  assertNoError(error, "Could not apply teacher absence.");
+  return Number(data ?? 0);
+}
+
+export interface SuggestedPlacement {
+  day_of_week: number; period_id: string; start_time: string; end_time: string; score: number; explanation: string;
+}
+export async function suggestSchoolTimetableCandidates(input: { schoolId: string; classId: string; subjectId: string; teacherId: string; effectiveOn?: string }) {
+  const { data, error } = await supabase.rpc("suggest_school_timetable_candidates", {
+    p_school_id: input.schoolId, p_class_id: input.classId, p_subject_id: input.subjectId,
+    p_teacher_id: input.teacherId, p_effective_on: input.effectiveOn ?? null,
+  });
+  assertNoError(error, "Could not generate timetable suggestions.");
+  return (data ?? []) as SuggestedPlacement[];
 }
