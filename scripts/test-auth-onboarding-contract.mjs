@@ -120,6 +120,6 @@ console.log('Auth & onboarding authority contract: PASS')
 
 // New teachers must be able to render onboarding before the operational Teacher OS bootstrap completes.
 const teacherLayout = read('app/teacher/layout.tsx')
-requireText('teacher onboarding layout bypass', teacherLayout, 'pathname?.startsWith("/teacher/onboarding")')
-requireText('teacher onboarding renders children', teacherLayout, 'if (isOnboardingPath) return <>{children}</>')
-requireText('teacher bootstrap has visible loading state', teacherLayout, 'Opening your teacher workspace…')
+assert.match(teacherLayout, /pathname\?\.startsWith\("\/teacher\/onboarding"\)/)
+assert.match(teacherLayout, /if \(isOnboardingPath\) return <>\{children\}<\/>/)
+assert.match(teacherLayout, /Opening your teacher workspace…/)
