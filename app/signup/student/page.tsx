@@ -61,7 +61,7 @@ export default function StudentSignupPage() {
     </div>
 
     <div className="family">A parent or guardian can connect separately for family access. Their connection is not required before you activate a valid school learner account.</div>
-    {message && <div role="alert" className="message">{message}{issueCode === 'school_required' && <p><a href="/global/signup">I am not enrolled in a school — create an independent learner account</a></p>}{issueCode === 'class_required' && <p>Ask your school to place you in your current class, then use the learner code again.</p>}</div>}
+    {message && <div role="alert" className="message">{message}{issueCode === 'school_required' && <p>This signup is for learners enrolled through a VibeSchool school. Ask your school for the correct learner code.</p>}{issueCode === 'class_required' && <p>Ask your school to place you in your current class, then use the learner code again.</p>}</div>}
 
     <label>Learner code</label>
     <input autoCapitalize="characters" maxLength={12} value={claimCode} onChange={e=>setClaimCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="e.g. 9FFA0680" />
@@ -69,7 +69,7 @@ export default function StudentSignupPage() {
     <div className="password-field"><input id="learner-pin" type={showPin ? 'text' : 'password'} inputMode="numeric" autoComplete="new-password" maxLength={6} aria-describedby="pin-help" value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} /><button type="button" className="password-toggle" aria-label={showPin ? 'Hide PIN' : 'Show PIN'} aria-pressed={showPin} onClick={()=>setShowPin(v=>!v)}>{showPin ? 'Hide' : 'Show'}</button></div><p id="pin-help" className="password-help">Use 4–6 digits. Keep this PIN private.</p>
     <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Creating account…' : 'Create learner account'}</button>
     <p className="switch">Already registered? <a href="/login/student">Sign in</a></p>
-    <p className="help">No school? <a href="/global/signup">Create an independent learner account.</a> If you belong to a school but have no current class, ask the school to complete your enrollment first so your school identity is preserved.</p>
+    <p className="help">This signup is for learners enrolled through a VibeSchool school. If you have no current class or learner code, ask your school to complete your enrollment first.</p>
     <p className="legal"><a href="/legal/terms">Terms</a> · <a href="/legal/privacy">Privacy</a></p>
   </section><style jsx>{styles}</style></main>
 }
