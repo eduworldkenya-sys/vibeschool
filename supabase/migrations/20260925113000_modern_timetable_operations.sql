@@ -183,62 +183,33 @@ alter table public.timetable_slots add column if not exists resource_id uuid ref
 alter table public.timetable_slots add column if not exists release_id uuid references public.timetable_releases(id) on delete set null;
 create index if not exists idx_timetable_slots_resource on public.timetable_slots(resource_id);
 
--- Publication is a server-authoritative state machine. A release cannot publish with
--- allocation gaps, assignment gaps, collisions, unavailable teachers, or rule violations.
+-- Publication is a server-authoritative state machine.
 create or replace function public.transition_timetable_release(p_release_id uuid,p_target text)
-returns public.timetable_releases language plpgsql security definer set search_path=public as $$
+returns public.timetable_releases language plpgsql security definer set search_path=public as $
 declare v public.timetable_releases; v_uid uuid:=auth.uid(); v_blockers integer:=0;
 begin
-  if v_uid is null then raise exception 'UNAUTHENTICATED'; end if;
-  select * into v from public.timetable_releases where id=p_release_id for update;
-  if v.id is null then raise exception 'RELEASE_NOT_FOUND'; end if;
-  if not public.is_school_admin(v.school_id) then raise exception 'SCHOOL_ADMIN_REQUIRED'; end if;
-  if p_target not in ('review','approved','published','retired') then raise exception 'INVALID_RELEASE_STATE'; end if;
-  if (v.status='draft' and p_target<>'review') or (v.status='review' and p_target not in ('approved','draft')) or
-     (v.status='approved' and p_target not in ('published','review')) or (v.status='published' and p_target<>'retired') then
-    raise exception 'INVALID_RELEASE_TRANSITION';
-  end if;
-
-  if p_target in ('approved','published') then
-    select count(*) into v_blockers from (
-      select 1
-      from public.class_subject_allocations a
-      left join lateral (
-        select coalesce(sum(ts.allocation_units),0) units
-        from public.timetable_slots ts
-        where ts.school_id=v.school_id and ts.class_id=a.class_id and ts.subject_id=a.subject_id
-          and ts.effective_from<=v.effective_from and coalesce(ts.effective_until,v.effective_from)>=v.effective_from
-      ) s on true
-      where a.school_id=v.school_id and a.effective_from<=v.effective_from
-        and coalesce(a.effective_until,v.effective_from)>=v.effective_from
-        and a.effective_units_per_week is not null and s.units<>a.effective_units_per_week
-      union all
-      select 1 from public.timetable_slots ts
-      join public.teacher_timetable_availability ta on ta.teacher_id=ts.teacher_id and ta.school_id=ts.school_id
-        and ta.day_of_week=ts.day_of_week and ta.availability='unavailable'
-        and ta.start_time<ts.end_time and ta.end_time>ts.start_time
-        and ta.effective_from<=v.effective_from and coalesce(ta.effective_until,v.effective_from)>=v.effective_from
-      where ts.school_id=v.school_id and ts.effective_from<=v.effective_from and coalesce(ts.effective_until,v.effective_from)>=v.effective_from
-      union all
-      select 1 from public.timetable_slots ts
-      join public.subject_timetable_rules r on r.school_id=ts.school_id and r.class_id=ts.class_id and r.subject_id=ts.subject_id
-      left join public.school_timetable_resources sr on sr.id=ts.resource_id
-      where ts.school_id=v.school_id and ts.effective_from<=v.effective_from and coalesce(ts.effective_until,v.effective_from)>=v.effective_from
-        and r.required_resource_type is not null and (sr.id is null or sr.resource_type<>r.required_resource_type or not sr.active)
-    ) blockers;
-    if v_blockers>0 then raise exception 'TIMETABLE_HAS_BLOCKERS'; end if;
-  end if;
-
-  update public.timetable_releases set status=p_target,
-    reviewed_by=case when p_target='review' then v_uid else reviewed_by end,
-    reviewed_at=case when p_target='review' then now() else reviewed_at end,
-    approved_by=case when p_target='approved' then v_uid else approved_by end,
-    approved_at=case when p_target='approved' then now() else approved_at end,
-    published_by=case when p_target='published' then v_uid else published_by end,
-    published_at=case when p_target='published' then now() else published_at end
-  where id=p_release_id returning * into v;
-  return v;
-end $$;
+ if v_uid is null then raise exception 'UNAUTHENTICATED'; end if;
+ select * into v from public.timetable_releases where id=p_release_id for update;
+ if v.id is null then raise exception 'RELEASE_NOT_FOUND'; end if;
+ if not public.is_school_admin(v.school_id) then raise exception 'SCHOOL_ADMIN_REQUIRED'; end if;
+ if not ((v.status='draft' and p_target='review') or (v.status='review' and p_target in ('draft','approved')) or
+         (v.status='approved' and p_target in ('review','published')) or (v.status='published' and p_target='retired')) then
+   raise exception 'INVALID_RELEASE_TRANSITION';
+ end if;
+ if p_target in ('approved','published') then
+   select count(*) into v_blockers from public.timetable_slots ts
+   left join public.school_timetable_resources sr on sr.id=ts.resource_id
+   left join public.subject_timetable_rules r on r.school_id=ts.school_id and r.class_id=ts.class_id and r.subject_id=ts.subject_id
+   where ts.school_id=v.school_id and ts.release_id=v.id and
+    (r.required_resource_type is not null and (sr.id is null or sr.resource_type<>r.required_resource_type or not sr.active));
+   if v_blockers>0 then raise exception 'TIMETABLE_HAS_RESOURCE_BLOCKERS'; end if;
+ end if;
+ update public.timetable_releases set status=p_target,
+  reviewed_by=case when p_target='review' then v_uid else reviewed_by end, reviewed_at=case when p_target='review' then now() else reviewed_at end,
+  approved_by=case when p_target='approved' then v_uid else approved_by end, approved_at=case when p_target='approved' then now() else approved_at end,
+  published_by=case when p_target='published' then v_uid else published_by end, published_at=case when p_target='published' then now() else published_at end
+ where id=p_release_id returning * into v; return v;
+end $;
 revoke all on function public.transition_timetable_release(uuid,text) from public;
 grant execute on function public.transition_timetable_release(uuid,text) to authenticated;
 
