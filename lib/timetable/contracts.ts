@@ -1,7 +1,7 @@
 export type TimetableRecurrencePattern = 'EVERY_WEEK';
 
 export type TeachingOccurrenceLifecycle =
-  | 'planned' | 'ready' | 'active' | 'completed'
+  | 'planned' | 'ready' | 'in_progress' | 'completed'
   | 'missed' | 'cancelled' | 'rescheduled';
 
 export interface TeachingAllocation {
