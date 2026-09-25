@@ -5,7 +5,6 @@ const ROLES = [
   { href: '/login/teacher', title: 'Teacher', body: 'Teaching workspace, classes, lessons and school tools.' },
   { href: '/login/parent', title: 'Parent', body: 'Your children, school updates, progress and communication.' },
   { href: '/login/student', title: 'Learner', body: 'Learning, assignments, revision and your VibeSchool journey.' },
-  { href: '/login/global', title: 'Global learner', body: 'Explore VibeSchool learning outside a school account.' },
 ] as const
 
 export default function LoginPage() {
