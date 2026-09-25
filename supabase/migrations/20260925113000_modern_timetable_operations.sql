@@ -220,6 +220,9 @@ begin
     (r.required_resource_type is not null and (sr.id is null or sr.resource_type<>r.required_resource_type or not sr.active));
    if v_blockers>0 then raise exception 'TIMETABLE_HAS_RESOURCE_BLOCKERS'; end if;
  end if;
+ if p_target='published' then
+   update public.timetable_releases set status='retired' where school_id=v.school_id and status='published' and id<>v.id;
+ end if;
  update public.timetable_releases set status=p_target,
   reviewed_by=case when p_target='review' then v_uid else reviewed_by end, reviewed_at=case when p_target='review' then now() else reviewed_at end,
   approved_by=case when p_target='approved' then v_uid else approved_by end, approved_at=case when p_target='approved' then now() else approved_at end,
