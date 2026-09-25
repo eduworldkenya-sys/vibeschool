@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
 import OfflineBar from "@/components/teacher/OfflineBar";
-import { getTwinAuthorityContext, selectTwinRoleBinding } from "@/lib/twin/core";
 
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
@@ -524,57 +523,47 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   }, []);
 
   useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const authority = await getTwinAuthorityContext();
-        const userId = authority.userId;
+    let cancelled = false
 
-        const { data: profileData, error: profileErr } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", userId)
-          .single();
-        if (profileErr || !profileData) { router.replace("/?role=teacher"); return; }
-
-        const name = profileData.full_name ?? "";
-        setFullName(name);
-        const parts = name.trim().split(" ").filter(Boolean);
-        setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""));
-
-        const { data: teacherData, error: teacherErr } = await supabase
-          .from("teacher_profiles")
-          .select("school_id, profile_id")
-          .eq("profile_id", userId)
-          .maybeSingle();
-        if (teacherErr) throw new Error(teacherErr.message || "Teacher profile could not be resolved.");
-
-        const binding = selectTwinRoleBinding(authority, "teacher", teacherData?.school_id ?? undefined);
-        const isOnboardingPath = window.location.pathname.startsWith("/teacher/onboarding");
-        const schoolId = binding.schoolId;
-        if (!teacherData?.profile_id && !isOnboardingPath && schoolId) {
-          router.replace("/teacher/onboarding/school");
-          return;
-        }
-
-        if (schoolId) {
-          const { data: schoolData, error: schoolErr } = await supabase
-            .from("schools")
-            .select("name")
-            .eq("id", schoolId)
-            .maybeSingle();
-          if (schoolErr) throw new Error(schoolErr.message || "Teacher school could not be resolved.");
-          setSchool(schoolData?.name ?? "");
-        }
-
-        teacherIdRef.current = userId;
-        refreshCredits();
-        setAuthReady(true);
-      } catch (error) {
-        console.error("Teacher portal authority resolution failed:", error);
-        router.replace("/?role=teacher");
+    async function bootstrapShell() {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (cancelled) return
+      if (authError || !user) {
+        router.replace("/?role=teacher")
+        return
       }
+
+      // Session is the only hard gate for rendering the Teacher OS shell.
+      // Every page/RPC retains its own server/RLS authority checks.
+      teacherIdRef.current = user.id
+      setAuthReady(true)
+
+      // Profile, active school and credits are shell enrichment. They must never
+      // hold navigation behind a full-screen loader.
+      void Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.rpc("get_my_teacher_school_context"),
+      ]).then(async ([profileRes, schoolRes]) => {
+        if (cancelled) return
+
+        const name = profileRes.data?.full_name ?? ""
+        setFullName(name)
+        const parts = name.trim().split(" ").filter(Boolean)
+        setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""))
+
+        const context = schoolRes.data as { active_school_id?: string | null } | null
+        const schoolId = context?.active_school_id ?? null
+        if (schoolId) {
+          const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle()
+          if (!cancelled) setSchool(schoolData?.name ?? "")
+        }
+      }).catch(error => console.error("Teacher shell enrichment failed:", error))
+
+      refreshCredits()
     }
-    void fetchProfile();
+
+    void bootstrapShell()
+    return () => { cancelled = true }
   }, [refreshCredits, router]);
 
   // Onboarding routes are already server-authorized by middleware and must not be
