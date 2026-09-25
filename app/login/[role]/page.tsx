@@ -87,7 +87,7 @@ export default function RoleLoginPage() {
   async function google() {
     if (!config.email || busy) return
     setBusy(true)
-    const requestedRole = role === 'global' ? 'global_user' : role
+    const requestedRole = role
     const next = safeInternalPath(searchParams.get('redirect'))
     const flow = crypto.randomUUID()
     console.info(JSON.stringify({ scope: 'auth_journey', stage: 'oauth_started', flow_id: flow, detail: `${requestedRole}_signin` }))
