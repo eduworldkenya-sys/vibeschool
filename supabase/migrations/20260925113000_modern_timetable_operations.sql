@@ -227,7 +227,7 @@ create index if not exists idx_timetable_slots_resource on public.timetable_slot
 create index if not exists idx_timetable_slots_release on public.timetable_slots(release_id);
 
 create or replace function public.attach_active_slots_to_release(p_release_id uuid)
-returns integer language plpgsql security definer set search_path=public as $
+returns integer language plpgsql security definer set search_path=public as $$
 declare v public.timetable_releases; n integer;
 begin
  select * into v from public.timetable_releases where id=p_release_id;
@@ -237,13 +237,13 @@ begin
  update public.timetable_slots set release_id=v.id where school_id=v.school_id and effective_from<=v.effective_from
    and coalesce(effective_until,v.effective_from)>=v.effective_from and release_id is null;
  get diagnostics n=row_count; return n;
-end $;
+end $$;
 revoke all on function public.attach_active_slots_to_release(uuid) from public;
 grant execute on function public.attach_active_slots_to_release(uuid) to authenticated;
 
 -- Publication is a server-authoritative state machine.
 create or replace function public.transition_timetable_release(p_release_id uuid,p_target text)
-returns public.timetable_releases language plpgsql security definer set search_path=public as $
+returns public.timetable_releases language plpgsql security definer set search_path=public as $$
 declare v public.timetable_releases; v_uid uuid:=auth.uid(); v_blockers integer:=0;
 begin
  if v_uid is null then raise exception 'UNAUTHENTICATED'; end if;
@@ -270,7 +270,7 @@ begin
   approved_by=case when p_target='approved' then v_uid else approved_by end, approved_at=case when p_target='approved' then now() else approved_at end,
   published_by=case when p_target='published' then v_uid else published_by end, published_at=case when p_target='published' then now() else published_at end
  where id=p_release_id returning * into v; return v;
-end $;
+end $$;
 revoke all on function public.transition_timetable_release(uuid,text) from public;
 grant execute on function public.transition_timetable_release(uuid,text) to authenticated;
 
