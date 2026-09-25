@@ -803,8 +803,11 @@ export async function fetchPulseData(
       subject_id: slot.subject_id,
     }));
 
-  const recentAttendanceRows =
-    (recentAttendanceRes.data ?? []) as unknown as MarkedAttendanceRow[];
+  const recentAttendanceRows = (recentAttendanceRes.data ?? []).map((row) => ({
+    class_id: row.class_id,
+    marked_at: row.marked_at,
+    classes: row.classes,
+  })) satisfies MarkedAttendanceRow[];
   const recentPlanRows = (recentPlansRes.data ?? []) as LessonPlanRow[];
 
   const recentActivity: ActivityLog[] = [
