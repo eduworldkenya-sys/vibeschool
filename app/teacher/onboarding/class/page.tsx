@@ -46,19 +46,31 @@ export default function ClassOnboardingPage() {
           return
         }
 
-        const [{ data: context, error: contextError }, result] = await Promise.all([
-          supabase.rpc('get_my_teacher_school_context'),
-          supabase.from('schools').select('id,name').in('id', ids).order('name'),
-        ])
+        // The class form must not be blocked by the optional active-school preference
+        // RPC. Membership is the authorization boundary; render from verified membership
+        // as soon as the school names arrive, then reconcile the preferred school.
+        const result = await supabase.from('schools').select('id,name').in('id', ids).order('name')
         if (cancelled) return
-        if (contextError || result.error) setError('Your school details could not be loaded.')
-        else {
-          const rows = (result.data ?? []) as SchoolOption[]
-          setSchools(rows)
-          const active = (context as { active_school_id?: string | null } | null)?.active_school_id
-          setSchoolId((active && ids.includes(active) ? active : null) ?? rows[0]?.id ?? ids[0] ?? '')
+        if (result.error) {
+          setError('Your school details could not be loaded.')
+          setLoading(false)
+          return
         }
+
+        const rows = (result.data ?? []) as SchoolOption[]
+        const fallbackSchoolId = rows[0]?.id ?? ids[0] ?? ''
+        setSchools(rows)
+        setSchoolId(fallbackSchoolId)
         setLoading(false)
+
+        // Preference lookup is deliberately non-blocking. If it is unavailable or slow,
+        // the verified membership fallback remains usable instead of leaving onboarding
+        // on a loading screen.
+        void supabase.rpc('get_my_teacher_school_context').then(({ data: context, error: contextError }) => {
+          if (cancelled || contextError) return
+          const active = (context as { active_school_id?: string | null } | null)?.active_school_id
+          if (active && ids.includes(active)) setSchoolId(active)
+        }, () => {})
       } catch {
         if (!cancelled) {
           setError('Class setup could not be loaded. You can retry or enter Teacher OS and add a class later.')
