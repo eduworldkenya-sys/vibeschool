@@ -78,7 +78,8 @@ end;
 $function$
 
 
-revoke all on function public.exq_get_marking_centre_summary() from public, anon;
+revoke all on function public.exq_get_marking_centre_summary() from public;
+revoke all on function public.exq_get_marking_centre_summary() from anon;
 grant execute on function public.exq_get_marking_centre_summary() to authenticated;
 
 notify pgrst,'reload schema';
