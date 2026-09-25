@@ -64,6 +64,8 @@ export async function createTimetableRelease(input: { schoolId: string; label: s
     school_id: input.schoolId, label: input.label, effective_from: input.effectiveFrom, status: "draft",
   }).select("id,school_id,status,effective_from,label,created_at").single();
   assertNoError(error, "Could not create timetable release.");
+  const attached = await supabase.rpc("attach_active_slots_to_release", { p_release_id: data.id });
+  assertNoError(attached.error, "Could not attach timetable slots to release.");
   return data;
 }
 
