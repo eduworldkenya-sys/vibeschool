@@ -1,0 +1,18 @@
+name: School Information Authority
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/schoolhub/**'
+      - 'supabase/migrations/*school_information_authority.sql'
+      - 'scripts/school-information-authority.test.mjs'
+      - 'docs/SCHOOL_INFORMATION_AUTHORITY.md'
+      - '.github/workflows/school-information-authority.yml'
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/school-information-authority.test.mjs
