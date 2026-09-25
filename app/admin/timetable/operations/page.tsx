@@ -1,0 +1,20 @@
+"use client";
+import { useEffect,useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { getAdminSchoolAuthority } from "@/lib/admin/authority";
+import { applyTeacherAbsence, assignOccurrenceSubstitute } from "@/lib/timetable/operations";
+
+type Teacher={id:string;full_name:string}; type Occ={id:string;teacher_id:string;occurrence_date:string;lifecycle:string;exception_reason:string|null;actual_teacher_id:string|null};
+export default function TimetableOperationsPage(){
+ const [sid,setSid]=useState("");const [teachers,setTeachers]=useState<Teacher[]>([]);const [occ,setOcc]=useState<Occ[]>([]);const [teacher,setTeacher]=useState("");const [sub,setSub]=useState("");const [reason,setReason]=useState("");const [msg,setMsg]=useState("");
+ useEffect(()=>{void load()},[]);
+ async function load(){try{const a=await getAdminSchoolAuthority();setSid(a.schoolId);const m=await supabase.from("school_members").select("profile_id").eq("school_id",a.schoolId).eq("role","teacher");if(m.error)throw m.error;const ids=(m.data??[]).map(x=>x.profile_id);const p=ids.length?await supabase.from("profiles").select("id,full_name").in("id",ids):{data:[],error:null};if(p.error)throw p.error;setTeachers((p.data??[]) as Teacher[]);
+ const today=new Date().toISOString().slice(0,10),end=new Date(Date.now()+7*86400000).toISOString().slice(0,10);const o=await supabase.from("teaching_occurrences").select("id,teacher_id,occurrence_date,lifecycle,exception_reason,actual_teacher_id").eq("school_id",a.schoolId).gte("occurrence_date",today).lte("occurrence_date",end).order("occurrence_date");if(o.error)throw o.error;setOcc((o.data??[]) as Occ[])}catch(e){setMsg(e instanceof Error?e.message:"Could not load operations")}}
+ async function absence(){if(!teacher)return;try{const now=new Date(),end=new Date(now.getTime()+86400000);const {data,error}=await supabase.from("teacher_absences").insert({school_id:sid,teacher_id:teacher,starts_at:now.toISOString(),ends_at:end.toISOString(),reason}).select("id").single();if(error)throw error;const n=await applyTeacherAbsence(data.id);setMsg(`Absence recorded. ${n} upcoming occurrence(s) flagged.`);await load()}catch(e){setMsg(e instanceof Error?e.message:"Could not record absence")}}
+ async function substitute(id:string){if(!sub)return;try{await assignOccurrenceSubstitute(id,sub,reason);setMsg("Substitute assigned without changing the recurring timetable.");await load()}catch(e){setMsg(e instanceof Error?e.message:"Could not assign substitute")}}
+ const name=(id:string|null)=>teachers.find(x=>x.id===id)?.full_name||"Teacher";
+ return <main style={{maxWidth:900,margin:"0 auto",display:"grid",gap:16}}><header><h1>Timetable operations</h1><p>Absence and substitution affect dated lessons, never historical recurring timetable truth.</p></header>{msg&&<div role="status">{msg}</div>}
+ <section><h2>Record teacher absence</h2><select value={teacher} onChange={e=>setTeacher(e.target.value)}><option value="">Teacher</option>{teachers.map(t=><option key={t.id} value={t.id}>{t.full_name}</option>)}</select><input value={reason} onChange={e=>setReason(e.target.value)} placeholder="Reason"/><button onClick={()=>void absence()}>Record next 24 hours</button></section>
+ <section><h2>Upcoming lessons requiring action</h2><select value={sub} onChange={e=>setSub(e.target.value)}><option value="">Choose substitute</option>{teachers.map(t=><option key={t.id} value={t.id}>{t.full_name}</option>)}</select>
+ {occ.filter(x=>x.exception_reason).map(x=><article key={x.id} style={{padding:12,border:"1px solid #e2e8f0",borderRadius:12,marginTop:8}}><strong>{x.occurrence_date} · {name(x.teacher_id)}</strong><div>{x.exception_reason}{x.actual_teacher_id?` · Covered by ${name(x.actual_teacher_id)}`:""}</div>{!x.actual_teacher_id&&<button onClick={()=>void substitute(x.id)}>Assign selected substitute</button>}</article>)}</section></main>
+}
