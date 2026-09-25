@@ -292,3 +292,77 @@ export function findNextTimetableSlot(
     ) ?? null
   );
 }
+
+
+export interface TeacherWeeklyTimetableLoad {
+  class_id: string;
+  subject_id: string;
+  class_name: string;
+  stream: string;
+  subject_name: string;
+  grade: string;
+  lessons_per_week: number | null;
+  scheduled_count: number;
+  status: "NO_TARGET" | "ZERO" | "UNDER" | "OK" | "OVER";
+}
+
+export interface TimetableConflict {
+  conflict_type: "TEACHER_CONFLICT" | "CLASS_CONFLICT" | "ROOM_CONFLICT" | "SCHEDULE_CONFLICT";
+  conflicting_slot_id: string;
+  conflicting_teacher_id: string | null;
+  conflicting_class_id: string;
+  conflicting_subject_id: string;
+  conflicting_room: string | null;
+  detail: string;
+}
+
+/**
+ * Allocation-aware teacher workload. Unlike slot-only readers this preserves
+ * assigned subjects with zero scheduled slots, so "nothing scheduled" cannot
+ * be confused with "nothing to teach".
+ */
+export async function loadTeacherWeeklyTimetableLoad(): Promise<TeacherWeeklyTimetableLoad[]> {
+  const { data, error } = await supabase.rpc("get_teacher_weekly_timetable_load");
+  if (error) {
+    throw new TimetableEngineError("Failed to load timetable allocation health.", error.message);
+  }
+  return (data ?? []) as unknown as TeacherWeeklyTimetableLoad[];
+}
+
+export interface PreviewTimetableConflictsOptions {
+  schoolId: string;
+  teacherId: string;
+  classId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  room?: string | null;
+  effectiveFrom?: string | null;
+  effectiveUntil?: string | null;
+  excludeSlotId?: string | null;
+}
+
+/**
+ * Explainable pre-save conflict intelligence. The database exclusion
+ * constraints remain authoritative at write time; this is a safe preview.
+ */
+export async function previewTimetableConflicts(
+  options: PreviewTimetableConflictsOptions
+): Promise<TimetableConflict[]> {
+  const { data, error } = await supabase.rpc("preview_timetable_conflicts", {
+    p_school_id: options.schoolId,
+    p_teacher_id: options.teacherId,
+    p_class_id: options.classId,
+    p_day_of_week: options.dayOfWeek,
+    p_start_time: options.startTime,
+    p_end_time: options.endTime,
+    p_room: options.room ?? null,
+    p_effective_from: options.effectiveFrom ?? null,
+    p_effective_until: options.effectiveUntil ?? null,
+    p_exclude_slot_id: options.excludeSlotId ?? null,
+  });
+  if (error) {
+    throw new TimetableEngineError("Failed to preview timetable conflicts.", error.message);
+  }
+  return (data ?? []) as unknown as TimetableConflict[];
+}
