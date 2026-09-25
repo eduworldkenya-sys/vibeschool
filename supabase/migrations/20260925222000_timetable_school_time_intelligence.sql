@@ -41,6 +41,20 @@ as $$
 declare
   v_period public.school_periods;
 begin
+  -- A lesson may never overlap a protected non-teaching block, even when
+  -- the legacy/custom slot has no period_id.
+  if exists (
+    select 1 from public.school_periods sp
+    where sp.school_id=new.school_id
+      and sp.protected
+      and sp.kind <> 'lesson'
+      and sp.schedule_day in (0,new.day_of_week)
+      and sp.start_time < new.end_time
+      and sp.end_time > new.start_time
+  ) then
+    raise exception 'PROTECTED_SCHOOL_BLOCK';
+  end if;
+
   if new.period_id is null then
     return new;
   end if;
