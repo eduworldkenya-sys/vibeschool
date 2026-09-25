@@ -182,6 +182,22 @@ grant execute on function public.generate_daily_occurrences(date) to authenticat
 alter table public.timetable_slots add column if not exists resource_id uuid references public.school_timetable_resources(id) on delete set null;
 alter table public.timetable_slots add column if not exists release_id uuid references public.timetable_releases(id) on delete set null;
 create index if not exists idx_timetable_slots_resource on public.timetable_slots(resource_id);
+create index if not exists idx_timetable_slots_release on public.timetable_slots(release_id);
+
+create or replace function public.attach_active_slots_to_release(p_release_id uuid)
+returns integer language plpgsql security definer set search_path=public as $
+declare v public.timetable_releases; n integer;
+begin
+ select * into v from public.timetable_releases where id=p_release_id;
+ if v.id is null then raise exception 'RELEASE_NOT_FOUND'; end if;
+ if not public.is_school_admin(v.school_id) then raise exception 'SCHOOL_ADMIN_REQUIRED'; end if;
+ if v.status<>'draft' then raise exception 'RELEASE_NOT_DRAFT'; end if;
+ update public.timetable_slots set release_id=v.id where school_id=v.school_id and effective_from<=v.effective_from
+   and coalesce(effective_until,v.effective_from)>=v.effective_from and release_id is null;
+ get diagnostics n=row_count; return n;
+end $;
+revoke all on function public.attach_active_slots_to_release(uuid) from public;
+grant execute on function public.attach_active_slots_to_release(uuid) to authenticated;
 
 -- Publication is a server-authoritative state machine.
 create or replace function public.transition_timetable_release(p_release_id uuid,p_target text)
