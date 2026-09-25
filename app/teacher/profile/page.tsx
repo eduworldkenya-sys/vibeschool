@@ -67,15 +67,16 @@ export default function TeacherProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
-  const db = supabase as any;
+  const db = supabase;
 
   const loadContext = useCallback(async (requestedSchoolId?: string | null) => {
     const { data, error } = await supabase.rpc("teacher_get_operating_context", {
       p_requested_school_id: requestedSchoolId ?? undefined,
     });
     if (error) throw error;
-    return data as unknown as Context;
+    return data as Context;
   }, []);
 
   const load = useCallback(async () => {
@@ -103,7 +104,7 @@ export default function TeacherProfilePage() {
         gender: profileRes.data?.gender ?? "",
         dateOfBirth: profileRes.data?.date_of_birth ?? "",
         avatarUrl: profileRes.data?.avatar_url ?? "",
-        notificationPrefs: profileRes.data?.notification_prefs && typeof profileRes.data.notification_prefs === "object" ? profileRes.data.notification_prefs : {},
+        notificationPrefs: profileRes.data?.notification_prefs && !Array.isArray(profileRes.data.notification_prefs) && typeof profileRes.data.notification_prefs === "object" ? Object.fromEntries(Object.entries(profileRes.data.notification_prefs).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean")) : {},
         tscNumber: teacherRes.data?.tsc_number ?? "",
         employmentType: teacherRes.data?.employment_type ?? "",
         designation: teacherRes.data?.designation ?? "",
@@ -172,6 +173,21 @@ export default function TeacherProfilePage() {
       setNotice({ kind: "error", text: "Your profile could not be saved. No school assignments were changed." });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function signOut() {
+    if (signingOut) return;
+    if (!window.confirm("Sign out of VibeSchool?")) return;
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut({ scope: "global" });
+      document.cookie = "vibe_role=; path=/; max-age=0";
+      window.location.assign("/login");
+    } catch (signOutError) {
+      console.error("[TeacherProfile] signout", signOutError);
+      setNotice({ kind: "error", text: "You could not be signed out. Please try again." });
+      setSigningOut(false);
     }
   }
 
@@ -252,6 +268,10 @@ export default function TeacherProfilePage() {
       </section>
 
       <button type="button" onClick={() => void save()} disabled={saving} style={{ width: "100%", minHeight: 50, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontSize: 14, fontWeight: 900 }}>{saving ? "Saving…" : "Save profile"}</button>
+
+      <section style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
+        <button type="button" onClick={() => void signOut()} disabled={signingOut} style={{ width: "100%", minHeight: 50, border: "1px solid #fecaca", borderRadius: 13, background: "#fff", color: "#b91c1c", fontSize: 14, fontWeight: 900, cursor: signingOut ? "wait" : "pointer" }}>{signingOut ? "Signing out…" : "Sign out"}</button>
+      </section>
     </div>
   );
 }
