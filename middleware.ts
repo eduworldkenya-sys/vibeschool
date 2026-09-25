@@ -1,7 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { AUTH_DASHBOARDS, requiredRoleForPath, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
-import { isGlobalAccountPaused, isPausedGlobalAccountPath } from '@/lib/global-access'
 
 const HQ_PUBLIC_AUTH_ROUTES = new Set(['/hq/login', '/hq/reset-password'])
 const PUBLIC_AUTH_ROUTES = new Set(['/login', '/reset-password', '/auth/forgot-password', '/auth/reset-password', '/auth/error'])
@@ -31,11 +30,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(gateway)
   }
 
-  if (isGlobalAccountPaused() && isPausedGlobalAccountPath(pathname)) {
-    const pausedUrl = request.nextUrl.clone()
-    pausedUrl.pathname = '/global/paused'
-    pausedUrl.search = ''
-    return NextResponse.redirect(pausedUrl, 307)
+  // Global account UI is retired. Public Reader routes remain available.
+  if (pathname === '/global' || (pathname.startsWith('/global/') && !pathname.startsWith('/global/read'))) {
+    const home = request.nextUrl.clone()
+    home.pathname = '/'
+    home.search = ''
+    return NextResponse.redirect(home, 308)
+  }
+  if (pathname === '/login/global') {
+    const login = request.nextUrl.clone()
+    login.pathname = '/login'
+    login.search = ''
+    return NextResponse.redirect(login, 308)
   }
 
   if (pathname.startsWith('/hq')) {
