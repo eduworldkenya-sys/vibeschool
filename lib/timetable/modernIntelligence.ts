@@ -20,6 +20,7 @@ export interface SubjectSchedulingRule {
   requiresConsecutiveUnits?: number;
   requiredRoomType?: string;
   preferredDayParts?: Array<"morning" | "afternoon">;
+  maxTeacherConsecutiveUnits?: number;
 }
 
 export interface TeacherAvailabilityRule {
@@ -153,6 +154,15 @@ export function evaluateModernTimetable(input: {
       });
     }
 
+    if (rule.requiredRoomType) {
+      for (const slot of slots) {
+        if (!slot.room) findings.push({
+          code: "RESOURCE_REQUIRED", severity: "hard", classId: rule.classId, subjectId: rule.subjectId, slotId: slot.id,
+          message: `Subject requires a ${rule.requiredRoomType} resource.`,
+        });
+      }
+    }
+
     if (rule.preferredDayParts?.length) {
       for (const slot of slots) {
         const part = minutes(slot.start_time) < 12 * 60 ? "morning" : "afternoon";
@@ -166,6 +176,18 @@ export function evaluateModernTimetable(input: {
         });
       }
     }
+  }
+
+  const teacherDays = new Map<string, CanonicalTimetableSlot[]>();
+  for (const slot of input.slots) {
+    const key = `${slot.teacher_id}::${slot.day_of_week}`;
+    teacherDays.set(key, [...(teacherDays.get(key) ?? []), slot]);
+  }
+  for (const [key, teacherSlots] of teacherDays) {
+    const ordered=[...teacherSlots].sort((a,b)=>minutes(a.start_time)-minutes(b.start_time));
+    let run=1, maxRun=1;
+    for(let i=1;i<ordered.length;i++){ run=minutes(ordered[i-1].end_time)===minutes(ordered[i].start_time)?run+1:1; maxRun=Math.max(maxRun,run); }
+    if(maxRun>4) findings.push({code:"TEACHER_CONSECUTIVE_LOAD",severity:"soft",teacherId:ordered[0]?.teacher_id,message:`Teacher has ${maxRun} consecutive lessons on day ${ordered[0]?.day_of_week}.`});
   }
 
   return findings;
