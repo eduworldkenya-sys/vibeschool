@@ -20,14 +20,11 @@ html, body {
   color: #ffffff;
 }
 
-/* Keyboard users must always be able to see where they are. Keep the ring
-   outside the control so page-local colors and borders remain intact. */
 :where(a, button, input, select, textarea, summary, [role="button"], [tabindex]):focus-visible {
   outline: 3px solid #22c55e;
   outline-offset: 3px;
 }
 
-/* Avoid motion becoming a usability barrier while preserving instant state changes. */
 @media (prefers-reduced-motion: reduce) {
   html:focus-within { scroll-behavior: auto; }
   *, *::before, *::after {
@@ -38,32 +35,53 @@ html, body {
   }
 }
 
-/* The uploaded master logo has an opaque white artboard. On dark authentication
-   surfaces use the transparent lockup instead, without changing social/PWA assets. */
 a[aria-label="VibeSchool home"]:has(> img[src="/icons/vibeschool-logo.png"]) {
   background: url('/icons/vibeschool-logo-dark.svg') center / contain no-repeat;
 }
-a[aria-label="VibeSchool home"] > img[src="/icons/vibeschool-logo.png"] {
-  opacity: 0;
-}
+a[aria-label="VibeSchool home"] > img[src="/icons/vibeschool-logo.png"] { opacity: 0; }
 
-/* VibeSchool Admin — Force dark theme across all admin pages */
-[id^="admin-"] {
-  background: transparent !important;
-}
+[id^="admin-"] { background: transparent !important; }
+.admin-page-root { background: transparent !important; }
 
-.admin-page-root {
-  background: transparent !important;
-}
-
-.vibe-bubble-edit:empty::before {
-  content: attr(data-placeholder);
-  color: #aaa;
-  pointer-events: none;
-}
-
+.vibe-bubble-edit:empty::before,
 .vibe-editable:empty::before {
   content: attr(data-placeholder);
   color: #aaa;
   pointer-events: none;
+}
+
+/* Teacher OS light-surface form invariant. */
+.teacher-light-surface,
+.teacher-light-surface input,
+.teacher-light-surface textarea,
+.teacher-light-surface select { color: #111827; }
+
+.teacher-light-surface input,
+.teacher-light-surface textarea,
+.teacher-light-surface select {
+  -webkit-text-fill-color: #111827;
+  caret-color: #111827;
+}
+
+.teacher-light-surface input::placeholder,
+.teacher-light-surface textarea::placeholder {
+  color: #6b7280;
+  -webkit-text-fill-color: #6b7280;
+  opacity: 1;
+}
+
+.teacher-light-surface select:disabled,
+.teacher-light-surface input:disabled,
+.teacher-light-surface textarea:disabled {
+  color: #6b7280;
+  -webkit-text-fill-color: #6b7280;
+  opacity: 1;
+}
+
+.teacher-light-surface option { color: #111827; background: #ffffff; }
+
+.teacher-light-surface input:-webkit-autofill,
+.teacher-light-surface textarea:-webkit-autofill,
+.teacher-light-surface select:-webkit-autofill {
+  -webkit-text-fill-color: #111827;
 }
