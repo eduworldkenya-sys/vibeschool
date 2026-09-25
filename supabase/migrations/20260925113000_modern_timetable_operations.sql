@@ -1,5 +1,17 @@
 -- Modern timetable operations: calendar, availability, resources, subject rules, substitution, publication.
 -- Repository migration only. Apply through the normal reviewed migration path.
+-- access: school-member-read/admin-write public.school_calendar_exceptions
+-- authorization-test: public.school_calendar_exceptions member read and admin write are RLS-scoped.
+-- access: teacher-self-or-admin public.teacher_timetable_availability
+-- authorization-test: public.teacher_timetable_availability teacher self/admin access is RLS-scoped.
+-- access: school-member-read/admin-write public.school_timetable_resources
+-- authorization-test: public.school_timetable_resources member read and admin write are RLS-scoped.
+-- access: school-member-read/admin-write public.subject_timetable_rules
+-- authorization-test: public.subject_timetable_rules member read and admin write are RLS-scoped.
+-- access: teacher-self-read/admin-write public.teacher_absences
+-- authorization-test: public.teacher_absences teacher self read and admin write are RLS-scoped.
+-- access: school-member-read/admin-write public.timetable_releases
+-- authorization-test: public.timetable_releases member read and admin write are RLS-scoped.
 
 create table if not exists public.school_calendar_exceptions (
   id uuid primary key default gen_random_uuid(),
@@ -13,6 +25,11 @@ create table if not exists public.school_calendar_exceptions (
   unique (school_id, exception_date, kind)
 );
 alter table public.school_calendar_exceptions enable row level security;
+revoke all on table public.school_calendar_exceptions from public, anon, authenticated;
+grant select on table public.school_calendar_exceptions to authenticated;
+grant insert, update, delete on table public.school_calendar_exceptions to authenticated;
+grant all on table public.school_calendar_exceptions to service_role;
+
 create policy school_calendar_exception_member_read on public.school_calendar_exceptions for select to authenticated
 using (public.is_active_school_member(school_id));
 create policy school_calendar_exception_admin_write on public.school_calendar_exceptions for all to authenticated
@@ -34,6 +51,11 @@ create table if not exists public.teacher_timetable_availability (
   check (effective_until is null or effective_until >= effective_from)
 );
 alter table public.teacher_timetable_availability enable row level security;
+revoke all on table public.teacher_timetable_availability from public, anon, authenticated;
+grant select on table public.teacher_timetable_availability to authenticated;
+grant insert, update, delete on table public.teacher_timetable_availability to authenticated;
+grant all on table public.teacher_timetable_availability to service_role;
+
 create policy teacher_availability_read on public.teacher_timetable_availability for select to authenticated
 using (teacher_id=(select auth.uid()) or public.is_school_admin(school_id));
 create policy teacher_availability_self_write on public.teacher_timetable_availability for all to authenticated
@@ -51,6 +73,11 @@ create table if not exists public.school_timetable_resources (
   unique (school_id, name)
 );
 alter table public.school_timetable_resources enable row level security;
+revoke all on table public.school_timetable_resources from public, anon, authenticated;
+grant select on table public.school_timetable_resources to authenticated;
+grant insert, update, delete on table public.school_timetable_resources to authenticated;
+grant all on table public.school_timetable_resources to service_role;
+
 create policy timetable_resource_member_read on public.school_timetable_resources for select to authenticated
 using (public.is_active_school_member(school_id));
 create policy timetable_resource_admin_write on public.school_timetable_resources for all to authenticated
@@ -71,6 +98,11 @@ create table if not exists public.subject_timetable_rules (
   unique (school_id,class_id,subject_id)
 );
 alter table public.subject_timetable_rules enable row level security;
+revoke all on table public.subject_timetable_rules from public, anon, authenticated;
+grant select on table public.subject_timetable_rules to authenticated;
+grant insert, update, delete on table public.subject_timetable_rules to authenticated;
+grant all on table public.subject_timetable_rules to service_role;
+
 create policy subject_timetable_rule_member_read on public.subject_timetable_rules for select to authenticated
 using (public.is_active_school_member(school_id));
 create policy subject_timetable_rule_admin_write on public.subject_timetable_rules for all to authenticated
@@ -91,6 +123,11 @@ create table if not exists public.teacher_absences (
   check (starts_at < ends_at)
 );
 alter table public.teacher_absences enable row level security;
+revoke all on table public.teacher_absences from public, anon, authenticated;
+grant select on table public.teacher_absences to authenticated;
+grant insert, update, delete on table public.teacher_absences to authenticated;
+grant all on table public.teacher_absences to service_role;
+
 create policy teacher_absence_read on public.teacher_absences for select to authenticated
 using (teacher_id=(select auth.uid()) or public.is_school_admin(school_id));
 create policy teacher_absence_admin_write on public.teacher_absences for all to authenticated
@@ -112,6 +149,11 @@ create table if not exists public.timetable_releases (
   created_at timestamptz not null default now()
 );
 alter table public.timetable_releases enable row level security;
+revoke all on table public.timetable_releases from public, anon, authenticated;
+grant select on table public.timetable_releases to authenticated;
+grant insert, update, delete on table public.timetable_releases to authenticated;
+grant all on table public.timetable_releases to service_role;
+
 create policy timetable_release_member_read on public.timetable_releases for select to authenticated
 using (public.is_active_school_member(school_id));
 create policy timetable_release_admin_write on public.timetable_releases for all to authenticated
