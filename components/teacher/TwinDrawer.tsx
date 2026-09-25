@@ -87,9 +87,19 @@ export default function TwinDrawer({ open, onClose }: Props) {
   }, []);
 
   function toggleVoice() {
+    type BrowserSpeechRecognition = {
+      lang: string;
+      interimResults: boolean;
+      continuous: boolean;
+      onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+      onerror: (() => void) | null;
+      onend: (() => void) | null;
+      start: () => void;
+      stop: () => void;
+    };
     const speechWindow = window as Window & {
-      SpeechRecognition?: new () => SpeechRecognition;
-      webkitSpeechRecognition?: new () => SpeechRecognition;
+      SpeechRecognition?: new () => BrowserSpeechRecognition;
+      webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
     };
     const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (!SR) return;
