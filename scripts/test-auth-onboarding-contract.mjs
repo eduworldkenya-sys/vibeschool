@@ -8,7 +8,7 @@ const routing = read('lib/auth-routing.ts')
 const migration = read('supabase/migrations/20260816154000_auth_onboarding_authority_reconcile.sql')
 const teacherSignup = read('app/signup/teacher/page.tsx')
 const parentSignup = read('app/signup/parent/page.tsx')
-const globalSignup = read('app/global/signup/page.tsx')
+const retirementMigration = read('supabase/migrations/20260925155000_retire_global_self_service_role.sql')
 const login = read('app/login/[role]/page.tsx')
 const forgot = read('app/auth/forgot-password/page.tsx')
 const reset = read('app/auth/reset-password/page.tsx')
@@ -70,7 +70,7 @@ assert.match(callback, /roleCanVisit/)
 assert.match(callback, /scope: 'auth_journey'/)
 
 // Email/password signup uses display metadata only and server-owned role claim.
-for (const signup of [teacherSignup, parentSignup, globalSignup]) {
+for (const signup of [teacherSignup, parentSignup]) {
   assert.match(signup, /emailRedirectTo: callback/)
   assert.match(signup, /claim_my_initial_role/)
   assert.doesNotMatch(signup, /data:\s*\{\s*role:/)
@@ -92,7 +92,6 @@ for (const pair of [
   ["'/parent'", "'parent'"],
   ["'/student'", "'student'"],
   ["'/admin'", "'admin'"],
-  ["'/global'", "'global_user'"],
 ]) {
   assert.ok(routing.includes(`${pair[0]}: ${pair[1]}`), `missing route contract ${pair.join(' -> ')}`)
 }
