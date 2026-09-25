@@ -39,6 +39,11 @@ export default function TeacherWeekViewPage(){
   try{
    const {data:{user}}=await supabase.auth.getUser();
    if(!user){router.replace("/?role=teacher");return}
+   // Resolve the same canonical school context used by onboarding before building
+   // the occurrence-driven week. The workspace loader independently enforces it.
+   const {data:schoolContext,error:schoolContextError}=await supabase.rpc("get_my_teacher_school_context");
+   if(schoolContextError)throw schoolContextError;
+   if(!(schoolContext as {active_school_id?:string|null}|null)?.active_school_id){setWeek(null);return}
    const value=await loadTeacherWorkspaceWeek({teacherId:user.id,weekOffset:offset});
    setWeek(value);
   }catch(e){setError(e instanceof Error?e.message:"Your teaching week could not be loaded.")}
