@@ -546,7 +546,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           const [authority, profileRes, teacherRes] = await Promise.all([
             getTwinAuthorityContext(),
             supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-            supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
+            supabase.rpc("get_my_teacher_school_context"),
           ])
           if (cancelled) return
 
@@ -555,12 +555,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           const parts = name.trim().split(" ").filter(Boolean)
           setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""))
 
-          const teacherData = teacherRes.data
-          const binding = selectTwinRoleBinding(authority, "teacher", teacherData?.school_id ?? undefined)
-          const schoolId = binding.schoolId
+          const schoolContext = teacherRes.data as { active_school_id?: string | null; schools?: Array<{ id?: string | null; name?: string | null }> } | null
+          const schoolId = schoolContext?.active_school_id ?? null
           if (schoolId) {
-            const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle()
-            if (!cancelled) setSchool(schoolData?.name ?? "")
+            selectTwinRoleBinding(authority, "teacher", schoolId)
+            const schoolName = schoolContext?.schools?.find(item => item.id === schoolId)?.name ?? ""
+            if (!cancelled) setSchool(schoolName)
           }
         } catch (error) {
           console.error("Teacher shell enrichment failed:", error)
