@@ -1,396 +1,145 @@
-"use client";
-export const dynamic = "force-dynamic";
+'use client'
 
-import { useEffect, useState } from 'react'
+export const dynamic = 'force-dynamic'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
+import { C } from '@/components/teacher/ui'
 import { formatJoinCode } from '@/lib/schoolCode'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface SchoolInfo {
-  name: string
-  timezone: string
-  country_code: string
-  status: string
-  subdomain: string
-  motto: string | null
-  vision: string | null
-  knec_code: string | null
-  nemis_code: string | null
-  county: string | null
-  sub_county: string | null
-  ward: string | null
-  postal_address: string | null
-  phone: string | null
-  school_type: string | null
-  school_category: string | null
-  established_year: number | null
-  logo_url: string | null
+type SchoolInfo = {
+  id: string; name: string; status: string; subdomain: string
+  county: string | null; sub_county: string | null; school_type: string | null
+  school_category: string | null; knec_code: string | null
 }
+type SchoolOption = { id: string; name: string; status: string }
+type Assignment = { class_id: string; subject_id: string | null; classes: { name: string; stream: string | null } | null; subjects: { name: string } | null }
+type Context = { state?: string; active_school_id?: string | null; schools?: SchoolOption[] }
 
-interface StaffMember {
-  profileId: string
-  fullName: string
-  role: string
-  joinedAt: string
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function initials(name: string): string {
-  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase()
-}
-
-const PALETTES = [
-  { bg: '#ede9fe', color: '#6d28d9' },
-  { bg: '#dbeafe', color: '#1d4ed8' },
-  { bg: '#fef3c7', color: '#92400e' },
-  { bg: C.accentLight, color: '#065f46' },
-  { bg: '#fce7f3', color: '#9d174d' },
-]
-
-function Avatar({ name, idx }: { name: string; idx: number }) {
-  const p = PALETTES[idx % PALETTES.length]
-  return (
-    <div style={{
-      width: 38, height: 38, borderRadius: '50%',
-      background: p.bg, color: p.color,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: 12, fontWeight: 700, flexShrink: 0,
-    }}>
-      {initials(name)}
-    </div>
-  )
-}
-
-function Skeleton({ h = 56 }: { h?: number }) {
-  return (
-    <div style={{
-      height: h, borderRadius: 12,
-      background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'shimmer 1.4s infinite',
-    }} />
-  )
-}
-
-function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
-  if (!value) return null
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
-      padding: '9px 0', borderBottom: `1px solid ${C.border}`,
-    }}>
-      <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600, flexShrink: 0, marginRight: 12 }}>{label}</span>
-      <span style={{ fontSize: 13, color: C.textPrimary, fontWeight: 600, textAlign: 'right' }}>{value}</span>
-    </div>
-  )
-}
-
-// ─── Static content ───────────────────────────────────────────────────────────
-
-const POLICIES = [
-  { title: 'Child Safeguarding Policy',   updated: 'Jan 2025' },
-  { title: 'Assessment & Grading Policy', updated: 'Aug 2024' },
-  { title: 'Attendance Policy',           updated: 'Jan 2025' },
-  { title: 'Code of Conduct',             updated: 'Jan 2025' },
-]
-
-const CALENDAR = [
-  { event: 'Term 2 Ends',           date: 'Friday, 6 June 2025' },
-  { event: 'Report Cards Released', date: 'Tuesday, 10 June 2025' },
-  { event: 'Term 3 Begins',         date: 'Monday, 7 July 2025' },
-  { event: 'National Examinations', date: 'October 2025' },
-]
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
+const card: React.CSSProperties = { background:'#fff', border:'1px solid #e5e7eb', borderRadius:18, padding:16 }
+const button: React.CSSProperties = { minHeight:44, border:0, borderRadius:12, padding:'0 16px', fontWeight:850, cursor:'pointer', font:'inherit' }
 
 export default function SchoolHubPage() {
-  const [school, setSchool]   = useState<SchoolInfo | null>(null)
-  const [staff, setStaff]     = useState<StaffMember[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState<string | null>(null)
-  const [copied, setCopied]   = useState(false)
+  const router = useRouter()
+  const [context,setContext]=useState<Context|null>(null)
+  const [school,setSchool]=useState<SchoolInfo|null>(null)
+  const [assignments,setAssignments]=useState<Assignment[]>([])
+  const [loading,setLoading]=useState(true)
+  const [switching,setSwitching]=useState(false)
+  const [error,setError]=useState('')
+  const [copied,setCopied]=useState(false)
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      setError(null)
+  const load=useCallback(async()=>{
+    setLoading(true); setError('')
+    const {data:{user}}=await supabase.auth.getUser()
+    if(!user){ router.replace('/academy/signin?role=teacher'); return }
+    const {data:ctx,error:ctxError}=await supabase.rpc('get_my_teacher_school_context')
+    if(ctxError){ setError('Your school workspace could not be loaded. Please retry.'); setLoading(false); return }
+    const next=(ctx??{}) as Context
+    setContext(next)
+    const schoolId=next.active_school_id
+    if(!schoolId){ setSchool(null); setAssignments([]); setLoading(false); return }
+    const [schoolRes,assignmentRes]=await Promise.all([
+      supabase.from('schools').select('id,name,status,subdomain,county,sub_county,school_type,school_category,knec_code').eq('id',schoolId).maybeSingle(),
+      supabase.from('teacher_classes').select('class_id,subject_id,classes(name,stream),subjects(name)').eq('teacher_id',user.id).eq('school_id',schoolId)
+    ])
+    if(schoolRes.error||assignmentRes.error){ setError('Some school workspace details could not be loaded. Please retry.'); setLoading(false); return }
+    setSchool(schoolRes.data as SchoolInfo|null)
+    setAssignments((assignmentRes.data ?? []).map(row => ({ ...row })) as Assignment[])
+    setLoading(false)
+  },[router])
 
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setError('Not signed in.'); setLoading(false); return }
+  useEffect(()=>{ void load() },[load])
 
-      const [memberRes, profileRes] = await Promise.all([
-        supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-        supabase.from('profiles').select('school_id').eq('id', user.id).single(),
-      ])
+  const schools=context?.schools??[]
+  const uniqueClasses=useMemo(()=>new Set(assignments.map(a=>a.class_id)).size,[assignments])
+  const uniqueSubjects=useMemo(()=>new Set(assignments.map(a=>a.subject_id).filter(Boolean)).size,[assignments])
+  const ready=Boolean(school&&assignments.length>0)
+  const nextAction=!school
+    ? {label:'Connect your school',hint:'School identity is required before classes and teaching work.',href:'/teacher/onboarding/school'}
+    : assignments.length===0
+      ? {label:'Add your first class',hint:'Tell VibeSchool the class and subject you teach.',href:'/teacher/onboarding/class'}
+      : {label:'Open today’s teaching',hint:'Your school and teaching assignments are ready.',href:'/teacher/pulse'}
 
-      const schoolId = memberRes.data?.school_id ?? profileRes.data?.school_id ?? null
-      if (!schoolId) { setLoading(false); return }
-
-      const [schoolRes, membersRes] = await Promise.all([
-        supabase
-          .from('schools')
-          .select('name, timezone, country_code, status, subdomain, motto, vision, knec_code, nemis_code, county, sub_county, ward, postal_address, phone, school_type, school_category, established_year, logo_url')
-          .eq('id', schoolId)
-          .maybeSingle(),
-        supabase
-          .from('school_members')
-          .select('profile_id, role, joined_at')
-          .eq('school_id', schoolId),
-      ])
-
-      if (schoolRes.error)  { setError(schoolRes.error.message);  setLoading(false); return }
-      if (membersRes.error) { setError(membersRes.error.message); setLoading(false); return }
-
-      setSchool(schoolRes.data ?? null)
-
-      const memberRows = membersRes.data ?? []
-      const profileIds = Array.from(new Set(memberRows.map((r: { profile_id: string }) => r.profile_id)))
-
-      if (profileIds.length === 0) { setLoading(false); return }
-
-      const { data: profileData, error: profileErr } = await supabase
-        .from('profiles')
-        .select('id, full_name, role')
-        .in('id', profileIds)
-
-      if (profileErr) { setError(profileErr.message); setLoading(false); return }
-
-      const nameMap = new Map<string, { fullName: string; role: string }>(
-        (profileData ?? []).map(p => [
-          p.id,
-          {
-            fullName: (p.full_name ?? '').trim() || 'Unknown',
-            role: p.role ?? 'staff',
-          },
-        ])
-      )
-
-      const staffList: StaffMember[] = memberRows.map((m: { profile_id: string; role: string; joined_at: string }) => ({
-        profileId: m.profile_id,
-        fullName:  nameMap.get(m.profile_id)?.fullName ?? 'Unknown',
-        role:      m.role,
-        joinedAt:  m.joined_at,
-      }))
-
-      setStaff(staffList)
-      setLoading(false)
-    }
-
-    load()
-  }, [])
-
-  function handleCopy(code: string) {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+  async function switchSchool(id:string){
+    if(id===context?.active_school_id||switching)return
+    setSwitching(true); setError('')
+    const {error:e}=await supabase.rpc('set_my_active_teacher_school',{p_school_id:id})
+    if(e) setError('We could not switch schools safely. Your previous school remains active.')
+    else await load()
+    setSwitching(false)
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-  return (
-    <>
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position:  200% 0 }
-          100% { background-position: -200% 0 }
-        }
-      `}</style>
+  async function copyCode(){
+    if(!school?.subdomain)return
+    try{ await navigator.clipboard.writeText(formatJoinCode(school.subdomain)); setCopied(true); window.setTimeout(()=>setCopied(false),1800) }
+    catch{ setError('The join code could not be copied. You can select it manually.') }
+  }
 
-      <div style={{ padding: '16px 16px 32px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+  return <main style={{padding:'18px 16px 36px',maxWidth:720,margin:'0 auto',color:C.textPrimary}}>
+    <section style={{background:'linear-gradient(135deg,#111827,#312e81)',borderRadius:22,padding:20,color:'#fff'}}>
+      <div style={{fontSize:11,fontWeight:800,letterSpacing:1.2,textTransform:'uppercase',opacity:.72}}>School Hub</div>
+      <h1 style={{fontSize:24,lineHeight:1.2,margin:'6px 0'}}>{loading?'Loading your school…':school?.name??'Connect your school'}</h1>
+      <p style={{margin:0,fontSize:13,lineHeight:1.5,opacity:.8}}>Your school, teaching assignments and next setup action in one place.</p>
+      {school&&<div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:13}}>
+        <span style={{padding:'5px 9px',borderRadius:999,background:'rgba(255,255,255,.13)',fontSize:12,fontWeight:750}}>{school.status==='active'?'Connected school':school.status==='pending'?'Pending verification':school.status}</span>
+        {school.county&&<span style={{padding:'5px 9px',borderRadius:999,background:'rgba(255,255,255,.13)',fontSize:12}}>{school.county}</span>}
+        <span style={{padding:'5px 9px',borderRadius:999,background:'rgba(255,255,255,.13)',fontSize:12}}>{ready?'Teaching setup ready':'Setup in progress'}</span>
+      </div>}
+    </section>
 
-        {/* Header */}
-        <div style={{
-          background: 'linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)',
-          borderRadius: 20, padding: '20px', color: '#fff',
-        }}>
-          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>
-            SchoolHub
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
-            {loading ? 'Loading…' : school?.name ?? 'Your School'}
-          </div>
-          {school?.motto && (
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.80)', marginTop: 4, fontStyle: 'italic' }}>
-              {school.motto}
-            </div>
-          )}
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 6 }}>
-            School-wide admin, governance, and notices.
-          </div>
-          {school && (
-            <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-              {school.school_category && (
-                <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                  {school.school_category}
-                </div>
-              )}
-              {school.county && (
-                <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                  {school.county}
-                </div>
-              )}
-              {school.established_year && (
-                <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                  Est. {school.established_year}
-                </div>
-              )}
-              <div style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 20, background: 'rgba(255,255,255,0.15)', color: '#fff' }}>
-                {staff.length} {staff.length === 1 ? 'member' : 'members'}
-              </div>
-            </div>
-          )}
+    {error&&<div role="alert" style={{marginTop:14,padding:13,borderRadius:12,background:'#fef2f2',color:'#b42318',fontWeight:700}}>{error} <button onClick={()=>void load()} style={{border:0,background:'transparent',textDecoration:'underline',fontWeight:850,color:'inherit'}}>Retry</button></div>}
+
+    {loading?<div aria-live="polite" style={{display:'grid',gap:12,marginTop:14}}>{[90,150,120].map((h,i)=><div key={i} style={{height:h,borderRadius:18,background:'#f3f4f6'}}/>)}</div>:<>
+      <section style={{...card,marginTop:14,borderColor:'#c7d2fe',background:'#f8faff'}}>
+        <div style={{fontSize:11,fontWeight:850,textTransform:'uppercase',letterSpacing:1,color:'#4f46e5'}}>Next best action</div>
+        <h2 style={{fontSize:18,margin:'6px 0 3px'}}>{nextAction.label}</h2>
+        <p style={{margin:'0 0 13px',color:C.textMuted,fontSize:13,lineHeight:1.5}}>{nextAction.hint}</p>
+        <button onClick={()=>router.push(nextAction.href)} style={{...button,background:'#111827',color:'#fff',width:'100%'}}>{nextAction.label} →</button>
+      </section>
+
+      {schools.length>1&&<section style={{...card,marginTop:14}}>
+        <div style={{fontSize:12,fontWeight:850,marginBottom:8}}>Active school</div>
+        <select aria-label="Active school" value={context?.active_school_id??''} disabled={switching} onChange={e=>void switchSchool(e.target.value)} style={{width:'100%',minHeight:46,border:'1px solid #d1d5db',borderRadius:12,padding:'0 12px',background:'#fff',font:'inherit'}}>
+          {schools.map(s=><option key={s.id} value={s.id}>{s.name}{s.status==='pending'?' · pending':''}</option>)}
+        </select>
+        <p style={{margin:'8px 0 0',fontSize:12,color:C.textMuted}}>Classes and teaching data below always follow the active school.</p>
+      </section>}
+
+      {school&&<section style={{...card,marginTop:14}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8}}>
+          {[['Classes',String(uniqueClasses)],['Subjects',String(uniqueSubjects)],['Setup',ready?'Ready':'Action needed']].map(([label,value])=><div key={label} style={{padding:12,borderRadius:14,background:'#f9fafb'}}><div style={{fontSize:11,color:C.textMuted,fontWeight:750}}>{label}</div><div style={{fontSize:16,fontWeight:900,marginTop:3}}>{value}</div></div>)}
         </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginTop:12}}>
+          <button onClick={()=>router.push('/teacher/classhub')} style={{...button,background:'#111827',color:'#fff'}}>My classes</button>
+          <button onClick={()=>router.push('/teacher/timetable')} style={{...button,background:'#fff',color:C.textPrimary,border:'1px solid #d1d5db'}}>Timetable</button>
+        </div>
+      </section>}
 
-        {/* Error */}
-        {error && (
-          <div style={{ padding: '12px 14px', borderRadius: 10, background: '#fef2f2', color: C.error, fontSize: 13 }}>
-            {error}
-          </div>
-        )}
+      {school&&assignments.length>0&&<section style={{...card,marginTop:14}}>
+        <div style={{fontSize:12,fontWeight:850,marginBottom:10}}>What you teach here</div>
+        <div style={{display:'grid',gap:8}}>{assignments.slice(0,6).map((a,i)=><button key={a.class_id+'-'+(a.subject_id??i)} onClick={()=>router.push('/teacher/classhub/'+encodeURIComponent(a.class_id))} style={{textAlign:'left',padding:12,borderRadius:12,border:'1px solid #e5e7eb',background:'#fff',font:'inherit',cursor:'pointer'}}>
+          <strong>{a.classes?.name??'Class'}{a.classes?.stream?' '+a.classes.stream:''}</strong>
+          <span style={{display:'block',fontSize:12,color:C.textMuted,marginTop:3}}>{a.subjects?.name??'Teaching assignment'} · Open class →</span>
+        </button>)}</div>
+      </section>}
 
-        {/* Loading skeletons */}
-        {loading && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <Skeleton h={80} />
-            <Skeleton h={160} />
-            <Skeleton h={140} />
-          </div>
-        )}
+      {school&&<section style={{...card,marginTop:14}}>
+        <div style={{fontSize:12,fontWeight:850}}>School details</div>
+        <div style={{marginTop:9,fontSize:13,lineHeight:1.8,color:C.textMuted}}>
+          {[school.school_category||school.school_type,school.sub_county,school.county,school.knec_code?('KNEC '+school.knec_code):null].filter(Boolean).join(' · ')||'School profile details are still being completed.'}
+        </div>
+        {school.subdomain&&<div style={{marginTop:12,padding:12,borderRadius:12,background:'#f9fafb',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+          <div><div style={{fontSize:11,color:C.textMuted,fontWeight:750}}>Staff join code</div><div style={{fontFamily:'monospace',fontSize:18,fontWeight:900,letterSpacing:2}}>{formatJoinCode(school.subdomain)}</div></div>
+          <button onClick={()=>void copyCode()} style={{...button,minHeight:40,background:'#fff',border:'1px solid #d1d5db'}}>{copied?'Copied':'Copy'}</button>
+        </div>}
+      </section>}
 
-        {/* Join Code */}
-        {!loading && school?.subdomain && (
-          <Card>
-            <SectionLabel>School Join Code</SectionLabel>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <div>
-                <div style={{
-                  fontSize: 28, fontWeight: 900, letterSpacing: 4,
-                  color: C.textPrimary, fontFamily: 'monospace',
-                }}>
-                  {formatJoinCode(school.subdomain)}
-                </div>
-                <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>
-                  Share this code with your staff to join this school.
-                </div>
-              </div>
-              <Btn
-                small
-                variant={copied ? 'primary' : 'ghost'}
-                onClick={() => handleCopy(formatJoinCode(school.subdomain))}
-              >
-                {copied ? '✓ Copied' : 'Copy'}
-              </Btn>
-            </div>
-          </Card>
-        )}
-
-        {/* School Profile */}
-        {!loading && school && (
-          <Card>
-            <SectionLabel>School Profile</SectionLabel>
-            <InfoRow label="KNEC Code"   value={school.knec_code} />
-            <InfoRow label="NEMIS Code"  value={school.nemis_code} />
-            <InfoRow label="Type"        value={school.school_type} />
-            <InfoRow label="County"      value={school.county} />
-            <InfoRow label="Sub-County"  value={school.sub_county} />
-            <InfoRow label="Ward"        value={school.ward} />
-            <InfoRow label="Phone"       value={school.phone} />
-            <InfoRow label="Address"     value={school.postal_address} />
-            <InfoRow label="Timezone"    value={school.timezone} />
-            {!school.knec_code && !school.county && !school.phone && (
-              <div style={{ textAlign: 'center', padding: '12px 0', fontSize: 13, color: C.textMuted }}>
-                No profile details added yet.
-              </div>
-            )}
-          </Card>
-        )}
-
-        {/* Notices */}
-        {!loading && (
-          <Card>
-            <SectionLabel>Pinned Notices</SectionLabel>
-            <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>
-              School notices coming soon.
-            </div>
-          </Card>
-        )}
-
-        {/* Staff directory */}
-        {!loading && (
-          <Card>
-            <SectionLabel>Staff Directory</SectionLabel>
-            {staff.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: C.textMuted }}>
-                No staff members found.
-              </div>
-            ) : (
-              staff.map((s, idx) => (
-                <div
-                  key={s.profileId}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '10px 0',
-                    borderBottom: idx < staff.length - 1 ? `1px solid ${C.border}` : 'none',
-                  }}
-                >
-                  <Avatar name={s.fullName} idx={idx} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{s.fullName}</div>
-                    <div style={{ fontSize: 11, color: C.textMuted, textTransform: 'capitalize' }}>{s.role}</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </Card>
-        )}
-
-        {/* School policies */}
-        {!loading && (
-          <Card>
-            <SectionLabel>School Policies</SectionLabel>
-            {POLICIES.map((p, idx) => (
-              <div
-                key={p.title}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '11px 0',
-                  borderBottom: idx < POLICIES.length - 1 ? `1px solid ${C.border}` : 'none',
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{p.title}</div>
-                  <div style={{ fontSize: 11, color: C.textMuted }}>Updated {p.updated}</div>
-                </div>
-                <Btn small variant="muted">PDF</Btn>
-              </div>
-            ))}
-          </Card>
-        )}
-
-        {/* Calendar */}
-        {!loading && (
-          <Card>
-            <SectionLabel>School Calendar</SectionLabel>
-            {CALENDAR.map((e, idx) => (
-              <div
-                key={e.event}
-                style={{
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '10px 0',
-                  borderBottom: idx < CALENDAR.length - 1 ? `1px solid ${C.border}` : 'none',
-                }}
-              >
-                <span style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary }}>{e.event}</span>
-                <span style={{ fontSize: 12, color: C.textMuted }}>{e.date}</span>
-              </div>
-            ))}
-          </Card>
-        )}
-
-      </div>
-    </>
-  )
+      <section style={{marginTop:14,display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+        <button onClick={()=>router.push('/teacher/onboarding/school')} style={{...button,background:'#fff',border:'1px solid #d1d5db',color:C.textPrimary}}>{school?'Add / change school':'Find school'}</button>
+        <button onClick={()=>router.push('/teacher/onboarding/class')} disabled={!school} style={{...button,background:school?'#eef2ff':'#f3f4f6',color:school?'#3730a3':'#9ca3af'}}>Add teaching assignment</button>
+      </section>
+    </>}
+  </main>
 }
