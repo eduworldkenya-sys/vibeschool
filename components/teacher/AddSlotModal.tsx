@@ -88,8 +88,6 @@ function toFriendlyError(err: { message?: string }): string {
       return 'Choose a valid day.'
     case 'INVALID_TIME_RANGE':
       return 'End time must be after start time.'
-    case 'PROTECTED_SCHOOL_BLOCK':
-      return 'This time is reserved for a school activity such as break, lunch or assembly.'
     case 'NON_TEACHING_PERIOD':
       return 'Choose a teaching period, not a break or school activity.'
     case 'PERIOD_DAY_MISMATCH':
