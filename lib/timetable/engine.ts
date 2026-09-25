@@ -366,3 +366,20 @@ export async function previewTimetableConflicts(
   }
   return (data ?? []) as unknown as TimetableConflict[];
 }
+
+
+/** Published schedule authority for student/Twin consumers. */
+export async function loadPublishedClassTimetable(classId: string, activeOn: string): Promise<CanonicalTimetableSlot[]> {
+  if (!classId || !isIsoDate(activeOn)) throw new TimetableEngineError("Valid class and date are required.", "INVALID_PUBLISHED_TIMETABLE_REQUEST");
+  const { data, error } = await supabase.rpc("get_published_class_timetable", { p_class_id: classId, p_on: activeOn });
+  if (error) throw new TimetableEngineError("Failed to load published class timetable.", error.message);
+  return (data ?? []) as unknown as CanonicalTimetableSlot[];
+}
+
+/** Published schedule authority for teacher/Twin consumers. */
+export async function loadPublishedTeacherTimetable(teacherId: string, activeOn: string): Promise<CanonicalTimetableSlot[]> {
+  if (!teacherId || !isIsoDate(activeOn)) throw new TimetableEngineError("Valid teacher and date are required.", "INVALID_PUBLISHED_TIMETABLE_REQUEST");
+  const { data, error } = await supabase.rpc("get_published_teacher_timetable", { p_teacher_id: teacherId, p_on: activeOn });
+  if (error) throw new TimetableEngineError("Failed to load published teacher timetable.", error.message);
+  return (data ?? []) as unknown as CanonicalTimetableSlot[];
+}
