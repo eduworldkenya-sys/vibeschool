@@ -577,7 +577,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     void fetchProfile();
   }, [refreshCredits, router]);
 
-  // Onboarding routes are already server-authorized by middleware and must not be\n  // blocked by the full Teacher OS bootstrap. A brand-new teacher may not yet\n  // have the teacher_profile/school bindings that the operational shell expects.\n  const isOnboardingPath = pathname?.startsWith("/teacher/onboarding") ?? false;\n  if (isOnboardingPath) return <>{children}</>;\n\n  if (!authReady) return <div role="status" aria-live="polite" style={{ minHeight: "100vh", background: "#f8fafc", display: "grid", placeItems: "center", padding: 24, color: "#475569", fontSize: 14, fontWeight: 700 }}>Opening your teacher workspace…</div>;
+  // Onboarding routes are already server-authorized by middleware and must not be\n  // blocked by the full Teacher OS bootstrap. A brand-new teacher may not yet\n  // have the teacher_profile/school bindings that the operational shell expects.\n  const isOnboardingPath = pathname?.startsWith("/teacher/onboarding") ?? false;\n  if (isOnboardingPath) return <div className="teacher-light-surface" style={{ minHeight: "100vh", background: "#f8fafc", color: "#111827" }}>{children}</div>;\n\n  if (!authReady) return <div role="status" aria-live="polite" style={{ minHeight: "100vh", background: "#f8fafc", display: "grid", placeItems: "center", padding: 24, color: "#475569", fontSize: 14, fontWeight: 700 }}>Opening your teacher workspace…</div>;
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -586,7 +586,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <OfflineBar />
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
-          <main style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84, background: "#f8fafc" }}>{children}</main>
+          <main className="teacher-light-surface" style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84, background: "#f8fafc", color: "#111827" }}>{children}</main>
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
           <BottomNav activeId={activeId} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
