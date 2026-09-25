@@ -9,7 +9,6 @@ const ROLE_CONFIG = {
   teacher: { label: 'Teacher', destination: '/teacher', email: true },
   parent: { label: 'Parent', destination: '/parent', email: true },
   student: { label: 'Learner', destination: '/student', email: false },
-  global: { label: 'Global learner', destination: '/global', email: true },
 } as const
 
 type RoleKey = keyof typeof ROLE_CONFIG
@@ -117,7 +116,7 @@ export default function RoleLoginPage() {
       <div className="field"><div className="password-label"><label htmlFor="password">{config.email ? 'Password' : 'PIN'}</label>{config.email && <a href="/auth/forgot-password">Forgot password?</a>}</div><div className="password-field"><input id="password" type={showPassword ? 'text' : 'password'} inputMode={config.email ? undefined : 'numeric'} autoComplete="current-password" placeholder={config.email ? 'Enter your password' : 'Enter your PIN'} value={password} onChange={e=>setPassword(config.email ? e.target.value : e.target.value.replace(/\D/g, ''))} onKeyDown={e=>{if(e.key==='Enter') void submit()}} disabled={busy} /><button type="button" className="password-toggle" aria-label={showPassword ? (config.email ? 'Hide password' : 'Hide PIN') : (config.email ? 'Show password' : 'Show PIN')} aria-pressed={showPassword} onClick={()=>setShowPassword(v=>!v)} disabled={busy}>{showPassword ? 'Hide' : 'Show'}</button></div></div>
       <button className="primary" disabled={busy} onClick={()=>void submit()}>{busy ? 'Signing in…' : 'Sign in'}</button>
       {config.email && <><div className="or"><span/>or continue with<span/></div><button className="secondary" disabled={busy} onClick={()=>void google()}><b className="g">G</b> Google</button></>}
-      {signupLink ? <p className="switch">New to VibeSchool? <a href={signupLink}>Create your {role === 'student' ? 'learner' : role} account</a></p> : <p className="switch">New to VibeSchool? <a href="/global/signup">Create an account</a></p>}
+      {signupLink && <p className="switch">New to VibeSchool? <a href={signupLink}>Create your {role === 'student' ? 'learner' : role} account</a></p>}
       <p className="direct-signups"><a href="/signup/student">Learner sign up</a><span>·</span><a href="/signup/parent">Parent sign up</a></p>
     </section>
     <footer className="legal"><a href="/legal/terms">Terms</a><span>·</span><a href="/legal/privacy">Privacy</a><span>·</span><a href="/contact">Contact</a></footer>
