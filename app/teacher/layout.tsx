@@ -555,8 +555,12 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           const parts = name.trim().split(" ").filter(Boolean)
           setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""))
 
+          const teacherData = {
+            school_id: (teacherRes.data as { active_school_id?: string | null } | null)?.active_school_id ?? null,
+          }
+          const binding = selectTwinRoleBinding(authority, "teacher", teacherData?.school_id ?? undefined)
           const schoolContext = teacherRes.data as { active_school_id?: string | null; schools?: Array<{ id?: string | null; name?: string | null }> } | null
-          const schoolId = schoolContext?.active_school_id ?? null
+          const schoolId = binding.schoolId
           if (schoolId) {
             selectTwinRoleBinding(authority, "teacher", schoolId)
             const schoolName = schoolContext?.schools?.find(item => item.id === schoolId)?.name ?? ""
