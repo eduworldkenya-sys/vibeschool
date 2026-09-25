@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { nairobiDateStr } from '@/lib/time'
 
 export interface ActiveTerm {
   id:            string
@@ -50,7 +51,7 @@ export function totalWeeksOf(term: ActiveTerm): number {
 }
 
 export function currentWeekOf(term: ActiveTerm): number {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = nairobiDateStr()
   const resolved = schoolWeekOf(term, today)
   if (resolved !== null) return resolved
 
@@ -101,6 +102,6 @@ export async function getTermForDate(
  * whichever term contains today wins, regardless of a stale lifecycle label.
  */
 export async function getActiveTerm(schoolId: string): Promise<ActiveTerm | null> {
-  const today = new Date().toISOString().slice(0, 10)
+  const today = nairobiDateStr()
   return getTermForDate(schoolId, today)
 }
