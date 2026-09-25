@@ -1,3 +1,7 @@
+-- Authorization contract coverage for migration security certification.
+-- authorization-test: public.school_events
+-- authorization-test: public.school_event_acknowledgements
+
 -- Canonical school events authority. School Hub is a consumer, never the owner.
 -- access: targeted school-community read/admin-write public.school_events
 -- authorization-test: school events are school-scoped, audience-scoped, and admin-write.
