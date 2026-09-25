@@ -888,7 +888,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       // Canonical school-day blocks power the optional Classic projection.
       // The direct-table fallback keeps the existing timetable functional
       // during a rolling deploy before the new read RPC is available.
-      const blocksRpc = await supabase.rpc('get_my_school_day_blocks')
+      const blocksRpc = await (supabase as any).rpc('get_my_school_day_blocks')
       if (!isMounted.current) return
       if (!blocksRpc.error) {
         setSchoolDayBlocks((blocksRpc.data ?? []).map((b: any) => ({
