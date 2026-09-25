@@ -175,7 +175,7 @@ function GroupsInner() {
     <div style={{ padding: 24, textAlign: 'center' }}>
       <div style={{ fontSize: 32, marginBottom: 12 }}>🔒</div>
       <div style={{ fontSize: 15, fontWeight: 700, color: '#ef4444', marginBottom: 8 }}>{authError}</div>
-      <button onClick={() => router.push('/teacher')} style={{ padding: '10px 20px', background: C.accent, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>
+      <button onClick={() => router.push('/teacher/pulse')} style={{ padding: '10px 20px', background: C.accent, color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, cursor: 'pointer' }}>
         Go Home
       </button>
     </div>
