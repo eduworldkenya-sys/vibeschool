@@ -53,6 +53,7 @@ export default function SchoolDiscovery() {
   const [sent, setSent] = useState(false)
   const [lat, setLat] = useState<number | null>(null)
   const [lng, setLng] = useState<number | null>(null)
+  const [retryNonce, setRetryNonce] = useState(0)
 
   useEffect(() => {
     navigator.geolocation?.getCurrentPosition(
@@ -93,7 +94,7 @@ export default function SchoolDiscovery() {
     }, 180)
 
     return () => clearTimeout(timer)
-  }, [q, level, county, subCounty, lat, lng])
+  }, [q, level, county, subCounty, lat, lng, retryNonce])
 
   const hasAmbiguousNames = useMemo(() => {
     const counts = new Map<string, number>()
@@ -112,7 +113,16 @@ export default function SchoolDiscovery() {
     const args = picked.source === "DIRECTORY"
       ? { p_directory_id: picked.id, p_level: level }
       : { p_school_id: picked.id, p_level: level }
-    const { error } = await supabase.rpc(fn, args)
+    const { data: connectedSchoolId, error } = await supabase.rpc(fn, args)
+    if (!error) {
+      const { data: context, error: verifyError } = await supabase.rpc('get_my_teacher_school_context')
+      const verified = (context as { active_school_id?: string | null } | null)?.active_school_id
+      if (verifyError || !connectedSchoolId || verified !== connectedSchoolId) {
+        setBusy(false)
+        setMsg('The school connection could not be verified. Please retry.')
+        return
+      }
+    }
     setBusy(false)
     if (error) {
       if (error.message?.includes("school_identity_review_required")) {
@@ -239,7 +249,7 @@ export default function SchoolDiscovery() {
           </div>
         )}
 
-        {msg && <p role="alert" style={{ color: "#b42318", fontWeight: 600 }}>{msg}</p>}
+        {msg && <div role="alert" style={{ color: "#b42318", fontWeight: 600, marginTop: 12 }}>{msg} {msg.includes("search") && <button type="button" onClick={() => setRetryNonce(n => n + 1)} style={{ marginLeft: 8, minHeight: 40, padding: "0 12px", borderRadius: 9, border: "1px solid #fda29b", background: "#fff", color: "#b42318", fontWeight: 800 }}>Retry search</button>}</div>}
 
         {picked && (
           <button disabled={busy} onClick={connect} style={{ width: "100%", marginTop: 12, padding: 14, border: 0, borderRadius: 12, background: "#16a34a", color: "#fff", fontWeight: 700 }}>

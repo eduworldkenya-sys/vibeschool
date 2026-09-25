@@ -71,12 +71,9 @@ export default function TeacherWeekViewPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/login"); return; }
 
-      const [memberRes, profileRes, teacherProfRes] = await Promise.all([
-        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("school_id").eq("id", user.id).maybeSingle(),
-        supabase.from("teacher_profiles").select("school_id").eq("profile_id", user.id).maybeSingle(),
-      ]);
-      const sId = memberRes.data?.school_id ?? profileRes.data?.school_id ?? teacherProfRes.data?.school_id ?? "";
+      const { data: schoolContext, error: schoolContextError } = await supabase.rpc("get_my_teacher_school_context");
+      if (schoolContextError) throw schoolContextError;
+      const sId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? "";
 
       if (!sId) { setError("No school linked to your account yet."); setLoading(false); return; }
 
@@ -93,7 +90,8 @@ export default function TeacherWeekViewPage() {
       const tcRes = await supabase
         .from("teacher_classes")
         .select("class_id, subject_id, classes(id,name), subjects(id,name)")
-        .eq("teacher_id", user.id);
+        .eq("teacher_id", user.id)
+        .eq("school_id", sId);
 
       const combos = ((tcRes.data ?? []) as any[])
         .filter(r => r.class_id && r.subject_id)

@@ -1,0 +1,20 @@
+name: School Onboarding Closure
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/onboarding/**'
+      - 'lib/school.ts'
+      - 'lib/getSchoolId.ts'
+      - 'supabase/migrations/*school_onboarding*'
+      - 'scripts/test-school-onboarding-closure.mjs'
+  push:
+    branches: [main]
+jobs:
+  school-onboarding-closure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/test-school-onboarding-closure.mjs

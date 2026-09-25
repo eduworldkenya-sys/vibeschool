@@ -31,10 +31,18 @@ export default function ClassHubPage() {
         return
       }
 
+      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
+      const activeSchoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
+      if (schoolContextError || !activeSchoolId) {
+        if (!cancelled) { setError('Connect or select your active school before opening classes.'); setLoading(false) }
+        return
+      }
+
       const { data: assignments, error: assignmentError } = await supabase
         .from('teacher_classes')
         .select('class_id,is_class_teacher')
         .eq('teacher_id', user.id)
+        .eq('school_id', activeSchoolId)
 
       if (assignmentError) {
         if (!cancelled) {
