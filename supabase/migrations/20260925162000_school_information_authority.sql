@@ -39,9 +39,6 @@ alter table public.school_event_acknowledgements enable row level security;
 revoke all on table public.school_event_acknowledgements from public,anon,authenticated;
 grant select,insert,delete on table public.school_event_acknowledgements to authenticated;
 grant all on table public.school_event_acknowledgements to service_role;
-create policy school_event_ack_self on public.school_event_acknowledgements for all to authenticated
-using(profile_id=auth.uid()) with check(profile_id=auth.uid() and exists(select 1 from public.school_events e where e.id=event_id and public.can_read_school_event(e)));
-
 create index if not exists idx_school_events_audience on public.school_events(school_id,audience_type,audience_id,status);
 alter table public.school_events enable row level security;
 revoke all on table public.school_events from public, anon, authenticated;
@@ -66,6 +63,10 @@ returns boolean language sql stable security definer set search_path=public as $
 $$;
 revoke all on function public.can_read_school_event(public.school_events) from public, anon;
 grant execute on function public.can_read_school_event(public.school_events) to authenticated, service_role;
+
+create policy school_event_ack_self on public.school_event_acknowledgements for all to authenticated
+using(profile_id=auth.uid()) with check(profile_id=auth.uid() and exists(select 1 from public.school_events e where e.id=event_id and public.can_read_school_event(e)));
+
 
 create policy school_events_targeted_read on public.school_events for select to authenticated
 using (public.can_read_school_event(school_events) or public.is_school_admin(school_id));
