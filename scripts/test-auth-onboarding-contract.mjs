@@ -8,7 +8,7 @@ const routing = read('lib/auth-routing.ts')
 const migration = read('supabase/migrations/20260816154000_auth_onboarding_authority_reconcile.sql')
 const teacherSignup = read('app/signup/teacher/page.tsx')
 const parentSignup = read('app/signup/parent/page.tsx')
-const globalSignup = read('app/global/signup/page.tsx')
+const retirementMigration = read('supabase/migrations/20260925155000_retire_global_self_service_role.sql')
 const login = read('app/login/[role]/page.tsx')
 const forgot = read('app/auth/forgot-password/page.tsx')
 const reset = read('app/auth/reset-password/page.tsx')
@@ -70,14 +70,15 @@ assert.match(callback, /roleCanVisit/)
 assert.match(callback, /scope: 'auth_journey'/)
 
 // Email/password signup uses display metadata only and server-owned role claim.
-for (const signup of [teacherSignup, parentSignup, globalSignup]) {
+for (const signup of [teacherSignup, parentSignup]) {
   assert.match(signup, /emailRedirectTo: callback/)
   assert.match(signup, /claim_my_initial_role/)
   assert.doesNotMatch(signup, /data:\s*\{\s*role:/)
   assert.doesNotMatch(signup, /localStorage\.setItem\('vs_role'/)
 }
-assert.match(globalSignup, /p_role: 'global_user'/)
-assert.doesNotMatch(globalSignup, /\.from\('profiles'\)\.insert/)
+// Global self-service is retired by the additive production migration.
+assert.match(retirementMigration, /p_role not in \('teacher','parent'\)/i)
+assert.doesNotMatch(retirementMigration, /p_role not in \('teacher','parent','global_user'\)/i)
 
 // Login page selection is intent/UI only; DB role + onboarding resolver choose destination.
 assert.match(login, /get_my_auth_access_state/)
@@ -92,7 +93,6 @@ for (const pair of [
   ["'/parent'", "'parent'"],
   ["'/student'", "'student'"],
   ["'/admin'", "'admin'"],
-  ["'/global'", "'global_user'"],
 ]) {
   assert.ok(routing.includes(`${pair[0]}: ${pair[1]}`), `missing route contract ${pair.join(' -> ')}`)
 }
@@ -121,5 +121,5 @@ console.log('Auth & onboarding authority contract: PASS')
 // New teachers must be able to render onboarding before the operational Teacher OS bootstrap completes.
 const teacherLayout = read('app/teacher/layout.tsx')
 assert.match(teacherLayout, /pathname\?\.startsWith\("\/teacher\/onboarding"\)/)
-assert.match(teacherLayout, /if \(isOnboardingPath\) return <>\{children\}<\/>/)
+assert.match(teacherLayout, /if \(isOnboardingPath\) return <div className="teacher-light-surface"/)
 assert.match(teacherLayout, /Opening your teacher workspace…/)
