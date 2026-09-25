@@ -109,8 +109,18 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
 
   const memberships = membershipsRes.data ?? []
   const teacherAssignments = teacherAssignmentsRes.data ?? []
+  const { data: teacherSchoolContext, error: teacherSchoolContextError } = await rpc<{
+    active_school_id?: string | null
+    schools?: Array<{ id: string; name?: string }>
+  }>('get_my_teacher_school_context')
+  if (teacherSchoolContextError) {
+    throw new Error(teacherSchoolContextError.message || 'Twin teacher school context could not be resolved.')
+  }
+  const authorizedTeacherSchoolIds = new Set(
+    (teacherSchoolContext?.schools ?? []).map(school => school.id).filter(Boolean)
+  )
   for (const membership of memberships) {
-    if (membership.role === 'teacher') {
+    if (membership.role === 'teacher' && authorizedTeacherSchoolIds.has(membership.school_id)) {
       const assignments = teacherAssignments.filter(assignment => assignment.school_id === membership.school_id)
       bindings.push({
         role: 'teacher', scopeType: 'school', scopeId: membership.school_id, schoolId: membership.school_id,
