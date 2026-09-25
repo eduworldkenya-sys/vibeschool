@@ -1,4 +1,4 @@
-import { getActiveTerm, schoolWeekOf } from '@/lib/academicTerm'
+import { getTermForDate, schoolWeekOf } from '@/lib/academicTerm'
 import { resolveSchoolId } from '@/lib/school'
 import { supabase } from '@/lib/supabase'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
@@ -29,7 +29,7 @@ export interface TeacherWorkspaceWeek {
   schoolId: string
   weekStart: string
   weekEnd: string
-  term: Awaited<ReturnType<typeof getActiveTerm>>
+  term: Awaited<ReturnType<typeof getTermForDate>>
   weekNumber: number | null
   assignments: TeacherWorkspaceAssignment[]
   occurrences: TeacherWorkspaceOccurrence[]
@@ -111,8 +111,12 @@ export async function loadTeacherWorkspaceWeek(input: {
     }),
   )
 
-  const term = await getActiveTerm(schoolId)
-  const weekNumber = term ? schoolWeekOf(term, weekStart) : null
+  // A selected week is governed by the calendar date it represents, not by today's term.
+  // Prefer the Monday; if a term opens mid-week, resolve against Sunday so Week 1 still renders.
+  const term = await getTermForDate(schoolId, weekStart) ?? await getTermForDate(schoolId, weekEnd)
+  const weekNumber = term
+    ? schoolWeekOf(term, weekStart) ?? schoolWeekOf(term, weekEnd)
+    : null
 
   return {
     teacherId: input.teacherId,
