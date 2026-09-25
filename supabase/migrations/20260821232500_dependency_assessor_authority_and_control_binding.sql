@@ -30,7 +30,7 @@ insert into public.hq_workforce_dependency_assessor_authorizations(
 ) values (
   'quality-worker-01','dependency_integrity','bd268fda-45a6-47b3-a9bb-fa6174864834',
   'dependency-integrity-proof-migration',array['mission:dep-proof-chemistry-20260821','assurance:distinct-assessor'],
-  timestamptz '2026-09-21 00:00:00+00'
+  greatest(timestamptz '2026-09-21 00:00:00+00', now() + interval '30 days')
 );
 
 create or replace function public.hq_workforce_dependency_assessor_is_authorized(p_worker_key text,p_checkpoint_id uuid)
