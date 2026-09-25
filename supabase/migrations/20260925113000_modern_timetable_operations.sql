@@ -1,0 +1,178 @@
+-- Modern timetable operations: calendar, availability, resources, subject rules, substitution, publication.
+-- Repository migration only. Apply through the normal reviewed migration path.
+
+create table if not exists public.school_calendar_exceptions (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  exception_date date not null,
+  kind text not null check (kind in ('holiday','closure','exam','event')),
+  label text not null,
+  suppress_ordinary_teaching boolean not null default true,
+  created_by uuid references public.profiles(id) on delete set null default auth.uid(),
+  created_at timestamptz not null default now(),
+  unique (school_id, exception_date, kind)
+);
+alter table public.school_calendar_exceptions enable row level security;
+create policy school_calendar_exception_member_read on public.school_calendar_exceptions for select to authenticated
+using (public.is_active_school_member(school_id));
+create policy school_calendar_exception_admin_write on public.school_calendar_exceptions for all to authenticated
+using (public.is_school_admin(school_id)) with check (public.is_school_admin(school_id));
+
+create table if not exists public.teacher_timetable_availability (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  teacher_id uuid not null references public.profiles(id) on delete cascade,
+  day_of_week integer not null check (day_of_week between 1 and 7),
+  start_time time not null,
+  end_time time not null,
+  availability text not null check (availability in ('unavailable','preferred')),
+  reason text,
+  effective_from date not null default current_date,
+  effective_until date,
+  created_at timestamptz not null default now(),
+  check (start_time < end_time),
+  check (effective_until is null or effective_until >= effective_from)
+);
+alter table public.teacher_timetable_availability enable row level security;
+create policy teacher_availability_read on public.teacher_timetable_availability for select to authenticated
+using (teacher_id=(select auth.uid()) or public.is_school_admin(school_id));
+create policy teacher_availability_self_write on public.teacher_timetable_availability for all to authenticated
+using (teacher_id=(select auth.uid()) or public.is_school_admin(school_id))
+with check (teacher_id=(select auth.uid()) or public.is_school_admin(school_id));
+
+create table if not exists public.school_timetable_resources (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  name text not null,
+  resource_type text not null check (resource_type in ('classroom','laboratory','workshop','field','computer_lab','other')),
+  capacity integer check (capacity is null or capacity > 0),
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  unique (school_id, name)
+);
+alter table public.school_timetable_resources enable row level security;
+create policy timetable_resource_member_read on public.school_timetable_resources for select to authenticated
+using (public.is_active_school_member(school_id));
+create policy timetable_resource_admin_write on public.school_timetable_resources for all to authenticated
+using (public.is_school_admin(school_id)) with check (public.is_school_admin(school_id));
+
+create table if not exists public.subject_timetable_rules (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  class_id uuid not null references public.classes(id) on delete cascade,
+  subject_id uuid not null references public.subjects(id) on delete cascade,
+  max_units_per_day numeric check (max_units_per_day is null or max_units_per_day > 0),
+  min_teaching_days integer check (min_teaching_days is null or min_teaching_days between 1 and 7),
+  consecutive_units integer check (consecutive_units is null or consecutive_units between 1 and 8),
+  required_resource_type text check (required_resource_type is null or required_resource_type in ('classroom','laboratory','workshop','field','computer_lab','other')),
+  preferred_day_part text check (preferred_day_part is null or preferred_day_part in ('morning','afternoon')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (school_id,class_id,subject_id)
+);
+alter table public.subject_timetable_rules enable row level security;
+create policy subject_timetable_rule_member_read on public.subject_timetable_rules for select to authenticated
+using (public.is_active_school_member(school_id));
+create policy subject_timetable_rule_admin_write on public.subject_timetable_rules for all to authenticated
+using (public.is_school_admin(school_id)) with check (public.is_school_admin(school_id));
+
+alter table public.teaching_occurrences add column if not exists actual_teacher_id uuid references public.profiles(id) on delete set null;
+alter table public.teaching_occurrences add column if not exists exception_reason text;
+
+create table if not exists public.teacher_absences (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  teacher_id uuid not null references public.profiles(id) on delete cascade,
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  reason text,
+  created_by uuid references public.profiles(id) on delete set null default auth.uid(),
+  created_at timestamptz not null default now(),
+  check (starts_at < ends_at)
+);
+alter table public.teacher_absences enable row level security;
+create policy teacher_absence_read on public.teacher_absences for select to authenticated
+using (teacher_id=(select auth.uid()) or public.is_school_admin(school_id));
+create policy teacher_absence_admin_write on public.teacher_absences for all to authenticated
+using (public.is_school_admin(school_id)) with check (public.is_school_admin(school_id));
+
+create table if not exists public.timetable_releases (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id) on delete cascade,
+  status text not null default 'draft' check (status in ('draft','review','approved','published','retired')),
+  effective_from date not null,
+  label text not null,
+  created_by uuid references public.profiles(id) on delete set null default auth.uid(),
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  approved_by uuid references public.profiles(id) on delete set null,
+  published_by uuid references public.profiles(id) on delete set null,
+  reviewed_at timestamptz,
+  approved_at timestamptz,
+  published_at timestamptz,
+  created_at timestamptz not null default now()
+);
+alter table public.timetable_releases enable row level security;
+create policy timetable_release_member_read on public.timetable_releases for select to authenticated
+using (public.is_active_school_member(school_id));
+create policy timetable_release_admin_write on public.timetable_releases for all to authenticated
+using (public.is_school_admin(school_id)) with check (public.is_school_admin(school_id));
+
+create index if not exists idx_calendar_exception_school_date on public.school_calendar_exceptions(school_id,exception_date);
+create index if not exists idx_teacher_availability_teacher_day on public.teacher_timetable_availability(teacher_id,day_of_week);
+create index if not exists idx_teacher_absence_teacher_range on public.teacher_absences(teacher_id,starts_at,ends_at);
+create index if not exists idx_subject_timetable_rules_lookup on public.subject_timetable_rules(class_id,subject_id);
+
+create or replace function public.assign_occurrence_substitute(p_occurrence_id uuid,p_substitute_teacher_id uuid,p_reason text)
+returns public.teaching_occurrences language plpgsql security definer set search_path=public as $$
+declare v public.teaching_occurrences;
+begin
+  select * into v from public.teaching_occurrences where id=p_occurrence_id for update;
+  if v.id is null then raise exception 'OCCURRENCE_NOT_FOUND'; end if;
+  if not public.is_school_admin(v.school_id) then raise exception 'SCHOOL_ADMIN_REQUIRED'; end if;
+  if v.lifecycle in ('completed','cancelled','rescheduled') then raise exception 'OCCURRENCE_LOCKED'; end if;
+  if not exists(select 1 from public.school_members sm where sm.school_id=v.school_id and sm.profile_id=p_substitute_teacher_id and sm.role='teacher') then
+    raise exception 'SUBSTITUTE_NOT_SCHOOL_TEACHER';
+  end if;
+  if exists(
+    select 1 from public.teaching_occurrences o join public.timetable_slots s on s.id=o.timetable_slot_id
+    join public.timetable_slots target on target.id=v.timetable_slot_id
+    where coalesce(o.actual_teacher_id,o.teacher_id)=p_substitute_teacher_id
+      and o.occurrence_date=v.occurrence_date and o.id<>v.id
+      and o.lifecycle not in ('cancelled','rescheduled')
+      and s.start_time < target.end_time and s.end_time > target.start_time
+  ) then raise exception 'SUBSTITUTE_CONFLICT'; end if;
+  update public.teaching_occurrences set actual_teacher_id=p_substitute_teacher_id,exception_reason=nullif(btrim(p_reason),'') where id=v.id returning * into v;
+  return v;
+end $$;
+revoke all on function public.assign_occurrence_substitute(uuid,uuid,text) from public;
+grant execute on function public.assign_occurrence_substitute(uuid,uuid,text) to authenticated;
+
+create or replace function public.generate_daily_occurrences(p_date date default null)
+returns table (generated integer, marked_missed integer)
+language plpgsql security definer set search_path=public as $$
+declare
+  v_uid uuid:=auth.uid(); v_today date:=(now() at time zone 'Africa/Nairobi')::date;
+  v_date date:=coalesce(p_date,(now() at time zone 'Africa/Nairobi')::date);
+  v_dow integer; v_generated integer; v_missed integer;
+begin
+  if v_uid is null then raise exception 'not_authenticated'; end if;
+  if v_date<v_today or v_date>v_today+7 then raise exception 'invalid_date'; end if;
+  v_dow:=extract(isodow from v_date)::integer;
+  insert into public.teaching_occurrences(timetable_slot_id,occurrence_date,school_id,teacher_id,class_id,subject_id,lifecycle)
+  select s.id,v_date,s.school_id,s.teacher_id,s.class_id,s.subject_id,'planned'
+  from public.timetable_slots s
+  where s.teacher_id=v_uid and s.day_of_week=v_dow and s.effective_from<=v_date
+    and (s.effective_until is null or s.effective_until>=v_date)
+    and exists(select 1 from public.academic_terms t where t.school_id=s.school_id and v_date between t.start_date and t.end_date)
+    and not exists(select 1 from public.school_calendar_exceptions e where e.school_id=s.school_id and e.exception_date=v_date and e.suppress_ordinary_teaching)
+  on conflict(timetable_slot_id,occurrence_date) do nothing;
+  get diagnostics v_generated=row_count;
+
+  update public.teaching_occurrences o set lifecycle='missed'
+  where o.teacher_id=v_uid and o.lifecycle in ('planned','ready') and o.occurrence_date<v_today
+    and not exists(select 1 from public.school_calendar_exceptions e where e.school_id=o.school_id and e.exception_date=o.occurrence_date and e.suppress_ordinary_teaching);
+  get diagnostics v_missed=row_count;
+  return query select v_generated,v_missed;
+end $$;
+revoke all on function public.generate_daily_occurrences(date) from public;
+grant execute on function public.generate_daily_occurrences(date) to authenticated;
