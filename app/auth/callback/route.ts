@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 
-const SELF_SERVICE_ROLES = new Set(['teacher', 'parent', 'global_user'])
+const SELF_SERVICE_ROLES = new Set(['teacher', 'parent'])
 
 type AuthIntent = 'signin' | 'signup' | 'recovery'
 type PendingCookie = {
