@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
+import { getTwinAuthorityContext, selectTwinRoleBinding } from "@/lib/twin/core";
 
 import OfflineBar from "@/components/teacher/OfflineBar";
 
@@ -543,8 +544,9 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       // hold navigation behind a full-screen loader.
       void (async () => {
         try {
-          const [schoolContextRes, profileRes] = await Promise.all([
+          const [schoolContextRes, authority, profileRes] = await Promise.all([
             supabase.rpc("get_my_teacher_school_context"),
+            getTwinAuthorityContext(),
             supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
           ])
           if (cancelled) return
@@ -555,7 +557,9 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           const parts = name.trim().split(" ").filter(Boolean)
           setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""))
 
-          const schoolId = (schoolContextRes.data as { active_school_id?: string | null } | null)?.active_school_id ?? null
+          const canonicalSchoolId = (schoolContextRes.data as { active_school_id?: string | null } | null)?.active_school_id ?? null
+          const binding = selectTwinRoleBinding(authority, "teacher", canonicalSchoolId ?? undefined)
+          const schoolId = binding.schoolId
           if (schoolId) {
             const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle()
             if (!cancelled) setSchool(schoolData?.name ?? "")
