@@ -76,8 +76,9 @@ for (const signup of [teacherSignup, parentSignup]) {
   assert.doesNotMatch(signup, /data:\s*\{\s*role:/)
   assert.doesNotMatch(signup, /localStorage\.setItem\('vs_role'/)
 }
-assert.match(globalSignup, /p_role: 'global_user'/)
-assert.doesNotMatch(globalSignup, /\.from\('profiles'\)\.insert/)
+// Global self-service is retired by the additive production migration.
+assert.match(retirementMigration, /p_role not in \('teacher','parent'\)/i)
+assert.doesNotMatch(retirementMigration, /p_role not in \('teacher','parent','global_user'\)/i)
 
 // Login page selection is intent/UI only; DB role + onboarding resolver choose destination.
 assert.match(login, /get_my_auth_access_state/)
@@ -120,5 +121,5 @@ console.log('Auth & onboarding authority contract: PASS')
 // New teachers must be able to render onboarding before the operational Teacher OS bootstrap completes.
 const teacherLayout = read('app/teacher/layout.tsx')
 assert.match(teacherLayout, /pathname\?\.startsWith\("\/teacher\/onboarding"\)/)
-assert.match(teacherLayout, /if \(isOnboardingPath\) return <>\{children\}<\/>/)
+assert.match(teacherLayout, /if \(isOnboardingPath\) return <div className="teacher-light-surface"/)
 assert.match(teacherLayout, /Opening your teacher workspace…/)
