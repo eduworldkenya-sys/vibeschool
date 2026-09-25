@@ -1,93 +1,43 @@
-"use client"
-export const dynamic = "force-dynamic"
+"use client";
+import { useEffect,useMemo,useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { getAdminSchoolAuthority } from "@/lib/admin/authority";
+import { createTimetableRelease, updateTimetableReleaseStatus, suggestSchoolTimetableCandidates, type SuggestedPlacement } from "@/lib/timetable/operations";
 
-import { useEffect, useMemo, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { getAdminSchoolAuthority } from "@/lib/admin/authority"
+type Row={id:string;name:string}; type C={id:string;name:string;stream:string|null}; type T={id:string;full_name:string};
+type Slot={id:string;teacher_id:string;class_id:string;subject_id:string;day_of_week:number;start_time:string;end_time:string;room:string|null;allocation_units:number};
+const D=["","Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
-const DAYS: Record<number, string> = { 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 7: "Sunday" }
-
-type Slot = {
-  id: string
-  teacher_id: string
-  class_id: string
-  subject_id: string
-  day_of_week: number
-  start_time: string
-  end_time: string
-  room: string | null
-  effective_from: string
-  effective_until: string | null
-}
-type ClassRow = { id: string; name: string; stream: string | null }
-type SubjectRow = { id: string; name: string }
-type ProfileRow = { id: string; full_name: string }
-
-export default function AdminTimetablePage() {
-  const [slots, setSlots] = useState<Slot[]>([])
-  const [classes, setClasses] = useState<ClassRow[]>([])
-  const [subjects, setSubjects] = useState<SubjectRow[]>([])
-  const [teachers, setTeachers] = useState<ProfileRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState("")
-
-  useEffect(() => { void load() }, [])
-
-  async function load() {
-    setLoading(true)
-    setError("")
-    try {
-      const authority = await getAdminSchoolAuthority()
-      const sid = authority.schoolId
-      const today = new Date().toISOString().slice(0, 10)
-      const [slotRes, classRes, subjectRes, teacherMemberRes] = await Promise.all([
-        supabase.from("timetable_slots").select("id,teacher_id,class_id,subject_id,day_of_week,start_time,end_time,room,effective_from,effective_until").eq("school_id", sid).lte("effective_from", today).or(`effective_until.is.null,effective_until.gte.${today}`).order("day_of_week").order("start_time"),
-        supabase.from("classes").select("id,name,stream").eq("school_id", sid),
-        supabase.from("subjects").select("id,name").eq("school_id", sid),
-        supabase.from("school_members").select("profile_id").eq("school_id", sid).eq("role", "teacher"),
-      ])
-      const firstError = [slotRes.error, classRes.error, subjectRes.error, teacherMemberRes.error].find(Boolean)
-      if (firstError) throw firstError
-      const teacherIds = (teacherMemberRes.data ?? []).map(row => row.profile_id)
-      const profileRes = teacherIds.length ? await supabase.from("profiles").select("id,full_name").in("id", teacherIds) : { data: [], error: null }
-      if (profileRes.error) throw profileRes.error
-      setSlots((slotRes.data ?? []) as Slot[])
-      setClasses((classRes.data ?? []) as ClassRow[])
-      setSubjects((subjectRes.data ?? []) as SubjectRow[])
-      setTeachers((profileRes.data ?? []) as ProfileRow[])
-    } catch (cause) {
-      console.error("Admin timetable load failed", cause)
-      setError(cause instanceof Error ? cause.message : "Timetable oversight could not be loaded.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const classMap = useMemo(() => new Map(classes.map(row => [row.id, `${row.name}${row.stream ? ` ${row.stream}` : ""}`])), [classes])
-  const subjectMap = useMemo(() => new Map(subjects.map(row => [row.id, row.name])), [subjects])
-  const teacherMap = useMemo(() => new Map(teachers.map(row => [row.id, row.full_name])), [teachers])
-  const days = useMemo(() => Object.keys(DAYS).map(Number).filter(day => slots.some(slot => slot.day_of_week === day)), [slots])
-
-  if (loading) return <div aria-busy="true" style={{ minHeight: 260, borderRadius: 18, background: "#e2e8f0" }} />
-
-  return (
-    <main style={{ maxWidth: 980, margin: "0 auto", display: "grid", gap: 16 }}>
-      <header><h1 style={{ margin: 0, fontSize: 24 }}>Timetable oversight</h1><p style={{ color: "#64748b", margin: "5px 0 0" }}>Current effective slots only. Database exclusion constraints prevent teacher, class and room overlaps.</p></header>
-      {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}
-      {slots.length === 0 ? (
-        <section style={{ background: "white", border: "1px solid #f59e0b", borderRadius: 16, padding: 22 }}><strong>No active timetable slots</strong><p style={{ color: "#64748b" }}>Teacher timetable setup can proceed once classes, subjects and teacher assignments exist.</p></section>
-      ) : days.map(day => (
-        <section key={day} style={{ display: "grid", gap: 8 }}>
-          <h2 style={{ fontSize: 16, margin: "5px 0" }}>{DAYS[day]}</h2>
-          {slots.filter(slot => slot.day_of_week === day).map(slot => (
-            <article key={slot.id} style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 13, padding: 13, display: "grid", gridTemplateColumns: "110px minmax(0,1fr) auto", gap: 10, alignItems: "center" }}>
-              <strong style={{ fontSize: 13 }}>{slot.start_time.slice(0,5)}–{slot.end_time.slice(0,5)}</strong>
-              <div style={{ minWidth: 0 }}><div style={{ fontWeight: 730, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{classMap.get(slot.class_id) ?? "Unknown class"} · {subjectMap.get(slot.subject_id) ?? "Unknown subject"}</div><div style={{ color: "#64748b", fontSize: 12, marginTop: 3 }}>{teacherMap.get(slot.teacher_id) ?? "Unknown teacher"}</div></div>
-              <div style={{ color: "#64748b", fontSize: 12 }}>{slot.room || "—"}</div>
-            </article>
-          ))}
-        </section>
-      ))}
-    </main>
-  )
+export default function AdminTimetablePage(){
+ const [sid,setSid]=useState(""); const [slots,setSlots]=useState<Slot[]>([]); const [classes,setClasses]=useState<C[]>([]); const [subjects,setSubjects]=useState<Row[]>([]); const [teachers,setTeachers]=useState<T[]>([]);
+ const [pick,setPick]=useState({classId:"",subjectId:"",teacherId:""}); const [suggestions,setSuggestions]=useState<SuggestedPlacement[]>([]); const [msg,setMsg]=useState(""); const [busy,setBusy]=useState(false);
+ useEffect(()=>{void load()},[]);
+ async function load(){setBusy(true);try{const a=await getAdminSchoolAuthority();setSid(a.schoolId);const today=new Date().toISOString().slice(0,10);
+  const [s,c,u,m]=await Promise.all([
+   supabase.from("timetable_slots").select("id,teacher_id,class_id,subject_id,day_of_week,start_time,end_time,room,allocation_units").eq("school_id",a.schoolId).lte("effective_from",today).or(`effective_until.is.null,effective_until.gte.${today}`),
+   supabase.from("classes").select("id,name,stream").eq("school_id",a.schoolId),
+   supabase.from("subjects").select("id,name").eq("school_id",a.schoolId),
+   supabase.from("school_members").select("profile_id").eq("school_id",a.schoolId).eq("role","teacher")
+  ]); if(s.error||c.error||u.error||m.error) throw s.error||c.error||u.error||m.error;
+  const ids=(m.data??[]).map(x=>x.profile_id); const p=ids.length?await supabase.from("profiles").select("id,full_name").in("id",ids):{data:[],error:null};
+  if(p.error)throw p.error; setSlots((s.data??[]) as Slot[]);setClasses((c.data??[]) as C[]);setSubjects((u.data??[]) as Row[]);setTeachers((p.data??[]) as T[]);
+ }catch(e){setMsg(e instanceof Error?e.message:"Could not load timetable")}finally{setBusy(false)}}
+ async function suggest(){if(!pick.classId||!pick.subjectId||!pick.teacherId)return;setBusy(true);try{setSuggestions(await suggestSchoolTimetableCandidates({schoolId:sid,...pick}));setMsg("")}catch(e){setMsg(e instanceof Error?e.message:"Could not suggest slots")}finally{setBusy(false)}}
+ async function add(x:SuggestedPlacement){setBusy(true);try{const {error}=await supabase.rpc("create_school_timetable_slot",{p_school_id:sid,p_teacher_id:pick.teacherId,p_class_id:pick.classId,p_subject_id:pick.subjectId,p_day_of_week:x.day_of_week,p_start_time:x.start_time,p_end_time:x.end_time,p_room:null,p_effective_from:new Date().toISOString().slice(0,10),p_effective_until:null,p_allocation_units:1,p_period_id:x.period_id});if(error)throw error;setSuggestions([]);await load();setMsg("Lesson added.")}catch(e){setMsg(e instanceof Error?e.message:"Could not add lesson")}finally{setBusy(false)}}
+ async function startRelease(){setBusy(true);try{const label=`Timetable ${new Date().toLocaleDateString()}`;const r=await createTimetableRelease({schoolId:sid,label,effectiveFrom:new Date().toISOString().slice(0,10)});await updateTimetableReleaseStatus(r.id,"review");setMsg("Draft created and submitted for review.")}catch(e){setMsg(e instanceof Error?e.message:"Could not create release")}finally{setBusy(false)}}
+ const cm=useMemo(()=>new Map(classes.map(x=>[x.id,x.name+(x.stream?` ${x.stream}`:"")])),[classes]), sm=useMemo(()=>new Map(subjects.map(x=>[x.id,x.name])),[subjects]),tm=useMemo(()=>new Map(teachers.map(x=>[x.id,x.full_name])),[teachers]);
+ const box={padding:12,border:"1px solid #e2e8f0",borderRadius:12,background:"white"} as const;
+ return <main style={{maxWidth:1050,margin:"0 auto",display:"grid",gap:16}}>
+  <header><h1 style={{margin:0}}>Smart timetable</h1><p style={{color:"#64748b"}}>Build, validate, review and publish the school's recurring teaching plan.</p></header>
+  {msg&&<div role="status" style={box}>{msg}</div>}
+  <section style={box}><h2 style={{fontSize:16}}>Smart placement</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>
+   <select value={pick.classId} onChange={e=>setPick({...pick,classId:e.target.value})}><option value="">Class</option>{classes.map(x=><option key={x.id} value={x.id}>{cm.get(x.id)}</option>)}</select>
+   <select value={pick.subjectId} onChange={e=>setPick({...pick,subjectId:e.target.value})}><option value="">Subject</option>{subjects.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select>
+   <select value={pick.teacherId} onChange={e=>setPick({...pick,teacherId:e.target.value})}><option value="">Teacher</option>{teachers.map(x=><option key={x.id} value={x.id}>{x.full_name}</option>)}</select>
+   <button disabled={busy} onClick={()=>void suggest()}>Suggest best slots</button>
+  </div>{suggestions.slice(0,6).map(x=><button key={x.period_id+"-"+x.day_of_week} onClick={()=>void add(x)} style={{display:"block",width:"100%",textAlign:"left",marginTop:8,padding:10}}><strong>{D[x.day_of_week]} {x.start_time.slice(0,5)}–{x.end_time.slice(0,5)}</strong> · {x.explanation}</button>)}</section>
+  <section style={box}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><h2 style={{fontSize:16}}>Master timetable</h2><button disabled={busy||!slots.length} onClick={()=>void startRelease()}>Create review release</button></div>
+   {!slots.length?<p>No active timetable slots.</p>:slots.sort((a,b)=>a.day_of_week-b.day_of_week||a.start_time.localeCompare(b.start_time)).map(x=><article key={x.id} style={{padding:"9px 0",borderBottom:"1px solid #eee",display:"grid",gridTemplateColumns:"120px 1fr auto",gap:8}}><strong>{D[x.day_of_week]} {x.start_time.slice(0,5)}</strong><span>{cm.get(x.class_id)} · {sm.get(x.subject_id)} · {tm.get(x.teacher_id)}</span><span>{x.allocation_units>1?`${x.allocation_units} units`:x.room||""}</span></article>)}
+  </section>
+ </main>
 }

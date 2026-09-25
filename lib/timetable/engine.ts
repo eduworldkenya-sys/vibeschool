@@ -1,4 +1,8 @@
 import { supabase } from "@/lib/supabase";
+import { isIsoDate, type TimetableRecurrencePattern } from "@/lib/timetable/contracts";
+
+const TIMETABLE_SLOT_SELECT = "id,school_id,teacher_id,class_id,subject_id,day_of_week,start_time,end_time,room,period_id,allocation_units,recurrence_pattern,effective_from,effective_until" as const;
+
 
 export interface CanonicalTimetableSlot {
   id: string;
@@ -10,6 +14,9 @@ export interface CanonicalTimetableSlot {
   start_time: string;
   end_time: string;
   room: string | null;
+  period_id: string | null;
+  allocation_units: number;
+  recurrence_pattern: TimetableRecurrencePattern;
   effective_from: string;
   effective_until: string | null;
 }
@@ -75,19 +82,7 @@ export async function loadActiveTeacherTimetable(
   const { data, error } = await supabase
     .from("timetable_slots")
     .select(
-      [
-        "id",
-        "school_id",
-        "teacher_id",
-        "class_id",
-        "subject_id",
-        "day_of_week",
-        "start_time",
-        "end_time",
-        "room",
-        "effective_from",
-        "effective_until",
-      ].join(",")
+      TIMETABLE_SLOT_SELECT
     )
     .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
@@ -104,7 +99,7 @@ export async function loadActiveTeacherTimetable(
     );
   }
 
-  return (data ?? []) as unknown as CanonicalTimetableSlot[];
+  return (data ?? []) as CanonicalTimetableSlot[];
 }
 
 /**
@@ -152,19 +147,7 @@ export async function loadTeacherTimetableForRange(
   const { data, error } = await supabase
     .from("timetable_slots")
     .select(
-      [
-        "id",
-        "school_id",
-        "teacher_id",
-        "class_id",
-        "subject_id",
-        "day_of_week",
-        "start_time",
-        "end_time",
-        "room",
-        "effective_from",
-        "effective_until",
-      ].join(",")
+      TIMETABLE_SLOT_SELECT
     )
     .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
@@ -181,7 +164,7 @@ export async function loadTeacherTimetableForRange(
     );
   }
 
-  return (data ?? []) as unknown as CanonicalTimetableSlot[];
+  return (data ?? []) as CanonicalTimetableSlot[];
 }
 
 export interface LoadClassTimetableOptions {
@@ -227,19 +210,7 @@ export async function loadActiveClassTimetable(
   const { data, error } = await supabase
     .from("timetable_slots")
     .select(
-      [
-        "id",
-        "school_id",
-        "teacher_id",
-        "class_id",
-        "subject_id",
-        "day_of_week",
-        "start_time",
-        "end_time",
-        "room",
-        "effective_from",
-        "effective_until",
-      ].join(",")
+      TIMETABLE_SLOT_SELECT
     )
     .eq("school_id", schoolId)
     .eq("class_id", classId)
@@ -256,7 +227,7 @@ export async function loadActiveClassTimetable(
     );
   }
 
-  return (data ?? []) as unknown as CanonicalTimetableSlot[];
+  return (data ?? []) as CanonicalTimetableSlot[];
 }
 
 export function timetableSlotsForDay(
@@ -278,4 +249,95 @@ export function findNextTimetableSlot(
         slot.start_time.localeCompare(currentTime) > 0
     ) ?? null
   );
+}
+
+
+export interface TeacherWeeklyTimetableLoad {
+  class_id: string;
+  subject_id: string;
+  class_name: string;
+  stream: string;
+  subject_name: string;
+  grade: string;
+  lessons_per_week: number | null;
+  scheduled_count: number;
+  status: "NO_TARGET" | "ZERO" | "UNDER" | "OK" | "OVER";
+}
+
+export interface TimetableConflict {
+  conflict_type: "TEACHER_CONFLICT" | "CLASS_CONFLICT" | "ROOM_CONFLICT" | "SCHEDULE_CONFLICT";
+  conflicting_slot_id: string;
+  conflicting_teacher_id: string | null;
+  conflicting_class_id: string;
+  conflicting_subject_id: string;
+  conflicting_room: string | null;
+  detail: string;
+}
+
+/**
+ * Allocation-aware teacher workload. Unlike slot-only readers this preserves
+ * assigned subjects with zero scheduled slots, so "nothing scheduled" cannot
+ * be confused with "nothing to teach".
+ */
+export async function loadTeacherWeeklyTimetableLoad(): Promise<TeacherWeeklyTimetableLoad[]> {
+  const { data, error } = await supabase.rpc("get_teacher_weekly_timetable_load");
+  if (error) {
+    throw new TimetableEngineError("Failed to load timetable allocation health.", error.message);
+  }
+  return (data ?? []) as TeacherWeeklyTimetableLoad[];
+}
+
+export interface PreviewTimetableConflictsOptions {
+  schoolId: string;
+  teacherId: string;
+  classId: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  room?: string | null;
+  effectiveFrom?: string | null;
+  effectiveUntil?: string | null;
+  excludeSlotId?: string | null;
+}
+
+/**
+ * Explainable pre-save conflict intelligence. The database exclusion
+ * constraints remain authoritative at write time; this is a safe preview.
+ */
+export async function previewTimetableConflicts(
+  options: PreviewTimetableConflictsOptions
+): Promise<TimetableConflict[]> {
+  const { data, error } = await supabase.rpc("preview_timetable_conflicts", {
+    p_school_id: options.schoolId,
+    p_teacher_id: options.teacherId,
+    p_class_id: options.classId,
+    p_day_of_week: options.dayOfWeek,
+    p_start_time: options.startTime,
+    p_end_time: options.endTime,
+    p_room: options.room ?? null,
+    p_effective_from: options.effectiveFrom ?? null,
+    p_effective_until: options.effectiveUntil ?? null,
+    p_exclude_slot_id: options.excludeSlotId ?? null,
+  });
+  if (error) {
+    throw new TimetableEngineError("Failed to preview timetable conflicts.", error.message);
+  }
+  return (data ?? []) as TimetableConflict[];
+}
+
+
+/** Published schedule authority for student/Twin consumers. */
+export async function loadPublishedClassTimetable(classId: string, activeOn: string): Promise<CanonicalTimetableSlot[]> {
+  if (!classId || !isIsoDate(activeOn)) throw new TimetableEngineError("Valid class and date are required.", "INVALID_PUBLISHED_TIMETABLE_REQUEST");
+  const { data, error } = await supabase.rpc("get_published_class_timetable", { p_class_id: classId, p_on: activeOn });
+  if (error) throw new TimetableEngineError("Failed to load published class timetable.", error.message);
+  return (data ?? []) as CanonicalTimetableSlot[];
+}
+
+/** Published schedule authority for teacher/Twin consumers. */
+export async function loadPublishedTeacherTimetable(teacherId: string, activeOn: string): Promise<CanonicalTimetableSlot[]> {
+  if (!teacherId || !isIsoDate(activeOn)) throw new TimetableEngineError("Valid teacher and date are required.", "INVALID_PUBLISHED_TIMETABLE_REQUEST");
+  const { data, error } = await supabase.rpc("get_published_teacher_timetable", { p_teacher_id: teacherId, p_on: activeOn });
+  if (error) throw new TimetableEngineError("Failed to load published teacher timetable.", error.message);
+  return (data ?? []) as CanonicalTimetableSlot[];
 }
