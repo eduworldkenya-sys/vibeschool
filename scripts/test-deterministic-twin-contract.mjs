@@ -117,8 +117,8 @@ requireText('app/parent/layout.tsx', 'requireTwinRole(authority, "parent")', 'Pa
 requireText('app/parent/layout.tsx', '<TwinRoleSwitcher currentRole="parent" />', 'Parent portal must expose authorized role switching')
 forbidText('app/parent/layout.tsx', 'data?.role !== "parent"', 'Parent portal must not collapse multi-role identity to profiles.role')
 
-requireText('app/teacher/layout.tsx', 'getTwinAuthorityContext', 'Teacher portal must derive relationship authority')
-requireText('app/teacher/layout.tsx', 'selectTwinRoleBinding(authority, "teacher", teacherData?.school_id ?? undefined)', 'Teacher portal active-school hint must be membership-verified')
+requireText('app/teacher/layout.tsx', 'get_my_teacher_school_context', 'Teacher portal must derive active school from canonical server authority')
+forbidText('app/teacher/layout.tsx', 'selectTwinRoleBinding(authority, "teacher", teacherData?.school_id ?? undefined)', 'Teacher portal must not maintain a second active-school authority path')
 forbidText('app/teacher/layout.tsx', 'profileData.role !== "teacher"', 'Teacher portal must not collapse multi-role identity to profiles.role')
 forbidText('app/teacher/layout.tsx', 'vs_role_', 'Teacher portal must not persist browser role authority')
 
