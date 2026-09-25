@@ -16,6 +16,7 @@ export default function ClassOnboardingPage() {
   const [schoolId, setSchoolId] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [switchingSchool, setSwitchingSchool] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -36,13 +37,17 @@ export default function ClassOnboardingPage() {
         return
       }
 
-      const result = await supabase.from('schools').select('id,name').in('id', ids).order('name')
+      const [{ data: context }, result] = await Promise.all([
+        supabase.rpc('get_my_teacher_school_context'),
+        supabase.from('schools').select('id,name').in('id', ids).order('name'),
+      ])
       if (cancelled) return
       if (result.error) setError('Your school details could not be loaded.')
       else {
         const rows = (result.data ?? []) as SchoolOption[]
         setSchools(rows)
-        setSchoolId(rows[0]?.id ?? ids[0] ?? '')
+        const active = (context as { active_school_id?: string | null } | null)?.active_school_id
+        setSchoolId((active && ids.includes(active) ? active : null) ?? rows[0]?.id ?? ids[0] ?? '')
       }
       setLoading(false)
     }
@@ -62,12 +67,25 @@ export default function ClassOnboardingPage() {
         {!loading && error && <div role="alert" style={{ padding: 12, borderRadius: 10, background: '#fef2f2', color: C.error }}>{error}</div>}
         {!loading && schools.length > 1 && (
           <label style={{ display: 'block', marginBottom: 16, color: C.textMuted, fontSize: 12, fontWeight: 800 }}>School
-            <select value={schoolId} onChange={event => setSchoolId(event.target.value)} style={{ display: 'block', width: '100%', marginTop: 5, padding: 11, border: `1px solid ${C.border}`, borderRadius: 10, background: '#fff' }}>
+            <select value={schoolId} disabled={switchingSchool} onChange={async event => {
+              const previous = schoolId
+              const next = event.target.value
+              setSwitchingSchool(true)
+              setError('')
+              const { error: switchError } = await supabase.rpc('set_my_active_teacher_school', { p_school_id: next })
+              if (switchError) {
+                setSchoolId(previous)
+                setError('We could not switch the active school safely. Your previous school is still active.')
+              } else {
+                setSchoolId(next)
+              }
+              setSwitchingSchool(false)
+            }} style={{ display: 'block', width: '100%', marginTop: 5, padding: 11, border: `1px solid ${C.border}`, borderRadius: 10, background: '#fff' }}>
               {schools.map(school => <option key={school.id} value={school.id}>{school.name}</option>)}
             </select>
           </label>
         )}
-        {!loading && !error && schoolId && <TeacherClassForm schoolId={schoolId} mode="onboarding" />}
+        {!loading && !error && schoolId && !switchingSchool && <TeacherClassForm schoolId={schoolId} mode="onboarding" />}
         {!loading && (
           <button type="button" onClick={() => router.push('/teacher/pulse')} style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.textMuted, fontWeight: 800 }}>Skip — go to Teacher OS</button>
         )}
