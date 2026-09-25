@@ -20,8 +20,10 @@ export default function ClassOnboardingPage() {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/academy/signin?role=teacher'); return }
+      try {
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        if (cancelled) return
+        if (authError || !user) { router.replace('/academy/signin?role=teacher'); return }
 
       const memberships = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).eq('role', 'teacher')
       if (cancelled) return
@@ -44,7 +46,13 @@ export default function ClassOnboardingPage() {
         setSchools(rows)
         setSchoolId(rows[0]?.id ?? ids[0] ?? '')
       }
-      setLoading(false)
+        setLoading(false)
+      } catch {
+        if (!cancelled) {
+          setError('Class setup could not be loaded. You can retry or enter Teacher OS and add a class later.')
+          setLoading(false)
+        }
+      }
     }
     void load()
     return () => { cancelled = true }
@@ -58,8 +66,8 @@ export default function ClassOnboardingPage() {
           <p style={{ margin: '6px 0 0', color: C.textMuted, fontSize: 13, lineHeight: 1.5 }}>Optional. You can enter Teacher OS now and add classes later from My Classes.</p>
         </div>
 
-        {loading && <div aria-busy="true" style={{ height: 280, borderRadius: 16, background: '#f3f4f6' }} />}
-        {!loading && error && <div role="alert" style={{ padding: 12, borderRadius: 10, background: '#fef2f2', color: C.error }}>{error}</div>}
+        {loading && <div aria-live="polite" aria-busy="true" style={{ minHeight: 120, padding: 20, borderRadius: 16, background: '#f3f4f6', color: C.textMuted, textAlign: 'center' }}>Loading your class setup…</div>}
+        {!loading && error && <div role="alert" style={{ padding: 12, borderRadius: 10, background: '#fef2f2', color: C.error }}>{error}<button type="button" onClick={() => window.location.reload()} style={{ display: 'block', marginTop: 10, padding: 10, borderRadius: 9, border: `1px solid ${C.border}`, background: '#fff', fontWeight: 800 }}>Retry</button></div>}
         {!loading && schools.length > 1 && (
           <label style={{ display: 'block', marginBottom: 16, color: C.textMuted, fontSize: 12, fontWeight: 800 }}>School
             <select value={schoolId} onChange={event => setSchoolId(event.target.value)} style={{ display: 'block', width: '100%', marginTop: 5, padding: 11, border: `1px solid ${C.border}`, borderRadius: 10, background: '#fff' }}>
@@ -68,7 +76,7 @@ export default function ClassOnboardingPage() {
           </label>
         )}
         {!loading && !error && schoolId && <TeacherClassForm schoolId={schoolId} mode="onboarding" />}
-        {!loading && (
+        {(
           <button type="button" onClick={() => router.push('/teacher/pulse')} style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.textMuted, fontWeight: 800 }}>Skip — go to Teacher OS</button>
         )}
       </section>
