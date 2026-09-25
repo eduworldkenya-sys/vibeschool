@@ -169,7 +169,7 @@ export default function SchoolDiscovery() {
             <button
               key={value}
               onClick={() => { setLevel(value); setPicked(null); setMsg(""); setMissingMode(false); setSent(false) }}
-              style={{ padding: 12, borderRadius: 12, border: level === value ? "2px solid #16a34a" : "1px solid #ddd", background: level === value ? "#f0fdf4" : "#fff" }}
+              style={{ padding: 12, borderRadius: 12, border: level === value ? "2px solid #16a34a" : "1px solid #ddd", background: level === value ? "#f0fdf4" : "#fff", color: "#101828", WebkitTextFillColor: "#101828", opacity: 1 }}
             >
               <b>{label}</b>
               <small style={{ display: "block", marginTop: 4, color: "#667085" }}>{hint}</small>
@@ -177,15 +177,19 @@ export default function SchoolDiscovery() {
           ))}
         </div>
 
+        <label htmlFor="school-search" style={{ display: "block", marginTop: 14, marginBottom: 6, fontSize: 13, fontWeight: 700, color: "#344054" }}>School name or code</label>
         <input
+          id="school-search"
+          aria-label="School name or code"
           disabled={!level}
           value={q}
           onChange={(e) => { setQ(e.target.value); setPicked(null); setMissingMode(false); setSent(false) }}
           placeholder={level ? "e.g. St Marys, Moi, Mangu, school code" : "Choose a level first"}
-          style={{ width: "100%", boxSizing: "border-box", marginTop: 14, padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16 }}
+          style={{ width: "100%", boxSizing: "border-box", padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16, color: "#101828", background: level ? "#fff" : "#f2f4f7", WebkitTextFillColor: level ? "#101828" : "#667085", opacity: 1 }}
         />
 
-        <select value={county} onChange={(e) => setCounty(e.target.value)} style={{ width: "100%", boxSizing: "border-box", marginTop: 8, padding: 14, borderRadius: 12, border: "1px solid #ccc" }}>
+        <label htmlFor="school-county" style={{ display: "block", marginTop: 10, marginBottom: 6, fontSize: 13, fontWeight: 700, color: "#344054" }}>County <span style={{ fontWeight: 400, color: "#667085" }}>(optional)</span></label>
+        <select id="school-county" aria-label="County" value={county} onChange={(e) => setCounty(e.target.value)} style={{ width: "100%", boxSizing: "border-box", padding: 14, borderRadius: 12, border: "1px solid #ccc", fontSize: 16, color: "#101828", background: "#fff", WebkitTextFillColor: "#101828", opacity: 1 }}>
           <option value="">Any county</option>
           {COUNTIES.map((c) => <option key={c}>{c}</option>)}
         </select>
