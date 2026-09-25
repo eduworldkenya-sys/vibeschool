@@ -93,13 +93,20 @@ export default function TeacherWeekViewPage() {
         .eq("teacher_id", user.id)
         .eq("school_id", sId);
 
+      const relationName = (value: unknown, fallback: string): string => {
+        const row = Array.isArray(value) ? value[0] : value;
+        if (!row || typeof row !== "object") return fallback;
+        const name = (row as Record<string, unknown>).name;
+        return typeof name === "string" && name.trim() ? name : fallback;
+      };
+
       const combos = ((tcRes.data ?? []) as Array<Record<string, unknown>>)
-        .filter(r => r.class_id && r.subject_id)
+        .filter(r => typeof r.class_id === "string" && typeof r.subject_id === "string")
         .map(r => ({
           classId: r.class_id as string,
-          className: (Array.isArray(r.classes) ? r.classes[0]?.name : r.classes?.name) ?? "Class",
+          className: relationName(r.classes, "Class"),
           subjectId: r.subject_id as string,
-          subjectName: (Array.isArray(r.subjects) ? r.subjects[0]?.name : r.subjects?.name) ?? "Subject",
+          subjectName: relationName(r.subjects, "Subject"),
         }));
 
       if (combos.length === 0) { setHasClasses(false); setRows([]); setLoading(false); return; }
@@ -192,9 +199,9 @@ export default function TeacherWeekViewPage() {
           subjectId: combo.subjectId,
           subjectName: combo.subjectName,
           grade,
-          strand: curr?.strand ?? null,
-          subStrand: curr?.sub_strand ?? null,
-          topic: curr?.topic ?? null,
+          strand: typeof curr?.strand === "string" ? curr.strand : null,
+          subStrand: typeof curr?.sub_strand === "string" ? curr.sub_strand : null,
+          topic: typeof curr?.topic === "string" ? curr.topic : null,
           hasScheme, hasPlan, hasNotes, hasHomework, hasAssessment,
         };
       });
