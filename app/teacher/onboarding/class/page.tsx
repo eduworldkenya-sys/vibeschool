@@ -17,6 +17,7 @@ export default function ClassOnboardingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [switchingSchool, setSwitchingSchool] = useState(false)
+  const [leavingSchool, setLeavingSchool] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -86,6 +87,21 @@ export default function ClassOnboardingPage() {
           </label>
         )}
         {!loading && !error && schoolId && !switchingSchool && <TeacherClassForm schoolId={schoolId} mode="onboarding" />}
+        {!loading && schoolId && (
+          <button type="button" disabled={leavingSchool || switchingSchool} onClick={async () => {
+            if (!window.confirm('Selected the wrong school? Remove this school connection and choose again. Existing class assignments cannot be removed this way.')) return
+            setLeavingSchool(true); setError('')
+            const { error: leaveError } = await supabase.rpc('leave_my_teacher_school', { p_school_id: schoolId })
+            setLeavingSchool(false)
+            if (leaveError) {
+              setError(leaveError.message?.includes('school_has_teacher_assignments') ? 'This school already has your class assignments. Remove or transfer those assignments before leaving the school.' : 'We could not safely remove this school connection. Nothing was changed.')
+              return
+            }
+            router.replace('/teacher/onboarding/school?change=1')
+          }} style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.error, fontWeight: 800 }}>
+            {leavingSchool ? 'Removing school…' : 'Wrong school? Change school'}
+          </button>
+        )}
         {!loading && (
           <button type="button" onClick={() => router.push('/teacher/pulse')} style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.textMuted, fontWeight: 800 }}>Skip — go to Teacher OS</button>
         )}
