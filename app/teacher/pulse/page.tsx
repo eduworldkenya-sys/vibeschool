@@ -333,37 +333,30 @@ export default function PulsePage() {
         } = await supabase.auth.getUser();
         if (!user || signal?.aborted) return;
 
-        const [memberRes, profileRes] = await Promise.all([
-          supabase.from("school_members").select("school_id").eq("profile_id", user.id),
+        const [schoolContextRes, profileRes] = await Promise.all([
+          supabase.rpc("get_my_teacher_school_context"),
           supabase
             .from("profiles")
-            .select("full_name,school_id,avatar_url")
+            .select("full_name,avatar_url")
             .eq("id", user.id)
             .single(),
         ]);
         if (signal?.aborted) return;
+        if (schoolContextRes.error) throw schoolContextRes.error;
 
-        const memberSchoolIds = Array.from(
-          new Set(
-            (memberRes.data ?? [])
-              .map((row) => row.school_id)
-              .filter(Boolean) as string[]
-          )
-        );
+        const schoolContext = schoolContextRes.data as {
+          active_school_id?: string | null;
+          schools?: Array<{ id: string; name: string }>;
+        } | null;
+        const authorizedSchools = Array.isArray(schoolContext?.schools) ? schoolContext.schools : [];
+        if (schools.length === 0 && authorizedSchools.length > 0) setSchools(authorizedSchools);
 
-        if (memberSchoolIds.length > 1 && schools.length === 0) {
-          const { data: schoolRows } = await supabase
-            .from("schools")
-            .select("id,name")
-            .in("id", memberSchoolIds);
-          if (schoolRows) setSchools(schoolRows as { id: string; name: string }[]);
-        }
-
+        const requestedSchoolId = activeSchoolIdRef.current;
         const schoolId =
-          activeSchoolIdRef.current ??
-          memberSchoolIds[0] ??
-          profileRes.data?.school_id ??
-          null;
+          requestedSchoolId && authorizedSchools.some((row) => row.id === requestedSchoolId)
+            ? requestedSchoolId
+            : schoolContext?.active_school_id ?? null;
+        setActiveSchoolId(schoolId);
 
         setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
         setAvatarUrl(
