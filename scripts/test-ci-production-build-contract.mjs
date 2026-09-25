@@ -26,6 +26,7 @@ const requiredActionFragments = [
   'NEXT_PUBLIC_SUPABASE_URL:',
   'NEXT_PUBLIC_SUPABASE_ANON_KEY:',
   'npm run build',
+  "if: ${{ inputs.build_application == 'true' }}",
 ];
 
 for (const fragment of requiredActionFragments) {
@@ -52,6 +53,17 @@ for (const file of workflowFiles) {
   if (content.includes('./.github/actions/production-build-contract')) {
     buildConsumers.push(file);
   }
+}
+
+const fastDomainConsumers = [
+  'auth-onboarding-hardening.yml',
+  'task11-reliability-contract.yml',
+  'task9-founder-os-reconciliation.yml',
+];
+for (const file of fastDomainConsumers) {
+  const content = fs.readFileSync(path.join(workflowsDir, file), 'utf8');
+  if (!content.includes('build_application: "false"')) fail(`${file} must use fast domain mode; central build gate owns full build`);
+  if (content.includes('npm run typecheck') || content.includes('npm run lint')) fail(`${file} duplicates central typecheck/lint`);
 }
 
 const requiredConsumers = [
