@@ -1154,16 +1154,6 @@ export default function SubjectHubPage() {
 
       {/* ── SUBJECT TABS ── */}
       {!loading && subjects.length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '12px 16px 0' }}>
-          <button
-            onClick={openAddSubject}
-            style={{ padding: '7px 16px', borderRadius: 10, background: C.accent, color: '#fff', border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            + Add Subject
-          </button>
-        </div>
-      )}
-
-      {!loading && subjects.length > 0 && (
         <div style={{ padding: '14px 16px 0', display: 'flex', gap: 8, overflowX: 'auto' }}>
           {subjects.map((s, i) => (
             <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
@@ -1829,9 +1819,9 @@ export default function SubjectHubPage() {
               <span style={{ fontSize: 28 }}>📚</span>
               <p style={{ fontSize: 13, color: C.textMuted, marginTop: 8, marginBottom: 12 }}>No classes linked to this subject yet.</p>
               <button
-                onClick={openAddSubject}
+                onClick={() => router.push('/teacher/onboarding/class')}
                 style={{ padding: '8px 18px', borderRadius: 10, border: 'none', background: C.accent, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                + Link a Class
+                Set up teaching assignment
               </button>
             </div>
           )}
@@ -2176,11 +2166,11 @@ export default function SubjectHubPage() {
         <div style={{ padding: '60px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 40 }}>🔬</span>
           <p style={{ fontSize: 15, fontWeight: 700, color: C.textPrimary, margin: 0, textAlign: 'center' }}>No subjects assigned yet</p>
-          <p style={{ fontSize: 13, color: C.textMuted, margin: 0, textAlign: 'center' }}>Claim your subject and join thousands of professionals growing their impact on VibeSchool.</p>
+          <p style={{ fontSize: 13, color: C.textMuted, margin: 0, textAlign: 'center' }}>Subjects appear automatically from your verified class and subject teaching assignments.</p>
           <button
-            onClick={openAddSubject}
+            onClick={() => router.push('/teacher/onboarding/class')}
             style={{ marginTop: 8, padding: '14px 32px', borderRadius: 14, background: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)', color: '#fff', border: 'none', fontSize: 15, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 4px 12px rgba(67,56,202,0.35)' }}>
-            + Claim Your Subject
+            Set up class & subject
           </button>
         </div>
       )}
