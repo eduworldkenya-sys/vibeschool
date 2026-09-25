@@ -124,45 +124,28 @@ function HarmonizeInner() {
   }
 
   async function handleConfirm() {
-    if (!sid) return
+    if (!token) {
+      setError("This legacy link cannot safely connect a parent. Ask the school for a new parent claim code.")
+      return
+    }
     setLinking(true)
     setError('')
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/'); return }
 
-    // Mark token as claimed
-    if (token) {
-      await supabase
-        .from('student_claim_codes')
-        .update({ claimed: true })
-        .eq('student_id', sid)
-        .eq('code', token)
-        .eq('role', 'parent')
-    }
-
-    await supabase.from('students').update({ parent_linked_at: new Date().toISOString() }).eq('id', sid)
-
-    const { data: scRow } = await supabase
-      .from('student_classes').select('school_id').eq('student_id', sid).eq('is_current', true).single()
-    const schoolId = scRow?.school_id ?? null
-
-    const { error: linkErr } = await supabase.from('parent_student_links').insert({
-      parent_id: user.id, student_id: sid, school_id: schoolId,
-      relationship: 'parent', is_primary: true, can_pickup: true, receives_alerts: true,
+    const { data: result, error: rpcErr } = await supabase.rpc('redeem_parent_claim', {
+      p_code: token.trim().toUpperCase(),
+      p_user_id: user.id,
     })
-    if (linkErr && !linkErr.message.includes('duplicate')) { setError(linkErr.message); setLinking(false); return }
-
-    if (schoolId) {
-      await supabase.from('school_members').upsert(
-        { school_id: schoolId, profile_id: user.id, role: 'parent' },
-        { onConflict: 'school_id,profile_id', ignoreDuplicates: true }
-      )
-      await supabase.from('profiles').update({ school_id: schoolId }).eq('id', user.id)
+    if (rpcErr || result !== 'success') {
+      setError(rpcErr?.message ?? "This parent claim could not be completed. Ask the school for a new claim code.")
+      setLinking(false)
+      return
     }
 
     setSuccess(true)
     setLinking(false)
-    setTimeout(() => router.push('/parent'), 2000)
+    setTimeout(() => router.push('/parent'), 1200)
   }
 
   if (loading) return (
