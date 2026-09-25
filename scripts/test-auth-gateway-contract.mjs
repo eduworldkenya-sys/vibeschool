@@ -29,7 +29,8 @@ forbidText('middleware', middleware, "request.cookies.get('vibe_role')")
 requireText('routing', routing, "value.startsWith('//')")
 requireText('routing', routing, "decoded.includes('\\\\')")
 requireText('routing', routing, 'requiredRoleForPath')
-requireText('routing', routing, "'/global': 'global_user'")
+forbidText('routing', routing, "'/global': 'global_user'")
+requireText('routing', routing, "'/admin': 'admin'")
 
 requireText('oauth callback', callback, "supabase.auth.exchangeCodeForSession(code)")
 requireText('oauth callback', callback, "supabase.rpc('get_my_auth_access_state')")
@@ -59,7 +60,7 @@ requireText('gateway migration', gatewayMigration, 'revoke all on function publi
 
 requireText('reconcile migration', reconcileMigration, 'alter table public.profiles alter column role drop default;')
 requireText('reconcile migration', reconcileMigration, 'create or replace function public.claim_my_initial_role(p_role text)')
-requireText('reconcile migration', reconcileMigration, "p_role not in ('teacher','parent','global_user')")
+requireText('global retirement migration', read('supabase/migrations/20260925155000_retire_global_self_service_role.sql'), "p_role not in ('teacher','parent')")
 requireText('reconcile migration', reconcileMigration, "new.raw_user_meta_data->>'full_name'")
 forbidText('reconcile migration', reconcileMigration, "raw_user_meta_data->>'role'")
 requireText('reconcile migration', reconcileMigration, 'guard_profile_authority_fields')
