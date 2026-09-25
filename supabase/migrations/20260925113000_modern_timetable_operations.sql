@@ -176,3 +176,122 @@ begin
 end $$;
 revoke all on function public.generate_daily_occurrences(date) from public;
 grant execute on function public.generate_daily_occurrences(date) to authenticated;
+
+
+-- Resource identity on recurring slots. Keep legacy room text for compatibility/display.
+alter table public.timetable_slots add column if not exists resource_id uuid references public.school_timetable_resources(id) on delete set null;
+alter table public.timetable_slots add column if not exists release_id uuid references public.timetable_releases(id) on delete set null;
+create index if not exists idx_timetable_slots_resource on public.timetable_slots(resource_id);
+
+-- Publication is a server-authoritative state machine. A release cannot publish with
+-- allocation gaps, assignment gaps, collisions, unavailable teachers, or rule violations.
+create or replace function public.transition_timetable_release(p_release_id uuid,p_target text)
+returns public.timetable_releases language plpgsql security definer set search_path=public as $$
+declare v public.timetable_releases; v_uid uuid:=auth.uid(); v_blockers integer:=0;
+begin
+  if v_uid is null then raise exception 'UNAUTHENTICATED'; end if;
+  select * into v from public.timetable_releases where id=p_release_id for update;
+  if v.id is null then raise exception 'RELEASE_NOT_FOUND'; end if;
+  if not public.is_school_admin(v.school_id) then raise exception 'SCHOOL_ADMIN_REQUIRED'; end if;
+  if p_target not in ('review','approved','published','retired') then raise exception 'INVALID_RELEASE_STATE'; end if;
+  if (v.status='draft' and p_target<>'review') or (v.status='review' and p_target not in ('approved','draft')) or
+     (v.status='approved' and p_target not in ('published','review')) or (v.status='published' and p_target<>'retired') then
+    raise exception 'INVALID_RELEASE_TRANSITION';
+  end if;
+
+  if p_target in ('approved','published') then
+    select count(*) into v_blockers from (
+      select 1
+      from public.class_subject_allocations a
+      left join lateral (
+        select coalesce(sum(ts.allocation_units),0) units
+        from public.timetable_slots ts
+        where ts.school_id=v.school_id and ts.class_id=a.class_id and ts.subject_id=a.subject_id
+          and ts.effective_from<=v.effective_from and coalesce(ts.effective_until,v.effective_from)>=v.effective_from
+      ) s on true
+      where a.school_id=v.school_id and a.effective_from<=v.effective_from
+        and coalesce(a.effective_until,v.effective_from)>=v.effective_from
+        and a.effective_units_per_week is not null and s.units<>a.effective_units_per_week
+      union all
+      select 1 from public.timetable_slots ts
+      join public.teacher_timetable_availability ta on ta.teacher_id=ts.teacher_id and ta.school_id=ts.school_id
+        and ta.day_of_week=ts.day_of_week and ta.availability='unavailable'
+        and ta.start_time<ts.end_time and ta.end_time>ts.start_time
+        and ta.effective_from<=v.effective_from and coalesce(ta.effective_until,v.effective_from)>=v.effective_from
+      where ts.school_id=v.school_id and ts.effective_from<=v.effective_from and coalesce(ts.effective_until,v.effective_from)>=v.effective_from
+      union all
+      select 1 from public.timetable_slots ts
+      join public.subject_timetable_rules r on r.school_id=ts.school_id and r.class_id=ts.class_id and r.subject_id=ts.subject_id
+      left join public.school_timetable_resources sr on sr.id=ts.resource_id
+      where ts.school_id=v.school_id and ts.effective_from<=v.effective_from and coalesce(ts.effective_until,v.effective_from)>=v.effective_from
+        and r.required_resource_type is not null and (sr.id is null or sr.resource_type<>r.required_resource_type or not sr.active)
+    ) blockers;
+    if v_blockers>0 then raise exception 'TIMETABLE_HAS_BLOCKERS'; end if;
+  end if;
+
+  update public.timetable_releases set status=p_target,
+    reviewed_by=case when p_target='review' then v_uid else reviewed_by end,
+    reviewed_at=case when p_target='review' then now() else reviewed_at end,
+    approved_by=case when p_target='approved' then v_uid else approved_by end,
+    approved_at=case when p_target='approved' then now() else approved_at end,
+    published_by=case when p_target='published' then v_uid else published_by end,
+    published_at=case when p_target='published' then now() else published_at end
+  where id=p_release_id returning * into v;
+  return v;
+end $$;
+revoke all on function public.transition_timetable_release(uuid,text) from public;
+grant execute on function public.transition_timetable_release(uuid,text) to authenticated;
+
+-- Absence is occurrence truth, not a recurring-slot mutation. Upcoming occurrences are
+-- retained and explicitly flagged so an admin can substitute, cancel, or recover them.
+create or replace function public.apply_teacher_absence(p_absence_id uuid)
+returns integer language plpgsql security definer set search_path=public as $$
+declare a public.teacher_absences; n integer;
+begin
+  select * into a from public.teacher_absences where id=p_absence_id;
+  if a.id is null then raise exception 'ABSENCE_NOT_FOUND'; end if;
+  if auth.uid()<>a.teacher_id and not public.is_school_admin(a.school_id) then raise exception 'ABSENCE_ACCESS_DENIED'; end if;
+  update public.teaching_occurrences o set exception_reason=coalesce(nullif(btrim(a.reason),''),'Teacher absent')
+  from public.timetable_slots s
+  where o.timetable_slot_id=s.id and o.teacher_id=a.teacher_id and o.school_id=a.school_id
+    and o.lifecycle in ('planned','ready')
+    and (o.occurrence_date+s.start_time) at time zone 'Africa/Nairobi' < a.ends_at
+    and (o.occurrence_date+s.end_time) at time zone 'Africa/Nairobi' > a.starts_at;
+  get diagnostics n=row_count; return n;
+end $$;
+revoke all on function public.apply_teacher_absence(uuid) from public;
+grant execute on function public.apply_teacher_absence(uuid) to authenticated;
+
+-- Whole-school deterministic candidate generator. It proposes only hard-valid placements;
+-- final writes still pass through the canonical collision-protected writer.
+create or replace function public.suggest_school_timetable_candidates(
+  p_school_id uuid,p_class_id uuid,p_subject_id uuid,p_teacher_id uuid,p_effective_on date default null
+) returns table(day_of_week integer,period_id uuid,start_time time,end_time time,score integer,explanation text)
+language sql security definer set search_path=public stable as $$
+with ctx as (select coalesce(p_effective_on,(now() at time zone 'Africa/Nairobi')::date) d),
+days as (select generate_series(1,5)::int dow),
+candidates as (
+ select d.dow,sp.id period_id,sp.start_time,sp.end_time
+ from days d cross join public.school_periods sp cross join ctx
+ where sp.school_id=p_school_id and sp.kind='lesson'
+   and public.is_school_admin(p_school_id)
+   and not exists(select 1 from public.teacher_timetable_availability ta where ta.school_id=p_school_id and ta.teacher_id=p_teacher_id
+     and ta.day_of_week=d.dow and ta.availability='unavailable' and ta.start_time<sp.end_time and ta.end_time>sp.start_time
+     and ta.effective_from<=ctx.d and coalesce(ta.effective_until,ctx.d)>=ctx.d)
+   and not exists(select 1 from public.timetable_slots ts where ts.school_id=p_school_id and ts.day_of_week=d.dow
+     and ts.start_time<sp.end_time and ts.end_time>sp.start_time
+     and (ts.teacher_id=p_teacher_id or ts.class_id=p_class_id)
+     and ts.effective_from<=ctx.d and coalesce(ts.effective_until,ctx.d)>=ctx.d)
+), scored as (
+ select c.*, (case when r.preferred_day_part='morning' and c.start_time<'12:00' then 20
+                   when r.preferred_day_part='afternoon' and c.start_time>='12:00' then 20 else 0 end)
+   - 2*(select count(*) from public.timetable_slots ts cross join ctx where ts.school_id=p_school_id and ts.teacher_id=p_teacher_id
+         and ts.day_of_week=c.dow and ts.effective_from<=ctx.d and coalesce(ts.effective_until,ctx.d)>=ctx.d)::int score
+ from candidates c left join public.subject_timetable_rules r on r.school_id=p_school_id and r.class_id=p_class_id and r.subject_id=p_subject_id
+)
+select dow,period_id,start_time,end_time,score,
+ case when score>=20 then 'Preferred teaching time; no hard conflict.' else 'No hard conflict; ranked by teacher daily load.' end
+from scored order by score desc,dow,start_time;
+$$;
+revoke all on function public.suggest_school_timetable_candidates(uuid,uuid,uuid,uuid,date) from public;
+grant execute on function public.suggest_school_timetable_candidates(uuid,uuid,uuid,uuid,date) to authenticated;
