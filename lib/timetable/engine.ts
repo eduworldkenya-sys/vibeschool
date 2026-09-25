@@ -1,6 +1,9 @@
 import { supabase } from "@/lib/supabase";
 import { isIsoDate, type TimetableRecurrencePattern } from "@/lib/timetable/contracts";
 
+const TIMETABLE_SLOT_SELECT = "id,school_id,teacher_id,class_id,subject_id,day_of_week,start_time,end_time,room,period_id,allocation_units,recurrence_pattern,effective_from,effective_until" as const;
+
+
 export interface CanonicalTimetableSlot {
   id: string;
   school_id: string;
@@ -79,22 +82,7 @@ export async function loadActiveTeacherTimetable(
   const { data, error } = await supabase
     .from("timetable_slots")
     .select(
-      [
-        "id",
-        "school_id",
-        "teacher_id",
-        "class_id",
-        "subject_id",
-        "day_of_week",
-        "start_time",
-        "end_time",
-        "room",
-        "period_id",
-        "allocation_units",
-        "recurrence_pattern",
-        "effective_from",
-        "effective_until",
-      ].join(",")
+      TIMETABLE_SLOT_SELECT
     )
     .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
@@ -159,22 +147,7 @@ export async function loadTeacherTimetableForRange(
   const { data, error } = await supabase
     .from("timetable_slots")
     .select(
-      [
-        "id",
-        "school_id",
-        "teacher_id",
-        "class_id",
-        "subject_id",
-        "day_of_week",
-        "start_time",
-        "end_time",
-        "room",
-        "period_id",
-        "allocation_units",
-        "recurrence_pattern",
-        "effective_from",
-        "effective_until",
-      ].join(",")
+      TIMETABLE_SLOT_SELECT
     )
     .eq("school_id", schoolId)
     .eq("teacher_id", teacherId)
@@ -237,22 +210,7 @@ export async function loadActiveClassTimetable(
   const { data, error } = await supabase
     .from("timetable_slots")
     .select(
-      [
-        "id",
-        "school_id",
-        "teacher_id",
-        "class_id",
-        "subject_id",
-        "day_of_week",
-        "start_time",
-        "end_time",
-        "room",
-        "period_id",
-        "allocation_units",
-        "recurrence_pattern",
-        "effective_from",
-        "effective_until",
-      ].join(",")
+      TIMETABLE_SLOT_SELECT
     )
     .eq("school_id", schoolId)
     .eq("class_id", classId)
