@@ -22,6 +22,12 @@ export default function ClassOnboardingPage() {
   useEffect(() => {
     let cancelled = false
     async function load() {
+      const timeout = window.setTimeout(() => {
+        if (!cancelled) {
+          setError('Class setup is taking too long to load. Please retry or enter Teacher OS and add a class later.')
+          setLoading(false)
+        }
+      }, 12000)
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (cancelled) return
@@ -58,6 +64,8 @@ export default function ClassOnboardingPage() {
           setError('Class setup could not be loaded. You can retry or enter Teacher OS and add a class later.')
           setLoading(false)
         }
+      } finally {
+        window.clearTimeout(timeout)
       }
     }
     void load()
