@@ -69,14 +69,14 @@ export default function TeacherProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
-  const db = supabase as any;
+  const db = supabase;
 
   const loadContext = useCallback(async (requestedSchoolId?: string | null) => {
     const { data, error } = await supabase.rpc("teacher_get_operating_context", {
       p_requested_school_id: requestedSchoolId ?? undefined,
     });
     if (error) throw error;
-    return data as unknown as Context;
+    return data as Context;
   }, []);
 
   const load = useCallback(async () => {
