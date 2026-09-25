@@ -29,6 +29,19 @@ create table if not exists public.school_events (
   check ((audience_type in ('class','profile') and audience_id is not null) or (audience_type not in ('class','profile') and audience_id is null))
 );
 create index if not exists idx_school_events_school_time on public.school_events(school_id,starts_at);
+create table if not exists public.school_event_acknowledgements (
+  event_id uuid not null references public.school_events(id) on delete cascade,
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  acknowledged_at timestamptz not null default now(),
+  primary key(event_id,profile_id)
+);
+alter table public.school_event_acknowledgements enable row level security;
+revoke all on table public.school_event_acknowledgements from public,anon,authenticated;
+grant select,insert,delete on table public.school_event_acknowledgements to authenticated;
+grant all on table public.school_event_acknowledgements to service_role;
+create policy school_event_ack_self on public.school_event_acknowledgements for all to authenticated
+using(profile_id=auth.uid()) with check(profile_id=auth.uid() and exists(select 1 from public.school_events e where e.id=event_id and public.can_read_school_event(e)));
+
 create index if not exists idx_school_events_audience on public.school_events(school_id,audience_type,audience_id,status);
 alter table public.school_events enable row level security;
 revoke all on table public.school_events from public, anon, authenticated;
@@ -117,6 +130,8 @@ begin
    'events',coalesce((select jsonb_agg(to_jsonb(e) order by e.starts_at) from public.school_events e where e.school_id=v_school and e.starts_at<v_until and coalesce(e.ends_at,e.starts_at)>=v_from and public.can_read_school_event(e)),'[]'::jsonb),
    'notices',coalesce((select jsonb_agg(jsonb_build_object('id',c.id,'title',c.title,'body',c.body,'sent_at',c.sent_at,'requires_ack',c.requires_ack,'ack_deadline',c.ack_deadline,'ack_at',r.ack_at) order by c.sent_at desc)
      from public.vc_circular_recipients r join public.vc_circulars c on c.id=r.circular_id where r.profile_id=v_uid and c.school_id=v_school and c.sent_at is not null),'[]'::jsonb),
+   'documents',coalesce((select jsonb_agg(jsonb_build_object('id',d.id,'title',d.title,'category',d.category,'file_url',d.file_url,'file_type',d.file_type,'created_at',d.created_at) order by d.created_at desc)
+     from public.resource_documents d where d.school_id=v_school and d.visibility in ('staff','everyone')),'[]'::jsonb),
    'calendar_exceptions',coalesce((select jsonb_agg(to_jsonb(x) order by x.exception_date) from public.school_calendar_exceptions x where x.school_id=v_school and x.exception_date between (v_from at time zone 'Africa/Nairobi')::date and (v_until at time zone 'Africa/Nairobi')::date),'[]'::jsonb)
  ) into v;
  return v;
