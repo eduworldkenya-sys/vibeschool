@@ -171,7 +171,7 @@ export async function fetchPulseData(
   // 'missed') before any occurrence-dependent read below. Awaited, but
   // non-destructive: the guard never throws, so Pulse loads whether or
   // not generation succeeded, and failures retry on the next fetch.
-  await ensureDailyOccurrences();
+  const occurrenceGuard = ensureDailyOccurrences();
 
   // Single clock read (`now`) feeds every date/day-of-week/week-start below,
   // so effective-date filtering and day-of-week filtering can never disagree
@@ -557,7 +557,7 @@ export async function fetchPulseData(
   // plans or homework. Resolve each exact dated lesson through the same
   // authoritative occurrence resolver used by the timetable and lesson
   // workspace. A single failed resolution is isolated to that slot.
-  const workspaceEntries = await Promise.all(
+  // Occurrence-dependent lifecycle reads wait for maintenance, while the independent\n  // timetable/term/class workload above is allowed to load in parallel.\n  await occurrenceGuard;\n\n  const workspaceEntries = await Promise.all(
     todayBaseSlots.map(async (slot): Promise<
       readonly [string, TeachingWorkspace | null]
     > => {
