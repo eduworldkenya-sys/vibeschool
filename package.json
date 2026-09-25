@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit --pretty false",
     "test:seo-authority": "node scripts/seo-content-authority-contract-test.mjs",
-    "validate": "npm run typecheck && npm run lint && npm run test:seo-authority && npm run build"
+    "validate": "npm run typecheck && npm run lint && npm run test:seo-authority && npm run test:timetable && npm run build",
+    "test:timetable": "node scripts/test-timetable-modern-intelligence.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
