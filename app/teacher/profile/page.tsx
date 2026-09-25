@@ -67,6 +67,7 @@ export default function TeacherProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [notice, setNotice] = useState<{ kind: "success" | "error"; text: string } | null>(null);
   const db = supabase as any;
 
@@ -175,6 +176,21 @@ export default function TeacherProfilePage() {
     }
   }
 
+  async function signOut() {
+    if (signingOut) return;
+    if (!window.confirm("Sign out of VibeSchool?")) return;
+    setSigningOut(true);
+    try {
+      await supabase.auth.signOut({ scope: "global" });
+      document.cookie = "vibe_role=; path=/; max-age=0";
+      window.location.assign("/login");
+    } catch (signOutError) {
+      console.error("[TeacherProfile] signout", signOutError);
+      setNotice({ kind: "error", text: "You could not be signed out. Please try again." });
+      setSigningOut(false);
+    }
+  }
+
   async function uploadAvatar(file: File) {
     if (uploading) return;
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 3 * 1024 * 1024) {
@@ -252,6 +268,10 @@ export default function TeacherProfilePage() {
       </section>
 
       <button type="button" onClick={() => void save()} disabled={saving} style={{ width: "100%", minHeight: 50, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontSize: 14, fontWeight: 900 }}>{saving ? "Saving…" : "Save profile"}</button>
+
+      <section style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
+        <button type="button" onClick={() => void signOut()} disabled={signingOut} style={{ width: "100%", minHeight: 50, border: "1px solid #fecaca", borderRadius: 13, background: "#fff", color: "#b91c1c", fontSize: 14, fontWeight: 900, cursor: signingOut ? "wait" : "pointer" }}>{signingOut ? "Signing out…" : "Sign out"}</button>
+      </section>
     </div>
   );
 }
