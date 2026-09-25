@@ -6,6 +6,10 @@ inputs:
     description: Optional domain-specific checks to run after npm ci and before the production build.
     required: false
     default: ""
+  build_application:
+    description: Run the expensive Next.js production build. Set false for fast domain checks; the central TypeScript/build gate remains authoritative.
+    required: false
+    default: "true"
   supabase_url:
     description: Public Supabase URL required by the Next.js production build.
     required: false
@@ -34,6 +38,7 @@ runs:
       run: ${{ inputs.prebuild_command }}
 
     - name: Build production application
+      if: ${{ inputs.build_application == 'true' }}
       shell: bash
       env:
         NODE_OPTIONS: --max-old-space-size=6144
