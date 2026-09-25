@@ -26,10 +26,38 @@ type LiveHomeworkTable = {
  * `any`/`unknown` casts. Regenerating database.types.ts can later collapse this
  * overlay without changing callers.
  */
+type GeneratedTimetableSlots = Database['public']['Tables']['timetable_slots']
+type GeneratedTeachingOccurrences = Database['public']['Tables']['teaching_occurrences']
+
+type LiveTimetableSlotFields = {
+  allocation_units: number
+  recurrence_pattern: string
+  resource_id: string | null
+  release_id: string | null
+}
+type LiveOccurrenceFields = {
+  actual_teacher_id: string | null
+  exception_reason: string | null
+}
+type LiveTimetableSlots = {
+  Row: GeneratedTimetableSlots['Row'] & LiveTimetableSlotFields
+  Insert: GeneratedTimetableSlots['Insert'] & Partial<LiveTimetableSlotFields>
+  Update: GeneratedTimetableSlots['Update'] & Partial<LiveTimetableSlotFields>
+  Relationships: GeneratedTimetableSlots['Relationships']
+}
+type LiveTeachingOccurrences = {
+  Row: GeneratedTeachingOccurrences['Row'] & LiveOccurrenceFields
+  Insert: GeneratedTeachingOccurrences['Insert'] & Partial<LiveOccurrenceFields>
+  Update: GeneratedTeachingOccurrences['Update'] & Partial<LiveOccurrenceFields>
+  Relationships: GeneratedTeachingOccurrences['Relationships']
+}
+
 type LiveDatabase = Omit<Database, 'public'> & {
   public: Omit<Database['public'], 'Tables'> & {
-    Tables: Omit<Database['public']['Tables'], 'homework'> & {
+    Tables: Omit<Database['public']['Tables'], 'homework' | 'timetable_slots' | 'teaching_occurrences'> & {
       homework: LiveHomeworkTable
+      timetable_slots: LiveTimetableSlots
+      teaching_occurrences: LiveTeachingOccurrences
     }
   }
 }
