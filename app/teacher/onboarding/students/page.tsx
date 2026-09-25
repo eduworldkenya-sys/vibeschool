@@ -37,7 +37,7 @@ export default function StudentsOnboardingPage() {
     setError('')
     const valid = students.filter(s => s.name.trim())
     if (valid.length === 0) {
-      router.push('/teacher')
+      router.replace('/teacher/pulse')
       return
     }
 
@@ -93,7 +93,7 @@ export default function StudentsOnboardingPage() {
     }
 
     setLoading(false)
-    router.push('/teacher')
+    router.replace('/teacher/pulse')
   }
 
   return (
@@ -134,7 +134,7 @@ export default function StudentsOnboardingPage() {
             Skip for now
           </button>
           <button onClick={handleSave} disabled={loading} style={{ flex: 2, padding: '13px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {loading ? 'Saving…' : "Done — Go to Dashboard →"}
+            {loading ? 'Saving…' : "Done — Enter Teacher OS →"}
           </button>
         </div>
       </div>
