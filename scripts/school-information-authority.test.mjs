@@ -10,6 +10,8 @@ for (const token of [
   'public.admin_publish_school_event',
   'public.admin_cancel_school_event',
   'public.get_my_teacher_school_information',
+  'public.school_event_acknowledgements',
+  'public.resource_documents',
   'public.school_calendar_exceptions',
   'public.vc_circular_recipients',
 ]) assert.ok(migration.includes(token), 'missing '+token)
