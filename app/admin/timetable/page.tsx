@@ -20,17 +20,17 @@ export default function AdminTimetablePage(){
    supabase.from("classes").select("id,name,stream").eq("school_id",a.schoolId),
    supabase.from("subjects").select("id,name").eq("school_id",a.schoolId),
    supabase.from("school_members").select("profile_id").eq("school_id",a.schoolId).eq("role","teacher"),
-   (supabase as any).from("school_periods").select("id,schedule_day,period_number,label,start_time,end_time,kind,protected").eq("school_id",a.schoolId).order("schedule_day").order("start_time")
+   supabase.from("school_periods").select("id,schedule_day,period_number,label,start_time,end_time,kind,protected").eq("school_id",a.schoolId).order("schedule_day").order("start_time")
   ]); if(s.error||c.error||u.error||m.error||sp.error) throw s.error||c.error||u.error||m.error||sp.error;
   const ids=(m.data??[]).map(x=>x.profile_id); const p=ids.length?await supabase.from("profiles").select("id,full_name").in("id",ids):{data:[],error:null};
-  if(p.error)throw p.error; setSlots((s.data??[]) as Slot[]);setClasses((c.data??[]) as C[]);setSubjects((u.data??[]) as Row[]);setTeachers((p.data??[]) as T[]);setPeriods((sp.data??[]) as unknown as Period[]);
+  if(p.error)throw p.error; setSlots((s.data??[]) as Slot[]);setClasses((c.data??[]) as C[]);setSubjects((u.data??[]) as Row[]);setTeachers((p.data??[]) as T[]);setPeriods((sp.data??[]) as Period[]);
  }catch(e){setMsg(e instanceof Error?e.message:"Could not load timetable")}finally{setBusy(false)}}
  async function suggest(){if(!pick.classId||!pick.subjectId||!pick.teacherId)return;setBusy(true);try{setSuggestions(await suggestSchoolTimetableCandidates({schoolId:sid,...pick}));setMsg("")}catch(e){setMsg(e instanceof Error?e.message:"Could not suggest slots")}finally{setBusy(false)}}
  async function add(x:SuggestedPlacement){setBusy(true);try{const {error}=await supabase.rpc("create_school_timetable_slot",{p_school_id:sid,p_teacher_id:pick.teacherId,p_class_id:pick.classId,p_subject_id:pick.subjectId,p_day_of_week:x.day_of_week,p_start_time:x.start_time,p_end_time:x.end_time,p_room:null,p_effective_from:new Date().toISOString().slice(0,10),p_effective_until:null,p_allocation_units:1,p_period_id:x.period_id});if(error)throw error;setSuggestions([]);await load();setMsg("Lesson added.")}catch(e){setMsg(e instanceof Error?e.message:"Could not add lesson")}finally{setBusy(false)}}
  async function addSchoolBlock(){
   if(!sid||!block.label.trim()||block.startTime>=block.endTime)return;
   setBusy(true);try{
-   const {error}=await (supabase as any).from("school_periods").insert({
+   const {error}=await supabase.from("school_periods").insert({
     school_id:sid,schedule_day:block.scheduleDay,period_number:block.periodNumber,
     label:block.label.trim(),start_time:block.startTime,end_time:block.endTime,
     kind:block.kind,protected:block.kind!=="lesson"
@@ -38,7 +38,7 @@ export default function AdminTimetablePage(){
   }catch(e){setMsg(e instanceof Error?e.message:"Could not add school-day block")}finally{setBusy(false)}
  }
  async function removeSchoolBlock(id:string){
-  setBusy(true);try{const {error}=await (supabase as any).from("school_periods").delete().eq("id",id).eq("school_id",sid);if(error)throw error;await load();setMsg("School-day block removed.");}catch(e){setMsg(e instanceof Error?e.message:"Could not remove block")}finally{setBusy(false)}
+  setBusy(true);try{const {error}=await supabase.from("school_periods").delete().eq("id",id).eq("school_id",sid);if(error)throw error;await load();setMsg("School-day block removed.");}catch(e){setMsg(e instanceof Error?e.message:"Could not remove block")}finally{setBusy(false)}
  }
  async function startRelease(){setBusy(true);try{const label=`Timetable ${new Date().toLocaleDateString()}`;const r=await createTimetableRelease({schoolId:sid,label,effectiveFrom:new Date().toISOString().slice(0,10)});await updateTimetableReleaseStatus(r.id,"review");setMsg("Draft created and submitted for review.")}catch(e){setMsg(e instanceof Error?e.message:"Could not create release")}finally{setBusy(false)}}
  const cm=useMemo(()=>new Map(classes.map(x=>[x.id,x.name+(x.stream?` ${x.stream}`:"")])),[classes]), sm=useMemo(()=>new Map(subjects.map(x=>[x.id,x.name])),[subjects]),tm=useMemo(()=>new Map(teachers.map(x=>[x.id,x.full_name])),[teachers]);

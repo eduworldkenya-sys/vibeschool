@@ -28,12 +28,23 @@ type LiveHomeworkTable = {
  */
 type GeneratedTimetableSlots = Database['public']['Tables']['timetable_slots']
 type GeneratedTeachingOccurrences = Database['public']['Tables']['teaching_occurrences']
+type GeneratedSchoolPeriods = Database['public']['Tables']['school_periods']
 
 type LiveTimetableSlotFields = {
   allocation_units: number
   recurrence_pattern: string
   resource_id: string | null
   release_id: string | null
+}
+type LiveSchoolPeriodFields = {
+  schedule_day: number
+  protected: boolean
+}
+type LiveSchoolPeriods = {
+  Row: GeneratedSchoolPeriods['Row'] & LiveSchoolPeriodFields
+  Insert: GeneratedSchoolPeriods['Insert'] & Partial<LiveSchoolPeriodFields>
+  Update: GeneratedSchoolPeriods['Update'] & Partial<LiveSchoolPeriodFields>
+  Relationships: GeneratedSchoolPeriods['Relationships']
 }
 type LiveOccurrenceFields = {
   actual_teacher_id: string | null
@@ -62,12 +73,14 @@ type LiveDatabase = Omit<Database, 'public'> & {
       assign_occurrence_substitute: { Args: { p_occurrence_id: string; p_substitute_teacher_id: string; p_reason?: string | null }; Returns: LiveTeachingOccurrences['Row'] }
       attach_active_slots_to_release: { Args: { p_release_id: string }; Returns: number }
       transition_timetable_release: { Args: { p_release_id: string; p_target: string }; Returns: Record<string, string | number | boolean | null> }
+      get_my_school_day_blocks: { Args: Record<never, never>; Returns: { id: string; school_id: string; schedule_day: number; period_number: number; label: string; start_time: string; end_time: string; kind: string; protected: boolean }[] }
       suggest_school_timetable_candidates: { Args: { p_school_id: string; p_class_id: string; p_subject_id: string; p_teacher_id: string; p_effective_on?: string | null }; Returns: { day_of_week: number; period_id: string; start_time: string; end_time: string; score: number; explanation: string }[] }
     }
-    Tables: Omit<Database['public']['Tables'], 'homework' | 'timetable_slots' | 'teaching_occurrences'> & {
+    Tables: Omit<Database['public']['Tables'], 'homework' | 'timetable_slots' | 'teaching_occurrences' | 'school_periods'> & {
       homework: LiveHomeworkTable
       timetable_slots: LiveTimetableSlots
       teaching_occurrences: LiveTeachingOccurrences
+      school_periods: LiveSchoolPeriods
     }
   }
 }
