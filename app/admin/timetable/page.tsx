@@ -20,7 +20,7 @@ export default function AdminTimetablePage(){
    supabase.from("school_members").select("profile_id").eq("school_id",a.schoolId).eq("role","teacher")
   ]); if(s.error||c.error||u.error||m.error) throw s.error||c.error||u.error||m.error;
   const ids=(m.data??[]).map(x=>x.profile_id); const p=ids.length?await supabase.from("profiles").select("id,full_name").in("id",ids):{data:[],error:null};
-  if(p.error)throw p.error; setSlots((s.data??[]) as unknown as Slot[]);setClasses((c.data??[]) as C[]);setSubjects((u.data??[]) as Row[]);setTeachers((p.data??[]) as T[]);
+  if(p.error)throw p.error; setSlots((s.data??[]) as Slot[]);setClasses((c.data??[]) as C[]);setSubjects((u.data??[]) as Row[]);setTeachers((p.data??[]) as T[]);
  }catch(e){setMsg(e instanceof Error?e.message:"Could not load timetable")}finally{setBusy(false)}}
  async function suggest(){if(!pick.classId||!pick.subjectId||!pick.teacherId)return;setBusy(true);try{setSuggestions(await suggestSchoolTimetableCandidates({schoolId:sid,...pick}));setMsg("")}catch(e){setMsg(e instanceof Error?e.message:"Could not suggest slots")}finally{setBusy(false)}}
  async function add(x:SuggestedPlacement){setBusy(true);try{const {error}=await supabase.rpc("create_school_timetable_slot",{p_school_id:sid,p_teacher_id:pick.teacherId,p_class_id:pick.classId,p_subject_id:pick.subjectId,p_day_of_week:x.day_of_week,p_start_time:x.start_time,p_end_time:x.end_time,p_room:null,p_effective_from:new Date().toISOString().slice(0,10),p_effective_until:null,p_allocation_units:1,p_period_id:x.period_id});if(error)throw error;setSuggestions([]);await load();setMsg("Lesson added.")}catch(e){setMsg(e instanceof Error?e.message:"Could not add lesson")}finally{setBusy(false)}}
