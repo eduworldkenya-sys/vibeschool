@@ -295,3 +295,27 @@ from scored order by score desc,dow,start_time;
 $$;
 revoke all on function public.suggest_school_timetable_candidates(uuid,uuid,uuid,uuid,date) from public;
 grant execute on function public.suggest_school_timetable_candidates(uuid,uuid,uuid,uuid,date) to authenticated;
+
+
+-- Canonical published timetable readers for cross-surface convergence.
+create or replace function public.get_published_class_timetable(p_class_id uuid,p_on date default null)
+returns setof public.timetable_slots language sql security definer set search_path=public stable as $$
+ select ts.* from public.timetable_slots ts
+ join public.timetable_releases tr on tr.id=ts.release_id and tr.status='published'
+ where ts.class_id=p_class_id and public.is_active_school_member(ts.school_id)
+   and ts.effective_from<=coalesce(p_on,current_date) and coalesce(ts.effective_until,coalesce(p_on,current_date))>=coalesce(p_on,current_date)
+ order by ts.day_of_week,ts.start_time;
+$$;
+revoke all on function public.get_published_class_timetable(uuid,date) from public;
+grant execute on function public.get_published_class_timetable(uuid,date) to authenticated;
+
+create or replace function public.get_published_teacher_timetable(p_teacher_id uuid,p_on date default null)
+returns setof public.timetable_slots language sql security definer set search_path=public stable as $$
+ select ts.* from public.timetable_slots ts
+ join public.timetable_releases tr on tr.id=ts.release_id and tr.status='published'
+ where ts.teacher_id=p_teacher_id and (p_teacher_id=auth.uid() or public.is_school_admin(ts.school_id))
+   and ts.effective_from<=coalesce(p_on,current_date) and coalesce(ts.effective_until,coalesce(p_on,current_date))>=coalesce(p_on,current_date)
+ order by ts.day_of_week,ts.start_time;
+$$;
+revoke all on function public.get_published_teacher_timetable(uuid,date) from public;
+grant execute on function public.get_published_teacher_timetable(uuid,date) to authenticated;
