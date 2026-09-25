@@ -18,9 +18,18 @@ export default function SchoolHubPage(){
   setLoading(true);setError('')
   try{
    const {data:{user}}=await supabase.auth.getUser(); if(!user){router.replace('/');return}
-   const {data,error:e}=await supabase.rpc('get_my_teacher_school_information',{p_from:new Date().toISOString(),p_until:new Date(Date.now()+14*86400000).toISOString()}); if(e)throw e
-   const x=(data??{school_id:null,events:[],notices:[],calendar_exceptions:[]}) as Info; setInfo(x)
-   if(x.school_id){const {data:s,error:se}=await supabase.from('schools').select('name,county,school_type').eq('id',x.school_id).single();if(se)throw se;setSchool(s)}
+   const [{data:context,error:contextError},{data,error:e}]=await Promise.all([
+    supabase.rpc('get_my_teacher_school_context'),
+    supabase.rpc('get_my_teacher_school_information',{p_from:new Date().toISOString(),p_until:new Date(Date.now()+14*86400000).toISOString()})
+   ])
+   if(contextError)throw contextError
+   const activeSchoolId=(context as {active_school_id?:string|null}|null)?.active_school_id??null
+   if(!activeSchoolId){setInfo({school_id:null,events:[],notices:[],calendar_exceptions:[]});setSchool(null);return}
+   // Information is optional enrichment. It cannot revoke a canonical active-school membership.
+   if(e)console.error('[SchoolHub] information enrichment failed',e)
+   const raw=(data??{}) as Partial<Info>
+   const x:Info={school_id:activeSchoolId,events:raw.events??[],notices:raw.notices??[],calendar_exceptions:raw.calendar_exceptions??[]}; setInfo(x)
+   const {data:s,error:se}=await supabase.from('schools').select('name,county,school_type').eq('id',activeSchoolId).single();if(se)throw se;setSchool(s)
   }catch(c){setError(c instanceof Error?c.message:'School information could not be loaded.')}finally{setLoading(false)}
  }
  useEffect(()=>{void load()},[])

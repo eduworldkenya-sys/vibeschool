@@ -1,401 +1,104 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
-import { getActiveTerm, currentWeekOf, totalWeeksOf, type ActiveTerm } from "@/lib/academicTerm";
-import { nairobiDateAdd, nairobiWeekStart, nairobiDateStr } from "@/lib/time";
+import { loadTeacherWorkspaceWeek, type TeacherWorkspaceWeek, type TeacherWorkspaceOccurrence } from "@/lib/teacher/workspace";
+import { nairobiDateStr } from "@/lib/time";
 
-interface SubjectWeekRow {
-  classId: string;
-  className: string;
-  subjectId: string;
-  subjectName: string;
-  grade: string;
-  strand: string | null;
-  subStrand: string | null;
-  topic: string | null;
-  hasScheme: boolean;
-  hasPlan: boolean;
-  hasNotes: boolean;
-  hasHomework: boolean;
-  hasAssessment: boolean;
+const DAY = ["","Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function lessonState(o: TeacherWorkspaceOccurrence) {
+  const t=o.teaching;
+  if(!t) return {label:"Not prepared",tone:"#92400e",bg:"#fef3c7",next:"Prepare lesson"};
+  if(t.lifecycle==="completed") return {label:"Completed",tone:"#065f46",bg:"#d1fae5",next:"Review"};
+  if(t.lifecycle==="in_progress") return {label:"In progress",tone:"#1d4ed8",bg:"#dbeafe",next:"Continue teaching"};
+  if(t.lifecycle==="missed") return {label:"Needs recovery",tone:"#991b1b",bg:"#fee2e2",next:"Recover lesson"};
+  if(!t.lessonPlanId) return {label:"Plan needed",tone:"#92400e",bg:"#fef3c7",next:"Prepare lesson"};
+  if(t.attendance.state!=="complete" && o.occurrenceDate<nairobiDateStr()) return {label:"Attendance unfinished",tone:"#991b1b",bg:"#fee2e2",next:"Close lesson"};
+  if(!t.reflection.completed && o.occurrenceDate<nairobiDateStr()) return {label:"Reflection due",tone:"#92400e",bg:"#fef3c7",next:"Close lesson"};
+  return {label:"Ready",tone:"#065f46",bg:"#d1fae5",next:"Open lesson"};
 }
 
-function Skeleton({ h = 56, w = "100%" }: { h?: number; w?: string }) {
-  return (
-    <div style={{
-      height: h, width: w, borderRadius: 12,
-      background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)",
-      backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite", flexShrink: 0,
-    }} />
-  );
+function hrefFor(o:TeacherWorkspaceOccurrence){
+  const q=new URLSearchParams({classId:o.assignment.classId,subjectId:o.assignment.subjectId,timetableSlotId:o.timetableSlotId,occurrenceDate:o.occurrenceDate});
+  return "/teacher/lessonplan?"+q.toString();
 }
 
-interface Chip { key: "scheme" | "plan" | "notes" | "homework" | "assess"; label: string; done: boolean; }
+export default function TeacherWeekViewPage(){
+ const router=useRouter();
+ const [offset,setOffset]=useState(0);
+ const [week,setWeek]=useState<TeacherWorkspaceWeek|null>(null);
+ const [loading,setLoading]=useState(true);
+ const [error,setError]=useState("");
 
-function StatusChip({ chip, onTap }: { chip: Chip; onTap: () => void }) {
-  return (
-    <button
-      onClick={onTap}
-      style={{
-        flex: 1, padding: "8px 6px", borderRadius: 8, fontSize: 11, fontWeight: 600,
-        border: chip.done ? "1px solid #6ee7b7" : `1px solid ${C.border}`,
-        background: chip.done ? C.accentLight : "#ffffff",
-        color: chip.done ? "#065f46" : C.textMuted,
-        cursor: "pointer", whiteSpace: "nowrap",
-      }}
-    >
-      {chip.done ? "✓ " : ""}{chip.label}
-    </button>
-  );
+ const load=useCallback(async()=>{
+  setLoading(true);setError("");
+  try{
+   const {data:{user}}=await supabase.auth.getUser();
+   if(!user){router.replace("/?role=teacher");return}
+   // Resolve the same canonical school context used by onboarding before building
+   // the occurrence-driven week. The workspace loader independently enforces it.
+   const {data:schoolContext,error:schoolContextError}=await supabase.rpc("get_my_teacher_school_context");
+   if(schoolContextError)throw schoolContextError;
+   if(!(schoolContext as {active_school_id?:string|null}|null)?.active_school_id){setWeek(null);return}
+   const value=await loadTeacherWorkspaceWeek({teacherId:user.id,weekOffset:offset});
+   setWeek(value);
+  }catch(e){setError(e instanceof Error?e.message:"Your teaching week could not be loaded.")}
+  finally{setLoading(false)}
+ },[offset,router]);
+
+ useEffect(()=>{void load()},[load]);
+
+ const today=nairobiDateStr();
+ const ordered=useMemo(()=>[...(week?.occurrences??[])].sort((a,b)=>(a.occurrenceDate+a.startTime).localeCompare(b.occurrenceDate+b.startTime)),[week]);
+ const attention=ordered.filter(o=>{const s=lessonState(o);return ["Plan needed","Attendance unfinished","Reflection due","Needs recovery","Not prepared"].includes(s.label)});
+ const completed=ordered.filter(o=>o.teaching?.lifecycle==="completed").length;
+
+ if(loading)return <main style={{padding:16,color:C.textMuted}}>Building your teaching week…</main>;
+ if(error)return <main style={{padding:16}}><div style={{padding:14,borderRadius:12,background:"#fef2f2",color:"#991b1b"}}>{error}</div><button onClick={()=>void load()} style={secondary}>Retry</button></main>;
+ if(!week)return <main style={{padding:16}}><section style={card}><h1 style={{fontSize:20}}>Connect your school</h1><p style={muted}>Your week is generated from your active school, teaching assignments and timetable.</p><button style={primary} onClick={()=>router.push("/teacher/onboarding/school")}>Connect school</button></section></main>;
+
+ return <main style={{minHeight:"100vh",background:C.surface,paddingBottom:96}}>
+  <header style={{padding:"18px 16px",background:"#fff",borderBottom:`1px solid ${C.border}`}}>
+   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+    <button aria-label="Previous week" onClick={()=>setOffset(v=>v-1)} style={nav}>‹</button>
+    <div style={{textAlign:"center"}}><div style={{fontSize:21,fontWeight:900,color:C.textPrimary}}>My Week</div><div style={muted}>{week.weekNumber?`Week ${week.weekNumber}`:"School week"} · {week.weekStart} – {week.weekEnd}</div></div>
+    <button aria-label="Next week" onClick={()=>setOffset(v=>v+1)} style={nav}>›</button>
+   </div>
+   {offset!==0&&<button onClick={()=>setOffset(0)} style={{...secondary,display:"block",margin:"10px auto 0"}}>This week</button>}
+  </header>
+
+  <section style={{padding:"12px 16px 0",display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:8}}>
+   <div style={metric}><b>{ordered.length}</b><span>Lessons</span></div>
+   <div style={metric}><b>{completed}</b><span>Completed</span></div>
+   <div style={metric}><b>{attention.length}</b><span>Need attention</span></div>
+  </section>
+
+  {attention.length>0&&<section style={{padding:"14px 16px 0"}}>
+   <div style={label}>NEEDS ATTENTION</div>
+   <div style={{display:"grid",gap:8}}>{attention.slice(0,4).map(o=>{const s=lessonState(o);return <button key={o.timetableSlotId+o.occurrenceDate} onClick={()=>router.push(hrefFor(o))} style={attentionRow}><span><b>{o.assignment.subjectName} · {o.assignment.className}{o.assignment.stream?` ${o.assignment.stream}`:""}</b><small>{DAY[o.dayOfWeek]} {o.startTime.slice(0,5)} · {s.label}</small></span><strong>{s.next} ›</strong></button>})}</div>
+  </section>}
+
+  <section style={{padding:"16px"}}>
+   <div style={label}>TEACHING PLAN</div>
+   {ordered.length===0?<div style={card}><b>No scheduled lessons this week.</b><p style={muted}>Your week follows the authoritative timetable. Add or correct timetable slots instead of creating duplicate weekly tasks.</p><button style={secondary} onClick={()=>router.push("/teacher/timetable")}>Open timetable</button></div>:
+   <div style={{display:"grid",gap:10}}>{ordered.map(o=>{const s=lessonState(o);const isToday=o.occurrenceDate===today;return <article key={o.timetableSlotId+o.occurrenceDate} style={{...card,border:isToday?"1.5px solid #10b981":`1px solid ${C.border}`}}>
+    <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start"}}><div><div style={{fontSize:11,fontWeight:900,color:isToday?"#047857":C.textMuted}}>{isToday?"TODAY":DAY[o.dayOfWeek].toUpperCase()} · {o.startTime.slice(0,5)}–{o.endTime.slice(0,5)}</div><h2 style={{fontSize:16,margin:"4px 0 2px",color:C.textPrimary}}>{o.assignment.subjectName}</h2><div style={muted}>{o.assignment.className}{o.assignment.stream?` ${o.assignment.stream}`:""}</div></div><span style={{fontSize:10,fontWeight:800,padding:"5px 8px",borderRadius:999,color:s.tone,background:s.bg}}>{s.label}</span></div>
+    {o.teaching&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}><span style={chip}>{o.teaching.lessonPlanId?"Plan ✓":"Plan —"}</span><span style={chip}>Attendance {o.teaching.attendance.state==="complete"?"✓":"—"}</span><span style={chip}>Evidence {o.teaching.evidence.count||"—"}</span><span style={chip}>Homework {o.teaching.homework.issued?"✓":"—"}</span><span style={chip}>Reflection {o.teaching.reflection.completed?"✓":"—"}</span></div>}
+    <button onClick={()=>router.push(hrefFor(o))} style={{...primary,width:"100%",marginTop:12}}>{s.next} →</button>
+   </article>})}</div>}
+  </section>
+ </main>
 }
-
-export default function TeacherWeekViewPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [term, setTerm] = useState<ActiveTerm | null>(null);
-  const [weekNum, setWeekNum] = useState<number>(1);
-  const [totalWeeks, setTotalWeeks] = useState<number>(13);
-  const [rows, setRows] = useState<SubjectWeekRow[]>([]);
-  const [hasClasses, setHasClasses] = useState(true);
-
-  const load = useCallback(async (offset: number) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { router.push("/login"); return; }
-
-      const { data: schoolContext, error: schoolContextError } = await supabase.rpc("get_my_teacher_school_context");
-      if (schoolContextError) throw schoolContextError;
-      const sId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? "";
-
-      if (!sId) { setError("No school linked to your account yet."); setLoading(false); return; }
-
-      const activeTerm = await getActiveTerm(sId);
-      if (!activeTerm) { setError("No active term. Contact your admin."); setLoading(false); return; }
-      setTerm(activeTerm);
-
-      const wStart = nairobiDateAdd(nairobiWeekStart(), offset * 7);
-      const baseWeek = currentWeekOf(activeTerm);
-      const wk = Math.max(1, baseWeek + offset);
-      setWeekNum(wk);
-      setTotalWeeks(totalWeeksOf(activeTerm));
-
-      const tcRes = await supabase
-        .from("teacher_classes")
-        .select("class_id, subject_id, classes(id,name), subjects(id,name)")
-        .eq("teacher_id", user.id)
-        .eq("school_id", sId);
-
-      const combos = ((tcRes.data ?? []) as any[])
-        .filter(r => r.class_id && r.subject_id)
-        .map(r => ({
-          classId: r.class_id as string,
-          className: (Array.isArray(r.classes) ? r.classes[0]?.name : r.classes?.name) ?? "Class",
-          subjectId: r.subject_id as string,
-          subjectName: (Array.isArray(r.subjects) ? r.subjects[0]?.name : r.subjects?.name) ?? "Subject",
-        }));
-
-      if (combos.length === 0) { setHasClasses(false); setRows([]); setLoading(false); return; }
-      setHasClasses(true);
-
-      const classIds = Array.from(new Set(combos.map(c => c.classId)));
-
-      const classGradeRes = await supabase.from("classes").select("id,name").in("id", classIds);
-      const gradeMap = new Map(((classGradeRes.data ?? []) as any[]).map(c => [c.id, c.name as string]));
-
-      const [
-        curriculumRes,
-        strandProgressRes,
-        plansRes,
-        notesRes,
-        homeworkRes,
-        assessRes,
-      ] = await Promise.all([
-        supabase.from("curriculum")
-          .select("id,grade,subject,strand,sub_strand,topic,week,term")
-          .eq("term", activeTerm.term)
-          .eq("week", wk)
-          .in("grade", Array.from(new Set(Array.from(gradeMap.values())))),
-        // Fix 18E-A: scheme_of_work is the real coverage truth.
-        // Only done rows are returned because this collection is consumed
-        // as completed curriculum progress, not merely scheduled work.
-        supabase.from("scheme_of_work")
-          .select("class_id,curriculum_id,term,week,status")
-          .eq("teacher_id", user.id)
-          .eq("term", activeTerm.term)
-          .eq("week", wk)
-          .eq("status", "done")
-          .in("class_id", classIds),
-        supabase.from("lesson_plans")
-          .select("id,class_id,subject_id,week_start")
-          .eq("teacher_id", user.id)
-          .eq("week_start", wStart)
-          .in("class_id", classIds),
-        supabase.from("progress_records")
-          .select("id,class_id,subject_id,taught_date")
-          .eq("teacher_id", user.id)
-          .gte("taught_date", wStart)
-          .in("class_id", classIds),
-        supabase.from("homework")
-          .select("id,class_id,subject,due_date")
-          .eq("teacher_id", user.id)
-          .in("class_id", classIds),
-        supabase.from("cbc_assessments")
-          .select("id,class_id,subject_id,term,academic_year")
-          .eq("term", activeTerm.term)
-          .eq("academic_year", activeTerm.academic_year)
-          .in("class_id", classIds),
-      ]);
-
-      const curriculumRows = (curriculumRes.data ?? []) as any[];
-      const plans = (plansRes.data ?? []) as any[];
-      const notes = (notesRes.data ?? []) as any[];
-      const homework = (homeworkRes.data ?? []) as any[];
-      const assessments = (assessRes.data ?? []) as any[];
-      const strandProgress = (strandProgressRes.data ?? []) as any[];
-
-      const result: SubjectWeekRow[] = combos.map(combo => {
-        const grade = gradeMap.get(combo.classId) ?? "";
-        const curr = curriculumRows.find(c => c.grade === grade && c.subject === combo.subjectName);
-
-        const hasScheme = strandProgress.some(sp => sp.class_id === combo.classId);
-
-        // Intentionally matched by class_id + subject, not by the specific
-        // curriculum unit shown above (`curr`) — this is a "did you do the
-        // weekly workflow" checklist, so a freeform plan/note/homework not
-        // tied to this week's scheme suggestion should still count as done.
-        // (curriculum_unit_id exists on lesson_plans/progress_records/homework/
-        // cbc_assessments/curriculum_content but is an unused duplicate of
-        // curriculum_id — confirmed empty everywhere, 2026-07-10. Don't build
-        // against it.)
-        const hasPlan = plans.some(p =>
-          p.class_id === combo.classId && p.subject_id === combo.subjectId
-        );
-        const hasNotes = notes.some(n =>
-          n.class_id === combo.classId && n.subject_id === combo.subjectId
-        );
-        const hasHomework = homework.some(h =>
-          h.class_id === combo.classId && h.subject === combo.subjectName
-        );
-        const hasAssessment = assessments.some(a => a.class_id === combo.classId && a.subject_id === combo.subjectId);
-
-        return {
-          classId: combo.classId,
-          className: combo.className,
-          subjectId: combo.subjectId,
-          subjectName: combo.subjectName,
-          grade,
-          strand: curr?.strand ?? null,
-          subStrand: curr?.sub_strand ?? null,
-          topic: curr?.topic ?? null,
-          hasScheme, hasPlan, hasNotes, hasHomework, hasAssessment,
-        };
-      });
-
-      result.sort((a, b) => a.subjectName.localeCompare(b.subjectName));
-      setRows(result);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong loading your week.");
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
-  useEffect(() => { load(weekOffset); }, [weekOffset, load]);
-
-  function chipsFor(row: SubjectWeekRow): Chip[] {
-    return [
-      { key: "scheme",    label: "Scheme",   done: row.hasScheme },
-      { key: "plan",      label: "Plan",     done: row.hasPlan },
-      { key: "notes",     label: "Notes",    done: row.hasNotes },
-      { key: "homework",  label: "HW",       done: row.hasHomework },
-      { key: "assess",    label: "Assess",   done: row.hasAssessment },
-    ];
-  }
-
-  function navigateToChip(row: SubjectWeekRow, key: Chip["key"]) {
-    const base: Record<Chip["key"], string> = {
-      scheme:   `/teacher/scheme?class_id=${row.classId}&subject_id=${row.subjectId}`,
-      plan:     `/teacher/lessonplan?classId=${row.classId}`,
-      notes:    `/teacher/progress?class_id=${row.classId}&subject_id=${row.subjectId}`,
-      homework: `/teacher/homework`,
-      assess:   `/teacher/assessment?class_id=${row.classId}&subject_id=${row.subjectId}`,
-    };
-    router.push(base[key]);
-  }
-
-  if (loading) {
-    return (
-      <div style={{ minHeight: "100vh", background: C.surface, padding: 16 }}>
-        <Skeleton h={48} />
-        <div style={{ height: 16 }} />
-        {[0, 1, 2].map(i => <div key={i} style={{ marginBottom: 12 }}><Skeleton h={120} /></div>)}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ minHeight: "100vh", background: C.surface, padding: 16 }}>
-        <div style={{ fontSize: 14, color: C.error, marginBottom: 12 }}>{error}</div>
-      </div>
-    );
-  }
-
-  if (!hasClasses) {
-    return (
-      <div style={{ minHeight: "100vh", background: C.surface, padding: 16, textAlign: "center", paddingTop: 80 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: C.textPrimary, marginBottom: 8 }}>
-          No classes set up yet
-        </div>
-        <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 20 }}>
-          Set up your class to see your teaching week.
-        </div>
-        <button
-          onClick={() => router.push("/teacher/onboarding/class")}
-          style={{
-            padding: "10px 20px", borderRadius: 10, border: "none",
-            background: C.accent, color: "#fff", fontSize: 14, fontWeight: 600,
-          }}
-        >
-          Set up your class →
-        </button>
-      </div>
-    );
-  }
-
-  const today = nairobiDateStr();
-  const outsideTerm = term ? (today < term.start_date || today > term.end_date) : false;
-
-  return (
-    <div style={{ minHeight: "100vh", background: C.surface, paddingBottom: 96 }}>
-      <div style={{ padding: "20px 16px 12px", background: C.bg }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <button
-            onClick={() => setWeekOffset(w => w - 1)}
-            style={{ background: "none", border: "none", fontSize: 22, color: C.textMuted, padding: 4 }}
-          >
-            ‹
-          </button>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary }}>
-              Week {weekNum}
-            </div>
-            <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
-              {term ? `Term ${term.term} · ${term.academic_year}` : ""}
-              {totalWeeks ? ` · of ${totalWeeks}` : ""}
-            </div>
-          </div>
-          <button
-            onClick={() => setWeekOffset(w => w + 1)}
-            style={{ background: "none", border: "none", fontSize: 22, color: C.textMuted, padding: 4 }}
-          >
-            ›
-          </button>
-        </div>
-        {weekOffset !== 0 && (
-          <div style={{ textAlign: "center", marginTop: 8 }}>
-            <button
-              onClick={() => setWeekOffset(0)}
-              style={{
-                fontSize: 12, fontWeight: 600, color: C.accent, background: "none",
-                border: `1px solid ${C.accent}`, borderRadius: 999, padding: "4px 14px",
-              }}
-            >
-              Today
-            </button>
-          </div>
-        )}
-        {outsideTerm && (
-          <div style={{
-            marginTop: 12, padding: "8px 12px", borderRadius: 8, background: "#fef3c7",
-            color: "#92400e", fontSize: 12, fontWeight: 600, textAlign: "center",
-          }}>
-            Outside term dates
-          </div>
-        )}
-      </div>
-
-      <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-        {rows.length === 0 && (
-          <div style={{ textAlign: "center", padding: 40, color: C.textMuted, fontSize: 14 }}>
-            No subjects found for this week.
-          </div>
-        )}
-
-        {rows.map(row => {
-          const chips = chipsFor(row);
-          const doneCount = chips.filter(c => c.done).length;
-          const allDone = doneCount === chips.length;
-          const nextChip = chips.find(c => !c.done);
-
-          return (
-            <div
-              key={`${row.classId}-${row.subjectId}`}
-              style={{
-                background: C.bg, border: `1px solid ${C.border}`, borderRadius: 14,
-                padding: 14, boxShadow: C.shadow,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary }}>
-                    {row.subjectName}
-                  </div>
-                  <div style={{ fontSize: 12, color: C.textMuted, marginTop: 1 }}>
-                    {row.className}
-                  </div>
-                </div>
-              </div>
-
-              {row.strand ? (
-                <div style={{ marginTop: 8, fontSize: 13, color: C.textPrimary }}>
-                  {row.strand}{row.subStrand ? ` · ${row.subStrand}` : ""}
-                  {row.topic && <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{row.topic}</div>}
-                </div>
-              ) : (
-                <div style={{ marginTop: 8, fontSize: 12, color: C.textMuted, fontStyle: "italic" }}>
-                  No curriculum entry for this week yet
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 6, marginTop: 12 }}>
-                {chips.map(chip => (
-                  <StatusChip key={chip.key} chip={chip} onTap={() => navigateToChip(row, chip.key)} />
-                ))}
-              </div>
-
-              <div style={{
-                display: "flex", justifyContent: "space-between", alignItems: "center",
-                marginTop: 12, paddingTop: 12, borderTop: `1px solid ${C.border}`,
-              }}>
-                <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>
-                  {doneCount} of {chips.length} complete
-                </div>
-                <button
-                  onClick={() => navigateToChip(row, nextChip?.key ?? "assess")}
-                  style={{
-                    padding: "7px 16px", borderRadius: 8,
-                    border: allDone ? `1px solid ${C.border}` : "none",
-                    background: allDone ? C.surface : C.accent,
-                    color: allDone ? C.textMuted : "#fff",
-                    fontSize: 13, fontWeight: 600,
-                  }}
-                >
-                  {allDone ? "View →" : doneCount === 0 ? "Start →" : "Continue →"}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+const card:React.CSSProperties={background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,padding:14,boxShadow:"0 1px 3px rgba(15,23,42,.05)"};
+const muted:React.CSSProperties={fontSize:12,color:C.textMuted,margin:"4px 0",lineHeight:1.45};
+const label:React.CSSProperties={fontSize:10,fontWeight:900,letterSpacing:1.2,color:C.textMuted,marginBottom:8};
+const primary:React.CSSProperties={border:0,borderRadius:10,padding:"10px 14px",background:C.accent,color:"#fff",fontWeight:800,fontFamily:"inherit",cursor:"pointer"};
+const secondary:React.CSSProperties={border:`1px solid ${C.border}`,borderRadius:10,padding:"8px 12px",background:"#fff",color:C.textPrimary,fontWeight:800,fontFamily:"inherit",cursor:"pointer",marginTop:8};
+const nav:React.CSSProperties={width:40,height:40,borderRadius:12,border:`1px solid ${C.border}`,background:"#fff",fontSize:24,cursor:"pointer"};
+const metric:React.CSSProperties={background:"#fff",border:`1px solid ${C.border}`,borderRadius:12,padding:"10px 8px",display:"grid",gap:2,textAlign:"center",color:C.textPrimary};
+const chip:React.CSSProperties={fontSize:10,padding:"4px 7px",borderRadius:999,background:"#f1f5f9",color:"#475569",fontWeight:700};
+const attentionRow:React.CSSProperties={width:"100%",display:"flex",justifyContent:"space-between",alignItems:"center",gap:10,textAlign:"left",padding:12,borderRadius:12,border:"1px solid #fde68a",background:"#fffbeb",fontFamily:"inherit",cursor:"pointer"};
