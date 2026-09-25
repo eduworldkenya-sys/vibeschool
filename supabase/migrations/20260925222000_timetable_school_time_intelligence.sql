@@ -25,6 +25,37 @@ create unique index if not exists school_periods_school_day_number_unique
 create index if not exists school_periods_school_day_time_idx
   on public.school_periods(school_id, schedule_day, start_time, end_time);
 
+drop policy if exists school_periods_active_member_read on public.school_periods;
+create policy school_periods_active_member_read
+on public.school_periods for select to authenticated
+using (public.is_active_school_member(school_id));
+
+create or replace function public.validate_school_period_overlap()
+returns trigger
+language plpgsql
+set search_path=public
+as $
+begin
+  if exists (
+    select 1 from public.school_periods sp
+    where sp.school_id=new.school_id
+      and sp.id is distinct from new.id
+      and (sp.schedule_day=0 or new.schedule_day=0 or sp.schedule_day=new.schedule_day)
+      and sp.start_time < new.end_time
+      and sp.end_time > new.start_time
+  ) then
+    raise exception 'SCHOOL_PERIOD_OVERLAP';
+  end if;
+  return new;
+end
+$;
+
+drop trigger if exists school_period_overlap_guard on public.school_periods;
+create trigger school_period_overlap_guard
+before insert or update of school_id,schedule_day,start_time,end_time
+on public.school_periods
+for each row execute function public.validate_school_period_overlap();
+
 -- Non-teaching blocks are protected by default. Existing legacy break rows
 -- become protected without changing their labels or times.
 update public.school_periods
