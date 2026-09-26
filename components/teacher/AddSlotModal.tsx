@@ -78,6 +78,8 @@ function toFriendlyError(err: { message?: string }): string {
       return 'This class already has a lesson at this time.'
     case 'ROOM_CONFLICT':
       return 'This room is already occupied.'
+    case 'PROTECTED_SCHOOL_BLOCK':
+      return 'This time is reserved for a school activity such as break, lunch or assembly.'
     case 'INVALID_ASSIGNMENT':
       return 'You are not assigned to teach this subject for this class.'
     case 'SCHOOL_MISMATCH':
@@ -86,6 +88,11 @@ function toFriendlyError(err: { message?: string }): string {
       return 'Choose a valid day.'
     case 'INVALID_TIME_RANGE':
       return 'End time must be after start time.'
+    case 'NON_TEACHING_PERIOD':
+      return 'Choose a teaching period, not a break or school activity.'
+    case 'PERIOD_DAY_MISMATCH':
+    case 'PERIOD_TIME_MISMATCH':
+      return 'This lesson no longer matches the school bell schedule. Refresh and choose the correct period.'
     case 'INVALID_EFFECTIVE_RANGE':
       return 'Effective end date cannot be before the start date.'
     case 'UNAUTHENTICATED':

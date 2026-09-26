@@ -126,7 +126,7 @@ const NAV_ICONS: Record<string, (active: boolean) => React.ReactNode> = {
   me: (a) => <IconMe size={a ? 23 : 21} />,
 };
 
-function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
+function TwinPill({ onOpen, unread, disabled = false }: { onOpen: () => void; unread: number; disabled?: boolean }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
   const dragging = useRef(false)
@@ -135,6 +135,8 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   const pillRef = useRef<HTMLDivElement>(null)
   const moved = useRef(false)
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const greetingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const w = window.innerWidth
@@ -150,6 +152,7 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   }, [expanded])
 
   function onPointerDown(e: React.PointerEvent) {
+    if (disabled) return
     dragging.current = true
     moved.current = false
     startPointer.current = { x: e.clientX, y: e.clientY }
@@ -185,14 +188,15 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   }
 
   function onPointerUp() {
+    if (disabled) return
     dragging.current = false
     if (moved.current) return
     if (!greeted) {
       setGreeted(true)
       vibeSpeak('Vibe.')
-      setTimeout(() => {
+      greetingTimer.current = setTimeout(() => {
         setExpanded(true)
-        setTimeout(() => onOpen(), 600)
+        openTimer.current = setTimeout(() => onOpen(), 600)
       }, 500)
       return
     }
@@ -202,11 +206,18 @@ function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
       onOpen()
     } else {
       setExpanded(true)
-      setTimeout(() => onOpen(), 400)
+      openTimer.current = setTimeout(() => onOpen(), 400)
     }
   }
 
-  if (!pos) return null
+  useEffect(() => () => {
+    if (collapseTimer.current) clearTimeout(collapseTimer.current)
+    if (openTimer.current) clearTimeout(openTimer.current)
+    if (greetingTimer.current) clearTimeout(greetingTimer.current)
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel()
+  }, [])
+
+  if (!pos || disabled) return null
   const SIZE = 56
 
   return (
@@ -590,7 +601,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
           <main className="teacher-light-surface" style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84, background: "#f8fafc", color: "#111827" }}>{children}</main>
-          <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
+          <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} disabled={twinOpen} />
           <BottomNav activeId={activeId} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
           {toast && <Toast msg={toast} />}
