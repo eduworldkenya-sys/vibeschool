@@ -22,7 +22,8 @@ function routeExists(href) {
 }
 
 const teacherRoot = read('app/teacher/page.tsx')
-requireText(teacherRoot.includes('/teacher/pulse'), 'teacher root resolves to operational Today/Pulse home')
+requireText(teacherRoot.includes('PublicHeader'), 'public /teacher remains the intentional teacher marketing gateway')
+requireText(teacherRoot.includes('/teacher/pulse'), 'public teacher gateway exposes an explicit Teacher OS entry')
 
 const teacherLayout = read('app/teacher/layout.tsx')
 const teacherNavHrefs = Array.from(
@@ -35,6 +36,8 @@ for (const href of new Set(teacherNavHrefs)) {
 }
 requireText(teacherLayout.includes('BottomNav'), 'teacher layout retains mobile bottom navigation')
 requireText(teacherLayout.includes('OfflineBar'), 'teacher layout exposes network/offline state')
+requireText(teacherLayout.includes('onClick={() => router.push("/teacher/pulse")}'), 'authenticated VibeSchool brand returns to canonical Teacher OS Today home')
+requireText(!teacherLayout.includes('onClick={() => router.push("/teacher")}'), 'authenticated teacher shell cannot escape into the public teacher gateway through the brand')
 
 const notifications = read('app/teacher/notifications/page.tsx')
 requireText(notifications.includes('homework_submitted'), 'teacher inbox understands production homework notification type')
