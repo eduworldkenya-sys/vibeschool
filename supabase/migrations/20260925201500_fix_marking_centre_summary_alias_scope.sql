@@ -75,8 +75,7 @@ begin
 
   return coalesce(v_payload, jsonb_build_object('counts',jsonb_build_object(),'workload','[]'::jsonb));
 end;
-$function$
-
+$function$;
 
 revoke all on function public.exq_get_marking_centre_summary() from public;
 revoke all on function public.exq_get_marking_centre_summary() from anon;
