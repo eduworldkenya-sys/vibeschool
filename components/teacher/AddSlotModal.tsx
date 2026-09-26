@@ -167,6 +167,14 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
   useEffect(() => {
     if (isEdit) { setAssignmentsLoading(false); return }
     async function loadAssignments() {
+      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
+      const activeSchoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
+      if (schoolContextError || !activeSchoolId) {
+        setError('Connect or select your active school before adding a lesson.')
+        setAssignmentsLoading(false)
+        return
+      }
+
       const { data, error: err } = await supabase
         .from('teacher_classes')
         .select(`
@@ -178,6 +186,7 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
           subjects ( name )
         `)
         .eq('teacher_id', teacherId)
+        .eq('school_id', activeSchoolId)
 
       if (err) {
         console.error('[Timetable] failed to load teacher_classes', err)

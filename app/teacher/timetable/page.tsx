@@ -793,24 +793,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       const todayStr = nairobiDateStr()
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('school_id')
-        .eq('id', user.id)
-        .single()
+      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
 
       if (!isMounted.current) return
 
-      if (profileError) {
-        console.error('[Timetable] failed to resolve teacher school', profileError)
-        setSchoolError('Could not determine your school. Please refresh.')
-        return
-      }
-
-      const schoolId = profile?.school_id
-
-      if (!schoolId) {
-        setSchoolError('Your teacher profile is not connected to a school.')
+      const schoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
+      if (schoolContextError || !schoolId) {
+        console.error('[Timetable] failed to resolve canonical teacher school', schoolContextError)
+        setSchoolError('Connect or select your active school before opening the timetable.')
         return
       }
 

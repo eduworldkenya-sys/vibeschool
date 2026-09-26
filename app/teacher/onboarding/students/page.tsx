@@ -37,7 +37,7 @@ export default function StudentsOnboardingPage() {
     setError('')
     const valid = students.filter(s => s.name.trim())
     if (valid.length === 0) {
-      router.push('/teacher/pulse')
+      router.replace('/teacher/pulse')
       return
     }
 
@@ -93,12 +93,12 @@ export default function StudentsOnboardingPage() {
     }
 
     setLoading(false)
-    router.push('/teacher')
+    router.replace('/teacher/pulse')
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, overflowX: 'hidden', boxSizing: 'border-box' }}>
-      <div style={{ width: '100%', maxWidth: 480, minWidth: 0, background: '#fff', borderRadius: 20, padding: '24px clamp(16px,5vw,28px)', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', boxSizing: 'border-box', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: '#f0f2f5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ width: '100%', maxWidth: 480, background: '#fff', borderRadius: 20, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div style={{ width: 48, height: 48, borderRadius: 14, background: dark, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, margin: '0 auto 12px' }}>👥</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: dark }}>Add Students</div>
@@ -111,11 +111,11 @@ export default function StudentsOnboardingPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
           {students.map((s, i) => (
-            <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr) auto', gap: 8, alignItems: 'center', width: '100%', minWidth: 0 }}>
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input type="text" placeholder={`Student ${i + 1} name`} value={s.name} onChange={e => updateRow(i, 'name', e.target.value)} disabled={loading}
-                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+                style={{ flex: 2, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
               <input type="text" required aria-label={`Student ${i + 1} admission number`} placeholder="Adm. No. *" value={s.admission_number} onChange={e => updateRow(i, 'admission_number', e.target.value)} disabled={loading}
-                style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
+                style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
               {students.length > 1 && (
                 <button onClick={() => removeRow(i)} disabled={loading} style={{ background: 'none', border: 'none', color: C.error, fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
               )}
@@ -134,7 +134,7 @@ export default function StudentsOnboardingPage() {
             Skip for now
           </button>
           <button onClick={handleSave} disabled={loading} style={{ flex: 2, padding: '13px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {loading ? 'Saving…' : "Done — Go to Dashboard →"}
+            {loading ? 'Saving…' : "Done — Enter Teacher OS →"}
           </button>
         </div>
       </div>

@@ -156,7 +156,7 @@ export default function TeacherVibeConnectPage() {
   async function loadUser() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/teacher'); return }
+      if (!user) { router.replace('/teacher/pulse'); return }
       const [pRes, tRes, mRes] = await Promise.all([
         supabase.from('profiles').select('full_name, school_id, role').eq('id', user.id).single(),
         supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
@@ -164,11 +164,11 @@ export default function TeacherVibeConnectPage() {
       ])
       const p = pRes.data
       if (p) p.school_id = mRes.data?.school_id ?? tRes.data?.school_id ?? p.school_id
-      if (!p || p.role !== 'teacher') { router.push('/teacher'); return }
+      if (!p || p.role !== 'teacher') { router.replace('/teacher/pulse'); return }
       setUserId(user.id); setSchoolId(p?.school_id ?? null)
       try { await ensureVCId(user.id, p.full_name ?? 'Teacher') } catch {}
       await loadAll(user.id, p?.school_id ?? '')
-    } catch { router.push('/teacher') } finally { setLoading(false) }
+    } catch { router.replace('/teacher/pulse') } finally { setLoading(false) }
   }
 
   async function loadAll(uid: string, sid: string) {
