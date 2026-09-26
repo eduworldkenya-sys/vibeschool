@@ -333,37 +333,46 @@ export default function PulsePage() {
         } = await supabase.auth.getUser();
         if (!user || signal?.aborted) return;
 
-        const [memberRes, profileRes] = await Promise.all([
-          supabase.from("school_members").select("school_id").eq("profile_id", user.id),
+        const [schoolContextRes, profileRes] = await Promise.all([
+          supabase.rpc("get_my_teacher_school_context"),
           supabase
             .from("profiles")
-            .select("full_name,school_id,avatar_url")
+            .select("full_name,avatar_url")
             .eq("id", user.id)
-            .single(),
+            .maybeSingle(),
         ]);
         if (signal?.aborted) return;
 
-        const memberSchoolIds = Array.from(
-          new Set(
-            (memberRes.data ?? [])
-              .map((row) => row.school_id)
-              .filter(Boolean) as string[]
-          )
-        );
+        if (schoolContextRes.error) throw schoolContextRes.error;
+        const schoolContext = schoolContextRes.data as {
+          state?: "unauthenticated" | "needs_school" | "ready";
+          active_school_id?: string | null;
+          schools?: Array<{ id?: string | null; name?: string | null }>;
+        } | null;
 
-        if (memberSchoolIds.length > 1 && schools.length === 0) {
-          const { data: schoolRows } = await supabase
-            .from("schools")
-            .select("id,name")
-            .in("id", memberSchoolIds);
-          if (schoolRows) setSchools(schoolRows as { id: string; name: string }[]);
+        if (schoolContext?.state === "needs_school") {
+          router.replace("/teacher/onboarding/school");
+          return;
         }
 
+        const canonicalSchools = (schoolContext?.schools ?? [])
+          .filter((item): item is { id: string; name?: string | null } => Boolean(item.id))
+          .map((item) => ({ id: item.id, name: item.name ?? "School" }));
+        setSchools(canonicalSchools);
+
+        const canonicalSchoolId = schoolContext?.active_school_id ?? null;
+        const requestedSchoolId = activeSchoolIdRef.current;
         const schoolId =
-          activeSchoolIdRef.current ??
-          memberSchoolIds[0] ??
-          profileRes.data?.school_id ??
-          null;
+          requestedSchoolId && canonicalSchools.some((item) => item.id === requestedSchoolId)
+            ? requestedSchoolId
+            : canonicalSchoolId;
+
+        if (!schoolId) {
+          router.replace("/teacher/onboarding/school");
+          return;
+        }
+        activeSchoolIdRef.current = schoolId;
+        setActiveSchoolId(schoolId);
 
         setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
         setAvatarUrl(
@@ -388,7 +397,7 @@ export default function PulsePage() {
         fetchingRef.current = false;
       }
     },
-    [schools.length]
+    [router]
   );
 
   const handleSchoolChange = useCallback(
@@ -443,10 +452,9 @@ export default function PulsePage() {
 
   const safeTodaySlots = snap.todaySlots ?? [];
   const safeMyClasses = snap.myClasses ?? [];
-  const defaultKey = safeTodaySlots[0]
-    ? keyOf(safeTodaySlots[0].class_id, safeTodaySlots[0].subject_id)
-    : safeMyClasses[0]
-    ? keyOf(safeMyClasses[0].class_id, safeMyClasses[0].subject_id)
+  const nextAuthoritativeSlot = safeTodaySlots[0] ?? snap.tomorrowSlots?.[0] ?? null;
+  const defaultKey = nextAuthoritativeSlot
+    ? keyOf(nextAuthoritativeSlot.class_id, nextAuthoritativeSlot.subject_id)
     : "";
 
   const selectedKeyIsValid = safeMyClasses.some(
