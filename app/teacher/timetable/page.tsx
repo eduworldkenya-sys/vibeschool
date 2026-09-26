@@ -6,7 +6,6 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
-import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/ClassicTimetable'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
@@ -740,20 +739,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
   const [weeklyLoadRows,  setWeeklyLoadRows]   = useState<WeeklyLoadRow[]>([])
   const [showLoadCheck,   setShowLoadCheck]    = useState(false)
-  const [schoolDayBlocks, setSchoolDayBlocks]  = useState<SchoolDayBlock[]>([])
-  const [viewMode, setViewMode] = useState<'smart' | 'classic'>('smart')
-
-  useEffect(() => {
-    try {
-      const saved = window.localStorage.getItem('vibeschool:timetable-view')
-      if (saved === 'classic' || saved === 'smart') setViewMode(saved)
-    } catch {}
-  }, [])
-
-  const changeViewMode = useCallback((mode: 'smart' | 'classic') => {
-    setViewMode(mode)
-    try { window.localStorage.setItem('vibeschool:timetable-view', mode) } catch {}
-  }, [])
 
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
   const isMounted = useRef(true)
@@ -808,24 +793,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       const todayStr = nairobiDateStr()
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('school_id')
-        .eq('id', user.id)
-        .single()
+      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
 
       if (!isMounted.current) return
 
-      if (profileError) {
-        console.error('[Timetable] failed to resolve teacher school', profileError)
-        setSchoolError('Could not determine your school. Please refresh.')
-        return
-      }
-
-      const schoolId = profile?.school_id
-
-      if (!schoolId) {
-        setSchoolError('Your teacher profile is not connected to a school.')
+      const schoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
+      if (schoolContextError || !schoolId) {
+        console.error('[Timetable] failed to resolve canonical teacher school', schoolContextError)
+        setSchoolError('Connect or select your active school before opening the timetable.')
         return
       }
 
@@ -884,42 +859,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       })
 
       setAllSlots(mapped)
-
-      // Canonical school-day blocks power the optional Classic projection.
-      // The direct-table fallback keeps the existing timetable functional
-      // during a rolling deploy before the new read RPC is available.
-      const blocksRpc = await (supabase as any).rpc('get_my_school_day_blocks')
-      if (!isMounted.current) return
-      if (!blocksRpc.error) {
-        setSchoolDayBlocks((blocksRpc.data ?? []).map((b: any) => ({
-          id: b.id,
-          scheduleDay: Number(b.schedule_day ?? 0),
-          periodNumber: Number(b.period_number),
-          label: b.label,
-          startTime: b.start_time,
-          endTime: b.end_time,
-          kind: b.kind,
-          protected: Boolean(b.protected),
-        })))
-      } else {
-        const legacy = await supabase
-          .from('school_periods')
-          .select('id,period_number,label,start_time,end_time,kind')
-          .eq('school_id', schoolId)
-          .order('start_time', { ascending: true })
-        if (!legacy.error && isMounted.current) {
-          setSchoolDayBlocks((legacy.data ?? []).map((b: any) => ({
-            id: b.id,
-            scheduleDay: 0,
-            periodNumber: Number(b.period_number),
-            label: b.label,
-            startTime: b.start_time,
-            endTime: b.end_time,
-            kind: b.kind,
-            protected: b.kind !== 'lesson',
-          })))
-        }
-      }
 
 
     } catch (err) {
@@ -1183,39 +1122,6 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
 
-      <div className="no-print" style={{display:'flex',justifyContent:'flex-end',marginBottom:14}}>
-        <div role="group" aria-label="Timetable view" style={{display:'inline-flex',padding:3,borderRadius:12,background:'var(--surface-raised, #f9fafb)',border:`1px solid ${C.border}`}}>
-          {(['smart','classic'] as const).map(mode => (
-            <button
-              key={mode}
-              type="button"
-              aria-pressed={viewMode === mode}
-              onClick={() => changeViewMode(mode)}
-              style={{
-                border:'none',borderRadius:9,padding:'7px 13px',cursor:'pointer',
-                fontFamily:'inherit',fontSize:12,fontWeight:800,
-                background:viewMode===mode?C.surface:'transparent',
-                color:viewMode===mode?C.textPrimary:C.textMuted,
-                boxShadow:viewMode===mode?'0 1px 3px rgba(0,0,0,.08)':'none',
-              }}
-            >
-              {mode === 'smart' ? 'Smart' : 'Classic'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {viewMode === 'classic' && !loading && !loadError && (
-        <div style={{marginBottom:14}}>
-          <ClassicTimetable
-            slots={allSlots}
-            blocks={schoolDayBlocks}
-            dateForDow={dateForDow}
-            onSelect={s => setSelected(s as Slot)}
-          />
-        </div>
-      )}
-
       {/* Weekly Load Check — only visible when a class+subject combo is
           off the KICD allocation target, unscheduled, or missing a target.
           Silent otherwise, same rule as the scheme page's coverage indicators. */}
@@ -1268,8 +1174,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </div>
       )}
 
-      {/* Day tabs — Smart view is the protected existing experience. */}
-      {viewMode === 'smart' && <div
+      {/* Day tabs */}
+      <div
         className="day-tabs no-print"
         style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}
       >
@@ -1313,10 +1219,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             </button>
           )
         })}
-      </div>}
+      </div>
 
       {/* Slot list */}
-      {viewMode === 'smart' && <Card>
+      <Card>
         <SectionLabel>
           {DAYS.find(d => d.dow === activeDow)?.label ?? ''}{isToday ? ' — Today' : ''}
         </SectionLabel>
@@ -1343,7 +1249,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             ))}
           </div>
         )}
-      </Card>}
+      </Card>
 
       {/* Week summary */}
       {!loading && (

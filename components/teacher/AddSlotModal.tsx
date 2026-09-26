@@ -78,8 +78,6 @@ function toFriendlyError(err: { message?: string }): string {
       return 'This class already has a lesson at this time.'
     case 'ROOM_CONFLICT':
       return 'This room is already occupied.'
-    case 'PROTECTED_SCHOOL_BLOCK':
-      return 'This time is reserved for a school activity such as break, lunch or assembly.'
     case 'INVALID_ASSIGNMENT':
       return 'You are not assigned to teach this subject for this class.'
     case 'SCHOOL_MISMATCH':
@@ -88,11 +86,6 @@ function toFriendlyError(err: { message?: string }): string {
       return 'Choose a valid day.'
     case 'INVALID_TIME_RANGE':
       return 'End time must be after start time.'
-    case 'NON_TEACHING_PERIOD':
-      return 'Choose a teaching period, not a break or school activity.'
-    case 'PERIOD_DAY_MISMATCH':
-    case 'PERIOD_TIME_MISMATCH':
-      return 'This lesson no longer matches the school bell schedule. Refresh and choose the correct period.'
     case 'INVALID_EFFECTIVE_RANGE':
       return 'Effective end date cannot be before the start date.'
     case 'UNAUTHENTICATED':
@@ -174,6 +167,14 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
   useEffect(() => {
     if (isEdit) { setAssignmentsLoading(false); return }
     async function loadAssignments() {
+      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
+      const activeSchoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
+      if (schoolContextError || !activeSchoolId) {
+        setError('Connect or select your active school before adding a lesson.')
+        setAssignmentsLoading(false)
+        return
+      }
+
       const { data, error: err } = await supabase
         .from('teacher_classes')
         .select(`
@@ -185,6 +186,7 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
           subjects ( name )
         `)
         .eq('teacher_id', teacherId)
+        .eq('school_id', activeSchoolId)
 
       if (err) {
         console.error('[Timetable] failed to load teacher_classes', err)
