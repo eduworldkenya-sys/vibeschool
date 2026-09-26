@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase'
 
 type RpcResult<T> = { data: T | null; error: { message?: string } | null }
 type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc: Rpc = (name, args) => supabase.rpc(name as never, args as never) as ReturnType<Rpc>
+const rpc: Rpc = <T>(name: string, args?: Record<string, unknown>) => supabase.rpc(name as never, args as never) as unknown as PromiseLike<RpcResult<T>>
 
 export type TwinRole = 'student' | 'teacher' | 'parent' | 'admin' | 'hq'
 
