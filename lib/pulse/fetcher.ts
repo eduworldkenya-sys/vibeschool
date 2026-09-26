@@ -460,7 +460,7 @@ export async function fetchPulseData(
 
       supabase
         .from("attendance")
-        .select("class_id,marked_at,classes(name)")
+        .select("class_id,marked_at")
         .eq("school_id", schoolId)
         .eq("teacher_id", userId)
         .order("marked_at", { ascending: false })
@@ -803,11 +803,11 @@ export async function fetchPulseData(
       subject_id: slot.subject_id,
     }));
 
-  const recentAttendanceRows = (recentAttendanceRes.data ?? []).map((row) => ({
+  const recentAttendanceRows: MarkedAttendanceRow[] = (recentAttendanceRes.data ?? []).map((row) => ({
     class_id: row.class_id,
     marked_at: row.marked_at,
-    classes: row.classes,
-  })) satisfies MarkedAttendanceRow[];
+    classes: null,
+  }));
   const recentPlanRows = (recentPlansRes.data ?? []) as LessonPlanRow[];
 
   const recentActivity: ActivityLog[] = [
