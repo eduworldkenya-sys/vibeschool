@@ -34,10 +34,6 @@
       "authority": "verified_active_hq_member_with_action_role",
       "requiredEvidence": ["auth.getUser(token)", "hq_human_members", "Founder authority required"]
     },
-    "app/api/generate-lesson-plan/route.ts": {
-      "authority": "verified_teacher_identity_and_assignment",
-      "requiredEvidence": ["auth.getUser(token)", "teacher_classes", "profile?.role !== 'teacher'", "Forbidden"]
-    },
     "app/api/create-student-account/route.ts": {
       "authority": "single_use_school_learner_claim_capability",
       "requiredEvidence": ["lookup_student_claim", "finalize_student_provisioning", "school_id"]
