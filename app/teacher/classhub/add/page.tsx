@@ -20,19 +20,24 @@ export default function AddTeacherClassPage() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace('/academy/signin?role=teacher'); return }
-      const memberships = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).eq('role', 'teacher')
+      const { data: context, error: contextError } = await supabase.rpc('get_my_teacher_school_context')
       if (cancelled) return
-      if (memberships.error) setError('Your verified school access could not be loaded.')
-      else if (!memberships.data?.length) setError('Your school must be verified before you add a class.')
-      else {
-        const schoolIds = Array.from(new Set(memberships.data.map(row => row.school_id).filter(Boolean)))
-        const schoolRows = await supabase.from('schools').select('id,name').in('id', schoolIds).order('name')
-        if (cancelled) return
-        if (schoolRows.error) setError('Your school details could not be loaded.')
-        else {
-          const available = (schoolRows.data ?? []) as SchoolOption[]
+      if (contextError) {
+        setError('Your verified school access could not be loaded.')
+      } else {
+        const schoolContext = context as {
+          active_school_id?: string | null
+          schools?: Array<{ id?: string | null; name?: string | null }>
+        } | null
+        const available = (schoolContext?.schools ?? [])
+          .filter((school): school is { id: string; name?: string | null } => Boolean(school.id))
+          .map(school => ({ id: school.id, name: school.name ?? 'School' }))
+        const activeSchoolId = schoolContext?.active_school_id ?? null
+        if (!activeSchoolId) {
+          setError('Your school must be verified before you add a class.')
+        } else {
           setSchools(available)
-          setSchoolId(available[0]?.id ?? schoolIds[0] ?? '')
+          setSchoolId(activeSchoolId)
         }
       }
       setLoading(false)
