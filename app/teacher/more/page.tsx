@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { C } from '@/components/teacher/ui'
 
 const ITEMS = [
-  { label: 'Home',         href: '/teacher',                      desc: 'Dashboard — your day at a glance'  },
+  { label: 'Today',        href: '/teacher/pulse',                desc: 'Your teaching day and next action'  },
   { label: 'Academics',    href: '/teacher/academics',            desc: 'All subjects · mastery · TPAD'     },
   { label: 'SubjectHub',   href: '/teacher/subjecthub',           desc: 'Manage your subjects'              },
   { label: 'Lesson Plans', href: '/teacher/lessonplan',           desc: 'Plan and generate lessons'         },

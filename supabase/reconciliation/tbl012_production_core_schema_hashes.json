@@ -1,48 +1,33 @@
 {
-  "schema_version": 1,
-  "source": {
-    "environment": "PRODUCTION",
-    "project_ref": "yauqsxggtuxuykcbrtzf",
-    "captured_at": "2026-08-03",
-    "target_updated_at": "2026-09-25",
-    "target_semantics": "Reviewed canonical post-migration structural target. The baseline was reconciled against production on 2026-08-31. PR #647 forward-only occurrence trigger remains included. PR #651 intentionally adds timetable allocation/release/resource identity and occurrence substitute/exception identity; those forward-only structural changes are part of the reviewed post-migration target and are not expected on production before merge. Production preflight must verify the forward delta before promotion.",
-    "scope": [
-      "school_periods",
-      "teacher_classes",
-      "timetable_slots",
-      "teaching_occurrences"
-    ],
-    "policies_excluded": true,
-    "policy_reason": "TBL-010 intentionally hardens rebuilt policies; production convergence is deferred to the approved production phase."
-  },
   "tables": {
     "school_periods": {
       "table_hash": "80b6182c4e2c655abf4e9445a230442f",
-      "columns_hash": "5ef6b895ad249cdeafc3bd28df411169",
-      "constraints_hash": "87202306a9635e4438c1aa27e4e140a7",
-      "indexes_hash": "a772d7a63816aac7ddebd46f3857bd91",
-      "triggers_hash": "d751713988987e9331980363e24189ce"
+      "columns_hash": "5eb9b0bc074bc1309aaa5eff4c77fb69",
+      "indexes_hash": "0fee0235fc3dd0315cd56dfedea6fceb",
+      "triggers_hash": "200cb8428ff7db34ff07cde2604207c3",
+      "constraints_hash": "d1a5525f986d6ac77510fb3a611c75c8"
     },
     "teacher_classes": {
       "table_hash": "80b6182c4e2c655abf4e9445a230442f",
       "columns_hash": "fd0a0a7bf8cad0222a05314293ef63f5",
-      "constraints_hash": "a55f5bd44ca0d83496cf1e07d046ed63",
       "indexes_hash": "0e6acbccc17d2e2040ab015b247ac511",
-      "triggers_hash": "bf5ed9e57c97ef5a8b7acd31675b09e5"
+      "triggers_hash": "bf5ed9e57c97ef5a8b7acd31675b09e5",
+      "constraints_hash": "a55f5bd44ca0d83496cf1e07d046ed63"
     },
     "timetable_slots": {
       "table_hash": "80b6182c4e2c655abf4e9445a230442f",
       "columns_hash": "778a53d23f1f29bcde6be0560a61ca31",
-      "constraints_hash": "fefe622370517dfda7e0333bb14f2c2c",
       "indexes_hash": "5a06f912ba4781d2786a2353e1561b3d",
-      "triggers_hash": "ef9f377008d69ccf1cb6f012c381bb2a"
+      "triggers_hash": "ae2bfdc7c592a5d63b7ba0caafebff6a",
+      "constraints_hash": "fefe622370517dfda7e0333bb14f2c2c"
     },
     "teaching_occurrences": {
       "table_hash": "80b6182c4e2c655abf4e9445a230442f",
       "columns_hash": "00a41bb099361c7a421074ef9f5cac66",
-      "constraints_hash": "a5a8d62fc7d5ca48048a144e06f51ba1",
       "indexes_hash": "a34ee9aa568c8eda740da19391459458",
-      "triggers_hash": "5efa98bf778e8fd1ebf960ca0b09d354"
+      "triggers_hash": "5efa98bf778e8fd1ebf960ca0b09d354",
+      "constraints_hash": "a5a8d62fc7d5ca48048a144e06f51ba1"
     }
-  }
+  },
+  "schema_version": 1
 }

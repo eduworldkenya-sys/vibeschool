@@ -1,5 +1,5 @@
 export const AUTH_DASHBOARDS: Record<string, string> = {
-  teacher: '/teacher',
+  teacher: '/teacher/pulse',
   parent: '/parent',
   student: '/student',
   admin: '/admin',

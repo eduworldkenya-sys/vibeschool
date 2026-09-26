@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { AUTH_DASHBOARDS, roleCanVisit, safeInternalPath } from '@/lib/auth-routing'
 
 const ROLE_CONFIG = {
-  teacher: { label: 'Teacher', destination: '/teacher', email: true },
+  teacher: { label: 'Teacher', destination: '/teacher/pulse', email: true },
   parent: { label: 'Parent', destination: '/parent', email: true },
   student: { label: 'Learner', destination: '/student', email: false },
 } as const
