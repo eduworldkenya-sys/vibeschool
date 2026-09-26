@@ -18,12 +18,12 @@ const C = {
 };
 
 const documentLinks = [
-  { label: "Curriculum", detail: "Learning outcomes and strands", href: "/teacher/curriculum" },
+  { label: "Curriculum", detail: "Learning outcomes and strands", href: "/teacher/subjecthub" },
   { label: "Scheme of Work", detail: "Term sequence and coverage", href: "/teacher/scheme" },
   { label: "Lesson Plans", detail: "Prepare the exact lesson", href: "/teacher/lessonplan" },
   { label: "Timetable", detail: "Scheduled teaching occurrences", href: "/teacher/timetable" },
   { label: "VibeLearn", detail: "Textbooks and teaching resources", href: "/teacher/vibelearn" },
-  { label: "Lesson Notes", detail: "Record of progress and remarks", href: "/teacher/progress" },
+  { label: "Progress Record", detail: "What was taught, reflection and remarks", href: "/teacher/progress" },
 ];
 
 export default function TeachTodayPage() {

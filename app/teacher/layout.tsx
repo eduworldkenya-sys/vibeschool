@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
 import { getTwinAuthorityContext, selectTwinRoleBinding } from "@/lib/twin/core";
+
 import OfflineBar from "@/components/teacher/OfflineBar";
 
 interface ToastCtx { showToast: (msg: string) => void }
@@ -543,20 +544,21 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       // hold navigation behind a full-screen loader.
       void (async () => {
         try {
-          const [authority, profileRes, teacherRes] = await Promise.all([
+          const [schoolContextRes, authority, profileRes] = await Promise.all([
+            supabase.rpc("get_my_teacher_school_context"),
             getTwinAuthorityContext(),
             supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-            supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
           ])
           if (cancelled) return
+          if (schoolContextRes.error) throw schoolContextRes.error
 
           const name = profileRes.data?.full_name ?? ""
           setFullName(name)
           const parts = name.trim().split(" ").filter(Boolean)
           setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""))
 
-          const teacherData = teacherRes.data
-          const binding = selectTwinRoleBinding(authority, "teacher", teacherData?.school_id ?? undefined)
+          const canonicalSchoolId = (schoolContextRes.data as { active_school_id?: string | null } | null)?.active_school_id ?? null
+          const binding = selectTwinRoleBinding(authority, "teacher", canonicalSchoolId ?? undefined)
           const schoolId = binding.schoolId
           if (schoolId) {
             const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle()

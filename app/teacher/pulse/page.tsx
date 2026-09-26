@@ -339,39 +339,23 @@ export default function PulsePage() {
             .from("profiles")
             .select("full_name,avatar_url")
             .eq("id", user.id)
-            .maybeSingle(),
+            .single(),
         ]);
         if (signal?.aborted) return;
-
         if (schoolContextRes.error) throw schoolContextRes.error;
+
         const schoolContext = schoolContextRes.data as {
-          state?: "unauthenticated" | "needs_school" | "ready";
           active_school_id?: string | null;
-          schools?: Array<{ id?: string | null; name?: string | null }>;
+          schools?: Array<{ id: string; name: string }>;
         } | null;
+        const authorizedSchools = Array.isArray(schoolContext?.schools) ? schoolContext.schools : [];
+        if (schools.length === 0 && authorizedSchools.length > 0) setSchools(authorizedSchools);
 
-        if (schoolContext?.state === "needs_school") {
-          router.replace("/teacher/onboarding/school");
-          return;
-        }
-
-        const canonicalSchools = (schoolContext?.schools ?? [])
-          .filter((item): item is { id: string; name?: string | null } => Boolean(item.id))
-          .map((item) => ({ id: item.id, name: item.name ?? "School" }));
-        setSchools(canonicalSchools);
-
-        const canonicalSchoolId = schoolContext?.active_school_id ?? null;
         const requestedSchoolId = activeSchoolIdRef.current;
         const schoolId =
-          requestedSchoolId && canonicalSchools.some((item) => item.id === requestedSchoolId)
+          requestedSchoolId && authorizedSchools.some((row) => row.id === requestedSchoolId)
             ? requestedSchoolId
-            : canonicalSchoolId;
-
-        if (!schoolId) {
-          router.replace("/teacher/onboarding/school");
-          return;
-        }
-        activeSchoolIdRef.current = schoolId;
+            : schoolContext?.active_school_id ?? null;
         setActiveSchoolId(schoolId);
 
         setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
@@ -397,7 +381,7 @@ export default function PulsePage() {
         fetchingRef.current = false;
       }
     },
-    [router]
+    [schools.length]
   );
 
   const handleSchoolChange = useCallback(
@@ -452,9 +436,10 @@ export default function PulsePage() {
 
   const safeTodaySlots = snap.todaySlots ?? [];
   const safeMyClasses = snap.myClasses ?? [];
-  const nextAuthoritativeSlot = safeTodaySlots[0] ?? snap.tomorrowSlots?.[0] ?? null;
-  const defaultKey = nextAuthoritativeSlot
-    ? keyOf(nextAuthoritativeSlot.class_id, nextAuthoritativeSlot.subject_id)
+  const defaultKey = safeTodaySlots[0]
+    ? keyOf(safeTodaySlots[0].class_id, safeTodaySlots[0].subject_id)
+    : safeMyClasses[0]
+    ? keyOf(safeMyClasses[0].class_id, safeMyClasses[0].subject_id)
     : "";
 
   const selectedKeyIsValid = safeMyClasses.some(
