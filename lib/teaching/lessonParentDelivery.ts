@@ -15,6 +15,7 @@ export interface LessonParentDeliveryResult {
   recipientCount: number
   insertedCount: number
   updatedCount: number
+  shared: boolean
 }
 
 interface RawLessonParentDeliveryResult {
@@ -23,6 +24,7 @@ interface RawLessonParentDeliveryResult {
   recipient_count?: unknown
   inserted_count?: unknown
   updated_count?: unknown
+  shared?: unknown
 }
 
 export class LessonParentDeliveryError extends Error {
@@ -112,13 +114,27 @@ export async function deliverLessonPlanToParents(
     )
   }
 
+  if (typeof raw.shared !== 'boolean') {
+    throw new LessonParentDeliveryError(
+      'Parent lesson delivery returned an invalid shared outcome.',
+    )
+  }
+
+  const recipientCount = requireCount(
+    raw.recipient_count,
+    'recipient_count',
+  )
+
+  if (raw.shared !== (recipientCount > 0)) {
+    throw new LessonParentDeliveryError(
+      'Parent lesson delivery returned an inconsistent recipient outcome.',
+    )
+  }
+
   return {
     lessonPlanId,
     deliveryPurpose: input.deliveryPurpose,
-    recipientCount: requireCount(
-      raw.recipient_count,
-      'recipient_count',
-    ),
+    recipientCount,
     insertedCount: requireCount(
       raw.inserted_count,
       'inserted_count',
@@ -127,5 +143,6 @@ export async function deliverLessonPlanToParents(
       raw.updated_count,
       'updated_count',
     ),
+    shared: raw.shared,
   }
 }

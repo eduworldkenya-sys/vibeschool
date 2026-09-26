@@ -238,7 +238,11 @@ export async function saveGeneratedLessonPlan({
   }
 }
 
-/** Updates teacher-edited text without changing source or occurrence identity. */
+/**
+ * Updates teacher-edited text without changing source or occurrence identity.
+ * Any content revision reopens the plan as draft so stale delivery evidence
+ * cannot make revised text look already published/shared.
+ */
 export async function updateLessonPlanBody({
   lessonPlanId,
   body,
@@ -254,7 +258,7 @@ export async function updateLessonPlanBody({
 
   const { data, error } = await supabase
     .from('lesson_plans')
-    .update({ body, title, updated_at: new Date().toISOString() })
+    .update({ body, title, status: 'draft', updated_at: new Date().toISOString() })
     .eq('id', lessonPlanId)
     .eq('teacher_id', user.id)
     .select('id')
