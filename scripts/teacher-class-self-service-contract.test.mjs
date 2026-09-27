@@ -25,7 +25,9 @@ assert.match(optionalClassMigration, /'state','ready','destination','\/teacher\/
 assert.doesNotMatch(optionalClassMigration, /TEACHER_CLASS_REQUIRED/)
 assert.doesNotMatch(optionalClassMigration, /'state','needs_class'/)
 
-assert.match(form, /\.from\('subjects'\)\.select\('name'\)\.is\('school_id', null\)/)
+assert.match(form, /get_allowed_teaching_levels/i)
+assert.match(form, /get_allowed_teaching_subjects/i)
+assert.doesNotMatch(form, /\.from\('subjects'\)\.select\('name'\)\.is\('school_id', null\)/)
 assert.doesNotMatch(form, /TEACHER_SUBJECTS/)
 assert.match(form, /create_teacher_class_assignment/)
 assert.match(form, /class_teacher/)
