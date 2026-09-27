@@ -58,6 +58,12 @@ function perfMeta(value: string) {
   return PERFORMANCE_OPTIONS.find(p => p.value === value) ?? PERFORMANCE_OPTIONS[1]
 }
 
+function activeTeacherSchoolId(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null
+  const schoolId = Reflect.get(value, 'active_school_id')
+  return typeof schoolId === 'string' && schoolId.length > 0 ? schoolId : null
+}
+
 // Aggregate: most frequent performance level wins; tie goes to higher level
 function aggregatePerf(entries: Assessment[]): string | null {
   if (entries.length === 0) return null
@@ -164,16 +170,17 @@ function AssessmentInner() {
     if (authErr || !user) { setError('Not signed in.'); setLoading(false); return }
     setTeacherId(user.id)
 
-    const [profileRes, teacherProfileRes, memberRes] = await Promise.all([
-      supabase.from('profiles').select('school_id').eq('id', user.id).maybeSingle(),
-      supabase.from('teacher_profiles').select('school_id').eq('profile_id', user.id).maybeSingle(),
-      supabase.from('school_members').select('school_id').eq('profile_id', user.id).maybeSingle(),
-    ])
-    if (profileRes.error) { setError(profileRes.error.message); setLoading(false); return }
-    const sid: string | null = memberRes.data?.school_id ?? teacherProfileRes.data?.school_id ?? profileRes.data?.school_id ?? null
+    const schoolContextRes = await supabase.rpc('get_my_teacher_school_context')
+    if (schoolContextRes.error) { setError(schoolContextRes.error.message); setLoading(false); return }
+    const sid = activeTeacherSchoolId(schoolContextRes.data)
     setSchoolId(sid)
+    if (!sid) { setLoading(false); return }
 
-    const tcRes = await supabase.from('teacher_classes').select('class_id, subject_id').eq('teacher_id', user.id)
+    const tcRes = await supabase
+      .from('teacher_classes')
+      .select('class_id, subject_id')
+      .eq('teacher_id', user.id)
+      .eq('school_id', sid)
     if (tcRes.error) { setError(tcRes.error.message); setLoading(false); return }
 
     const rows = tcRes.data ?? []
@@ -183,9 +190,9 @@ function AssessmentInner() {
     if (classIds.length === 0) { setLoading(false); return }
 
     const [classesRes, subjectsRes] = await Promise.all([
-      supabase.from('classes').select('id, name, stream').in('id', classIds),
+      supabase.from('classes').select('id, name, stream').eq('school_id', sid).in('id', classIds),
       subjectIds.length > 0
-        ? supabase.from('subjects').select('id, name').in('id', subjectIds)
+        ? supabase.from('subjects').select('id, name').eq('school_id', sid).in('id', subjectIds)
         : Promise.resolve({ data: [], error: null }),
     ])
 
