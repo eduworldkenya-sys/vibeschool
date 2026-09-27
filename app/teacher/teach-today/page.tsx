@@ -26,6 +26,12 @@ const documentLinks = [
   { label: "Progress Record", detail: "What was taught, reflection and remarks", href: "/teacher/progress" },
 ];
 
+function activeTeacherSchoolId(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+  const activeSchoolId = Reflect.get(value, "active_school_id");
+  return typeof activeSchoolId === "string" && activeSchoolId.length > 0 ? activeSchoolId : null;
+}
+
 export default function TeachTodayPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -48,14 +54,14 @@ export default function TeachTodayPage() {
         return;
       }
 
-      const [memberRes, profileRes] = await Promise.all([
-        supabase.from("school_members").select("school_id").eq("profile_id", user.id).maybeSingle(),
-        supabase.from("profiles").select("full_name, school_id").eq("id", user.id).single(),
+      const [schoolContextRes, profileRes] = await Promise.all([
+        supabase.rpc("get_my_teacher_school_context"),
+        supabase.from("profiles").select("full_name").eq("id", user.id).single(),
       ]);
-      if (memberRes.error) throw memberRes.error;
+      if (schoolContextRes.error) throw schoolContextRes.error;
       if (profileRes.error) throw profileRes.error;
 
-      const schoolId = memberRes.data?.school_id ?? profileRes.data?.school_id;
+      const schoolId = activeTeacherSchoolId(schoolContextRes.data);
       if (!schoolId) throw new Error("school_context_missing");
 
       const snapshot = await fetchPulseData(user.id, schoolId, null);
