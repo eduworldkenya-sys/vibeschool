@@ -4,7 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DELIVERY = (ROOT / 'lib/teaching/lessonDelivery.ts').read_text(encoding='utf-8')
 PARENT = (ROOT / 'lib/teaching/lessonParentDelivery.ts').read_text(encoding='utf-8')
-MIGRATION = (ROOT / 'supabase/migrations/20260903233000_lesson_plan_delivery_state_hardening.sql').read_text(encoding='utf-8')
+MIGRATION = (ROOT / 'supabase/migrations/20260927170142_lesson_plan_delivery_state_hardening.sql').read_text(encoding='utf-8')
 
 
 def require(condition: bool, message: str) -> None:
