@@ -17,7 +17,7 @@ type TeacherSchoolContext = {
 
 const LOAD_TIMEOUT_MS = 12000
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined
   try {
     return await Promise.race([
