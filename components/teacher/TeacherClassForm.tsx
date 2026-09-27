@@ -41,7 +41,9 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     setError('')
     void (async () => {
       try {
-        const { data, error: rpcError } = await supabase.rpc('get_allowed_teaching_levels' as never, { p_school_id: schoolId } as never) as any
+        const result = await supabase.rpc('get_allowed_teaching_levels' as never, { p_school_id: schoolId } as never)
+        const data = result.data as LevelAuthority | null
+        const rpcError = result.error
         if (cancelled) return
         if (rpcError) {
           setAuthorityState('error')
@@ -75,7 +77,9 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     setSubjectsLoading(true)
     void (async () => {
       try {
-        const { data, error: rpcError } = await supabase.rpc('get_allowed_teaching_subjects' as never, { p_school_id: schoolId, p_grade: grade } as never) as any
+        const result = await supabase.rpc('get_allowed_teaching_subjects' as never, { p_school_id: schoolId, p_grade: grade } as never)
+        const data = result.data as SubjectAuthority | null
+        const rpcError = result.error
         if (cancelled) return
         if (rpcError) {
           setError('Subjects could not be resolved for this level. Choose another level or retry.')
