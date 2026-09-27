@@ -5,6 +5,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DELIVERY = (ROOT / 'lib/teaching/lessonDelivery.ts').read_text(encoding='utf-8')
 PARENT = (ROOT / 'lib/teaching/lessonParentDelivery.ts').read_text(encoding='utf-8')
 MIGRATION = (ROOT / 'supabase/migrations/20260927170142_lesson_plan_delivery_state_hardening.sql').read_text(encoding='utf-8')
+PRIVACY_REPAIR = (ROOT / 'supabase/migrations/20260927170430_lesson_plan_delivery_privacy_forward_repair.sql').read_text(encoding='utf-8')
 
 
 def require(condition: bool, message: str) -> None:
@@ -42,6 +43,13 @@ def main() -> int:
     require("'shared', v_recipient_count > 0" in MIGRATION, 'parent RPC reports truthful shared outcome')
     require('revoke all on function public.publish_lesson_plan_to_students' in MIGRATION, 'learner publication RPC denies public/anon')
     require('grant execute on function public.publish_lesson_plan_to_students' in MIGRATION, 'learner publication RPC is authenticated-only')
+    require("published_at = coalesce(published_at, clock_timestamp())" in PRIVACY_REPAIR, 'learner publication records durable publication evidence')
+    require('new.published_at := null' in PRIVACY_REPAIR, 'material revision clears stale learner publication evidence')
+    require('drop policy if exists lesson_plans_student_read' in PRIVACY_REPAIR, 'stale learner read policy is replaced')
+    require("status in ('published', 'shared_to_parents')" in PRIVACY_REPAIR, 'learner read requires delivered status')
+    require('published_at is not null' in PRIVACY_REPAIR, 'learner read requires durable publication evidence')
+    require('sc.school_id = lesson_plans.school_id' in PRIVACY_REPAIR, 'learner read is school scoped')
+    require('sc.class_id = lesson_plans.class_id' in PRIVACY_REPAIR, 'learner read is class scoped')
 
     print('Lesson delivery state hardening contract tests PASSED')
     return 0
