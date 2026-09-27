@@ -5,9 +5,11 @@ on:
     paths:
       - 'app/teacher/classhub/**'
       - 'app/teacher/onboarding/class/page.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
       - 'components/teacher/TeacherClassForm.tsx'
       - 'lib/teacher/classOptions.ts'
       - 'supabase/migrations/20260902095200_teacher_class_self_service_current.sql'
+      - 'supabase/migrations/20260927214500_teacher_context_authority_reconciliation.sql'
       - 'scripts/teacher-class-self-service-contract.test.mjs'
       - '.github/workflows/teacher-class-self-service.yml'
   push:
@@ -15,9 +17,11 @@ on:
     paths:
       - 'app/teacher/classhub/**'
       - 'app/teacher/onboarding/class/page.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
       - 'components/teacher/TeacherClassForm.tsx'
       - 'lib/teacher/classOptions.ts'
       - 'supabase/migrations/20260902095200_teacher_class_self_service_current.sql'
+      - 'supabase/migrations/20260927214500_teacher_context_authority_reconciliation.sql'
       - 'scripts/teacher-class-self-service-contract.test.mjs'
       - '.github/workflows/teacher-class-self-service.yml'
 

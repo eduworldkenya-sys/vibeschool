@@ -105,15 +105,13 @@ function Inner() {
     try {
       const auth=await supabase.auth.getUser(); if(auth.error) throw auth.error; if(!auth.data.user) throw new Error('Not signed in')
       const user=auth.data.user; setUid(user.id)
-      const [tp,sm,p,tc]=await Promise.all([
-        supabase.from('teacher_profiles').select('school_id').eq('profile_id',user.id).maybeSingle(),
-        supabase.from('school_members').select('school_id').eq('profile_id',user.id).maybeSingle(),
-        supabase.from('profiles').select('school_id').eq('id',user.id).maybeSingle(),
-        supabase.from('teacher_classes').select('class_id,subject_id').eq('teacher_id',user.id),
-      ])
-      const e=tp.error||sm.error||p.error||tc.error; if(e) throw e
-      const sid=(sm.data&&sm.data.school_id)||(tp.data&&tp.data.school_id)||(p.data&&p.data.school_id); if(!sid) throw new Error('Teacher school could not be resolved')
-      setSchoolId(sid); const ps=tc.data||[]; if(!ps.length) throw new Error('No teaching assignments configured'); setPairs(ps)
+      const context=await supabase.rpc('teacher_get_operating_context')
+      if(context.error) throw context.error
+      const operating=context.data||{}
+      const sid=operating.school_id||null
+      if(!sid) throw new Error('Teacher school could not be resolved')
+      const ps=(operating.classes||[]).map(x=>({class_id:x.class_id,subject_id:x.subject_id}))
+      setSchoolId(sid); if(!ps.length) throw new Error('No teaching assignments configured'); setPairs(ps)
       const classIds=unique(ps.map(x=>x.class_id)); const subjectIds=unique(ps.map(x=>x.subject_id))
       const [cr,sr,tr,calendar]=await Promise.all([
         supabase.from('classes').select('id,name,stream').in('id',classIds).eq('school_id',sid),
