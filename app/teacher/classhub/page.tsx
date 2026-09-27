@@ -7,8 +7,8 @@ import { C } from '@/components/teacher/ui'
 
 export const dynamic = 'force-dynamic'
 
-type TeacherClassRow = { class_id: string; is_class_teacher: boolean | null }
-type ClassRow = { id: string; name: string; stream: string | null; subject: string | null }
+type OperatingAssignment = { class_id: string; class_name: string; stream: string | null; subject_name: string }
+type ClassRow = { id: string; name: string; stream: string | null; subjects: string[] }
 
 export default function ClassHubPage() {
   const router = useRouter()
@@ -31,28 +31,33 @@ export default function ClassHubPage() {
         return
       }
 
-      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
-      const activeSchoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
-      if (schoolContextError || !activeSchoolId) {
+      const { data: operatingData, error: operatingError } = await supabase.rpc('teacher_get_operating_context')
+      const operating = operatingData as { school_id?: string | null; classes?: OperatingAssignment[] } | null
+      const activeSchoolId = operating?.school_id ?? null
+      if (operatingError || !activeSchoolId) {
         if (!cancelled) { setError('Connect or select your active school before opening classes.'); setLoading(false) }
         return
       }
 
-      const { data: assignments, error: assignmentError } = await supabase
-        .from('teacher_classes')
-        .select('class_id,is_class_teacher')
-        .eq('teacher_id', user.id)
-        .eq('school_id', activeSchoolId)
-
-      if (assignmentError) {
-        if (!cancelled) {
-          setError('We could not load your classes. Please try again.')
-          setLoading(false)
+      const assignments = operating?.classes ?? []
+      const byClass = new Map<string, ClassRow>()
+      for (const row of assignments) {
+        const existing = byClass.get(row.class_id)
+        if (existing) {
+          if (row.subject_name && !existing.subjects.includes(row.subject_name)) existing.subjects.push(row.subject_name)
+        } else {
+          byClass.set(row.class_id, {
+            id: row.class_id,
+            name: row.class_name,
+            stream: row.stream,
+            subjects: row.subject_name ? [row.subject_name] : [],
+          })
         }
-        return
       }
-
-      const classIds = Array.from(new Set(((assignments ?? []) as TeacherClassRow[]).map(row => row.class_id).filter(Boolean)))
+      const nextClasses = Array.from(byClass.values()).sort((a, b) =>
+        `${a.name} ${a.stream ?? ''}`.localeCompare(`${b.name} ${b.stream ?? ''}`)
+      )
+      const classIds = nextClasses.map(row => row.id)
       if (classIds.length === 0) {
         if (!cancelled) {
           setClasses([])
@@ -62,18 +67,11 @@ export default function ClassHubPage() {
         return
       }
 
-      const [classResult, enrollmentResult] = await Promise.all([
-        supabase.from('classes').select('id,name,stream,subject').in('id', classIds).order('name'),
-        supabase.from('student_classes').select('class_id').in('class_id', classIds).eq('is_current', true),
-      ])
-
-      if (classResult.error) {
-        if (!cancelled) {
-          setError('We found your class assignments but could not load the class details.')
-          setLoading(false)
-        }
-        return
-      }
+      const enrollmentResult = await supabase
+        .from('student_classes')
+        .select('class_id')
+        .in('class_id', classIds)
+        .eq('is_current', true)
 
       const nextCounts: Record<string, number> = {}
       for (const row of enrollmentResult.data ?? []) {
@@ -81,7 +79,7 @@ export default function ClassHubPage() {
       }
 
       if (!cancelled) {
-        setClasses((classResult.data ?? []) as ClassRow[])
+        setClasses(nextClasses)
         setCounts(nextCounts)
         setLoading(false)
       }
@@ -128,7 +126,7 @@ export default function ClassHubPage() {
           {classes.map(cls => (
             <section key={cls.id} style={{ width: '100%', padding: 16, border: `1px solid ${C.border}`, borderRadius: 18, background: C.bg, color: C.textPrimary }}>
               <div style={{ fontSize: 17, fontWeight: 900 }}>{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</div>
-              <div style={{ marginTop: 5, color: C.textMuted, fontSize: 13 }}>{cls.subject || 'Class workspace'} · {counts[cls.id] ?? 0} current students</div>
+              <div style={{ marginTop: 5, color: C.textMuted, fontSize: 13 }}>{cls.subjects.length ? cls.subjects.join(', ') : 'Class workspace'} · {counts[cls.id] ?? 0} current students</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
                 <button type="button" onClick={() => router.push(`/teacher/classhub/${cls.id}`)} style={{ minHeight: 44, border: `1px solid ${C.border}`, borderRadius: 12, background: '#fff', color: C.textPrimary, fontWeight: 900, cursor: 'pointer', font: 'inherit' }}>Open class</button>
                 <button type="button" onClick={() => router.push(`/teacher/classhub/${cls.id}/progress`)} style={{ minHeight: 44, border: 0, borderRadius: 12, background: '#111827', color: '#fff', fontWeight: 900, cursor: 'pointer', font: 'inherit' }}>Student progress</button>
