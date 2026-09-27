@@ -9,9 +9,6 @@ import {
 import {
   deliverLessonPlanToParents,
 } from '@/lib/teaching/lessonParentDelivery'
-import {
-  updateLessonPlanStatus,
-} from '@/lib/teaching/lessonRepository'
 import type {
   LessonPlanSections,
 } from '@/lib/teaching/lessonPlanCodec'
@@ -22,6 +19,31 @@ import {
   evaluateLessonReadiness,
 } from '@/lib/teaching/lessonReadiness'
 
+export type LessonDeliveryErrorCode =
+  | 'authority_mismatch'
+  | 'not_ready'
+  | 'no_parent_recipients'
+  | 'publish_failed'
+  | 'parent_delivery_failed'
+
+export class LessonDeliveryError extends Error {
+  readonly code: LessonDeliveryErrorCode
+  readonly reasons: string[]
+  readonly cause?: unknown
+
+  constructor(
+    code: LessonDeliveryErrorCode,
+    message: string,
+    options?: { reasons?: string[]; cause?: unknown },
+  ) {
+    super(message)
+    this.name = 'LessonDeliveryError'
+    this.code = code
+    this.reasons = options?.reasons ?? []
+    this.cause = options?.cause
+  }
+}
+
 export interface PublishLessonToStudentsInput {
   lessonPlanId: string
   schoolId: string
@@ -29,6 +51,12 @@ export interface PublishLessonToStudentsInput {
   subject: string
   teacherName: string
   students: LessonContextStudent[]
+}
+
+export interface PublishLessonResult {
+  lessonPlanId: string
+  published: true
+  recipientCount: number
 }
 
 export interface ShareLessonToParentsInput {
@@ -39,6 +67,59 @@ export interface ShareLessonToParentsInput {
   subject: string
   topic: string
   sections: LessonPlanSections
+}
+
+export interface ShareLessonResult {
+  lessonPlanId: string
+  shared: true
+  recipientCount: number
+  insertedCount: number
+  updatedCount: number
+  homeworkOutcome: 'not_required' | 'created_or_preserved'
+  exerciseOutcome: 'not_required' | 'created_or_preserved'
+}
+
+interface RawPublishLessonResult {
+  lesson_plan_id?: unknown
+  published?: unknown
+  recipient_count?: unknown
+}
+
+function requireCount(value: unknown, field: string): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    value < 0
+  ) {
+    throw new LessonDeliveryError(
+      'publish_failed',
+      `Lesson delivery returned an invalid ${field}.`,
+    )
+  }
+  return value
+}
+
+export function lessonDeliveryErrorMessage(error: unknown): string {
+  if (!(error instanceof LessonDeliveryError)) {
+    return 'The lesson could not be delivered. Please try again.'
+  }
+
+  if (error.code === 'not_ready') {
+    const details = error.reasons.slice(0, 4).join(' ')
+    return details
+      ? `This lesson is still a draft. ${details}`
+      : 'This lesson is still a draft and is not ready to deliver.'
+  }
+
+  if (error.code === 'authority_mismatch') {
+    return 'This lesson no longer matches your current school or teaching assignment. Reopen it from the timetable.'
+  }
+
+  if (error.code === 'no_parent_recipients') {
+    return 'No active parent recipients are linked to this class yet. Nothing was marked as shared.'
+  }
+
+  return error.message
 }
 
 async function assertLessonReadyForDelivery(
@@ -53,22 +134,27 @@ async function assertLessonReadyForDelivery(
 
   if (error) throw error
   if (!data || data.school_id !== expectedSchoolId) {
-    throw new Error('lesson_delivery_authority_mismatch')
+    throw new LessonDeliveryError(
+      'authority_mismatch',
+      'Lesson delivery authority no longer matches this school.',
+    )
   }
 
   const readiness = evaluateLessonReadiness(data.body ?? '')
   if (!readiness.ready) {
-    throw new Error(
-      `lesson_not_ready_for_delivery:${readiness.reasons.join(' | ')}`,
+    throw new LessonDeliveryError(
+      'not_ready',
+      'Lesson plan is not ready for delivery.',
+      { reasons: readiness.reasons },
     )
   }
 }
 
 /**
- * Publishes the lesson and notifies linked learner profiles.
- * The lesson-plan repository remains the only lesson_plans write boundary.
- * Notification identity is unique by learner + type + related lesson, making
- * the consequence delivery safe to retry after a transient failure.
+ * Atomically publishes the lesson and writes learner notifications in the
+ * database. The client-provided students collection is intentionally not used
+ * as authority; the RPC resolves current enrollment from student_classes.
+ * recipientCount describes linked learner profiles notified by this publish.
  */
 export async function publishLessonToStudents({
   lessonPlanId,
@@ -76,44 +162,56 @@ export async function publishLessonToStudents({
   topic,
   subject,
   teacherName,
-  students,
-}: PublishLessonToStudentsInput): Promise<void> {
+}: PublishLessonToStudentsInput): Promise<PublishLessonResult> {
   await assertLessonReadyForDelivery(lessonPlanId, schoolId)
-  await updateLessonPlanStatus({ lessonPlanId, status: 'published' })
 
-  const linkedStudents = students.filter(
-    (student): student is LessonContextStudent & { profile_id: string } =>
-      typeof student.profile_id === 'string' && student.profile_id.length > 0,
+  const { data, error } = await supabase.rpc(
+    'publish_lesson_plan_to_students',
+    {
+      p_lesson_plan_id: lessonPlanId,
+      p_expected_school_id: schoolId,
+      p_topic: topic,
+      p_subject: subject,
+      p_teacher_name: teacherName,
+    },
   )
 
-  if (linkedStudents.length === 0) return
-
-  const { error } = await supabase
-    .from('notifications')
-    .upsert(
-      linkedStudents.map(student => ({
-        school_id: schoolId || null,
-        user_id: student.profile_id,
-        title: 'New Lesson: ' + topic,
-        body: subject + ' lesson plan published by ' + teacherName,
-        type: 'lesson_plan',
-        related_id: lessonPlanId,
-      })),
-      {
-        onConflict: 'user_id,type,related_id',
-        ignoreDuplicates: true,
-      },
+  if (error) {
+    throw new LessonDeliveryError(
+      'publish_failed',
+      error.message || 'Publishing the lesson failed.',
+      { cause: error },
     )
+  }
 
-  if (error) throw error
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    throw new LessonDeliveryError(
+      'publish_failed',
+      'Publishing returned an invalid result.',
+    )
+  }
+
+  const raw = data as RawPublishLessonResult
+  if (raw.lesson_plan_id !== lessonPlanId || raw.published !== true) {
+    throw new LessonDeliveryError(
+      'publish_failed',
+      'Publishing returned the wrong lesson identity.',
+    )
+  }
+
+  return {
+    lessonPlanId,
+    published: true,
+    recipientCount: requireCount(raw.recipient_count, 'recipient_count'),
+  }
 }
 
 /**
- * Prepares lesson-owned downstream work first, then delivers the parent summary
- * and finally advances publication state. Draft creation is idempotent, so a
- * failed parent delivery can be retried without duplicating or overwriting
- * teacher work. Parent delivery therefore never claims a synchronized lesson
- * before its homework/exercise lineage has been established.
+ * Prepares lesson-owned downstream work first, then performs canonical parent
+ * delivery. Homework/exercise draft creation is idempotent and preserves
+ * teacher edits. The database only stamps parent sharing when at least one
+ * active recipient is materialized, so zero recipients can never masquerade
+ * as a successful share.
  */
 export async function shareLessonToParents({
   lessonPlanId,
@@ -123,8 +221,11 @@ export async function shareLessonToParents({
   subject,
   topic,
   sections,
-}: ShareLessonToParentsInput): Promise<void> {
+}: ShareLessonToParentsInput): Promise<ShareLessonResult> {
   await assertLessonReadyForDelivery(lessonPlanId, schoolId)
+
+  let homeworkOutcome: ShareLessonResult['homeworkOutcome'] = 'not_required'
+  let exerciseOutcome: ShareLessonResult['exerciseOutcome'] = 'not_required'
 
   if (sections.homework.trim() !== '') {
     const homeworkResult = await ensureLessonHomeworkDraft({
@@ -137,6 +238,8 @@ export async function shareLessonToParents({
       instructions: sections.homework.trim(),
       suggestedDueDate: nairobiDateAdd(nairobiDateStr(), 1),
     })
+
+    homeworkOutcome = 'created_or_preserved'
 
     if (homeworkResult.outcome === 'preserved_existing') {
       console.info(
@@ -155,6 +258,8 @@ export async function shareLessonToParents({
       title: topic + ' — In-Class Exercise',
       instructions: sections.consolidation.trim(),
     })
+
+    exerciseOutcome = 'created_or_preserved'
 
     if (exerciseResult.outcome === 'preserved_existing') {
       console.info(
@@ -175,24 +280,36 @@ export async function shareLessonToParents({
     .filter(Boolean)
     .join('\n')
 
-  const deliveryResult = await deliverLessonPlanToParents({
-    lessonPlanId,
-    deliveryPurpose: 'lesson_summary',
-    subject: subject + ' — Lesson: ' + topic,
-    body: summary,
-  })
-
-  if (deliveryResult.recipientCount === 0) {
-    console.info(
-      '[lessonDelivery] lesson parent delivery had no active recipients',
+  let deliveryResult
+  try {
+    deliveryResult = await deliverLessonPlanToParents({
       lessonPlanId,
+      deliveryPurpose: 'lesson_summary',
+      subject: subject + ' — Lesson: ' + topic,
+      body: summary,
+    })
+  } catch (error) {
+    throw new LessonDeliveryError(
+      'parent_delivery_failed',
+      error instanceof Error ? error.message : 'Parent lesson delivery failed.',
+      { cause: error },
     )
   }
 
-  // assessmentHook remains stored in lesson_plans.body. No learner score is
-  // created here because assessment evidence must come from actual teaching.
-  await updateLessonPlanStatus({
+  if (deliveryResult.recipientCount === 0 || !deliveryResult.shared) {
+    throw new LessonDeliveryError(
+      'no_parent_recipients',
+      'No active parent recipients are linked to this class.',
+    )
+  }
+
+  return {
     lessonPlanId,
-    status: 'shared_to_parents',
-  })
+    shared: true,
+    recipientCount: deliveryResult.recipientCount,
+    insertedCount: deliveryResult.insertedCount,
+    updatedCount: deliveryResult.updatedCount,
+    homeworkOutcome,
+    exerciseOutcome,
+  }
 }
