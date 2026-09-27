@@ -54,12 +54,17 @@ export default function ClassOnboardingPage() {
         return
       }
 
-      const { data: contextData, error: contextError } = await withTimeout(
-        supabase.rpc('get_my_teacher_school_context').then(result => result),
-        LOAD_TIMEOUT_MS,
-      )
+      const controller = new AbortController()
+      const rpcTimeout = window.setTimeout(() => controller.abort('teacher_class_setup_timeout'), LOAD_TIMEOUT_MS)
+      const { data: contextData, error: contextError } = await supabase
+        .rpc('get_my_teacher_school_context')
+        .abortSignal(controller.signal)
+      window.clearTimeout(rpcTimeout)
       if (currentRequest !== requestId.current) return
-      if (contextError) throw contextError
+      if (contextError) {
+        if (controller.signal.aborted) throw new Error('teacher_class_setup_timeout')
+        throw contextError
+      }
 
       const context = contextData as TeacherSchoolContext | null
       if (!context || context.state === 'unauthenticated') {
