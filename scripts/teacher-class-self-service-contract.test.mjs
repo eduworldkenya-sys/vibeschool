@@ -8,7 +8,7 @@ const classHub = fs.readFileSync('app/teacher/classhub/page.tsx', 'utf8')
 const addPage = fs.readFileSync('app/teacher/classhub/add/page.tsx', 'utf8')
 const onboarding = fs.readFileSync('app/teacher/onboarding/class/page.tsx', 'utf8')
 const scheme = fs.readFileSync('app/teacher/scheme/AuthoritySchemePage.jsx', 'utf8')
-const reconciliation = fs.readFileSync('supabase/migrations/20260927214500_teacher_context_authority_reconciliation.sql', 'utf8')
+const reconciliation = fs.readFileSync('supabase/migrations/20260927184246_teacher_context_authority_reconciliation.sql', 'utf8')
 
 assert.match(migration, /create or replace function public\.create_teacher_class_assignment/i)
 assert.match(migration, /security definer/i)
