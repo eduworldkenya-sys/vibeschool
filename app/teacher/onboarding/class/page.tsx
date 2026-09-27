@@ -3,6 +3,7 @@
 export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import TeacherClassForm from '@/components/teacher/TeacherClassForm'
@@ -27,13 +28,17 @@ export default function ClassOnboardingPage() {
           setError('Class setup is taking too long to load. Please retry or enter Teacher OS and add a class later.')
           setLoading(false)
         }
-      }, 12000)
+      }, 7000)
       try {
         const { data: { user }, error: authError } = await supabase.auth.getUser()
         if (cancelled) return
-        if (authError || !user) { router.replace('/academy/signin?role=teacher'); return }
+        if (authError || !user) {
+          setLoading(false)
+          window.location.replace('/academy/signin?role=teacher')
+          return
+        }
 
-        const memberships = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).eq('role', 'teacher')
+        const memberships = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).eq('role', 'teacher').abortSignal(AbortSignal.timeout(5000))
         if (cancelled) return
         if (memberships.error) {
           setError('Your verified school access could not be loaded.')
@@ -42,14 +47,15 @@ export default function ClassOnboardingPage() {
         }
         const ids = Array.from(new Set((memberships.data ?? []).map(row => row.school_id).filter(Boolean)))
         if (!ids.length) {
-          router.replace('/teacher/onboarding/school')
+          setLoading(false)
+          window.location.replace('/teacher/onboarding/school')
           return
         }
 
         // The class form must not be blocked by the optional active-school preference
         // RPC. Membership is the authorization boundary; render from verified membership
         // as soon as the school names arrive, then reconcile the preferred school.
-        const result = await supabase.from('schools').select('id,name').in('id', ids).order('name')
+        const result = await supabase.from('schools').select('id,name').in('id', ids).order('name').abortSignal(AbortSignal.timeout(5000))
         if (cancelled) return
         if (result.error) {
           setError('Your school details could not be loaded.')
@@ -124,7 +130,7 @@ export default function ClassOnboardingPage() {
             {leavingSchool ? 'Removing school…' : 'Wrong school? Change school'}
           </button>
         )}
-        <button type="button" onClick={() => router.push('/teacher/pulse')} style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.textMuted, fontWeight: 800 }}>Skip — go to Teacher OS</button>
+        <Link href="/teacher/pulse" style={{ display: 'block', boxSizing: 'border-box', width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.textMuted, fontWeight: 800, textAlign: 'center', textDecoration: 'none' }}>Skip — go to Teacher OS</Link>
       </section>
     </main>
   )
