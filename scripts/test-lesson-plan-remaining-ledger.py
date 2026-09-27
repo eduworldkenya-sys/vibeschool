@@ -114,7 +114,7 @@ require(delivery, "'authority_mismatch'", 'delivery school authority')
 require(delivery, "'not_ready'", 'delivery fail-closed readiness')
 publish_guard = delivery.index('await assertLessonReadyForDelivery(lessonPlanId, schoolId)')
 publish_rpc = delivery.index("'publish_lesson_plan_to_students'")
-assert publish_guard < publish_rpc, 'delivery: readiness must precede atomic publication')
+assert publish_guard < publish_rpc, 'delivery: readiness must precede atomic publication'
 forbid(delivery, "status: 'published'", 'delivery must not claim publication before atomic RPC succeeds')
 share_fn = delivery.index('export async function shareLessonToParents')
 share_guard = delivery.index('await assertLessonReadyForDelivery(lessonPlanId, schoolId)', share_fn)
