@@ -101,7 +101,7 @@ for (const marker of [
   "from('parent_student_links')",
   "from('teacher_classes')",
   "from('student_classes')",
-  "rpc<boolean>('is_platform_owner')",
+  "supabase.rpc('is_platform_owner')",
   'requireTwinRole',
   'selectTwinRoleBinding',
   'authorityReadError',
