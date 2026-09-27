@@ -54,11 +54,14 @@ export default function ClassOnboardingPage() {
         return
       }
 
-      const response = await withTimeout(supabase.rpc('get_my_teacher_school_context'), LOAD_TIMEOUT_MS)
+      const { data: contextData, error: contextError } = await withTimeout(
+        supabase.rpc('get_my_teacher_school_context').then(result => result),
+        LOAD_TIMEOUT_MS,
+      )
       if (currentRequest !== requestId.current) return
-      if (response.error) throw response.error
+      if (contextError) throw contextError
 
-      const context = response.data as TeacherSchoolContext | null
+      const context = contextData as TeacherSchoolContext | null
       if (!context || context.state === 'unauthenticated') {
         router.replace('/academy/signin?role=teacher')
         return
