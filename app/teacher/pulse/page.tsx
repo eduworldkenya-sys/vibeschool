@@ -310,7 +310,6 @@ export default function PulsePage() {
   const touchStartY = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef(false);
-  const activeSchoolIdRef = useRef<string | null>(null);
 
   const boot = useCallback(
     async (isRefresh = false, signal?: AbortSignal) => {
@@ -351,11 +350,7 @@ export default function PulsePage() {
         const authorizedSchools = Array.isArray(schoolContext?.schools) ? schoolContext.schools : [];
         if (schools.length === 0 && authorizedSchools.length > 0) setSchools(authorizedSchools);
 
-        const requestedSchoolId = activeSchoolIdRef.current;
-        const schoolId =
-          requestedSchoolId && authorizedSchools.some((row) => row.id === requestedSchoolId)
-            ? requestedSchoolId
-            : schoolContext?.active_school_id ?? null;
+        const schoolId = schoolContext?.active_school_id ?? null;
         setActiveSchoolId(schoolId);
 
         setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
@@ -385,13 +380,18 @@ export default function PulsePage() {
   );
 
   const handleSchoolChange = useCallback(
-    (id: string) => {
-      activeSchoolIdRef.current = id;
-      setActiveSchoolId(id);
+    async (id: string) => {
+      const { error: switchError } = await supabase.rpc("set_my_active_teacher_school", {
+        p_school_id: id,
+      });
+      if (switchError) {
+        showToast("Could not switch school. Your current school is unchanged.");
+        return;
+      }
       setSelectedKey("");
-      void boot(true);
+      await boot(true);
     },
-    [boot]
+    [boot, showToast]
   );
 
   const handleContextChange = useCallback(
