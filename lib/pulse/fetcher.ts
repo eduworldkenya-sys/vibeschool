@@ -171,7 +171,7 @@ export async function fetchPulseData(
   // 'missed') before any occurrence-dependent read below. Awaited, but
   // non-destructive: the guard never throws, so Pulse loads whether or
   // not generation succeeded, and failures retry on the next fetch.
-  await ensureDailyOccurrences();
+  const occurrenceGuard = ensureDailyOccurrences();
 
   // Single clock read (`now`) feeds every date/day-of-week/week-start below,
   // so effective-date filtering and day-of-week filtering can never disagree
@@ -460,7 +460,7 @@ export async function fetchPulseData(
 
       supabase
         .from("attendance")
-        .select("class_id,marked_at,classes(name)")
+        .select("class_id,marked_at")
         .eq("school_id", schoolId)
         .eq("teacher_id", userId)
         .order("marked_at", { ascending: false })
@@ -557,6 +557,10 @@ export async function fetchPulseData(
   // plans or homework. Resolve each exact dated lesson through the same
   // authoritative occurrence resolver used by the timetable and lesson
   // workspace. A single failed resolution is isolated to that slot.
+  // Occurrence-dependent lifecycle reads wait for maintenance, while the independent
+  // timetable/term/class workload above is allowed to load in parallel.
+  await occurrenceGuard;
+
   const workspaceEntries = await Promise.all(
     todayBaseSlots.map(async (slot): Promise<
       readonly [string, TeachingWorkspace | null]
@@ -799,8 +803,11 @@ export async function fetchPulseData(
       subject_id: slot.subject_id,
     }));
 
-  const recentAttendanceRows =
-    (recentAttendanceRes.data ?? []) as unknown as MarkedAttendanceRow[];
+  const recentAttendanceRows: MarkedAttendanceRow[] = (recentAttendanceRes.data ?? []).map((row) => ({
+    class_id: row.class_id,
+    marked_at: row.marked_at,
+    classes: null,
+  }));
   const recentPlanRows = (recentPlansRes.data ?? []) as LessonPlanRow[];
 
   const recentActivity: ActivityLog[] = [

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
 const migration = fs.readFileSync('supabase/migrations/20260902095200_teacher_class_self_service_current.sql', 'utf8')
+const optionalClassMigration = fs.readFileSync('supabase/migrations/20260927170000_teacher_optional_class_onboarding.sql', 'utf8')
 const form = fs.readFileSync('components/teacher/TeacherClassForm.tsx', 'utf8')
 const classHub = fs.readFileSync('app/teacher/classhub/page.tsx', 'utf8')
 const addPage = fs.readFileSync('app/teacher/classhub/add/page.tsx', 'utf8')
@@ -18,13 +19,28 @@ assert.match(migration, /on conflict\s*\(\s*teacher_id\s*,\s*class_id\s*,\s*subj
 assert.match(migration, /revoke all on function public\.create_teacher_class_assignment[\s\S]*service_role/i)
 assert.match(migration, /grant execute on function public\.create_teacher_class_assignment[\s\S]*to authenticated/i)
 
-assert.match(form, /\.from\('subjects'\)\.select\('name'\)\.is\('school_id', null\)/)
+assert.match(optionalClassMigration, /create or replace function public\.get_my_auth_journey_state\(\)/i)
+assert.match(optionalClassMigration, /if p\.role='teacher'[\s\S]*v_has_school/i)
+assert.match(optionalClassMigration, /'state','ready','destination','\/teacher\/pulse','reason_code','OK'/i)
+assert.doesNotMatch(optionalClassMigration, /TEACHER_CLASS_REQUIRED/)
+assert.doesNotMatch(optionalClassMigration, /'state','needs_class'/)
+
+assert.match(form, /get_allowed_teaching_levels/i)
+assert.match(form, /get_allowed_teaching_subjects/i)
+assert.doesNotMatch(form, /\.from\('subjects'\)\.select\('name'\)\.is\('school_id', null\)/)
 assert.doesNotMatch(form, /TEACHER_SUBJECTS/)
 assert.match(form, /create_teacher_class_assignment/)
 assert.match(form, /class_teacher/)
-assert.match(addPage, /\.from\('school_members'\)[\s\S]*\.eq\('role', 'teacher'\)/)
+assert.match(addPage, /\.rpc\('get_my_teacher_school_context'\)/)
+assert.doesNotMatch(addPage, /\.from\('school_members'\)/)
 assert.doesNotMatch(onboarding, /teacher_profiles/)
+assert.doesNotMatch(onboarding, /\.from\('school_members'\)/)
+assert.doesNotMatch(onboarding, /\.from\('schools'\)/)
+assert.match(onboarding, /\.rpc\('get_my_teacher_school_context'\)/)
+assert.match(onboarding, /withTimeout/)
+assert.match(onboarding, /requestId\.current/)
 assert.match(onboarding, /Skip — go to Teacher OS/)
+assert.match(onboarding, /router\.replace\('\/teacher\/pulse'\)/)
 assert.match(classHub, /\/teacher\/classhub\/add/)
 assert.match(classHub, /Student progress/)
 

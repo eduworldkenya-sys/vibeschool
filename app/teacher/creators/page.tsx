@@ -8,7 +8,7 @@ const creatorWhatsApp = "https://wa.me/254728232157?text=" + encodeURIComponent(
 export default function FoundingCreators() {
   return <main style={{ minHeight:"100vh", background:"#f7f8f5", color:"#17211b" }}>
     <div style={{ maxWidth:900, margin:"0 auto", padding:"28px 20px 80px" }}>
-      <Link href="/teacher" style={{ color:"#16865b", textDecoration:"none", fontWeight:850 }}>← Teacher home</Link>
+      <Link href="/teacher/pulse" style={{ color:"#16865b", textDecoration:"none", fontWeight:850 }}>← Teacher home</Link>
       <p style={{ margin:"72px 0 12px", color:"#16865b", fontSize:12, fontWeight:950, letterSpacing:1.3 }}>FOUNDING TEACHER CREATOR PROGRAMME</p>
       <h1 style={{ margin:0, maxWidth:800, fontSize:"clamp(42px,7vw,72px)", lineHeight:1, letterSpacing:"-.05em" }}>Your best teaching should be able to travel further than one classroom.</h1>
       <p style={{ maxWidth:720, margin:"26px 0", color:"#536159", fontSize:20, lineHeight:1.65 }}>Teachers build explanations, questions, revision methods and classroom judgement over years. VibeSchool is developing a governed way to turn that expertise into reusable learning resources.</p>

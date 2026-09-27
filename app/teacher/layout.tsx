@@ -5,7 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
-import { getTwinAuthorityContext, selectTwinRoleBinding } from "@/lib/twin/core";
+
 import OfflineBar from "@/components/teacher/OfflineBar";
 
 interface ToastCtx { showToast: (msg: string) => void }
@@ -29,6 +29,20 @@ const NAV_TABS = [
 ] as const;
 
 type TabId = typeof NAV_TABS[number]["id"];
+
+function activeTeacherSchoolName(value: unknown): string {
+  if (!value || typeof value !== "object") return "";
+  const activeSchoolId = Reflect.get(value, "active_school_id");
+  const schools = Reflect.get(value, "schools");
+  if (typeof activeSchoolId !== "string" || !Array.isArray(schools)) return "";
+  for (const school of schools) {
+    if (!school || typeof school !== "object") continue;
+    if (Reflect.get(school, "id") !== activeSchoolId) continue;
+    const name = Reflect.get(school, "name");
+    return typeof name === "string" ? name : "";
+  }
+  return "";
+}
 
 function tabIdFromPath(path: string): TabId {
   if (path === "/teacher" || path === "/teacher/") return "today";
@@ -126,7 +140,7 @@ const NAV_ICONS: Record<string, (active: boolean) => React.ReactNode> = {
   me: (a) => <IconMe size={a ? 23 : 21} />,
 };
 
-function TwinPill({ onOpen, unread, disabled = false }: { onOpen: () => void; unread: number; disabled?: boolean }) {
+function TwinPill({ onOpen, unread }: { onOpen: () => void; unread: number }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null)
   const [expanded, setExpanded] = useState(false)
   const dragging = useRef(false)
@@ -135,8 +149,6 @@ function TwinPill({ onOpen, unread, disabled = false }: { onOpen: () => void; un
   const pillRef = useRef<HTMLDivElement>(null)
   const moved = useRef(false)
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const openTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const greetingTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const w = window.innerWidth
@@ -152,7 +164,6 @@ function TwinPill({ onOpen, unread, disabled = false }: { onOpen: () => void; un
   }, [expanded])
 
   function onPointerDown(e: React.PointerEvent) {
-    if (disabled) return
     dragging.current = true
     moved.current = false
     startPointer.current = { x: e.clientX, y: e.clientY }
@@ -188,15 +199,14 @@ function TwinPill({ onOpen, unread, disabled = false }: { onOpen: () => void; un
   }
 
   function onPointerUp() {
-    if (disabled) return
     dragging.current = false
     if (moved.current) return
     if (!greeted) {
       setGreeted(true)
       vibeSpeak('Vibe.')
-      greetingTimer.current = setTimeout(() => {
+      setTimeout(() => {
         setExpanded(true)
-        openTimer.current = setTimeout(() => onOpen(), 600)
+        setTimeout(() => onOpen(), 600)
       }, 500)
       return
     }
@@ -206,18 +216,11 @@ function TwinPill({ onOpen, unread, disabled = false }: { onOpen: () => void; un
       onOpen()
     } else {
       setExpanded(true)
-      openTimer.current = setTimeout(() => onOpen(), 400)
+      setTimeout(() => onOpen(), 400)
     }
   }
 
-  useEffect(() => () => {
-    if (collapseTimer.current) clearTimeout(collapseTimer.current)
-    if (openTimer.current) clearTimeout(openTimer.current)
-    if (greetingTimer.current) clearTimeout(greetingTimer.current)
-    if (typeof window !== "undefined") window.speechSynthesis?.cancel()
-  }, [])
-
-  if (!pos || disabled) return null
+  if (!pos) return null
   const SIZE = 56
 
   return (
@@ -474,7 +477,7 @@ function TopBar({ school, initials, unreadConnect, creditBalance }: { school: st
         {!isRoot && (
           <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 22, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 400, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</div>
         )}
-        <div onClick={() => router.push("/teacher")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
+        <div onClick={() => router.push("/teacher/pulse")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
           <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
@@ -554,25 +557,19 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
       // hold navigation behind a full-screen loader.
       void (async () => {
         try {
-          const [authority, profileRes, teacherRes] = await Promise.all([
-            getTwinAuthorityContext(),
+          const [schoolContextRes, profileRes] = await Promise.all([
+            supabase.rpc("get_my_teacher_school_context"),
             supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
-            supabase.from("teacher_profiles").select("school_id, profile_id").eq("profile_id", user.id).maybeSingle(),
           ])
           if (cancelled) return
+          if (schoolContextRes.error) throw schoolContextRes.error
 
           const name = profileRes.data?.full_name ?? ""
           setFullName(name)
           const parts = name.trim().split(" ").filter(Boolean)
           setInitials(parts.slice(0, 2).map((w: string) => w[0].toUpperCase()).join(""))
 
-          const teacherData = teacherRes.data
-          const binding = selectTwinRoleBinding(authority, "teacher", teacherData?.school_id ?? undefined)
-          const schoolId = binding.schoolId
-          if (schoolId) {
-            const { data: schoolData } = await supabase.from("schools").select("name").eq("id", schoolId).maybeSingle()
-            if (!cancelled) setSchool(schoolData?.name ?? "")
-          }
+          setSchool(activeTeacherSchoolName(schoolContextRes.data))
         } catch (error) {
           console.error("Teacher shell enrichment failed:", error)
         }
@@ -601,7 +598,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
           <main className="teacher-light-surface" style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84, background: "#f8fafc", color: "#111827" }}>{children}</main>
-          <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} disabled={twinOpen} />
+          <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
           <BottomNav activeId={activeId} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
           {toast && <Toast msg={toast} />}

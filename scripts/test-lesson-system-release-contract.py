@@ -96,13 +96,16 @@ require(repository, 'school_id: slot.school_id', 'slot school authority')
 require(repository, 'dayOfWeek === slot.day_of_week', 'occurrence weekday validation')
 require(repository, ".eq('teacher_id', slot.teacher_id)", 'owned update constraint')
 
-# Parent delivery prepares idempotent lesson-owned work before claiming shared
-# state, and due dates use Nairobi calendar arithmetic.
+# Parent delivery prepares idempotent lesson-owned work before canonical
+# delivery, and due dates use Nairobi calendar arithmetic. Parent sharing is an
+# independent durable delivery fact; client code must not cosmetically mutate
+# lesson_plans.status to claim delivery.
 require(delivery, 'nairobiDateAdd(nairobiDateStr(), 1)', 'Nairobi homework due date')
 homework_prepare = delivery.index('ensureLessonHomeworkDraft')
 parent_deliver = delivery.index('deliverLessonPlanToParents({')
-shared_status = delivery.index("status: 'shared_to_parents'")
-assert homework_prepare < parent_deliver < shared_status, 'delivery: drafts -> parent delivery -> shared status order required'
+assert homework_prepare < parent_deliver, 'delivery: drafts must be prepared before parent delivery'
+forbid(delivery, "status: 'shared_to_parents'", 'parent delivery must not use cosmetic lesson status')
+require(delivery, 'deliveryResult.recipientCount === 0 || !deliveryResult.shared', 'zero-recipient parent delivery fails closed')
 
 # Exact completed occurrence continues into the authoritative Record of Progress.
 require(reflection, '/teacher/progress?occurrenceId=', 'reflection progress handoff')

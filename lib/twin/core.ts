@@ -1,9 +1,5 @@
 import { supabase } from '@/lib/supabase'
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
-
 export type TwinRole = 'student' | 'teacher' | 'parent' | 'admin' | 'hq'
 
 export interface TwinRoleBinding {
@@ -34,6 +30,17 @@ function unique(values: Array<string | null | undefined>): string[] {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value))))
 }
 
+function teacherSchoolIds(value: unknown): string[] {
+  if (!value || typeof value !== 'object') return []
+  const schools = Reflect.get(value, 'schools')
+  if (!Array.isArray(schools)) return []
+  return schools.flatMap(school => {
+    if (!school || typeof school !== 'object') return []
+    const id = Reflect.get(school, 'id')
+    return typeof id === 'string' && id.length > 0 ? [id] : []
+  })
+}
+
 function bindingKey(binding: TwinRoleBinding): string {
   return `${binding.role}:${binding.scopeType}:${binding.scopeId}:${binding.schoolId ?? ''}`
 }
@@ -56,7 +63,7 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
     supabase.from('school_members').select('school_id, role').eq('profile_id', userId),
     supabase.from('parent_student_links').select('student_id, school_id, access_level, relationship').eq('parent_id', userId),
     supabase.from('teacher_classes').select('school_id, class_id, subject_id, is_class_teacher').eq('teacher_id', userId),
-    rpc<boolean>('is_platform_owner'),
+    supabase.rpc('is_platform_owner'),
   ])
 
   const authorityReadError = studentRes.error || membershipsRes.error || parentLinksRes.error || teacherAssignmentsRes.error || ownerRes.error
@@ -109,8 +116,13 @@ export async function getTwinAuthorityContext(): Promise<TwinAuthorityContext> {
 
   const memberships = membershipsRes.data ?? []
   const teacherAssignments = teacherAssignmentsRes.data ?? []
+  const { data: teacherSchoolContext, error: teacherSchoolContextError } = await supabase.rpc('get_my_teacher_school_context')
+  if (teacherSchoolContextError) {
+    throw new Error(teacherSchoolContextError.message || 'Twin teacher school context could not be resolved.')
+  }
+  const authorizedTeacherSchoolIds = new Set(teacherSchoolIds(teacherSchoolContext))
   for (const membership of memberships) {
-    if (membership.role === 'teacher') {
+    if (membership.role === 'teacher' && authorizedTeacherSchoolIds.has(membership.school_id)) {
       const assignments = teacherAssignments.filter(assignment => assignment.school_id === membership.school_id)
       bindings.push({
         role: 'teacher', scopeType: 'school', scopeId: membership.school_id, schoolId: membership.school_id,

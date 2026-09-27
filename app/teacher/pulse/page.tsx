@@ -310,7 +310,6 @@ export default function PulsePage() {
   const touchStartY = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef(false);
-  const activeSchoolIdRef = useRef<string | null>(null);
 
   const boot = useCallback(
     async (isRefresh = false, signal?: AbortSignal) => {
@@ -333,37 +332,26 @@ export default function PulsePage() {
         } = await supabase.auth.getUser();
         if (!user || signal?.aborted) return;
 
-        const [memberRes, profileRes] = await Promise.all([
-          supabase.from("school_members").select("school_id").eq("profile_id", user.id),
+        const [schoolContextRes, profileRes] = await Promise.all([
+          supabase.rpc("get_my_teacher_school_context"),
           supabase
             .from("profiles")
-            .select("full_name,school_id,avatar_url")
+            .select("full_name,avatar_url")
             .eq("id", user.id)
             .single(),
         ]);
         if (signal?.aborted) return;
+        if (schoolContextRes.error) throw schoolContextRes.error;
 
-        const memberSchoolIds = Array.from(
-          new Set(
-            (memberRes.data ?? [])
-              .map((row) => row.school_id)
-              .filter(Boolean) as string[]
-          )
-        );
+        const schoolContext = schoolContextRes.data as {
+          active_school_id?: string | null;
+          schools?: Array<{ id: string; name: string }>;
+        } | null;
+        const authorizedSchools = Array.isArray(schoolContext?.schools) ? schoolContext.schools : [];
+        if (schools.length === 0 && authorizedSchools.length > 0) setSchools(authorizedSchools);
 
-        if (memberSchoolIds.length > 1 && schools.length === 0) {
-          const { data: schoolRows } = await supabase
-            .from("schools")
-            .select("id,name")
-            .in("id", memberSchoolIds);
-          if (schoolRows) setSchools(schoolRows as { id: string; name: string }[]);
-        }
-
-        const schoolId =
-          activeSchoolIdRef.current ??
-          memberSchoolIds[0] ??
-          profileRes.data?.school_id ??
-          null;
+        const schoolId = schoolContext?.active_school_id ?? null;
+        setActiveSchoolId(schoolId);
 
         setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
         setAvatarUrl(
@@ -392,13 +380,18 @@ export default function PulsePage() {
   );
 
   const handleSchoolChange = useCallback(
-    (id: string) => {
-      activeSchoolIdRef.current = id;
-      setActiveSchoolId(id);
+    async (id: string) => {
+      const { error: switchError } = await supabase.rpc("set_my_active_teacher_school", {
+        p_school_id: id,
+      });
+      if (switchError) {
+        showToast("Could not switch school. Your current school is unchanged.");
+        return;
+      }
       setSelectedKey("");
-      void boot(true);
+      await boot(true);
     },
-    [boot]
+    [boot, showToast]
   );
 
   const handleContextChange = useCallback(
