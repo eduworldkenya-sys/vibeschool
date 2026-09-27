@@ -310,7 +310,6 @@ export default function PulsePage() {
   const touchStartY = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fetchingRef = useRef(false);
-  const activeSchoolIdRef = useRef<string | null>(null);
 
   const boot = useCallback(
     async (isRefresh = false, signal?: AbortSignal) => {
@@ -339,39 +338,19 @@ export default function PulsePage() {
             .from("profiles")
             .select("full_name,avatar_url")
             .eq("id", user.id)
-            .maybeSingle(),
+            .single(),
         ]);
         if (signal?.aborted) return;
-
         if (schoolContextRes.error) throw schoolContextRes.error;
+
         const schoolContext = schoolContextRes.data as {
-          state?: "unauthenticated" | "needs_school" | "ready";
           active_school_id?: string | null;
-          schools?: Array<{ id?: string | null; name?: string | null }>;
+          schools?: Array<{ id: string; name: string }>;
         } | null;
+        const authorizedSchools = Array.isArray(schoolContext?.schools) ? schoolContext.schools : [];
+        if (schools.length === 0 && authorizedSchools.length > 0) setSchools(authorizedSchools);
 
-        if (schoolContext?.state === "needs_school") {
-          router.replace("/teacher/onboarding/school");
-          return;
-        }
-
-        const canonicalSchools = (schoolContext?.schools ?? [])
-          .filter((item): item is { id: string; name?: string | null } => Boolean(item.id))
-          .map((item) => ({ id: item.id, name: item.name ?? "School" }));
-        setSchools(canonicalSchools);
-
-        const canonicalSchoolId = schoolContext?.active_school_id ?? null;
-        const requestedSchoolId = activeSchoolIdRef.current;
-        const schoolId =
-          requestedSchoolId && canonicalSchools.some((item) => item.id === requestedSchoolId)
-            ? requestedSchoolId
-            : canonicalSchoolId;
-
-        if (!schoolId) {
-          router.replace("/teacher/onboarding/school");
-          return;
-        }
-        activeSchoolIdRef.current = schoolId;
+        const schoolId = schoolContext?.active_school_id ?? null;
         setActiveSchoolId(schoolId);
 
         setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
@@ -397,17 +376,22 @@ export default function PulsePage() {
         fetchingRef.current = false;
       }
     },
-    [router]
+    [schools.length]
   );
 
   const handleSchoolChange = useCallback(
-    (id: string) => {
-      activeSchoolIdRef.current = id;
-      setActiveSchoolId(id);
+    async (id: string) => {
+      const { error: switchError } = await supabase.rpc("set_my_active_teacher_school", {
+        p_school_id: id,
+      });
+      if (switchError) {
+        showToast("Could not switch school. Your current school is unchanged.");
+        return;
+      }
       setSelectedKey("");
-      void boot(true);
+      await boot(true);
     },
-    [boot]
+    [boot, showToast]
   );
 
   const handleContextChange = useCallback(
@@ -452,9 +436,10 @@ export default function PulsePage() {
 
   const safeTodaySlots = snap.todaySlots ?? [];
   const safeMyClasses = snap.myClasses ?? [];
-  const nextAuthoritativeSlot = safeTodaySlots[0] ?? snap.tomorrowSlots?.[0] ?? null;
-  const defaultKey = nextAuthoritativeSlot
-    ? keyOf(nextAuthoritativeSlot.class_id, nextAuthoritativeSlot.subject_id)
+  const defaultKey = safeTodaySlots[0]
+    ? keyOf(safeTodaySlots[0].class_id, safeTodaySlots[0].subject_id)
+    : safeMyClasses[0]
+    ? keyOf(safeMyClasses[0].class_id, safeMyClasses[0].subject_id)
     : "";
 
   const selectedKeyIsValid = safeMyClasses.some(
