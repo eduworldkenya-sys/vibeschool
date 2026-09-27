@@ -173,63 +173,34 @@ export default function SubjectHubPage() {
         setActiveAcademicTerm(null)
       }
 
-      const { data: assignmentRows, error: assignmentError } =
-        await supabase
-          .from('teacher_classes')
-          .select(
-            'school_id,class_id,subject_id'
-          )
-          .eq('teacher_id', user.id)
-          .eq('school_id', sid)
+      const { data: operatingContext, error: contextError } =
+        await supabase.rpc('teacher_get_operating_context', {
+          p_requested_school_id: sid,
+        })
+      if (contextError) throw contextError
 
-      if (assignmentError) {
-        throw assignmentError
+      const contextClasses = Array.isArray((operatingContext as { classes?: unknown[] } | null)?.classes)
+        ? ((operatingContext as { classes: Array<{ class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string }> }).classes)
+        : []
+
+      const subjectMap = new Map<string, string>()
+      const classMap = new Map<string, { id: string; name: string; stream: string | null; school_id: string | null }>()
+      for (const assignment of contextClasses) {
+        if (assignment.subject_id && assignment.subject_name) subjectMap.set(assignment.subject_id, assignment.subject_name)
+        if (assignment.class_id) classMap.set(assignment.class_id, {
+          id: assignment.class_id,
+          name: assignment.class_name,
+          stream: assignment.stream ?? null,
+          school_id: sid,
+        })
       }
-
-      const subjectIds = Array.from(
-        new Set(
-          (assignmentRows ?? [])
-            .map(row => row.subject_id)
-            .filter(
-              (id): id is string =>
-                typeof id === 'string' &&
-                id.length > 0
-            )
-        )
-      )
-
-      const classIds = Array.from(
-        new Set(
-          (assignmentRows ?? [])
-            .map(row => row.class_id)
-            .filter(
-              (id): id is string =>
-                typeof id === 'string' &&
-                id.length > 0
-            )
-        )
-      )
-      if (classIds.length > 0) {
-        const { data: classRows } = await supabase
-          .from('classes')
-          .select('id, name, stream, school_id')
-          .eq('school_id', sid)
-          .in('id', classIds)
-        setAllClasses(classRows ?? [])
-      } else {
-        setAllClasses([])
-      }
+      const subjectIds = Array.from(subjectMap.keys())
+      setAllClasses(Array.from(classMap.values()))
+      setSubjects(Array.from(subjectMap, ([id, name]) => ({ id, name })).sort((x, y) => x.name.localeCompare(y.name)))
 
       if (subjectIds.length === 0) { setLoading(false); return }
 
-      const subjectQuery = supabase
-        .from('subjects').select('id, name').in('id', subjectIds).order('name')
-      const scopedQuery = sid
-        ? subjectQuery.or(`school_id.eq.${sid},school_id.is.null`)
-        : subjectQuery.is('school_id', null)
-      const { data: subData } = await scopedQuery
 
-      setSubjects(subData ?? [])
     } catch {
       setError('Failed to load. Please refresh.')
     } finally {
