@@ -110,11 +110,12 @@ for field in (
 # but they cannot be published or shared downstream as if teaching-ready.
 require(delivery, 'evaluateLessonReadiness', 'delivery readiness evaluator')
 require(delivery, 'assertLessonReadyForDelivery', 'delivery readiness boundary')
-require(delivery, 'lesson_delivery_authority_mismatch', 'delivery school authority')
-require(delivery, 'lesson_not_ready_for_delivery', 'delivery fail-closed readiness')
+require(delivery, "'authority_mismatch'", 'delivery school authority')
+require(delivery, "'not_ready'", 'delivery fail-closed readiness')
 publish_guard = delivery.index('await assertLessonReadyForDelivery(lessonPlanId, schoolId)')
-publish_status = delivery.index("await updateLessonPlanStatus({ lessonPlanId, status: 'published' })")
-assert publish_guard < publish_status, 'delivery: readiness must precede publication status'
+publish_rpc = delivery.index("'publish_lesson_plan_to_students'")
+assert publish_guard < publish_rpc, 'delivery: readiness must precede atomic publication')
+forbid(delivery, "status: 'published'", 'delivery must not claim publication before atomic RPC succeeds')
 share_fn = delivery.index('export async function shareLessonToParents')
 share_guard = delivery.index('await assertLessonReadyForDelivery(lessonPlanId, schoolId)', share_fn)
 parent_delivery = delivery.index('deliverLessonPlanToParents({', share_fn)
