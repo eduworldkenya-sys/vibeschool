@@ -2,16 +2,38 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import TeacherClassForm from '@/components/teacher/TeacherClassForm'
 import { C } from '@/components/teacher/ui'
 
 type SchoolOption = { id: string; name: string }
+type TeacherSchoolContext = {
+  state?: 'unauthenticated' | 'needs_school' | 'ready'
+  active_school_id?: string | null
+  schools?: Array<{ id: string; name: string }>
+}
+
+const LOAD_TIMEOUT_MS = 12000
+
+async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('teacher_class_setup_timeout')), timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
 
 export default function ClassOnboardingPage() {
   const router = useRouter()
+  const requestId = useRef(0)
   const [schools, setSchools] = useState<SchoolOption[]>([])
   const [schoolId, setSchoolId] = useState('')
   const [loading, setLoading] = useState(true)
@@ -19,70 +41,62 @@ export default function ClassOnboardingPage() {
   const [switchingSchool, setSwitchingSchool] = useState(false)
   const [leavingSchool, setLeavingSchool] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      const timeout = window.setTimeout(() => {
-        if (!cancelled) {
-          setError('Class setup is taking too long to load. Please retry or enter Teacher OS and add a class later.')
-          setLoading(false)
-        }
-      }, 12000)
-      try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
-        if (cancelled) return
-        if (authError || !user) { router.replace('/academy/signin?role=teacher'); return }
-
-        const memberships = await supabase.from('school_members').select('school_id').eq('profile_id', user.id).eq('role', 'teacher')
-        if (cancelled) return
-        if (memberships.error) {
-          setError('Your verified school access could not be loaded.')
-          setLoading(false)
-          return
-        }
-        const ids = Array.from(new Set((memberships.data ?? []).map(row => row.school_id).filter(Boolean)))
-        if (!ids.length) {
-          router.replace('/teacher/onboarding/school')
-          return
-        }
-
-        // The class form must not be blocked by the optional active-school preference
-        // RPC. Membership is the authorization boundary; render from verified membership
-        // as soon as the school names arrive, then reconcile the preferred school.
-        const result = await supabase.from('schools').select('id,name').in('id', ids).order('name')
-        if (cancelled) return
-        if (result.error) {
-          setError('Your school details could not be loaded.')
-          setLoading(false)
-          return
-        }
-
-        const rows = (result.data ?? []) as SchoolOption[]
-        const fallbackSchoolId = rows[0]?.id ?? ids[0] ?? ''
-        setSchools(rows)
-        setSchoolId(fallbackSchoolId)
-        setLoading(false)
-
-        // Preference lookup is deliberately non-blocking. If it is unavailable or slow,
-        // the verified membership fallback remains usable instead of leaving onboarding
-        // on a loading screen.
-        void supabase.rpc('get_my_teacher_school_context').then(({ data: context, error: contextError }) => {
-          if (cancelled || contextError) return
-          const active = (context as { active_school_id?: string | null } | null)?.active_school_id
-          if (active && ids.includes(active)) setSchoolId(active)
-        }, () => {})
-      } catch {
-        if (!cancelled) {
-          setError('Class setup could not be loaded. You can retry or enter Teacher OS and add a class later.')
-          setLoading(false)
-        }
-      } finally {
-        window.clearTimeout(timeout)
+  const load = useCallback(async () => {
+    const currentRequest = ++requestId.current
+    setLoading(true)
+    setError('')
+    try {
+      const auth = await withTimeout(supabase.auth.getUser(), LOAD_TIMEOUT_MS)
+      if (currentRequest !== requestId.current) return
+      const { data: { user }, error: authError } = auth
+      if (authError || !user) {
+        router.replace('/academy/signin?role=teacher')
+        return
       }
+
+      const controller = new AbortController()
+      const rpcTimeout = window.setTimeout(() => controller.abort('teacher_class_setup_timeout'), LOAD_TIMEOUT_MS)
+      const { data: contextData, error: contextError } = await supabase
+        .rpc('get_my_teacher_school_context')
+        .abortSignal(controller.signal)
+      window.clearTimeout(rpcTimeout)
+      if (currentRequest !== requestId.current) return
+      if (contextError) {
+        if (controller.signal.aborted) throw new Error('teacher_class_setup_timeout')
+        throw contextError
+      }
+
+      const context = contextData as TeacherSchoolContext | null
+      if (!context || context.state === 'unauthenticated') {
+        router.replace('/academy/signin?role=teacher')
+        return
+      }
+      const rows = (context.schools ?? []).filter((school): school is SchoolOption => Boolean(school?.id && school?.name))
+      if (context.state === 'needs_school' || !context.active_school_id || rows.length === 0) {
+        router.replace('/teacher/onboarding/school')
+        return
+      }
+      if (!rows.some(school => school.id === context.active_school_id)) {
+        throw new Error('active_school_not_authorized')
+      }
+
+      setSchools(rows)
+      setSchoolId(context.active_school_id)
+    } catch (loadError) {
+      if (currentRequest !== requestId.current) return
+      const timedOut = loadError instanceof Error && loadError.message === 'teacher_class_setup_timeout'
+      setError(timedOut
+        ? 'Class setup is taking too long to load. Retry, or enter Teacher OS and add a class later.'
+        : 'Your verified school access could not be loaded. Retry, or enter Teacher OS and add a class later.')
+    } finally {
+      if (currentRequest === requestId.current) setLoading(false)
     }
-    void load()
-    return () => { cancelled = true }
   }, [router])
+
+  useEffect(() => {
+    void load()
+    return () => { requestId.current += 1 }
+  }, [load])
 
   return (
     <main style={{ minHeight: '100vh', background: '#f0f2f5', padding: 20 }}>
@@ -91,8 +105,8 @@ export default function ClassOnboardingPage() {
           <div style={{ fontSize: 20, fontWeight: 900, color: C.dark }}>Add your first class</div>
           <p style={{ margin: '6px 0 0', color: C.textMuted, fontSize: 13, lineHeight: 1.5 }}>Optional. You can enter Teacher OS now and add classes later from My Classes.</p>
         </div>
-        {loading && <div aria-live="polite" aria-busy="true" style={{ minHeight: 120, padding: 20, borderRadius: 16, background: '#f3f4f6', color: C.textMuted, textAlign: 'center' }}>Loading your class setup…</div>}
-        {!loading && error && <div role="alert" style={{ padding: 12, borderRadius: 10, background: '#fef2f2', color: C.error }}>{error}<button type="button" onClick={() => window.location.reload()} style={{ display: 'block', marginTop: 10, padding: 10, borderRadius: 9, border: `1px solid ${C.border}`, background: '#fff', fontWeight: 800 }}>Retry</button></div>}
+        {loading && <div role="status" aria-live="polite" aria-busy="true" style={{ minHeight: 120, padding: 20, borderRadius: 16, background: '#f3f4f6', color: C.textMuted, textAlign: 'center' }}>Loading your class setup…</div>}
+        {!loading && error && <div role="alert" style={{ padding: 12, borderRadius: 10, background: '#fef2f2', color: C.error }}>{error}<button type="button" onClick={() => void load()} style={{ display: 'block', marginTop: 10, padding: 10, borderRadius: 9, border: `1px solid ${C.border}`, background: '#fff', fontWeight: 800 }}>Retry</button></div>}
         {!loading && !error && schools.length > 1 && (
           <label style={{ display: 'block', marginBottom: 16, color: C.textMuted, fontSize: 12, fontWeight: 800 }}>School
             <select value={schoolId} disabled={switchingSchool} onChange={async event => {
@@ -101,7 +115,7 @@ export default function ClassOnboardingPage() {
               setSwitchingSchool(true); setError('')
               const { error: switchError } = await supabase.rpc('set_my_active_teacher_school', { p_school_id: next })
               if (switchError) { setSchoolId(previous); setError('We could not switch the active school safely. Your previous school is still active.') }
-              else setSchoolId(next)
+              else { setSchoolId(next); await load() }
               setSwitchingSchool(false)
             }} style={{ display: 'block', width: '100%', marginTop: 5, padding: 11, border: `1px solid ${C.border}`, borderRadius: 10, background: '#fff' }}>
               {schools.map(school => <option key={school.id} value={school.id}>{school.name}</option>)}
@@ -124,7 +138,7 @@ export default function ClassOnboardingPage() {
             {leavingSchool ? 'Removing school…' : 'Wrong school? Change school'}
           </button>
         )}
-        <button type="button" onClick={() => router.push('/teacher/pulse')} style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.textMuted, fontWeight: 800 }}>Skip — go to Teacher OS</button>
+        <button type="button" onClick={() => router.replace('/teacher/pulse')} style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.textMuted, fontWeight: 800 }}>Skip — go to Teacher OS</button>
       </section>
     </main>
   )
