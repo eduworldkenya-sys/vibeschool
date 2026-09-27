@@ -38,7 +38,39 @@ begin
   if coalesce(array_length(v_levels,1),0)>0 then
     v_source:='school_levels';
   else
-    v_source:='unresolved';
+    -- Canonical directory reconciliation already persists schools.school_type
+    -- from schools_directory.type. Reuse that authority when the historical
+    -- school_levels projection is missing; never infer from the school name.
+    select case
+      when lower(coalesce(s.school_type,'')) like '%junior%' then array['JUNIOR']::text[]
+      when lower(coalesce(s.school_type,'')) like '%secondary%'
+        or lower(coalesce(s.school_type,'')) like '%senior%' then array['SENIOR_SECONDARY']::text[]
+      when lower(coalesce(s.school_type,'')) like '%pre%primary%'
+        or lower(coalesce(s.school_type,'')) like '%early%' then array['PRE_PRIMARY']::text[]
+      when lower(coalesce(s.school_type,'')) like '%primary%' then array['PRIMARY']::text[]
+      else null
+    end
+    into v_levels
+    from public.schools s
+    where s.id=p_school_id and s.deleted_at is null and s.status in ('pending','active');
+
+    if coalesce(array_length(v_levels,1),0)>0 then
+      v_source:='school_type';
+    else
+      v_source:='unresolved';
+    end if;
+  end if;
+
+  -- Existing canonical Form classes are evidence that this school still
+  -- carries a legacy secondary cohort. Preserve/reuse them without guessing
+  -- that every secondary school has legacy Forms.
+  if exists(
+    select 1 from public.classes c
+    where c.school_id=p_school_id
+      and btrim(c.name) in ('Form 1','Form 2','Form 3','Form 4')
+  ) and not ('LEGACY_SECONDARY'=any(coalesce(v_levels,'{}'::text[]))) then
+    v_levels:=array_append(coalesce(v_levels,'{}'::text[]),'LEGACY_SECONDARY');
+    v_source:=case when v_source='unresolved' then 'existing_classes' else v_source||'+existing_classes' end;
   end if;
 
   return jsonb_build_object(
@@ -92,9 +124,17 @@ begin
   return jsonb_build_object(
     'state','ready',
     'subjects',coalesce((
-      select jsonb_agg(distinct c.subject order by c.subject)
-      from public.curriculum c
-      where c.grade=v_grade and c.subject is not null and btrim(c.subject)<>''
+      select jsonb_agg(x.subject order by x.subject)
+      from (
+        select distinct btrim(c.subject) subject
+        from public.curriculum c
+        where c.grade=v_grade and c.subject is not null and btrim(c.subject)<>''
+        union
+        select distinct btrim(s.name) subject
+        from public.cbc_strands cs
+        join public.subjects s on s.id=cs.subject_id and s.school_id is null
+        where cs.grade=v_grade and btrim(s.name)<>''
+      ) x
     ),'[]'::jsonb)
   );
 end;
@@ -142,7 +182,15 @@ begin
 
   if char_length(v_stream)>40 then raise exception 'invalid_stream' using errcode='22023'; end if;
   if char_length(v_subject_input)<2 or char_length(v_subject_input)>120 then raise exception 'invalid_subject' using errcode='22023'; end if;
-  if not exists(select 1 from public.curriculum c where c.grade=v_grade and lower(btrim(c.subject))=lower(v_subject_input)) then
+  if not exists(
+    select 1 from public.curriculum c
+    where c.grade=v_grade and lower(btrim(c.subject))=lower(v_subject_input)
+  ) and not exists(
+    select 1
+    from public.cbc_strands cs
+    join public.subjects s on s.id=cs.subject_id and s.school_id is null
+    where cs.grade=v_grade and lower(btrim(s.name))=lower(v_subject_input)
+  ) then
     raise exception 'invalid_subject_for_level' using errcode='22023';
   end if;
 
