@@ -39,8 +39,9 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     setAuthorityLoading(true)
     setAuthorityState('ready')
     setError('')
-    void supabase.rpc('get_allowed_teaching_levels' as never, { p_school_id: schoolId } as never)
-      .then(({ data, error: rpcError }: any) => {
+    void (async () => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc('get_allowed_teaching_levels' as never, { p_school_id: schoolId } as never) as any
         if (cancelled) return
         if (rpcError) {
           setAuthorityState('error')
@@ -54,14 +55,15 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
           return
         }
         setLevels(authority.levels ?? [])
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) {
           setAuthorityState('error')
           setError('School teaching levels could not be resolved. Retry or change school.')
         }
-      })
-      .finally(() => { if (!cancelled) setAuthorityLoading(false) })
+      } finally {
+        if (!cancelled) setAuthorityLoading(false)
+      }
+    })()
     return () => { cancelled = true }
   }, [schoolId])
 
@@ -71,8 +73,9 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     setSubjects([])
     if (!grade || authorityState !== 'ready') return () => { cancelled = true }
     setSubjectsLoading(true)
-    void supabase.rpc('get_allowed_teaching_subjects' as never, { p_school_id: schoolId, p_grade: grade } as never)
-      .then(({ data, error: rpcError }: any) => {
+    void (async () => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc('get_allowed_teaching_subjects' as never, { p_school_id: schoolId, p_grade: grade } as never) as any
         if (cancelled) return
         if (rpcError) {
           setError('Subjects could not be resolved for this level. Choose another level or retry.')
@@ -81,11 +84,12 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
         const authority = (data ?? {}) as SubjectAuthority
         setSubjects(authority.state === 'ready' ? (authority.subjects ?? []) : [])
         if (authority.state !== 'ready') setError('Subjects are unavailable until the school level authority is resolved.')
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setError('Subjects could not be resolved for this level. Choose another level or retry.')
-      })
-      .finally(() => { if (!cancelled) setSubjectsLoading(false) })
+      } finally {
+        if (!cancelled) setSubjectsLoading(false)
+      }
+    })()
     return () => { cancelled = true }
   }, [authorityState, grade, schoolId])
 
