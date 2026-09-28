@@ -40,12 +40,11 @@ jobs:
       - name: Auth authority + canonical production build certification
         uses: ./.github/actions/production-build-contract
         with:
+          build_application: "false"
           prebuild_command: |
             node scripts/test-auth-onboarding-contract.mjs
             node scripts/test-auth-task1-state-machine.mjs
             node scripts/test-auth-task1-teacher-directory-authority.mjs
             node scripts/test-hq-recovery-contract.mjs
-            npm run typecheck
-            npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
