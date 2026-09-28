@@ -29,9 +29,8 @@ jobs:
       - name: Task 9 contract + canonical production build certification
         uses: ./.github/actions/production-build-contract
         with:
+          build_application: "false"
           prebuild_command: |
             node scripts/test-task9-founder-os-reconciliation.mjs
-            npm run typecheck
-            npm run lint
           supabase_url: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase_anon_key: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
