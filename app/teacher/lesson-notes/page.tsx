@@ -172,6 +172,24 @@ function LessonNotesInner() {
         setExactChapters(chapters);
         chapters.forEach((chapter) => chapterIds.add(chapter.id));
       }
+
+      // Approved teacher notes are optional enrichment. The lesson plan remains
+      // canonical and useful even when no reviewed derivative exists.
+      if (chapterIds.size > 0) {
+        const { data: noteData, error: noteError } = await supabase
+          .from("content_derivatives")
+          .select("id,title,body,status")
+          .eq("derivative_type", "teacher_notes")
+          .eq("audience", "teacher")
+          .eq("status", "approved")
+          .in("source_chapter_id", Array.from(chapterIds))
+          .order("created_at", { ascending: false })
+          .limit(4);
+        if (noteError) throw noteError;
+        setTeacherNotes((noteData ?? []) as TeacherNoteRow[]);
+      } else {
+        setTeacherNotes([]);
+      }
     } catch (loadError) {
       console.error("[lesson-notes] load", loadError);
       setError(loadError instanceof Error ? loadError.message : "Lesson notes could not be opened.");
