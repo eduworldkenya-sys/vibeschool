@@ -28,7 +28,14 @@ type ResourceRow = {
   pageStart: number | null;
 };
 
-type TeacherNoteRow = {\n  id: string;\n  title: string;\n  body: unknown;\n  status: string;\n};\n\ntype ExactChapterRow = {
+type TeacherNoteRow = {
+  id: string;
+  title: string;
+  body: unknown;
+  status: string;
+};
+
+type ExactChapterRow = {
   id: string;
   title: string | null;
   publication_id: string;
@@ -56,7 +63,8 @@ function LessonNotesInner() {
 
   const [plan, setPlan] = useState<PlanRow | null>(null);
   const [resources, setResources] = useState<ResourceRow[]>([]);
-  const [exactChapters, setExactChapters] = useState<ExactChapterRow[]>([]);\n  const [teacherNotes, setTeacherNotes] = useState<TeacherNoteRow[]>([]);
+  const [exactChapters, setExactChapters] = useState<ExactChapterRow[]>([]);
+  const [teacherNotes, setTeacherNotes] = useState<TeacherNoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,7 +154,9 @@ function LessonNotesInner() {
         curriculumId = schemeData?.curriculum_id ?? curriculumId;
       }
 
-      const chapterIds = new Set<string>();\n\n      if (subStrandId || curriculumId) {
+      const chapterIds = new Set<string>();
+
+      if (subStrandId || curriculumId) {
         let chapterQuery = supabase
           .from("vibe_chapters")
           .select("id,title,publication_id")
@@ -158,7 +168,9 @@ function LessonNotesInner() {
           : chapterQuery.eq("curriculum_id", curriculumId as string);
 
         const { data: chapterData } = await chapterQuery;
-        const chapters = (chapterData ?? []) as ExactChapterRow[];\n        setExactChapters(chapters);\n        chapters.forEach((chapter) => chapterIds.add(chapter.id));
+        const chapters = (chapterData ?? []) as ExactChapterRow[];
+        setExactChapters(chapters);
+        chapters.forEach((chapter) => chapterIds.add(chapter.id));
       }
     } catch (loadError) {
       console.error("[lesson-notes] load", loadError);
@@ -252,7 +264,22 @@ function LessonNotesInner() {
         </section>
       )}
 
-      {teacherNotes.length > 0 && (\n        <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>\n          <div style={{ fontSize: 12, fontWeight: 900, color: "#111827", marginBottom: 4 }}>Approved teaching notes</div>\n          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>Optional source-grounded enrichment for this curriculum context. Your lesson plan remains the teaching authority.</div>\n          <div style={{ display: "grid", gap: 8 }}>\n            {teacherNotes.map((note) => (\n              <article key={note.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f9fafb" }}>\n                <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{note.title}</div>\n                <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "inherit", fontSize: 12, color: "#374151", lineHeight: 1.55, margin: "8px 0 0" }}>{typeof note.body === "string" ? note.body : JSON.stringify(note.body, null, 2)}</pre>\n              </article>\n            ))}\n          </div>\n        </section>\n      )}\n\n      {visibleSections.length > 0 ? (
+      {teacherNotes.length > 0 && (
+        <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: "#111827", marginBottom: 4 }}>Approved teaching notes</div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>Optional source-grounded enrichment for this curriculum context. Your lesson plan remains the teaching authority.</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            {teacherNotes.map((note) => (
+              <article key={note.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f9fafb" }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{note.title}</div>
+                <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "inherit", fontSize: 12, color: "#374151", lineHeight: 1.55, margin: "8px 0 0" }}>{typeof note.body === "string" ? note.body : JSON.stringify(note.body, null, 2)}</pre>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {visibleSections.length > 0 ? (
         <div style={{ display: "grid", gap: 10 }}>
           {visibleSections.map(({ key, label }) => (
             <section key={key} style={{ background: "#fff", borderRadius: 18, padding: 16, border: "1px solid #e5e7eb" }}>
