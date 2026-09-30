@@ -16,6 +16,8 @@ type ClassroomContext = {
   occurrenceDate: string
 }
 
+export type LessonCoverageOutcome = 'covered' | 'partial' | 'reteach'
+
 type Props = {
   subject: string
   className: string
@@ -26,7 +28,7 @@ type Props = {
   onScratchpadChange?: (value: string) => void
   onUseInReflection?: (value: string) => void
   onCaptureEvidence?: () => void
-  onFinishLesson?: () => Promise<void> | void
+  onFinishLesson?: (outcome: LessonCoverageOutcome, whatWasTaught: string) => Promise<void> | void
   onClose: () => void
 }
 
@@ -59,6 +61,9 @@ export default function LessonTeachMode({
   const [online, setOnline] = useState(true)
   const [finishing, setFinishing] = useState(false)
   const [finishError, setFinishError] = useState<string | null>(null)
+  const [finishOpen, setFinishOpen] = useState(false)
+  const [coverageOutcome, setCoverageOutcome] = useState<LessonCoverageOutcome>('covered')
+  const [whatWasTaught, setWhatWasTaught] = useState('')
 
   const available = useMemo(
     () => STEPS.filter(step => (sections[step.key] ?? '').trim().length > 0),
@@ -154,11 +159,16 @@ export default function LessonTeachMode({
 
   async function finish() {
     if (!onFinishLesson || finishing) return
+    if (!whatWasTaught.trim()) {
+      setFinishError('Record what was actually taught before finishing the lesson.')
+      return
+    }
     setFinishing(true)
     setFinishError(null)
     try {
-      await onFinishLesson()
+      await onFinishLesson(coverageOutcome, whatWasTaught.trim())
       if (context && typeof window !== 'undefined') window.localStorage.removeItem(resumeKey(context))
+      setFinishOpen(false)
     } catch (error) {
       setFinishError(error instanceof Error ? error.message : 'Lesson could not be completed.')
     } finally {
@@ -176,6 +186,19 @@ export default function LessonTeachMode({
     )
   }
 
+  function blockBetween(source: string, heading: string, nextHeadings: string[]): string {
+    const start = source.indexOf(heading)
+    if (start < 0) return ''
+    const bodyStart = start + heading.length
+    const ends = nextHeadings.map(next => source.indexOf(next, bodyStart)).filter(index => index >= 0)
+    const end = ends.length > 0 ? Math.min(...ends) : source.length
+    return source.slice(bodyStart, end).replace(/^[:\\s]+/, '').trim()
+  }
+
+  const teachingPoints = blockBetween(sections.development, 'Teaching points / teacher notes', ['Learner activities', 'Check-for-understanding questions and expected answers', 'Misconceptions to watch'])
+  const learnerActivities = blockBetween(sections.development, 'Learner activities', ['Check-for-understanding questions and expected answers', 'Misconceptions to watch'])
+  const questionsAndAnswers = blockBetween(sections.development, 'Check-for-understanding questions and expected answers', ['Misconceptions to watch'])
+  const misconceptions = blockBetween(sections.development, 'Misconceptions to watch', [])
   const actionStyle = { border:'1px solid #cbd5e1', background:'#fff', borderRadius:10, padding:'10px 11px', fontSize:11, fontWeight:800 } as const
 
   return (
@@ -205,6 +228,17 @@ export default function LessonTeachMode({
           <section style={{ background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:14, padding:13, marginBottom:12 }}>
             <div style={{ fontSize:10, fontWeight:900, color:'#5b21b6', textTransform:'uppercase', marginBottom:6 }}>Support · Core · Extension</div>
             <div style={{ whiteSpace:'pre-wrap', lineHeight:1.6, fontSize:13 }}>{sections.differentiation}</div>
+          </section>
+        )}
+
+        {step.key === 'development' && (
+          <section style={{ display:'grid', gap:8, marginBottom:12 }}>
+            <div style={{ fontSize:10, fontWeight:900, color:'#475569', textTransform:'uppercase' }}>Teaching companion · canonical lesson content</div>
+            {teachingPoints && <article style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:13 }}><strong>Board / explanation / examples</strong><div style={{ whiteSpace:'pre-wrap', marginTop:6, lineHeight:1.6, fontSize:13 }}>{teachingPoints}</div></article>}
+            {learnerActivities && <article style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:13 }}><strong>Teacher prompts & learner activity</strong><div style={{ whiteSpace:'pre-wrap', marginTop:6, lineHeight:1.6, fontSize:13 }}>{learnerActivities}</div></article>}
+            {questionsAndAnswers && <article style={{ background:'#ecfeff', border:'1px solid #a5f3fc', borderRadius:14, padding:13 }}><strong>Questions · expected answers / evidence</strong><div style={{ whiteSpace:'pre-wrap', marginTop:6, lineHeight:1.6, fontSize:13 }}>{questionsAndAnswers}</div></article>}
+            {misconceptions && <article style={{ background:'#fff7ed', border:'1px solid #fed7aa', borderRadius:14, padding:13 }}><strong>Misconception → correction → re-check</strong><div style={{ whiteSpace:'pre-wrap', marginTop:6, lineHeight:1.6, fontSize:13 }}>{misconceptions}</div><div style={{ marginTop:7, fontSize:12 }}>Re-check with the prepared question or the Scheme assessment method before moving on.</div></article>}
+            <article style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:14, padding:13 }}><strong>Formative checkpoint</strong><div style={{ whiteSpace:'pre-wrap', marginTop:6, lineHeight:1.6, fontSize:13 }}>{sections.assessmentHook}</div></article>
           </section>
         )}
 
@@ -249,9 +283,31 @@ export default function LessonTeachMode({
         {context?.lifecycle === 'completed' ? (
           <div style={{ padding:13, borderRadius:12, background:'#d1fae5', color:'#065f46', fontWeight:800 }}>Lesson already completed</div>
         ) : onFinishLesson ? (
-          <button type="button" disabled={finishing} onClick={finish} style={{ width:'100%', border:0, borderRadius:12, padding:13, background:'#059669', color:'#fff', fontWeight:900 }}>
-            {finishing ? 'Finishing lesson…' : 'Finish lesson'}
-          </button>
+          <>
+            {!finishOpen ? (
+              <button type="button" disabled={finishing} onClick={()=>setFinishOpen(true)} style={{ width:'100%', border:0, borderRadius:12, padding:13, background:'#059669', color:'#fff', fontWeight:900 }}>Finish lesson</button>
+            ) : (
+              <section style={{ background:'#fff', border:'1px solid #bbf7d0', borderRadius:16, padding:13 }}>
+                <div style={{ fontSize:12, fontWeight:900 }}>How did coverage end?</div>
+                <div style={{ fontSize:11, color:'#64748b', margin:'4px 0 10px' }}>This records teaching coverage only. It never marks learner mastery.</div>
+                <div style={{ display:'grid', gap:7 }}>
+                  {([
+                    ['covered','Completed · content covered'],
+                    ['partial','Partially covered'],
+                    ['reteach','Reteach required'],
+                  ] as Array<[LessonCoverageOutcome,string]>).map(([value,label]) => (
+                    <button key={value} type="button" onClick={()=>setCoverageOutcome(value)} style={{...actionStyle,textAlign:'left',borderColor:coverageOutcome===value?'#059669':'#cbd5e1',background:coverageOutcome===value?'#ecfdf5':'#fff'}}>{label}</button>
+                  ))}
+                </div>
+                <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>What was actually taught?</label>
+                <textarea value={whatWasTaught} onChange={e=>setWhatWasTaught(e.target.value)} rows={3} placeholder="Briefly record the content actually covered in this occurrence." style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5, font:'inherit' }} />
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:8, marginTop:9 }}>
+                  <button type="button" disabled={finishing} onClick={()=>setFinishOpen(false)} style={actionStyle}>Cancel</button>
+                  <button type="button" disabled={finishing || !whatWasTaught.trim()} onClick={finish} style={{...actionStyle,background:'#059669',color:'#fff',opacity:finishing || !whatWasTaught.trim()?0.55:1}}>{finishing?'Finishing lesson…':'Confirm finish'}</button>
+                </div>
+              </section>
+            )}
+          </>
         ) : null}
       </div>
     </div>
