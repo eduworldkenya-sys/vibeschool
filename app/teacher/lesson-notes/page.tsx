@@ -7,6 +7,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { parseLessonPlanBody } from "@/lib/teaching/lessonPlanCodec";
 import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
+import LessonTeachMode from "@/components/teacher/LessonTeachMode";
+import ReflectionSheet from "@/components/teacher/ReflectionSheet";
+import { completeTeachingOccurrence } from "@/lib/teaching/occurrence";
 
 type PlanRow = {
   id: string;
@@ -17,6 +20,11 @@ type PlanRow = {
   curriculum_id: string | null;
   status: string | null;
   duration_minutes: number | null;
+  timetable_slot_id: string | null;
+  taught_date: string | null;
+  teacher_id: string | null;
+  class_id: string | null;
+  subject_id: string | null;
 };
 
 type ResourceRow = {
@@ -34,6 +42,17 @@ type TeacherNoteRow = {
   title: string;
   body: unknown;
   status: string;
+};
+
+type OccurrenceRow = {
+  id: string;
+  school_id: string;
+  teacher_id: string;
+  class_id: string;
+  subject_id: string;
+  timetable_slot_id: string;
+  occurrence_date: string;
+  lifecycle: string;
 };
 
 type ExactChapterRow = {
@@ -61,6 +80,7 @@ function LessonNotesInner() {
   const router = useRouter();
   const params = useSearchParams();
   const lessonPlanId = params.get("lessonPlanId");
+  const occurrenceId = params.get("occurrenceId");
 
   const [plan, setPlan] = useState<PlanRow | null>(null);
   const [resources, setResources] = useState<ResourceRow[]>([]);
@@ -70,7 +90,9 @@ function LessonNotesInner() {
   const [error, setError] = useState<string | null>(null);
   const [teachMode, setTeachMode] = useState(false);
   const [liveNote, setLiveNote] = useState("");
-  const [activeSection, setActiveSection] = useState(0);
+  const [occurrence, setOccurrence] = useState<OccurrenceRow | null>(null);
+  const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [reflectionSeed, setReflectionSeed] = useState("");
 
   const sections = useMemo(() => {
     if (!plan?.body) return null;
@@ -96,7 +118,7 @@ function LessonNotesInner() {
 
       const { data: planData, error: planError } = await supabase
         .from("lesson_plans")
-        .select("id,title,topic,body,scheme_id,curriculum_id,status,duration_minutes")
+        .select("id,title,topic,body,scheme_id,curriculum_id,status,duration_minutes,timetable_slot_id,taught_date,teacher_id,class_id,subject_id")
         .eq("id", lessonPlanId)
         .single();
 
@@ -106,6 +128,30 @@ function LessonNotesInner() {
 
       const typedPlan = planData as PlanRow;
       setPlan(typedPlan);
+
+      if (occurrenceId) {
+        const { data: occurrenceData, error: occurrenceError } = await supabase
+          .from("teaching_occurrences")
+          .select("id,school_id,teacher_id,class_id,subject_id,timetable_slot_id,occurrence_date,lifecycle")
+          .eq("id", occurrenceId)
+          .maybeSingle();
+        if (occurrenceError) throw occurrenceError;
+        const row = occurrenceData as OccurrenceRow | null;
+        const mismatch = !row
+          || row.teacher_id !== authData.user.id
+          || row.timetable_slot_id !== typedPlan.timetable_slot_id
+          || row.occurrence_date !== typedPlan.taught_date
+          || (typedPlan.teacher_id && row.teacher_id !== typedPlan.teacher_id)
+          || (typedPlan.class_id && row.class_id !== typedPlan.class_id)
+          || (typedPlan.subject_id && row.subject_id !== typedPlan.subject_id);
+        if (mismatch) {
+          setOccurrence(null);
+          throw new Error("Lesson changed or this occurrence no longer belongs to the current lesson authority.");
+        }
+        setOccurrence(row);
+      } else {
+        setOccurrence(null);
+      }
 
       const { data: resourceResult, error: resourceError } = await supabase.rpc(
         "list_teaching_resources",
@@ -200,7 +246,7 @@ function LessonNotesInner() {
     } finally {
       setLoading(false);
     }
-  }, [lessonPlanId, router]);
+  }, [lessonPlanId, occurrenceId, router]);
 
   useEffect(() => {
     void load();
@@ -208,19 +254,25 @@ function LessonNotesInner() {
 
   useEffect(() => {
     if (!lessonPlanId || typeof window === "undefined") return;
-    const key = `vibeschool.teacher.lesson-notes.${lessonPlanId}`;
+    const identity = occurrence
+      ? `${occurrence.school_id}.${occurrence.teacher_id}.${occurrence.id}.${lessonPlanId}`
+      : lessonPlanId;
+    const key = `vibeschool.teacher.lesson-notes.${identity}`;
     try {
       setLiveNote(window.localStorage.getItem(key) ?? "");
     } catch {
       // A blocked local cache must never block teaching.
     }
-  }, [lessonPlanId]);
+  }, [lessonPlanId, occurrence]);
 
   function saveLiveNote(value: string) {
     setLiveNote(value);
     if (!lessonPlanId || typeof window === "undefined") return;
     try {
-      window.localStorage.setItem(`vibeschool.teacher.lesson-notes.${lessonPlanId}`, value);
+      const identity = occurrence
+        ? `${occurrence.school_id}.${occurrence.teacher_id}.${occurrence.id}.${lessonPlanId}`
+        : lessonPlanId;
+      window.localStorage.setItem(`vibeschool.teacher.lesson-notes.${identity}`, value);
     } catch {
       // Keep the in-memory note available even if storage is unavailable.
     }
@@ -283,17 +335,38 @@ function LessonNotesInner() {
         {plan.duration_minutes && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 8 }}>Planned duration: {plan.duration_minutes} minutes</div>}
       </section>
 
-      {teachMode && visibleSections.length > 0 && (
-        <section style={{ background: "#111827", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: "#86efac", textTransform: "uppercase" }}>Now teaching · {activeSection + 1}/{visibleSections.length}</div>
-          <h2 style={{ fontSize: 20, margin: "8px 0" }}>{visibleSections[activeSection]?.label}</h2>
-          <div style={{ fontSize: 16, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{cleanText(sections?.[visibleSections[activeSection]?.key])}</div>
-          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-            <button type="button" disabled={activeSection === 0} onClick={() => setActiveSection((value) => Math.max(0, value - 1))} style={{ flex: 1, border: "1px solid #4b5563", borderRadius: 12, padding: 11, background: "transparent", color: "#fff", fontWeight: 800, opacity: activeSection === 0 ? .45 : 1 }}>Previous</button>
-            <button type="button" disabled={activeSection >= visibleSections.length - 1} onClick={() => setActiveSection((value) => Math.min(visibleSections.length - 1, value + 1))} style={{ flex: 1, border: 0, borderRadius: 12, padding: 11, background: "#fff", color: "#111827", fontWeight: 900, opacity: activeSection >= visibleSections.length - 1 ? .45 : 1 }}>Next</button>
-          </div>
-        </section>
+      {teachMode && sections && (
+        <LessonTeachMode
+          subject="Lesson"
+          className={occurrence ? "Current class" : "Lesson workspace"}
+          topic={plan.topic || plan.title || "Today’s lesson"}
+          sections={sections}
+          context={occurrence ? {
+            lessonPlanId: plan.id,
+            occurrenceId: occurrence.id,
+            teacherId: occurrence.teacher_id,
+            schoolId: occurrence.school_id,
+            classId: occurrence.class_id,
+            subjectId: occurrence.subject_id,
+            lifecycle: occurrence.lifecycle,
+          } : null}
+          initialScratchpad={liveNote}
+          onScratchpadChange={saveLiveNote}
+          onUseInReflection={(value) => {
+            setReflectionSeed(value);
+            setReflectionOpen(true);
+          }}
+          onFinishLesson={occurrence && plan.timetable_slot_id && plan.taught_date && occurrence.lifecycle === "in_progress" ? async () => {
+            await completeTeachingOccurrence({
+              timetableSlotId: plan.timetable_slot_id as string,
+              occurrenceDate: plan.taught_date as string,
+            });
+            setOccurrence(current => current ? { ...current, lifecycle: "completed" } : current);
+          } : undefined}
+          onClose={() => setTeachMode(false)}
+        />
       )}
+
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
         <div style={{ fontSize: 12, fontWeight: 900, color: "#111827" }}>Live teacher note</div>
@@ -367,6 +440,21 @@ function LessonNotesInner() {
           <div style={{ fontWeight: 900, color: "#111827" }}>No written notes yet</div>
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 5 }}>Return to the lesson plan and prepare the lesson. VibeSchool uses the canonical lesson plan as the baseline teaching notes; approved source-grounded teacher notes can enrich it when available.</div>
         </section>
+      )}
+      {reflectionOpen && occurrence && (
+        <ReflectionSheet
+          lessonId={plan.id}
+          occurrenceId={occurrence.id}
+          classId={occurrence.class_id}
+          subjectId={occurrence.subject_id}
+          teacherId={occurrence.teacher_id}
+          initialText={reflectionSeed}
+          onClose={() => setReflectionOpen(false)}
+          onSaved={() => {
+            setReflectionOpen(false);
+            setReflectionSeed("");
+          }}
+        />
       )}
     </main>
   );
