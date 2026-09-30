@@ -5,18 +5,19 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function ReflectionSheet({
-  lessonId, occurrenceId, classId, subjectId, teacherId, onClose, onSaved,
+  lessonId, occurrenceId, classId, subjectId, teacherId, initialText = "", onClose, onSaved,
 }: {
   lessonId: string | null;
   occurrenceId: string | null;
   classId: string;
   subjectId: string;
   teacherId: string;
+  initialText?: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const router = useRouter();
-  const [reflectionText, setReflectionText] = useState("");
+  const [reflectionText, setReflectionText] = useState(initialText);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
