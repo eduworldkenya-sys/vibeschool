@@ -32,6 +32,17 @@ reflection = text('components/teacher/ReflectionSheet.tsx')
 lesson_page = text('app/teacher/lessonplan/page.tsx')
 teach_mode = text('components/teacher/LessonTeachMode.tsx')
 
+# Lesson Notes / Teach Mode production-closure contract.
+require(teach_mode, 'Board plan · canonical lesson', 'canonical board plan')
+require(teach_mode, 'Approved teaching companion', 'approved teaching enrichment in Teach Mode')
+require(teach_mode, 'Formative checkpoint · canonical plan', 'formative checkpoint')
+require(teach_mode, 'Partial · continue later', 'partial lesson outcome')
+require(teach_mode, 'Reteach required', 'reteach outcome')
+require(teach_mode, 'Only Completed advances canonical completion', 'completion authority boundary')
+require(teach_mode, 'Server-authoritative classroom actions are disabled until the connection returns', 'offline mutation safety')
+require(teach_mode, "['vibeschool','teach-resume',context.schoolId,context.teacherId,context.occurrenceId,context.lessonPlanId]", 'scoped resume identity')
+forbid(teach_mode, "supabase.from('teaching_occurrences').update", 'direct occurrence lifecycle mutation')
+
 # Scheme-only baseline remains deterministic and provider-free.
 forbid(baseline, 'api.groq.com', 'baseline')
 forbid(baseline, 'api.tavily.com', 'baseline')
