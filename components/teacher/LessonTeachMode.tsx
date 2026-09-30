@@ -33,6 +33,7 @@ type Props = {
 }
 
 type TeachStep = { key: keyof LessonPlanSections; label: string; timed: boolean }
+type PackView = 'notes' | 'resources' | 'assessment' | 'homework'
 
 const STEPS: TeachStep[] = [
   { key: 'objectives', label: 'Objectives', timed: false },
@@ -42,6 +43,27 @@ const STEPS: TeachStep[] = [
   { key: 'assessmentHook', label: 'Check learning', timed: true },
   { key: 'homework', label: 'Homework', timed: false },
 ]
+
+const TIMED_STEPS = STEPS.filter(step => step.timed)
+
+function parsePositiveMinutes(value: string | undefined): number | null {
+  if (!value) return null
+  const minutes = Number(value)
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : null
+}
+
+function totalMinutes(sections: LessonPlanSections): number | null {
+  const explicit = sections.assessmentHook.match(/Total lesson time:\s*(\d+)\/(\d+)\s*min/i)
+  const explicitTotal = parsePositiveMinutes(explicit?.[1])
+  const explicitDenominator = parsePositiveMinutes(explicit?.[2])
+  if (explicitTotal !== null && explicitDenominator !== null && explicitTotal === explicitDenominator) return explicitTotal
+  const rangeEnds = TIMED_STEPS.flatMap(({ key }) => {
+    const match = sections[key].match(/Timing:\s*\d+\s*[–-]\s*(\d+)\s*min/i)
+    const end = parsePositiveMinutes(match?.[1])
+    return end === null ? [] : [end]
+  })
+  return rangeEnds.length > 0 ? Math.max(...rangeEnds) : null
+}
 
 function resumeKey(context: ClassroomContext) {
   return ['vibeschool','teach-resume',context.schoolId,context.teacherId,context.occurrenceId,context.lessonPlanId].join('.')
@@ -56,7 +78,10 @@ export default function LessonTeachMode({
   onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson, onClose,
 }: Props) {
   const router = useRouter()
+  const total = useMemo(() => totalMinutes(sections), [sections])
   const [stepIndex, setStepIndex] = useState(0)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [packView, setPackView] = useState<PackView>('notes')
   const [scratchpad, setScratchpad] = useState(initialScratchpad)
   const [online, setOnline] = useState(true)
   const [finishing, setFinishing] = useState(false)
@@ -70,7 +95,16 @@ export default function LessonTeachMode({
     [sections],
   )
   const safeIndex = Math.min(stepIndex, Math.max(available.length - 1, 0))
+  const remainingSeconds = total === null ? null : Math.max(0, total * 60 - elapsedSeconds)
+  const remainingMinutes = remainingSeconds === null ? null : Math.floor(remainingSeconds / 60)
+  const remainingRemainder = remainingSeconds === null ? null : String(remainingSeconds % 60).padStart(2, '0')
   const step = available[safeIndex]
+
+  useEffect(() => {
+    if (total === null) return undefined
+    const timer = window.setInterval(() => setElapsedSeconds(value => value + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [total])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -208,7 +242,7 @@ export default function LessonTeachMode({
           <div style={{ display:'flex', justifyContent:'space-between', gap:10 }}>
             <div>
               <div style={{ fontSize:10, fontWeight:900, color: online ? '#047857' : '#b45309', textTransform:'uppercase' }}>
-                {online ? 'Teach mode' : 'Offline · cached lesson'}
+                {online ? 'Teach Now · Prepared Teaching Pack' : 'Offline · cached Prepared Teaching Pack'}
               </div>
               <h1 style={{ fontSize:19, margin:'4px 0' }}>{topic || subject}</h1>
               <div style={{ fontSize:11, color:'#64748b' }}>{subject} · {className}</div>
@@ -216,6 +250,35 @@ export default function LessonTeachMode({
             <button type="button" onClick={onClose} style={actionStyle}>Close</button>
           </div>
         </header>
+
+        {total === null ? (
+          <div style={{ background:'#fff7ed', border:'1px solid #fdba74', color:'#9a3412', borderRadius:12, padding:12, marginBottom:12, fontSize:12, fontWeight:700 }}>
+            This saved plan has no authoritative timing metadata. The timer is disabled rather than assuming a 40-minute period.
+          </div>
+        ) : (
+          <div style={{ background:'#1e1b4b', color:'#fff', borderRadius:14, padding:12, marginBottom:12 }}>
+            <div style={{ fontSize:10, opacity:.75, textTransform:'uppercase', fontWeight:800 }}>Lesson remaining · Total lesson time: {total} min</div>
+            <div style={{ fontSize:24, fontWeight:900, marginTop:3 }}>{remainingMinutes}:{remainingRemainder}</div>
+          </div>
+        )}
+
+        <section aria-label="Prepared lesson materials" style={{ background:'#fff', border:'1px solid #c7d2fe', borderRadius:16, padding:13, marginBottom:12 }}>
+          <div style={{ fontSize:11, fontWeight:900, color:'#3730a3', textTransform:'uppercase' }}>Ready beside you</div>
+          <div style={{ fontSize:12, color:'#64748b', margin:'3px 0 9px' }}>Resources ready · Differentiation ready · Prepared Teaching Pack</div>
+          <div style={{ display:'flex', gap:7, overflowX:'auto', marginBottom:9 }}>
+            {([
+              ['notes','Notes'],['resources','Resources'],['assessment','Check learning'],['homework','Homework'],
+            ] as Array<[PackView,string]>).map(([value,label]) => (
+              <button key={value} type="button" onClick={()=>setPackView(value)} style={{...actionStyle,whiteSpace:'nowrap',borderColor:packView===value?'#4338ca':'#cbd5e1',background:packView===value?'#eef2ff':'#fff'}}>{label}</button>
+            ))}
+          </div>
+          <div style={{ whiteSpace:'pre-wrap', lineHeight:1.65, fontSize:13, background:'#f8fafc', borderRadius:10, padding:10 }}>
+            {packView === 'notes' && [sections.introduction, sections.development, sections.consolidation].filter(Boolean).join('\n\n')}
+            {packView === 'resources' && sections.resources}
+            {packView === 'assessment' && sections.assessmentHook}
+            {packView === 'homework' && <><div>{sections.homework}</div><div style={{ marginTop:8, fontSize:11, fontWeight:900, color:'#4338ca' }}>View · Edit · Assign · Share</div></>}
+          </div>
+        </section>
 
         <section style={{ background:'#111827', color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
           <div style={{ fontSize:10, fontWeight:900, color:'#86efac', textTransform:'uppercase' }}>
