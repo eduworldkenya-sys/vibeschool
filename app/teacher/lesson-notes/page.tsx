@@ -7,10 +7,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { parseLessonPlanBody } from "@/lib/teaching/lessonPlanCodec";
 import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
-import LessonTeachMode from "@/components/teacher/LessonTeachMode";
+import LessonTeachMode, { type LessonCoverageOutcome } from "@/components/teacher/LessonTeachMode";
 import ReflectionSheet from "@/components/teacher/ReflectionSheet";
 import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
-import { completeTeachingOccurrence } from "@/lib/teaching/occurrence";
+import { completeTeachingOccurrence, markSchemeItemCovered } from "@/lib/teaching/occurrence";
 
 type PlanRow = {
   id: string;
@@ -361,12 +361,44 @@ function LessonNotesInner() {
             setReflectionSeed(value);
             setReflectionOpen(true);
           }}
-          onFinishLesson={occurrence && plan.timetable_slot_id && plan.taught_date && occurrence.lifecycle === "in_progress" ? async () => {
-            await completeTeachingOccurrence({
+          onFinishLesson={occurrence && plan.timetable_slot_id && plan.taught_date && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
+            const completed = await completeTeachingOccurrence({
               timetableSlotId: plan.timetable_slot_id as string,
               occurrenceDate: plan.taught_date as string,
             });
             setOccurrence(current => current ? { ...current, lifecycle: "completed" } : current);
+
+            const nextSteps = outcome === "partial"
+              ? "Continue the uncovered part of this lesson before advancing Scheme coverage."
+              : outcome === "reteach"
+                ? "Reteach this lesson content using the teacher reflection and new evidence before advancing Scheme coverage."
+                : "Teaching occurrence completed and the linked Scheme item was explicitly marked covered. Learner mastery remains evidence-based and separate.";
+
+            const { error: progressError } = await supabase.rpc("save_teaching_progress_record", {
+              p_occurrence_id: completed.id,
+              p_what_was_taught: whatWasTaught,
+              p_participation_score: null,
+              p_challenges: outcome === "reteach" ? "Teacher marked this occurrence as reteach required." : null,
+              p_homework_set: null,
+              p_teacher_remarks: `Coverage outcome: ${outcome}. This is a teaching-coverage statement, not learner mastery.`,
+              p_next_steps: nextSteps,
+            });
+            if (progressError) {
+              throw new Error(`Lesson was completed, but its progress record still needs attention: ${progressError.message}`);
+            }
+
+            if (outcome === "covered") {
+              await markSchemeItemCovered(completed.id);
+            }
+
+            const reflectionContext = [
+              liveNote.trim(),
+              `Coverage outcome: ${outcome}.`,
+              `What was taught: ${whatWasTaught}`,
+              `Next step: ${nextSteps}`,
+            ].filter(Boolean).join("\\n\\n");
+            setReflectionSeed(reflectionContext);
+            setReflectionOpen(true);
           } : undefined}
           onClose={() => setTeachMode(false)}
         />
