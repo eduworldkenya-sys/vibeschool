@@ -355,6 +355,7 @@ function LessonNotesInner() {
             occurrenceDate: occurrence.occurrence_date,
           } : null}
           initialScratchpad={liveNote}
+          approvedTeachingNotes={teacherNotes.map(note => ({ id: note.id, title: note.title, body: note.body }))}
           onScratchpadChange={saveLiveNote}
           onCaptureEvidence={() => setEvidenceOpen(true)}
           onUseInReflection={(value) => {
