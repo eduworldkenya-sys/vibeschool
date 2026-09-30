@@ -55,22 +55,28 @@ for (const needle of [
 }
 
 for (const needle of [
-  "type PackView = 'notes' | 'resources' | 'assessment' | 'homework'",
-  'PreparedNotes',
-  'Opening notes',
-  'Core teaching notes',
-  'Closure notes',
-  'Ready beside you',
-  'No extra preparation',
-  'Use the prepared lesson pack without leaving Teach Now.',
-  'This saved plan has no authoritative timing metadata.',
-  "sections.resources",
-  "sections.assessmentHook",
-  "sections.homework",
+  'Now teaching',
+  "sections[step.key]",
+  "sections.differentiation",
+  "Private scratchpad",
+  "Use in reflection",
+  "Classroom actions · same occurrence",
+  "mode: 'lesson'",
+  "timetableSlotId: context.timetableSlotId",
+  "date: context.occurrenceDate",
+  "onCaptureEvidence",
+  "Finish lesson",
+  "Lesson already completed",
 ]) {
-  assert.ok(teachMode.includes(needle), `Teach Now resource-pack contract missing: ${needle}`)
+  assert.ok(teachMode.includes(needle), `Teach Now classroom contract missing: ${needle}`)
 }
 
-assert.ok(!teachMode.includes("return '40 minutes'"), 'Teach Now must not invent a conventional duration when timing authority is missing')
+for (const forbiddenNeedle of [
+  ".from('lesson_notes')",
+  "startTeachingOccurrence(",
+  "insert({",
+]) {
+  assert.ok(!teachMode.includes(forbiddenNeedle), `Teach Mode must not create parallel lesson authority: ${forbiddenNeedle}`)
+}
 
 console.log('Teacher Resource OS contract: PASS')

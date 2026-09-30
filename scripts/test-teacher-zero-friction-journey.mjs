@@ -5,6 +5,7 @@ const read = (path) => fs.readFileSync(path, "utf8");
 const flow = read("components/teacher/LessonFlowCard.tsx");
 const notes = read("app/teacher/lesson-notes/page.tsx");
 const rules = read("lib/pulse/rules.ts");
+const teachMode = read("components/teacher/LessonTeachMode.tsx");
 
 const mustContain = (text, needle, label) => {
   if (!text.includes(needle)) {
@@ -40,8 +41,15 @@ mustContain(notes, '.eq("audience", "teacher")', "Lesson notes workspace");
 mustContain(notes, '.eq("status", "approved")', "Lesson notes workspace");
 mustContain(notes, "Your lesson plan remains the teaching authority.", "Lesson notes workspace");
 mustContain(notes, "Start teach mode", "Lesson notes workspace");
-mustContain(notes, "Now teaching", "Lesson notes workspace");
-mustContain(notes, "Live teacher note", "Lesson notes workspace");
+mustContain(notes, "<LessonTeachMode", "Lesson notes workspace");
+mustContain(notes, '.from("teaching_occurrences")', "Lesson notes occurrence authority");
+mustContain(notes, "row.teacher_id !== authData.user.id", "Lesson notes teacher isolation");
+mustContain(teachMode, "Now teaching", "Canonical Teach Mode");
+mustContain(teachMode, "occurrenceId", "Canonical Teach Mode resume identity");
+mustContain(teachMode, "schoolId", "Canonical Teach Mode resume identity");
+mustContain(teachMode, "teacherId", "Canonical Teach Mode resume identity");
+mustContain(teachMode, "Private scratchpad", "Canonical Teach Mode");
+mustContain(teachMode, "Use in reflection", "Canonical Teach Mode");
 mustContain(notes, "vibeschool.teacher.lesson-notes.", "Lesson notes workspace");
 mustContain(notes, "duration_minutes", "Lesson notes workspace");
 if (notes.includes('.from("lesson_notes")')) {

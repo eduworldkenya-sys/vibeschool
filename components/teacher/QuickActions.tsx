@@ -101,7 +101,7 @@ function actionsFor(slot?: Slot, context?: TeachingContext): ActionItem[] {
   const lessonPlanId = slot.teaching_workspace?.lessonPlanId ?? slot.lesson_plan_id;
   const occurrenceId = slot.teaching_workspace?.occurrenceId ?? "";
   const notesUrl = lessonPlanId
-    ? `/teacher/lesson-notes?lessonPlanId=${encodeURIComponent(lessonPlanId)}`
+    ? `/teacher/lesson-notes?lessonPlanId=${encodeURIComponent(lessonPlanId)}&occurrenceId=${encodeURIComponent(occurrenceId)}&classId=${encodeURIComponent(slot.class_id)}&subjectId=${encodeURIComponent(slot.subject_id)}`
     : lessonUrl;
   const homeworkUrl = `/teacher/classhub/${encodeURIComponent(slot.class_id)}/homework?lessonPlanId=${encodeURIComponent(lessonPlanId ?? "")}&occurrenceId=${encodeURIComponent(occurrenceId)}&subjectId=${encodeURIComponent(slot.subject_id)}&subject=${encodeURIComponent(slot.subject)}`;
   const progressUrl = `/teacher/progress?planId=${encodeURIComponent(lessonPlanId ?? "")}&occurrenceId=${encodeURIComponent(occurrenceId)}&classId=${encodeURIComponent(slot.class_id)}&subjectId=${encodeURIComponent(slot.subject_id)}`;
