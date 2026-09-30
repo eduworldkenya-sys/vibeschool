@@ -12,6 +12,8 @@ type ClassroomContext = {
   classId: string
   subjectId: string
   lifecycle: string
+  timetableSlotId: string
+  occurrenceDate: string
 }
 
 type Props = {
@@ -23,6 +25,7 @@ type Props = {
   initialScratchpad?: string
   onScratchpadChange?: (value: string) => void
   onUseInReflection?: (value: string) => void
+  onCaptureEvidence?: () => void
   onFinishLesson?: () => Promise<void> | void
   onClose: () => void
 }
@@ -48,7 +51,7 @@ function cacheKey(context: ClassroomContext) {
 
 export default function LessonTeachMode({
   subject, className, topic, sections, context, initialScratchpad = '',
-  onScratchpadChange, onUseInReflection, onFinishLesson, onClose,
+  onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson, onClose,
 }: Props) {
   const router = useRouter()
   const [stepIndex, setStepIndex] = useState(0)
@@ -143,6 +146,8 @@ export default function LessonTeachMode({
       occurrenceId: context.occurrenceId,
       classId: context.classId,
       subjectId: context.subjectId,
+      timetableSlotId: context.timetableSlotId,
+      date: context.occurrenceDate,
     })
     router.push(`${path}?${q.toString()}`)
   }
@@ -212,8 +217,17 @@ export default function LessonTeachMode({
           <section style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:13, marginBottom:12 }}>
             <div style={{ fontSize:10, fontWeight:900, color:'#475569', textTransform:'uppercase', marginBottom:8 }}>Classroom actions · same occurrence</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:8 }}>
-              <button style={actionStyle} onClick={()=>openAction('/teacher/attendance')}>Attendance</button>
-              <button style={actionStyle} onClick={()=>openAction('/teacher/evidence')}>Evidence</button>
+              <button style={actionStyle} onClick={() => {
+                const q = new URLSearchParams({
+                  mode: 'lesson',
+                  classId: context.classId,
+                  subjectId: context.subjectId,
+                  timetableSlotId: context.timetableSlotId,
+                  date: context.occurrenceDate,
+                })
+                router.push(`/teacher/attendance?${q.toString()}`)
+              }}>Attendance</button>
+              <button style={actionStyle} disabled={!onCaptureEvidence} onClick={()=>onCaptureEvidence?.()}>Evidence</button>
               <button style={actionStyle} onClick={()=>openAction(`/teacher/classhub/${encodeURIComponent(context.classId)}/homework`)}>Homework</button>
               <button style={actionStyle} onClick={()=>openAction('/teacher/assessment/new')}>Assessment</button>
             </div>
