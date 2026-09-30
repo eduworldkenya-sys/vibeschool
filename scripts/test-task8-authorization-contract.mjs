@@ -14,8 +14,9 @@ const storagePolicyCleanupMigration = read('supabase/migrations/20260819041500_t
 const activationMigration = read('supabase/migrations/20260820224500_learner_activation_parent_decoupling.sql')
 const resetPin = read('app/api/reset-student-pin/route.ts')
 const createStudent = read('app/api/create-student-account/route.ts')
-const generateLesson = read('app/api/generate-lesson-plan/route.ts')
-const edgeGenerateLesson = read('supabase/functions/generate-lesson-plan/index.ts')
+const optionalRead = (path) => fs.existsSync(path) ? read(path) : null
+const generateLesson = optionalRead('app/api/generate-lesson-plan/route.ts')
+const edgeGenerateLesson = optionalRead('supabase/functions/generate-lesson-plan/index.ts')
 const canonicalGenerateLesson = read('supabase/functions/generate-canonical-lesson-plan/index.ts')
 const cronFiles = [
   'app/api/cron/homework-reminders/route.ts',
@@ -78,6 +79,9 @@ for (const [name, source] of [
   ['edge lesson generator', edgeGenerateLesson],
   ['canonical lesson generator', canonicalGenerateLesson],
 ]) {
+  // Retired generators are an acceptable least-authority state. If a legacy
+  // privileged surface exists, however, it must still satisfy Task 8.
+  if (source == null) continue
   mustContain(source, 'teacher_classes', `${name} must verify current teacher assignment before service-role work`)
   mustContain(source, 'role', `${name} must verify teacher role before service-role work`)
 }
