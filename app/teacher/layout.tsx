@@ -56,6 +56,7 @@ function tabIdFromPath(path: string): TabId {
     path.startsWith("/teacher/subjecthub") ||
     path.startsWith("/teacher/scheme") ||
     path.startsWith("/teacher/lessonplan") ||
+    path.startsWith("/teacher/teacher-guide") ||
     path.startsWith("/teacher/progress") ||
     path.startsWith("/teacher/resources") ||
     path.startsWith("/teacher/vibelearn")
@@ -339,6 +340,7 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Subjects", icon: <IconSubjectHub size={24} />, href: "/teacher/subjecthub" },
     { label: "Scheme of Work", icon: <IconScheme size={24} />, href: "/teacher/scheme" },
     { label: "Lesson Plans", icon: <IconPlans size={24} />, href: "/teacher/lessonplan" },
+    { label: "Teacher Guide", icon: <IconVibeLearn size={24} />, href: "/teacher/teacher-guide" },
     { label: "Week", icon: <IconWeek size={24} />, href: "/teacher/week" },
     { label: "Progress", icon: <IconVibeLearn size={24} />, href: "/teacher/progress" },
     { label: "Resources", icon: <IconResources size={24} />, href: "/teacher/resources" },
