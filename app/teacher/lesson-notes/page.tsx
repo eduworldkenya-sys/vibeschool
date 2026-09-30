@@ -9,6 +9,7 @@ import { parseLessonPlanBody } from "@/lib/teaching/lessonPlanCodec";
 import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
 import LessonTeachMode from "@/components/teacher/LessonTeachMode";
 import ReflectionSheet from "@/components/teacher/ReflectionSheet";
+import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
 import { completeTeachingOccurrence } from "@/lib/teaching/occurrence";
 
 type PlanRow = {
@@ -92,6 +93,7 @@ function LessonNotesInner() {
   const [liveNote, setLiveNote] = useState("");
   const [occurrence, setOccurrence] = useState<OccurrenceRow | null>(null);
   const [reflectionOpen, setReflectionOpen] = useState(false);
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
   const [reflectionSeed, setReflectionSeed] = useState("");
 
   const sections = useMemo(() => {
@@ -349,9 +351,12 @@ function LessonNotesInner() {
             classId: occurrence.class_id,
             subjectId: occurrence.subject_id,
             lifecycle: occurrence.lifecycle,
+            timetableSlotId: occurrence.timetable_slot_id,
+            occurrenceDate: occurrence.occurrence_date,
           } : null}
           initialScratchpad={liveNote}
           onScratchpadChange={saveLiveNote}
+          onCaptureEvidence={() => setEvidenceOpen(true)}
           onUseInReflection={(value) => {
             setReflectionSeed(value);
             setReflectionOpen(true);
@@ -441,6 +446,18 @@ function LessonNotesInner() {
           <div style={{ fontSize: 12, color: "#6b7280", marginTop: 5 }}>Return to the lesson plan and prepare the lesson. VibeSchool uses the canonical lesson plan as the baseline teaching notes; approved source-grounded teacher notes can enrich it when available.</div>
         </section>
       )}
+      {evidenceOpen && occurrence && (
+        <EvidenceCaptureSheet
+          lessonId={plan.id}
+          occurrenceId={occurrence.id}
+          classId={occurrence.class_id}
+          teacherId={occurrence.teacher_id}
+          defaultTitle={plan.topic || plan.title || "Lesson evidence"}
+          onClose={() => setEvidenceOpen(false)}
+          onSaved={() => setEvidenceOpen(false)}
+        />
+      )}
+
       {reflectionOpen && occurrence && (
         <ReflectionSheet
           lessonId={plan.id}
