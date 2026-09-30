@@ -35,6 +35,18 @@ mustContain(notes, ".eq(\"sub_strand_id\", subStrandId)", "Lesson notes workspac
 mustContain(notes, ".eq(\"curriculum_id\", curriculumId as string)", "Lesson notes workspace");
 mustContain(notes, ".eq(\"status\", \"published\")", "Lesson notes workspace");
 mustContain(notes, "These chapters carry the same curriculum identity as this lesson.", "Lesson notes workspace");
+mustContain(notes, '.eq("derivative_type", "teacher_notes")', "Lesson notes workspace");
+mustContain(notes, '.eq("audience", "teacher")', "Lesson notes workspace");
+mustContain(notes, '.eq("status", "approved")', "Lesson notes workspace");
+mustContain(notes, "Your lesson plan remains the teaching authority.", "Lesson notes workspace");
+mustContain(notes, "Start teach mode", "Lesson notes workspace");
+mustContain(notes, "Now teaching", "Lesson notes workspace");
+mustContain(notes, "Live teacher note", "Lesson notes workspace");
+mustContain(notes, "vibeschool.teacher.lesson-notes.", "Lesson notes workspace");
+mustContain(notes, "duration_minutes", "Lesson notes workspace");
+if (notes.includes('.from("lesson_notes")')) {
+  throw new Error("Deprecated lesson_notes must never become a write/read authority for the Lesson Notes workspace.");
+}
 if (notes.includes("typedPlan.strand_id")) {
   throw new Error("A curriculum strand id must never be treated as a sub-strand id.");
 }
