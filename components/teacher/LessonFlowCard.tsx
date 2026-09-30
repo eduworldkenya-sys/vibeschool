@@ -156,7 +156,7 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
 
   const exactLessonUrl = `/teacher/lessonplan?timetableSlotId=${encodeURIComponent(activeSlot.id)}&date=${encodeURIComponent(occurrenceDate)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&classId=${encodeURIComponent(activeSlot.class_id)}`;
   const lessonNotesUrl = lessonPlanId
-    ? `/teacher/lesson-notes?lessonPlanId=${encodeURIComponent(lessonPlanId)}`
+    ? `/teacher/lesson-notes?lessonPlanId=${encodeURIComponent(lessonPlanId)}&occurrenceId=${encodeURIComponent(occurrenceId ?? "")}&classId=${encodeURIComponent(activeSlot.class_id)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}`
     : exactLessonUrl;
   const lineage = `lessonPlanId=${encodeURIComponent(lessonPlanId ?? "")}&occurrenceId=${encodeURIComponent(occurrenceId ?? "")}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&subject=${encodeURIComponent(activeSlot.subject)}&topic=${encodeURIComponent(activeSlot.subject)}`;
 
