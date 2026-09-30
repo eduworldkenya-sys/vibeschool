@@ -204,8 +204,8 @@ export default function LessonTeachMode({
         )}
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
-          <button type="button" disabled={safeIndex===0} onClick={()=>changeStep(Math.max(0,safeIndex-1))} style={{...actionStyle,opacity:safeIndex===0?.45:1}}>← Previous</button>
-          <button type="button" disabled={safeIndex>=available.length-1} onClick={()=>changeStep(Math.min(available.length-1,safeIndex+1))} style={{...actionStyle,background:'#4338ca',color:'#fff',opacity:safeIndex>=available.length-1?.45:1}}>Next →</button>
+          <button type="button" disabled={safeIndex===0} onClick={()=>changeStep(Math.max(0,safeIndex-1))} style={{...actionStyle,opacity: safeIndex === 0 ? 0.45 : 1}}>← Previous</button>
+          <button type="button" disabled={safeIndex>=available.length-1} onClick={()=>changeStep(Math.min(available.length-1,safeIndex+1))} style={{...actionStyle,background:'#4338ca',color:'#fff',opacity: safeIndex >= available.length - 1 ? 0.45 : 1}}>Next →</button>
         </div>
 
         {context ? (
@@ -228,7 +228,7 @@ export default function LessonTeachMode({
           <div style={{ fontSize:11, fontWeight:900 }}>Private scratchpad</div>
           <div style={{ fontSize:10, color:'#64748b', margin:'4px 0 8px' }}>Private and noncanonical. It becomes an official reflection only after you explicitly review and save it.</div>
           <textarea value={scratchpad} onChange={e=>changeScratchpad(e.target.value)} rows={4} style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, font:'inherit' }} />
-          <button type="button" disabled={!scratchpad.trim() || !onUseInReflection} onClick={()=>onUseInReflection?.(scratchpad)} style={{...actionStyle,marginTop:8,opacity:!scratchpad.trim()||!onUseInReflection?.5:1}}>Use in reflection →</button>
+          <button type="button" disabled={!scratchpad.trim() || !onUseInReflection} onClick={()=>onUseInReflection?.(scratchpad)} style={{...actionStyle,marginTop:8,opacity: !scratchpad.trim() || !onUseInReflection ? 0.5 : 1}}>Use in reflection →</button>
         </section>
 
         {finishError && <div role="alert" style={{ color:'#b91c1c', fontSize:12, marginBottom:8 }}>{finishError}</div>}
