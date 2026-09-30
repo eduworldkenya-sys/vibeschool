@@ -16,6 +16,7 @@ type PlanRow = {
   scheme_id: string | null;
   curriculum_id: string | null;
   status: string | null;
+  duration_minutes: number | null;
 };
 
 type ResourceRow = {
@@ -67,6 +68,9 @@ function LessonNotesInner() {
   const [teacherNotes, setTeacherNotes] = useState<TeacherNoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [teachMode, setTeachMode] = useState(false);
+  const [liveNote, setLiveNote] = useState("");
+  const [activeSection, setActiveSection] = useState(0);
 
   const sections = useMemo(() => {
     if (!plan?.body) return null;
@@ -92,7 +96,7 @@ function LessonNotesInner() {
 
       const { data: planData, error: planError } = await supabase
         .from("lesson_plans")
-        .select("id,title,topic,body,scheme_id,curriculum_id,status")
+        .select("id,title,topic,body,scheme_id,curriculum_id,status,duration_minutes")
         .eq("id", lessonPlanId)
         .single();
 
@@ -202,6 +206,26 @@ function LessonNotesInner() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    if (!lessonPlanId || typeof window === "undefined") return;
+    const key = `vibeschool.teacher.lesson-notes.${lessonPlanId}`;
+    try {
+      setLiveNote(window.localStorage.getItem(key) ?? "");
+    } catch {
+      // A blocked local cache must never block teaching.
+    }
+  }, [lessonPlanId]);
+
+  function saveLiveNote(value: string) {
+    setLiveNote(value);
+    if (!lessonPlanId || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(`vibeschool.teacher.lesson-notes.${lessonPlanId}`, value);
+    } catch {
+      // Keep the in-memory note available even if storage is unavailable.
+    }
+  }
+
   function openResource(resource: ResourceRow) {
     if (!resource.publicationId) return;
     const next = new URLSearchParams();
@@ -244,6 +268,38 @@ function LessonNotesInner() {
         <div style={{ fontSize: 11, fontWeight: 900, color: "#86efac", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes</div>
         <h1 style={{ fontSize: 22, lineHeight: 1.2, margin: "7px 0 5px" }}>{plan.topic || plan.title || "Today’s lesson"}</h1>
         <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.45 }}>Everything here belongs to this lesson. Teach from it, then return to the lesson flow.</div>
+      </section>
+
+      <section style={{ background: "#fff", borderRadius: 18, padding: 14, marginBottom: 14, border: "1px solid #e5e7eb" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>Teach mode</div>
+            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>A phone-first view of this exact lesson. It does not change curriculum or Scheme authority.</div>
+          </div>
+          <button type="button" onClick={() => setTeachMode((value) => !value)} style={{ border: 0, borderRadius: 12, padding: "9px 12px", background: teachMode ? "#dcfce7" : "#111827", color: teachMode ? "#166534" : "#fff", fontWeight: 900 }}>
+            {teachMode ? "Exit teach mode" : "Start teach mode"}
+          </button>
+        </div>
+        {plan.duration_minutes && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 8 }}>Planned duration: {plan.duration_minutes} minutes</div>}
+      </section>
+
+      {teachMode && visibleSections.length > 0 && (
+        <section style={{ background: "#111827", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: "#86efac", textTransform: "uppercase" }}>Now teaching · {activeSection + 1}/{visibleSections.length}</div>
+          <h2 style={{ fontSize: 20, margin: "8px 0" }}>{visibleSections[activeSection]?.label}</h2>
+          <div style={{ fontSize: 16, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{cleanText(sections?.[visibleSections[activeSection]?.key])}</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+            <button type="button" disabled={activeSection === 0} onClick={() => setActiveSection((value) => Math.max(0, value - 1))} style={{ flex: 1, border: "1px solid #4b5563", borderRadius: 12, padding: 11, background: "transparent", color: "#fff", fontWeight: 800, opacity: activeSection === 0 ? .45 : 1 }}>Previous</button>
+            <button type="button" disabled={activeSection >= visibleSections.length - 1} onClick={() => setActiveSection((value) => Math.min(visibleSections.length - 1, value + 1))} style={{ flex: 1, border: 0, borderRadius: 12, padding: 11, background: "#fff", color: "#111827", fontWeight: 900, opacity: activeSection >= visibleSections.length - 1 ? .45 : 1 }}>Next</button>
+          </div>
+        </section>
+      )}
+
+      <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
+        <div style={{ fontSize: 12, fontWeight: 900, color: "#111827" }}>Live teacher note</div>
+        <div style={{ fontSize: 11, color: "#6b7280", margin: "4px 0 9px" }}>Capture a reminder while teaching. This private device note does not alter the canonical lesson plan, Scheme or learner record.</div>
+        <textarea value={liveNote} onChange={(event) => saveLiveNote(event.target.value)} rows={3} placeholder="e.g. Revisit balancing equations with another example next lesson." style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11, font: "inherit", fontSize: 13, resize: "vertical" }} />
+        <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 6 }}>Saved on this device for this lesson so a weak connection does not erase the note.</div>
       </section>
 
       {resources.length > 0 && (
