@@ -27,6 +27,7 @@ type Props = {
   onUseInReflection?: (value: string) => void
   onCaptureEvidence?: () => void
   onFinishLesson?: () => Promise<void> | void
+  approvedTeachingNotes?: Array<{ id: string; title: string; body: unknown }>
   onClose: () => void
 }
 
@@ -51,7 +52,8 @@ function cacheKey(context: ClassroomContext) {
 
 export default function LessonTeachMode({
   subject, className, topic, sections, context, initialScratchpad = '',
-  onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson, onClose,
+  onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson,
+  approvedTeachingNotes = [], onClose,
 }: Props) {
   const router = useRouter()
   const [stepIndex, setStepIndex] = useState(0)
@@ -140,7 +142,7 @@ export default function LessonTeachMode({
   }
 
   function openAction(path: string) {
-    if (!context) return
+    if (!context || !online) return
     const q = new URLSearchParams({
       lessonPlanId: context.lessonPlanId,
       occurrenceId: context.occurrenceId,
@@ -194,6 +196,15 @@ export default function LessonTeachMode({
           </div>
         </header>
 
+        <section style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:13, marginBottom:12 }}>
+          <div style={{ fontSize:10, fontWeight:900, color:'#475569', textTransform:'uppercase', marginBottom:8 }}>Board plan · canonical lesson</div>
+          <div style={{ display:'grid', gap:8 }}>
+            {sections.objectives.trim() && <div><strong>Goal:</strong><div style={{whiteSpace:'pre-wrap',fontSize:12,lineHeight:1.55}}>{sections.objectives}</div></div>}
+            {sections.development.trim() && <div><strong>Teach:</strong><div style={{whiteSpace:'pre-wrap',fontSize:12,lineHeight:1.55}}>{sections.development}</div></div>}
+            {sections.consolidation.trim() && <div><strong>Close:</strong><div style={{whiteSpace:'pre-wrap',fontSize:12,lineHeight:1.55}}>{sections.consolidation}</div></div>}
+          </div>
+        </section>
+
         <section style={{ background:'#111827', color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
           <div style={{ fontSize:10, fontWeight:900, color:'#86efac', textTransform:'uppercase' }}>
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
@@ -201,10 +212,25 @@ export default function LessonTeachMode({
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
         </section>
 
+        {step.key === 'assessmentHook' && sections.assessmentHook.trim() && (
+          <section style={{ background:'#ecfeff', border:'1px solid #a5f3fc', borderRadius:14, padding:13, marginBottom:12 }}>
+            <div style={{ fontSize:10, fontWeight:900, color:'#155e75', textTransform:'uppercase', marginBottom:6 }}>Formative checkpoint · canonical plan</div>
+            <div style={{ whiteSpace:'pre-wrap', lineHeight:1.6, fontSize:13 }}>{sections.assessmentHook}</div>
+          </section>
+        )}
+
         {step.key === 'development' && sections.differentiation.trim() && (
           <section style={{ background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:14, padding:13, marginBottom:12 }}>
             <div style={{ fontSize:10, fontWeight:900, color:'#5b21b6', textTransform:'uppercase', marginBottom:6 }}>Support · Core · Extension</div>
             <div style={{ whiteSpace:'pre-wrap', lineHeight:1.6, fontSize:13 }}>{sections.differentiation}</div>
+          </section>
+        )}
+
+        {approvedTeachingNotes.length > 0 && (
+          <section style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:13, marginBottom:12 }}>
+            <div style={{ fontSize:10, fontWeight:900, color:'#475569', textTransform:'uppercase', marginBottom:4 }}>Approved teaching companion</div>
+            <div style={{fontSize:10,color:'#64748b',marginBottom:8}}>Reviewed enrichment only. Use prompts, worked examples, expected responses, misconceptions and re-checks when they are present here; VibeSchool does not invent missing classroom content.</div>
+            <div style={{display:'grid',gap:8}}>{approvedTeachingNotes.map(note => <details key={note.id} style={{border:'1px solid #e2e8f0',borderRadius:10,padding:10}}><summary style={{fontSize:12,fontWeight:800,cursor:'pointer'}}>{note.title}</summary><pre style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',fontFamily:'inherit',fontSize:12,lineHeight:1.55,margin:'8px 0 0'}}>{typeof note.body === 'string' ? note.body : JSON.stringify(note.body, null, 2)}</pre></details>)}</div>
           </section>
         )}
 
@@ -216,8 +242,9 @@ export default function LessonTeachMode({
         {context ? (
           <section style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:13, marginBottom:12 }}>
             <div style={{ fontSize:10, fontWeight:900, color:'#475569', textTransform:'uppercase', marginBottom:8 }}>Classroom actions · same occurrence</div>
+            {!online && <div role="status" style={{fontSize:11,color:'#92400e',marginBottom:8}}>The lesson package and resume state remain available offline. Server-authoritative classroom actions are disabled until the connection returns, preventing duplicate or unverified writes.</div>}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:8 }}>
-              <button style={actionStyle} onClick={() => {
+              <button style={{...actionStyle,opacity:online?1:0.5}} disabled={!online} onClick={() => {
                 const q = new URLSearchParams({
                   mode: 'lesson',
                   classId: context.classId,
@@ -227,9 +254,9 @@ export default function LessonTeachMode({
                 })
                 router.push(`/teacher/attendance?${q.toString()}`)
               }}>Attendance</button>
-              <button style={actionStyle} disabled={!onCaptureEvidence} onClick={()=>onCaptureEvidence?.()}>Evidence</button>
-              <button style={actionStyle} onClick={()=>openAction(`/teacher/classhub/${encodeURIComponent(context.classId)}/homework`)}>Homework</button>
-              <button style={actionStyle} onClick={()=>openAction('/teacher/assessment/new')}>Assessment</button>
+              <button style={{...actionStyle,opacity:online?1:0.5}} disabled={!online || !onCaptureEvidence} onClick={()=>onCaptureEvidence?.()}>Evidence</button>
+              <button style={{...actionStyle,opacity:online?1:0.5}} disabled={!online} onClick={()=>openAction(`/teacher/classhub/${encodeURIComponent(context.classId)}/homework`)}>Homework</button>
+              <button style={{...actionStyle,opacity:online?1:0.5}} disabled={!online} onClick={()=>openAction('/teacher/assessment/new')}>Assessment</button>
             </div>
           </section>
         ) : (
@@ -245,11 +272,22 @@ export default function LessonTeachMode({
           <button type="button" disabled={!scratchpad.trim() || !onUseInReflection} onClick={()=>onUseInReflection?.(scratchpad)} style={{...actionStyle,marginTop:8,opacity: !scratchpad.trim() || !onUseInReflection ? 0.5 : 1}}>Use in reflection →</button>
         </section>
 
+        {context?.lifecycle === 'in_progress' && (
+          <section style={{background:'#fff',border:'1px solid #e2e8f0',borderRadius:16,padding:13,marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:900,marginBottom:7}}>Lesson outcome</div>
+            <div style={{fontSize:10,color:'#64748b',marginBottom:9}}>Only Completed advances canonical completion. Partial/reteach keeps this occurrence resumable and can be handed to reflection without falsely marking Scheme coverage.</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+              <button type="button" style={actionStyle} onClick={()=>{persist(safeIndex,scratchpad); onUseInReflection?.((`Partially taught. Resume from ${step.label}.\n\n` + scratchpad).trim())}}>Partial · continue later</button>
+              <button type="button" style={actionStyle} onClick={()=>{persist(safeIndex,scratchpad); onUseInReflection?.((`Reteach required. Revisit ${step.label}.\n\n` + scratchpad).trim())}}>Reteach required</button>
+            </div>
+          </section>
+        )}
+
         {finishError && <div role="alert" style={{ color:'#b91c1c', fontSize:12, marginBottom:8 }}>{finishError}</div>}
         {context?.lifecycle === 'completed' ? (
           <div style={{ padding:13, borderRadius:12, background:'#d1fae5', color:'#065f46', fontWeight:800 }}>Lesson already completed</div>
         ) : onFinishLesson ? (
-          <button type="button" disabled={finishing} onClick={finish} style={{ width:'100%', border:0, borderRadius:12, padding:13, background:'#059669', color:'#fff', fontWeight:900 }}>
+          <button type="button" disabled={finishing || !online} onClick={finish} style={{ width:'100%', border:0, borderRadius:12, padding:13, background:'#059669', color:'#fff', fontWeight:900 }}>
             {finishing ? 'Finishing lesson…' : 'Finish lesson'}
           </button>
         ) : null}
