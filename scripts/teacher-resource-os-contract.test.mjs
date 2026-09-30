@@ -67,6 +67,15 @@ for (const needle of [
   "onCaptureEvidence",
   "Finish lesson",
   "Lesson already completed",
+  "Teaching companion · canonical lesson content",
+  "Board / explanation / examples",
+  "Questions · expected answers / evidence",
+  "Misconception → correction → re-check",
+  "Formative checkpoint",
+  "Completed · content covered",
+  "Partially covered",
+  "Reteach required",
+  "never marks learner mastery",
 ]) {
   assert.ok(teachMode.includes(needle), `Teach Now classroom contract missing: ${needle}`)
 }
@@ -78,5 +87,17 @@ for (const forbiddenNeedle of [
 ]) {
   assert.ok(!teachMode.includes(forbiddenNeedle), `Teach Mode must not create parallel lesson authority: ${forbiddenNeedle}`)
 }
+
+const lessonNotes = fs.readFileSync('app/teacher/lesson-notes/page.tsx', 'utf8')
+for (const needle of [
+  'save_teaching_progress_record',
+  'markSchemeItemCovered(completed.id)',
+  'Coverage outcome:',
+  'teaching-coverage statement, not learner mastery',
+]) {
+  assert.ok(lessonNotes.includes(needle), `Lesson completion authority contract missing: ${needle}`)
+}
+assert.ok(lessonNotes.indexOf('save_teaching_progress_record') < lessonNotes.indexOf('markSchemeItemCovered(completed.id)'), 'Scheme coverage must only advance after the completed occurrence progress record succeeds')
+assert.ok(lessonNotes.includes('if (outcome === "covered")'), 'Partial/reteach outcomes must not mark Scheme coverage')
 
 console.log('Teacher Resource OS contract: PASS')
