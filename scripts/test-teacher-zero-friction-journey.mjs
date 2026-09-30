@@ -39,6 +39,11 @@ mustContain(notes, '.eq("derivative_type", "teacher_notes")', "Lesson notes work
 mustContain(notes, '.eq("audience", "teacher")', "Lesson notes workspace");
 mustContain(notes, '.eq("status", "approved")', "Lesson notes workspace");
 mustContain(notes, "Your lesson plan remains the teaching authority.", "Lesson notes workspace");
+mustContain(notes, "Start teach mode", "Lesson notes workspace");
+mustContain(notes, "Now teaching", "Lesson notes workspace");
+mustContain(notes, "Live teacher note", "Lesson notes workspace");
+mustContain(notes, "vibeschool.teacher.lesson-notes.", "Lesson notes workspace");
+mustContain(notes, "duration_minutes", "Lesson notes workspace");
 if (notes.includes('.from("lesson_notes")')) {
   throw new Error("Deprecated lesson_notes must never become a write/read authority for the Lesson Notes workspace.");
 }
