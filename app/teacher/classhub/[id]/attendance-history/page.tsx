@@ -7,6 +7,7 @@ import { useRouter, useParams } from "next/navigation";
 import { getAttendanceRecords, summarizeAttendance, summarizeByStudent } from "@/lib/attendance/summary";
 import { getRangeDates } from "@/lib/attendance/ranges";
 import type { AttendanceRange, AttendanceRangeSummary } from "@/lib/types";
+import { loadCurrentClassRoster } from "@/lib/teaching/studentRoster";
 
 interface ClassInfo { name: string; stream: string | null }
 interface StudentRow { id: string; name: string; admNo: string }
@@ -36,26 +37,15 @@ function AttendanceHistoryInner() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push("/"); return }
 
-      const { data: owned } = await supabase
-        .from("teacher_classes")
-        .select("class_id")
-        .eq("teacher_id", user.id)
-        .eq("class_id", classId)
-        .maybeSingle()
-      if (!owned) { setLoading(false); router.replace("/teacher/classhub"); return }
+      const { data: ctx, error: contextError } = await supabase.rpc("teacher_get_operating_context")
+      if (contextError) { setLoading(false); return }
+      const context = ctx as { school_id?: string | null; classes?: Array<{ class_id:string; class_name:string; stream:string|null }> } | null
+      const assignment = context?.classes?.find(item => item.class_id === classId)
+      if (!context?.school_id || !assignment) { setLoading(false); router.replace("/teacher/classhub"); return }
 
-      const [clsRes, stuRes] = await Promise.all([
-        supabase.from("classes").select("name, stream").eq("id", classId).single(),
-        supabase.from("student_classes").select("student_id, students(id, name, admission_number)").eq("class_id", classId).eq("is_current", true),
-      ])
-
-      setClassInfo(clsRes.data ? { name: clsRes.data.name, stream: clsRes.data.stream } : null)
-      setStudents(
-        (stuRes.data ?? [])
-          .map((r: any) => r.students)
-          .filter(Boolean)
-          .map((s: any) => ({ id: s.id, name: s.name, admNo: s.admission_number ?? "" }))
-      )
+      const roster = await loadCurrentClassRoster({ schoolId: context.school_id, classId })
+      setClassInfo({ name: assignment.class_name, stream: assignment.stream })
+      setStudents(roster.map(s => ({ id: s.id, name: s.name, admNo: s.admission_number ?? "" })))
     }
     init()
   }, [classId])
