@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { nairobiDateStr, nairobiDateAdd, nairobiWeekStart } from '@/lib/time'
 import type { AttendanceRange } from '@/lib/types'
+import { ensureMyActiveSchoolTerm } from '@/lib/academicTerm'
 
 export async function getRangeDates(
   range: AttendanceRange
@@ -21,7 +22,8 @@ export async function getRangeDates(
     return { startDate: `${y}-01-01`, endDate: today }
   }
 
-  // term — look up the real term dates; RLS scopes this to the caller's own school(s).
+  // term — ensure the caller's active school has its canonical calendar first.
+  await ensureMyActiveSchoolTerm(today)
   const { data } = await supabase
     .from('academic_terms')
     .select('start_date, end_date')
