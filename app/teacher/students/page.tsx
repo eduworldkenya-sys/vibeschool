@@ -45,22 +45,39 @@ export default function StudentsPage() {
       classMap.set(assignment.class_id, current);
     }
     const classIds = Array.from(classMap.keys());
-    const { data, error: rosterError } = await supabase
+    const { data: enrollmentRows, error: rosterError } = await supabase
       .from("student_classes")
-      .select("class_id,student_id,students(id,name,admission_number,profile_id,deleted_at)")
+      .select("class_id,student_id")
       .eq("school_id", ctx.school_id)
       .eq("is_current", true)
       .in("class_id", classIds);
     if (rosterError) throw rosterError;
 
+    // Keep enrollment and learner identity as two explicit reads. A nested
+    // students relation can be hidden independently by RLS and previously
+    // turned real enrollment rows into a misleading zero-learner screen.
+    const studentIds = Array.from(new Set((enrollmentRows ?? []).map((row) => row.student_id)));
+    const { data: studentRows, error: studentError } = studentIds.length > 0
+      ? await supabase
+          .from("students")
+          .select("id,name,admission_number,profile_id,deleted_at")
+          .in("id", studentIds)
+          .is("deleted_at", null)
+      : { data: [], error: null };
+    if (studentError) throw studentError;
+
+    const studentsById = new Map(
+      (studentRows ?? []).map((student) => [
+        student.id,
+        { id: student.id, name: student.name, admission_number: student.admission_number ?? null, profile_id: student.profile_id ?? null } as Student,
+      ])
+    );
     const grouped = new Map<string, Student[]>();
-    for (const row of data ?? []) {
-      const student = (row as any).students;
-      if (!student || student.deleted_at) continue;
+    for (const row of enrollmentRows ?? []) {
+      const student = studentsById.get(row.student_id);
+      if (!student) continue;
       const list = grouped.get(row.class_id) ?? [];
-      if (!list.some((item) => item.id === student.id)) {
-        list.push({ id: student.id, name: student.name, admission_number: student.admission_number ?? null, profile_id: student.profile_id ?? null });
-      }
+      if (!list.some((item) => item.id === student.id)) list.push(student);
       grouped.set(row.class_id, list);
     }
 
