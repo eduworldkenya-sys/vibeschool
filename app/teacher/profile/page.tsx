@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 type Context = {
   teacher_id: string;
   school_id: string | null;
-  state: "ready" | "needs_school" | "needs_class" | "needs_curriculum_reconciliation";
+  state: "ready" | "needs_school" | "needs_class" | "needs_curriculum_reconciliation" | "needs_curriculum_reconciliation";
   reconciliation_count?: number;
   schools: Array<{ id: string; name: string; active: boolean }>;
   classes: Array<{ assignment_id?: string; class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string; is_class_teacher: boolean; curriculum_valid?: boolean; curriculum_state?: string }>;
