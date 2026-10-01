@@ -4,14 +4,16 @@ export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 type Context = {
   teacher_id: string;
   school_id: string | null;
-  state: "ready" | "needs_school" | "needs_class";
+  state: "ready" | "needs_school" | "needs_class" | "needs_curriculum_reconciliation";
+  reconciliation_count?: number;
   schools: Array<{ id: string; name: string; active: boolean }>;
-  classes: Array<{ class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string; is_class_teacher: boolean }>;
+  classes: Array<{ assignment_id?: string; class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string; is_class_teacher: boolean; curriculum_valid?: boolean; curriculum_state?: string }>;
 };
 
 type FormState = {
@@ -246,6 +248,7 @@ export default function TeacherProfilePage() {
         {context && context.schools.length > 1 ? <Field label="Active school"><select value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={inputStyle}>{context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></Field> : <div style={{ fontSize: 14, fontWeight: 900, color: "#111827" }}>{activeSchool}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, marginTop: 12 }}><div style={{ background: "#f8fafc", borderRadius: 12, padding: 11 }}><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280" }}>CLASSES</div><div style={{ marginTop: 5, fontSize: 12, color: "#111827", lineHeight: 1.5 }}>{classes.length ? classes.join(", ") : "No classes assigned"}</div></div><div style={{ background: "#f8fafc", borderRadius: 12, padding: 11 }}><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280" }}>SUBJECTS</div><div style={{ marginTop: 5, fontSize: 12, color: "#111827", lineHeight: 1.5 }}>{subjects.length ? subjects.join(", ") : "No subjects assigned"}</div></div></div>
         <div style={{ marginTop: 9, fontSize: 11, color: "#6b7280" }}>School membership, classes and subjects are read-only here because they are authoritative school records.</div>
+        {(context?.reconciliation_count ?? 0) > 0 && <Link href="/teacher/profile/teaching-scope" style={{ display: "block", marginTop: 12, padding: 12, borderRadius: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", textDecoration: "none", fontSize: 13, fontWeight: 900 }}>Review teaching scope · {context?.reconciliation_count} curriculum mismatch{context?.reconciliation_count === 1 ? "" : "es"} →</Link>}
       </section>
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
