@@ -42,12 +42,41 @@ export function currentWeekOf(term: ActiveTerm): number {
   if (start === null || todayMs === null || todayMs < start) return 1
   return totalWeeksOf(term)
 }
-export async function getTermForDate(schoolId: string, occurrenceDate: string): Promise<ActiveTerm | null> {
-  if (!ISO_DATE.test(occurrenceDate)) throw new Error('academicTerm: occurrenceDate must be YYYY-MM-DD.')
-  const { data, error } = await supabase.from('academic_terms').select('id,term,academic_year,start_date,end_date').eq('school_id', schoolId).lte('start_date', occurrenceDate).gte('end_date', occurrenceDate).order('start_date', { ascending: false }).limit(2)
+async function readTermForDate(schoolId: string, occurrenceDate: string): Promise<ActiveTerm | null> {
+  const { data, error } = await supabase
+    .from('academic_terms')
+    .select('id,term,academic_year,start_date,end_date')
+    .eq('school_id', schoolId)
+    .lte('start_date', occurrenceDate)
+    .gte('end_date', occurrenceDate)
+    .order('start_date', { ascending: false })
+    .limit(2)
+
   if (error) throw error
   const rows = (data ?? []) as ActiveTerm[]
   if (rows.length > 1) throw new Error(`academicTerm: multiple terms contain ${occurrenceDate}; calendar data must be repaired.`)
   return rows[0] ?? null
 }
-export async function getActiveTerm(schoolId: string): Promise<ActiveTerm | null> { return getTermForDate(schoolId, nairobiDateStr()) }
+
+export async function ensureMyActiveSchoolTerm(referenceDate: string = nairobiDateStr()): Promise<string | null> {
+  if (!ISO_DATE.test(referenceDate)) throw new Error('academicTerm: referenceDate must be YYYY-MM-DD.')
+  const { data, error } = await supabase.rpc('ensure_my_active_school_term', { p_reference_date: referenceDate })
+  if (error) throw error
+  return typeof data === 'string' ? data : null
+}
+
+export async function getTermForDate(schoolId: string, occurrenceDate: string): Promise<ActiveTerm | null> {
+  if (!ISO_DATE.test(occurrenceDate)) throw new Error('academicTerm: occurrenceDate must be YYYY-MM-DD.')
+
+  const existing = await readTermForDate(schoolId, occurrenceDate)
+  if (existing) return existing
+
+  // Self-heal only through the caller's server-derived active school. The RPC
+  // never trusts this schoolId and cannot provision an arbitrary school.
+  await ensureMyActiveSchoolTerm(occurrenceDate)
+  return readTermForDate(schoolId, occurrenceDate)
+}
+
+export async function getActiveTerm(schoolId: string): Promise<ActiveTerm | null> {
+  return getTermForDate(schoolId, nairobiDateStr())
+}
