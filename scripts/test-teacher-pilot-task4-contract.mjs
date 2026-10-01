@@ -86,6 +86,16 @@ for (const staleField of ['first_name', 'last_name', 'job_title', 'department', 
 }
 requireText(profile.includes('designation') && profile.includes('teaching_style'), 'teacher profile uses production professional fields')
 
+const attendance = read('app/teacher/attendance/page.tsx')
+requireText(attendance.includes('.from("student_classes")'), 'attendance register derives roster from canonical current enrollment')
+requireText(attendance.includes('.eq("is_current", true)'), 'attendance register restricts roster to current enrollment')
+requireText(!attendance.includes('.not("profile_id"') && !attendance.includes('.not(\'profile_id\''), 'attendance register does not require a Student OS profile link')
+requireText(attendance.includes('upsert_attendance_batch'), 'attendance writes through guarded batch authority')
+
+const schemePage = read('app/teacher/scheme/AuthoritySchemePage.jsx')
+requireText(schemePage.includes('No academic term is configured for this school'), 'Scheme distinguishes missing academic term from missing instructional weeks')
+requireText(schemePage.includes('Your class and subject assignment are still connected'), 'Scheme preserves assignment truth when term setup is missing')
+
 const progress = read('app/teacher/progress/page.tsx')
 requireText(progress.includes('saveTeachingProgressRecord'), 'lesson progress writes through guarded occurrence RPC')
 requireText(progress.includes('teaching_occurrence_id'), 'lesson progress is anchored to teaching occurrence identity')
