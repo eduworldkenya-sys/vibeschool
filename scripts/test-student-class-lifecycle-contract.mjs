@@ -36,17 +36,38 @@ for (const file of sourceFiles) {
 
 const helper = fs.readFileSync('lib/teaching/studentRoster.ts', 'utf8')
 for (const required of [
-  ".from('student_classes')",
-  ".from('students')",
-  ".eq('school_id', input.schoolId)",
-  ".eq('class_id', input.classId)",
-  ".eq('is_current', true)",
-  ".is('deleted_at', null)",
+  "rpc('teacher_get_class_roster'",
+  'p_school_id: input.schoolId',
+  'p_class_id: input.classId',
+  'p_include_history: input.includeHistory',
+  'loadCurrentClassRoster',
+  'loadCurrentClassStudentIds',
+  'loadClassEnrollmentHistory',
+  'loadClassEnrollmentForStudent',
 ]) {
   if (!helper.includes(required)) fail('lib/teaching/studentRoster.ts', `missing canonical roster clause: ${required}`)
 }
 if (/profile_id[^\n]{0,120}(not|neq|eq)/i.test(helper)) {
   fail('lib/teaching/studentRoster.ts', 'current roster must not require a claimed Student OS profile')
+}
+
+const rosterMigration = fs.readFileSync('supabase/migrations/20261001155000_teacher_class_roster_authority.sql', 'utf8')
+for (const required of [
+  'security definer',
+  "set search_path = ''",
+  'public.school_members',
+  'public.teacher_classes',
+  'tc.class_id = p_class_id',
+  'public.student_classes',
+  'join public.students',
+  'p_include_history or sc.is_current',
+  's.deleted_at is null',
+  'revoke all on function public.teacher_get_class_roster(uuid,uuid,boolean,uuid) from public, anon',
+  'grant execute on function public.teacher_get_class_roster(uuid,uuid,boolean,uuid) to authenticated',
+]) {
+  if (!rosterMigration.toLowerCase().includes(required.toLowerCase())) {
+    fail('teacher class roster migration', `missing authority clause: ${required}`)
+  }
 }
 
 const requests = fs.readFileSync('app/teacher/classhub/[id]/requests/page.tsx', 'utf8')
@@ -86,8 +107,8 @@ for (const [file, text] of [['lib/teaching/lessonAttendance.ts', lessonAttendanc
 
 const scenarioContract = [
   ['unclaimed learner remains visible', !helper.includes('.not("profile_id"') && !helper.includes(".not('profile_id'")],
-  ['current enrollment is class authority', helper.includes(".eq('is_current', true)")],
-  ['school scope propagates to roster', helper.includes(".eq('school_id', input.schoolId)")],
+  ['current enrollment is class authority', rosterMigration.includes('p_include_history or sc.is_current')],
+  ['school scope propagates to roster', rosterMigration.includes('sc.school_id = p_school_id')],
   ['historical membership remains readable', helper.includes('loadClassEnrollmentHistory')],
   ['single learner history remains readable', helper.includes('loadClassEnrollmentForStudent')],
   ['join approval is fail-closed on competing current enrollment', migration.includes('student_has_different_current_enrollment')],
