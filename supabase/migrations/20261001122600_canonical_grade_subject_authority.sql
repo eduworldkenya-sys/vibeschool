@@ -1,4 +1,5 @@
 begin;
+-- authorization-test: public.grade_subject_authority authenticated may read curriculum structure; anon has no direct privileges; mutations remain migration-controlled.
 create table if not exists public.grade_subject_authority(
  grade text not null, phase text not null check(phase in('EARLY_YEARS','PRIMARY','JUNIOR','SENIOR_SECONDARY','LEGACY_SECONDARY')),
  subject_name text not null, pathway text, subject_kind text not null default 'learning_area' check(subject_kind in('core','elective','learning_area')),
