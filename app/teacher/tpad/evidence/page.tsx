@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { ensureMyActiveSchoolTerm } from '@/lib/academicTerm'
 import { C } from '@/components/teacher/ui'
 
 interface Evidence {
@@ -148,6 +149,8 @@ export default function EvidencePage() {
         const sid = memberData?.school_id ?? null
         setSchoolId(sid)
         if (!sid) { setLoading(false); return }
+
+        await ensureMyActiveSchoolTerm()
 
         const { data: termData } = await supabase
           .from('academic_terms')
