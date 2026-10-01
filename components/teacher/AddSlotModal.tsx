@@ -24,16 +24,6 @@ interface AssignmentOption {
   subjectName:    string
 }
 
-// Shape returned by the Supabase nested select before flattening.
-interface TeacherClassRow {
-  id:         string
-  school_id:  string
-  class_id:   string
-  subject_id: string
-  classes:    { name: string; stream: string | null } | null
-  subjects:   { name: string } | null
-}
-
 const DAYS = [
   { label: 'Monday',    value: 1 },
   { label: 'Tuesday',   value: 2 },
