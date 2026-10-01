@@ -163,28 +163,17 @@ function ReportCardInner(){
     const{data:{user}}=await supabase.auth.getUser();
     if(!user){setError("Not signed in");setLoading(false);return;}
     setTeacherId(user.id);
-    const{data:profile}=await supabase.from("profiles").select("school_id").eq("id",user.id).maybeSingle();
-    const sid=profile?.school_id??null;setSchoolId(sid);
+    const{data:ctx,error:contextError}=await supabase.rpc("teacher_get_operating_context");
+    if(contextError){setError("Teaching context could not be loaded");setLoading(false);return;}
+    const context=ctx as {school_id?:string|null}|null;
+    const sid=context?.school_id??null;setSchoolId(sid);
     if(sid){const{data:school}=await supabase.from("schools").select("name").eq("id",sid).maybeSingle();setSchoolName(school?.name??"");}
-    const{data:dbSt}=await supabase.from("students").select("id,name,admission_number").eq("id",studentId).maybeSingle();
+    const{data:dbSt}=await supabase.from("students").select("id,name,admission_number,deleted_at").eq("id",studentId).is("deleted_at",null).maybeSingle();
     if(dbSt)setStudent({
       id:dbSt.id,
       name:dbSt.name,
       admission:dbSt.admission_number??undefined
     });
-    else{
-      const{data:ms}=await supabase
-        .from("manual_students")
-        .select("id,name,class_name")
-        .eq("id",studentId)
-        .maybeSingle();
-
-      if(ms)setStudent({
-        id:ms.id,
-        name:ms.name,
-        class_name:ms.class_name??undefined
-      });
-    }
     if(!examId){setLoading(false);return;}
     const{data:examData}=await supabase.from("exams").select("*").eq("id",examId).maybeSingle();
     if(examData)setExam(examData as Exam);
