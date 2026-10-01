@@ -30,7 +30,7 @@ export default function StudentsPage() {
       p_requested_school_id: requestedSchoolId ?? undefined,
     });
     if (contextError) throw contextError;
-    return data as unknown as Context;
+    return data as Context;
   }, []);
 
   const loadGroups = useCallback(async (ctx: Context) => {
