@@ -111,19 +111,27 @@ function Inner() {
       const sid=context.school_id
       if(!sid)throw new Error('Teacher school could not be resolved')
       setSchoolId(sid)
-      const ps=Array.isArray(context.classes)?context.classes.map(x=>({class_id:x.class_id,subject_id:x.subject_id})):[]
+      // teacher_get_operating_context is the canonical assignment projection.
+      // Do not re-read classes/subjects through independent client RLS here:
+      // that can erase the label while the assignment itself remains valid.
+      const contextClasses=Array.isArray(context.classes)?context.classes:[]
+      const ps=contextClasses.map(x=>({class_id:x.class_id,subject_id:x.subject_id}))
       if(!ps.length)throw new Error('No teaching assignments configured')
       setPairs(ps)
-      const classIds=unique(ps.map(x=>x.class_id)); const subjectIds=unique(ps.map(x=>x.subject_id))
-      const [cr,sr,tr,calendar]=await Promise.all([
-        supabase.from('classes').select('id,name,stream').in('id',classIds).eq('school_id',sid),
-        supabase.from('subjects').select('id,name').in('id',subjectIds),
+      const cs=Array.from(new Map(contextClasses.map(x=>[
+        x.class_id,
+        {id:x.class_id,grade:x.class_name,label:x.stream?`${x.class_name} ${x.stream}`:x.class_name}
+      ])).values())
+      const ss=Array.from(new Map(contextClasses.map(x=>[
+        x.subject_id,
+        {id:x.subject_id,label:x.subject_name}
+      ])).values())
+      const [tr,calendar]=await Promise.all([
         supabase.from('academic_terms').select('id,name,term,academic_year,start_date,end_date,status,school_id').eq('school_id',sid).order('start_date',{ascending:false}),
         supabase.rpc('resolve_instructional_week_for_date',{p_school_id:sid,p_date:todayIso()}),
       ])
-      if(cr.error)throw cr.error;if(sr.error)throw sr.error;if(tr.error)throw tr.error
-      const cs=(cr.data||[]).map(x=>({id:x.id,grade:x.name,label:x.stream?`${x.name} ${x.stream}`:x.name}))
-      const ss=(sr.data||[]).map(x=>({id:x.id,label:x.name})); const ts=tr.data||[]
+      if(tr.error)throw tr.error
+      const ts=tr.data||[]
       setClasses(cs);setSubjects(ss);setTerms(ts)
       const cal=!calendar.error&&calendar.data&&calendar.data.length===1?calendar.data[0]:null;setTodayResolution(cal)
       const cid=initial.current.classId&&cs.some(x=>x.id===initial.current.classId)?initial.current.classId:(cs[0]&&cs[0].id)
@@ -197,7 +205,7 @@ function Inner() {
       <div style={{fontSize:10,color:C.text3,fontWeight:800,marginBottom:6}}>SUBJECT</div><div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>{filteredSubjects.map(x=><Chip key={x.id} label={x.label} active={x.id===selectedSubject} onClick={()=>setSelectedSubject(x.id)}/>)}</div>
       <div style={{fontSize:10,color:C.text3,fontWeight:800,marginBottom:6}}>TERM</div><div style={{display:'flex',gap:6,overflowX:'auto',marginBottom:12}}>{terms.map(x=><Chip key={x.id} label={termLabel(x)} active={x.id===selectedTermId} onClick={()=>setSelectedTermId(x.id)}/>)}</div>
       <div style={{fontSize:10,color:C.text3,fontWeight:800,marginBottom:6}}>INSTRUCTIONAL WEEK</div><div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:5}}>{weeks.map(x=><button key={x.week_number} type="button" onClick={()=>setSelectedWeek(x.week_number)} style={{padding:8,borderRadius:8,border:`1px solid ${x.week_number===selectedWeek?C.indigo:C.border}`,background:x.week_number===selectedWeek?C.indigoLight:C.surface2,color:x.week_number===currentWeek?C.teal:C.text2,fontWeight:800}}>W{x.week_number}</button>)}</div>
-      {!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>No instructional weeks configured for this term.</div>}
+      {!selectedTermId?<div style={{fontSize:12,color:C.red,marginTop:7}}>No academic term is configured for this school. Your class and subject assignment are still connected, but Scheme scheduling needs an academic term before instructional weeks can resolve.</div>:!weeks.length&&<div style={{fontSize:12,color:C.red,marginTop:7}}>No instructional weeks are configured for the selected academic term.</div>}
     </div>
 
     {classObj&&subjectObj&&termObj&&<>
@@ -208,7 +216,7 @@ function Inner() {
 
     <div style={{background:'#fff',border:`1px solid ${C.border}`,borderRadius:14,padding:14}}>
       {curriculumRows.length>0&&<div style={{background:C.indigoLight,padding:12,borderRadius:10,marginBottom:12}}><div style={{fontWeight:800,color:C.indigo,fontSize:13}}>{curriculumRows.length} curriculum item{curriculumRows.length===1?'':'s'} available</div><div style={{fontSize:11,color:C.text2,margin:'4px 0 8px'}}>The server will commit only confirmed, complete canonical lesson content.</div><button type="button" disabled={committing} onClick={()=>void commitScheme()} style={{padding:'8px 12px',border:0,borderRadius:8,background:C.indigo,color:'#fff',fontWeight:700}}>{committing?'Committing…':'Commit approved curriculum'}</button></div>}
-      {fetching?<div style={{fontSize:12,color:C.text3}}>Loading authoritative Scheme…</div>:selectedWeekItems.length===0?<Empty title="No lessons scheduled" desc="Commit approved canonical curriculum content or add a legitimate teacher-created lesson."/>:<div style={{display:'grid',gap:9}}>{selectedWeekItems.map(item=>{const st=STATUS[item.status]||STATUS.planned;return <div key={item.id} style={{border:`1px solid ${C.border}`,borderRadius:11,padding:12}}><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div style={{fontWeight:800,color:C.text}}>{item.topic}</div><div style={{fontSize:11,color:C.text2}}>{[item.strand,item.sub_strand].filter(Boolean).join(' · ')}</div>{(linkedResources[item.id]||[]).map(r=><div key={r.id} style={{fontSize:10,color:C.indigo,marginTop:5}}>{r.chapterTitle} · {r.resourceRole}</div>)}</div><span style={{fontSize:10,fontWeight:800,padding:'4px 7px',borderRadius:99,background:st.bg,color:st.color}}>{st.label}</span></div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}>{['planned','teaching','done','cancelled'].map(s=><button key={s} type="button" onClick={()=>void setStatus(item.id,s)} style={{fontSize:10,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:item.status===s?(STATUS[s]||STATUS.planned).bg:'#fff'}}>{(STATUS[s]||STATUS.planned).label}</button>)}<button type="button" onClick={()=>router.push(`/teacher/scheme/generate?schemeId=${encodeURIComponent(item.id)}`)} style={{fontSize:10,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:'#fff',color:C.indigo,fontWeight:700}}>Prepare lesson →</button></div><textarea defaultValue={item.reflection||''} onBlur={e=>void saveReflection(item.id,e.target.value)} placeholder="Reflection after teaching" rows={2} style={{width:'100%',marginTop:8,padding:7,border:`1px solid ${C.border2}`,borderRadius:7,fontFamily:'inherit'}}/></div>})}</div>}
+      {!selectedTermId?<Empty title="Scheme setup incomplete" desc={`${subjectObj?.label||'This subject'} is connected to ${classObj?.label||'this class'}, but this school has no academic term configured. Add the school term before creating a term-scoped Scheme.`}/>:fetching?<div style={{fontSize:12,color:C.text3}}>Loading authoritative Scheme…</div>:selectedWeekItems.length===0?<Empty title="No lessons scheduled" desc="Commit approved canonical curriculum content or add a legitimate teacher-created lesson."/>:<div style={{display:'grid',gap:9}}>{selectedWeekItems.map(item=>{const st=STATUS[item.status]||STATUS.planned;return <div key={item.id} style={{border:`1px solid ${C.border}`,borderRadius:11,padding:12}}><div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><div style={{fontWeight:800,color:C.text}}>{item.topic}</div><div style={{fontSize:11,color:C.text2}}>{[item.strand,item.sub_strand].filter(Boolean).join(' · ')}</div>{(linkedResources[item.id]||[]).map(r=><div key={r.id} style={{fontSize:10,color:C.indigo,marginTop:5}}>{r.chapterTitle} · {r.resourceRole}</div>)}</div><span style={{fontSize:10,fontWeight:800,padding:'4px 7px',borderRadius:99,background:st.bg,color:st.color}}>{st.label}</span></div><div style={{display:'flex',gap:5,flexWrap:'wrap',marginTop:8}}>{['planned','teaching','done','cancelled'].map(s=><button key={s} type="button" onClick={()=>void setStatus(item.id,s)} style={{fontSize:10,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:item.status===s?(STATUS[s]||STATUS.planned).bg:'#fff'}}>{(STATUS[s]||STATUS.planned).label}</button>)}<button type="button" onClick={()=>router.push(`/teacher/scheme/generate?schemeId=${encodeURIComponent(item.id)}`)} style={{fontSize:10,padding:'4px 7px',border:`1px solid ${C.border}`,borderRadius:99,background:'#fff',color:C.indigo,fontWeight:700}}>Prepare lesson →</button></div><textarea defaultValue={item.reflection||''} onBlur={e=>void saveReflection(item.id,e.target.value)} placeholder="Reflection after teaching" rows={2} style={{width:'100%',marginTop:8,padding:7,border:`1px solid ${C.border2}`,borderRadius:7,fontFamily:'inherit'}}/></div>})}</div>}
       <div style={{borderTop:`1px solid ${C.border}`,paddingTop:12,marginTop:14}}><div style={{fontSize:11,fontWeight:800,color:C.text,marginBottom:7}}>Add teacher-created lesson</div><input value={newTopic} onChange={e=>setNewTopic(e.target.value)} placeholder="Lesson focus" style={{width:'100%',padding:8,border:`1px solid ${C.border2}`,borderRadius:7,marginBottom:6}}/><input value={newStrand} onChange={e=>setNewStrand(e.target.value)} placeholder="Strand (optional)" style={{width:'100%',padding:8,border:`1px solid ${C.border2}`,borderRadius:7,marginBottom:6}}/><button type="button" disabled={adding||!newTopic.trim()} onClick={()=>void addCustom()} style={{padding:'8px 12px',border:0,borderRadius:8,background:C.dark,color:'#fff',fontWeight:700}}>{adding?'Adding…':`Add to Week ${selectedWeek}`}</button></div>
     </div>
   </div>

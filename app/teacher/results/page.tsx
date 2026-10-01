@@ -80,26 +80,20 @@ function ResultsInner() {
     const { data:{user}, error:authErr } = await supabase.auth.getUser()
     if (authErr || !user) { setError('Not signed in.'); setBooting(false); return }
     setTeacherId(user.id)
-    const [teacherRes,memberRes,profileRes]=await Promise.all([
-      supabase.from('teacher_profiles').select('school_id').eq('profile_id',user.id).maybeSingle(),
-      supabase.from('school_members').select('school_id').eq('profile_id',user.id).maybeSingle(),
-      supabase.from('profiles').select('school_id').eq('id',user.id).single(),
-    ])
-    const sid:string|null = memberRes.data?.school_id ?? teacherRes.data?.school_id ?? profileRes.data?.school_id ?? null
+    // Resolve school, class and subject from the same canonical authority
+    // used by the rest of Teacher OS. This avoids legacy profile/single-school
+    // fallbacks and RLS-sensitive re-reads hiding valid assignments.
+    const {data:contextData,error:contextError}=await supabase.rpc('teacher_get_operating_context')
+    if(contextError){setError('Teacher operating context could not be loaded.');setBooting(false);return}
+    const context=contextData as {school_id?:string|null;classes?:Array<{class_id:string;class_name:string;stream?:string|null;subject_id:string;subject_name:string}>}|null
+    const sid=context?.school_id??null
     setSchoolId(sid)
     if (!sid) { setTier(3); await loadExams(user.id,null); setBooting(false); return }
-    const { data:tcRows } = await supabase.from('teacher_classes').select('class_id, subject_id').eq('teacher_id',user.id)
-    const rows=tcRows??[]
-    const classIds=Array.from(new Set(rows.map((r:{class_id:string})=>r.class_id).filter(Boolean)))
-    const subjectIds=Array.from(new Set(rows.map((r:{subject_id:string})=>r.subject_id).filter(Boolean)))
-    if (classIds.length===0) { setTier(2); await loadExams(user.id,sid); setBooting(false); return }
+    const assignments=context?.classes??[]
+    if (assignments.length===0) { setTier(2); await loadExams(user.id,sid); setBooting(false); return }
     setTier(1)
-    const [classesRes,subjectsRes]=await Promise.all([
-      supabase.from('classes').select('id, name, stream').in('id',classIds),
-      subjectIds.length>0 ? supabase.from('subjects').select('id, name').in('id',subjectIds) : Promise.resolve({data:[]}),
-    ])
-    const loadedClasses=(classesRes.data??[]) as ClassOption[]
-    const loadedSubjects=(subjectsRes.data??[]) as SubjectOption[]
+    const loadedClasses=Array.from(new Map(assignments.map(a=>[a.class_id,{id:a.class_id,name:a.class_name,stream:a.stream??''}])).values()) as ClassOption[]
+    const loadedSubjects=Array.from(new Map(assignments.map(a=>[a.subject_id,{id:a.subject_id,name:a.subject_name}])).values()) as SubjectOption[]
     let ci=0,si=0
     const urlClassId=searchParams.get('classId'); const urlSubjectId=searchParams.get('subjectId')
     if (urlClassId) { const i=loadedClasses.findIndex(c=>c.id===urlClassId); if (i!==-1) ci=i }
@@ -126,7 +120,8 @@ function ResultsInner() {
 
   async function loadTier1Students(loadId:number,classId:string) {
     setLoading(true)
-    const {data:scRows}=await supabase.from('student_classes').select('student_id').eq('class_id',classId).eq('is_current',true)
+    const {data:scRows,error:rosterError}=await supabase.from('student_classes').select('student_id') .eq('school_id',schoolId!).eq('class_id',classId).eq('is_current',true)
+    if(rosterError){if(loadId===loadIdRef.current){setError('Class roster could not be loaded.');setLoading(false)};return}
     if (loadId!==loadIdRef.current) return
     const ids=(scRows??[]).map((r:{student_id:string})=>r.student_id)
     if (ids.length===0) { setStudents([]); setLoading(false); return }
