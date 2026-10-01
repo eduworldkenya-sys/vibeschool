@@ -102,6 +102,9 @@ requireText(assessmentRoster.includes(".from('student_classes')"), 'Assessment d
 requireText(assessmentRoster.includes('Retry instead of treating this class as empty'), 'Assessment does not translate roster read failures into zero learners')
 
 const attendanceRoster = read('app/teacher/attendance/page.tsx')
+requireText(attendanceRoster.includes('.select("student_id")'), 'Attendance derives roster IDs from canonical enrollment')
+requireText(attendanceRoster.includes('.from("students")'), 'Attendance resolves learner identity separately from enrollment')
+requireText(!attendanceRoster.includes('students(id,name,admission_number,deleted_at)'), 'Attendance does not depend on nested learner RLS join')
 requireText(attendanceRoster.includes('.from("student_classes")'), 'attendance register derives roster from canonical current enrollment')
 requireText(attendanceRoster.includes('.eq("is_current", true)'), 'attendance register restricts roster to current enrollment')
 requireText(!attendanceRoster.includes('.not("profile_id"') && !attendanceRoster.includes('.not(\'profile_id\''), 'attendance register does not require a Student OS profile link')
