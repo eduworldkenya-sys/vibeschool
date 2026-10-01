@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { buildOutcomeProgress, buildProgressHistory, progressBandLabel, progressSummary, type ProgressBand, type ProgressEvidence } from '@/lib/learner-intelligence/progress-record'
+import { loadClassEnrollmentForStudent } from '@/lib/teaching/studentRoster'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,8 +13,6 @@ type Subject = { id:string; name:string }
 type Enrollment = { isCurrent:boolean; joinedAt:string|null; leftAt:string|null }
 type TeacherClassAssignment = { class_id:string; subject_id:string|null }
 type TeacherOperatingContext = { school_id:string|null; classes?:TeacherClassAssignment[] }
-type StudentNested = { id:string; name:string; admission_number:string|null; deleted_at:string|null }
-type EnrollmentRow = { is_current:boolean|null; joined_at:string|null; left_at:string|null; students:StudentNested|StudentNested[]|null }
 type OutcomeNested = { outcome_text:string|null; outcome_code:string|null }
 type EvidenceRow = { id:string; student_id:string; subject_id:string|null; outcome_id:string|null; evidence_source:string|null; evidence_id:string|null; score:number|string|null; max_score:number|string|null; proficiency:string|null; observed_at:string; notes:string|null; weight:number|string|null; curriculum_learning_outcomes:OutcomeNested|OutcomeNested[]|null }
 type Period = '30'|'90'|'term'|'all'
@@ -38,13 +37,10 @@ export default function StudentProgressRecordPage(){
     const classAssignments=Array.isArray(context.classes)?context.classes:[]
     if(!context.school_id||!classAssignments.some(item=>item.class_id===classId)) throw new Error('This class is not assigned to you in the active school.')
 
-    const enrollmentRes=await supabase.from('student_classes').select('is_current,joined_at,left_at,students(id,name,admission_number,deleted_at)').eq('school_id',context.school_id).eq('class_id',classId).eq('student_id',studentId).order('is_current',{ascending:false}).order('joined_at',{ascending:false}).limit(1).maybeSingle()
-    if(enrollmentRes.error) throw enrollmentRes.error
-    const enrollmentRow=typed<EnrollmentRow|null>(enrollmentRes.data)
-    const nested=enrollmentRow?.students??null; const learner=Array.isArray(nested)?nested[0]:nested
-    if(!learner||learner.deleted_at) throw new Error('Learner is not associated with this class.')
-    setStudent({id:learner.id,name:learner.name,admission_number:learner.admission_number??null})
-    setEnrollment({isCurrent:Boolean(enrollmentRow?.is_current),joinedAt:enrollmentRow?.joined_at??null,leftAt:enrollmentRow?.left_at??null})
+    const learner=await loadClassEnrollmentForStudent({schoolId:context.school_id,classId,studentId})
+    if(!learner) throw new Error('Learner is not associated with this class.')
+    setStudent({id:learner.id,name:learner.name,admission_number:learner.admission_number})
+    setEnrollment({isCurrent:learner.isCurrent,joinedAt:learner.joinedAt,leftAt:learner.leftAt})
 
     const subjectIds=Array.from(new Set(classAssignments.filter(item=>item.class_id===classId).map(item=>item.subject_id).filter((value):value is string=>Boolean(value))))
     const [subjectRes,evidenceRes]=await Promise.all([
