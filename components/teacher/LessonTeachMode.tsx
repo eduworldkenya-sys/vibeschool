@@ -173,11 +173,8 @@ export default function LessonTeachMode({
   }
 
   useEffect(() => {
-    if (!context || typeof window === 'undefined') return
-    const timer = window.setInterval(() => {
-      persist(stepIndex, scratchpad)
-    }, 30000)
-    return () => window.clearInterval(timer)
+    if (!context || typeof window === 'undefined' || elapsedSeconds === 0 || elapsedSeconds % 30 !== 0) return
+    persist(stepIndex, scratchpad)
   }, [context, stepIndex, scratchpad, elapsedSeconds])
 
   function changeStep(next: number) {
