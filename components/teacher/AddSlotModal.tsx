@@ -167,44 +167,38 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
   useEffect(() => {
     if (isEdit) { setAssignmentsLoading(false); return }
     async function loadAssignments() {
-      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
-      const activeSchoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
-      if (schoolContextError || !activeSchoolId) {
+      // Use the same server-authoritative operating context as ClassHub,
+      // SubjectHub, Scheme and Attendance. A direct nested teacher_classes
+      // query can lose otherwise-valid assignments when joined class/subject
+      // rows are hidden by independent RLS policies.
+      const { data: contextData, error: contextError } = await supabase.rpc('teacher_get_operating_context')
+      const context = contextData as {
+        school_id?: string | null
+        classes?: Array<{
+          assignment_id: string
+          class_id: string
+          class_name: string
+          stream?: string | null
+          subject_id: string
+          subject_name: string
+        }>
+      } | null
+      const activeSchoolId = context?.school_id ?? null
+      if (contextError || !activeSchoolId) {
         setError('Connect or select your active school before adding a lesson.')
         setAssignmentsLoading(false)
         return
       }
 
-      const { data, error: err } = await supabase
-        .from('teacher_classes')
-        .select(`
-          id,
-          school_id,
-          class_id,
-          subject_id,
-          classes ( name, stream ),
-          subjects ( name )
-        `)
-        .eq('teacher_id', teacherId)
-        .eq('school_id', activeSchoolId)
-
-      if (err) {
-        console.error('[Timetable] failed to load teacher_classes', err)
-        setError('Failed to load your assigned classes. Please close and try again.')
-        setAssignmentsLoading(false)
-        return
-      }
-
-      const rows = (data ?? []) as TeacherClassRow[]
-      const options: AssignmentOption[] = rows
-        .filter(r => r.classes && r.subjects) // drop rows with a broken/deleted join target
+      const options: AssignmentOption[] = (context?.classes ?? [])
+        .filter(r => r.assignment_id && r.class_id && r.subject_id && r.class_name && r.subject_name)
         .map(r => ({
-          teacherClassId: r.id,
-          schoolId:       r.school_id,
+          teacherClassId: r.assignment_id,
+          schoolId:       activeSchoolId,
           classId:        r.class_id,
           subjectId:      r.subject_id,
-          className:      r.classes!.stream ? `${r.classes!.name} ${r.classes!.stream}` : r.classes!.name,
-          subjectName:    r.subjects!.name,
+          className:      r.stream ? `${r.class_name} ${r.stream}` : r.class_name,
+          subjectName:    r.subject_name,
         }))
         .sort((a, b) => a.className.localeCompare(b.className) || a.subjectName.localeCompare(b.subjectName))
 
