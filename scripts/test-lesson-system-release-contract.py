@@ -83,8 +83,11 @@ require(context, ".lt('occurrence_date', occurrenceDate)", 'previous lesson date
 require(context, ".from('student_classes')", 'canonical learner enrollment')
 forbid(context, ".from('lesson_plans')\n      .select('topic')", 'recent-plan previous lesson heuristic')
 
-# Occurrence projections use canonical enrollment and Nairobi wall-clock truth.
-require(occurrence, ".from('student_classes')", 'occurrence canonical enrollment')
+# Occurrence projections use the shared canonical roster authority and Nairobi
+# wall-clock truth. Enrollment resolution is centralized so occurrence code
+# cannot reintroduce a nested student_classes -> students RLS join.
+require(occurrence, "loadCurrentClassStudentIds", 'occurrence canonical enrollment')
+forbid(occurrence, ".from('student_classes')", 'duplicate occurrence enrollment reader')
 forbid(occurrence, ".from('students').select('id')", 'legacy attendance denominator')
 require(occurrence, "new Date(`${occurrenceDate}T${slotEndTime}+03:00`)", 'Nairobi missed lifecycle')
 
