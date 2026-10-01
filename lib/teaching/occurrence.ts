@@ -1,4 +1,5 @@
 import { getSupabaseClient, supabase } from '@/lib/supabase'
+import { loadCurrentClassStudentIds } from '@/lib/teaching/studentRoster'
 import type { OccurrenceKey, Lifecycle, TeachingOccurrence } from '@/lib/teaching/types'
 
 export type StartOccurrenceErrorCode =
@@ -261,7 +262,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
   if (slot.effective_from && key.occurrenceDate < slot.effective_from) return null
   if (slot.effective_until && key.occurrenceDate > slot.effective_until) return null
 
-  const [lessonPlanRes, occurrenceRes, expectedEnrollmentRes] = await Promise.all([
+  const [lessonPlanRes, occurrenceRes, expectedStudentIds] = await Promise.all([
     supabase.from('lesson_plans')
       .select('id')
       .eq('timetable_slot_id', key.timetableSlotId)
@@ -272,17 +273,10 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
       .eq('timetable_slot_id', key.timetableSlotId)
       .eq('occurrence_date', key.occurrenceDate)
       .maybeSingle(),
-    // student_classes is the enrollment authority. students.class_id is a
-    // legacy convenience pointer and must not drive attendance completeness.
-    supabase.from('student_classes')
-      .select('student_id,students!inner(id,deleted_at)')
-      .eq('school_id', slot.school_id)
-      .eq('class_id', slot.class_id)
-      .eq('is_current', true)
-      .is('students.deleted_at', null),
+    loadCurrentClassStudentIds({ schoolId: slot.school_id, classId: slot.class_id }),
   ])
 
-  const firstReadError = lessonPlanRes.error ?? occurrenceRes.error ?? expectedEnrollmentRes.error
+  const firstReadError = lessonPlanRes.error ?? occurrenceRes.error
   if (firstReadError) throw firstReadError
 
   const lessonPlanId = lessonPlanRes.data?.id ?? null
@@ -347,7 +341,7 @@ export async function resolveOccurrence(key: OccurrenceKey): Promise<TeachingOcc
   if (secondReadError) throw secondReadError
 
   const markedCount = attendanceRes.data?.length ?? 0
-  const expectedCount = expectedEnrollmentRes.data?.length ?? 0
+  const expectedCount = expectedStudentIds.length
   const attendanceState = markedCount === 0
     ? 'not_started'
     : markedCount < expectedCount
