@@ -301,23 +301,30 @@ function AttendancePageInner() {
         setOccurrenceId(null);
       }
 
-      const rosterPromise = supabase
+      const enrollmentPromise = supabase
         .from("student_classes")
-        .select("student_id, students(id,name,admission_number,deleted_at)")
+        .select("student_id")
         .eq("school_id", context.school_id)
         .eq("class_id", classId)
         .eq("is_current", true);
       const attendancePromise = mode === "lesson" && activeOccurrenceId
         ? supabase.from("attendance").select("student_id,status,is_late").eq("teaching_occurrence_id", activeOccurrenceId)
         : supabase.from("attendance").select("student_id,status,is_late").eq("class_id", classId).eq("date", selectedDate).is("timetable_slot_id", null);
-      const [rosterRes, attendanceRes] = await Promise.all([rosterPromise, attendancePromise]);
-      if (rosterRes.error) throw rosterRes.error;
+      const [enrollmentRes, attendanceRes] = await Promise.all([enrollmentPromise, attendancePromise]);
+      if (enrollmentRes.error) throw enrollmentRes.error;
       if (attendanceRes.error) throw attendanceRes.error;
 
-      const roster: StudentRow[] = (rosterRes.data ?? [])
-        .map((row: any) => row.students)
-        .filter((student: any) => student && !student.deleted_at)
-        .map((student: any) => ({ id: student.id, name: student.name, admissionNumber: student.admission_number ?? "" }));
+      const studentIds = Array.from(new Set((enrollmentRes.data ?? []).map((row) => row.student_id)));
+      const { data: learnerRows, error: learnerError } = studentIds.length > 0
+        ? await supabase
+            .from("students")
+            .select("id,name,admission_number,deleted_at")
+            .in("id", studentIds)
+            .is("deleted_at", null)
+        : { data: [], error: null };
+      if (learnerError) throw learnerError;
+      const roster: StudentRow[] = (learnerRows ?? [])
+        .map((student) => ({ id: student.id, name: student.name, admissionNumber: student.admission_number ?? "" }));
       const existing: Record<string, AttendanceStatus> = {};
       for (const row of attendanceRes.data ?? []) {
         existing[row.student_id] = row.is_late ? "late" : (row.status as AttendanceStatus);
