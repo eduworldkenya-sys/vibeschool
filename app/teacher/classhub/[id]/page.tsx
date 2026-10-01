@@ -85,9 +85,9 @@ function ClassPageInner() {
   const [avgScore,       setAvgScore]       = useState<string>('—')
   const [studentGroups,  setStudentGroups]  = useState<Record<string, { name: string; color: string }>>({})
 
-  async function loadData() {
+  async function loadData(): Promise<Student[]> {
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/'); return }
+    if (!user) { router.push('/'); return [] }
 
     if (!isSubject) {
       const { data: ownRow } = await supabase
@@ -97,7 +97,7 @@ function ClassPageInner() {
         .eq('class_id', classId)
         .limit(1)
         .maybeSingle()
-      if (!ownRow) { router.push('/teacher/classhub'); return }
+      if (!ownRow) { router.push('/teacher/classhub'); return [] }
     }
     const classQuery = supabase.from('classes').select('name, stream, subject').eq('id', classId).single()
 
@@ -110,13 +110,13 @@ function ClassPageInner() {
       supabase.from('class_join_requests').select('id').eq('class_id', classId).eq('status', 'pending'),
     ])
 
-    if (!clsRes.data) { router.push(isSubject ? '/teacher/subjecthub' : '/teacher/classhub'); return }
+    if (!clsRes.data) { router.push(isSubject ? '/teacher/subjecthub' : '/teacher/classhub'); return [] }
     setClassInfo(clsRes.data)
 
     if (enrollmentRes.error) {
       setError('Class roster could not be loaded. Retry instead of adding duplicate learners.')
       setLoading(false)
-      return
+      return []
     }
     const studentIds = Array.from(new Set((enrollmentRes.data ?? []).map((row: { student_id: string }) => row.student_id)))
     let loadedStudents: Student[] = []
@@ -129,7 +129,7 @@ function ClassPageInner() {
       if (studentError) {
         setError('Learner identities could not be loaded. Retry instead of adding duplicate learners.')
         setLoading(false)
-        return
+        return []
       }
       loadedStudents = (studentRows ?? []) as Student[]
     }
@@ -178,6 +178,7 @@ function ClassPageInner() {
       setStudentGroups(sGroups)
     }
     setLoading(false)
+    return loadedStudents
   }
 
   useEffect(() => { loadData() }, [classId, mode])
@@ -199,10 +200,23 @@ function ClassPageInner() {
 
     if (err || !studentId) { setSaving(false); setError(err?.message ?? 'Failed to add student — no ID returned'); return }
 
+    // Do not report a successful add until the canonical roster can read the
+    // learner back. This prevents a committed enrollment from being followed
+    // by a stale/empty roster that invites duplicate student creation.
+    const refreshedStudents = await loadData()
+    const visibleAfterWrite = refreshedStudents.some(student => student.id === studentId)
+
+    if (!visibleAfterWrite) {
+      setSaving(false)
+      setShowRoster(true)
+      setError('Student was saved, but the roster has not confirmed the learner yet. Retry the roster — do not add the student again.')
+      return
+    }
+
     setSaving(false)
     setForm({ name: '', admission_number: '' })
     setShowForm(false)
-    loadData()
+    setShowRoster(true)
   }
 
   async function handleGenerateCode(studentId: string) {
