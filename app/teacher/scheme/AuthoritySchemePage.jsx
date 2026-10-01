@@ -111,19 +111,27 @@ function Inner() {
       const sid=context.school_id
       if(!sid)throw new Error('Teacher school could not be resolved')
       setSchoolId(sid)
-      const ps=Array.isArray(context.classes)?context.classes.map(x=>({class_id:x.class_id,subject_id:x.subject_id})):[]
+      // teacher_get_operating_context is the canonical assignment projection.
+      // Do not re-read classes/subjects through independent client RLS here:
+      // that can erase the label while the assignment itself remains valid.
+      const contextClasses=Array.isArray(context.classes)?context.classes:[]
+      const ps=contextClasses.map(x=>({class_id:x.class_id,subject_id:x.subject_id}))
       if(!ps.length)throw new Error('No teaching assignments configured')
       setPairs(ps)
-      const classIds=unique(ps.map(x=>x.class_id)); const subjectIds=unique(ps.map(x=>x.subject_id))
-      const [cr,sr,tr,calendar]=await Promise.all([
-        supabase.from('classes').select('id,name,stream').in('id',classIds).eq('school_id',sid),
-        supabase.from('subjects').select('id,name').in('id',subjectIds),
+      const cs=Array.from(new Map(contextClasses.map(x=>[
+        x.class_id,
+        {id:x.class_id,grade:x.class_name,label:x.stream?`${x.class_name} ${x.stream}`:x.class_name}
+      ])).values())
+      const ss=Array.from(new Map(contextClasses.map(x=>[
+        x.subject_id,
+        {id:x.subject_id,label:x.subject_name}
+      ])).values())
+      const [tr,calendar]=await Promise.all([
         supabase.from('academic_terms').select('id,name,term,academic_year,start_date,end_date,status,school_id').eq('school_id',sid).order('start_date',{ascending:false}),
         supabase.rpc('resolve_instructional_week_for_date',{p_school_id:sid,p_date:todayIso()}),
       ])
-      if(cr.error)throw cr.error;if(sr.error)throw sr.error;if(tr.error)throw tr.error
-      const cs=(cr.data||[]).map(x=>({id:x.id,grade:x.name,label:x.stream?`${x.name} ${x.stream}`:x.name}))
-      const ss=(sr.data||[]).map(x=>({id:x.id,label:x.name})); const ts=tr.data||[]
+      if(tr.error)throw tr.error
+      const ts=tr.data||[]
       setClasses(cs);setSubjects(ss);setTerms(ts)
       const cal=!calendar.error&&calendar.data&&calendar.data.length===1?calendar.data[0]:null;setTodayResolution(cal)
       const cid=initial.current.classId&&cs.some(x=>x.id===initial.current.classId)?initial.current.classId:(cs[0]&&cs[0].id)
