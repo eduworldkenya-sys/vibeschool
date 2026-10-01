@@ -317,15 +317,6 @@ export default function PulsePage() {
       fetchingRef.current = true;
       if (isRefresh) setRefreshing(true);
 
-      if (!isRefresh) {
-        const cached = readSnapCache();
-        if (cached) {
-          setSnap(cached);
-          setUsingCachedSnap(true);
-          setLoading(false);
-        }
-      }
-
       try {
         const {
           data: { user },
@@ -352,6 +343,17 @@ export default function PulsePage() {
 
         const schoolId = schoolContext?.active_school_id ?? null;
         setActiveSchoolId(schoolId);
+
+        // Offline data is private teaching data. Only read it after both the
+        // authenticated teacher and an authorized active school are known.
+        if (!isRefresh && schoolId) {
+          const cached = readSnapCache(user.id, schoolId);
+          if (cached) {
+            setSnap(cached);
+            setUsingCachedSnap(true);
+            setLoading(false);
+          }
+        }
 
         setName((profileRes.data?.full_name ?? "").split(" ")[0] ?? "");
         setAvatarUrl(
