@@ -339,7 +339,9 @@ export default function PulsePage() {
           schools?: Array<{ id: string; name: string }>;
         } | null;
         const authorizedSchools = Array.isArray(schoolContext?.schools) ? schoolContext.schools : [];
-        if (schools.length === 0 && authorizedSchools.length > 0) setSchools(authorizedSchools);
+        if (authorizedSchools.length > 0) {
+          setSchools((current) => current.length > 0 ? current : authorizedSchools);
+        }
 
         const schoolId = schoolContext?.active_school_id ?? null;
         setActiveSchoolId(schoolId);
@@ -378,7 +380,7 @@ export default function PulsePage() {
         fetchingRef.current = false;
       }
     },
-    [schools.length]
+    []
   );
 
   const handleSchoolChange = useCallback(
@@ -408,8 +410,16 @@ export default function PulsePage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    // Initial bootstrap must always reach a terminal UI state. Network/RPC
+    // stalls must not leave Teacher Today as an infinite skeleton.
+    const terminalTimer = window.setTimeout(() => {
+      if (!controller.signal.aborted) setLoading(false);
+    }, 12000);
     void boot(false, controller.signal);
-    return () => controller.abort();
+    return () => {
+      window.clearTimeout(terminalTimer);
+      controller.abort();
+    };
   }, [boot]);
 
   useEffect(
