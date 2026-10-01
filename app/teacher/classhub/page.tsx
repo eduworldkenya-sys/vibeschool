@@ -38,7 +38,7 @@ export default function ClassHubPage() {
         return
       }
 
-      const context = contextData as unknown as OperatingContext
+      const context = contextData as OperatingContext
       const activeSchoolId = context.school_id
       if (!activeSchoolId || context.state === 'needs_school') {
         if (!cancelled) { setError('Connect or select your active school before opening classes.'); setLoading(false) }
