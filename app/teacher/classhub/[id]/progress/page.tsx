@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { normalizeProgressBand, type ProgressBand } from '@/lib/learner-intelligence/progress-record'
+import { loadClassEnrollmentHistory } from '@/lib/teaching/studentRoster'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,8 +12,6 @@ type Learner = { id:string; name:string; admission_number:string|null; isCurrent
 type Evidence = { student_id:string; score:number|null; max_score:number|null; proficiency:string|null; observed_at:string }
 type TeacherClassAssignment = { class_id:string; class_name:string; stream:string|null }
 type TeacherOperatingContext = { school_id:string|null; classes?:TeacherClassAssignment[] }
-type StudentNested = { id:string; name:string; admission_number:string|null; deleted_at:string|null }
-type EnrollmentRow = { student_id:string; is_current:boolean|null; joined_at:string|null; left_at:string|null; students:StudentNested|StudentNested[]|null }
 type EvidenceRow = { student_id:string; score:number|string|null; max_score:number|string|null; proficiency:string|null; observed_at:string }
 type View = 'current'|'archived'
 type SupportFilter = 'all'|'support'|'secure'|'no-evidence'
@@ -41,17 +40,15 @@ export default function ClassStudentProgressPage(){
       if(!context.school_id||!assignment)throw new Error('This class is not assigned to you in the active school.')
       setClassName(`${assignment.class_name}${assignment.stream?` ${assignment.stream}`:''}`)
 
-      const enrollment=await supabase.from('student_classes').select('student_id,is_current,joined_at,left_at,students(id,name,admission_number,deleted_at)').eq('school_id',context.school_id).eq('class_id',classId).order('joined_at',{ascending:false})
-      if(enrollment.error)throw enrollment.error
-      const deduped=new Map<string,Learner>()
-      for(const row of typed<EnrollmentRow[]>(enrollment.data??[])){
-        const student=Array.isArray(row.students)?row.students[0]:row.students
-        if(!student||student.deleted_at||!student.id)continue
-        const candidate:Learner={id:student.id,name:student.name,admission_number:student.admission_number??null,isCurrent:Boolean(row.is_current),joinedAt:row.joined_at??null,leftAt:row.left_at??null}
-        const existing=deduped.get(candidate.id)
-        if(!existing||candidate.isCurrent)deduped.set(candidate.id,candidate)
-      }
-      setLearners(Array.from(deduped.values()))
+      const enrollment = await loadClassEnrollmentHistory({ schoolId: context.school_id, classId })
+      setLearners(enrollment.map(row=>({
+        id:row.id,
+        name:row.name,
+        admission_number:row.admission_number,
+        isCurrent:row.isCurrent,
+        joinedAt:row.joinedAt,
+        leftAt:row.leftAt,
+      })))
 
       const er=await supabase.from('competency_evidence_ledger').select('student_id,score,max_score,proficiency,observed_at').eq('school_id',context.school_id).eq('class_id',classId).order('observed_at',{ascending:false}).limit(3000)
       if(er.error)throw er.error
