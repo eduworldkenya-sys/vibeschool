@@ -96,6 +96,7 @@ export default function SubjectHubPage() {
   const [newSubjectName,    setNewSubjectName]    = useState('')
   const [useOtherSubject,  setUseOtherSubject]  = useState(false)
   const [newSubjectClassId, setNewSubjectClassId] = useState('')
+  const [allowedSubjectNames, setAllowedSubjectNames] = useState<string[]>([])
   const [addingSubject,     setAddingSubject]     = useState(false)
   const [addSubjectError,   setAddSubjectError]   = useState<string | null>(null)
   const [allClasses,        setAllClasses]        = useState<{id: string; name: string; stream: string | null; school_id: string | null}[]>([])
@@ -376,6 +377,33 @@ export default function SubjectHubPage() {
     setTeammates(team)
     setTeamLoading(false)
   }
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadAllowedSubjects() {
+      const selectedClass = allClasses.find(item => item.id === newSubjectClassId)
+      if (!schoolId || !selectedClass) {
+        setAllowedSubjectNames([])
+        setNewSubjectName('')
+        return
+      }
+      const { data, error } = await supabase.rpc('get_allowed_teaching_subjects', {
+        p_school_id: schoolId,
+        p_grade: selectedClass.name,
+      })
+      if (cancelled) return
+      if (error) {
+        console.error('[SubjectHub] allowed subjects load failed', error)
+        setAllowedSubjectNames([])
+        return
+      }
+      const names = (data as { subjects?: unknown[] } | null)?.subjects
+      setAllowedSubjectNames(Array.isArray(names) ? names.filter((name): name is string => typeof name === 'string') : [])
+      setNewSubjectName('')
+    }
+    void loadAllowedSubjects()
+    return () => { cancelled = true }
+  }, [newSubjectClassId, schoolId, allClasses])
 
   useEffect(() => {
     if (showAddSubject) {
@@ -2102,14 +2130,13 @@ export default function SubjectHubPage() {
                 value={useOtherSubject ? 'Other' : newSubjectName}
                 onChange={e => {
                   const v = e.target.value
-                  if (v === 'Other') { setUseOtherSubject(true); setNewSubjectName('') }
-                  else { setUseOtherSubject(false); setNewSubjectName(v) }
+                  setUseOtherSubject(false)
+                  setNewSubjectName(v)
                 }}
                 style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: useOtherSubject ? 10 : 14, background: '#fff' }}
               >
                 <option value="">Select a subject…</option>
-                {CBC_SUBJECTS.filter(s => !subjects.map(x => x.name.toLowerCase()).includes(s.toLowerCase())).map(s => <option key={s} value={s}>{s}</option>)}
-                <option value="Other">Other (type manually)</option>
+                {allowedSubjectNames.filter(s => !subjects.map(x => x.name.toLowerCase()).includes(s.toLowerCase())).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               {useOtherSubject && (
                 <input
