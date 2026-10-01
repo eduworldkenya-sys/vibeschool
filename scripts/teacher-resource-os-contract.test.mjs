@@ -88,6 +88,18 @@ for (const forbiddenNeedle of [
   assert.ok(!teachMode.includes(forbiddenNeedle), `Teach Mode must not create parallel lesson authority: ${forbiddenNeedle}`)
 }
 
+const atomicFinishMigration = fs.readFileSync('supabase/migrations/20261001122500_atomic_teach_mode_finalization.sql', 'utf8')
+for (const needle of [
+  'security invoker',
+  'complete_teaching_occurrence',
+  'save_teaching_progress_record',
+  'mark_scheme_item_covered',
+  "p_outcome = 'covered'",
+  'grant execute on function public.finalize_teaching_occurrence',
+]) {
+  assert.ok(atomicFinishMigration.includes(needle), `Atomic lesson finalization contract missing: ${needle}`)
+}
+
 const lessonNotes = fs.readFileSync('app/teacher/lesson-notes/page.tsx', 'utf8')
 for (const needle of [
   'finalize_teaching_occurrence',
