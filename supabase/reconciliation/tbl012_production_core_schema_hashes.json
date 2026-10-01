@@ -11,7 +11,7 @@
       "table_hash": "80b6182c4e2c655abf4e9445a230442f",
       "columns_hash": "fd0a0a7bf8cad0222a05314293ef63f5",
       "indexes_hash": "0e6acbccc17d2e2040ab015b247ac511",
-      "triggers_hash": "bf5ed9e57c97ef5a8b7acd31675b09e5",
+      "triggers_hash": "f466e9dbb57cbb8eca7bbfb316fa24a0",
       "constraints_hash": "a55f5bd44ca0d83496cf1e07d046ed63"
     },
     "timetable_slots": {
