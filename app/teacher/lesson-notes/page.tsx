@@ -10,7 +10,7 @@ import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
 import LessonTeachMode, { type LessonCoverageOutcome } from "@/components/teacher/LessonTeachMode";
 import ReflectionSheet from "@/components/teacher/ReflectionSheet";
 import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
-import { completeTeachingOccurrence, markSchemeItemCovered } from "@/lib/teaching/occurrence";
+
 
 type PlanRow = {
   id: string;
@@ -362,34 +362,31 @@ function LessonNotesInner() {
             setReflectionOpen(true);
           }}
           onFinishLesson={occurrence && plan.timetable_slot_id && plan.taught_date && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
-            const completed = await completeTeachingOccurrence({
-              timetableSlotId: plan.timetable_slot_id as string,
-              occurrenceDate: plan.taught_date as string,
-            });
-            setOccurrence(current => current ? { ...current, lifecycle: "completed" } : current);
-
             const nextSteps = outcome === "partial"
               ? "Continue the uncovered part of this lesson before advancing Scheme coverage."
               : outcome === "reteach"
                 ? "Reteach this lesson content using the teacher reflection and new evidence before advancing Scheme coverage."
                 : "Teaching occurrence completed and the linked Scheme item was explicitly marked covered. Learner mastery remains evidence-based and separate.";
 
-            const { error: progressError } = await supabase.rpc("save_teaching_progress_record", {
-              p_occurrence_id: completed.id,
+            // One RPC = one database transaction. Completion, progress and (for
+            // covered lessons) Scheme coverage either all persist or all roll back.
+            const { data: finalized, error: finalizeError } = await supabase.rpc("finalize_teaching_occurrence", {
+              p_timetable_slot_id: plan.timetable_slot_id as string,
+              p_occurrence_date: plan.taught_date as string,
+              p_outcome: outcome,
               p_what_was_taught: whatWasTaught,
-              p_participation_score: null,
               p_challenges: outcome === "reteach" ? "Teacher marked this occurrence as reteach required." : null,
-              p_homework_set: null,
               p_teacher_remarks: `Coverage outcome: ${outcome}. This is a teaching-coverage statement, not learner mastery.`,
               p_next_steps: nextSteps,
             });
-            if (progressError) {
-              throw new Error(`Lesson was completed, but its progress record still needs attention: ${progressError.message}`);
+            if (finalizeError) {
+              throw new Error(`Lesson was not finalized; no partial completion was accepted: ${finalizeError.message}`);
             }
-
-            if (outcome === "covered") {
-              await markSchemeItemCovered(completed.id);
+            const finalizedRow = Array.isArray(finalized) ? finalized[0] : finalized;
+            if (!finalizedRow?.occurrence_id || !finalizedRow?.progress_record_id) {
+              throw new Error("Lesson finalization returned no authoritative completion record.");
             }
+            setOccurrence(current => current ? { ...current, id: finalizedRow.occurrence_id, lifecycle: "completed" } : current);
 
             const reflectionContext = [
               liveNote.trim(),

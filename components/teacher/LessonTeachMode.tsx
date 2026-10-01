@@ -124,12 +124,13 @@ export default function LessonTeachMode({
     try {
       const raw = window.localStorage.getItem(resumeKey(context))
       if (!raw) return
-      const saved = JSON.parse(raw) as { stepIndex?: number; scratchpad?: string; lessonPlanId?: string; occurrenceId?: string }
+      const saved = JSON.parse(raw) as { stepIndex?: number; elapsedSeconds?: number; scratchpad?: string; lessonPlanId?: string; occurrenceId?: string }
       if (saved.lessonPlanId !== context.lessonPlanId || saved.occurrenceId !== context.occurrenceId) {
         window.localStorage.removeItem(resumeKey(context))
         return
       }
       if (typeof saved.stepIndex === 'number') setStepIndex(Math.max(0, Math.min(saved.stepIndex, available.length - 1)))
+      if (typeof saved.elapsedSeconds === 'number' && saved.elapsedSeconds >= 0) setElapsedSeconds(saved.elapsedSeconds)
       if (typeof saved.scratchpad === 'string') {
         setScratchpad(saved.scratchpad)
         onScratchpadChange?.(saved.scratchpad)
@@ -146,12 +147,15 @@ export default function LessonTeachMode({
         version: 1,
         identity: context,
         cachedAt: new Date().toISOString(),
+        subject,
+        className,
+        topic,
         sections,
       }))
     } catch {
       // Device cache is best-effort; canonical server authority remains unchanged.
     }
-  }, [context, sections])
+  }, [context, subject, className, topic, sections])
 
   function persist(nextStep: number, note: string) {
     if (!context || typeof window === 'undefined') return
@@ -162,10 +166,16 @@ export default function LessonTeachMode({
       schoolId: context.schoolId,
       teacherId: context.teacherId,
       stepIndex: nextStep,
+      elapsedSeconds,
       scratchpad: note,
       savedAt: new Date().toISOString(),
     }))
   }
+
+  useEffect(() => {
+    if (!context || typeof window === 'undefined' || elapsedSeconds === 0 || elapsedSeconds % 30 !== 0) return
+    persist(stepIndex, scratchpad)
+  }, [context, stepIndex, scratchpad, elapsedSeconds])
 
   function changeStep(next: number) {
     setStepIndex(next)
@@ -321,6 +331,8 @@ export default function LessonTeachMode({
                   subjectId: context.subjectId,
                   timetableSlotId: context.timetableSlotId,
                   date: context.occurrenceDate,
+                  lessonPlanId: context.lessonPlanId,
+                  occurrenceId: context.occurrenceId,
                 })
                 router.push(`/teacher/attendance?${q.toString()}`)
               }}>Attendance</button>
@@ -366,7 +378,7 @@ export default function LessonTeachMode({
                 <textarea value={whatWasTaught} onChange={e=>setWhatWasTaught(e.target.value)} rows={3} placeholder="Briefly record the content actually covered in this occurrence." style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5, font:'inherit' }} />
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:8, marginTop:9 }}>
                   <button type="button" disabled={finishing} onClick={()=>setFinishOpen(false)} style={actionStyle}>Cancel</button>
-                  <button type="button" disabled={finishing || !whatWasTaught.trim()} onClick={finish} style={{...actionStyle,background:'#059669',color:'#fff',opacity:finishing || !whatWasTaught.trim()?0.55:1}}>{finishing?'Finishing lesson…':'Confirm finish'}</button>
+                  <button type="button" disabled={finishing || !online || !whatWasTaught.trim()} onClick={finish} style={{...actionStyle,background:'#059669',color:'#fff',opacity:finishing || !online || !whatWasTaught.trim()?0.55:1}}>{finishing?'Finishing lesson…':online?'Confirm finish':'Reconnect to finish safely'}</button>
                 </div>
               </section>
             )}

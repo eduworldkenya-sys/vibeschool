@@ -88,16 +88,30 @@ for (const forbiddenNeedle of [
   assert.ok(!teachMode.includes(forbiddenNeedle), `Teach Mode must not create parallel lesson authority: ${forbiddenNeedle}`)
 }
 
+const atomicFinishMigration = fs.readFileSync('supabase/migrations/20261001122500_atomic_teach_mode_finalization.sql', 'utf8')
+for (const needle of [
+  'security invoker',
+  'complete_teaching_occurrence',
+  'save_teaching_progress_record',
+  'mark_scheme_item_covered',
+  "p_outcome = 'covered'",
+  'grant execute on function public.finalize_teaching_occurrence',
+]) {
+  assert.ok(atomicFinishMigration.includes(needle), `Atomic lesson finalization contract missing: ${needle}`)
+}
+
 const lessonNotes = fs.readFileSync('app/teacher/lesson-notes/page.tsx', 'utf8')
 for (const needle of [
-  'save_teaching_progress_record',
-  'markSchemeItemCovered(completed.id)',
+  'finalize_teaching_occurrence',
+  'p_outcome: outcome',
+  'p_what_was_taught: whatWasTaught',
+  'no partial completion was accepted',
   'Coverage outcome:',
   'teaching-coverage statement, not learner mastery',
 ]) {
   assert.ok(lessonNotes.includes(needle), `Lesson completion authority contract missing: ${needle}`)
 }
-assert.ok(lessonNotes.indexOf('save_teaching_progress_record') < lessonNotes.indexOf('markSchemeItemCovered(completed.id)'), 'Scheme coverage must only advance after the completed occurrence progress record succeeds')
-assert.ok(lessonNotes.includes('if (outcome === "covered")'), 'Partial/reteach outcomes must not mark Scheme coverage')
+assert.ok(!lessonNotes.includes('completeTeachingOccurrence({'), 'Lesson Notes must not split occurrence completion from progress persistence')
+assert.ok(!lessonNotes.includes('markSchemeItemCovered(completed.id)'), 'Lesson Notes must not split Scheme coverage from atomic finalization')
 
 console.log('Teacher Resource OS contract: PASS')

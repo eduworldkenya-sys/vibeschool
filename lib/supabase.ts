@@ -75,6 +75,7 @@ type LiveDatabase = Omit<Database, 'public'> & {
       transition_timetable_release: { Args: { p_release_id: string; p_target: string }; Returns: Record<string, string | number | boolean | null> }
       get_my_school_day_blocks: { Args: Record<never, never>; Returns: { id: string; school_id: string; schedule_day: number; period_number: number; label: string; start_time: string; end_time: string; kind: string; protected: boolean }[] }
       suggest_school_timetable_candidates: { Args: { p_school_id: string; p_class_id: string; p_subject_id: string; p_teacher_id: string; p_effective_on?: string | null }; Returns: { day_of_week: number; period_id: string; start_time: string; end_time: string; score: number; explanation: string }[] }
+      finalize_teaching_occurrence: { Args: { p_timetable_slot_id: string; p_occurrence_date: string; p_outcome: string; p_what_was_taught: string; p_challenges?: string | null; p_teacher_remarks?: string | null; p_next_steps?: string | null }; Returns: { occurrence_id: string; progress_record_id: string; scheme_id: string | null; scheme_status: string | null }[] }
     }
     Tables: Omit<Database['public']['Tables'], 'homework' | 'timetable_slots' | 'teaching_occurrences' | 'school_periods'> & {
       homework: LiveHomeworkTable
