@@ -80,11 +80,12 @@ for required in (
 forbid(lifecycle_code, "from('teaching_occurrences')", 'lifecycle direct occurrence query')
 forbid(lifecycle_code, "from('scheme_of_work')", 'lifecycle direct Scheme mutation')
 
-# File 12 — attendance completion means every learner in canonical current
-# enrollment has a row for the exact school/class/teacher/slot/date occurrence.
-require(attendance, ".from('student_classes')", 'attendance canonical roster')
-require(attendance, ".eq('is_current', true)", 'attendance current enrollment')
-require(attendance, ".eq('school_id', schoolId)", 'attendance school scope')
+# File 12 — attendance completion means every learner in the shared canonical
+# current roster has a row for the exact school/class/teacher/slot/date
+# occurrence. Roster authority is centralized to prevent nested RLS joins.
+require(attendance, 'loadCurrentClassStudentIds', 'attendance canonical roster')
+require(attendance, 'loadCurrentClassStudentIds({ schoolId, classId: slot.class_id })', 'attendance current school/class scope')
+forbid(attendance, ".from('student_classes')", 'duplicate attendance roster reader')
 require(attendance, ".eq('teacher_id', teacherId)", 'attendance teacher scope')
 require(attendance, ".eq('timetable_slot_id', slot.id)", 'attendance exact slot')
 require(attendance, ".eq('date', occurrenceDate)", 'attendance exact date')
