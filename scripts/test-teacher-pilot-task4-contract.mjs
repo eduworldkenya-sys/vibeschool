@@ -86,7 +86,25 @@ for (const staleField of ['first_name', 'last_name', 'job_title', 'department', 
 }
 requireText(profile.includes('designation') && profile.includes('teaching_style'), 'teacher profile uses production professional fields')
 
+const studentsRoster = read('app/teacher/students/page.tsx')
+requireText(studentsRoster.includes('.from("student_classes")'), 'Students derives roster from canonical enrollment')
+requireText(studentsRoster.includes('.from("students")'), 'Students resolves learner identity separately from enrollment')
+requireText(!studentsRoster.includes('students(id,name,admission_number,profile_id,deleted_at)'), 'Students does not depend on nested learner RLS join')
+
+const classHubRoster = read('app/teacher/classhub/[id]/page.tsx')
+requireText(classHubRoster.includes(".from('student_classes')"), 'ClassHub derives roster from canonical enrollment')
+requireText(classHubRoster.includes(".from('students')"), 'ClassHub resolves learner identity separately from enrollment')
+requireText(classHubRoster.includes('Retry instead of adding duplicate learners'), 'ClassHub does not translate roster read failures into zero learners')
+
+const assessmentRoster = read('app/teacher/assessment/page.tsx')
+requireText(assessmentRoster.includes("teacher_get_operating_context"), 'Assessment uses canonical teacher operating context')
+requireText(assessmentRoster.includes(".from('student_classes')"), 'Assessment derives learners from canonical current enrollment')
+requireText(assessmentRoster.includes('Retry instead of treating this class as empty'), 'Assessment does not translate roster read failures into zero learners')
+
 const attendanceRoster = read('app/teacher/attendance/page.tsx')
+requireText(attendanceRoster.includes('.select("student_id")'), 'Attendance derives roster IDs from canonical enrollment')
+requireText(attendanceRoster.includes('.from("students")'), 'Attendance resolves learner identity separately from enrollment')
+requireText(!attendanceRoster.includes('students(id,name,admission_number,deleted_at)'), 'Attendance does not depend on nested learner RLS join')
 requireText(attendanceRoster.includes('.from("student_classes")'), 'attendance register derives roster from canonical current enrollment')
 requireText(attendanceRoster.includes('.eq("is_current", true)'), 'attendance register restricts roster to current enrollment')
 requireText(!attendanceRoster.includes('.not("profile_id"') && !attendanceRoster.includes('.not(\'profile_id\''), 'attendance register does not require a Student OS profile link')

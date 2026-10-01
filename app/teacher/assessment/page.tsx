@@ -58,12 +58,6 @@ function perfMeta(value: string) {
   return PERFORMANCE_OPTIONS.find(p => p.value === value) ?? PERFORMANCE_OPTIONS[1]
 }
 
-function activeTeacherSchoolId(value: unknown): string | null {
-  if (!value || typeof value !== 'object') return null
-  const schoolId = Reflect.get(value, 'active_school_id')
-  return typeof schoolId === 'string' && schoolId.length > 0 ? schoolId : null
-}
-
 // Aggregate: most frequent performance level wins; tie goes to higher level
 function aggregatePerf(entries: Assessment[]): string | null {
   if (entries.length === 0) return null
@@ -170,37 +164,31 @@ function AssessmentInner() {
     if (authErr || !user) { setError('Not signed in.'); setLoading(false); return }
     setTeacherId(user.id)
 
-    const schoolContextRes = await supabase.rpc('get_my_teacher_school_context')
-    if (schoolContextRes.error) { setError(schoolContextRes.error.message); setLoading(false); return }
-    const sid = activeTeacherSchoolId(schoolContextRes.data)
+    // Assessment must consume the same server-authoritative assignment
+    // projection as SubjectHub, Scheme, Attendance and Results. Independent
+    // teacher_classes/classes/subjects reads can turn valid assignments into
+    // false empty states when one nested RLS read is hidden.
+    const contextRes = await supabase.rpc('teacher_get_operating_context')
+    if (contextRes.error) { setError('Teacher operating context could not be loaded.'); setLoading(false); return }
+    const context = contextRes.data as {
+      school_id?: string | null
+      classes?: Array<{ class_id: string; class_name: string; stream?: string | null; subject_id: string; subject_name: string }>
+    } | null
+    const sid = context?.school_id ?? null
     setSchoolId(sid)
     if (!sid) { setLoading(false); return }
 
-    const tcRes = await supabase
-      .from('teacher_classes')
-      .select('class_id, subject_id')
-      .eq('teacher_id', user.id)
-      .eq('school_id', sid)
-    if (tcRes.error) { setError(tcRes.error.message); setLoading(false); return }
+    const assignments = context?.classes ?? []
+    if (assignments.length === 0) { setLoading(false); return }
 
-    const rows = tcRes.data ?? []
-    const classIds   = Array.from(new Set(rows.map((r: { class_id: string | null })   => r.class_id).filter((x): x is string => !!x)))
-    const subjectIds = Array.from(new Set(rows.map((r: { subject_id: string | null }) => r.subject_id).filter((x): x is string => !!x)))
-
-    if (classIds.length === 0) { setLoading(false); return }
-
-    const [classesRes, subjectsRes] = await Promise.all([
-      supabase.from('classes').select('id, name, stream').eq('school_id', sid).in('id', classIds),
-      subjectIds.length > 0
-        ? supabase.from('subjects').select('id, name').eq('school_id', sid).in('id', subjectIds)
-        : Promise.resolve({ data: [], error: null }),
-    ])
-
-    if (classesRes.error)  { setError(classesRes.error.message);  setLoading(false); return }
-    if (subjectsRes.error) { setError(subjectsRes.error.message); setLoading(false); return }
-
-    const loadedClasses  = (classesRes.data  ?? []) as ClassOption[]
-    const loadedSubjects = (subjectsRes.data ?? []) as SubjectOption[]
+    const loadedClasses = Array.from(new Map(assignments.map(a => [
+      a.class_id,
+      { id: a.class_id, name: a.class_name, stream: a.stream ?? '' },
+    ])).values()) as ClassOption[]
+    const loadedSubjects = Array.from(new Map(assignments.map(a => [
+      a.subject_id,
+      { id: a.subject_id, name: a.subject_name },
+    ])).values()) as SubjectOption[]
 
     const urlClassId   = searchParams.get('classId')
     const urlSubjectId = searchParams.get('subjectId')
@@ -248,14 +236,22 @@ function AssessmentInner() {
       cls && globalSubjectId
         ? supabase.from('cbc_strands').select('id, name').eq('subject_id', globalSubjectId).ilike('grade', cls.name).order('name')
         : Promise.resolve({ data: [], error: null }),
-      supabase.from('student_classes').select('student_id').eq('class_id', classId).eq('is_current', true),
+      supabase.from('student_classes').select('student_id').eq('school_id', schoolId!).eq('class_id', classId).eq('is_current', true),
     ])
 
     if (loadId !== loadIdRef.current) return
 
+    if (strandsRes.error) {
+      console.error('[Assessment] strands load failed', strandsRes.error)
+    }
     const strandRows = strandsRes.error ? [] : (strandsRes.data ?? []) as StrandOption[]
     setStrands(strandRows)
 
+    if (scRes.error) {
+      setError('Class roster could not be loaded. Retry instead of treating this class as empty.')
+      setDataLoading(false)
+      return
+    }
     const studentIds = Array.from(new Set((scRes.data ?? []).map((r: { student_id: string }) => r.student_id)))
     if (studentIds.length === 0) { setStudents([]); setAssessments([]); setDataLoading(false); return }
 
@@ -272,8 +268,18 @@ function AssessmentInner() {
     const [studentsRes, assessRes] = await Promise.all([studentsPromise, assessPromise])
     if (loadId !== loadIdRef.current) return
 
-    setStudents(studentsRes.error ? [] : ((studentsRes.data ?? []) as Student[]).sort((a, b) => a.name.localeCompare(b.name)))
-    setAssessments(assessRes.error ? [] : (assessRes.data ?? []) as Assessment[])
+    if (studentsRes.error) {
+      setError('Learner identities could not be loaded. Retry instead of treating this class as empty.')
+      setDataLoading(false)
+      return
+    }
+    if (assessRes.error) {
+      setError('Assessment records could not be loaded.')
+      setDataLoading(false)
+      return
+    }
+    setStudents(((studentsRes.data ?? []) as Student[]).sort((a, b) => a.name.localeCompare(b.name)))
+    setAssessments((assessRes.data ?? []) as Assessment[])
     setDataLoading(false)
   }
 
