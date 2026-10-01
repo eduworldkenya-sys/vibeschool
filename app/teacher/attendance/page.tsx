@@ -17,7 +17,7 @@ type OperatingContext = {
   teacher_id: string;
   school_id: string | null;
   school_count: number;
-  state: "ready" | "needs_school" | "needs_class";
+  state: "ready" | "needs_school" | "needs_class" | "needs_curriculum_reconciliation";
   schools: Array<{ id: string; name: string; assignment_count: number; active: boolean }>;
   classes: Array<{
     assignment_id: string;

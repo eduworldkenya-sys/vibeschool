@@ -10,7 +10,7 @@ import { nairobiDateStr } from "@/lib/time";
 type Context = {
   teacher_id: string;
   school_id: string | null;
-  state: "ready" | "needs_school" | "needs_class";
+  state: "ready" | "needs_school" | "needs_class" | "needs_curriculum_reconciliation";
   schools: Array<{ id: string; name: string; active: boolean }>;
   classes: Array<{ class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string }>;
 };
@@ -26,6 +26,16 @@ type HomeworkItem = {
   class_stream: string;
   submitted: number;
   roster: number;
+};
+
+type HomeworkRow = {
+  id: string;
+  title: string;
+  subject: string | null;
+  due_date: string;
+  type: string | null;
+  class_id: string;
+  homework_submissions: Array<{ id: string }> | null;
 };
 
 type Filter = "all" | "active" | "overdue";
@@ -47,7 +57,7 @@ export default function TeacherHomeworkPage() {
       p_requested_school_id: requestedSchoolId ?? undefined,
     });
     if (contextError) throw contextError;
-    return data as unknown as Context;
+    return data as Context;
   }, []);
 
   const loadItems = useCallback(async (ctx: Context) => {
@@ -89,7 +99,7 @@ export default function TeacherHomeworkPage() {
       rosterCounts.set(row.class_id, (rosterCounts.get(row.class_id) ?? 0) + 1);
     }
 
-    setItems(((homeworkRes.data ?? []) as any[]).map((row) => {
+    setItems(((homeworkRes.data ?? []) as HomeworkRow[]).map((row) => {
       const cls = classMap.get(row.class_id);
       return {
         id: row.id,

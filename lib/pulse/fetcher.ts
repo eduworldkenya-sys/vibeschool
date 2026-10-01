@@ -237,18 +237,22 @@ export async function fetchPulseData(
 
   const allMyClassIds = Array.from(new Set(myClasses.map((c) => c.class_id)));
   if (allMyClassIds.length > 0) {
-    const { data: rosterRows } = await supabase
-      .from("students")
-      .select("class_id")
-      .in("class_id", allMyClassIds)
-      .is("deleted_at", null);
+    const { data: rosterRows, error: rosterError } = await supabase
+      .from("student_classes")
+      .select("class_id,student_id")
+      .eq("school_id", schoolId)
+      .eq("is_current", true)
+      .in("class_id", allMyClassIds);
+    if (rosterError) throw rosterError;
 
-    const countByClass = new Map<string, number>();
-    for (const row of (rosterRows ?? []) as { class_id: string }[]) {
-      countByClass.set(row.class_id, (countByClass.get(row.class_id) ?? 0) + 1);
+    const countByClass = new Map<string, Set<string>>();
+    for (const row of (rosterRows ?? []) as { class_id: string; student_id: string }[]) {
+      const current = countByClass.get(row.class_id) ?? new Set<string>();
+      current.add(row.student_id);
+      countByClass.set(row.class_id, current);
     }
     for (const c of myClasses) {
-      c.studentCount = countByClass.get(c.class_id) ?? 0;
+      c.studentCount = countByClass.get(c.class_id)?.size ?? 0;
     }
   }
 
@@ -636,15 +640,19 @@ export async function fetchPulseData(
     .forEach((slot) => pendingMap.set(slot.class_id, slot.class_name));
   const attPending = Array.from(pendingMap, ([class_id, class_name]) => ({ class_id, class_name }));
 
-  const totalStudentsToday = todayClassIds.length > 0
-    ? (
-        await supabase
-          .from("students")
-          .select("id", { count: "exact", head: true })
-          .in("class_id", todayClassIds)
-          .is("deleted_at", null)
-      ).count ?? 0
-    : 0;
+  let totalStudentsToday = 0;
+  if (todayClassIds.length > 0) {
+    const { data: todayEnrollmentRows, error: todayEnrollmentError } = await supabase
+      .from("student_classes")
+      .select("student_id")
+      .eq("school_id", schoolId)
+      .eq("is_current", true)
+      .in("class_id", todayClassIds);
+    if (todayEnrollmentError) throw todayEnrollmentError;
+    totalStudentsToday = new Set(
+      (todayEnrollmentRows ?? []).map((row: { student_id: string }) => row.student_id),
+    ).size;
+  }
 
   const absenceRows = (absenceRes.data ?? []) as AbsenceRow[];
   const absenceCount: Record<string, { name: string; count: number }> = {};

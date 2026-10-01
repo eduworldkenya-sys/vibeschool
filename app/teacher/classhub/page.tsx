@@ -7,7 +7,8 @@ import { C } from '@/components/teacher/ui'
 
 export const dynamic = 'force-dynamic'
 
-type TeacherClassRow = { class_id: string; is_class_teacher: boolean | null }
+type OperatingClass = { class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string }
+type OperatingContext = { school_id: string | null; state: 'ready' | 'needs_school' | 'needs_class' | 'needs_curriculum_reconciliation'; classes: OperatingClass[] }
 type ClassRow = { id: string; name: string; stream: string | null; subject: string | null }
 
 export default function ClassHubPage() {
@@ -31,28 +32,35 @@ export default function ClassHubPage() {
         return
       }
 
-      const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
-      const activeSchoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
-      if (schoolContextError || !activeSchoolId) {
+      const { data: contextData, error: contextError } = await supabase.rpc('teacher_get_operating_context')
+      if (contextError) {
+        if (!cancelled) { setError('We could not load your teaching context. Please try again.'); setLoading(false) }
+        return
+      }
+
+      const context = contextData as OperatingContext
+      const activeSchoolId = context.school_id
+      if (!activeSchoolId || context.state === 'needs_school') {
         if (!cancelled) { setError('Connect or select your active school before opening classes.'); setLoading(false) }
         return
       }
 
-      const { data: assignments, error: assignmentError } = await supabase
-        .from('teacher_classes')
-        .select('class_id,is_class_teacher')
-        .eq('teacher_id', user.id)
-        .eq('school_id', activeSchoolId)
-
-      if (assignmentError) {
-        if (!cancelled) {
-          setError('We could not load your classes. Please try again.')
-          setLoading(false)
+      const unique = new Map<string, ClassRow>()
+      for (const assignment of context.classes ?? []) {
+        const existing = unique.get(assignment.class_id)
+        if (!existing) {
+          unique.set(assignment.class_id, {
+            id: assignment.class_id,
+            name: assignment.class_name,
+            stream: assignment.stream,
+            subject: assignment.subject_name,
+          })
+        } else if (assignment.subject_name && !existing.subject?.split(' · ').includes(assignment.subject_name)) {
+          existing.subject = [existing.subject, assignment.subject_name].filter(Boolean).join(' · ')
         }
-        return
       }
-
-      const classIds = Array.from(new Set(((assignments ?? []) as TeacherClassRow[]).map(row => row.class_id).filter(Boolean)))
+      const loadedClasses = Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name))
+      const classIds = loadedClasses.map(row => row.id)
       if (classIds.length === 0) {
         if (!cancelled) {
           setClasses([])
@@ -62,26 +70,27 @@ export default function ClassHubPage() {
         return
       }
 
-      const [classResult, enrollmentResult] = await Promise.all([
-        supabase.from('classes').select('id,name,stream,subject').in('id', classIds).order('name'),
-        supabase.from('student_classes').select('class_id').in('class_id', classIds).eq('is_current', true),
-      ])
+      const enrollmentResult = await supabase
+        .from('student_classes')
+        .select('class_id')
+        .eq('school_id', activeSchoolId)
+        .in('class_id', classIds)
+        .eq('is_current', true)
 
-      if (classResult.error) {
+      if (enrollmentResult.error) {
         if (!cancelled) {
-          setError('We found your class assignments but could not load the class details.')
+          setError('We found your classes but could not load their current learner rosters.')
           setLoading(false)
         }
         return
       }
-
       const nextCounts: Record<string, number> = {}
       for (const row of enrollmentResult.data ?? []) {
         if (row.class_id) nextCounts[row.class_id] = (nextCounts[row.class_id] ?? 0) + 1
       }
 
       if (!cancelled) {
-        setClasses((classResult.data ?? []) as ClassRow[])
+        setClasses(loadedClasses)
         setCounts(nextCounts)
         setLoading(false)
       }

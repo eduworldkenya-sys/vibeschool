@@ -30,9 +30,8 @@ interface EnrollmentLearnerRow {
   deleted_at: string | null
 }
 
-interface StudentClassJoinRow {
+interface StudentClassRow {
   student_id: string
-  students: EnrollmentLearnerRow | EnrollmentLearnerRow[] | null
 }
 
 interface CompletedOccurrenceRow {
@@ -44,13 +43,6 @@ interface PreviousPlanRow {
   timetable_slot_id: string
   taught_date: string
   topic: string | null
-}
-
-function firstJoinedLearner(
-  value: EnrollmentLearnerRow | EnrollmentLearnerRow[] | null,
-): EnrollmentLearnerRow | null {
-  if (Array.isArray(value)) return value[0] ?? null
-  return value
 }
 
 function occurrenceKey(
@@ -116,7 +108,7 @@ export async function loadLessonContext({
       .single(),
     supabase
       .from('student_classes')
-      .select('student_id,students(id,name,profile_id,deleted_at)')
+      .select('student_id')
       .eq('school_id', schoolId)
       .eq('class_id', classId)
       .eq('is_current', true),
@@ -139,19 +131,25 @@ export async function loadLessonContext({
   if (enrollmentResult.error) throw enrollmentResult.error
   if (completedResult.error) throw completedResult.error
 
-  const students: LessonContextStudent[] = []
-  const seen = new Set<string>()
-  for (const row of (enrollmentResult.data ?? []) as StudentClassJoinRow[]) {
-    const learner = firstJoinedLearner(row.students)
-    if (!learner || learner.deleted_at || seen.has(learner.id)) continue
-    seen.add(learner.id)
-    students.push({
+  const studentIds = Array.from(new Set(
+    ((enrollmentResult.data ?? []) as StudentClassRow[]).map(row => row.student_id),
+  ))
+  const learnerResult = studentIds.length > 0
+    ? await supabase
+        .from('students')
+        .select('id,name,profile_id,deleted_at')
+        .in('id', studentIds)
+        .is('deleted_at', null)
+    : { data: [] as EnrollmentLearnerRow[], error: null }
+  if (learnerResult.error) throw learnerResult.error
+
+  const students: LessonContextStudent[] = ((learnerResult.data ?? []) as EnrollmentLearnerRow[])
+    .map(learner => ({
       id: learner.id,
       name: learner.name,
       profile_id: learner.profile_id ?? null,
-    })
-  }
-  students.sort((a, b) => a.name.localeCompare(b.name))
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   const completedOccurrences =
     (completedResult.data ?? []) as CompletedOccurrenceRow[]

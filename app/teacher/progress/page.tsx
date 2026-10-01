@@ -10,7 +10,7 @@ import { saveTeachingProgressRecord, TeachingProgressError } from "@/lib/teachin
 type Context = {
   teacher_id: string;
   school_id: string | null;
-  state: "ready" | "needs_school" | "needs_class";
+  state: "ready" | "needs_school" | "needs_class" | "needs_curriculum_reconciliation";
   schools: Array<{ id: string; name: string; active: boolean }>;
 };
 

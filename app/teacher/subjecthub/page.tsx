@@ -12,25 +12,13 @@ import { Card, C } from '@/components/teacher/ui'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { resolveSchoolId } from '@/lib/school'
 import {
   loadSubjectClassLibrary,
 } from '@/lib/content-engine/subjectClassLibrary'
 import type {
   SubjectClassLibraryItem,
 } from '@/lib/content-engine/subjectClassLibrary'
-import type { Database } from '@/lib/database.types'
 import { useRouter } from 'next/navigation'
-
-type TeacherClassInsert =
-  Database["public"]["Tables"]["teacher_classes"]["Insert"]
-
-const CBC_SUBJECTS = [
-  'Mathematics', 'English', 'Kiswahili', 'Science and Technology',
-  'Social Studies', 'Agriculture', 'Home Science', 'Religious Education',
-  'Creative Arts', 'Physical Education', 'Health Education',
-  'Pre-Technical Studies', 'Business Studies',
-]
 
 interface SubjectOption {
   id:   string
@@ -108,6 +96,7 @@ export default function SubjectHubPage() {
   const [newSubjectName,    setNewSubjectName]    = useState('')
   const [useOtherSubject,  setUseOtherSubject]  = useState(false)
   const [newSubjectClassId, setNewSubjectClassId] = useState('')
+  const [allowedSubjectNames, setAllowedSubjectNames] = useState<string[]>([])
   const [addingSubject,     setAddingSubject]     = useState(false)
   const [addSubjectError,   setAddSubjectError]   = useState<string | null>(null)
   const [allClasses,        setAllClasses]        = useState<{id: string; name: string; stream: string | null; school_id: string | null}[]>([])
@@ -147,37 +136,27 @@ export default function SubjectHubPage() {
       if (!user) { router.push('/?role=teacher'); return }
       setCurrentId(user.id)
 
-      const sid = await resolveSchoolId(user.id)
+      const { data: operatingContext, error: contextError } =
+        await supabase.rpc('teacher_get_operating_context')
+      if (contextError) throw contextError
 
+      const sid = (operatingContext as { school_id?: string | null } | null)?.school_id ?? null
       setSchoolId(sid)
 
       if (!sid) {
         setActiveAcademicTerm(null)
         setSubjects([])
         setAllClasses([])
-        setError(
-          'Your teacher account is not linked to a school.'
-        )
+        setError('Connect or select your school before opening subjects.')
         return
       }
 
       try {
-        setActiveAcademicTerm(
-          await getActiveTerm(sid),
-        )
+        setActiveAcademicTerm(await getActiveTerm(sid))
       } catch (termError) {
-        console.error(
-          '[SubjectHub] active term load failed',
-          termError,
-        )
+        console.error('[SubjectHub] active term load failed', termError)
         setActiveAcademicTerm(null)
       }
-
-      const { data: operatingContext, error: contextError } =
-        await supabase.rpc('teacher_get_operating_context', {
-          p_requested_school_id: sid,
-        })
-      if (contextError) throw contextError
 
       const contextClasses = Array.isArray((operatingContext as { classes?: unknown[] } | null)?.classes)
         ? ((operatingContext as { classes: Array<{ class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string }> }).classes)
@@ -283,7 +262,12 @@ export default function SubjectHubPage() {
         .select('id, name, stream')
         .eq('school_id', schoolId)
         .in('id', classIds),
-      supabase.from('students').select('class_id').in('class_id', classIds),
+      supabase
+        .from('student_classes')
+        .select('class_id,student_id')
+        .eq('school_id', schoolId)
+        .eq('is_current', true)
+        .in('class_id', classIds),
       classAssessmentPromise,
       supabase
         .from('attendance')
@@ -297,12 +281,12 @@ export default function SubjectHubPage() {
         .eq('timetable_slots.subject_id', subjectId),
     ])
 
-    const counts: Record<string, number> = {}
-    for (const student of studentRes.data ?? []) {
-      if (!student.class_id) continue
-
-      counts[student.class_id] =
-        (counts[student.class_id] ?? 0) + 1
+    const learnersByClass = new Map<string, Set<string>>()
+    for (const enrollment of studentRes.data ?? []) {
+      if (!enrollment.class_id || !enrollment.student_id) continue
+      const learners = learnersByClass.get(enrollment.class_id) ?? new Set<string>()
+      learners.add(enrollment.student_id)
+      learnersByClass.set(enrollment.class_id, learners)
     }
 
     const PERF_SCORE: Record<string, number> = {
@@ -328,7 +312,7 @@ export default function SubjectHubPage() {
           id:           classRow.id,
           name:         classRow.name,
           stream:       classRow.stream ?? '',
-          studentCount: counts[classRow.id] ?? 0,
+          studentCount: learnersByClass.get(classRow.id)?.size ?? 0,
           perfPct:      perf
             ? Math.round(
                 (perf.sum / (perf.count * 4)) * 100
@@ -393,6 +377,33 @@ export default function SubjectHubPage() {
     setTeammates(team)
     setTeamLoading(false)
   }
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadAllowedSubjects() {
+      const selectedClass = allClasses.find(item => item.id === newSubjectClassId)
+      if (!schoolId || !selectedClass) {
+        setAllowedSubjectNames([])
+        setNewSubjectName('')
+        return
+      }
+      const { data, error } = await supabase.rpc('get_allowed_teaching_subjects', {
+        p_school_id: schoolId,
+        p_grade: selectedClass.name,
+      })
+      if (cancelled) return
+      if (error) {
+        console.error('[SubjectHub] allowed subjects load failed', error)
+        setAllowedSubjectNames([])
+        return
+      }
+      const names = (data as { subjects?: unknown[] } | null)?.subjects
+      setAllowedSubjectNames(Array.isArray(names) ? names.filter((name): name is string => typeof name === 'string') : [])
+      setNewSubjectName('')
+    }
+    void loadAllowedSubjects()
+    return () => { cancelled = true }
+  }, [newSubjectClassId, schoolId, allClasses])
 
   useEffect(() => {
     if (showAddSubject) {
@@ -897,66 +908,29 @@ export default function SubjectHubPage() {
 
   async function addSubject() {
     if (addingSubject) return
-    if (!newSubjectName.trim()) { setAddSubjectError('Enter a subject name'); return }
-    if (!currentId) { setAddSubjectError('Not signed in'); return }
+    if (!newSubjectName.trim()) { setAddSubjectError('Select a subject'); return }
+    if (!currentId || !schoolId) { setAddSubjectError('Select your school first'); return }
+    const selectedClass = allClasses.find(item => item.id === newSubjectClassId)
+    if (!selectedClass) { setAddSubjectError('Select the class you teach'); return }
+
     setAddingSubject(true)
     setAddSubjectError(null)
-
-    const selectedClass = allClasses.find(c => c.id === newSubjectClassId) ?? null
-    const classSchoolId = selectedClass?.school_id ?? schoolId ?? null
-
-    let dedupQuery = supabase.from('subjects').select('id').eq('name', newSubjectName.trim())
-    if (classSchoolId) {
-      dedupQuery = dedupQuery.eq('school_id', classSchoolId) as typeof dedupQuery
-    } else {
-      dedupQuery = dedupQuery.is('school_id', null) as typeof dedupQuery
-    }
-    const { data: existing } = await dedupQuery.maybeSingle()
-
-    let subjectId: string
-    if (existing) {
-      subjectId = existing.id
-    } else {
-      const insertPayload: { name: string; school_id?: string } = { name: newSubjectName.trim() }
-      if (classSchoolId) insertPayload.school_id = classSchoolId
-      const { data: newSub, error: subErr } = await supabase
-        .from('subjects')
-        .insert(insertPayload)
-        .select('id')
-        .single()
-      if (subErr || !newSub) { setAddSubjectError('Failed to create subject'); setAddingSubject(false); return }
-      subjectId = newSub.id
-    }
-
-    if (!classSchoolId || !newSubjectClassId) {
-      setAddSubjectError(
-        'Select a class with a valid school before linking the subject'
-      )
+    try {
+      const { error: assignmentError } = await supabase.rpc('create_teacher_class_assignment', {
+        p_school_id: schoolId,
+        p_grade: selectedClass.name,
+        p_stream: selectedClass.stream ?? '',
+        p_subject: newSubjectName.trim(),
+        p_is_class_teacher: false,
+      })
+      if (assignmentError) throw assignmentError
+      closeAddSubject()
+      await init()
+    } catch (assignmentError) {
+      console.error('[SubjectHub] canonical subject assignment failed', assignmentError)
+      setAddSubjectError('That subject is not available for this class level.')
       setAddingSubject(false)
-      return
     }
-
-    const tcRow: TeacherClassInsert = {
-      teacher_id:       currentId,
-      subject_id:       subjectId,
-      school_id:        classSchoolId,
-      class_id:         newSubjectClassId,
-      is_class_teacher: false,
-    }
-
-    const { error: tcErr } = await supabase
-      .from('teacher_classes')
-      .insert(tcRow)
-    if (tcErr) { console.error('teacher_classes insert error:', tcErr); setAddSubjectError('Failed to link subject: ' + (tcErr.message ?? tcErr.code ?? 'unknown')); setAddingSubject(false); return }
-
-    const newEntry = { id: subjectId, name: newSubjectName.trim() }
-    setSubjects(prev => {
-      const next = [...prev, newEntry]
-      const newIdx = next.length - 1
-      setTimeout(() => { setActiveIdx(newIdx); loadGrowthData(subjectId) }, 100)
-      return next
-    })
-    closeAddSubject()
   }
 
   const activeSubject = subjects[activeIdx] ?? null
@@ -2156,14 +2130,13 @@ export default function SubjectHubPage() {
                 value={useOtherSubject ? 'Other' : newSubjectName}
                 onChange={e => {
                   const v = e.target.value
-                  if (v === 'Other') { setUseOtherSubject(true); setNewSubjectName('') }
-                  else { setUseOtherSubject(false); setNewSubjectName(v) }
+                  setUseOtherSubject(false)
+                  setNewSubjectName(v)
                 }}
                 style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', marginBottom: useOtherSubject ? 10 : 14, background: '#fff' }}
               >
                 <option value="">Select a subject…</option>
-                {CBC_SUBJECTS.filter(s => !subjects.map(x => x.name.toLowerCase()).includes(s.toLowerCase())).map(s => <option key={s} value={s}>{s}</option>)}
-                <option value="Other">Other (type manually)</option>
+                {allowedSubjectNames.filter(s => !subjects.map(x => x.name.toLowerCase()).includes(s.toLowerCase())).map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               {useOtherSubject && (
                 <input

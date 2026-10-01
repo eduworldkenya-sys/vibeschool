@@ -43,13 +43,6 @@ function parseContext(value: unknown): Context {
   return { teacher_id: typeof value.teacher_id === "string" ? value.teacher_id : "", school_id: stringOrNull(value.school_id), classes };
 }
 
-function parseEnrolledLearner(value: unknown): Student | null {
-  if (!isRecord(value)) return null;
-  const nested = Array.isArray(value.students) ? value.students[0] : value.students;
-  if (!isRecord(nested) || typeof nested.id !== "string" || typeof nested.name !== "string") return null;
-  return { id: nested.id, name: nested.name, admission_number: stringOrNull(nested.admission_number), profile_id: stringOrNull(nested.profile_id), deleted_at: stringOrNull(nested.deleted_at) };
-}
-
 function formatDate(value: string) {
   const parsed = new Date(value.length === 10 ? `${value}T12:00:00+03:00` : value);
   return Number.isFinite(parsed.getTime()) ? parsed.toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" }) : value;
@@ -97,10 +90,14 @@ export default function TeacherStudentProgressPage() {
       if (!ctx.classes.some((item) => item.class_id === classId)) throw new Error("This class is not assigned to you in the active school.");
       setContext(ctx);
 
-      const enrollmentRes = await supabase.from("student_classes").select("student_id,students(id,name,admission_number,profile_id,deleted_at)").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("is_current", true).maybeSingle();
+      const enrollmentRes = await supabase.from("student_classes").select("student_id").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("is_current", true).maybeSingle();
       if (enrollmentRes.error) throw enrollmentRes.error;
-      const learner = parseEnrolledLearner(enrollmentRes.data);
-      if (!learner || learner.deleted_at) throw new Error("This learner is not currently enrolled in this class.");
+      if (!enrollmentRes.data) throw new Error("This learner is not currently enrolled in this class.");
+
+      const learnerRes = await supabase.from("students").select("id,name,admission_number,profile_id,deleted_at").eq("id", studentId).is("deleted_at", null).maybeSingle();
+      if (learnerRes.error) throw learnerRes.error;
+      const learner = learnerRes.data as Student | null;
+      if (!learner) throw new Error("This learner identity could not be loaded. Retry instead of treating the enrolment as missing.");
       setStudent(learner);
 
       const subjectIds = Array.from(new Set(ctx.classes.filter((item) => item.class_id === classId).map((item) => item.subject_id)));
