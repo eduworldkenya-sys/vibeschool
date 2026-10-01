@@ -58,12 +58,6 @@ function perfMeta(value: string) {
   return PERFORMANCE_OPTIONS.find(p => p.value === value) ?? PERFORMANCE_OPTIONS[1]
 }
 
-function activeTeacherSchoolId(value: unknown): string | null {
-  if (!value || typeof value !== 'object') return null
-  const schoolId = Reflect.get(value, 'active_school_id')
-  return typeof schoolId === 'string' && schoolId.length > 0 ? schoolId : null
-}
-
 // Aggregate: most frequent performance level wins; tie goes to higher level
 function aggregatePerf(entries: Assessment[]): string | null {
   if (entries.length === 0) return null
