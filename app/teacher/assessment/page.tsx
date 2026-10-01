@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSearchParams }                        from 'next/navigation'
 import { supabase }                               from '@/lib/supabase'
+import { ensureMyActiveSchoolTerm } from '@/lib/academicTerm'
 import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { Card, C }                                from '@/components/teacher/ui'
 
@@ -311,6 +312,8 @@ function AssessmentInner() {
     if (!teacherId || !activeClassId || !activeSubjectId || !schoolId) return
     setSyncing(true)
     try {
+      await ensureMyActiveSchoolTerm()
+
       const { data: termRow } = await supabase
         .from('academic_terms')
         .select('id, start_date, end_date, term')
