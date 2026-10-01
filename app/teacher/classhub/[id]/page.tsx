@@ -101,16 +101,38 @@ function ClassPageInner() {
     }
     const classQuery = supabase.from('classes').select('name, stream, subject').eq('id', classId).single()
 
-    const [clsRes, studsRes, requestsRes] = await Promise.all([
+    const [clsRes, enrollmentRes, requestsRes] = await Promise.all([
       classQuery,
-      supabase.from('student_classes').select('student_id, students(id, name, admission_number, profile_id, created_at)').eq('class_id', classId).eq('is_current', true),
+      // Enrollment is the roster authority. Resolve identities separately so
+      // a nested students RLS join cannot collapse valid enrollment rows into
+      // a false "0 students" state.
+      supabase.from('student_classes').select('student_id,school_id').eq('class_id', classId).eq('is_current', true),
       supabase.from('class_join_requests').select('id').eq('class_id', classId).eq('status', 'pending'),
     ])
 
     if (!clsRes.data) { router.push(isSubject ? '/teacher/subjecthub' : '/teacher/classhub'); return }
     setClassInfo(clsRes.data)
 
-    const loadedStudents = (studsRes.data ?? []).map((r: any) => r.students).filter(Boolean)
+    if (enrollmentRes.error) {
+      setError('Class roster could not be loaded. Retry instead of adding duplicate learners.')
+      setLoading(false)
+      return
+    }
+    const studentIds = Array.from(new Set((enrollmentRes.data ?? []).map((row: { student_id: string }) => row.student_id)))
+    let loadedStudents: Student[] = []
+    if (studentIds.length > 0) {
+      const { data: studentRows, error: studentError } = await supabase
+        .from('students')
+        .select('id, name, admission_number, profile_id, created_at')
+        .in('id', studentIds)
+        .is('deleted_at', null)
+      if (studentError) {
+        setError('Learner identities could not be loaded. Retry instead of adding duplicate learners.')
+        setLoading(false)
+        return
+      }
+      loadedStudents = (studentRows ?? []) as Student[]
+    }
     setStudents(loadedStudents)
     setJoinRequests(requestsRes.data?.length ?? 0)
 
