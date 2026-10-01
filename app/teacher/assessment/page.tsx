@@ -50,7 +50,7 @@ const PERFORMANCE_OPTIONS: ReadonlyArray<{
   { value: 'below_expectation',      label: 'Below Expectation',      short: 'BE', color: '#991b1b', bg: '#fee2e2' },
 ]
 
-const ASSESSMENT_TYPES = ['Formative', 'Summative', 'Project']
+const ASSESSMENT_TYPES = ['formative', 'summative', 'project']
 const AMBER_DARK  = '#92400e'
 const AMBER_MID   = '#f59e0b'
 const AMBER_LIGHT = '#fef3c7'
@@ -127,7 +127,7 @@ function AssessmentInner() {
   const [editingId,     setEditingId]     = useState<string | null>(null)
   const [selStrand,     setSelStrand]     = useState('')
   const [selSubStrand,  setSelSubStrand]  = useState('')
-  const [selType,       setSelType]       = useState('Formative')
+  const [selType,       setSelType]       = useState('formative')
   const [selPerf,       setSelPerf]       = useState<PerformanceLevel | ''>('')
   const [selNotes,      setSelNotes]      = useState('')
   const [saving,        setSaving]        = useState(false)
@@ -138,7 +138,7 @@ function AssessmentInner() {
   const [bulkMode,      setBulkMode]      = useState(false)
   const [bulkStrand,    setBulkStrand]    = useState('')
   const [bulkSubStrand, setBulkSubStrand] = useState('')
-  const [bulkType,      setBulkType]      = useState('Formative')
+  const [bulkType,      setBulkType]      = useState('formative')
   const [bulkPerf,      setBulkPerf]      = useState<PerformanceLevel | ''>('')
   const [bulkNotes,     setBulkNotes]     = useState('')
   const [bulkSelected,  setBulkSelected]  = useState<Set<string>>(new Set())
@@ -288,7 +288,7 @@ function AssessmentInner() {
 
   function openRecord(student: Student) {
     setModalStudent(student); setViewMode(false); setEditingId(null)
-    setSelStrand(''); setSelSubStrand(''); setSelType('Formative')
+    setSelStrand(''); setSelSubStrand(''); setSelType('formative')
     setSelPerf(''); setSelNotes(''); setSaveError(null); setSaving(false)
   }
 
@@ -682,7 +682,7 @@ function AssessmentInner() {
                 borderColor: bulkType === t ? AMBER_MID : '#e5e7eb',
                 background:  bulkType === t ? '#fff'    : '#fafafa',
                 color:       bulkType === t ? AMBER_DARK : '#6b7280',
-              }}>{t}</button>
+              }}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
             ))}
           </div>
 
@@ -900,7 +900,7 @@ function AssessmentInner() {
                         borderColor: selType === t ? '#10b981' : '#e5e7eb',
                         background:  selType === t ? '#d1fae5' : '#fafafa',
                         color:       selType === t ? '#065f46' : '#6b7280',
-                      }}>{t}</button>
+                      }}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
                     ))}
                   </div>
                 </div>
