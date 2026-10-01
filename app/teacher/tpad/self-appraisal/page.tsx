@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { ensureMyActiveSchoolTerm } from '@/lib/academicTerm'
 import { C } from '@/components/teacher/ui'
 
 interface TpadAppraisal {
@@ -181,6 +182,8 @@ export default function SelfAppraisalPage() {
         setSchoolId(sid)
 
         if (!sid) { setLoading(false); return }
+
+        await ensureMyActiveSchoolTerm()
 
         const { data: termData } = await supabase
           .from('academic_terms')
