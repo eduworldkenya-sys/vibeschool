@@ -120,7 +120,7 @@ function ResultsInner() {
 
   async function loadTier1Students(loadId:number,classId:string) {
     setLoading(true)
-    const {data:scRows,error:rosterError}=await supabase.from('student_classes').select('student_id').eq('school_id',schoolId).eq('class_id',classId).eq('is_current',true)
+    const {data:scRows,error:rosterError}=await supabase.from('student_classes').select('student_id') .eq('school_id',schoolId!).eq('class_id',classId).eq('is_current',true)
     if(rosterError){if(loadId===loadIdRef.current){setError('Class roster could not be loaded.');setLoading(false)};return}
     if (loadId!==loadIdRef.current) return
     const ids=(scRows??[]).map((r:{student_id:string})=>r.student_id)
