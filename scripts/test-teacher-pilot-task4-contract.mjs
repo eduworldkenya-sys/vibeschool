@@ -147,3 +147,14 @@ if (process.exitCode) {
   process.exit(process.exitCode)
 }
 console.log('\nTeacher Pilot Task 4 contract PASSED')
+
+
+/* P0 privacy regression: Pulse offline cache must never cross teacher/school identity. */
+const pulseCache = read('lib/pulse/cache.ts')
+const pulsePage = read('app/teacher/pulse/page.tsx')
+requireText(pulseCache.includes('snapKey(userId, schoolId)'), 'Pulse cache is namespaced by teacher and school')
+requireText(pulseCache.includes('wrapped.userId !== userId'), 'Pulse cache rejects another teacher identity')
+requireText(pulseCache.includes('wrapped.schoolId !== schoolId'), 'Pulse cache rejects another school identity')
+requireText(pulseCache.includes('wrapped.data.userId !== userId'), 'Pulse cache validates snapshot teacher ownership')
+requireText(pulseCache.includes('wrapped.data.schoolId !== schoolId'), 'Pulse cache validates snapshot school ownership')
+requireText(pulsePage.includes('readSnapCache(user.id, schoolId)'), 'Pulse reads cache only for authenticated teacher and authorized school')
