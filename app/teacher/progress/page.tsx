@@ -78,7 +78,7 @@ function homeworkText(homework: HomeworkPrefill | null) {
   return [homework.title?.trim(), homework.instructions?.trim()].filter(Boolean).join(" — ");
 }
 
-function messageFor(error: unknown) {
+function messageFor(error: unknown, operation: "load" | "save" = "save") {
   if (error instanceof TeachingProgressError) {
     if (error.code === "occurrence_not_completed") return "Complete the lesson before recording progress.";
     if (error.code === "occurrence_not_owned") return "This teaching occurrence is not assigned to you.";
@@ -86,7 +86,10 @@ function messageFor(error: unknown) {
     if (error.code === "not_authenticated") return "Your session has expired. Sign in again.";
     return error.message;
   }
-  return error instanceof Error ? error.message : "The progress record could not be saved.";
+  if (error instanceof Error && error.message) return error.message;
+  return operation === "load"
+    ? "Lesson progress could not be loaded. Try again."
+    : "The progress record could not be saved. Try again.";
 }
 
 function ProgressInner() {
@@ -205,7 +208,7 @@ function ProgressInner() {
       }
     } catch (loadError) {
       console.error("[TeacherProgress] load", loadError);
-      setError(messageFor(loadError));
+      setError(messageFor(loadError, "load"));
     } finally {
       setLoading(false);
     }
