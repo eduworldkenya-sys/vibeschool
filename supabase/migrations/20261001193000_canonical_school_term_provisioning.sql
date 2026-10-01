@@ -2,6 +2,7 @@ begin;
 
 create schema if not exists private;
 
+-- authorization-test: public.national_term_calendar authenticated may read canonical calendar defaults; anon and authenticated direct writes are denied.
 create table if not exists public.national_term_calendar (
   country_code char(2) not null default 'KE',
   academic_year integer not null,
