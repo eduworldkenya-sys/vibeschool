@@ -66,11 +66,16 @@ export default function StudentsPage() {
       : { data: [], error: null };
     if (studentError) throw studentError;
 
-    const studentsById = new Map(
-      (studentRows ?? []).map((student) => [
-        student.id,
-        { id: student.id, name: student.name, admission_number: student.admission_number ?? null, profile_id: student.profile_id ?? null } as Student,
-      ])
+    const studentsById: Map<string, Student> = new Map(
+      (studentRows ?? []).map((student) => {
+        const learner: Student = {
+          id: student.id,
+          name: student.name,
+          admission_number: student.admission_number ?? null,
+          profile_id: student.profile_id ?? null,
+        };
+        return [student.id, learner] as const;
+      })
     );
     const grouped = new Map<string, Student[]>();
     for (const row of enrollmentRows ?? []) {
