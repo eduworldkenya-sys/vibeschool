@@ -86,11 +86,11 @@ for (const staleField of ['first_name', 'last_name', 'job_title', 'department', 
 }
 requireText(profile.includes('designation') && profile.includes('teaching_style'), 'teacher profile uses production professional fields')
 
-const attendance = read('app/teacher/attendance/page.tsx')
-requireText(attendance.includes('.from("student_classes")'), 'attendance register derives roster from canonical current enrollment')
-requireText(attendance.includes('.eq("is_current", true)'), 'attendance register restricts roster to current enrollment')
-requireText(!attendance.includes('.not("profile_id"') && !attendance.includes('.not(\'profile_id\''), 'attendance register does not require a Student OS profile link')
-requireText(attendance.includes('upsert_attendance_batch'), 'attendance writes through guarded batch authority')
+const attendanceRoster = read('app/teacher/attendance/page.tsx')
+requireText(attendanceRoster.includes('.from("student_classes")'), 'attendance register derives roster from canonical current enrollment')
+requireText(attendanceRoster.includes('.eq("is_current", true)'), 'attendance register restricts roster to current enrollment')
+requireText(!attendanceRoster.includes('.not("profile_id"') && !attendanceRoster.includes('.not(\'profile_id\''), 'attendance register does not require a Student OS profile link')
+requireText(attendanceRoster.includes('upsert_attendance_batch'), 'attendance writes through guarded batch authority')
 
 const schemePage = read('app/teacher/scheme/AuthoritySchemePage.jsx')
 requireText(schemePage.includes('No academic term is configured for this school'), 'Scheme distinguishes missing academic term from missing instructional weeks')
