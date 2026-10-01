@@ -155,7 +155,7 @@ function AttendancePageInner() {
       p_requested_school_id: requestedSchoolId ?? undefined,
     });
     if (contextError) throw contextError;
-    return data as unknown as OperatingContext;
+    return data as OperatingContext;
   }, []);
 
   const loadScheduledLessons = useCallback(async (ctx: OperatingContext, date: string) => {
