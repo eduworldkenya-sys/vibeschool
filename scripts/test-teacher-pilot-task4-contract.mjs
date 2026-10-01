@@ -111,8 +111,9 @@ requireText(!attendanceRoster.includes('.not("profile_id"') && !attendanceRoster
 requireText(attendanceRoster.includes('upsert_attendance_batch'), 'attendance writes through guarded batch authority')
 
 const schemePage = read('app/teacher/scheme/AuthoritySchemePage.jsx')
-requireText(schemePage.includes('No academic term is configured for this school'), 'Scheme distinguishes missing academic term from missing instructional weeks')
-requireText(schemePage.includes('Your class and subject assignment are still connected'), 'Scheme preserves assignment truth when term setup is missing')
+requireText(schemePage.includes('ensureMyActiveSchoolTerm(todayIso())'), 'Scheme self-heals the teacher active school calendar before term/week reads')
+requireText(schemePage.includes('school calendar could not be prepared automatically') && schemePage.includes('Instructional weeks could not be prepared automatically'), 'Scheme distinguishes term recovery failure from instructional-week recovery failure')
+requireText(schemePage.includes('Your class and subject assignment are still connected'), 'Scheme preserves assignment truth when calendar recovery fails')
 
 const progress = read('app/teacher/progress/page.tsx')
 requireText(progress.includes('saveTeachingProgressRecord'), 'lesson progress writes through guarded occurrence RPC')

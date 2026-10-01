@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { ensureMyActiveSchoolTerm } from '@/lib/academicTerm'
 import { C } from '@/components/teacher/ui'
 
 interface TpadAppraisal {
@@ -145,6 +146,9 @@ export default function TPADDashboard() {
           setLoading(false)
           return
         }
+
+        // Self-heal the active school's calendar before term-dependent TPAD reads.
+        await ensureMyActiveSchoolTerm()
 
         // Get active term for this school
         const { data: termData, error: termError } = await supabase

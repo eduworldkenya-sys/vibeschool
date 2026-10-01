@@ -6,6 +6,7 @@ import { ensureDailyOccurrences } from "@/lib/teaching/occurrenceGuard";
 import { resolveOccurrence } from "@/lib/teaching/occurrence";
 import { deriveTeachingWorkspace } from "@/lib/teaching/workspace";
 import type { TeachingWorkspace } from "@/lib/teaching/workspace";
+import { getActiveTerm } from "@/lib/academicTerm";
 
 interface TimetableSlotRow {
   id: string;
@@ -184,7 +185,11 @@ export async function fetchPulseData(
   const tomorrowDate = nairobiDateAdd(today, 1);
   const recentSchoolDays = lastSchoolDays(5, today);
 
-  const [slotsRes, termRes, teacherClassesRes, activeWeeksRes] = await Promise.all([
+  // Resolve through the canonical self-healing term authority before any
+  // term/week dependent reads. Existing terms are read-only fast-paths.
+  const activeTerm = await getActiveTerm(schoolId);
+
+  const [slotsRes, teacherClassesRes, activeWeeksRes] = await Promise.all([
     loadActiveTeacherTimetable({
       schoolId,
       teacherId: userId,
@@ -199,12 +204,6 @@ export async function fetchPulseData(
             : new Error("Unknown timetable engine failure"),
       })),
     supabase
-      .from("academic_terms")
-      .select("id,term,start_date,end_date")
-      .eq("school_id", schoolId)
-      .eq("status", "active")
-      .maybeSingle(),
-    supabase
       .from("teacher_classes")
       .select("class_id,subject_id,subjects(name),classes(name,stream)")
       .eq("school_id", schoolId)
@@ -218,7 +217,7 @@ export async function fetchPulseData(
   }
 
   const rawSlots = (slotsRes.data ?? []) as TimetableSlotRow[];
-  const termRow = (termRes.data ?? null) as AcademicTermRow | null;
+  const termRow = activeTerm as AcademicTermRow | null;
   const teacherClassRows = (teacherClassesRes.data ?? []) as TeacherClassRow[];
 
   const myClasses: PulseSnapshot["myClasses"] = teacherClassRows
