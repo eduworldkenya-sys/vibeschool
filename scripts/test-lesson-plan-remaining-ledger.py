@@ -35,6 +35,8 @@ coverage_code = executable_text(coverage)
 evidence = text('components/teacher/EvidenceCaptureSheet.tsx')
 source_bundle = text('lib/teaching/lessonSourceBundle.ts')
 delivery = text('lib/teaching/lessonDelivery.ts')
+assessment_studio = text('app/teacher/assessment/new/page.tsx')
+outcome_authority = text('lib/teaching/lessonOutcomeAuthority.ts')
 
 # File 2 — modal must orchestrate through canonical boundaries rather than
 # becoming an independent persistence/lifecycle implementation.
@@ -106,9 +108,25 @@ for field in (
 ):
     require(evidence, field, f'evidence visible field {field}')
 
+# Assessment authority — preview and generation must consume the same
+# server-resolved Scheme -> curriculum -> learning outcome lineage. Placeholder
+# text in <objectives> must never become a question merely because it is non-empty.
+require(outcome_authority, "'exq_resolve_lesson_assessment_outcomes'", 'central outcome authority RPC')
+require(outcome_authority, "'lesson_plan_scheme_required'", 'missing Scheme authority state')
+require(outcome_authority, "'scheme_curriculum_required'", 'missing curriculum authority state')
+require(outcome_authority, "'lesson_outcomes_required'", 'missing active outcome authority state')
+require(assessment_studio, 'resolveLessonOutcomeAuthority(lessonPlanId)', 'assessment authority load')
+require(assessment_studio, 'outcomes: authority.outcomes', 'assessment stores server-resolved outcomes')
+require(assessment_studio, "lesson.outcomes", 'assessment questions use authoritative outcomes')
+forbid(assessment_studio, 'function objectiveTexts(', 'assessment must not promote free-text objectives to authority')
+require(assessment_studio, "'Assessment not ready yet'", 'assessment blocked-state heading')
+require(assessment_studio, "'Assessment setup required'", 'assessment blocked-state eyebrow')
+
 # Consequence boundary — weak/placeholder plans may be saved for teacher review,
 # but they cannot be published or shared downstream as if teaching-ready.
 require(delivery, 'evaluateLessonReadiness', 'delivery readiness evaluator')
+require(delivery, 'resolveLessonOutcomeAuthority', 'delivery curriculum outcome authority')
+require(delivery, "'Lesson plan is not grounded in authoritative Scheme curriculum outcomes.'", 'delivery outcome authority rejection')
 require(delivery, 'assertLessonReadyForDelivery', 'delivery readiness boundary')
 require(delivery, "'authority_mismatch'", 'delivery school authority')
 require(delivery, "'not_ready'", 'delivery fail-closed readiness')
