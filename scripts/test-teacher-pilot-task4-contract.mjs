@@ -1,3 +1,4 @@
+import './test-operational-school-authority.mjs'
 import fs from 'node:fs'
 
 function read(path) {
