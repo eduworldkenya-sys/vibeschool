@@ -7,7 +7,7 @@ ui = (root / 'components/teacher/AssessmentIntelligenceConsole.tsx').read_text()
 sql = (root / 'supabase/migrations/20260820093000_teacher_assessment_intelligence_console.sql').read_text()
 
 checks = {
-    'console wired into results': 'AssessmentIntelligenceConsole' in page and "'Intelligence'" in page,
+    'console wired into results': 'AssessmentIntelligenceConsole' in page and "'Explore'" in page,
     'canonical intelligence rpc': 'teacher_get_assessment_intelligence' in sql and 'returns jsonb' in sql,
     'teacher authorization': 'auth.uid()' in sql and 'teacher_assignment_required' in sql and 'teacher_classes' in sql,
     'function execution restricted': 'revoke all on function' in sql and 'grant execute' in sql and 'to authenticated' in sql,
