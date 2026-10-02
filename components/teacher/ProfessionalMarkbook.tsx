@@ -127,7 +127,7 @@ export default function ProfessionalMarkbook({
           <button type="button" onClick={() => { setPasteText(""); setPasteMessage(null); }} style={{ padding: "8px 11px", borderRadius: 10, border: "1px solid #d6d3d1", background: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Clear</button>
           {pasteMessage && <span role="status" style={{ fontSize: 11, color: "#57534e", fontWeight: 700 }}>{pasteMessage}</span>}
         </div>
-      </div>
+      </div>}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse" }}>
