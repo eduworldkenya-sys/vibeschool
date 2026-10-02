@@ -18,6 +18,7 @@ import type {
 import {
   evaluateLessonReadiness,
 } from '@/lib/teaching/lessonReadiness'
+import { resolveLessonOutcomeAuthority } from '@/lib/teaching/lessonOutcomeAuthority'
 
 export type LessonDeliveryErrorCode =
   | 'authority_mismatch'
@@ -137,6 +138,15 @@ async function assertLessonReadyForDelivery(
     throw new LessonDeliveryError(
       'authority_mismatch',
       'Lesson delivery authority no longer matches this school.',
+    )
+  }
+
+  const authority = await resolveLessonOutcomeAuthority(lessonPlanId)
+  if (!authority.grounded) {
+    throw new LessonDeliveryError(
+      'not_ready',
+      'Lesson plan is not grounded in authoritative Scheme curriculum outcomes.',
+      { reasons: [authority.message] },
     )
   }
 
