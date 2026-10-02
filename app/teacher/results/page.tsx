@@ -66,6 +66,7 @@ function ResultsInner() {
   const [draftMarks,setDraftMarks]=useState<Record<string,string>>({})
   const [savingId,setSavingId]=useState<string|null>(null)
   const [savedId,setSavedId]=useState<string|null>(null)
+  const [savingAll,setSavingAll]=useState(false)
   const [errorByStudent,setErrorByStudent]=useState<Record<string,string>>({})
   const [activeTab,setActiveTab]=useState<'entry'|'analysis'>('entry')
   const [booting,setBooting]=useState(true)
@@ -187,6 +188,39 @@ function ResultsInner() {
     return true
   }
 
+  async function saveAllMarks() {
+    if (!activeExam || activeExam.is_locked || savingAll) return
+    setSavingAll(true)
+    for (const student of students) {
+      const existing=results.find(r=>r.student_id===student.id)
+      if (existing?.is_absent) continue
+      const raw=draftMarks[student.id]??''
+      const mark=Number(raw)
+      if (raw.trim()==='' || !Number.isFinite(mark) || mark<0 || mark>100) continue
+      await saveMark(student)
+    }
+    setSavingAll(false)
+  }
+
+  function exportMarksCsv() {
+    if (!activeExam) return
+    const saved=new Map(results.map(r=>[r.student_id,r]))
+    const rows=[['Learner','Mark','Grade','Status']]
+    for (const student of students) {
+      const result=saved.get(student.id)
+      if (!result) rows.push([student.name,'','','Not entered'])
+      else if (result.is_absent) rows.push([student.name,'','ABS','Absent'])
+      else rows.push([student.name,String(result.marks),getGrade(result.marks),result.marks >= (activeExam.pass_mark??50) ? 'Passed' : 'Needs help'])
+    }
+    const csv=rows.map(row=>row.map(value=>`"${String(value).replace(/"/g,'""')}"`).join(',')).join('\n')
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'})
+    const url=URL.createObjectURL(blob)
+    const link=document.createElement('a')
+    link.href=url
+    link.download=`${activeExam.name.replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'exam'}-${activeClass?.name??'class'}-${activeSubject?.name??'subject'}.csv`
+    document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
+  }
+
   async function clearAbsent(student:Student):Promise<boolean> {
     const existing=results.find(r=>r.student_id===student.id)
     if (!existing || !existing.is_absent || !activeExam || activeExam.is_locked) return false
@@ -215,8 +249,8 @@ function ResultsInner() {
 
   return <div style={{padding:'0 0 80px',fontFamily:W.font,background:W.bg,minHeight:'100vh'}}>
     <div style={{padding:'20px 16px 12px',borderBottom:'1px solid #EDE0CE'}}>
-      <h1 style={{margin:0,fontSize:20,fontWeight:800,color:W.text}}>Results & Intelligence</h1>
-      <p style={{margin:'4px 0 0',fontSize:13,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''}`:'Complete school/class setup to use the professional markbook.'}</p>
+      <h1 style={{margin:0,fontSize:20,fontWeight:800,color:W.text}}>Exam Centre</h1>
+      <p style={{margin:'4px 0 0',fontSize:13,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''}`:'Set up a class and subject to enter and explore exam marks.'}</p>
     </div>
 
     {tier===1 && <>
@@ -226,6 +260,7 @@ function ResultsInner() {
 
     <div style={{padding:'12px 16px 0',display:'flex',gap:8,alignItems:'center'}}>
       <div style={{flex:1,overflowX:'auto',display:'flex',gap:8}}>{exams.length===0?<span style={{fontSize:13,color:W.textMuted}}>No exams yet</span>:exams.map(e=><button key={e.id} onClick={()=>setActiveExam(e)} style={pill(activeExam?.id===e.id,'#0a0a0a')}>{e.name}{e.is_locked?' · Locked':''}</button>)}</div>
+      <button onClick={exportMarksCsv} disabled={!activeExam || results.length===0} style={{padding:'6px 12px',borderRadius:20,border:'1px solid #EDE0CE',background:'#fff',fontWeight:700,opacity:!activeExam||results.length===0?.5:1}}>Export CSV</button>
       <button onClick={()=>setShowExamSheet(true)} style={{padding:'6px 14px',borderRadius:20,border:'1px solid #EDE0CE',background:'#fff',fontWeight:700}}>＋ Exam</button>
     </div>
 
@@ -233,14 +268,14 @@ function ResultsInner() {
       {[['Students',students.length],['Recorded',results.length],['Class mean',analysis?`${analysis.avg.toFixed(1)}%`:'—'],['Need support',analysis?analysis.failed:'—']].map(([label,value])=><div key={String(label)} style={{padding:'12px',background:'#fff',border:'1px solid #E7E5E4',borderRadius:14}}><div style={{fontSize:11,color:W.textSoft,fontWeight:700}}>{label}</div><div style={{fontSize:20,fontWeight:800,marginTop:3}}>{value}</div></div>)}
     </div>}
 
-    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Markbook':'Intelligence'}</button>)}</div>}
+    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':'Explore'}</button>)}</div>}
 
     {activeTab==='entry' && <div style={{padding:'14px 16px 0'}}>
       {!activeExam?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Create or select an exam to open the markbook.</div>
       : tier!==1?<div style={{padding:24,border:'1px solid #fde68a',background:'#fffbeb',borderRadius:14,color:'#92400e'}}>Professional marks entry requires a school class and subject assignment. This prevents unscoped exam records.</div>
       : loading?<Skeleton h={220}/>
       : students.length===0?<div style={{padding:32,textAlign:'center',color:W.textMuted}}>No students enrolled in this class.</div>
-      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} locked={activeExam.is_locked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} />}
+      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} locked={activeExam.is_locked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} onSaveAll={saveAllMarks} savingAll={savingAll} />}
     </div>}
 
     {activeTab==='analysis' && <div style={{padding:'14px 16px 0'}}>
