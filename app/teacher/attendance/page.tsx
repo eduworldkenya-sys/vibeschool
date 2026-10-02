@@ -417,7 +417,23 @@ function AttendancePageInner() {
     } catch (saveError) {
       console.error("[Attendance] save", saveError);
       saveDraft(storageKey, statuses);
-      setError("Attendance was not saved. Your choices are kept on this device; retry when the connection is stable.");
+      const raw = String((saveError as { message?: string } | null)?.message ?? "");
+      const knownErrors: Array<[string, string]> = [
+        ["teacher_school_not_authorized", "Your teacher account is not connected to this school."],
+        ["teacher_class_not_authorized", "You are not assigned to this class."],
+        ["student_not_currently_enrolled", "A learner in this register is no longer enrolled in this class."],
+        ["lesson_attendance_requires_occurrence", "Start this lesson before saving its attendance."],
+        ["school_not_operational", "This school is currently suspended or closed, so attendance cannot be changed."],
+        ["attendance_class_school_mismatch", "This class is no longer connected to the selected school."],
+        ["attendance_slot_scope_mismatch", "This lesson is no longer assigned to this class."],
+        ["attendance_occurrence_mismatch", "This lesson attendance no longer matches the scheduled lesson."],
+      ];
+      const known = knownErrors.find(([code]) => raw.includes(code));
+      setError(
+        known
+          ? `Attendance was not saved. ${known[1]}`
+          : `Attendance was not saved${raw ? ` (${raw.slice(0, 140)})` : ""}. Your choices are kept on this device; retry when ready.`
+      );
     } finally {
       setSaving(false);
     }
