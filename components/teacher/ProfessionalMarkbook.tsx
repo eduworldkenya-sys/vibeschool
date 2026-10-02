@@ -29,6 +29,8 @@ type Props = {
   onSaveMark: (student: Student, isAbsent?: boolean) => Promise<boolean>;
   onClearAbsent: (student: Student) => Promise<boolean>;
   reportCardHref: (studentId: string) => string;
+  onSaveAll: () => Promise<void>;
+  savingAll: boolean;
 };
 
 function getGrade(marks: number): string {
@@ -58,11 +60,38 @@ export default function ProfessionalMarkbook({
   onSaveMark,
   onClearAbsent,
   reportCardHref,
+  onSaveAll,
+  savingAll,
 }: Props) {
   const inputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
+  const [showPaste, setShowPaste] = React.useState(false);
+  const [pasteText, setPasteText] = React.useState("");
+  const [pasteMessage, setPasteMessage] = React.useState<string | null>(null);
   const savedMap = React.useMemo(() => new Map(results.map(result => [result.student_id, result])), [results]);
   const recordedCount = results.length;
   const remainingCount = Math.max(0, students.length - recordedCount);
+
+  function applyPastedMarks() {
+    const lines = pasteText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+    if (lines.length === 0) {
+      setPasteMessage("Paste one mark per line.");
+      return;
+    }
+    let applied = 0;
+    let skipped = 0;
+    lines.slice(0, students.length).forEach((line, index) => {
+      const parts = line.split(/[\t,;]/).map(part => part.trim()).filter(Boolean);
+      const raw = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+      const mark = Number(raw);
+      if (Number.isFinite(mark) && mark >= 0 && mark <= 100) {
+        onChangeMark(students[index].id, String(mark));
+        applied += 1;
+      } else {
+        skipped += 1;
+      }
+    });
+    setPasteMessage(`${applied} mark${applied === 1 ? "" : "s"} added${skipped ? ` · ${skipped} skipped` : ""}. Check them, then tap Save all.`);
+  }
 
   function focusRelative(index: number, direction: 1 | -1) {
     const next = students[index + direction];
@@ -80,10 +109,25 @@ export default function ProfessionalMarkbook({
             {recordedCount}/{students.length} recorded{remainingCount > 0 ? ` · ${remainingCount} remaining` : " · complete"}
           </div>
         </div>
-        <div style={{ fontSize: 12, color: locked ? "#991b1b" : "#57534e", fontWeight: 700 }}>
-          {locked ? "Locked — read only" : "Enter saves · ↑↓ moves between learners"}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          {!locked && <button type="button" onClick={() => setShowPaste(v => !v)} style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #d6d3d1", background: "#fff", color: "#44403c", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Paste marks</button>}
+          {!locked && <button type="button" onClick={() => void onSaveAll()} disabled={savingAll} style={{ padding: "8px 10px", borderRadius: 10, border: "none", background: "#111827", color: "#fff", cursor: savingAll ? "default" : "pointer", fontSize: 11, fontWeight: 800, opacity: savingAll ? .65 : 1 }}>{savingAll ? "Saving…" : "Save all"}</button>}
+          <div style={{ fontSize: 12, color: locked ? "#991b1b" : "#57534e", fontWeight: 700 }}>
+            {locked ? "Locked — read only" : "Enter saves · ↑↓ moves between learners"}
+          </div>
         </div>
       </div>
+
+      {showPaste && !locked && <div style={{ padding: "14px 16px", borderBottom: "1px solid #e7e5e4", background: "#fafaf9" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#1c1917" }}>Paste marks</div>
+        <p style={{ margin: "4px 0 10px", fontSize: 12, color: "#78716c" }}>Paste one mark per line in the same order as the class list. You can also paste rows copied from a spreadsheet; VibeSchool uses the last value on each row.</p>
+        <textarea value={pasteText} onChange={event => { setPasteText(event.target.value); setPasteMessage(null); }} placeholder={"78\n64\n51\n89"} rows={6} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d6d3d1", borderRadius: 12, padding: 11, resize: "vertical", font: "inherit", background: "#fff" }} />
+        <div style={{ marginTop: 9, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <button type="button" onClick={applyPastedMarks} style={{ padding: "8px 11px", borderRadius: 10, border: "none", background: "#4f46e5", color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Add to markbook</button>
+          <button type="button" onClick={() => { setPasteText(""); setPasteMessage(null); }} style={{ padding: "8px 11px", borderRadius: 10, border: "1px solid #d6d3d1", background: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Clear</button>
+          {pasteMessage && <span role="status" style={{ fontSize: 11, color: "#57534e", fontWeight: 700 }}>{pasteMessage}</span>}
+        </div>
+      </div>}
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", minWidth: 720, borderCollapse: "collapse" }}>

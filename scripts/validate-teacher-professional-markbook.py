@@ -14,6 +14,8 @@ checks = {
     'save feedback visible': 'Saved ✓' in component and 'Saving…' in component,
     'per-row error visible': 'errorByStudent' in component and 'role="alert"' in component,
     'absence workflow': 'Clear ABS' in component,
+    'bulk paste workflow': 'Paste marks' in component and 'Add to markbook' in component,
+    'save all workflow': 'Save all' in component and 'onSaveAll' in component,
     'db upper bound': 'marks <= 100' in migration,
     'db lower bound': 'marks >= 0' in migration,
 }

@@ -7,7 +7,7 @@ ui = (root / 'components/teacher/AssessmentIntelligenceConsole.tsx').read_text()
 sql = (root / 'supabase/migrations/20260820093000_teacher_assessment_intelligence_console.sql').read_text()
 
 checks = {
-    'console wired into results': 'AssessmentIntelligenceConsole' in page and "'Intelligence'" in page,
+    'console wired into results': 'AssessmentIntelligenceConsole' in page and "'Explore'" in page,
     'canonical intelligence rpc': 'teacher_get_assessment_intelligence' in sql and 'returns jsonb' in sql,
     'teacher authorization': 'auth.uid()' in sql and 'teacher_assignment_required' in sql and 'teacher_classes' in sql,
     'function execution restricted': 'revoke all on function' in sql and 'grant execute' in sql and 'to authenticated' in sql,
@@ -18,12 +18,13 @@ checks = {
     'performance segmentation': 'at_risk_declining' in sql and 'recovering' in sql and 'strong_improving' in sql,
     'attention queue': "'attention_items'" in sql and "'recommended_actions'" in sql,
     'intervention feedback': "'intervention_effects'" in sql and 'baseline_mastery_score' in sql and 'followup_mastery_score' in sql,
-    'command centre UX': 'Assessment intelligence' in ui and 'Class mean' in ui and 'Need attention' in ui,
-    'trajectory visual': 'Class trajectory' in ui and 'Sparkline' in ui,
-    'learner matrix': 'Performance × direction' in ui and 'MovementMatrix' in ui,
-    'learner drilldown': 'Learner intelligence' in ui and 'role="dialog"' in ui,
-    'curriculum truthfulness': 'No topic-level claim is being made.' in ui and 'does not infer topic weakness' in ui,
-    'decision centre': 'Teacher decision centre' in ui and 'Plan reteaching' not in ui,
+    'exam centre UX': 'Exam review' in ui and 'Class mean' in ui and 'Need help' in ui,
+    'trajectory visual': 'How the class is changing' in ui and 'Sparkline' in ui,
+    'learner matrix': 'Marks and movement' in ui and 'MovementMatrix' in ui,
+    'learner drilldown': 'Learner exam view' in ui and 'role="dialog"' in ui,
+    'learner playground': 'Find and compare learners' in ui and 'Search learner' in ui and 'Improving' in ui and 'Declining' in ui,
+    'curriculum truthfulness': 'We do not yet know which topic caused the marks.' in ui and 'total mark alone cannot tell us' in ui,
+    'decision centre': 'What to do next' in ui and 'Plan reteaching' not in ui,
     'mobile responsive primitives': 'overflowX: "auto"' in ui and 'minmax(280px,1fr)' in ui,
 }
 
