@@ -90,7 +90,7 @@ function HomeworkInner() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const submitInFlight = useRef(false);
+  const submitInFlight = useRef(false);\n  const loadGeneration = useRef(0);
 
   const assignment = useMemo(
     () => context?.classes.find((item) => item.class_id === classId && (!sourceSubjectId || item.subject_id === sourceSubjectId))
@@ -112,7 +112,7 @@ function HomeworkInner() {
         return;
       }
       const { data: contextData, error: contextError } = await supabase.rpc("teacher_get_operating_context");
-      if (contextError) throw contextError;
+      if (contextError) throw new Error(`Operating context: ${contextError.message || "request failed"}`);
       const ctx = contextData as Context;
       if (!ctx.school_id || !ctx.classes.some((item) => item.class_id === classId)) {
         router.replace("/teacher/classhub");
@@ -139,7 +139,7 @@ function HomeworkInner() {
           .eq("school_id", ctx.school_id)
           .eq("class_id", classId)
           .maybeSingle();
-        if (occurrenceError) throw occurrenceError;
+        if (occurrenceError) throw new Error(`Linked lesson: ${occurrenceError.message || "request failed"}`);
         if (!occurrence || (sourceSubjectId && occurrence.subject_id !== sourceSubjectId)) {
           throw new Error("The source teaching occurrence no longer matches this class and subject.");
         }
@@ -151,7 +151,7 @@ function HomeworkInner() {
           startTime: timetable?.start_time ?? null,
           endTime: timetable?.end_time ?? null,
         };
-        setLessonContext(resolvedLesson);
+        if (generation !== loadGeneration.current) return;\n        setLessonContext(resolvedLesson);
       }
 
       const key = draftKey(classId, ctx.school_id, sourceOccurrenceId);
