@@ -7,7 +7,8 @@ function check(condition, message) {
 }
 
 const studio = read('app/teacher/assessment/new/page.tsx')
-check(studio.includes('exq_resolve_lesson_assessment_outcomes'), 'lesson materials resolve outcomes through guarded server authority')
+const lessonOutcomeAuthority = read('lib/teaching/lessonOutcomeAuthority.ts')
+check(studio.includes('resolveLessonOutcomeAuthority') && lessonOutcomeAuthority.includes('exq_resolve_lesson_assessment_outcomes'), 'lesson materials resolve outcomes through guarded server authority')
 check(studio.includes('exq_prepare_grounded_lesson_assessment'), 'lesson materials upgrade/retry through grounded generation authority')
 check(studio.includes('exq_link_item_outcome'), 'generated assessment items are linked to curriculum outcomes')
 check(studio.includes('linked_scheme_curriculum_learning_outcomes'), 'generation metadata records Scheme curriculum authority')
