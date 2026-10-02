@@ -87,11 +87,6 @@ type Props = {
   onOpenMarkbook: () => void;
 };
 
-type RpcResponse = { data: unknown; error: { message: string } | null };
-type RpcInvoker = (fn: string, args: Record<string, string>) => PromiseLike<RpcResponse>;
-
-const rpc = supabase.rpc.bind(supabase) as unknown as RpcInvoker;
-
 const C = {
   ink: "#111827",
   muted: "#6B7280",
@@ -235,7 +230,7 @@ export default function AssessmentIntelligenceConsole({ examId, classId, subject
     async function load() {
       setLoading(true);
       setError(null);
-      const response = await rpc("teacher_get_assessment_intelligence", { p_exam_id: examId, p_class_id: classId, p_subject_id: subjectId });
+      const response = await supabase.rpc("teacher_get_assessment_intelligence" as never, { p_exam_id: examId, p_class_id: classId, p_subject_id: subjectId } as never);
       if (!active) return;
       if (response.error) {
         setError("Exam review could not be loaded. Your marks remain safe.");
