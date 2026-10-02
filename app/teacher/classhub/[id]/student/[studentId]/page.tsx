@@ -18,9 +18,9 @@ type GradebookRow = { assessment_id: string; subject_id: string | null; score: n
 type CbcRow = { id: string; subject_id: string; strand_id: string | null; sub_strand: string | null; assessment_type: string; performance: string; notes: string | null; created_at: string };
 type ExamRow = { id: string; exam_id: string; subject_id: string; marks: number; is_absent: boolean; created_at: string };
 type SubjectRow = { id: string; name: string };
-type Tab = "now" | "work" | "assessment" | "attendance";
+type Tab = "now" | "work" | "assessment" | "attendance" | "timeline";
 
-const tabs: Tab[] = ["now", "work", "assessment", "attendance"];
+const tabs: Tab[] = ["now", "work", "assessment", "attendance", "timeline"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -164,6 +164,18 @@ export default function TeacherStudentProgressPage() {
       ? { title: "Follow up missing work", detail: `${truth.work.missing} overdue item${truth.work.missing === 1 ? "" : "s"} currently have no submission record.`, kind: "work" as const }
       : { title: "Keep building the learning picture", detail: "Record assessment, work and attendance evidence so VibeSchool can surface reliable changes and next steps.", kind: "assessment" as const };
 
+  const timeline = [
+    ...attendance.map((item, index) => ({ id: `attendance-${item.date}-${index}`, at: item.date, type: "Attendance", title: item.is_late ? "Arrived late" : item.status, detail: "Attendance record" })),
+    ...homework.flatMap((item) => {
+      const submission = submissionMap.get(item.id);
+      return submission?.submitted_at ? [{ id: `work-${item.id}`, at: submission.submitted_at, type: "Work", title: item.title, detail: submission.status === "marked" && submission.mark != null ? `Marked · ${submission.mark}` : submission.status.replaceAll("_", " ") }] : [];
+    }),
+    ...gradebook.filter((item) => item.released_at).map((item, index) => ({ id: `assessment-${item.assessment_id}-${index}`, at: item.released_at as string, type: "Assessment", title: item.assessment_title, detail: item.percentage == null ? item.assessment_type : `${Math.round(item.percentage)}% · ${item.assessment_type}` })),
+    ...cbc.map((item) => ({ id: `cbc-${item.id}`, at: item.created_at, type: "Learning evidence", title: `${subjectNames.get(item.subject_id) ?? "Subject"}${item.sub_strand ? ` · ${item.sub_strand}` : ""}`, detail: `${item.assessment_type} · ${item.performance}` })),
+    ...interventions.filter((item) => item.updatedAt).map((item) => ({ id: `support-${item.interventionId}`, at: item.updatedAt, type: "Support", title: `${item.subjectName} · ${item.priority === "extension" ? "Challenge" : "Learning support"}`, detail: item.status.replaceAll("_", " ") })),
+  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 40);
+
+
   return <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
     <section style={{ background: "linear-gradient(135deg,#1e1b4b,#4f46e5)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
       <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={{ minHeight: 38, border: 0, borderRadius: 10, background: "rgba(255,255,255,.14)", color: "#fff", padding: "0 11px", fontWeight: 800 }}>‹ Class</button>
@@ -216,5 +228,13 @@ export default function TeacherStudentProgressPage() {
     </div>}
 
     {tab === "attendance" && <Card><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 12 }}>{[{ label: "Records", value: truth.attendance.records }, { label: "Present", value: truth.attendance.present }, { label: "Absent", value: truth.attendance.absent }, { label: "Late", value: truth.attendance.late }].map((item) => <div key={item.label} style={{ background: "#f8fafc", borderRadius: 11, padding: 8, textAlign: "center" }}><strong>{item.value}</strong><div style={{ fontSize: 9, color: "#6b7280" }}>{item.label}</div></div>)}</div>{attendance.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "#6b7280" }}>No attendance evidence recorded yet.</div> : attendance.map((item, index) => <div key={`${item.date}-${index}`} style={{ minHeight: 44, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f3f4f6" }}><span>{formatDate(item.date)}</span><Badge text={item.is_late ? "Late" : item.status} tone={item.status === "present" && !item.is_late ? "good" : item.status === "absent" ? "bad" : "warn"} /></div>)}</Card>}
-  </div>;
+
+
+    {tab === "timeline" && <Card>
+      <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 4 }}>STUDENT STORY</div>
+      <div style={{ fontSize: 12, color: "#4b5563", lineHeight: 1.45, marginBottom: 14 }}>One timeline of attendance, work, assessments and support. Use it to see what happened before and after you acted.</div>
+      {timeline.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "#6b7280" }}>No dated learner events are recorded yet.</div> : <div style={{ display: "grid" }}>{timeline.map((item, index) => <div key={item.id} style={{ display: "grid", gridTemplateColumns: "76px 12px 1fr", gap: 8, minHeight: 64 }}><div style={{ fontSize: 9, color: "#6b7280", paddingTop: 2 }}>{formatDate(item.at)}</div><div style={{ position: "relative" }}><div style={{ width: 9, height: 9, borderRadius: 99, background: "#4f46e5", marginTop: 2 }} />{index < timeline.length - 1 && <div style={{ position: "absolute", left: 4, top: 12, bottom: -2, width: 1, background: "#e5e7eb" }} />}</div><div style={{ paddingBottom: 14 }}><div style={{ fontSize: 9, fontWeight: 900, color: "#6366f1", textTransform: "uppercase", letterSpacing: .4 }}>{item.type}</div><div style={{ marginTop: 2, fontSize: 12, fontWeight: 900 }}>{item.title}</div><div style={{ marginTop: 2, fontSize: 10, color: "#6b7280" }}>{item.detail}</div></div></div>)}</div>}
+    </Card>}
+
+ </div>;
 }
