@@ -1,0 +1,275 @@
+.workbook {
+  max-width: 1250px;
+  margin: auto;
+  padding: 20px 14px 100px;
+  color: #20251f;
+  font-size: 14px;
+}
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.header h1 {
+  font-size: 28px;
+  letter-spacing: -0.7px;
+  margin: 8px 0;
+}
+.muted {
+  color: #617064;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.toolbar,
+.tabs,
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+.tabs {
+  flex-wrap: nowrap;
+  overflow: auto;
+  padding-bottom: 6px;
+}
+.workbook button,
+.workbook select,
+.workbook input,
+.workbook textarea {
+  font: inherit;
+  border: 1px solid #c9d3c9;
+  border-radius: 8px;
+  background: white;
+  color: #20251f;
+  padding: 10px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.workbook button {
+  cursor: pointer;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.workbook button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.workbook button:focus-visible,
+.workbook input:focus-visible,
+.workbook select:focus-visible,
+.workbook a:focus-visible {
+  outline: 3px solid #dcad39;
+  outline-offset: 2px;
+}
+.workbook .active,
+.workbook .primary {
+  background: #244c37;
+  color: white;
+  border-color: #244c37;
+}
+.workbook label {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 12px;
+}
+.search {
+  flex: 1;
+  min-width: 230px;
+}
+.card {
+  background: white;
+  padding: 16px;
+  border: 1px solid #dbe3da;
+  border-radius: 14px;
+  margin: 12px 0;
+}
+.error {
+  padding: 14px;
+  border-radius: 10px;
+  background: #fff0eb;
+  color: #913920;
+  margin: 12px 0;
+}
+.notice {
+  padding: 12px;
+  border-radius: 10px;
+  background: #edf5eb;
+  margin: 12px 0;
+  line-height: 1.6;
+}
+.scroll {
+  overflow: auto;
+  max-height: 65vh;
+  border: 1px solid #dbe3da;
+  border-radius: 12px;
+  background: white;
+}
+.grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 13px;
+}
+.grid th,
+.grid td {
+  padding: 10px;
+  border-bottom: 1px solid #e6ece4;
+  min-width: 140px;
+  text-align: left;
+  vertical-align: top;
+}
+.grid th {
+  position: sticky;
+  top: 0;
+  background: #f0f4ed;
+  z-index: 2;
+}
+.grid th:first-child,
+.grid td:first-child {
+  position: sticky;
+  left: 0;
+  min-width: 230px;
+  max-width: 280px;
+  background: white;
+  z-index: 1;
+  border-right: 1px solid #dbe3da;
+}
+.grid th:first-child {
+  z-index: 3;
+  background: #f0f4ed;
+}
+.grid td input,
+.grid td select {
+  width: 140px;
+}
+.grid a {
+  font-weight: 650;
+  color: #244c37;
+}
+.grid input[type="checkbox"] {
+  width: 20px;
+  min-height: 20px;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.grid tr:hover td {
+  background: #fafbf7;
+}
+.summary {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.summary strong {
+  font-size: 20px;
+  display: block;
+}
+.choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+.choices button {
+  text-align: left;
+  white-space: normal;
+}
+.choices small {
+  display: block;
+  font-weight: 400;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+.columns {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.workbook textarea {
+  width: 100%;
+}
+.preview {
+  max-height: 240px;
+  overflow: auto;
+  font-size: 12px;
+}
+.workbook details summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding-top: 10px;
+  font-weight: 600;
+}
+.workbook a {
+  color: #244c37;
+}
+.printTitle {
+  display: none;
+}
+@media (max-width: 600px) {
+  .header h1 {
+    font-size: 23px;
+  }
+  .toolbar > label {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .toolbar select {
+    max-width: 75%;
+  }
+  .grid th:first-child,
+  .grid td:first-child {
+    min-width: 170px;
+    max-width: 170px;
+  }
+  .search {
+    width: 100%;
+  }
+  .summary {
+    gap: 12px;
+  }
+}
+@media print {
+  .toolbar,
+  .tabs,
+  .actions,
+  .header button,
+  .grid input,
+  .grid select,
+  .noPrint {
+    display: none !important;
+  }
+  .printTitle {
+    display: block;
+  }
+  .scroll {
+    max-height: none;
+    overflow: visible;
+  }
+  .grid th,
+  .grid th:first-child,
+  .grid td:first-child {
+    position: static;
+  }
+  .workbook {
+    padding: 0;
+  }
+  .grid th,
+  .grid td {
+    min-width: 0;
+    font-size: 9px;
+    padding: 5px;
+  }
+  .grid {
+    width: 100%;
+  }
+  .grid a {
+    text-decoration: none;
+    color: black;
+  }
+  .card {
+    break-inside: avoid;
+  }
+}
