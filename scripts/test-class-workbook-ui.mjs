@@ -81,6 +81,11 @@ const fixture = {
 globalThis.__fixture = fixture;
 globalThis.__saved = null;
 globalThis.__revision = 0;
+globalThis.__exports = [];
+globalThis.__printed = 0;
+dom.window.print = () => {
+  globalThis.__printed += 1;
+};
 fs.mkdirSync(".cyborg", { recursive: true });
 const output = path.resolve(".cyborg/workbook-ui.cjs");
 await build({
@@ -116,6 +121,14 @@ await build({
           loader: "js",
           resolveDir: process.cwd(),
           contents: `import {emptyDocument} from '${path.resolve("lib/class-workbook/model.ts")}';export async function loadWorkbook(){return {data:structuredClone(globalThis.__fixture),document:globalThis.__saved??emptyDocument(),revision:globalThis.__revision};}export async function saveDocument(data,doc,revision){if(globalThis.__conflict)throw new Error('Another window saved this workbook. Export your draft, then reload before saving again.');globalThis.__saved=structuredClone(doc);return ++globalThis.__revision;}export async function saveAttendance(){throw new Error('No attendance writes in this UI fixture');}export async function saveExamMarks(data,exam,subject,changes){globalThis.__fixture.results=changes.map(c=>({id:c.studentId,student_id:c.studentId,exam_id:exam,subject_id:subject,marks:c.value==='ABS'?0:c.value,is_absent:c.value==='ABS',updated_at:'now'}));}export async function createSelectedGroup(){throw new Error('No group writes in this UI fixture');}`,
+        }));
+        b.onResolve({ filter: /^@\/lib\/reports\/exportUtils$/ }, () => ({
+          path: "reports",
+          namespace: "report-fixture",
+        }));
+        b.onLoad({ filter: /.*/, namespace: "report-fixture" }, () => ({
+          loader: "js",
+          contents: `export function exportToCSV(options){globalThis.__exports.push({format:'csv',options:structuredClone(options)});}export async function exportToExcel(options){globalThis.__exports.push({format:'xlsx',options:structuredClone(options)});}export async function exportToPDF(options){globalThis.__exports.push({format:'pdf',options:structuredClone(options)});}`,
         }));
         b.onResolve(
           { filter: /^@\/components\/teacher\/AssessmentIntelligenceConsole$/ },
@@ -210,6 +223,31 @@ assert.equal(
   ][globalThis.__saved.sheets.at(-1).columns.at(-1).id],
   75,
 );
+for (const [button, format] of [
+  ["Excel", "xlsx"],
+  ["CSV", "csv"],
+  ["PDF", "pdf"],
+]) {
+  await click(screen.getByRole("button", { name: button, exact: true }));
+  await waitFor(() =>
+    assert.ok(globalThis.__exports.some((entry) => entry.format === format)),
+  );
+}
+const exported = globalThis.__exports.at(-1).options;
+assert.equal(exported.reportTitle, "Grade 6 Yellow - Reading tracker");
+assert.deepEqual(
+  globalThis.__exports.map((entry) => entry.options.rows.length),
+  [2, 2, 2],
+  "all export formats must use the same visible learner set",
+);
+assert.ok(
+  globalThis.__exports.every((entry) =>
+    entry.options.rows.some((row) => row.includes(75)),
+  ),
+  "exports must include the current unsaved custom-sheet draft",
+);
+await click(screen.getByRole("button", { name: "Print", exact: true }));
+assert.equal(globalThis.__printed, 1, "Print must invoke the browser print flow");
 await fill(
   screen.getByLabelText("Find learners or ask a class question"),
   "Mary",
@@ -222,5 +260,5 @@ assert.ok(screen.getByRole("link", { name: "Mary Wanjiku", exact: true }));
 await act(async () => root.unmount());
 fs.unlinkSync(output);
 console.log(
-  "Workbook DOM: complete grid renders, unrecorded attendance, zero-mark save, template/column editing, search and conflict recovery passed.",
+  "Workbook DOM: complete grid renders, unrecorded attendance, zero-mark save, template/column editing, Excel/CSV/PDF export parity, print, search and conflict recovery passed.",
 );
