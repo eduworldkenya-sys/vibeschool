@@ -2,14 +2,11 @@
 import { usePersonalTwin, PersonalTwinActions } from "@/components/twin/usePersonalTwin";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Json } from "@/lib/database.types";
+import { twinRpc } from "@/lib/twin/transport";
 import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core";
 
 interface Message { role: "user" | "twin"; text: string; }
 interface Props { open: boolean; onClose: () => void; }
-type RpcResult<T> = { data: T | null; error: { message?: string } | null };
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>;
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
 
 type ChildDetail = {
   child: { id: string; name: string; className: string; schoolName: string };
@@ -60,8 +57,7 @@ export default function ParentTwinDrawer({ open, onClose }: Props) {
         const bindings = requireTwinRole(authority, "parent");
         const learnerIds = Array.from(new Set(bindings.flatMap(binding => binding.resourceIds)));
         const details = await Promise.all(learnerIds.map(async studentId => {
-          const { data, error } = await rpc<Json>("get_parent_child_dashboard", { p_student_id: studentId });
-          if (error) throw new Error(error.message || "Child dashboard unavailable");
+          const data = await twinRpc("parent", "get_parent_child_dashboard", { p_student_id: studentId });
           return summarise(parseChildDetail(data));
         }));
         setChildren(details);

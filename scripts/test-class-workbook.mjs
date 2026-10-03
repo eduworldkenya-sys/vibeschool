@@ -323,7 +323,13 @@ assert.match(loader, /teacher_get_operating_context/);
 assert.match(loader, /learners\.length\s*!==\s*ids\.length/);
 assert.match(loader, /p_expected_revision/);
 assert.match(loader, /upsert_attendance_batch/);
-assert.match(loader, /onConflict:\s*["']exam_id,student_id,subject_id["']/);
+assert.match(loader, /saveCanonicalExamResults/);
+assert.match(loader, /expectedUpdatedAt/);
+const resultAuthority = fs.readFileSync("lib/teacher/examResultAuthority.ts", "utf8");
+assert.match(resultAuthority, /teacher_save_exam_results/);
+assert.match(resultAuthority, /row\.student_id===input\.studentId/);
+assert.match(resultAuthority, /row\.is_absent===input\.isAbsent/);
+assert.doesNotMatch(loader, /\.from\(["']exam_results["']\)\s*\.upsert/);
 console.log(
   "Class workbook: identity imports, projections, unknown commands, missing evidence, formulas and export safety passed.",
 );

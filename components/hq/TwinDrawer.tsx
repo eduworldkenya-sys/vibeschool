@@ -6,6 +6,9 @@ import { hqSupabase } from "@/lib/hq/supabase";
 import { loadHQBrain, resolveHQReply, buildHQOpeningBrief, HQBrainState } from "@/lib/twin/hq-brain";
 import { TwinMessage, TwinAction } from "@/lib/types";
 
+interface VoiceRecognition { lang: string; continuous: boolean; interimResults: boolean; onresult: ((e: {results: {transcript: string}[][]}) => void) | null; onend: (() => void) | null; onerror: (() => void) | null; start(): void; stop(): void; }
+type VoiceWindow = Window & { SpeechRecognition?: new () => VoiceRecognition; webkitSpeechRecognition?: new () => VoiceRecognition };
+
 interface Props { open: boolean; onClose: () => void; }
 
 const DETERMINISTIC_HELP = "I work from VibeSchool's governed platform records and rules without generative AI. Ask about schools, courses/content, moderation, platform health, users, activity, operational priorities, or use one of the available HQ actions.";
@@ -32,7 +35,7 @@ export default function HQTwinDrawer({ open, onClose }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialised = useRef(false);
   const brainRef = useRef<HQBrainState | null>(null);
-  const recognRef = useRef<any>(null);
+  const recognRef = useRef<VoiceRecognition | null>(null);
 
   useEffect(() => {
     if (initialised.current) return;
@@ -61,12 +64,12 @@ export default function HQTwinDrawer({ open, onClose }: Props) {
   }, [messages, thinking, open]);
 
   function toggleVoice() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = (window as VoiceWindow).SpeechRecognition || (window as VoiceWindow).webkitSpeechRecognition;
     if (!SR) return;
     if (listening) { recognRef.current?.stop(); setListening(false); return; }
     const r = new SR();
     r.lang = "en"; r.continuous = false; r.interimResults = false;
-    r.onresult = (e: any) => { const t = e.results[0]?.[0]?.transcript ?? ""; if (t) setInput(prev => (prev + " " + t).trim()); };
+    r.onresult = (e: {results: {transcript: string}[][]}) => { const t = e.results[0]?.[0]?.transcript ?? ""; if (t) setInput(prev => (prev + " " + t).trim()); };
     r.onend = () => setListening(false);
     r.onerror = () => setListening(false);
     r.start(); recognRef.current = r; setListening(true);

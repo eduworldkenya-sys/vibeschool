@@ -2,15 +2,12 @@
 import { usePersonalTwin, PersonalTwinActions } from "@/components/twin/usePersonalTwin";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Json } from "@/lib/database.types";
+import { twinRpc } from "@/lib/twin/transport";
 import TwinRoleSwitcher from "@/components/twin/TwinRoleSwitcher";
 import { getTwinAuthorityContext, requireTwinRole, selectTwinRoleBinding } from "@/lib/twin/core";
 
 interface Message { role: "user" | "twin"; text: string; }
 interface Props { open: boolean; onClose: () => void; }
-type RpcResult<T> = { data: T | null; error: { message?: string } | null };
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>;
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
 
 type AdminSnapshot = { schoolId: string; schoolName: string; teacherCount: number; learnerCount: number; classNames: string[]; attendanceTodayRecorded: number; attendanceTodayPct: number | null; health: Record<string, unknown>; scopeCount: number; };
 const HELP = "I work from your authorized school scope without generative AI. Ask about attendance today, learners, teachers, classes, classroom learning health, evidence capture, linked parents, homework feedback, or what needs attention.";
@@ -45,16 +42,15 @@ export default function AdminTwinDrawer({ open, onClose }: Props) {
           supabase.from("classes").select("id, name, stream").eq("school_id", schoolId),
           supabase.from("student_classes").select("student_id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_current", true),
           supabase.from("attendance").select("status").eq("school_id", schoolId).eq("date", today),
-          rpc<Json>("admin_get_classroom_learning_health", { p_school_id: schoolId }),
+          twinRpc("admin", "admin_get_classroom_learning_health", { p_school_id: schoolId }),
         ]);
-        if (healthRes.error) throw new Error(healthRes.error.message || "Learning health unavailable");
         const attendanceRows = attendanceRes.data ?? [];
         const present = attendanceRows.filter((row: { status: string }) => row.status === "present").length;
         const next: AdminSnapshot = {
           schoolId, schoolName: schoolRes.data?.name ?? "School", teacherCount: staffRes.count ?? 0, learnerCount: learnersRes.count ?? 0,
           classNames: (classesRes.data ?? []).map((c: { name: string; stream: string | null }) => `${c.name}${c.stream ? ` ${c.stream}` : ""}`),
           attendanceTodayRecorded: attendanceRows.length, attendanceTodayPct: attendanceRows.length > 0 ? Math.round((present / attendanceRows.length) * 100) : null,
-          health: rec(healthRes.data), scopeCount: adminBindings.length,
+          health: rec(healthRes), scopeCount: adminBindings.length,
         };
         setSnapshot(next);
         const scheduled = num(next.health.scheduled_occurrences), completed = num(next.health.completed_occurrences);
