@@ -18,6 +18,7 @@ export default function AssessmentInterventionsPage() {
   const searchParams = useSearchParams()
   const classId = searchParams.get('classId')?.trim() || null
   const studentId = searchParams.get('studentId')?.trim() || null
+  const subjectId = searchParams.get('subjectId')?.trim() || null
   const [items, setItems] = useState<InterventionQueueItem[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -30,13 +31,13 @@ export default function AssessmentInterventionsPage() {
     setError('')
     try {
       const queue = await listInterventionQueue(classId ?? undefined)
-      setItems(studentId ? queue.filter(item => item.studentId === studentId) : queue)
+      setItems(queue.filter(item => (!studentId || item.studentId === studentId) && (!subjectId || item.subjectId === subjectId)))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not load intervention queue.')
     } finally {
       setLoading(false)
     }
-  }, [classId, studentId])
+  }, [classId, studentId, subjectId])
 
   useEffect(() => { void load() }, [load])
 
