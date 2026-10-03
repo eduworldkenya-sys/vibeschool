@@ -66,7 +66,7 @@ requireText('components/teacher/TwinDrawer.tsx', '<TwinRoleSwitcher currentRole=
 requireText('lib/teacher/twin.ts', "rpc<Json>('teacher_get_twin_brain')", 'Teacher adapter must consume the production Teacher brain RPC')
 requireText('lib/teacher/twin.ts', 'getTwinAuthorityContext', 'Teacher adapter must derive authority through the shared Twin core')
 requireText('lib/teacher/twin.ts', "selectTwinRoleBinding(authority, 'teacher', schoolId)", 'Teacher brain must validate active school against relationship authority')
-requireText('lib/teacher/twin.ts', "'prediction'", 'Teacher capabilities must expose deterministic prediction')
+requireText('lib/twin/core.ts', "'prediction'", 'Teacher capabilities must expose deterministic prediction')
 requireText('components/teacher/TwinDrawer.tsx', 'proposeTeacherTwinAction', 'Teacher Twin must parse safe natural-language actions before fallback routing')
 requireText('components/teacher/TwinDrawer.tsx', 'executeTeacherTwinAction', 'Teacher Twin must execute only an explicit confirmed action')
 requireText('lib/twin/teacher-action.ts', 'teacher_get_operating_context', 'Teacher actions must bind to canonical operating context')
