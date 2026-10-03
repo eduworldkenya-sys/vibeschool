@@ -8,6 +8,8 @@ export interface SubjectClassLibraryItem {
   usageRole: string
   title: string
   sourceType: string
+  publicationId: string | null
+  chapterId: string | null
 }
 
 interface ClassLibraryRow {
@@ -22,6 +24,8 @@ interface LearningResourceRow {
   id: string
   title: string
   source_type: string
+  publication_id: string | null
+  chapter_id: string | null
 }
 
 export async function loadSubjectClassLibrary(input: {
@@ -75,7 +79,7 @@ export async function loadSubjectClassLibrary(input: {
   const { data: resourceRows, error: resourceError } =
     await supabase
       .from('learning_resources')
-      .select('id,title,source_type')
+      .select('id,title,source_type,publication_id,chapter_id')
       .eq('status', 'active')
       .in('id', resourceIds)
 
@@ -105,6 +109,8 @@ export async function loadSubjectClassLibrary(input: {
       usageRole: row.usage_role,
       title: resource.title,
       sourceType: resource.source_type,
+      publicationId: resource.publication_id,
+      chapterId: resource.chapter_id,
     }]
   })
 }
