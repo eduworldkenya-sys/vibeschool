@@ -20,7 +20,7 @@ export interface TwinAuthorityContext {
 
 export const TWIN_CAPABILITIES: Record<TwinRole, string[]> = {
   student: ['priority', 'timetable', 'tasks', 'revision', 'mastery', 'memory', 'practice', 'search'],
-  teacher: ['current_lesson', 'next_lesson', 'attendance', 'marking', 'learner_attention', 'curriculum', 'reflection', 'tpad'],
+  teacher: ['current_lesson', 'next_lesson', 'attendance', 'marking', 'learner_attention', 'curriculum', 'reflection', 'tpad', 'search', 'prediction', 'confirmed_actions'],
   parent: ['children', 'attendance', 'class_school', 'learning_evidence', 'family_attention'],
   admin: ['school_health', 'attendance', 'enrollment', 'staffing', 'teaching_completion', 'lesson_evidence', 'family_links'],
   hq: ['platform_health', 'schools', 'content', 'moderation', 'operations', 'governed_priorities'],
