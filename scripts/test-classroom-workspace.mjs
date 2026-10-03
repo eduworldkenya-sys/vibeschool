@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+import ts from 'typescript';
+const context={exports:{},Map,Set,Date,Number,String,Object,Array,Error,Math};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('lib/classroom/model.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,context);
+const m=context.exports;
+const data={learners:[{id:'a',name:'Charles'},{id:'b',name:'Mary'}],subjects:[{id:'s',name:'English'}],attendance:[{student_id:'a',status:'absent',timetable_slot_id:null},{student_id:'a',status:'present',timetable_slot_id:'lesson'}],homework:[{id:'h',subject:'English',due_date:'2026-10-01',target_group_id:'g'}],members:[{group_id:'g',student_id:'a'}],submissions:[{homework_id:'h',student_id:'a',status:'draft'}],assessments:[{student_id:'a',assessment_id:'1',subject_id:'s',percentage:40,assessment_type:'formative',released_at:'2026-10-01'},{student_id:'a',assessment_id:'2',subject_id:'s',percentage:70,assessment_type:'formative',released_at:'2026-10-02'},{student_id:'a',assessment_id:'3',subject_id:'s',percentage:5,assessment_type:'formative',released_at:null}]};
+let rows=m.insights(data,[],'s','2026-10-03');assert.equal(rows[0].attendance,0);assert.equal(rows[0].missing,1);assert.equal(rows[1].missing,0,'targeted work must not create another learner obligation');assert.equal(rows[0].average,55);assert.equal(rows[0].change,30);assert.equal(rows[1].average,null,'no assessment is unknown, not zero');
+assert.equal(m.ask(rows,'Who is improving').rows.length,1);assert.equal(m.ask(rows,'No participation').rows.length,2);assert.match(m.ask(rows,'No participation').explanation,/does not prove/);assert.equal(m.ask(rows,'guess tomorrow').understood,false);
+const different=structuredClone(data);different.assessments[1].assessment_type='summative';assert.equal(m.insights(different,[],'s','2026-10-03')[0].change,null,'different assessment types cannot imply improvement');
+const future=[{student_id:'a',event_kind:'followup',due_at:'2026-10-04',resolved_at:null,subject_id:'s'}];assert.equal(m.insights(data,future,'s','2026-10-03')[0].followups.length,0);
+assert.equal(m.picker(['a','b'],['a'],()=>0),'b');assert.equal(m.picker(['a','b'],['a','b']),null);assert.equal(data.learners[0].id,'a');assert.equal(m.shuffled(['a','b'],()=>0).join(','),'b,a');
+const imported=m.rosterRows([['Name','Admission number'],['Jane, Wanjiku','1024'],['Peter','1024'],['Amina','']]);assert.equal(imported.length,3);assert.equal(imported[0].name,'Jane, Wanjiku');assert.match(imported[1].error,/Duplicate/);assert.equal(imported[2].error,undefined);assert.throws(()=>m.rosterRows(Array(1002).fill(['x'])));
+assert.equal(m.classTimeline({...data,attendance:[],submissions:[]},[],'s',[]).length,2,'timeline includes released evidence only');
+const sql=fs.readFileSync('supabase/migrations/20261003113554_class_workspace_lifecycle_and_scope.sql','utf8');assert.match(sql,/learner_edit_conflict/);assert.match(sql,/learner_restore_conflict/);assert.match(sql,/class_teacher_required/);assert.match(sql,/e\.released_at is not null/);assert.match(sql,/with latest as/);assert.match(sql,/h\.target_group_id is null/);assert.match(sql,/roster_request_conflict/);assert.match(sql,/student_provisioning_receipts_request_uidx/);
+console.log('Classroom workspace: evidence boundaries, comparisons, question honesty, group targeting, roster preview and fair picking passed.');
