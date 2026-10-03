@@ -5,8 +5,9 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
+import { loadCurrentClassRoster } from "@/lib/teaching/studentRoster";
 
-interface ClassOption { id: string; name: string; stream: string | null; }
+interface ClassOption { id: string; name: string; stream: string | null; schoolId: string; }
 interface Student { id: string; name: string; admission_number: string | null; }
 interface Exam { id: string; name: string; term: number; academic_year: number; exam_type: string; }
 interface StudentSummary { student: Student; totalMarks: number; subjectCount: number; meanGrade: string; hasRemarks: boolean; position: number | null; }
@@ -49,8 +50,15 @@ function PickerInner() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/"); return; }
-      const { data: tc } = await supabase.from("teacher_classes").select("class_id, classes(id, name, stream)").eq("teacher_id", user.id);
-      const cls: ClassOption[] = (tc ?? []).map((r: any) => r.classes).filter(Boolean).map((c: any) => ({ id: c.id, name: c.name, stream: c.stream }));
+      const { data: ctx, error: contextError } = await supabase.rpc("teacher_get_operating_context");
+      if (contextError) { setLoading(false); return; }
+      const context = ctx as { school_id?: string | null; classes?: Array<{ class_id:string; class_name:string; stream:string|null }> } | null;
+      const schoolId = context?.school_id ?? null;
+      const seen = new Set<string>();
+      const cls: ClassOption[] = schoolId ? (context?.classes ?? []).filter(item => {
+        if (seen.has(item.class_id)) return false;
+        seen.add(item.class_id); return true;
+      }).map(item => ({ id:item.class_id, name:item.class_name, stream:item.stream, schoolId })) : [];
       setClasses(cls);
       setLoading(false);
     })();
@@ -93,12 +101,11 @@ function PickerInner() {
   async function loadStudents(exam: Exam) {
     setSelectedExam(exam); setLoading(true); setStep("students");
     if (!selectedCls) return;
-    const [{ data: results }, { data: sc }, { data: remarkRows }] = await Promise.all([
+    const [{ data: results }, students, { data: remarkRows }] = await Promise.all([
       supabase.from("exam_results").select("student_id, marks, is_absent").eq("exam_id", exam.id),
-      supabase.from("student_classes").select("student_id, students(id, name, admission_number)").eq("class_id", selectedCls.id).eq("is_current", true),
+      loadCurrentClassRoster({ schoolId: selectedCls.schoolId, classId: selectedCls.id }),
       supabase.from("report_card_remarks").select("student_id").eq("exam_id", exam.id),
     ]);
-    const students: Student[] = (sc ?? []).map((r: any) => r.students).filter(Boolean);
     const remarkedSet = new Set((remarkRows ?? []).map((r: any) => r.student_id));
     const resultMap: Record<string, { total: number; count: number }> = {};
     for (const r of (results ?? []) as { student_id: string; marks: number; is_absent: boolean }[]) {

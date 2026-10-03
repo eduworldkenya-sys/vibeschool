@@ -89,111 +89,18 @@ export default function JoinRequestsPage() {
     setActing(req.id)
     setActingErr(null)
 
-    // 1. Get school_id from class
-    const { data: cls, error: clsErr } = await supabase
-      .from('classes')
-      .select('school_id')
-      .eq('id', classId)
-      .single()
+    const { error: approvalError } = await supabase.rpc('teacher_approve_class_join_request', {
+      p_request_id: req.id,
+    })
 
-    if (clsErr || !cls) {
-      console.error('Failed to fetch class:', clsErr)
-      setActingErr('Failed to fetch class info.')
-      setActing(null)
-      return
-    }
-
-    const schoolId = cls.school_id
-
-    if (!schoolId) {
-      console.error('Class has no school_id set:', classId)
-      setActingErr('This class is not linked to a school. Contact your admin.')
-      setActing(null)
-      return
-    }
-
-    // 2. Update students.class_id — the missing piece
-    const { error: stuErr } = await supabase
-      .from('students')
-      .update({ class_id: classId })
-      .eq('id', req.student_id)
-
-    if (stuErr) {
-      console.error('Failed to update student class_id:', stuErr)
-      setActingErr('Failed to assign student to class.')
-      setActing(null)
-      return
-    }
-
-    // 3. Upsert student_classes (safe — won't duplicate)
-    const { error: scErr } = await supabase
-      .from('student_classes')
-      .upsert({
-        school_id:  schoolId,
-        student_id: req.student_id,
-        class_id:   classId,
-        joined_at:  new Date().toISOString(),
-        is_current: true,
-      }, { onConflict: 'student_id,class_id' })
-
-    if (scErr) {
-      console.error('Failed to upsert student_classes:', scErr)
-      setActingErr('Failed to enrol student in class.')
-      setActing(null)
-      return
-    }
-
-    // 4. Update existing parent_student_links with real school_id
-    //    or insert if somehow missing
-    const { data: existing } = await supabase
-      .from('parent_student_links')
-      .select('id')
-      .eq('parent_id', req.parent_id)
-      .eq('student_id', req.student_id)
-      .single()
-
-    if (existing) {
-      const { error: linkErr } = await supabase
-        .from('parent_student_links')
-        .update({ school_id: schoolId })
-        .eq('id', existing.id)
-
-      if (linkErr) {
-        console.error('Failed to update parent link school_id:', linkErr)
-        setActingErr('Failed to update parent link.')
-        setActing(null)
-        return
-      }
-    } else {
-      const { error: linkErr } = await supabase
-        .from('parent_student_links')
-        .insert({
-          parent_id:       req.parent_id,
-          student_id:      req.student_id,
-          school_id:       schoolId,
-          relationship:    'parent',
-          is_primary:      true,
-          can_pickup:      true,
-          receives_alerts: true,
-        })
-
-      if (linkErr) {
-        console.error('Failed to insert parent link:', linkErr)
-        setActingErr('Failed to link parent.')
-        setActing(null)
-        return
-      }
-    }
-
-    // 5. Mark request approved — only after all writes succeed
-    const { error: reqErr } = await supabase
-      .from('class_join_requests')
-      .update({ status: 'approved' })
-      .eq('id', req.id)
-
-    if (reqErr) {
-      console.error('Failed to mark request approved:', reqErr)
-      setActingErr('Student enrolled but request status failed to update.')
+    if (approvalError) {
+      console.error('Failed to approve class join request atomically:', approvalError)
+      const message = approvalError.message.includes('student_has_different_current_enrollment')
+        ? 'This learner is already enrolled in another current class. Resolve that enrollment before approving this request.'
+        : approvalError.message.includes('class_teacher_required')
+          ? 'Only the class teacher can approve this join request.'
+          : 'The join request could not be approved. No partial enrollment was created.'
+      setActingErr(message)
       setActing(null)
       return
     }

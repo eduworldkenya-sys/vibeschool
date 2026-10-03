@@ -4,6 +4,7 @@ import { C } from '@/components/teacher/ui'
 import { useEffect, useState, Suspense } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter, useParams } from 'next/navigation'
+import { loadCurrentClassRoster } from '@/lib/teaching/studentRoster'
 
 const LEARNING_PRESETS = [
   { name: 'Exceeding Expectation',   color: '#065f46', bg: '#d1fae5', emoji: '🟢' },
@@ -48,44 +49,24 @@ function GroupsInner() {
     const { data: { user }, error: userErr } = await supabase.auth.getUser()
     if (userErr || !user) { router.push('/'); return }
 
-    // Verify teacher owns or teaches this class
-    const { data: ownership } = await supabase
-      .from('classes')
-      .select('id, name')
-      .eq('id', classId)
-      .eq('teacher_id', user.id)
-      .maybeSingle()
-
-    // Also allow subject teachers via teacher_classes
-    let className = ownership?.name ?? null
-    if (!ownership) {
-      const { data: tc } = await supabase
-        .from('teacher_classes')
-        .select('class_id')
-        .eq('class_id', classId)
-        .eq('teacher_id', user.id)
-        .maybeSingle()
-      if (!tc) {
-        setAuthError('You do not have access to this class.')
-        setLoading(false)
-        return
-      }
-      const { data: cls } = await supabase
-        .from('classes')
-        .select('name')
-        .eq('id', classId)
-        .single()
-      className = cls?.name ?? ''
+    const { data: ctx, error: contextError } = await supabase.rpc('teacher_get_operating_context')
+    if (contextError) { setAuthError('Your teaching context could not be loaded.'); setLoading(false); return }
+    const context = ctx as { school_id?: string | null; classes?: Array<{ class_id:string; class_name:string }> } | null
+    const assignment = context?.classes?.find(item => item.class_id === classId)
+    if (!context?.school_id || !assignment) {
+      setAuthError('You do not have access to this class.')
+      setLoading(false)
+      return
     }
 
-    const [studsRes, groupsRes, membersRes] = await Promise.all([
-      supabase.from('student_classes').select('student_id, students(id, name, admission_number)').eq('class_id', classId).eq('is_current', true),
+    const [roster, groupsRes, membersRes] = await Promise.all([
+      loadCurrentClassRoster({ schoolId: context.school_id, classId }),
       supabase.from('class_groups').select('*').eq('class_id', classId),
       supabase.from('class_group_members').select('group_id, student_id'),
     ])
 
-    setClassName(className ?? '')
-    setStudents((studsRes.data ?? []).map((sc: any) => sc.students).filter(Boolean))
+    setClassName(assignment.class_name ?? '')
+    setStudents(roster)
     setGroups(groupsRes.data ?? [])
     setMembers(membersRes.data ?? [])
     setLoading(false)

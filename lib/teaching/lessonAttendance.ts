@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { loadCurrentClassStudentIds } from '@/lib/teaching/studentRoster'
 
 export interface ExactLessonAttendanceSlot {
   id: string
@@ -22,23 +23,6 @@ export interface LoadExactLessonAttendanceInput {
   occurrenceDate: string
   expectedClassId?: string | null
   expectedSubjectId?: string | null
-}
-
-interface EnrollmentStudentRow {
-  id: string
-  deleted_at: string | null
-}
-
-interface EnrollmentRow {
-  student_id: string
-  students: EnrollmentStudentRow | EnrollmentStudentRow[] | null
-}
-
-function joinedStudent(
-  value: EnrollmentStudentRow | EnrollmentStudentRow[] | null,
-): EnrollmentStudentRow | null {
-  if (Array.isArray(value)) return value[0] ?? null
-  return value
 }
 
 /**
@@ -83,7 +67,7 @@ export async function loadExactLessonAttendance({
   const [
     subjectResult,
     classResult,
-    enrollmentResult,
+    expectedStudentIds,
     attendanceResult,
   ] = await Promise.all([
     supabase
@@ -96,12 +80,7 @@ export async function loadExactLessonAttendance({
       .select('name, stream, school_id')
       .eq('id', slot.class_id)
       .single(),
-    supabase
-      .from('student_classes')
-      .select('student_id, students(id,deleted_at)')
-      .eq('school_id', schoolId)
-      .eq('class_id', slot.class_id)
-      .eq('is_current', true),
+    loadCurrentClassStudentIds({ schoolId, classId: slot.class_id }),
     supabase
       .from('attendance')
       .select('student_id')
@@ -115,7 +94,6 @@ export async function loadExactLessonAttendance({
   const firstError =
     subjectResult.error ??
     classResult.error ??
-    enrollmentResult.error ??
     attendanceResult.error
 
   if (firstError) throw firstError
@@ -136,12 +114,7 @@ export async function loadExactLessonAttendance({
     return null
   }
 
-  const expectedStudentIds = new Set<string>()
-  for (const row of (enrollmentResult.data ?? []) as EnrollmentRow[]) {
-    const student = joinedStudent(row.students)
-    if (!student || student.deleted_at) continue
-    expectedStudentIds.add(row.student_id)
-  }
+  const expectedStudentIdSet = new Set(expectedStudentIds)
 
   const recordedStudentIds = new Set(
     (attendanceResult.data ?? [])
@@ -149,8 +122,8 @@ export async function loadExactLessonAttendance({
       .filter((studentId): studentId is string => typeof studentId === 'string'),
   )
 
-  const expectedStudentCount = expectedStudentIds.size
-  const recordedStudentCount = Array.from(expectedStudentIds)
+  const expectedStudentCount = expectedStudentIdSet.size
+  const recordedStudentCount = Array.from(expectedStudentIdSet)
     .filter(studentId => recordedStudentIds.has(studentId))
     .length
 
