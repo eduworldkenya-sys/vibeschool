@@ -19,11 +19,13 @@ for (const label of [
   "Resources",
   "Lesson Plans",
   "Teacher Guide",
+  "Lesson Notes / Teach",
   "Teaching Schedule",
   "Attendance",
   "Homework",
   "Assessment",
   "Markbook",
+  "Students & Class Data",
   "Class Workbook",
   "Learner Progress",
 ]) {
