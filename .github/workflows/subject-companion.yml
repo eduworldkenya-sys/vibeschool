@@ -1,0 +1,30 @@
+name: Subject Companion
+
+on:
+  pull_request:
+    paths:
+      - "app/teacher/subjecthub/**"
+      - "app/teacher/resources/**"
+      - "components/teacher/SubjectCompanion.tsx"
+      - "lib/content-engine/subjectClassLibrary.ts"
+      - "scripts/test-subject-companion-contract.mjs"
+      - ".github/workflows/subject-companion.yml"
+  push:
+    branches: [main]
+    paths:
+      - "app/teacher/subjecthub/**"
+      - "app/teacher/resources/**"
+      - "components/teacher/SubjectCompanion.tsx"
+      - "lib/content-engine/subjectClassLibrary.ts"
+      - "scripts/test-subject-companion-contract.mjs"
+      - ".github/workflows/subject-companion.yml"
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/test-subject-companion-contract.mjs

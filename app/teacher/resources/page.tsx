@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { C } from '@/components/teacher/ui'
@@ -119,6 +120,9 @@ function isSafeUrl(value: string) {
 }
 
 export default function TeacherResourcesPage() {
+  const searchParams = useSearchParams()
+  const requestedClassId = searchParams.get('classId') ?? ''
+  const requestedSubjectId = searchParams.get('subjectId') ?? ''
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [teacherId, setTeacherId] = useState<string | null>(null)
@@ -146,16 +150,36 @@ export default function TeacherResourcesPage() {
     const ids = new Set(assignments.filter(row => row.class_id === form.class_id).map(row => row.subject_id))
     return subjects.filter(row => ids.has(row.id))
   }, [assignments, form.class_id, subjects])
-  const visibleLibrary = useMemo(() => filter === 'all' ? library : library.filter(row => row.type === filter), [filter, library])
-  const readyCount = useMemo(() => packs.reduce((sum, pack) => sum + pack.resources.length, 0), [packs])
+  const scopedSubjectName = useMemo(
+    () => subjects.find(row => row.id === requestedSubjectId)?.name ?? '',
+    [requestedSubjectId, subjects],
+  )
+  const visibleLibrary = useMemo(() => {
+    const typed = filter === 'all' ? library : library.filter(row => row.type === filter)
+    return typed.filter(row =>
+      (!requestedClassId || row.class_id === requestedClassId) &&
+      (!scopedSubjectName || row.subject === scopedSubjectName),
+    )
+  }, [filter, library, requestedClassId, scopedSubjectName])
+  const visiblePacks = useMemo(
+    () => packs.filter(pack =>
+      (!requestedClassId || pack.scheme.class_id === requestedClassId) &&
+      (!requestedSubjectId || pack.scheme.subject_id === requestedSubjectId),
+    ),
+    [packs, requestedClassId, requestedSubjectId],
+  )
+  const readyCount = useMemo(() => visiblePacks.reduce((sum, pack) => sum + pack.resources.length, 0), [visiblePacks])
 
   const openAdd = useCallback(() => {
-    const classId = classes[0]?.id ?? ''
+    const requestedClassIsAssigned = classes.some(row => row.id === requestedClassId)
+    const classId = requestedClassIsAssigned ? requestedClassId : (classes[0]?.id ?? '')
     const subjectIds = assignments.filter(row => row.class_id === classId).map(row => row.subject_id)
-    setForm({ type: 'notes', title: '', class_id: classId, subject_id: subjectIds[0] ?? '', description: '', external_url: '', content: '' })
+    const requestedSubjectIsAssigned = subjectIds.includes(requestedSubjectId)
+    const subjectId = requestedSubjectIsAssigned ? requestedSubjectId : (subjectIds[0] ?? '')
+    setForm({ type: 'notes', title: '', class_id: classId, subject_id: subjectId, description: '', external_url: '', content: '' })
     setFormError('')
     setShowAdd(true)
-  }, [assignments, classes])
+  }, [assignments, classes, requestedClassId, requestedSubjectId])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -340,12 +364,12 @@ export default function TeacherResourcesPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', marginBottom: 10 }}>
             <div><h2 style={{ fontSize: 18, margin: 0 }}>Ready this week</h2><p style={{ margin: '3px 0 0', fontSize: 12, color: C.textMuted }}>Exact Scheme-linked VibeSchool resources. These feed the lesson-preparation and Teach Now journey; nothing here is title-matched or guessed.</p></div>
           </div>
-          {packs.length === 0 ? (
+          {visiblePacks.length === 0 ? (
             <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 15, padding: 18 }}>
               <strong>No linked lesson pack is available for this instructional week.</strong>
               <p style={{ margin: '6px 0 0', color: C.textMuted, lineHeight: 1.6 }}>This does not mean VibeSchool has no content. It means no canonical resource is currently linked to this teacher’s Scheme lessons for the resolved week, so Resources fails closed instead of guessing.</p>
             </div>
-          ) : packs.map(pack => (
+          ) : visiblePacks.map(pack => (
             <article key={pack.scheme.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 14, marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
                 <div><div style={{ fontSize: 11, fontWeight: 900, color: '#0f4c75' }}>{pack.classLabel} · {pack.subjectLabel} · Lesson {pack.scheme.lesson_number ?? '—'}</div><h3 style={{ margin: '4px 0 3px', fontSize: 15 }}>{pack.scheme.topic || pack.scheme.sub_strand || pack.scheme.strand || 'Scheme lesson'}</h3></div>
