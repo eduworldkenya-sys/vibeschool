@@ -2,10 +2,6 @@ import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
 import { getTwinAuthorityContext, selectTwinRoleBinding } from '@/lib/twin/core'
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
-
 function record(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {} }
 function text(value: unknown): string | null { return typeof value === 'string' ? value : null }
 function numberOrNull(value: unknown): number | null {
@@ -133,7 +129,7 @@ export async function getTeacherTwinState(): Promise<TeacherTwinState> {
   // This order avoids rejecting a valid multi-school Teacher before the server
   // has resolved the active school, while remaining backward-compatible during
   // the migration/deployment boundary.
-  const { data, error } = await rpc<Json>('teacher_get_twin_brain')
+  const { data, error } = await supabase.rpc('teacher_get_twin_brain' as never)
   if (error) throw new Error(error.message || 'Your Teacher Twin state could not be loaded.')
 
   const state = record(data)
