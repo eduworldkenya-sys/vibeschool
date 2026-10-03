@@ -54,6 +54,14 @@ const tools: Tool[] = [
     href: (classId, subject) => `/teacher/lessonplan?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
   },
   {
+    id: "lesson-notes",
+    label: "Lesson Notes / Teach",
+    help: "Choose the prepared lesson, then open its lesson notes and classroom Teach mode without inventing a lesson.",
+    group: "teach",
+    needsClass: true,
+    href: (classId, subject) => `/teacher/lessonplan?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
+  },
+  {
     id: "teacher-guide",
     label: "Teacher Guide",
     help: "Open the lesson-linked guide. VibeSchool will not invent a lesson when no occurrence is selected.",
@@ -101,6 +109,14 @@ const tools: Tool[] = [
     href: (classId, subject) => `/teacher/results?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
   },
   {
+    id: "students",
+    label: "Students & Class Data",
+    help: "Open the roster, learner profiles and the subject-specific class picture.",
+    group: "evidence",
+    needsClass: true,
+    href: (classId, subject) => `/teacher/classhub/${encodeURIComponent(classId)}?mode=subject&subjectId=${encodeURIComponent(subject.id)}`,
+  },
+  {
     id: "workbook",
     label: "Class Workbook",
     help: "Open lists, trackers, groups and class intelligence for this subject.",
@@ -125,11 +141,11 @@ const groupCopy = {
   },
   teach: {
     title: "Teach & follow up",
-    help: "Guide → timetable → attendance → homework",
+    help: "Guide → lesson notes / Teach → timetable → attendance → homework",
   },
   evidence: {
     title: "Check learning",
-    help: "Assessment → marks → class intelligence → progress",
+    help: "Assessment → marks → students / class data → intelligence → progress",
   },
 } as const;
 
