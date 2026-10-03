@@ -1,15 +1,13 @@
 "use client";
+import { usePersonalTwin, PersonalTwinActions } from "@/components/twin/usePersonalTwin";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Json } from "@/lib/database.types";
+import { twinRpc } from "@/lib/twin/transport";
 import TwinRoleSwitcher from "@/components/twin/TwinRoleSwitcher";
 import { getTwinAuthorityContext, requireTwinRole, selectTwinRoleBinding } from "@/lib/twin/core";
 
 interface Message { role: "user" | "twin"; text: string; }
 interface Props { open: boolean; onClose: () => void; }
-type RpcResult<T> = { data: T | null; error: { message?: string } | null };
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>;
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
 
 type AdminSnapshot = { schoolId: string; schoolName: string; teacherCount: number; learnerCount: number; classNames: string[]; attendanceTodayRecorded: number; attendanceTodayPct: number | null; health: Record<string, unknown>; scopeCount: number; };
 const HELP = "I work from your authorized school scope without generative AI. Ask about attendance today, learners, teachers, classes, classroom learning health, evidence capture, linked parents, homework feedback, or what needs attention.";
@@ -17,6 +15,7 @@ function rec(value: unknown): Record<string, unknown> { return value && typeof v
 function num(value: unknown): number { const n = typeof value === "number" ? value : Number(value); return Number.isFinite(n) ? n : 0; }
 
 export default function AdminTwinDrawer({ open, onClose }: Props) {
+  const personalTwin = usePersonalTwin("admin");
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -43,16 +42,15 @@ export default function AdminTwinDrawer({ open, onClose }: Props) {
           supabase.from("classes").select("id, name, stream").eq("school_id", schoolId),
           supabase.from("student_classes").select("student_id", { count: "exact", head: true }).eq("school_id", schoolId).eq("is_current", true),
           supabase.from("attendance").select("status").eq("school_id", schoolId).eq("date", today),
-          rpc<Json>("admin_get_classroom_learning_health", { p_school_id: schoolId }),
+          twinRpc("admin", "admin_get_classroom_learning_health", { p_school_id: schoolId }),
         ]);
-        if (healthRes.error) throw new Error(healthRes.error.message || "Learning health unavailable");
         const attendanceRows = attendanceRes.data ?? [];
         const present = attendanceRows.filter((row: { status: string }) => row.status === "present").length;
         const next: AdminSnapshot = {
           schoolId, schoolName: schoolRes.data?.name ?? "School", teacherCount: staffRes.count ?? 0, learnerCount: learnersRes.count ?? 0,
           classNames: (classesRes.data ?? []).map((c: { name: string; stream: string | null }) => `${c.name}${c.stream ? ` ${c.stream}` : ""}`),
           attendanceTodayRecorded: attendanceRows.length, attendanceTodayPct: attendanceRows.length > 0 ? Math.round((present / attendanceRows.length) * 100) : null,
-          health: rec(healthRes.data), scopeCount: adminBindings.length,
+          health: rec(healthRes), scopeCount: adminBindings.length,
         };
         setSnapshot(next);
         const scheduled = num(next.health.scheduled_occurrences), completed = num(next.health.completed_occurrences);
@@ -85,8 +83,8 @@ export default function AdminTwinDrawer({ open, onClose }: Props) {
     return HELP;
   }
 
-  async function send() { if (!input.trim() || thinking) return; const userMsg = input.trim(); setInput(""); setMessages(m => [...m, { role: "user", text: userMsg }]); setThinking(true); try { setMessages(m => [...m, { role: "twin", text: resolve(userMsg) }]); } finally { setThinking(false); } }
+  async function send() { if (!input.trim() || thinking) return; const userMsg = input.trim(); setInput(""); setMessages(m => [...m, { role: "user", text: userMsg }]); setThinking(true); try { const universal = await personalTwin.execute(userMsg); if (!universal) setMessages(m => [...m, { role: "twin", text: resolve(userMsg) }]); } catch (e) { setMessages(m => [...m,{role:"twin",text:e instanceof Error?e.message:"Twin could not load school records."}]); } finally { setThinking(false); } }
 
   const accent = "#6366f1", accentLight = "rgba(99,102,241,0.12)", dark = "#1e1b4b", surface = "#f8fafc", border = "#e2e8f0", textPrimary = "#0f172a";
-  return <>{open && <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 780, background: "rgba(0,0,0,0.25)" }} />}<div style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: open ? 80 : -520, zIndex: 790, width: "calc(100% - 32px)", maxWidth: 600, background: "#fff", borderRadius: 20, boxShadow: "0 -4px 40px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", height: 440, transition: "bottom .34s cubic-bezier(.34,1.56,.64,1)", overflow: "hidden" }}><div style={{ background: dark, padding: "12px 14px 12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Admin Twin</div><div style={{ fontSize: 11, color: "rgba(255,255,255,.45)" }}>{thinking ? "Checking school records…" : "Role-scoped school health · No AI required"}</div></div><div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><TwinRoleSwitcher currentRole="admin" /><button onClick={onClose} aria-label="Close Admin Twin" style={{ background: "none", border: "none", color: "rgba(255,255,255,.6)", fontSize: 22 }}>×</button></div></div><div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>{messages.map((m, i) => <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>{m.role === "twin" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: accentLight, display: "flex", alignItems: "center", justifyContent: "center", color: accent }}>✦</div>}<div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: 14, background: m.role === "user" ? accent : surface, color: m.role === "user" ? "#fff" : textPrimary, fontSize: 13, whiteSpace: "pre-wrap" }}>{m.text}{m.role === "twin" && <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>authorized role · deterministic · no AI</div>}</div></div>)}<div ref={bottomRef} /></div><div style={{ padding: "10px 14px", borderTop: `1px solid ${border}`, display: "flex", gap: 8 }}><input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && void send()} placeholder="Ask about your school…" style={{ flex: 1, padding: "9px 13px", borderRadius: 10, border: `1.5px solid ${border}` }} /><button onClick={() => void send()} style={{ padding: "9px 18px", borderRadius: 10, border: "none", background: accent, color: "#fff", fontWeight: 700 }}>{thinking ? "…" : "Send"}</button></div></div></>;
+  return <>{open && <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 780, background: "rgba(0,0,0,0.25)" }} />}<div style={{ position: "fixed", left: "50%", transform: "translateX(-50%)", bottom: open ? 80 : -520, zIndex: 790, width: "calc(100% - 32px)", maxWidth: 600, background: "#fff", borderRadius: 20, boxShadow: "0 -4px 40px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column", height: 440, transition: "bottom .34s cubic-bezier(.34,1.56,.64,1)", overflow: "hidden" }}><div style={{ background: dark, padding: "12px 14px 12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Admin Twin</div><div style={{ fontSize: 11, color: "rgba(255,255,255,.45)" }}>{thinking ? "Checking school records…" : "Role-scoped school health · No AI required"}</div></div><div style={{ display: "flex", alignItems: "center", gap: 7, flexShrink: 0 }}><TwinRoleSwitcher currentRole="admin" /><button onClick={onClose} aria-label="Close Admin Twin" style={{ background: "none", border: "none", color: "rgba(255,255,255,.6)", fontSize: 22 }}>×</button></div></div><div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>{messages.map((m, i) => <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", gap: 8 }}>{m.role === "twin" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: accentLight, display: "flex", alignItems: "center", justifyContent: "center", color: accent }}>✦</div>}<div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: 14, background: m.role === "user" ? accent : surface, color: m.role === "user" ? "#fff" : textPrimary, fontSize: 13, whiteSpace: "pre-wrap" }}>{m.text}{m.role === "twin" && <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>authorized role · deterministic · no AI</div>}</div></div>)}<PersonalTwinActions twin={personalTwin} onNavigate={onClose} /><div ref={bottomRef} /></div><div style={{ padding: "10px 14px", borderTop: `1px solid ${border}`, display: "flex", gap: 8 }}><input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && void send()} placeholder="Ask about your school…" style={{ flex: 1, padding: "9px 13px", borderRadius: 10, border: `1.5px solid ${border}` }} /><button onClick={() => void send()} style={{ padding: "9px 18px", borderRadius: 10, border: "none", background: accent, color: "#fff", fontWeight: 700 }}>{thinking ? "…" : "Send"}</button></div></div></>;
 }

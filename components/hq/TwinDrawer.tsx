@@ -1,9 +1,13 @@
 "use client";
+import { usePersonalTwin, PersonalTwinActions } from "@/components/twin/usePersonalTwin";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { hqSupabase } from "@/lib/hq/supabase";
 import { loadHQBrain, resolveHQReply, buildHQOpeningBrief, HQBrainState } from "@/lib/twin/hq-brain";
 import { TwinMessage, TwinAction } from "@/lib/types";
+
+interface VoiceRecognition { lang: string; continuous: boolean; interimResults: boolean; onresult: ((e: {results: {transcript: string}[][]}) => void) | null; onend: (() => void) | null; onerror: (() => void) | null; start(): void; stop(): void; }
+type VoiceWindow = Window & { SpeechRecognition?: new () => VoiceRecognition; webkitSpeechRecognition?: new () => VoiceRecognition };
 
 interface Props { open: boolean; onClose: () => void; }
 
@@ -21,6 +25,7 @@ function Dot({ delay = 0 }: { delay?: number }) {
 
 export default function HQTwinDrawer({ open, onClose }: Props) {
   const router = useRouter();
+  const personalTwin = usePersonalTwin("hq");
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [messages, setMessages] = useState<TwinMessage[]>([]);
@@ -30,7 +35,7 @@ export default function HQTwinDrawer({ open, onClose }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialised = useRef(false);
   const brainRef = useRef<HQBrainState | null>(null);
-  const recognRef = useRef<any>(null);
+  const recognRef = useRef<VoiceRecognition | null>(null);
 
   useEffect(() => {
     if (initialised.current) return;
@@ -59,12 +64,12 @@ export default function HQTwinDrawer({ open, onClose }: Props) {
   }, [messages, thinking, open]);
 
   function toggleVoice() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SR = (window as VoiceWindow).SpeechRecognition || (window as VoiceWindow).webkitSpeechRecognition;
     if (!SR) return;
     if (listening) { recognRef.current?.stop(); setListening(false); return; }
     const r = new SR();
     r.lang = "en"; r.continuous = false; r.interimResults = false;
-    r.onresult = (e: any) => { const t = e.results[0]?.[0]?.transcript ?? ""; if (t) setInput(prev => (prev + " " + t).trim()); };
+    r.onresult = (e: {results: {transcript: string}[][]}) => { const t = e.results[0]?.[0]?.transcript ?? ""; if (t) setInput(prev => (prev + " " + t).trim()); };
     r.onend = () => setListening(false);
     r.onerror = () => setListening(false);
     r.start(); recognRef.current = r; setListening(true);
@@ -94,6 +99,8 @@ export default function HQTwinDrawer({ open, onClose }: Props) {
     setThinking(true);
     const brain = brainRef.current;
     try {
+      const universal = await personalTwin.execute(userMsg);
+      if (universal) return;
       if (brain) {
         const reply = resolveHQReply(userMsg, brain);
         if (reply) {
@@ -105,7 +112,7 @@ export default function HQTwinDrawer({ open, onClose }: Props) {
     } catch {
       setMessages(m => [...m, { role: "twin", text: "HQ Twin remains deterministic. Ask about a known platform metric or action; I will not substitute a generated answer when governed data is unavailable.", source: "offline" }]);
     } finally { setThinking(false); }
-  }, [input, thinking, offline]);
+  }, [input, thinking, offline, personalTwin]);
 
   const health = brainRef.current?.snap?.platformHealth ?? "healthy";
   const firstName = brainRef.current?.firstName ?? "";
@@ -135,6 +142,7 @@ export default function HQTwinDrawer({ open, onClose }: Props) {
             </div>
           ))}
           {thinking && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.accent }}>✦</div><Dot delay={0} /><Dot delay={0.2} /><Dot delay={0.4} /></div>}
+          <PersonalTwinActions twin={personalTwin} onNavigate={onClose} />
           <div ref={bottomRef} />
         </div>
         <div style={{ padding: "10px 14px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexShrink: 0, alignItems: "center", background: C.panel }}>

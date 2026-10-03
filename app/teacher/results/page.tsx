@@ -4,12 +4,12 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { saveCanonicalExamResult } from '@/lib/teacher/examResultAuthority'
 import ProfessionalMarkbook from '@/components/teacher/ProfessionalMarkbook'
 import AssessmentIntelligenceConsole from '@/components/teacher/AssessmentIntelligenceConsole'
 import type { Database } from '@/lib/database.types'
 
 type ExamInsert = Database["public"]["Tables"]["exams"]["Insert"]
-type ExamResultInsert = Database["public"]["Tables"]["exam_results"]["Insert"]
 
 interface Exam {
   id: string
@@ -24,7 +24,7 @@ interface Exam {
 interface ClassOption { id: string; name: string; stream: string }
 interface SubjectOption { id: string; name: string }
 interface Student { id: string; name: string; source: 'db' | 'manual'; class_name?: string }
-interface Result { id: string; student_id: string; marks: number; is_absent: boolean }
+interface Result { id: string; student_id: string; marks: number; is_absent: boolean; updated_at: string }
 type Tier = 1 | 2 | 3
 
 function getGrade(marks: number): string {
@@ -108,7 +108,7 @@ function ResultsInner() {
     const query=sid ? supabase.from('exams').select('*').or(`created_by.eq.${tid},school_id.eq.${sid}`).order('created_at',{ascending:false}) : supabase.from('exams').select('*').eq('created_by',tid).order('created_at',{ascending:false})
     const {data}=await query
     const loaded=(data??[]) as Exam[]
-    setExams(loaded); setActiveExam(loaded[0]??null)
+    setExams(loaded); setActiveExam(loaded.find(e=>e.id===searchParams.get('examId'))??loaded[0]??null)
   }
 
   useEffect(()=>{
@@ -134,10 +134,19 @@ function ResultsInner() {
 
   useEffect(()=>{ if (activeExam && students.length>0) void loadResults() },[activeExam,students,activeSubjectIdx])
 
+  useEffect(()=>{
+    const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
+    if(!activeExam||!classId||!subjectId)return
+    const url=new URL(window.location.href)
+    url.searchParams.set('examId',activeExam.id);url.searchParams.set('classId',classId);url.searchParams.set('subjectId',subjectId)
+    window.history.replaceState(window.history.state,'',url.pathname+url.search)
+  },[activeExam,classes,subjects,activeClassIdx,activeSubjectIdx])
+
+
   async function loadResults() {
     if (!activeExam) return
     const studentIds=students.map(s=>s.id)
-    let query=supabase.from('exam_results').select('id, student_id, marks, is_absent').eq('exam_id',activeExam.id).in('student_id',studentIds)
+    let query=supabase.from('exam_results').select('id, student_id, marks, is_absent, updated_at').eq('exam_id',activeExam.id).in('student_id',studentIds)
     const subjectId=subjects[activeSubjectIdx]?.id
     if (subjectId) query=query.eq('subject_id',subjectId)
     const {data}=await query
@@ -172,16 +181,14 @@ function ResultsInner() {
       setErrorByStudent(prev=>({...prev,[student.id]:'Class or subject context is unavailable.'})); return false
     }
     setSavingId(student.id); setErrorByStudent(prev=>{const n={...prev}; delete n[student.id]; return n})
-    const payload:ExamResultInsert={exam_id:activeExam.id,student_id:student.id,teacher_id:teacherId,school_id:schoolId,class_id:classId,subject_id:subjectId,marks,is_absent:isAbsent}
     const existing=results.find(r=>r.student_id===student.id)
-    const response=existing
-      ? await supabase.from('exam_results').update({marks,is_absent:isAbsent}).eq('id',existing.id).select('id, student_id, marks, is_absent').single()
-      : await supabase.from('exam_results').insert(payload).select('id, student_id, marks, is_absent').single()
-    setSavingId(null)
-    if (response.error || !response.data) {
-      setErrorByStudent(prev=>({...prev,[student.id]:'Could not save this mark. Check your assignment and try again.'})); return false
-    }
-    const saved=response.data as Result
+    let saved:Result
+    try {
+      saved=await saveCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,marks,isAbsent,expectedUpdatedAt:existing?.updated_at??null})
+      window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
+    } catch (cause) {
+      setErrorByStudent(prev=>({...prev,[student.id]:cause instanceof Error?cause.message:'Could not save this mark.'})); return false
+    } finally { setSavingId(null) }
     setResults(prev=>existing?prev.map(r=>r.id===saved.id?saved:r):[...prev,saved])
     if (isAbsent) setDraftMarks(prev=>{const n={...prev}; delete n[student.id]; return n})
     setSavedId(student.id); setTimeout(()=>setSavedId(current=>current===student.id?null:current),1600)
@@ -225,10 +232,15 @@ function ResultsInner() {
     const existing=results.find(r=>r.student_id===student.id)
     if (!existing || !existing.is_absent || !activeExam || activeExam.is_locked) return false
     setSavingId(student.id)
-    const {data,error:updateError}=await supabase.from('exam_results').update({marks:0,is_absent:false}).eq('id',existing.id).select('id, student_id, marks, is_absent').single()
-    setSavingId(null)
-    if (updateError || !data) { setErrorByStudent(prev=>({...prev,[student.id]:'Could not clear absence.'})); return false }
-    setResults(prev=>prev.map(r=>r.id===existing.id?data as Result:r)); setDraftMarks(prev=>({...prev,[student.id]:'0'})); setSavedId(student.id); return true
+    const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
+    if(!schoolId||!classId||!subjectId){setSavingId(null);return false}
+    try {
+      const data=await saveCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,marks:0,isAbsent:false,expectedUpdatedAt:existing.updated_at})
+      setResults(prev=>prev.map(r=>r.id===existing.id?data:r));setDraftMarks(prev=>({...prev,[student.id]:'0'}));setSavedId(student.id)
+      window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
+      return true
+    }catch(cause){setErrorByStudent(prev=>({...prev,[student.id]:cause instanceof Error?cause.message:'Could not clear absence.'}));return false}
+    finally{setSavingId(null)}
   }
 
   function analysisData() {

@@ -11,7 +11,7 @@
     "test:seo-authority": "node scripts/seo-content-authority-contract-test.mjs",
     "validate": "npm run typecheck && npm run lint && npm run test:twin && npm run test:seo-authority && npm run test:timetable && npm run build",
     "test:timetable": "node scripts/test-timetable-modern-intelligence.mjs",
-    "test:twin": "node scripts/test-deterministic-twin-contract.mjs"
+    "test:twin": "node scripts/test-deterministic-twin-contract.mjs && node scripts/test-personal-twin.mjs && node scripts/test-personal-twin-service.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",

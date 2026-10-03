@@ -11,6 +11,11 @@ const protectedFiles = [
   'components/twin/TwinRoleSwitcher.tsx',
   'lib/teacher/twin.ts',
   'lib/twin/teacher-action.ts',
+  'lib/twin/service.ts',
+  'lib/twin/personal.ts',
+  'lib/twin/transport.ts',
+  'components/twin/usePersonalTwin.tsx',
+  'lib/teacher/examResultAuthority.ts',
   'lib/twin/core.ts',
   'lib/twin/hq-brain.ts',
   'lib/student-context.tsx',
@@ -67,13 +72,15 @@ requireText('lib/teacher/twin.ts', "supabase.rpc('teacher_get_twin_brain' as nev
 requireText('lib/teacher/twin.ts', 'getTwinAuthorityContext', 'Teacher adapter must derive authority through the shared Twin core')
 requireText('lib/teacher/twin.ts', "selectTwinRoleBinding(authority, 'teacher', schoolId)", 'Teacher brain must validate active school against relationship authority')
 requireText('lib/twin/core.ts', "'prediction'", 'Teacher capabilities must expose deterministic prediction')
-requireText('components/teacher/TwinDrawer.tsx', 'proposeTeacherTwinAction', 'Teacher Twin must parse safe natural-language actions before fallback routing')
-requireText('components/teacher/TwinDrawer.tsx', 'executeTeacherTwinAction', 'Teacher Twin must execute only an explicit confirmed action')
-requireText('lib/twin/teacher-action.ts', 'teacher_get_operating_context', 'Teacher actions must bind to canonical operating context')
-requireText('lib/twin/teacher-action.ts', 'loadWorkbook(action.classId)', 'Teacher actions must revalidate canonical class authority at execution time')
-requireText('lib/twin/teacher-action.ts', 'saveExamMarks', 'Exam-mark actions must reuse canonical Class Workbook save/read-back authority')
-requireText('lib/twin/teacher-action.ts', 'matches more than one learner', 'Ambiguous learner names must fail closed')
-requireText('lib/twin/teacher-action.ts', 'matches more than one unlocked exam', 'Ambiguous exams must fail closed')
+requireText('components/teacher/TwinDrawer.tsx', 'personalTwin.execute(userMsg)', 'Teacher Twin must interpret safe commands before fallback')
+requireText('components/twin/usePersonalTwin.tsx', 'confirmPersonalTwinMark(proposal)', 'Mutations need explicit confirmation')
+requireText('lib/twin/service.ts', 'teacher_get_operating_context', 'Teacher actions need canonical operating context')
+requireText('lib/twin/service.ts', "openPersonalTwinSession('teacher')", 'Confirmation must revalidate identity and school')
+requireText('lib/twin/service.ts', 'saveCanonicalExamResult', 'Twin must use canonical exam authority')
+requireText('lib/twin/service.ts', 'More than one learner, class or subject matches', 'Ambiguous identities fail closed')
+requireText('lib/twin/service.ts', 'Several assessments match', 'Ambiguous exams fail closed')
+requireText('lib/teacher/examResultAuthority.ts', 'teacher_save_exam_result', 'Canonical save requires trusted invoker/RLS endpoint')
+requireText('lib/class-workbook/data.ts', 'saveCanonicalExamResults', 'Workbook must use the same atomic authority')
 forbidText('lib/teacher/twin.ts', "selectTwinRoleBinding(authority, 'teacher')", 'Teacher adapter must not guess a multi-school Teacher scope')
 
 requireText('components/parent/TwinDrawer.tsx', 'getTwinAuthorityContext', 'Parent Twin must derive roles from shared core')
