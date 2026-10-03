@@ -1,0 +1,25 @@
+name: Canonical Twin Actions
+on:
+  pull_request:
+    paths:
+      - 'lib/teacher/twin-actions.ts'
+      - 'components/teacher/TwinDrawer.tsx'
+      - 'supabase/migrations/*teacher_twin_canonical_action_layer.sql'
+      - 'scripts/test-canonical-twin-actions.mjs'
+      - '.github/workflows/canonical-twin-actions.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/teacher/twin-actions.ts'
+      - 'components/teacher/TwinDrawer.tsx'
+      - 'supabase/migrations/*teacher_twin_canonical_action_layer.sql'
+      - 'scripts/test-canonical-twin-actions.mjs'
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/test-canonical-twin-actions.mjs

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Btn, C, TwinDot } from "./ui";
 import TwinRoleSwitcher from "@/components/twin/TwinRoleSwitcher";
 import { getTeacherTwinState, resolveTeacherTwinQuery, type TeacherTwinReply, type TeacherTwinState } from "@/lib/teacher/twin";
+import { applyTeacherTwinAction, resolveTeacherTwinAction, type TeacherTwinExamMarkAction } from "@/lib/teacher/twin-actions";
 import type { TwinMessage } from "@/lib/types";
 
 interface Props { open: boolean; onClose: () => void; }
@@ -17,6 +18,7 @@ export default function TwinDrawer({ open, onClose }: Props) {
   const [listening, setListening] = useState(false);
   const [offline, setOffline] = useState(false);
   const [lastAction, setLastAction] = useState<{ url: string; label: string } | null>(null);
+  const [pendingAction, setPendingAction] = useState<TeacherTwinExamMarkAction | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialised = useRef(false);
   const stateRef = useRef<TeacherTwinState | null>(null);
@@ -129,12 +131,35 @@ export default function TwinDrawer({ open, onClose }: Props) {
         state = await getTeacherTwinState();
         stateRef.current = state;
       }
-      applyReply(resolveTeacherTwinQuery(userMsg, state));
+      setPendingAction(null);
+      const actionResolution = await resolveTeacherTwinAction(userMsg);
+      if (actionResolution) {
+        setMessages(m => [...m, { role: "twin", text: actionResolution.text, source: "js" }]);
+        setLastAction(null);
+        if (actionResolution.kind === "ready") setPendingAction(actionResolution.action);
+      } else {
+        applyReply(resolveTeacherTwinQuery(userMsg, state));
+      }
     } catch (error) {
       setMessages(m => [...m, { role: "twin", text: error instanceof Error ? error.message : "Teacher Twin could not read the authorized state for that request.", source: "offline" }]);
       setLastAction(null);
     } finally { setThinking(false); }
   }, [input, thinking]);
+
+  const confirmPendingAction = useCallback(async () => {
+    if (!pendingAction || thinking) return;
+    setThinking(true);
+    try {
+      const message = await applyTeacherTwinAction(pendingAction);
+      setMessages(m => [...m, { role: "twin", text: message, source: "js" }]);
+      setPendingAction(null);
+      stateRef.current = await getTeacherTwinState();
+    } catch (error) {
+      setMessages(m => [...m, { role: "twin", text: error instanceof Error ? error.message : "Twin could not complete that confirmed action.", source: "offline" }]);
+    } finally {
+      setThinking(false);
+    }
+  }, [pendingAction, thinking]);
 
   const state = stateRef.current;
   const priority = state?.decision.now?.priority ?? "calm";
@@ -153,6 +178,8 @@ export default function TwinDrawer({ open, onClose }: Props) {
           {loading && <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}><div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.accent }}>✦</div><TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} /></div>}
           {!loading && messages.map((m, i) => <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 6 }}><div style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8, width: "100%" }}>{m.role === "twin" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.source === "offline" ? "#fef3c7" : C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0, color: m.source === "offline" ? "#92400e" : C.accent }}>{m.source === "offline" ? "○" : "✦"}</div>}<div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "4px 16px 16px 16px", background: m.role === "user" ? C.accent : C.surface, color: m.role === "user" ? "#fff" : C.textPrimary, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{m.text}{m.role === "twin" && m.source !== "offline" && <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>authorized data · deterministic · no AI</div>}</div></div></div>)}
           {lastAction && !thinking && <button onClick={() => { closeTwin(); router.push(lastAction.url); }} style={{ alignSelf: "flex-start", marginLeft: 34, padding: "7px 13px", borderRadius: 14, border: `1px solid ${C.accent}`, background: C.accentLight, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{lastAction.label} →</button>}
+          {pendingAction && !thinking && <div style={{ marginLeft: 34, display: "flex", gap: 8, flexWrap: "wrap" }}><button type="button" onClick={() => void confirmPendingAction()} style={{ padding: "8px 13px", borderRadius: 14, border: `1px solid ${C.accent}`, background: C.accent, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>Confirm change</button><button type="button" onClick={() => { setPendingAction(null); setMessages(m => [...m, { role: "twin", text: "Cancelled. No academic record was changed.", source: "js" }]); }} style={{ padding: "8px 13px", borderRadius: 14, border: "1px solid #d1d5db", background: "#fff", color: C.textPrimary, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Cancel</button></div>}
+
           {thinking && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.accent }}>✦</div><TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} /></div>}
           <div ref={bottomRef} />
         </div>
