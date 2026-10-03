@@ -158,6 +158,11 @@ export default function ClassWorkbook() {
       if (ticket !== loadId.current) return;
       setData(result.data);
       setDoc(result.document);
+      const requestedSheet = searchParams.get("sheet");
+      if (requestedSheet) {
+        const target = result.document.sheets.find(item => item.kind === requestedSheet);
+        if (target) setSheetId(target.id);
+      }
       setRevision(result.revision);
       setDirty(false);
       setSelected([]);

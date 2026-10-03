@@ -26,6 +26,7 @@ function load(file){
   m.require=name=>{
     if(name==='@/lib/supabase'||name==='@/lib/hq/supabase')return{ supabase:client,hqSupabase:client }
     if(name==='@/lib/hq/search')return{searchHQ:async()=>[]}
+    if(name==='@/lib/learner-intelligence/progress-query')return{parseProgressQuery:input=>input==='show learners improving'?{}:null,resolveTeacherProgressQuery:async(_input,classId)=>({text:`Progress for ${classId}`,actionUrl:'/teacher/progress',actionLabel:'Open progress'})}
     if(name==='./core')return{getTwinAuthorityContext:async()=>({userId:'teacher'}),requireTwinRole:()=>[],selectTwinRoleBinding:()=>({scopeId:activeSchool,schoolId:activeSchool})}
     if(name==='./transport')return{twinRecord:v=>v??{},twinRpc:async(_role,name)=>name==='teacher_get_operating_context'?{school_id:activeSchool,classes:[assignment]}:{settings:{enabled:true},observations:[]}}
     if(name==='@/lib/teacher/examResultAuthority')return{saveCanonicalExamResult:async()=>{saved++;return{id:'result'}}}
@@ -69,3 +70,7 @@ await assert.rejects(()=>confirmPersonalTwinMark(prepared.proposal),/identity or
 assert.equal(saved,0)
 await assert.rejects(()=>twinPages(async()=>({data:Array(500).fill({}),error:null})),/Too many records/)
 console.log('Personal Twin service: full pagination, navigation precedence, real deep links, class/subject/learner/exam ambiguity, ownership, expiry and school-change denials passed.')
+
+const progressReply=await executePersonalTwin('show learners improving','teacher','/teacher/progress?classId=class')
+assert.equal(progressReply.text,'Progress for class')
+assert.equal(progressReply.links[0].route,'/teacher/progress')

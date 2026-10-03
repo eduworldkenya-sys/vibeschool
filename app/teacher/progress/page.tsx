@@ -2,8 +2,9 @@
 
 export const dynamic = "force-dynamic";
 
-import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
+import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { saveTeachingProgressRecord, TeachingProgressError } from "@/lib/teaching/progress";
 
@@ -12,6 +13,7 @@ type Context = {
   school_id: string | null;
   state: "ready" | "needs_school" | "needs_class" | "needs_curriculum_reconciliation";
   schools: Array<{ id: string; name: string; active: boolean }>;
+  classes?: Array<{ class_id: string; class_name: string; stream: string | null; subject_id: string | null; subject_name: string | null }>;
 };
 
 type ProgressRow = {
@@ -96,6 +98,9 @@ function ProgressInner() {
   const router = useRouter();
   const search = useSearchParams();
   const occurrenceId = search.get("occurrenceId")?.trim() || null;
+  const requestedFilter = search.get("filter");
+  const requestedSubject = search.get("subjectName");
+  const loadId = useRef(0);
   const [context, setContext] = useState<Context | null>(null);
   const [occurrence, setOccurrence] = useState<OccurrenceContext | null>(null);
   const [records, setRecords] = useState<ProgressRow[]>([]);
@@ -115,6 +120,7 @@ function ProgressInner() {
   }, []);
 
   const load = useCallback(async () => {
+    const request = ++loadId.current;
     setLoading(true);
     setError(null);
     setPrefilled(false);
@@ -125,6 +131,7 @@ function ProgressInner() {
         return;
       }
       const ctx = await loadContext();
+      if (request !== loadId.current) return;
       setContext(ctx);
       if (!ctx.school_id) {
         setRecords([]);
@@ -141,6 +148,7 @@ function ProgressInner() {
         .order("taught_date", { ascending: false })
         .order("updated_at", { ascending: false })
         .limit(100);
+      if (request !== loadId.current) return;
       if (recordsRes.error) throw recordsRes.error;
       const progressRows = typed<ProgressRow[]>(recordsRes.data ?? []);
       setRecords(progressRows);
@@ -153,6 +161,7 @@ function ProgressInner() {
           .eq("teacher_id", auth.user.id)
           .eq("school_id", ctx.school_id)
           .maybeSingle();
+        if (request !== loadId.current) return;
         if (occurrenceRes.error) throw occurrenceRes.error;
         if (!occurrenceRes.data) throw new Error("Teaching occurrence not found in your active school.");
         const exact = typed<OccurrenceContext>(occurrenceRes.data);
@@ -160,7 +169,16 @@ function ProgressInner() {
         if (exact.lifecycle !== "completed") {
           setError("Complete the lesson before recording its progress note.");
         }
-        const existing = progressRows.find(row => row.teaching_occurrence_id === occurrenceId);
+        let existing = progressRows.find(row => row.teaching_occurrence_id === occurrenceId);
+        if (!existing) {
+          const exactRecord = await db.from("progress_records")
+            .select("id,teaching_occurrence_id,lesson_plan_id,taught_date,what_was_taught,participation_score,challenges,homework_set,teacher_remarks,next_steps,class_id,subject_id,classes(name,stream),subjects(name)")
+            .eq("teacher_id", auth.user.id).eq("school_id", ctx.school_id)
+            .eq("teaching_occurrence_id", occurrenceId).maybeSingle();
+          if (request !== loadId.current) return;
+          if (exactRecord.error) throw exactRecord.error;
+          existing = exactRecord.data ? typed<ProgressRow>(exactRecord.data) : undefined;
+        }
         if (existing) {
           setForm({
             whatWasTaught: existing.what_was_taught ?? "",
@@ -179,6 +197,7 @@ function ProgressInner() {
             .eq("timetable_slot_id", exact.timetable_slot_id)
             .eq("taught_date", exact.occurrence_date)
             .maybeSingle();
+          if (request !== loadId.current) return;
           if (planRes.error) throw planRes.error;
           const plan = typed<LessonPlanPrefill | null>(planRes.data);
           if (!plan) throw new Error("The exact lesson plan for this completed lesson could not be found.");
@@ -192,6 +211,7 @@ function ProgressInner() {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
+          if (request !== loadId.current) return;
           if (homeworkRes.error) throw homeworkRes.error;
           const homework = typed<HomeworkPrefill | null>(homeworkRes.data);
 
@@ -207,26 +227,34 @@ function ProgressInner() {
         setForm(EMPTY_FORM);
       }
     } catch (loadError) {
+      if (request !== loadId.current) return;
       console.error("[TeacherProgress] load", loadError);
       setError(messageFor(loadError, "load"));
     } finally {
-      setLoading(false);
+      if (request === loadId.current) setLoading(false);
     }
   }, [loadContext, occurrenceId, router]);
 
-  useEffect(() => { void load(); }, [load]);
+  const invalidatePendingLoad = useCallback(() => { ++loadId.current; }, []);
+  useEffect(() => { void load(); return invalidatePendingLoad; }, [load, invalidatePendingLoad]);
 
   async function changeSchool(schoolId: string) {
     if (!schoolId || schoolId === context?.school_id) return;
+    ++loadId.current;
     setLoading(true);
     setError(null);
     try {
       const { error: setError } = await supabase.rpc("teacher_set_active_school", { p_school_id: schoolId });
       if (setError) throw setError;
       const ctx = await loadContext(schoolId);
+      if (ctx.school_id !== schoolId) throw new Error("The selected school could not be confirmed.");
       setContext(ctx);
       setOccurrence(null);
+      setRecords([]);
+      setForm(EMPTY_FORM);
+      setSuccess(null);
       router.replace("/teacher/progress");
+      if (!occurrenceId) await load();
     } catch (schoolError) {
       console.error("[TeacherProgress] school", schoolError);
       setError("That school could not be selected.");
@@ -268,13 +296,14 @@ function ProgressInner() {
   if (loading) return <div style={{ padding: 18 }} aria-label="Loading lesson progress"><div style={{ height: 150, borderRadius: 18, background: "#e5e7eb" }} /></div>;
 
   const activeSchool = context?.schools.find(school => school.id === context.school_id)?.name ?? "No active school";
+  const progressClasses = Array.from(new Map((context?.classes ?? []).map(item => [item.class_id, item])).values());
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
       <section style={{ background: "linear-gradient(135deg,#1d4ed8,#2563eb)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
-        <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>Teaching evidence</div>
-        <h1 style={{ margin: "4px 0", fontSize: 23 }}>Lesson progress & next steps</h1>
-        <div style={{ fontSize: 12, opacity: .78 }}>The lesson and homework are prefilled from the exact completed occurrence. You only confirm or add what requires teacher judgement.</div>
+        <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>{occurrenceId ? "Teaching evidence" : "Learner evidence & teaching reflection"}</div>
+        <h1 style={{ margin: "4px 0", fontSize: 23 }}>{occurrenceId ? "Lesson progress & next steps" : "Progress Record"}</h1>
+        <div style={{ fontSize: 12, opacity: .88, lineHeight: 1.6 }}>{occurrenceId ? "The lesson and homework are prefilled from the exact completed occurrence. You only confirm or add what requires teacher judgement." : "Open a class to review learner outcomes, history and support. Your lesson reflections remain linked to the exact completed lesson below."}</div>
         {context && context.schools.length > 1 && (
           <select value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={{ marginTop: 12, width: "100%", minHeight: 44, border: 0, borderRadius: 12, padding: "0 12px", background: "#fff", color: "#111827", fontWeight: 800 }}>
             {context.schools.map(school => <option key={school.id} value={school.id}>{school.name}</option>)}
@@ -284,6 +313,21 @@ function ProgressInner() {
 
       {error && <div role="alert" style={{ borderRadius: 14, background: "#fef2f2", color: "#991b1b", padding: 13, marginBottom: 12, fontSize: 13 }}>{error}</div>}
       {success && <div role="status" style={{ borderRadius: 14, background: "#ecfdf5", color: "#065f46", padding: 13, marginBottom: 12, fontSize: 13, fontWeight: 800 }}>{success}</div>}
+
+      {!occurrenceId && context?.school_id && <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12 }}>
+        <h2 style={{ margin: "0 0 7px", fontSize: 18 }}>Student Progress Record</h2>
+        <p style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.6 }}>{activeSchool} · Choose a class. Scores, recorded performance levels and comparable trends stay attached to their subjects and outcomes.</p>
+        {progressClasses.length ? <div style={{ display: "grid", gap: 8 }}>{progressClasses.map(item => {
+          const filters = new URLSearchParams();
+          if (["declining", "improving", "support", "no-evidence"].includes(requestedFilter ?? "")) filters.set("filter", requestedFilter!);
+          if (requestedSubject) {
+            const subject = context.classes?.find(assignment => assignment.class_id === item.class_id && assignment.subject_name?.toLowerCase() === requestedSubject.toLowerCase());
+            if (subject?.subject_id) filters.set("subjectId", subject.subject_id);
+          }
+          const query = filters.toString();
+          return <Link key={item.class_id} href={`/teacher/classhub/${encodeURIComponent(item.class_id)}/progress${query ? `?${query}` : ""}`} style={{ display: "block", padding: 14, minHeight: 44, boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, color: "#1e40af", fontWeight: 800 }}>{item.class_name}{item.stream ? ` ${item.stream}` : ""} · Open learner progress</Link>;
+        })}</div> : <Link href="/teacher/onboarding/class" style={{ color: "#1d4ed8", fontWeight: 800 }}>Set up class & subject</Link>}
+      </section>}
 
       {context?.state === "needs_school" ? (
         <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center" }}><h2 style={{ margin: 0, fontSize: 17 }}>Connect a school first</h2><p style={{ color: "#6b7280", fontSize: 13 }}>Teaching evidence is always school-scoped.</p><button type="button" onClick={() => router.push("/teacher/onboarding/school")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Connect school</button></section>
