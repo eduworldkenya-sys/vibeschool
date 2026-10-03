@@ -4,13 +4,14 @@ import { useRouter } from "next/navigation";
 import { Btn, C, TwinDot } from "./ui";
 import TwinRoleSwitcher from "@/components/twin/TwinRoleSwitcher";
 import { getTeacherTwinState, resolveTeacherTwinQuery, type TeacherTwinReply, type TeacherTwinState } from "@/lib/teacher/twin";
-import { executeTeacherTwinAction, proposeTeacherTwinAction, type TeacherTwinActionProposal } from "@/lib/twin/teacher-action";
+import { usePersonalTwin, PersonalTwinActions } from "@/components/twin/usePersonalTwin";
 import type { TwinMessage } from "@/lib/types";
 
 interface Props { open: boolean; onClose: () => void; }
 
 export default function TwinDrawer({ open, onClose }: Props) {
   const router = useRouter();
+  const personalTwin = usePersonalTwin("teacher");
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
   const [messages, setMessages] = useState<TwinMessage[]>([]);
@@ -18,7 +19,6 @@ export default function TwinDrawer({ open, onClose }: Props) {
   const [listening, setListening] = useState(false);
   const [offline, setOffline] = useState(false);
   const [lastAction, setLastAction] = useState<{ url: string; label: string } | null>(null);
-  const [pendingAction, setPendingAction] = useState<TeacherTwinActionProposal | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const initialised = useRef(false);
   const stateRef = useRef<TeacherTwinState | null>(null);
@@ -53,8 +53,9 @@ export default function TwinDrawer({ open, onClose }: Props) {
 
   const closeTwin = useCallback(() => {
     stopVoice();
+    personalTwin.dismiss();
     onClose();
-  }, [onClose, stopVoice]);
+  }, [onClose, stopVoice, personalTwin.dismiss]);
 
   useEffect(() => {
     if (!open) {
@@ -126,42 +127,17 @@ export default function TwinDrawer({ open, onClose }: Props) {
     setMessages(m => [...m, { role: "user", text: userMsg }]);
     setThinking(true);
     try {
-      let state = stateRef.current;
-      if (!state) {
-        state = await getTeacherTwinState();
-        stateRef.current = state;
-      }
-      const proposal = await proposeTeacherTwinAction(userMsg);
-      if (proposal) {
-        setPendingAction(proposal);
-        setLastAction(null);
-        setMessages(m => [...m, { role: "twin", text: `${proposal.summary}\n\nConfirm only if this is exactly what you want saved.`, source: "js" }]);
-      } else {
-        setPendingAction(null);
-        applyReply(resolveTeacherTwinQuery(userMsg, state));
-      }
+      const universal = await personalTwin.execute(userMsg);
+      setLastAction(null);
+      if (universal) return;
+      const state = await getTeacherTwinState();
+      stateRef.current = state;
+      applyReply(resolveTeacherTwinQuery(userMsg, state));
     } catch (error) {
       setMessages(m => [...m, { role: "twin", text: error instanceof Error ? error.message : "Teacher Twin could not read the authorized state for that request.", source: "offline" }]);
       setLastAction(null);
     } finally { setThinking(false); }
-  }, [input, thinking]);
-
-  const confirmPendingAction = useCallback(async () => {
-    if (!pendingAction || thinking) return;
-    const proposal = pendingAction;
-    setThinking(true);
-    try {
-      const result = await executeTeacherTwinAction(proposal.action);
-      setMessages(m => [...m, { role: "twin", text: result, source: "js" }]);
-      setPendingAction(null);
-      stateRef.current = await getTeacherTwinState();
-    } catch (error) {
-      setMessages(m => [...m, { role: "twin", text: error instanceof Error ? error.message : "Twin could not safely complete that action.", source: "offline" }]);
-      setPendingAction(null);
-    } finally {
-      setThinking(false);
-    }
-  }, [pendingAction, thinking]);
+  }, [input, thinking, personalTwin.execute]);
 
   const state = stateRef.current;
   const priority = state?.decision.now?.priority ?? "calm";
@@ -179,9 +155,9 @@ export default function TwinDrawer({ open, onClose }: Props) {
         <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
           {loading && <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 0" }}><div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.accent }}>✦</div><TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} /></div>}
           {!loading && messages.map((m, i) => <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: m.role === "user" ? "flex-end" : "flex-start", gap: 6 }}><div style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8, width: "100%" }}>{m.role === "twin" && <div style={{ width: 26, height: 26, borderRadius: "50%", background: m.source === "offline" ? "#fef3c7" : C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, flexShrink: 0, color: m.source === "offline" ? "#92400e" : C.accent }}>{m.source === "offline" ? "○" : "✦"}</div>}<div style={{ maxWidth: "78%", padding: "10px 14px", borderRadius: m.role === "user" ? "16px 16px 4px 16px" : "4px 16px 16px 16px", background: m.role === "user" ? C.accent : C.surface, color: m.role === "user" ? "#fff" : C.textPrimary, fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>{m.text}{m.role === "twin" && m.source !== "offline" && <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 4 }}>authorized data · deterministic · no AI</div>}</div></div></div>)}
-          {pendingAction && !thinking && <div style={{ marginLeft: 34, display: "flex", gap: 8, flexWrap: "wrap" }}><button onClick={() => void confirmPendingAction()} style={{ padding: "7px 13px", borderRadius: 14, border: `1px solid ${C.accent}`, background: C.accent, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{pendingAction.confirmationLabel}</button><button onClick={() => setPendingAction(null)} style={{ padding: "7px 13px", borderRadius: 14, border: `1px solid ${C.border}`, background: "#fff", color: C.textMuted, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Cancel</button></div>}
           {lastAction && !thinking && <button onClick={() => { closeTwin(); router.push(lastAction.url); }} style={{ alignSelf: "flex-start", marginLeft: 34, padding: "7px 13px", borderRadius: 14, border: `1px solid ${C.accent}`, background: C.accentLight, color: C.accent, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{lastAction.label} →</button>}
           {thinking && <div style={{ display: "flex", alignItems: "center", gap: 8 }}><div style={{ width: 26, height: 26, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: C.accent }}>✦</div><TwinDot delay={0} /><TwinDot delay={0.2} /><TwinDot delay={0.4} /></div>}
+          <PersonalTwinActions twin={personalTwin} onNavigate={closeTwin} />
           <div ref={bottomRef} />
         </div>
         <div style={{ padding: "10px 14px", borderTop: `1px solid ${C.border}`, display: "flex", gap: 8, flexShrink: 0, alignItems: "center" }}><button onClick={toggleVoice} style={{ width: 36, height: 36, borderRadius: "50%", border: "none", flexShrink: 0, background: listening ? "#ef4444" : C.accentLight, color: listening ? "#fff" : C.accent, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 15 }} title={listening ? "Stop" : "Speak"}>{listening ? "■" : "🎤"}</button><input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && void send()} placeholder={listening ? "Listening…" : "Ask about your lesson, attendance, marking…"} style={{ flex: 1, padding: "9px 13px", borderRadius: 10, border: `1.5px solid ${C.border}`, outline: "none", fontSize: 13, fontFamily: "inherit", color: C.textPrimary }} /><Btn onClick={() => void send()}>{thinking ? "…" : "Send"}</Btn></div>

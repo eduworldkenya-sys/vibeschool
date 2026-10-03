@@ -7,6 +7,7 @@ import { useTwinSession } from './hooks/useTwinSession'
 import { useTwinSpeech } from './hooks/useTwinSpeech'
 import { useTwinRecognition } from './hooks/useTwinRecognition'
 import TwinHeader from './ui/TwinHeader'
+import { usePersonalTwin, PersonalTwinActions } from '@/components/twin/usePersonalTwin'
 import TwinInput from './ui/TwinInput'
 import TwinLearningCanvas from './ui/TwinLearningCanvas'
 import { T } from './ui/TwinHeader'
@@ -32,6 +33,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
   const [practiceLoading, setPracticeLoading] = useState(false)
   const [practiceFeedback, setPracticeFeedback] = useState<string | null>(null)
   const [sessionSummary, setSessionSummary] = useState<string | null>(null)
+  const personalTwin = usePersonalTwin('student')
   const [coreResult, setCoreResult] = useState<TwinCoreRouteResult | null>(null)
   const [hintIndex, setHintIndex] = useState(0)
   const [coachTurn, setCoachTurn] = useState<AdaptiveTeachingTurn | null>(null)
@@ -173,6 +175,8 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
     setTwinState('processing')
 
     try {
+      const universal = await personalTwin.execute(q)
+      if (universal) { releaseProcessing(); setTwinState('idle'); return }
       const core = await routeTwinCore(q)
       setCoreResult(core.handled ? core : null)
       if (core.handled) {
@@ -209,6 +213,7 @@ export default function VibeTwin({ isOpen, onClose, userName, learnerState }: Vi
   return <div role="dialog" aria-modal="true" aria-label="Vibe Twin learning workspace" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: T.bg, display: 'flex', flexDirection: 'column', animation: 'vl-slide-up 300ms cubic-bezier(0.34,1.56,0.64,1)', WebkitUserSelect: 'none', userSelect: 'none' }}>
     <TwinHeader mode={mode} onMode={(nextMode: TwinMode) => { cancelSpeech(); recognition.abort(); setTwinState('idle'); setMode(nextMode) }} onClose={() => { cancelSpeech(); recognition.abort(); onClose() }} />
 
+    <div style={{padding:12,overflowY:'auto',maxHeight:'35vh'}}><PersonalTwinActions twin={personalTwin} onNavigate={onClose} /></div>
     <TwinLearningCanvas
       userName={userName}
       learnerState={resolvedState}

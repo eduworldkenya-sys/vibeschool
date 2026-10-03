@@ -1,3 +1,4 @@
+import { saveCanonicalExamResults } from "@/lib/teacher/examResultAuthority";
 import { supabase } from "@/lib/supabase";
 import { listInterventionQueue } from "@/lib/assessment/interventions";
 import {
@@ -476,25 +477,12 @@ export async function saveExamMarks(
       is_absent: absent,
     };
   });
-  const response = await supabase
-    .from("exam_results")
-    .upsert(rows, { onConflict: "exam_id,student_id,subject_id" })
-    .select("student_id,marks,is_absent");
-  if (response.error) throw new Error(response.error.message);
-  if (
-    rows.some(
-      (row) =>
-        !(response.data ?? []).some(
-          (s: { student_id: string; marks: number; is_absent: boolean }) =>
-            s.student_id === row.student_id &&
-            s.marks === row.marks &&
-            s.is_absent === row.is_absent,
-        ),
-    )
-  )
-    throw new Error(
-      "The saved marks could not be confirmed. Reload before retrying.",
-    );
+  await saveCanonicalExamResults(rows.map(row => ({
+    examId:row.exam_id,schoolId:row.school_id,classId:row.class_id,subjectId:row.subject_id,studentId:row.student_id,
+    marks:row.marks,isAbsent:row.is_absent,
+    expectedUpdatedAt:data.results.find(result => result.exam_id===examId && result.subject_id===subjectId && result.student_id===row.student_id)?.updated_at??null,
+  })));
+
 }
 
 export async function createSelectedGroup(
