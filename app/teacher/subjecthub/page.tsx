@@ -9,6 +9,7 @@ import type {
 import { loadActiveTeacherTimetable, timetableSlotsForDay, type CanonicalTimetableSlot } from '@/lib/timetable/engine'
 export const dynamic = "force-dynamic";
 import { Card, C } from '@/components/teacher/ui'
+import SubjectCompanion from '@/components/teacher/SubjectCompanion'
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -1193,14 +1194,6 @@ export default function SubjectHubPage() {
                   }}
                 >
                   {s.name}
-                  <span
-                    onClick={e => { e.stopPropagation(); setRemoveConfirmId(s.id) }}
-                    title="Unlink this subject from all assigned classes"
-                    style={{
-                      fontSize: 14, lineHeight: 1, color: i === activeIdx ? 'rgba(255,255,255,0.6)' : '#9ca3af',
-                      cursor: 'pointer', padding: '0 2px',
-                    }}
-                  >×</span>
                 </button>
               )}
             </div>
@@ -1307,39 +1300,13 @@ export default function SubjectHubPage() {
             })}
           </div>
           <div style={{ marginTop: 10, fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
-            CBC Grade 6 Mathematics outcomes loaded. Mastery tracking coming soon.
+            Curriculum outcomes linked to this subject. Open a class below to inspect learner evidence and follow-up.
           </div>
         </div>
       )}
 
-      {/* ── QUICK ACTIONS ── */}
       {!loading && activeSubject && (
-        <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-          <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>Subject Tools</p>
-          {/* Task 2B — 3-col grid, 7 actions */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-            {SUBJECT_ACTIONS.map(a => (
-              <button
-                key={a.id}
-                onClick={() => {
-                  if (a.id === 'timetable' || a.id === 'tpad') { router.push(a.route); return }
-                  if (a.id === 'resources') { router.push(a.route); return }
-                  if (classes.length === 0) { router.push(a.route + '?subjectId=' + activeSubject.id); return }
-                  if (classes.length === 1) { router.push(a.route + '?subjectId=' + activeSubject.id + '&classId=' + classes[0].id); return }
-                  setPickerAction(a)
-                }}
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  padding: '14px 4px', borderRadius: 14, border: 'none', cursor: 'pointer',
-                  background: a.bg, fontFamily: 'inherit',
-                }}
-              >
-                <span style={{ fontSize: 22 }}>{a.icon}</span>
-                <span style={{ fontSize: 10, fontWeight: 800, color: '#fff', textAlign: 'center', lineHeight: 1.3 }}>{a.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+        <SubjectCompanion subject={activeSubject} classes={classes} />
       )}
 
       {/* ── GROWTH ENGINE ── */}
@@ -1704,6 +1671,41 @@ export default function SubjectHubPage() {
                         }
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (item.publicationId && item.chapterId) {
+                          router.push(
+                            '/read/textbook/' +
+                            encodeURIComponent(item.publicationId) +
+                            '/' +
+                            encodeURIComponent(item.chapterId),
+                          )
+                          return
+                        }
+                        router.push(
+                          '/teacher/resources?subjectId=' +
+                          encodeURIComponent(activeSubject.id) +
+                          '&classId=' +
+                          encodeURIComponent(item.classId),
+                        )
+                      }}
+                      style={{
+                        border: 'none',
+                        borderRadius: 10,
+                        background: '#ecfdf5',
+                        color: '#047857',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        padding: '8px 10px',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Open
+                    </button>
                   </div>
                 ))}
 
