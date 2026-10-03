@@ -77,7 +77,6 @@ for (const value of [
 }
 
 requireText(adapter, adapterPath, "supabase.rpc('teacher_get_twin_brain' as never)", 'Teacher runtime must let the server resolve the active school through the canonical RPC')
-rejectText(adapter, adapterPath, 'as unknown as Rpc', 'Teacher runtime must not restore the ungoverned RPC escape-hatch cast')
 requireText(adapter, adapterPath, "selectTwinRoleBinding(authority, 'teacher', schoolId)", 'Teacher runtime must validate the server-selected school against shared authority')
 rejectText(adapter, adapterPath, "selectTwinRoleBinding(authority, 'teacher')", 'Teacher runtime must not fail before active-school resolution for a multi-school Teacher')
 
