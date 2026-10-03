@@ -15241,6 +15241,69 @@ export type Database = {
         }
         Relationships: []
       }
+      teacher_class_workbooks: {
+        Row: {
+          class_id: string
+          document: Json
+          revision: number
+          school_id: string
+          teacher_id: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          document: Json
+          revision?: number
+          school_id: string
+          teacher_id: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          document?: Json
+          revision?: number
+          school_id?: string
+          teacher_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_class_workbooks_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_class_workbooks_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_directory_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_class_workbooks_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_class_workbooks_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_class_workbooks_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "vibelearn_leaderboard"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_classes: {
         Row: {
           class_id: string
@@ -20012,6 +20075,29 @@ export type Database = {
           content_id: string
           operation: string
         }[]
+      }
+      teacher_get_class_workbook: {
+        Args: { p_class_id: string; p_school_id: string }
+        Returns: Json
+      }
+      teacher_save_class_workbook: {
+        Args: {
+          p_class_id: string
+          p_document: Json
+          p_expected_revision: number
+          p_school_id: string
+        }
+        Returns: number
+      }
+      teacher_create_workbook_group: {
+        Args: {
+          p_class_id: string
+          p_name: string
+          p_request_id: string
+          p_school_id: string
+          p_student_ids: string[]
+        }
+        Returns: string
       }
       teacher_add_student: {
         Args: {

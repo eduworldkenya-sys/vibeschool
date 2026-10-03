@@ -1,0 +1,37 @@
+name: Canonical Class Workbook
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "lib/class-workbook/**"
+      - "components/teacher/workbook/**"
+      - "app/teacher/classhub/**"
+      - "supabase/migrations/*class_workbook*"
+      - "scripts/test-class-workbook*"
+      - ".github/workflows/class-workbook.yml"
+permissions:
+  contents: read
+concurrency:
+  group: class-workbook-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  workbook:
+    name: Workbook projections and database isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/production-build-contract
+        with:
+          build_application: "false"
+          prebuild_command: node scripts/test-class-workbook.mjs
+      - name: Install isolated PostgreSQL test runtime
+        run: npm install --prefix "$RUNNER_TEMP/workbook-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8
+      - name: Exercise actual migration and canonical group policies
+        run: WORKBOOK_PGLITE_MODULE="$RUNNER_TEMP/workbook-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-class-workbook-db.mjs
+      - name: Install isolated DOM test runtime
+        run: npm install --prefix "$RUNNER_TEMP/workbook-ui" --ignore-scripts --no-audit --no-fund jsdom@26.1.0 esbuild@0.28.2 @testing-library/dom@10.4.2
+      - name: Exercise workbook interactions and recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-class-workbook-ui.mjs
