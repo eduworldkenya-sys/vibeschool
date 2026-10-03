@@ -2,10 +2,6 @@ import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
 import { getTwinAuthorityContext, selectTwinRoleBinding } from '@/lib/twin/core'
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
-
 function record(value: unknown): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {} }
 function text(value: unknown): string | null { return typeof value === 'string' ? value : null }
 function numberOrNull(value: unknown): number | null {
@@ -133,7 +129,7 @@ export async function getTeacherTwinState(): Promise<TeacherTwinState> {
   // This order avoids rejecting a valid multi-school Teacher before the server
   // has resolved the active school, while remaining backward-compatible during
   // the migration/deployment boundary.
-  const { data, error } = await rpc<Json>('teacher_get_twin_brain')
+  const { data, error } = await supabase.rpc('teacher_get_twin_brain' as never)
   if (error) throw new Error(error.message || 'Your Teacher Twin state could not be loaded.')
 
   const state = record(data)
@@ -248,5 +244,32 @@ export function resolveTeacherTwinQuery(input: string, state: TeacherTwinState):
   if (/message|unread/.test(q)) return { text: `You have ${state.context.unreadThreads} unread VibeConnect thread${state.context.unreadThreads === 1 ? '' : 's'}.` }
   if (/remember|memory|pattern/.test(q)) return { text: state.memory.claims.length > 0 ? state.memory.claims.slice(0, 5).map(claim => `${claim.claim} (${Math.round(claim.confidence * 100)}% confidence; ${claim.evidenceCount} evidence item${claim.evidenceCount === 1 ? '' : 's'})`).join('\n') : 'No active evidence-derived teacher memory claims are available yet.' }
 
-  return { text: 'I work from your authorized Teacher Twin state without generative AI. Ask about your lesson now, next class, timetable, attendance, marking, learners needing attention, curriculum, reflection, TPAD, credits, messages, or what to do next.' }
+  const surfaces: Array<{ pattern: RegExp; label: string; url: string }> = [
+    { pattern: /class(?:es|hub)?|roster|class list/, label: 'Classes', url: '/teacher/classhub' },
+    { pattern: /exam|markbook|marks|results/, label: 'Exam Centre', url: '/teacher/exams' },
+    { pattern: /assessment|quiz|cat/, label: 'Assessments', url: '/teacher/assessment' },
+    { pattern: /homework|assignment/, label: 'Homework', url: '/teacher/homework' },
+    { pattern: /student|learner/, label: 'Students', url: '/teacher/students' },
+    { pattern: /scheme|curriculum|coverage/, label: 'Scheme of Work', url: '/teacher/scheme' },
+    { pattern: /resource|note|content/, label: 'Resources', url: '/teacher/resources' },
+    { pattern: /week|today/, label: 'Teaching week', url: '/teacher/week' },
+    { pattern: /school|change school/, label: 'School', url: '/teacher/schoolhub' },
+    { pattern: /help|support/, label: 'Help', url: '/teacher/help' },
+  ]
+  if (/^(?:find|open|show|go to|take me to|where is)\b/.test(q)) {
+    const match = surfaces.find(surface => surface.pattern.test(q))
+    if (match) return { text: `I found ${match.label} in Teacher OS.`, actionUrl: match.url, actionLabel: `Open ${match.label}` }
+  }
+
+  if (/predict|likely|expect|anticipate|tomorrow|coming up/.test(q)) {
+    const signals: string[] = []
+    if (state.evidence.attendancePending > 0) signals.push(`${state.evidence.attendancePending} attendance record${state.evidence.attendancePending === 1 ? ' is' : 's are'} still pending`)
+    if (state.evidence.pendingMarking > 0) signals.push(`${state.evidence.pendingMarking} submission${state.evidence.pendingMarking === 1 ? ' is' : 's are'} waiting for marking`)
+    if (state.evidence.overdueSchemeItems > 0) signals.push(`${state.evidence.overdueSchemeItems} scheme item${state.evidence.overdueSchemeItems === 1 ? ' is' : 's are'} overdue`)
+    if (state.evidence.reflectionGaps7d > 0) signals.push(`${state.evidence.reflectionGaps7d} recent completed lesson${state.evidence.reflectionGaps7d === 1 ? ' has' : 's have'} no reflection`)
+    if (!signals.length) return { text: 'I do not have enough current workflow evidence to flag a likely near-term problem. That is not a guarantee that nothing will need attention.' }
+    return { text: `Based only on current recorded workflow signals, the next likely pressure points are: ${signals.join('; ')}. This is a deterministic forecast from existing records, not a fact about the future.` }
+  }
+
+  return { text: 'I work from your authorized Teacher Twin state without generative AI. I can answer, search Teacher OS, predict from recorded workflow signals, and prepare safe actions such as exam-mark entry for your confirmation. Ask about lessons, timetable, attendance, marking, learners, curriculum, reflection, TPAD, messages, or what to do next.' }
 }

@@ -76,7 +76,7 @@ for (const value of [
   requireText(switcher, switcherPath, value, 'Teacher scope switcher is not bound to governed school selection')
 }
 
-requireText(adapter, adapterPath, "rpc<Json>('teacher_get_twin_brain')", 'Teacher runtime must let the server resolve the active school')
+requireText(adapter, adapterPath, "supabase.rpc('teacher_get_twin_brain' as never)", 'Teacher runtime must let the server resolve the active school through the canonical RPC')
 requireText(adapter, adapterPath, "selectTwinRoleBinding(authority, 'teacher', schoolId)", 'Teacher runtime must validate the server-selected school against shared authority')
 rejectText(adapter, adapterPath, "selectTwinRoleBinding(authority, 'teacher')", 'Teacher runtime must not fail before active-school resolution for a multi-school Teacher')
 
