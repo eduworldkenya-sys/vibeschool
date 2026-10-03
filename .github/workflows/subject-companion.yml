@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "app/teacher/subjecthub/**"
+      - "app/teacher/resources/**"
       - "components/teacher/SubjectCompanion.tsx"
       - "lib/content-engine/subjectClassLibrary.ts"
       - "scripts/test-subject-companion-contract.mjs"
@@ -12,6 +13,7 @@ on:
     branches: [main]
     paths:
       - "app/teacher/subjecthub/**"
+      - "app/teacher/resources/**"
       - "components/teacher/SubjectCompanion.tsx"
       - "lib/content-engine/subjectClassLibrary.ts"
       - "scripts/test-subject-companion-contract.mjs"
