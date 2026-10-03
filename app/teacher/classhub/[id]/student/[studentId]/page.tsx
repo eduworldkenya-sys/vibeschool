@@ -3,12 +3,12 @@
 export const dynamic = "force-dynamic";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
 import { listInterventionQueue, type InterventionQueueItem } from "@/lib/assessment/interventions";
 
-type ClassContext = { class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string };
+type ClassContext = { class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string; is_class_teacher?: boolean };
 type Context = { teacher_id: string; school_id: string | null; classes: ClassContext[] };
 type Student = { id: string; name: string; admission_number: string | null; profile_id: string | null; deleted_at?: string | null };
 type AttendanceRow = { date: string; status: string; is_late: boolean | null };
@@ -18,6 +18,7 @@ type GradebookRow = { assessment_id: string; subject_id: string | null; score: n
 type CbcRow = { id: string; subject_id: string; strand_id: string | null; sub_strand: string | null; assessment_type: string; performance: string; notes: string | null; created_at: string };
 type ExamRow = { id: string; exam_id: string; subject_id: string; marks: number; is_absent: boolean; created_at: string };
 type SubjectRow = { id: string; name: string };
+type TeacherEvent = { id: string; subject_id: string | null; event_kind: string; event_code: string | null; note: string | null; visibility: string; due_at: string | null; resolved_at: string | null; created_at: string; created_by: string };
 type Tab = "now" | "work" | "assessment" | "attendance" | "timeline";
 
 const tabs: Tab[] = ["now", "work", "assessment", "attendance", "timeline"];
@@ -37,7 +38,7 @@ function parseContext(value: unknown): Context {
     for (const entry of value.classes) {
       if (!isRecord(entry)) continue;
       if (typeof entry.class_id !== "string" || typeof entry.class_name !== "string" || typeof entry.subject_id !== "string" || typeof entry.subject_name !== "string") continue;
-      classes.push({ class_id: entry.class_id, class_name: entry.class_name, stream: stringOrNull(entry.stream), subject_id: entry.subject_id, subject_name: entry.subject_name });
+      classes.push({ class_id: entry.class_id, class_name: entry.class_name, stream: stringOrNull(entry.stream), subject_id: entry.subject_id, subject_name: entry.subject_name, is_class_teacher: entry.is_class_teacher === true });
     }
   }
   return { teacher_id: typeof value.teacher_id === "string" ? value.teacher_id : "", school_id: stringOrNull(value.school_id), classes };
@@ -60,6 +61,8 @@ function Card({ children }: { children: React.ReactNode }) {
 export default function TeacherStudentProgressPage() {
   const params = useParams<{ id: string; studentId: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedSubjectId = searchParams.get("subjectId");
   const classId = params.id;
   const studentId = params.studentId;
   const [context, setContext] = useState<Context | null>(null);
@@ -72,6 +75,10 @@ export default function TeacherStudentProgressPage() {
   const [exams, setExams] = useState<ExamRow[]>([]);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [interventions, setInterventions] = useState<InterventionQueueItem[]>([]);
+  const [teacherEvents, setTeacherEvents] = useState<TeacherEvent[]>([]);
+  const [eventNote, setEventNote] = useState("");
+  const [eventSaving, setEventSaving] = useState(false);
+  const [eventMessage, setEventMessage] = useState("");
   const [tab, setTab] = useState<Tab>("now");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +94,11 @@ export default function TeacherStudentProgressPage() {
       if (contextError) throw contextError;
       const ctx = parseContext(contextData);
       if (!ctx.school_id) throw new Error("School context is missing.");
-      if (!ctx.classes.some((item) => item.class_id === classId)) throw new Error("This class is not assigned to you in the active school.");
+      const classAssignments = ctx.classes.filter((item) => item.class_id === classId);
+      const authorizedAssignment = requestedSubjectId
+        ? classAssignments.find((item) => item.subject_id === requestedSubjectId)
+        : classAssignments.find((item) => item.is_class_teacher);
+      if (!authorizedAssignment) throw new Error(requestedSubjectId ? "This subject is not assigned to you in the active school." : "Class-wide learner history is available to the class teacher. Use the subject view for subject-scoped learner evidence.");
       setContext(ctx);
 
       const enrollmentRes = await supabase.from("student_classes").select("student_id").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("is_current", true).maybeSingle();
@@ -100,17 +111,20 @@ export default function TeacherStudentProgressPage() {
       if (!learner) throw new Error("This learner identity could not be loaded. Retry instead of treating the enrolment as missing.");
       setStudent(learner);
 
-      const subjectIds = Array.from(new Set(ctx.classes.filter((item) => item.class_id === classId).map((item) => item.subject_id)));
-      const [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, interventionRows] = await Promise.all([
+      const subjectIds = requestedSubjectId
+        ? [requestedSubjectId]
+        : Array.from(new Set(ctx.classes.filter((item) => item.class_id === classId).map((item) => item.subject_id)));
+      const [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, eventsRes, interventionRows] = await Promise.all([
         supabase.from("attendance").select("date,status,is_late").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).order("date", { ascending: false }).limit(120),
         supabase.from("homework").select("id,title,subject,due_date,type").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("due_date", { ascending: false }).limit(80),
         subjectIds.length ? supabase.from("assessment_gradebook_entries").select("assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("released_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("cbc_assessments").select("id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("exam_results").select("id,exam_id,subject_id,marks,is_absent,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("subjects").select("id,name").in("id", subjectIds) : Promise.resolve({ data: [], error: null }),
+        supabase.from("teacher_learner_events").select("id,subject_id,event_kind,event_code,note,visibility,due_at,resolved_at,created_at,created_by").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).is("archived_at", null).order("created_at", { ascending: false }).limit(80),
         listInterventionQueue(classId),
       ]);
-      for (const result of [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes]) if (result.error) throw result.error;
+      for (const result of [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, eventsRes]) if (result.error) throw result.error;
 
       const homeworkRows: HomeworkRow[] = homeworkRes.data ?? [];
       const submissionRes = homeworkRows.length ? await supabase.from("homework_submissions").select("homework_id,status,mark,feedback,submitted_at").eq("student_id", studentId).in("homework_id", homeworkRows.map((item) => item.id)) : { data: [], error: null };
@@ -123,12 +137,44 @@ export default function TeacherStudentProgressPage() {
       setCbc(cbcRes.data ?? []);
       setExams(examRes.data ?? []);
       setSubjects(subjectRes.data ?? []);
+      setTeacherEvents((eventsRes.data ?? []) as TeacherEvent[]);
       setInterventions(interventionRows.filter((item) => item.studentId === studentId));
     } catch (loadError) {
       console.error("[LearnerWorkspace] load", loadError);
       setError(loadError instanceof Error ? loadError.message : "Learner workspace could not be loaded.");
     } finally { setLoading(false); }
-  }, [classId, router, studentId]);
+  }, [classId, requestedSubjectId, router, studentId]);
+
+  const saveTeacherEvent = useCallback(async (eventKind: "observation" | "participation" | "recognition" | "followup") => {
+    if (!context?.school_id || !context.teacher_id || !student) return;
+    if ((eventKind === "observation" || eventKind === "followup") && !eventNote.trim()) {
+      setEventMessage("Add a short factual note first.");
+      return;
+    }
+    setEventSaving(true);
+    setEventMessage("");
+    const defaults = { observation: "teacher_note", participation: "participated", recognition: "strong_effort", followup: "follow_up" } as const;
+    const { error: insertError } = await supabase.from("teacher_learner_events").insert({
+      school_id: context.school_id,
+      class_id: classId,
+      student_id: student.id,
+      subject_id: requestedSubjectId,
+      event_kind: eventKind,
+      event_code: defaults[eventKind],
+      note: eventNote.trim() || (eventKind === "participation" ? "Participated in class." : "Strong effort shown."),
+      visibility: eventKind === "observation" ? "author" : "subject_team",
+      due_at: eventKind === "followup" ? new Date(Date.now() + 7 * 86400000).toISOString() : null,
+      created_by: context.teacher_id,
+    });
+    if (insertError) {
+      setEventMessage(insertError.message);
+    } else {
+      setEventNote("");
+      setEventMessage("Saved to this learner's story.");
+      await load();
+    }
+    setEventSaving(false);
+  }, [classId, context, eventNote, load, requestedSubjectId, student]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -173,6 +219,7 @@ export default function TeacherStudentProgressPage() {
     ...gradebook.filter((item) => item.released_at).map((item, index) => ({ id: `assessment-${item.assessment_id}-${index}`, at: item.released_at as string, type: "Assessment", title: item.assessment_title, detail: item.percentage == null ? item.assessment_type : `${Math.round(item.percentage)}% · ${item.assessment_type}` })),
     ...cbc.map((item) => ({ id: `cbc-${item.id}`, at: item.created_at, type: "Learning evidence", title: `${subjectNames.get(item.subject_id) ?? "Subject"}${item.sub_strand ? ` · ${item.sub_strand}` : ""}`, detail: `${item.assessment_type} · ${item.performance}` })),
     ...interventions.filter((item) => item.updatedAt).map((item) => ({ id: `support-${item.interventionId}`, at: item.updatedAt, type: "Support", title: `${item.subjectName} · ${item.priority === "extension" ? "Challenge" : "Learning support"}`, detail: item.status.replaceAll("_", " ") })),
+    ...teacherEvents.map((item) => ({ id: `teacher-event-${item.id}`, at: item.created_at, type: item.event_kind === "parent_contact" ? "Parent follow-up" : item.event_kind.charAt(0).toUpperCase() + item.event_kind.slice(1), title: item.event_code?.replaceAll("_", " ") ?? item.event_kind, detail: item.note ?? (item.due_at ? `Follow-up due ${formatDate(item.due_at)}` : "Teacher-recorded event") })),
   ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 40);
 
 
@@ -211,6 +258,19 @@ export default function TeacherStudentProgressPage() {
       <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>WHAT CHANGED</div>{!truth.trend ? <div style={{ color: "#6b7280", fontSize: 12 }}><strong style={{ color: "#374151" }}>No reliable trend yet.</strong><div style={{ marginTop: 4 }}>VibeSchool waits for at least 4 comparable released assessments before saying performance is improving or declining.</div></div> : <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}><div><strong>{subjectNames.get(truth.trend.subjectId) ?? "Subject"}</strong><div style={{ marginTop: 3, fontSize: 10, color: "#6b7280" }}>{truth.trend.assessmentType} · {truth.trend.evidenceCount} comparable assessments</div></div><Badge text={`${truth.trend.delta > 0 ? "+" : ""}${truth.trend.delta} pts`} tone={truth.trend.delta >= 5 ? "good" : truth.trend.delta <= -5 ? "bad" : "neutral"} /></div>}</Card>
 
       <Card>
+        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 8 }}>TEACHER NOTES & ACTIONS</div>
+        <textarea value={eventNote} onChange={(event) => setEventNote(event.target.value)} rows={3} placeholder="Factual note, e.g. Needed prompting during graph interpretation." style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 10, fontFamily: "inherit", resize: "vertical" }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 7, marginTop: 8 }}>
+          <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("observation")} style={{ minHeight: 42, border: "1px solid #d1d5db", borderRadius: 11, background: "#fff", fontWeight: 900 }}>Add note</button>
+          <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("followup")} style={{ minHeight: 42, border: "1px solid #d1d5db", borderRadius: 11, background: "#fff", fontWeight: 900 }}>Follow up</button>
+          <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("participation")} style={{ minHeight: 42, border: 0, borderRadius: 11, background: "#0369a1", color: "#fff", fontWeight: 900 }}>Participated</button>
+          <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("recognition")} style={{ minHeight: 42, border: 0, borderRadius: 11, background: "#065f46", color: "#fff", fontWeight: 900 }}>Recognise effort</button>
+        </div>
+        {eventMessage && <div style={{ marginTop: 8, fontSize: 11, color: eventMessage.startsWith("Saved") ? "#065f46" : "#92400e" }}>{eventMessage}</div>}
+        {teacherEvents.length > 0 && <div style={{ marginTop: 12, display: "grid", gap: 7 }}>{teacherEvents.slice(0,5).map((item) => <div key={item.id} style={{ background: "#f8fafc", borderRadius: 11, padding: 9 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong style={{ fontSize: 11, textTransform: "capitalize" }}>{item.event_kind.replaceAll("_", " ")}</strong><span style={{ fontSize: 9, color: "#6b7280" }}>{formatDate(item.created_at)}</span></div>{item.note && <div style={{ marginTop: 3, fontSize: 11, color: "#4b5563" }}>{item.note}</div>}</div>)}</div>}
+      </Card>
+
+      <Card>
         <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>LEARNING SUPPORT</div>
         {interventions.length === 0 ? <div style={{ color: "#6b7280", fontSize: 12 }}>{truth.evidenceState === "sufficient" ? "No active outcome support is currently required." : "Outcome-level support will appear only when the evidence supports it."}</div> : <div style={{ display: "grid", gap: 10 }}>{interventions.map((item) => <div key={item.interventionId} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}><div><div style={{ fontSize: 10, color: "#6b7280", fontWeight: 800 }}>{item.subjectName}</div><strong style={{ display: "block", marginTop: 2 }}>{item.priority === "extension" ? "Ready for a challenge" : item.masteryScore < 40 ? "Needs focused support" : "Needs more practice"}</strong></div><Badge text={item.status.replaceAll("_", " ")} tone={item.status === "completed" ? "good" : item.status === "escalated" ? "bad" : "warn"} /></div><div style={{ marginTop: 7, fontSize: 12, lineHeight: 1.45 }}>{item.recommendation}</div><div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}><Badge text={`${Math.round(item.masteryScore)}% mastery`} tone={item.masteryScore >= 70 ? "good" : item.masteryScore < 40 ? "bad" : "warn"} /><Badge text={`${item.evidenceCount} evidence`} /><Badge text={`${Math.round(item.confidenceScore)}% confidence`} /></div>{item.evaluatedAt ? <div style={{ marginTop: 8, fontSize: 11 }}><strong>After support:</strong> {item.masteryChange != null && item.masteryChange > 0 ? "+" : ""}{item.masteryChange ?? 0} mastery points</div> : item.remedialAssessmentId ? <div style={{ marginTop: 8, fontSize: 11, color: "#4b5563" }}>Follow-up assessment created. Review the result when released.</div> : <div style={{ marginTop: 8, fontSize: 11, color: "#92400e" }}>Next step: give a short reassessment so you can see whether the support worked.</div>}<details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer", fontSize: 10, color: "#6b7280" }}>Technical evidence details</summary><div style={{ marginTop: 5, fontSize: 10, color: "#6b7280" }}>{item.outcomeCode ?? "Outcome"} · {item.outcomeText || "Outcome evidence"} · {item.priority} priority</div></details></div>)}</div>}
         <button type="button" onClick={() => router.push(`/teacher/assessment/interventions?classId=${classId}`)} style={{ marginTop: 12, minHeight: 44, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", fontWeight: 900, padding: "0 14px" }}>Open support workspace</button>
@@ -232,7 +292,7 @@ export default function TeacherStudentProgressPage() {
 
     {tab === "timeline" && <Card>
       <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 4 }}>STUDENT STORY</div>
-      <div style={{ fontSize: 12, color: "#4b5563", lineHeight: 1.45, marginBottom: 14 }}>One timeline of attendance, work, assessments and support. Use it to see what happened before and after you acted.</div>
+      <div style={{ fontSize: 12, color: "#4b5563", lineHeight: 1.45, marginBottom: 14 }}>One timeline of attendance, work, assessments, teacher observations, recognition, participation and support. Use it to see what happened before and after you acted.</div>
       {timeline.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "#6b7280" }}>No dated learner events are recorded yet.</div> : <div style={{ display: "grid" }}>{timeline.map((item, index) => <div key={item.id} style={{ display: "grid", gridTemplateColumns: "76px 12px 1fr", gap: 8, minHeight: 64 }}><div style={{ fontSize: 9, color: "#6b7280", paddingTop: 2 }}>{formatDate(item.at)}</div><div style={{ position: "relative" }}><div style={{ width: 9, height: 9, borderRadius: 99, background: "#4f46e5", marginTop: 2 }} />{index < timeline.length - 1 && <div style={{ position: "absolute", left: 4, top: 12, bottom: -2, width: 1, background: "#e5e7eb" }} />}</div><div style={{ paddingBottom: 14 }}><div style={{ fontSize: 9, fontWeight: 900, color: "#6366f1", textTransform: "uppercase", letterSpacing: .4 }}>{item.type}</div><div style={{ marginTop: 2, fontSize: 12, fontWeight: 900 }}>{item.title}</div><div style={{ marginTop: 2, fontSize: 10, color: "#6b7280" }}>{item.detail}</div></div></div>)}</div>}
     </Card>}
 

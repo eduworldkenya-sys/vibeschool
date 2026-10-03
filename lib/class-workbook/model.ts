@@ -124,11 +124,12 @@ export type Intervention = {
 };
 export type Data = {
   teacherId: string;
+  isClassTeacher?: boolean;
   schoolId: string;
   classId: string;
   className: string;
   subjects: { id: string; name: string }[];
-  classes: { id: string; name: string; subjectIds: string[] }[];
+  classes: { id: string; name: string; subjectIds: string[]; isClassTeacher?: boolean }[];
   terms: { id: string; name: string; start_date: string; end_date: string }[];
   learners: Learner[];
   attendance: Attendance[];

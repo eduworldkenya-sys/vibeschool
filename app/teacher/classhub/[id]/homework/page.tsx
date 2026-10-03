@@ -24,6 +24,7 @@ type HomeworkRow = {
   lesson_plan_id: string | null;
   teaching_occurrence_id: string | null;
   homework_submissions: Array<{ id: string }>;
+  target_group_id: string | null;
 };
 
 type FormState = { title: string; subject: string; instructions: string; dueDate: string; type: string };
@@ -45,8 +46,8 @@ const INPUT_STYLE = {
   caretColor: "#111827",
 };
 
-function draftKey(classId: string, schoolId: string | null, occurrenceId: string | null) {
-  return `vibeschool:teacher:homework:${schoolId ?? "school"}:${classId}:${occurrenceId ?? "generic"}`;
+function draftKey(classId: string, schoolId: string | null, occurrenceId: string | null, groupId: string | null) {
+  return `vibeschool:teacher:homework:${schoolId ?? "school"}:${classId}:${occurrenceId ?? "generic"}:${groupId ?? "whole-class"}`;
 }
 
 function readDraft(key: string): FormState | null {
@@ -77,14 +78,16 @@ function HomeworkInner() {
   const sourceSubjectId = search.get("subjectId")?.trim() || null;
   const sourceSubjectName = search.get("subject")?.trim() || "";
   const sourceTopic = search.get("topic")?.trim() || "";
+  const sourceGroupId = search.get("groupId")?.trim() || null;
   const lessonLinked = Boolean(sourceLessonPlanId || sourceOccurrenceId);
 
   const [context, setContext] = useState<Context | null>(null);
   const [lessonContext, setLessonContext] = useState<LessonContext | null>(null);
   const [list, setList] = useState<HomeworkRow[]>([]);
   const [rosterCount, setRosterCount] = useState(0);
+  const [targetGroup, setTargetGroup] = useState<{ id: string; name: string; memberCount: number } | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [showForm, setShowForm] = useState(lessonLinked);
+  const [showForm, setShowForm] = useState(lessonLinked || Boolean(sourceGroupId));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -98,7 +101,7 @@ function HomeworkInner() {
       ?? null,
     [classId, context, sourceSubjectId],
   );
-  const storageKey = useMemo(() => draftKey(classId, context?.school_id ?? null, sourceOccurrenceId), [classId, context?.school_id, sourceOccurrenceId]);
+  const storageKey = useMemo(() => draftKey(classId, context?.school_id ?? null, sourceOccurrenceId, sourceGroupId), [classId, context?.school_id, sourceGroupId, sourceOccurrenceId]);
   const authoritativeSubject = lessonLinked ? (lessonContext?.subject || sourceSubjectName || assignment?.subject_name || "") : form.subject;
   const minimumDueDate = lessonContext?.occurrenceDate && lessonContext.occurrenceDate > nairobiDateStr() ? lessonContext.occurrenceDate : nairobiDateStr();
 
@@ -121,13 +124,32 @@ function HomeworkInner() {
       setContext(ctx);
 
       const [homeworkRes, rosterRes] = await Promise.all([
-        supabase.from("homework").select("id,title,subject,instructions,due_date,type,created_at,lesson_plan_id,teaching_occurrence_id,homework_submissions(id)").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("created_at", { ascending: false }),
+        supabase.from("homework").select("id,title,subject,instructions,due_date,type,created_at,lesson_plan_id,teaching_occurrence_id,target_group_id,homework_submissions(id)").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("created_at", { ascending: false }),
         supabase.from("student_classes").select("student_id", { count: "exact", head: true }).eq("school_id", ctx.school_id).eq("class_id", classId).eq("is_current", true),
       ]);
       if (homeworkRes.error) throw homeworkRes.error;
       if (rosterRes.error) throw rosterRes.error;
       setList((homeworkRes.data ?? []) as HomeworkRow[]);
       setRosterCount(rosterRes.count ?? 0);
+
+      if (sourceGroupId) {
+        const groupRes = await supabase
+          .from("class_groups")
+          .select("id,name,class_id,school_id,archived_at")
+          .eq("id", sourceGroupId)
+          .eq("class_id", classId)
+          .eq("school_id", ctx.school_id)
+          .is("archived_at", null)
+          .maybeSingle();
+        if (groupRes.error) throw groupRes.error;
+        if (!groupRes.data) throw new Error("The selected learner group is no longer available for this class.");
+        const memberRes = await supabase.from("class_group_members").select("student_id", { count: "exact", head: true }).eq("group_id", sourceGroupId);
+        if (memberRes.error) throw memberRes.error;
+        if (!memberRes.count) throw new Error("The selected learner group has no current members.");
+        setTargetGroup({ id: groupRes.data.id, name: groupRes.data.name, memberCount: memberRes.count });
+      } else {
+        setTargetGroup(null);
+      }
 
       let resolvedLesson: LessonContext | null = null;
       if (sourceOccurrenceId) {
@@ -154,7 +176,7 @@ function HomeworkInner() {
         setLessonContext(resolvedLesson);
       }
 
-      const key = draftKey(classId, ctx.school_id, sourceOccurrenceId);
+      const key = draftKey(classId, ctx.school_id, sourceOccurrenceId, sourceGroupId);
       const savedDraft = readDraft(key);
       const defaultSubject = resolvedLesson?.subject || sourceSubjectName || ctx.classes.find((item) => item.class_id === classId && (!sourceSubjectId || item.subject_id === sourceSubjectId))?.subject_name || "";
       if (savedDraft) {
@@ -168,7 +190,7 @@ function HomeworkInner() {
     } finally {
       setLoading(false);
     }
-  }, [classId, lessonLinked, router, sourceLessonPlanId, sourceOccurrenceId, sourceSubjectId, sourceSubjectName, sourceTopic]);
+  }, [classId, lessonLinked, router, sourceGroupId, sourceLessonPlanId, sourceOccurrenceId, sourceSubjectId, sourceSubjectName, sourceTopic]);
 
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (showForm && context?.school_id) writeDraft(storageKey, { ...form, subject: lessonLinked ? authoritativeSubject : form.subject }); }, [authoritativeSubject, context?.school_id, form, lessonLinked, showForm, storageKey]);
@@ -212,13 +234,14 @@ function HomeworkInner() {
         type: form.type,
         lesson_plan_id: sourceLessonPlanId,
         teaching_occurrence_id: sourceOccurrenceId,
+        target_group_id: sourceGroupId,
       }).select("id").single();
       if (createError || !created?.id) throw createError ?? new Error("Homework insert returned no ID.");
 
       clearDraft(storageKey);
       setForm(EMPTY_FORM);
       setShowForm(false);
-      setSuccess("Homework assigned. Current enrolled learners can now access it.");
+      setSuccess(sourceGroupId ? "Homework assigned to the selected learner group." : "Homework assigned. Current enrolled learners can now access it.");
       await load();
     } catch (createError) {
       console.error("[ClassHomework] create", createError);
@@ -256,7 +279,7 @@ function HomeworkInner() {
       <section style={{ background: "linear-gradient(135deg,#0f766e,#14b8a6)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
         <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={{ minHeight: 38, border: 0, borderRadius: 10, background: "rgba(255,255,255,.15)", color: "#fff", padding: "0 11px", fontWeight: 900 }}>‹ Class</button>
         <h1 style={{ margin: "12px 0 3px", fontSize: 23 }}>Homework · {classLabel}</h1>
-        <div style={{ fontSize: 12, opacity: .82 }}>{rosterCount} current learners · {list.length} assignments</div>
+        <div style={{ fontSize: 12, opacity: .82 }}>{targetGroup ? `${targetGroup.memberCount} targeted learners · ${targetGroup.name}` : `${rosterCount} current learners`} · {list.length} assignments</div>
         <button type="button" onClick={() => setShowForm((value) => !value)} style={{ width: "100%", minHeight: 46, marginTop: 12, border: 0, borderRadius: 12, background: "#fff", color: "#0f766e", fontWeight: 900 }}>{showForm ? "Close form" : "Create homework / exercise"}</button>
       </section>
 
@@ -264,6 +287,7 @@ function HomeworkInner() {
       {success && <div role="status" style={{ background: "#ecfdf5", color: "#065f46", borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13 }}>{success}</div>}
 
       {showForm && <section style={{ background: "#fff", color: "#111827", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
+        {targetGroup && <div style={{ background: "#ecfdf5", color: "#065f46", borderRadius: 12, padding: 11, marginBottom: 13, fontSize: 12 }}><strong>Targeted group:</strong> {targetGroup.name} · {targetGroup.memberCount} learners. Learners outside this saved assignment cohort will not receive this work.</div>}
         {lessonLinked && <div style={{ background: "#eff6ff", color: "#1e40af", borderRadius: 12, padding: 11, marginBottom: 13, fontSize: 12, lineHeight: 1.45 }}>
           <strong style={{ display: "block", marginBottom: 2 }}>Linked lesson</strong>
           <span>{authoritativeSubject || "Subject"} · {classLabel}{lessonContext?.occurrenceDate ? ` · ${lessonContext.occurrenceDate}` : ""}{lessonTime ? ` · ${lessonTime}` : ""}</span>
@@ -285,7 +309,8 @@ function HomeworkInner() {
 
       {loading ? <div aria-label="Loading class homework" style={{ display: "grid", gap: 9 }}>{[1,2,3].map((item) => <div key={item} style={{ height: 96, borderRadius: 16, background: "#e5e7eb" }} />)}</div> : list.length === 0 ? (!showForm && <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center", color: "#6b7280", fontSize: 13 }}>No learner work assigned yet. Create one here or open this page from a lesson to preserve exact lesson lineage.</section>) : <div style={{ display: "grid", gap: 9 }}>{list.map((item) => {
         const submitted = item.homework_submissions.length;
-        const percentage = rosterCount ? Math.round((submitted / rosterCount) * 100) : 0;
+        const denominator = item.target_group_id && targetGroup?.id === item.target_group_id ? targetGroup.memberCount : rosterCount;
+        const percentage = denominator ? Math.round((submitted / denominator) * 100) : 0;
         return <section key={item.id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 16, padding: 13, boxShadow: "0 1px 5px rgba(0,0,0,.04)" }}>
           <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework/${item.id}`)} style={{ width: "100%", textAlign: "left", border: 0, background: "transparent", padding: 0 }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div><div style={{ fontSize: 14, fontWeight: 900, color: "#111827" }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 10, color: "#6b7280" }}>{item.subject || assignment?.subject_name || "Subject"} · Due {item.due_date}</div></div><strong style={{ flexShrink: 0, fontSize: 11, color: "#0f766e" }}>{submitted}/{rosterCount}</strong></div>

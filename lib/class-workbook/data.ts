@@ -85,6 +85,7 @@ export async function loadWorkbook(
     return {
       id,
       name: `${rows[0].class_name ?? "Class"} ${rows[0].stream ?? ""}`.trim(),
+      isClassTeacher: rows.some(a => a.is_class_teacher === true),
       subjectIds: Array.from(new Set(rows.map((a) => String(a.subject_id)))),
     };
   });
@@ -226,6 +227,8 @@ export async function loadWorkbook(
       supabase
         .from("class_groups")
         .select("id,name,type")
+        .is("archived_at", null)
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
         .eq("class_id", classId)
         .order("id")
         .range(from, to),
@@ -240,8 +243,9 @@ export async function loadWorkbook(
     throw new Error(
       `Your saved sheets could not be loaded: ${saved.error.message}`,
     );
+  const memberGroupIds = [...new Set([...groups.map(g => g.id), ...homework.flatMap(h => h.target_group_id ? [h.target_group_id] : [])])];
   const members: Member[] = [];
-  for (let i = 0; i < groups.length; i += 200)
+  for (let i = 0; i < memberGroupIds.length; i += 200)
     members.push(
       ...(await pages<Member>((from, to) =>
         supabase
@@ -249,12 +253,18 @@ export async function loadWorkbook(
           .select("student_id,group_id")
           .in(
             "group_id",
-            groups.slice(i, i + 200).map((g) => g.id),
+            memberGroupIds.slice(i, i + 200),
           )
           .order("id")
           .range(from, to),
       )),
     );
+  for (const group of groups) {
+    const r = await supabase.rpc('teacher_resolve_class_group_members', { p_group_id: group.id });
+    if (r.error) throw new Error(`Group membership could not be confirmed: ${r.error.message}`);
+    for (let i = members.length - 1; i >= 0; i--) if (members[i].group_id === group.id) members.splice(i, 1);
+    members.push(...(r.data ?? []).map((row: { student_id: string }) => ({ group_id: group.id, student_id: row.student_id })));
+  }
   const submissions: Submission[] = [];
   for (let i = 0; i < homework.length; i += 200)
     submissions.push(
@@ -322,6 +332,7 @@ export async function loadWorkbook(
   return {
     data: {
       teacherId,
+      isClassTeacher: assignments.some(a => a.is_class_teacher === true),
       schoolId,
       classId,
       classes,

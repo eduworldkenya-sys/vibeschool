@@ -3746,28 +3746,58 @@ export type Database = {
       }
       class_groups: {
         Row: {
+          archived_at: string | null
           class_id: string
           color: string
           created_at: string | null
+          created_by: string | null
+          expires_at: string | null
           id: string
+          mode: string
           name: string
+          purpose: string | null
+          rules: Json | null
+          school_id: string | null
+          subject_id: string | null
+          teaching_occurrence_id: string | null
           type: string
+          updated_at: string
         }
         Insert: {
+          archived_at?: string | null
           class_id: string
           color?: string
           created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
           id?: string
+          mode?: string
           name: string
+          purpose?: string | null
+          rules?: Json | null
+          school_id?: string | null
+          subject_id?: string | null
+          teaching_occurrence_id?: string | null
           type?: string
+          updated_at?: string
         }
         Update: {
+          archived_at?: string | null
           class_id?: string
           color?: string
           created_at?: string | null
+          created_by?: string | null
+          expires_at?: string | null
           id?: string
+          mode?: string
           name?: string
+          purpose?: string | null
+          rules?: Json | null
+          school_id?: string | null
+          subject_id?: string | null
+          teaching_occurrence_id?: string | null
           type?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3775,6 +3805,229 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_groups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_groups_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_groups_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_groups_teaching_occurrence_id_fkey"
+            columns: ["teaching_occurrence_id"]
+            isOneToOne: false
+            referencedRelation: "teaching_occurrences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classroom_games: {
+        Row: {
+          class_id: string
+          created_at: string
+          id: string
+          school_id: string
+          status: string
+          subject_id: string | null
+          teacher_id: string
+          teaching_occurrence_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          class_id: string
+          created_at?: string
+          id?: string
+          school_id: string
+          status?: string
+          subject_id?: string | null
+          teacher_id: string
+          teaching_occurrence_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          class_id?: string
+          created_at?: string
+          id?: string
+          school_id?: string
+          status?: string
+          subject_id?: string | null
+          teacher_id?: string
+          teaching_occurrence_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classroom_games_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classroom_games_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classroom_games_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classroom_game_teams: {
+        Row: {
+          created_at: string
+          game_id: string
+          group_id: string
+          id: string
+          label: string
+          score: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          group_id: string
+          id?: string
+          label: string
+          score?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          group_id?: string
+          id?: string
+          label?: string
+          score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classroom_game_teams_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "classroom_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classroom_game_teams_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "class_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_learner_events: {
+        Row: {
+          archived_at: string | null
+          class_id: string
+          created_at: string
+          created_by: string
+          due_at: string | null
+          event_code: string | null
+          event_kind: string
+          id: string
+          metadata: Json
+          note: string | null
+          resolved_at: string | null
+          school_id: string
+          student_id: string
+          subject_id: string | null
+          teaching_occurrence_id: string | null
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          archived_at?: string | null
+          class_id: string
+          created_at?: string
+          created_by: string
+          due_at?: string | null
+          event_code?: string | null
+          event_kind: string
+          id?: string
+          metadata?: Json
+          note?: string | null
+          resolved_at?: string | null
+          school_id: string
+          student_id: string
+          subject_id?: string | null
+          teaching_occurrence_id?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          archived_at?: string | null
+          class_id?: string
+          created_at?: string
+          created_by?: string
+          due_at?: string | null
+          event_code?: string | null
+          event_kind?: string
+          id?: string
+          metadata?: Json
+          note?: string | null
+          resolved_at?: string | null
+          school_id?: string
+          student_id?: string
+          subject_id?: string | null
+          teaching_occurrence_id?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_learner_events_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_learner_events_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_learner_events_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_learner_events_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
             referencedColumns: ["id"]
           },
         ]
@@ -18813,6 +19066,71 @@ export type Database = {
       }
     }
     Functions: {
+      teacher_start_class_game: {
+        Args: { p_class_id: string; p_subject_id: string | null; p_title: string; p_group_ids: string[]; p_request_id: string }
+        Returns: string
+      }
+      teacher_reset_class_game: {
+        Args: { p_game_id: string }
+        Returns: number
+      }
+      teacher_record_class_action: {
+        Args: { p_class_id: string; p_subject_id: string | null; p_student_ids: string[]; p_kind: string; p_note: string; p_due_date: string | null; p_request_id: string }
+        Returns: number
+      }
+      teacher_manage_class_learner: {
+        Args: { p_class_id: string; p_student_id: string; p_action: string; p_payload: Json; p_request_id: string }
+        Returns: string
+      }
+      teacher_get_departed_class_learners: {
+        Args: { p_class_id: string }
+        Returns: { id: string; name: string; admission_number: string | null; left_at: string }[]
+      }
+      teacher_get_class_workbook: {
+        Args: { p_school_id: string; p_class_id: string }
+        Returns: Json
+      }
+      teacher_save_class_workbook: {
+        Args: { p_school_id: string; p_class_id: string; p_expected_revision: number; p_document: Json }
+        Returns: number
+      }
+      teacher_create_workbook_group: {
+        Args: { p_school_id: string; p_class_id: string; p_name: string; p_student_ids: string[]; p_request_id: string }
+        Returns: string
+      }
+      teacher_add_student_v2: {
+        Args: {
+          p_name: string
+          p_admission_number?: string | null
+          p_class_id?: string | null
+          p_school_id?: string | null
+          p_request_id?: string | null
+        }
+        Returns: string
+      }
+      teacher_adjust_game_score: {
+        Args: { p_team_id: string; p_delta: number }
+        Returns: number
+      }
+      teacher_can_access_class: {
+        Args: {
+          p_class_id: string
+          p_subject_id?: string | null
+          p_require_class_teacher?: boolean
+        }
+        Returns: boolean
+      }
+      teacher_resolve_class_group_members: {
+        Args: { p_group_id: string }
+        Returns: {
+          reason: string
+          student_id: string
+        }[]
+      }
+      teacher_snapshot_class_group: {
+        Args: { p_group_id: string; p_purpose?: string | null }
+        Returns: string
+      }
       admin_add_student: {
         Args: {
           p_admission_number: string
@@ -20076,29 +20394,9 @@ export type Database = {
           operation: string
         }[]
       }
-      teacher_get_class_workbook: {
-        Args: { p_class_id: string; p_school_id: string }
-        Returns: Json
-      }
-      teacher_save_class_workbook: {
-        Args: {
-          p_class_id: string
-          p_document: Json
-          p_expected_revision: number
-          p_school_id: string
-        }
-        Returns: number
-      }
-      teacher_create_workbook_group: {
-        Args: {
-          p_class_id: string
-          p_name: string
-          p_request_id: string
-          p_school_id: string
-          p_student_ids: string[]
-        }
-        Returns: string
-      }
+
+
+
       teacher_add_student: {
         Args: {
           p_admission_number?: string
