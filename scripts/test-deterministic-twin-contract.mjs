@@ -63,7 +63,7 @@ requireText('components/student/VibeTwin/ui/TwinHeader.tsx', '<TwinRoleSwitcher 
 requireText('components/teacher/TwinDrawer.tsx', 'getTeacherTwinState', 'Teacher UI must load the server-authoritative Teacher adapter')
 requireText('components/teacher/TwinDrawer.tsx', 'resolveTeacherTwinQuery', 'Teacher queries must use deterministic role resolution')
 requireText('components/teacher/TwinDrawer.tsx', '<TwinRoleSwitcher currentRole="teacher" />', 'Teacher Twin must expose authorized multi-role switching')
-requireText('lib/teacher/twin.ts', "rpc<Json>('teacher_get_twin_brain')", 'Teacher adapter must consume the production Teacher brain RPC')
+requireText('lib/teacher/twin.ts', "supabase.rpc('teacher_get_twin_brain' as never)", 'Teacher adapter must consume the production Teacher brain RPC without an ungoverned RPC cast')
 requireText('lib/teacher/twin.ts', 'getTwinAuthorityContext', 'Teacher adapter must derive authority through the shared Twin core')
 requireText('lib/teacher/twin.ts', "selectTwinRoleBinding(authority, 'teacher', schoolId)", 'Teacher brain must validate active school against relationship authority')
 requireText('lib/twin/core.ts', "'prediction'", 'Teacher capabilities must expose deterministic prediction')
