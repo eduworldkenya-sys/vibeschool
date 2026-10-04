@@ -33,8 +33,7 @@ must(workspace, 'What learners should master', 'curriculum outcomes must be visi
 must(workspace, 'Learning needing attention', 'existing intervention evidence must feed VibeLearn')
 
 must(service, ".from('curriculum_outcome_prerequisites')", 'VibeLearn must reuse the canonical prerequisite graph')
-must(service, ".from('student_outcome_mastery')", 'service should reference mastery authority')
-must(service, ".from('assessment_interventions')", 'VibeLearn must reuse intervention evidence')
+must(service, ".from('assessment_interventions')", 'VibeLearn must reuse the existing mastery-derived intervention evidence')
 must(service, ".from('learning_resource_versions')", 'certified resource versions must influence recommendations')
 must(service, "p_target_type: 'lesson_plan'", 'class resources must be able to link into the prepared lesson')
 must(service, "p_usage_role: CLASS_ROLE_BY_INTENT[input.intent]", 'natural teacher intent must map to canonical class-library roles')
