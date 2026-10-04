@@ -29,6 +29,7 @@ const lessonModal = read('components/teacher/LessonPlanModal.tsx')
 const graphRepair = read('supabase/migrations/20261004123000_vibelearn_learning_graph_production_reconcile.sql')
 const verifiedOutcomeFix = read('supabase/migrations/20261004153000_vibelearn_lesson_verified_outcome_status.sql')
 const chemistrySemanticPilot = read('supabase/migrations/20261004170000_vibelearn_g10_chemistry_semantic_pilot.sql')
+const chemistrySubstrandBinding = read('supabase/migrations/20261004180000_vibelearn_g10_chemistry_substrand_binding.sql')
 
 requireText('teacher VibeLearn identity', page, 'VibeLearn · Learning Library')
 requireText('teacher VibeLearn identity', page, 'Find. Use. Follow learning.')
@@ -108,6 +109,14 @@ requireText('student recommendation verified outcome parity', chemistrySemanticP
 requireText('semantic pilot auto reconciliation', chemistrySemanticPilot, 'curriculum_sync_g10_chemistry_vibelearn_semantics_trigger')
 forbidText('semantic pilot publication guard', chemistrySemanticPilot, "set status='published'")
 forbidText('semantic pilot certification guard', chemistrySemanticPilot, "lifecycle_status='certified'")
+
+requireText('chemistry sub-strand exact cohort', chemistrySubstrandBinding, "VIBELEARN_G10_CHEMISTRY_RESOURCE_COHORT_DRIFT")
+requireText('chemistry sub-strand ambiguity guard', chemistrySubstrandBinding, "VIBELEARN_G10_CHEMISTRY_SUBSTRAND_IDENTITY_AMBIGUOUS")
+requireText('chemistry sub-strand complete binding', chemistrySubstrandBinding, "VIBELEARN_G10_CHEMISTRY_SUBSTRAND_BINDING_INCOMPLETE")
+requireText('chemistry sub-strand canonical title match', chemistrySubstrandBinding, "lower(btrim(cs.sub_strand))=lower(btrim(lr.title))")
+requireText('chemistry sub-strand future reconciliation', chemistrySubstrandBinding, "curriculum_bind_g10_chemistry_resource_substrand")
+forbidText('chemistry sub-strand no publication mutation', chemistrySubstrandBinding, "vibe_publications")
+forbidText('chemistry sub-strand no certification mutation', chemistrySubstrandBinding, "lifecycle_status")
 
 requireText('lesson sequence client', sequenceLib, "teacher_get_vibelearn_lesson_recommendations")
 requireText('lesson sequence client', sequenceLib, "link_learning_resource")
