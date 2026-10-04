@@ -48,6 +48,8 @@ with check (
 
 -- Per-class duration and day-part preferences are advisory. school_periods
 -- remains the canonical bell-time authority.
+-- access: school-member-read/admin-write public.class_timetable_preferences
+-- authorization-test: public.class_timetable_preferences membership read and school-admin write are RLS-scoped.
 create table if not exists public.class_timetable_preferences (
   school_id uuid not null references public.schools(id) on delete cascade,
   class_id uuid not null references public.classes(id) on delete cascade,
