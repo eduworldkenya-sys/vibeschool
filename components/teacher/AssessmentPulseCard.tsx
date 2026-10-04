@@ -22,7 +22,7 @@ export default function AssessmentPulseCard({ schoolId }: { schoolId?: string })
   if (error) return null
 
   const total = summary
-    ? summary.awaitingMarking + summary.partiallyMarked + summary.readyToRelease + summary.pendingMarks to review + summary.highPriorityInterventions
+    ? summary.awaitingMarking + summary.partiallyMarked + summary.readyToRelease + summary.pendingModeration + summary.highPriorityInterventions
     : 0
 
   if (summary && total === 0) {
@@ -55,7 +55,7 @@ export default function AssessmentPulseCard({ schoolId }: { schoolId?: string })
         {summary.awaitingMarking > 0 && <Metric label="Waiting to be marked" value={summary.awaitingMarking} />}
         {summary.partiallyMarked > 0 && <Metric label="Started marking" value={summary.partiallyMarked} />}
         {summary.readyToRelease > 0 && <Metric label="Ready to share" value={summary.readyToRelease} />}
-        {summary.pendingModeration > 0 && <Metric label="Moderation" value={summary.pendingModeration} />}
+        {summary.pendingModeration > 0 && <Metric label="Marks to review" value={summary.pendingModeration} />}
         {summary.highPriorityInterventions > 0 && <Metric label="High-priority support" value={summary.highPriorityInterventions} />}
       </div>}
 
