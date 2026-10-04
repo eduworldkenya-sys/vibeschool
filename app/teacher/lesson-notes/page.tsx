@@ -82,6 +82,41 @@ function cleanText(value: string | undefined): string {
   return (value ?? "").trim();
 }
 
+function humanizeNoteKey(value: string): string {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function noteValueText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value.map((item, index) => {
+      if (typeof item === "string") return `• ${item}`;
+      if (item && typeof item === "object") {
+        const fields = Object.entries(item as Record<string, unknown>)
+          .map(([key, fieldValue]) => `${humanizeNoteKey(key)}: ${noteValueText(fieldValue)}`)
+          .filter((line) => !line.endsWith(": "));
+        return `${index + 1}. ${fields.join(" · ")}`;
+      }
+      return String(item ?? "");
+    }).filter(Boolean).join("\n");
+  }
+  if (value && typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([key, fieldValue]) => `${humanizeNoteKey(key)}: ${noteValueText(fieldValue)}`)
+      .join("\n");
+  }
+  return "";
+}
+
+function noteBodySections(body: unknown): Array<{ label: string; text: string }> {
+  if (typeof body === "string") return [{ label: "Teaching notes", text: body }];
+  if (!body || typeof body !== "object") return [];
+  return Object.entries(body as Record<string, unknown>)
+    .map(([key, value]) => ({ label: humanizeNoteKey(key), text: noteValueText(value).trim() }))
+    .filter((section) => section.text.length > 0);
+}
+
 function LessonNotesInner() {
   const router = useRouter();
   const params = useSearchParams();
@@ -610,7 +645,15 @@ function LessonNotesInner() {
             {teacherNotes.map((note) => (
               <article key={note.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f9fafb" }}>
                 <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{note.title}</div>
-                <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "inherit", fontSize: 12, color: "#374151", lineHeight: 1.55, margin: "8px 0 0" }}>{typeof note.body === "string" ? note.body : JSON.stringify(note.body, null, 2)}</pre>
+                <div style={{ fontSize: 10, color: "#047857", fontWeight: 800, marginTop: 4 }}>Reviewed VibeSchool source · shared · read-only</div>
+                <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                  {noteBodySections(note.body).map((section) => (
+                    <div key={section.label}>
+                      <div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.6 }}>{section.label}</div>
+                      <div style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 12, color: "#374151", lineHeight: 1.6, marginTop: 3 }}>{section.text}</div>
+                    </div>
+                  ))}
+                </div>
               </article>
             ))}
           </div>
