@@ -640,7 +640,7 @@ function LessonNotesInner() {
       {noteView !== "quick" && teacherNotes.length > 0 && (
         <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
           <div style={{ fontSize: 12, fontWeight: 900, color: "#111827", marginBottom: 4 }}>Shared approved notes</div>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>Reviewed, source-grounded notes shared by teachers teaching this concept. They are read-only here; your personal additions stay in Teacher extras.</div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>Reviewed, source-grounded notes shared by teachers teaching this concept. They are read-only here; your personal additions stay in Teacher extras. Your lesson plan remains the teaching authority.</div>
           <div style={{ display: "grid", gap: 8 }}>
             {teacherNotes.map((note) => (
               <article key={note.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f9fafb" }}>
