@@ -22,6 +22,9 @@ Coding, testing, review, repair and merge authority never imply commissioning au
 ### evidence-status-guardrail
 Status language is evidence-bound. IMPLEMENTED, VERIFIED, CERTIFIED, MERGE READY, MERGED, POST-MERGE VERIFIED and PRODUCTION READY may only be claimed at the exact scope/SHA supported by fresh appropriate evidence. Missing, stale, contradictory or narrower evidence requires the narrower proven state; narrative confidence cannot upgrade status.
 
+### pr-convergence-loop
+Every repository mutation mission owns its pull request through convergence. Start from fresh canonical main; reuse one matching PR; run preflight before CI; predict and repair merge conflicts, base movement and migration/version collisions; bind every CI failure to the exact candidate SHA and fetch its actual failure evidence; repair the canonical cause rather than blindly rerunning; preserve unrelated concurrent work; invalidate stale certification whenever head or relevant base truth moves; re-certify the exact current head; merge only that verified SHA; then verify the resulting canonical main. A preventable PR failure class must feed `regression-learning` so recurrence is guarded by a test, validator, assertion or preflight rule when practical. Cyborg may terminate before merge only at a proven typed boundary such as BLOCKED_OWNER, BLOCKED_ACCESS, BLOCKED_EXTERNAL, BLOCKED_SAFETY or BLOCKED_AUTHORITY. `PR_CONVERGENCE_REQUIRED` is the default completion invariant.
+
 ### preflight-before-ci
 Before claiming a branch is ready for CI, run the narrowest relevant tests plus typecheck, lint, relevant build/compile and changed-file validation required by the affected domain.
 
@@ -109,4 +112,4 @@ The normative detail for the four canonical guardrails is `docs/ai-governance/CA
 
 ## Application rule
 
-The sixteen engineering core modules and eight higher-order agent modules apply as registered. Domain modules apply whenever the mission touches that domain. Multiple matching domains must run together. Repository truth and executable gates remain authoritative.
+The seventeen engineering core modules and eight higher-order agent modules apply as registered. Domain modules apply whenever the mission touches that domain. Multiple matching domains must run together. Repository truth and executable gates remain authoritative.
