@@ -6,16 +6,28 @@ import type { SuggestedPlacement } from '@/lib/timetable/operations'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
-import { updateTimetableSlot, expireTimetableSlot, deleteTimetableSlot, SlotRpcError } from '@/lib/teaching/slots'
+import { updateTimetableSlot, expireTimetableSlot, deleteTimetableSlot, snapshotTimetable, SlotRpcError } from '@/lib/teaching/slots'
 import type { EditableSlot } from '@/lib/teaching/types'
 import { previewTimetableConflicts, type TimetableConflict } from '@/lib/timetable/engine'
+
+interface CopySlotSeed {
+  classId: string
+  subjectId: string
+  className: string
+  subjectName: string
+  dayOfWeek: number
+  startTime: string
+  endTime: string
+  room: string
+}
 
 interface Props {
   initialPlacement?: {dayOfWeek:number;startTime:string;endTime:string}
   teacherId: string
   editSlot?: EditableSlot
+  copySlot?: CopySlotSeed
   onClose:   () => void
-  onSaved:   () => void
+  onSaved:   (undoSnapshotId?: string | null) => void
 }
 
 // One row = one real teaching obligation: teacher + school + class + subject.
@@ -131,8 +143,9 @@ function toFriendlyEditError(err: { message?: string }): string {
   }
 }
 
-export default function AddSlotModal({ teacherId, editSlot, initialPlacement, onClose, onSaved }: Props) {
+export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPlacement, onClose, onSaved }: Props) {
   const isEdit = !!editSlot
+  const isCopy = !isEdit && !!copySlot
 
   const [saving,            setSaving]            = useState(false)
   const [deleting,          setDeleting]          = useState(false)
@@ -143,10 +156,10 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
   const [checkingConflicts, setCheckingConflicts] = useState(false)
 
   const [teacherClassId, setTeacherClassId] = useState('')
-  const [dayOfWeek,      setDayOfWeek]      = useState(editSlot ? String(editSlot.dayOfWeek) : String(initialPlacement?.dayOfWeek ?? 1))
-  const [startTime,      setStartTime]      = useState(editSlot?.startTime ?? initialPlacement?.startTime ?? '08:00')
-  const [endTime,        setEndTime]        = useState(editSlot?.endTime ?? initialPlacement?.endTime ?? '08:40')
-  const [room,           setRoom]           = useState(editSlot?.room ?? '')
+  const [dayOfWeek,      setDayOfWeek]      = useState(editSlot ? String(editSlot.dayOfWeek) : String(copySlot?.dayOfWeek ?? initialPlacement?.dayOfWeek ?? 1))
+  const [startTime,      setStartTime]      = useState(editSlot?.startTime ?? copySlot?.startTime ?? initialPlacement?.startTime ?? '08:00')
+  const [endTime,        setEndTime]        = useState(editSlot?.endTime ?? copySlot?.endTime ?? initialPlacement?.endTime ?? '08:40')
+  const [room,           setRoom]           = useState(editSlot?.room ?? copySlot?.room ?? '')
   const [effectiveFrom,  setEffectiveFrom]  = useState(editSlot?.effectiveFrom ?? nairobiTodayISO())
   const [effectiveUntil, setEffectiveUntil] = useState(editSlot?.effectiveUntil ?? '')
   const [recurrence, setRecurrence] = useState<'weekly' | 'once'>('weekly')
@@ -238,10 +251,16 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
         .sort((a, b) => a.className.localeCompare(b.className) || a.subjectName.localeCompare(b.subjectName))
 
       setAssignments(options)
+      if (copySlot) {
+        const source = options.find(
+          option => option.classId === copySlot.classId && option.subjectId === copySlot.subjectId,
+        )
+        if (source) setTeacherClassId(source.teacherClassId)
+      }
       setAssignmentsLoading(false)
     }
     loadAssignments()
-  }, [teacherId, isEdit])
+  }, [teacherId, isEdit, copySlot])
 
   const selectedAssignment = assignments.find(a => a.teacherClassId === teacherClassId) ?? null
 
@@ -324,6 +343,15 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     }
   }
 
+  async function captureUndoSnapshot(label: string): Promise<string | null> {
+    try {
+      return await snapshotTimetable(label)
+    } catch {
+      // A first-ever timetable has nothing to snapshot. The write can still proceed.
+      return null
+    }
+  }
+
   async function save() {
     // Synchronous re-entrancy guard — closes the double-tap gap that the
     // `saving` state alone can't catch (see submittingRef declaration above).
@@ -348,6 +376,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
       submittingRef.current = true
       setSaving(true)
       try {
+        const undoSnapshotId = await captureUndoSnapshot('Before editing timetable lesson')
         await updateTimetableSlot(editSlot.id, {
           dayOfWeek: parseInt(dayOfWeek) || undefined,
           startTime,
@@ -360,7 +389,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
         })
         setSaving(false)
         submittingRef.current = false
-        onSaved()
+        onSaved(undoSnapshotId)
       } catch (e) {
         setSaving(false)
         submittingRef.current = false
@@ -388,6 +417,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     // never sent from the client — the RPC derives both from the
     // caller's own auth identity and their teacher_classes assignment.
     try {
+    const undoSnapshotId = await captureUndoSnapshot(isCopy ? 'Before copying timetable lesson' : 'Before adding timetable lesson')
     const { error: err } = await supabase.rpc('create_timetable_slot_v2', {
       p_class_id:        classId,
       p_subject_id:      subjectId,
@@ -415,7 +445,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
 
     // Only reset on confirmed success — never on a recoverable error.
     resetForm()
-    onSaved()
+    onSaved(undoSnapshotId)
     } catch {
       setError('Could not save. Your entries are still here; retry when connected.')
     } finally {
@@ -426,12 +456,13 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
 
   async function handleDelete() {
     if (!editSlot) return
-    if (!confirm("Delete this slot? This can't be undone.")) return
+    if (!confirm("Delete this slot? You can undo this change while you remain on the timetable page.")) return
     setDeleting(true)
     setError(null)
     try {
+      const undoSnapshotId = await captureUndoSnapshot('Before deleting timetable lesson')
       await deleteTimetableSlot(editSlot.id)
-      onSaved()
+      onSaved(undoSnapshotId)
     } catch (e) {
       setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? e.code : undefined }))
     } finally {
@@ -444,8 +475,9 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     setDeleting(true)
     setError(null)
     try {
+      const undoSnapshotId = await captureUndoSnapshot('Before ending timetable lesson')
       await expireTimetableSlot(editSlot.id)
-      onSaved()
+      onSaved(undoSnapshotId)
     } catch (e) {
       setError(toFriendlyEditError({ message: e instanceof SlotRpcError ? e.code : undefined }))
     } finally {
@@ -474,12 +506,12 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
         <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '0 auto' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>
-            {isEdit ? 'Edit lesson time' : 'Add lesson to timetable'}
+            {isEdit ? 'Edit lesson time' : isCopy ? 'Copy lesson' : 'Add lesson to timetable'}
           </div>
           <button aria-label="Close lesson form" disabled={saving || deleting || checkingConflicts} onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.textMuted }}>✕</button>
         </div>
 
-        {!isEdit && <p style={{fontSize:13,color:C.textMuted,margin:0}}>Choose your class and subject, then a teaching period. You can prepare the lesson plan later.</p>}
+        {!isEdit && <p style={{fontSize:13,color:C.textMuted,margin:0}}>{isCopy ? 'The original lesson stays unchanged. Choose where this copy should appear.' : 'Choose your class and subject, then a teaching period. You can prepare the lesson plan before or after scheduling.'}</p>}
         {error && (
           <div role="alert" style={{ fontSize: 12, color: C.error, background: '#fef2f2', padding: '8px 12px', borderRadius: 8 }}>
             {error}
@@ -596,7 +628,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
           onClick={save}
           disabled={saving || deleting || checkingConflicts || (!isEdit && (assignmentsLoading || periodsLoading || !!periodsError || assignments.length === 0))}
         >
-          {checkingConflicts ? 'Checking…' : saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save lesson'}
+          {checkingConflicts ? 'Checking…' : saving ? 'Saving…' : isEdit ? 'Save Changes' : isCopy ? 'Save copy' : 'Save lesson'}
         </Btn>
 
         {isEdit && (
