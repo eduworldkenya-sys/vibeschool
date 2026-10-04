@@ -1,5 +1,7 @@
 begin;
 
+-- authorization-test: public.teacher_note_overlays authenticated teachers can only read/write rows where teacher_id = auth.uid(); cross-teacher access must be denied by RLS.
+
 create table if not exists public.teacher_note_overlays (
   id uuid primary key default gen_random_uuid(),
   teacher_id uuid not null references auth.users(id) on delete cascade,
