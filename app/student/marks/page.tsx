@@ -6,10 +6,12 @@ import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
 import { readCache, writeCache } from "@/lib/student-cache";
 import Skel from "@/components/student/Skel";
+import { examResultStateLabel, normalizeExamResultState, type ExamResultState } from "@/lib/assessment/exam-results";
 
 interface ExamResult {
-  id: string; subject: string; marks: number; total_marks: number;
-  grade: string; term: number; academic_year: number; exam_name: string;
+  id: string; subject: string; marks: number | null; total_marks: number;
+  percentage: number | null; result_state: ExamResultState;
+  term: number; academic_year: number; exam_name: string;
 }
 interface CBCAssessment {
   id: string; subjectName: string; sub_strand: string;
@@ -88,7 +90,7 @@ export default function MarksPage() {
         supabase
           .from("exam_results")
           .select(
-            "id, marks, is_absent, exam_id, subject_id, exams(name, term, academic_year)"
+            "id, marks, max_marks, percentage, result_state, is_absent, exam_id, subject_id, exams(name, term, academic_year)"
           )
           .eq("student_id", identity!.studentId),
 
@@ -122,28 +124,21 @@ export default function MarksPage() {
         subMap = Object.fromEntries((subs ?? []).map(s => [s.id, s.name]));
       }
 
-      const examData: ExamResult[] = (examRes.data ?? [])
-        .filter(row => !row.is_absent)
-        .map(row => {
-          const exam = Array.isArray(row.exams)
-            ? row.exams[0] ?? null
-            : row.exams
-
-          const marks = Number(row.marks)
-          const totalMarks = 100
-          const percentage = pct(marks, totalMarks)
-
-          return {
-            id: row.id,
-            marks,
-            total_marks: totalMarks,
-            grade: letterGrade(percentage),
-            term: exam?.term ?? 0,
-            academic_year: exam?.academic_year ?? 0,
-            subject: subMap[row.subject_id] ?? "Subject",
-            exam_name: exam?.name ?? "",
-          }
-        });
+      const examData: ExamResult[] = (examRes.data ?? []).map(row => {
+        const exam = Array.isArray(row.exams) ? row.exams[0] ?? null : row.exams
+        const resultState = normalizeExamResultState(row.result_state, row.is_absent)
+        return {
+          id: row.id,
+          marks: row.marks == null ? null : Number(row.marks),
+          total_marks: Number(row.max_marks),
+          percentage: row.percentage == null ? null : Number(row.percentage),
+          result_state: resultState,
+          term: exam?.term ?? 0,
+          academic_year: exam?.academic_year ?? 0,
+          subject: subMap[row.subject_id] ?? "Subject",
+          exam_name: exam?.name ?? "",
+        }
+      });
 
       const cbcData: CBCAssessment[] = (cbcRes.data ?? []).map(row => ({
         id: row.id,
@@ -225,24 +220,27 @@ export default function MarksPage() {
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {exams.map(r => (
-              <div key={r.id} style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--vs-accent-soft)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, fontWeight: 900, color: gradColor(r.grade), flexShrink: 0 }}>
-                  {r.grade || "—"}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)" }}>{r.subject}</div>
-                  <div style={{ fontSize: 11, color: "var(--vs-muted)", marginTop: 2 }}>Term {r.term} · {r.academic_year}</div>
-                  <div style={{ marginTop: 6, height: 4, borderRadius: 4, background: "var(--vs-border)", overflow: "hidden" }}>
-                    <div style={{ height: "100%", width: `${pct(r.marks, r.total_marks)}%`, background: gradColor(r.grade), borderRadius: 4, transition: "width 0.4s ease" }} />
+            {exams.map(r => {
+              const scored = r.result_state === "entered" && r.marks != null && r.percentage != null
+              return (
+                <div key={r.id} style={{ background: "var(--vs-card)", border: "1px solid var(--vs-border)", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--vs-accent-soft)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 900, color: "var(--vs-accent)", flexShrink: 0 }}>
+                    {scored ? `${Math.round(r.percentage!)}%` : "—"}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--vs-text)" }}>{r.subject}</div>
+                    <div style={{ fontSize: 11, color: "var(--vs-muted)", marginTop: 2 }}>Term {r.term} · {r.academic_year}{r.exam_name ? ` · ${r.exam_name}` : ""}</div>
+                    {scored ? <div style={{ marginTop: 6, height: 4, borderRadius: 4, background: "var(--vs-border)", overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${Math.max(0, Math.min(100, r.percentage!))}%`, background: "var(--vs-accent)", borderRadius: 4, transition: "width 0.4s ease" }} />
+                    </div> : <div style={{ marginTop: 6, fontSize: 11, color: "var(--vs-muted)" }}>{examResultStateLabel(r.result_state)}</div>}
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: scored ? "var(--vs-accent)" : "var(--vs-muted)" }}>{scored ? `${Number(r.percentage).toFixed(1)}%` : examResultStateLabel(r.result_state)}</div>
+                    {scored && <div style={{ fontSize: 10, color: "var(--vs-muted)" }}>{r.marks}/{r.total_marks}</div>}
                   </div>
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: gradColor(r.grade) }}>{pct(r.marks, r.total_marks)}%</div>
-                  <div style={{ fontSize: 10, color: "var(--vs-muted)" }}>{r.marks}/{r.total_marks}</div>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )
       )}
