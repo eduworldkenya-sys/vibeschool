@@ -847,18 +847,29 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
       setTeacherId(user.id)
 
-      const todayStr = nairobiDateStr()
-
       const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
 
       if (!isMounted.current) return
 
-      const schoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
+      const typedSchoolContext = schoolContext as {
+        active_school_id?: string | null
+        schools?: Array<{id:string;name:string;status?:string|null}>
+      } | null
+      const schoolId = typedSchoolContext?.active_school_id ?? null
+      const memberships = (typedSchoolContext?.schools ?? []).filter(s => s.id && s.name)
       if (schoolContextError || !schoolId) {
         console.error('[Timetable] failed to resolve canonical teacher school', schoolContextError)
         setSchoolError('Connect or select your active school before opening the timetable.')
         return
       }
+
+      setActiveSchoolId(schoolId)
+      setSchools(memberships)
+      setSchoolFilter(current => {
+        if (current === 'all' && memberships.length > 1) return current
+        if (memberships.some(s => s.id === current)) return current
+        return memberships.length > 1 ? 'all' : schoolId
+      })
 
       const { data: blockData, error: blockError } = await supabase.rpc('get_my_school_day_blocks')
       if (!isMounted.current) return
@@ -868,21 +879,102 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         startTime:b.start_time,endTime:b.end_time,kind:b.kind,protected:b.protected,
       })))
 
-      // TBL-009C: load every slot whose effective range overlaps the
-      // visible week, not just slots active today — otherwise a recovery
-      // scheduled for later this week is invisible until its date arrives.
-      // Per the engine contract, per-date effectiveness is validated at
-      // render time via slotActiveOn.
-      const slots = await loadTeacherTimetableForRange({
-        teacherId: user.id,
-        schoolId,
-        rangeStart: weekStart,
-        rangeEnd: nairobiDateAdd(weekStart, 6),
-      })
+      // A teacher may belong to more than one school. Read every authorized
+      // timetable and combine them only at the presentation layer. The
+      // database's teacher exclusion constraint remains the global clash gate.
+      const schoolIds = memberships.length > 0 ? memberships.map(s => s.id) : [schoolId]
+      const rangeEnd = nairobiDateAdd(weekStart, 6)
+      const schoolSlotGroups = await Promise.all(
+        schoolIds.map(async membershipSchoolId => ({
+          schoolId: membershipSchoolId,
+          slots: await loadTeacherTimetableForRange({
+            teacherId: user.id,
+            schoolId: membershipSchoolId,
+            rangeStart: weekStart,
+            rangeEnd,
+          }),
+        }))
+      )
+
+      // Substitution is occurrence-specific. Pull assignments where this user
+      // is the actual teacher even though the recurring slot belongs to
+      // another teacher.
+      const { data: substituteData, error: substituteError } = await supabase.rpc(
+        'get_my_substitute_occurrences',
+        { p_from: weekStart, p_until: rangeEnd },
+      )
+      if (substituteError) {
+        const message = String(substituteError.message ?? '')
+        if (!/function .* does not exist/i.test(message)) {
+          console.error('[Timetable] substitute occurrence load failed', substituteError)
+        }
+      }
+
+      const ownedSlots = schoolSlotGroups.flatMap(group =>
+        group.slots.map(slot => ({
+          ...slot,
+          __schoolId: group.schoolId,
+          __isSubstitute: false,
+          __exceptionReason: null as string | null,
+        }))
+      )
+      const substituteSlots = ((substituteData ?? []) as Array<any>).map(row => ({
+        id: row.timetable_slot_id,
+        school_id: row.school_id,
+        teacher_id: user.id,
+        class_id: row.class_id,
+        subject_id: row.subject_id,
+        day_of_week: nairobiDayOfWeek(new Date(row.occurrence_date + 'T12:00:00+03:00')),
+        start_time: row.start_time,
+        end_time: row.end_time,
+        room: row.room ?? null,
+        period_id: null,
+        allocation_units: 1,
+        recurrence_pattern: 'ONCE',
+        effective_from: row.occurrence_date,
+        effective_until: row.occurrence_date,
+        __schoolId: row.school_id,
+        __isSubstitute: true,
+        __exceptionReason: row.exception_reason ?? null,
+      }))
+      const slots = [...ownedSlots, ...substituteSlots]
+
+      const ownedSlotIds = Array.from(new Set(ownedSlots.map(s => s.id)))
+      const [plansRes, occurrenceRes, exceptionsRes] = await Promise.all([
+        supabase
+          .from('lesson_plans')
+          .select('timetable_slot_id,taught_date,body')
+          .eq('teacher_id', user.id)
+          .gte('taught_date', weekStart)
+          .lte('taught_date', rangeEnd),
+        ownedSlotIds.length > 0
+          ? supabase
+              .from('teaching_occurrences')
+              .select('timetable_slot_id,occurrence_date,actual_teacher_id,exception_reason')
+              .in('timetable_slot_id', ownedSlotIds)
+              .gte('occurrence_date', weekStart)
+              .lte('occurrence_date', rangeEnd)
+          : Promise.resolve({ data: [] as any[], error: null }),
+        supabase
+          .from('school_calendar_exceptions')
+          .select('id,school_id,exception_date,kind,label,suppress_ordinary_teaching')
+          .in('school_id', schoolIds)
+          .gte('exception_date', weekStart)
+          .lte('exception_date', rangeEnd)
+          .order('exception_date'),
+      ])
+      if (plansRes.error) console.error('[Timetable] readiness load failed', plansRes.error)
+      if (occurrenceRes.error) console.error('[Timetable] occurrence exception load failed', occurrenceRes.error)
+      if (!exceptionsRes.error) {
+        setCalendarExceptions((exceptionsRes.data ?? []) as Array<{
+          id:string;school_id:string;exception_date:string;kind:string;label:string;suppress_ordinary_teaching:boolean
+        }>)
+      } else if (!/relation .*school_calendar_exceptions.* does not exist/i.test(String(exceptionsRes.error.message ?? ''))) {
+        console.error('[Timetable] calendar exception load failed', exceptionsRes.error)
+      }
 
       if (!isMounted.current) return
 
-      // Fetch subject and class names separately
       const subjectIds = Array.from(new Set(slots.map((s: {subject_id: string}) => s.subject_id).filter(Boolean)))
       const classIds   = Array.from(new Set(slots.map((s: {class_id: string}) => s.class_id).filter(Boolean)))
 
@@ -900,25 +992,53 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       const classMap: Record<string, string> = {}
       const gradeMap: Record<string, string> = {}
-      ;(classesRes.data ?? []).forEach((c: {id: string, name: string, stream: string|null}) => {
-        classMap[c.id] = c.name + (c.stream ? ` ${c.stream}` : '')
-        gradeMap[c.id] = c.name
+      ;(classesRes.data ?? []).forEach((classRow: {id: string, name: string, stream: string|null}) => {
+        classMap[classRow.id] = classRow.name + (classRow.stream ? ` ${classRow.stream}` : '')
+        gradeMap[classRow.id] = classRow.name
       })
 
-      const mapped: Slot[] = slots.map((s) => {
+      const schoolNameMap = new Map(memberships.map(s => [s.id, s.name]))
+      const planMap = new Map(
+        (plansRes.data ?? []).map((plan: any) => [
+          plan.timetable_slot_id + ':' + plan.taught_date,
+          plan,
+        ])
+      )
+      const occurrenceMap = new Map(
+        (occurrenceRes.data ?? []).map((row: any) => [
+          row.timetable_slot_id + ':' + row.occurrence_date,
+          row,
+        ])
+      )
+
+      const mapped: Slot[] = slots.map((slot: any) => {
+        const occurrenceDate = nairobiDateAdd(weekStart, Number(slot.day_of_week) - 1)
+        const plan = planMap.get(slot.id + ':' + occurrenceDate) as any
+        const occurrence = occurrenceMap.get(slot.id + ':' + occurrenceDate) as any
+        const readiness: TimetableReadiness = slot.__isSubstitute
+          ? 'needs_review'
+          : plan
+            ? (isLessonPlanReadyToTeach(plan.body) ? 'ready' : 'needs_review')
+            : 'no_plan'
+
         return {
-          id:        s.id,
-          classId:   s.class_id,
-          subjectId: s.subject_id,
-          subject:   subjectMap[s.subject_id] ?? 'Unknown',
-          className: classMap[s.class_id] ?? '',
-          grade:     gradeMap[s.class_id] ?? '',
-          room:      s.room ?? '',
-          startTime: s.start_time,
-          endTime:   s.end_time,
-          dayOfWeek: s.day_of_week,
-          effectiveFrom:  s.effective_from,
-          effectiveUntil: s.effective_until,
+          id:        slot.id,
+          schoolId:  slot.__schoolId ?? slot.school_id,
+          schoolName: schoolNameMap.get(slot.__schoolId ?? slot.school_id) ?? 'School',
+          classId:   slot.class_id,
+          subjectId: slot.subject_id,
+          subject:   subjectMap[slot.subject_id] ?? 'Unknown',
+          className: classMap[slot.class_id] ?? '',
+          grade:     gradeMap[slot.class_id] ?? '',
+          room:      slot.room ?? '',
+          startTime: slot.start_time,
+          endTime:   slot.end_time,
+          dayOfWeek: slot.day_of_week,
+          effectiveFrom:  slot.effective_from,
+          effectiveUntil: slot.effective_until,
+          readiness,
+          isSubstitute: Boolean(slot.__isSubstitute),
+          exceptionReason: slot.__exceptionReason ?? occurrence?.exception_reason ?? null,
         }
       })
 
