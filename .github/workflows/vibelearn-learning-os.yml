@@ -1,0 +1,49 @@
+name: VibeLearn Learning OS
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/vibelearn/**'
+      - 'app/teacher/more/page.tsx'
+      - 'app/teacher/teach-today/page.tsx'
+      - 'app/student/vibelearn/**'
+      - 'lib/content-engine/vibelearnClassAdoption.ts'
+      - 'lib/student/vibelearn.ts'
+      - 'scripts/test-vibelearn-teacher-learning-os.mjs'
+      - '.github/workflows/vibelearn-learning-os.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/teacher/vibelearn/**'
+      - 'app/teacher/more/page.tsx'
+      - 'app/teacher/teach-today/page.tsx'
+      - 'app/student/vibelearn/**'
+      - 'lib/content-engine/vibelearnClassAdoption.ts'
+      - 'lib/student/vibelearn.ts'
+      - 'scripts/test-vibelearn-teacher-learning-os.mjs'
+      - '.github/workflows/vibelearn-learning-os.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: vibelearn-learning-os-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: VibeLearn learning contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Verify VibeLearn product contracts
+        run: npm run test:vibelearn
+      - name: Type-check affected application contracts
+        run: npm run typecheck
