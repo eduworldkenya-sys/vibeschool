@@ -93,7 +93,7 @@ function actionsFor(slot?: Slot, context?: TeachingContext): ActionItem[] {
       { label: "Timetable", href: "/teacher/timetable", icon: <IconTimetable /> },
       { label: "New lesson", href: contextualLessonUrl(context), icon: <IconPlan /> },
       { label: "Resources", href: "/teacher/resources", icon: <IconFolder /> },
-      { label: "Gradebook", href: "/teacher/assessment/gradebook", icon: <IconMarking /> },
+      { label: "Class Results", href: "/teacher/assessment/gradebook", icon: <IconMarking /> },
     ];
   }
 
@@ -132,7 +132,7 @@ function actionsFor(slot?: Slot, context?: TeachingContext): ActionItem[] {
     { label: "Progress", href: progressUrl, icon: <IconProgress /> },
     { label: "Homework", href: homeworkUrl, icon: <IconHomework /> },
     {
-      label: "Marking",
+      label: "Mark homework",
       href: `/teacher/classhub/${encodeURIComponent(slot.class_id)}/homework`,
       icon: <IconMarking />,
     },
