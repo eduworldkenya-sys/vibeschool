@@ -18,3 +18,12 @@ export function teachingBlock(periods: SchoolPeriod[], firstId: string, units: n
 export function protectedBlockConflict(periods: SchoolPeriod[], start: string, end: string) {
   return periods.find(p => p.protected && p.kind !== 'lesson' && p.start_time.slice(0,5) < end && p.end_time.slice(0,5) > start);
 }
+
+/** One-date placement must never fall back to the RPC's weekly defaults. */
+export function singleDateSchedule(date: string): { dayOfWeek: number; effectiveFrom: string; effectiveUntil: string } | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const [year,month,day]=date.split('-').map(Number);
+  const parsed=new Date(`${date}T12:00:00Z`);
+  if (!Number.isFinite(parsed.getTime()) || parsed.getUTCFullYear()!==year || parsed.getUTCMonth()+1!==month || parsed.getUTCDate()!==day) return null;
+  return {dayOfWeek:parsed.getUTCDay() || 7,effectiveFrom:date,effectiveUntil:date};
+}

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import ts from 'typescript';
 const source=fs.readFileSync('lib/timetable/periods.ts','utf8');
 const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ES2022}}).outputText;
-const {periodsForDay,teachingBlock,protectedBlockConflict}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
+const {periodsForDay,teachingBlock,protectedBlockConflict,singleDateSchedule}=await import('data:text/javascript;base64,'+Buffer.from(compiled).toString('base64'));
 const period=(id,start,end,kind='lesson',school='school',day=0)=>({id,school_id:school,schedule_day:day,period_number:1,label:kind,start_time:start,end_time:end,kind,protected:kind!=='lesson'});
 const all=[period('a','08:00:00','08:35:00'),period('b','08:35:00','09:10:00'),period('break','09:10:00','09:30:00','break'),period('c','09:30:00','10:05:00'),period('other','08:00','09:00','lesson','other'),period('tuesday','10:05','10:40','lesson','school',2)];
 const monday=periodsForDay(all,'school',1);
@@ -36,3 +36,15 @@ markup=render([slot(),slot({id:'overlap',subject:'English',startTime:'08:35',end
 assert.ok(!markup.includes('rowspan="2"'),'overlap remains visible without corrupting columns');
 assert.ok(markup.includes('English'));
 console.log('Weekly grid rendering regressions: PASS');
+
+assert.deepEqual(singleDateSchedule('2026-10-20'),{dayOfWeek:2,effectiveFrom:'2026-10-20',effectiveUntil:'2026-10-20'});
+assert.equal(singleDateSchedule(''),null,'clearing one-date start must not default to today');
+assert.equal(singleDateSchedule('2026-02-30'),null);
+assert.equal(singleDateSchedule('2026-02-29'),null);
+assert.equal(singleDateSchedule('2028-02-29').effectiveUntil,'2028-02-29');
+assert.equal(singleDateSchedule('2026-10-04').dayOfWeek,7);
+assert.equal(singleDateSchedule('10/20/2026'),null);
+const modal=fs.readFileSync('components/teacher/AddSlotModal.tsx','utf8');
+assert.ok(modal.includes('checkConflicts(onceSchedule ?? undefined)'),'preview uses same bounded schedule as writer');
+for(const field of ['dayOfWeek','effectiveFrom','effectiveUntil'])assert.ok(modal.includes(`onceSchedule?.${field}`),'writer uses derived one-date identity');
+console.log('Single-date placement regressions: PASS');

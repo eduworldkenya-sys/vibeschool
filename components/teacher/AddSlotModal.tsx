@@ -1,7 +1,7 @@
 "use client";
 
 import { nairobiDayOfWeek } from '@/lib/time'
-import { periodsForDay, teachingBlock, protectedBlockConflict, type SchoolPeriod } from '@/lib/timetable/periods'
+import { periodsForDay, teachingBlock, protectedBlockConflict, singleDateSchedule, type SchoolPeriod } from '@/lib/timetable/periods'
 import type { SuggestedPlacement } from '@/lib/timetable/operations'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -298,7 +298,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     finally {if(modalMounted.current)setSuggesting(false)}
   }
 
-  async function checkConflicts(): Promise<boolean> {
+  async function checkConflicts(schedule?: {dayOfWeek:number;effectiveFrom:string;effectiveUntil:string}): Promise<boolean> {
     if (!selectedAssignment || isEdit) return true
     setCheckingConflicts(true)
     try {
@@ -306,12 +306,12 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
         schoolId: selectedAssignment.schoolId,
         teacherId,
         classId: selectedAssignment.classId,
-        dayOfWeek: parseInt(dayOfWeek) || 1,
+        dayOfWeek: schedule?.dayOfWeek ?? (parseInt(dayOfWeek) || 1),
         startTime,
         endTime,
         room: room.trim() || null,
-        effectiveFrom: effectiveFrom || null,
-        effectiveUntil: effectiveUntil || null,
+        effectiveFrom: schedule?.effectiveFrom ?? (effectiveFrom || null),
+        effectiveUntil: schedule?.effectiveUntil ?? (effectiveUntil || null),
       })
       setConflicts(rows)
       return rows.length === 0
@@ -330,6 +330,8 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     if (submittingRef.current) return
 
     setError(null)
+    const onceSchedule = !isEdit && recurrence === 'once' ? singleDateSchedule(effectiveFrom) : null
+    if (!isEdit && recurrence === 'once' && !onceSchedule) {setError('Choose a valid date for this one-time lesson.');return}
     if (!isEdit) {
       if (periodsLoading || periodsError) {setError('Load school periods before saving.');return}
       const blocked = protectedBlockConflict(dayPeriods, startTime, endTime)
@@ -372,7 +374,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     if (!classId || !subjectId) { setError('This assignment is missing required data.'); return }
 
     submittingRef.current = true
-    const clear = await checkConflicts()
+    const clear = await checkConflicts(onceSchedule ?? undefined)
     if (!clear) {
       submittingRef.current = false
       setError('Resolve the timetable conflict before saving.')
@@ -389,12 +391,12 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     const { error: err } = await supabase.rpc('create_timetable_slot_v2', {
       p_class_id:        classId,
       p_subject_id:      subjectId,
-      p_day_of_week:     parseInt(dayOfWeek) || 1,
+      p_day_of_week:     onceSchedule?.dayOfWeek ?? (parseInt(dayOfWeek) || 1),
       p_start_time:      startTime,
       p_end_time:        endTime,
       p_room:            room.trim() || undefined,
-      p_effective_from:  effectiveFrom || undefined,
-      p_effective_until: effectiveUntil || undefined,
+      p_effective_from:  onceSchedule?.effectiveFrom ?? (effectiveFrom || undefined),
+      p_effective_until: onceSchedule?.effectiveUntil ?? (effectiveUntil || undefined),
       p_allocation_units: Number(allocationUnits) || 1,
       p_period_id: undefined,
     })
@@ -578,7 +580,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
         </div>
 
         <div>
-          <label style={labelStyle}>Effective From (optional)</label>
+          <label style={labelStyle}>{!isEdit && recurrence === 'once' ? 'Lesson date *' : 'Effective From (optional)'}</label>
           <input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} style={inputStyle} />
         </div>
 
