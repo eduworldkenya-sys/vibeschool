@@ -993,16 +993,17 @@ export default function VibeLearnPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
                   { id: "epage" as const, icon: "📄", title: "Learning Page", desc: "Notes, revision material, activities or a lesson resource." },
-                  { id: "ebook" as const, icon: "📚", title: "Ebook", desc: "A longer downloadable or linked learning resource." },
-                  { id: "textbook" as const, icon: "📘", title: "VibeTextbook", desc: "A structured curriculum-aligned book with chapters and publishing controls.", badge: "Full authoring studio" },
+                  { id: "ebook" as const, icon: "📚", title: "eBook", desc: "Structured long-form content created and versioned in Content Studio.", badge: "Content Studio" },
+                  { id: "textbook" as const, icon: "📘", title: "Interactive textbook", desc: "Curriculum-aligned chapters, activities and publishing controls in Content Studio.", badge: "Content Studio" },
                 ].map(opt => {
                   const isSelected = cType === opt.id && opt.id !== "textbook";
                   return (
                     <button
                       key={opt.id}
                       onClick={() => {
-                        if (opt.id === "textbook") { router.push("/global/create/textbook"); return; }
-                        setCType(opt.id);
+                        if (opt.id === "textbook") { router.push("/teacher/studio/editor?format=vibetextbook"); return; }
+                        if (opt.id === "ebook") { router.push("/teacher/studio/editor?format=ebook"); return; }
+                        setCType("epage");
                         requestAnimationFrame(() => {
                           createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                         });
@@ -1027,7 +1028,7 @@ export default function VibeLearnPage() {
                         <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{opt.desc}</div>
                       </div>
                       <div style={{ fontSize: 16, color: isSelected ? C.accent : C.textMuted, fontWeight: 800, flexShrink: 0, alignSelf: "center" }}>
-                        {opt.id === "textbook" ? "→" : (isSelected ? "✓" : "→")}
+                        {opt.id === "textbook" || opt.id === "ebook" ? "→" : (isSelected ? "✓" : "→")}
                       </div>
                     </button>
                   );
