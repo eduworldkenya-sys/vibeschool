@@ -12,8 +12,8 @@ for (const needle of [
   'My concept note',
   'My lesson note',
   '.from("teacher_note_overlays")',
-  'note_kind: "concept"',
-  'note_kind: "lesson"',
+  '.eq("note_kind", "concept")',
+  '.eq("note_kind", "lesson")',
   'source_chapter_id',
   'source_derivative_id',
 ]) {
