@@ -1,6 +1,66 @@
 -- Canonical exam-result semantics and scoring policy.
 -- Applied to production as migration 20261004151143.
 
+-- Reconstruct the pre-existing production scoring-policy table when the
+-- repository is replayed from zero. Production already had this table before
+-- this canonical result migration; CREATE IF NOT EXISTS preserves that state.
+create table if not exists public.exam_subject_config (
+  id uuid primary key default gen_random_uuid(),
+  exam_id uuid not null references public.exams(id) on delete cascade,
+  subject_id uuid not null references public.subjects(id) on delete cascade,
+  pass_mark integer not null,
+  max_marks integer not null default 100,
+  unique (exam_id, subject_id)
+);
+
+alter table public.exam_subject_config enable row level security;
+
+do $
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='exam_subject_config'
+      and policyname='admin manage exam_subject_config'
+  ) then
+    create policy "admin manage exam_subject_config"
+      on public.exam_subject_config
+      for all
+      using (
+        exists (
+          select 1 from public.exams
+          where exams.id=exam_subject_config.exam_id
+            and public.is_school_admin(exams.school_id)
+        )
+      )
+      with check (
+        exists (
+          select 1 from public.exams
+          where exams.id=exam_subject_config.exam_id
+            and public.is_school_admin(exams.school_id)
+        )
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='exam_subject_config'
+      and policyname='school members read exam_subject_config'
+  ) then
+    create policy "school members read exam_subject_config"
+      on public.exam_subject_config
+      for select
+      using (
+        exam_id in (
+          select e.id
+          from public.exams e
+          join public.profiles p on p.school_id=e.school_id
+          where p.id=auth.uid()
+        )
+      );
+  end if;
+end
+$;
+
 alter table public.exam_results
   add column if not exists result_state text,
   add column if not exists max_marks numeric;
