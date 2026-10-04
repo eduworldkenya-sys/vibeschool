@@ -74,6 +74,36 @@ export interface AdaptiveLearningPath {
   path: AdaptiveLearningPathItem[]
 }
 
+export interface AdaptiveResourceRecommendation {
+  resourceId: string
+  title: string
+  description: string | null
+  assetKind: string | null
+  purpose: string | null
+  representation: string
+  publicationId: string | null
+  chapterId: string | null
+  contentId: string | null
+  actionUrl: string | null
+  certified: boolean
+  outcomeId: string
+  outcomeCode: string | null
+  outcomeText: string
+  masteryScore: number
+  evidenceCount: number
+  lastEvidenceAt: string | null
+  mode: 'support' | 'practice'
+  reasonCode: string
+}
+
+export interface AdaptiveResourceRecommendations {
+  missingDataIsNotWeakness: boolean
+  exactCurriculumMatchRequired: boolean
+  visibilityAuthorityEnforced: boolean
+  commerceNotRequired: boolean
+  recommendations: AdaptiveResourceRecommendation[]
+}
+
 export interface VibeLearnTutorPolicy {
   defaultMode: 'off'
   allowedActions: string[]
@@ -310,6 +340,10 @@ type GroundedPracticeRpcClient = {
 
 type AdaptiveLearningPathRpcClient = {
   rpc(fn: 'student_get_adaptive_learning_path', args?: Record<string, never>): Promise<{ data: unknown; error: { message: string } | null }>
+}
+
+type AdaptiveResourceRpcClient = {
+  rpc(fn: 'student_get_vibelearn_resource_recommendations', args: { p_limit: number }): Promise<{ data: unknown; error: { message: string } | null }>
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -601,6 +635,52 @@ export async function getAssignedReading(): Promise<AssignedReadingItem[]> {
       actionUrl: `/read/textbook/${row.publication_id}/${row.chapter_id}`,
     }]
   })
+}
+
+export async function getAdaptiveResourceRecommendations(limit = 6): Promise<AdaptiveResourceRecommendations> {
+  const client = supabase as unknown as AdaptiveResourceRpcClient
+  const { data, error } = await client.rpc('student_get_vibelearn_resource_recommendations', {
+    p_limit: Math.max(1, Math.min(12, Math.round(limit))),
+  })
+  if (error) throw new Error(error.message)
+  const row = asRecord(data)
+  const policy = asRecord(row.evidence_policy)
+  return {
+    missingDataIsNotWeakness: policy.missing_data_is_not_weakness !== false,
+    exactCurriculumMatchRequired: policy.exact_curriculum_match_required !== false,
+    visibilityAuthorityEnforced: policy.visibility_authority_enforced !== false,
+    commerceNotRequired: policy.commerce_not_required !== false,
+    recommendations: (Array.isArray(row.recommendations) ? row.recommendations : []).flatMap(value => {
+      const item = asRecord(value)
+      const resourceId = asString(item.resource_id)
+      const title = asString(item.title)
+      const outcomeId = asString(item.outcome_id)
+      const outcomeText = asString(item.outcome_text)
+      const mode = asString(item.mode)
+      if (!resourceId || !title || !outcomeId || !outcomeText || (mode !== 'support' && mode !== 'practice')) return []
+      return [{
+        resourceId,
+        title,
+        description: asString(item.description),
+        assetKind: asString(item.asset_kind),
+        purpose: asString(item.purpose),
+        representation: asString(item.representation) ?? 'content',
+        publicationId: asString(item.publication_id),
+        chapterId: asString(item.chapter_id),
+        contentId: asString(item.content_id),
+        actionUrl: asString(item.action_url),
+        certified: item.certified === true,
+        outcomeId,
+        outcomeCode: asString(item.outcome_code),
+        outcomeText,
+        masteryScore: asNumber(item.mastery_score),
+        evidenceCount: asNumber(item.evidence_count),
+        lastEvidenceAt: asString(item.last_evidence_at),
+        mode,
+        reasonCode: asString(item.reason_code) ?? 'recorded_outcome_weakness_exact_curriculum_match',
+      }]
+    }),
+  }
 }
 
 export async function getAdaptiveLearningPath(): Promise<AdaptiveLearningPath> {
