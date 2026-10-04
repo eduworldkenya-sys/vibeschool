@@ -858,7 +858,7 @@ export default function ClassWorkbook() {
                         r.subject_id === filters.subjectId &&
                         c.learners.some((l) => l.id === r.student_id),
                     );
-                    const scores = results.filter((r) => !r.is_absent);
+                    const scores = results.filter((r): r is typeof r & { marks: number } => !r.is_absent && r.marks !== null);
                     return (
                       <tr key={c.classId}>
                         <td>{c.className}</td>
