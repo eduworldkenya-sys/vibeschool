@@ -21,6 +21,8 @@ const adoption = read('lib/content-engine/vibelearnClassAdoption.ts')
 const indexer = read('app/teacher/vibelearn/indexer/page.tsx')
 const more = read('app/teacher/more/page.tsx')
 const today = read('app/teacher/teach-today/page.tsx')
+const studentPage = read('app/student/vibelearn/page.tsx')
+const studentLib = read('lib/student/vibelearn.ts')
 
 requireText('teacher VibeLearn identity', page, 'VibeLearn · Learning Library')
 requireText('teacher VibeLearn identity', page, 'Find. Use. Follow learning.')
@@ -63,4 +65,16 @@ forbidText('truthful publishing metrics', indexer, 'Views signal quality to the 
 requireText('teacher navigation', more, 'Learning library for your classes and subjects')
 requireText('teaching desk', today, 'Curriculum-aware learning library')
 
-console.log('VibeLearn Teacher Learning OS contract: PASS')
+requireText('student assigned reading', studentLib, 'getAssignedReading')
+requireText('student assigned reading', studentLib, "from('vibe_chapter_assignments')")
+requireText('student assigned reading', studentLib, "from('vibe_reading_progress')")
+requireText('student assigned reading', studentPage, 'Reading and learning material')
+requireText('student assigned reading', studentPage, 'Teacher-assigned learning')
+
+requireText('adaptive learning path', studentLib, 'getAdaptiveLearningPath')
+requireText('adaptive learning path', studentLib, "student_get_adaptive_learning_path")
+requireText('adaptive learning path', studentPage, 'Your learning path')
+requireText('adaptive learning path', studentPage, 'Build foundation first')
+requireText('adaptive learning path', studentPage, 'VibeLearn does not invent a weakness when evidence is missing.')
+
+console.log('VibeLearn Learning OS contract: PASS')
