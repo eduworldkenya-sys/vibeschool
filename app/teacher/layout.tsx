@@ -360,7 +360,7 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Analytics", icon: <IconAssess size={24} />, href: "/teacher/assessment/analytics" },
     { label: "Curriculum", icon: <IconVibeLearn size={24} />, href: "/teacher/assessment/curriculum" },
     { label: "Interventions", icon: <IconStudents size={24} />, href: "/teacher/assessment/interventions" },
-    { label: "Results", icon: <IconResults size={24} />, href: "/teacher/results" },
+    { label: "Exams", icon: <IconResults size={24} />, href: "/teacher/results" },
     { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card" },
   ],
   me: [
