@@ -779,6 +779,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     try {localStorage.setItem('teacher-timetable-view',next)} catch { /* View remains usable without storage. */ }
   }
   const [dayBlocks, setDayBlocks] = useState<SchoolDayBlock[]>([])
+  const [schoolBlocks, setSchoolBlocks] = useState<Record<string, SchoolDayBlock[]>>({})
   const [blocksError, setBlocksError] = useState<string | null>(null)
   const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null)
   const [schools, setSchools] = useState<Array<{id:string;name:string}>>([])
@@ -884,6 +885,32 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       // database's teacher exclusion constraint remains the global clash gate.
       const schoolIds = memberships.length > 0 ? memberships.map(s => s.id) : [schoolId]
       const rangeEnd = nairobiDateAdd(weekStart, 6)
+      const blockGroups = await Promise.all(
+        schoolIds.map(async membershipSchoolId => {
+          if (membershipSchoolId === schoolId) {
+            return { schoolId: membershipSchoolId, rows: ((blockData ?? []) as SchoolPeriod[]) }
+          }
+          const { data, error } = await supabase.rpc('get_school_day_blocks_for_member', {
+            p_school_id: membershipSchoolId,
+          })
+          if (error) {
+            console.error('[Timetable] school period load failed', membershipSchoolId, error)
+            return { schoolId: membershipSchoolId, rows: [] as SchoolPeriod[] }
+          }
+          return { schoolId: membershipSchoolId, rows: (data ?? []) as SchoolPeriod[] }
+        })
+      )
+      const nextSchoolBlocks: Record<string, SchoolDayBlock[]> = {}
+      for (const group of blockGroups) {
+        nextSchoolBlocks[group.schoolId] = group.rows
+          .filter(block => block.school_id === group.schoolId)
+          .map(block => ({
+            id:block.id,scheduleDay:block.schedule_day,periodNumber:block.period_number,label:block.label,
+            startTime:block.start_time,endTime:block.end_time,kind:block.kind,protected:block.protected,
+          }))
+      }
+      setSchoolBlocks(nextSchoolBlocks)
+
       const schoolSlotGroups = await Promise.all(
         schoolIds.map(async membershipSchoolId => ({
           schoolId: membershipSchoolId,
@@ -1459,7 +1486,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         </div>
       )}
       {view === 'week' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
-        slots={visibleSlots} blocks={dayBlocks} dateForDow={dateForDow}
+        slots={visibleSlots} blocks={schoolFilter !== 'all' ? (schoolBlocks[schoolFilter] ?? []) : dayBlocks} dateForDow={dateForDow}
         onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(visibleSlots.find(slot => slot.id === s.id) ?? null) }}
         onAdd={canAddSlot && !blocksError && (schoolFilter === 'all' || schoolFilter === activeSchoolId) ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
