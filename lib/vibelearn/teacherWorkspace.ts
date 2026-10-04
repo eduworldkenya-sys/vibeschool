@@ -96,8 +96,6 @@ type LearningResourceRow = {
   learning_outcomes: string[] | null
   status: string
   visibility: string
-  asset_kind: string | null
-  purpose: string | null
 }
 
 function norm(value: string | null | undefined): string {
@@ -323,13 +321,13 @@ export async function loadTeacherVibeLearnWorkspace(input: WorkspaceInput = {}):
   const [subjectResourceResult, textSubjectResourceResult] = await Promise.all([
     supabase
       .from('learning_resources')
-      .select('id,source_type,publication_id,chapter_id,content_id,title,description,subject_id,curriculum_id,sub_strand_id,grade,subject,strand,learning_outcomes,status,visibility,asset_kind,purpose')
+      .select('id,source_type,publication_id,chapter_id,content_id,title,description,subject_id,curriculum_id,sub_strand_id,grade,subject,strand,learning_outcomes,status,visibility')
       .eq('status', 'active')
       .eq('subject_id', selected.subjectId)
       .limit(120),
     supabase
       .from('learning_resources')
-      .select('id,source_type,publication_id,chapter_id,content_id,title,description,subject_id,curriculum_id,sub_strand_id,grade,subject,strand,learning_outcomes,status,visibility,asset_kind,purpose')
+      .select('id,source_type,publication_id,chapter_id,content_id,title,description,subject_id,curriculum_id,sub_strand_id,grade,subject,strand,learning_outcomes,status,visibility')
       .eq('status', 'active')
       .ilike('subject', selected.subjectName)
       .limit(120),
@@ -350,8 +348,6 @@ export async function loadTeacherVibeLearnWorkspace(input: WorkspaceInput = {}):
       row.subject,
       row.grade,
       row.strand,
-      row.asset_kind,
-      row.purpose,
       ...(row.learning_outcomes ?? []),
     ].some(value => String(value ?? '').toLowerCase().includes(query)))
   }
@@ -410,8 +406,8 @@ export async function loadTeacherVibeLearnWorkspace(input: WorkspaceInput = {}):
       title: row.title,
       description: row.description,
       sourceType: row.source_type,
-      assetKind: row.asset_kind,
-      purpose: row.purpose,
+      assetKind: null,
+      purpose: null,
       grade: row.grade,
       subject: row.subject,
       strand: row.strand,
