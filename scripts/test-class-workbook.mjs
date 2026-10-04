@@ -149,7 +149,7 @@ const data = {
       student_id: "b",
       exam_id: "e2",
       subject_id: "english",
-      marks: 0,
+      marks: null,
       is_absent: true,
     },
     {
@@ -326,9 +326,9 @@ assert.match(loader, /upsert_attendance_batch/);
 assert.match(loader, /saveCanonicalExamResults/);
 assert.match(loader, /expectedUpdatedAt/);
 const resultAuthority = fs.readFileSync("lib/teacher/examResultAuthority.ts", "utf8");
-assert.match(resultAuthority, /teacher_save_exam_results/);
-assert.match(resultAuthority, /row\.student_id===input\.studentId/);
-assert.match(resultAuthority, /row\.is_absent===input\.isAbsent/);
+assert.match(resultAuthority, /teacher_save_exam_result_states/);
+assert.match(resultAuthority, /normalizeExamResultState/);
+assert.match(resultAuthority, /is_absent:\s*state === ['"]absent['"]/);
 assert.doesNotMatch(loader, /\.from\(["']exam_results["']\)\s*\.upsert/);
 console.log(
   "Class workbook: identity imports, projections, unknown commands, missing evidence, formulas and export safety passed.",
