@@ -19,6 +19,7 @@ export interface RegistryResourceMap {
   contentId: string
   resourceId: string
   grade: string | null
+  subjectId: string | null
   subject: string | null
   strand: string | null
   learningOutcomes: string[]
@@ -30,6 +31,7 @@ interface LearningResourceRow {
   content_id: string | null
   publication_id: string | null
   grade: string | null
+  subject_id: string | null
   subject: string | null
   strand: string | null
   learning_outcomes: string[]
@@ -118,7 +120,7 @@ export async function resolvePublicRegistryResources(
     const { data, error } = await supabase
       .from('learning_resources')
       .select(
-        'id,source_type,content_id,publication_id,grade,subject,strand,learning_outcomes'
+        'id,source_type,content_id,publication_id,grade,subject_id,subject,strand,learning_outcomes'
       )
       .eq('status', 'active')
       .in('visibility', [
@@ -143,7 +145,7 @@ export async function resolvePublicRegistryResources(
     const { data, error } = await supabase
       .from('learning_resources')
       .select(
-        'id,source_type,content_id,publication_id,grade,subject,strand,learning_outcomes'
+        'id,source_type,content_id,publication_id,grade,subject_id,subject,strand,learning_outcomes'
       )
       .eq('status', 'active')
       .in('visibility', [
@@ -191,6 +193,7 @@ export async function resolvePublicRegistryResources(
       contentId,
       resourceId: row.id,
       grade: row.grade,
+      subjectId: row.subject_id,
       subject: row.subject,
       strand: row.strand,
       learningOutcomes:
