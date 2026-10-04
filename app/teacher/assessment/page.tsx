@@ -607,7 +607,7 @@ function AssessmentInner() {
           {[
             ['Exercise', 'Practice from a lesson', '/teacher/lessonplan'],
             ['Quiz', 'Quick lesson check', '/teacher/lessonplan'],
-            ['CAT', 'Across completed lessons', '/teacher/assessment/cat/new'],
+            ['CAT', 'Across completed lessons', '/teacher/lessonplan'],
             ['Exams', 'Enter marks & analyse', '/teacher/results'],
             ['Question Bank', 'Find reusable questions', '/teacher/assessment/bank'],
             ['Progress', 'Record CBC evidence', ''],
