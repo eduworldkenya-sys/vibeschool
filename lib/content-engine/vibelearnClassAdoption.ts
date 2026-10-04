@@ -1,5 +1,14 @@
 import { supabase } from '@/lib/supabase'
 
+export type VibeLearnClassUsageRole =
+  | 'supplementary'
+  | 'teacher_reference'
+  | 'learner_reading'
+  | 'exercise'
+  | 'remedial'
+  | 'enrichment'
+  | 'assessment_source'
+
 export interface AdoptionClassOption {
   id: string
   name: string
@@ -28,6 +37,7 @@ interface LearningResourceRow {
 
 export async function loadSubjectAdoptionClasses(
   subjectId: string,
+  preferredClassId?: string | null,
 ): Promise<AdoptionClassOption[]> {
   const {
     data: { user },
@@ -70,7 +80,21 @@ export async function loadSubjectAdoptionClasses(
     throw classError
   }
 
-  return (classes ?? []) as AdoptionClassOption[]
+  const resolved = (classes ?? []) as AdoptionClassOption[]
+
+  if (!preferredClassId) {
+    return resolved
+  }
+
+  const preferred = resolved.find(row => row.id === preferredClassId)
+  if (!preferred) {
+    return resolved
+  }
+
+  return [
+    preferred,
+    ...resolved.filter(row => row.id !== preferredClassId),
+  ]
 }
 
 export async function resolvePublicRegistryResources(
@@ -179,6 +203,8 @@ export async function addResourceToClass(input: {
   resourceId: string
   classId: string
   subjectId: string
+  usageRole?: VibeLearnClassUsageRole
+  notes?: string | null
 }): Promise<string> {
   const { data, error } = await supabase.rpc(
     'ce_add_resource_to_class_library',
@@ -186,7 +212,8 @@ export async function addResourceToClass(input: {
       p_resource_id: input.resourceId,
       p_class_id: input.classId,
       p_subject_id: input.subjectId,
-      p_usage_role: 'supplementary',
+      p_usage_role: input.usageRole ?? 'supplementary',
+      p_notes: input.notes ?? null,
     },
   )
 
