@@ -277,10 +277,12 @@ for (const migration of migrations) {
     const tree = await parse(sql);
     walk(tree, { migration });
   } catch (error) {
-    parseErrors.push({
+    const detail = {
       migration,
       error: error instanceof Error ? error.message : String(error),
-    });
+    };
+    parseErrors.push(detail);
+    console.error(`M(repo) parse error in ${migration}: ${detail.error}`);
   }
 }
 
