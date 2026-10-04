@@ -66,6 +66,7 @@ import CoverageSheet from '@/components/teacher/CoverageSheet'
 import LessonPlanHistorySheet from '@/components/teacher/LessonPlanHistorySheet'
 import EvidenceCaptureSheet from '@/components/teacher/EvidenceCaptureSheet'
 import LessonTeachMode from '@/components/teacher/LessonTeachMode'
+import VibeLearnLessonSequence from '@/components/teacher/VibeLearnLessonSequence'
 import {
   listOccurrenceResourceUsage,
   markOccurrenceResourceUsed,
@@ -1756,6 +1757,15 @@ export default function LessonPlanModal({
                     </button>
                   )}
                 </div>
+
+                {planId && (
+                  <VibeLearnLessonSequence
+                    lessonPlanId={planId}
+                    onChanged={() => {
+                      void loadLessonResources(planId)
+                    }}
+                  />
+                )}
 
                 {resourceUsageError && (
                   <div style={{
