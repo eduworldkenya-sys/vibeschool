@@ -11,6 +11,7 @@ import {
 } from "@/lib/content-engine/vibelearnClassAdoption";
 import type {
   AdoptionClassOption,
+  VibeLearnClassUsageRole,
 } from "@/lib/content-engine/vibelearnClassAdoption";
 import { C } from "@/components/teacher/ui";
 
@@ -33,6 +34,7 @@ interface Content {
   subject_id?: string | null;
   resource_id?: string | null;
   registry_grade?: string | null;
+  registry_subject_id?: string | null;
   registry_subject?: string | null;
   registry_strand?: string | null;
   registry_learning_outcomes?: string[];
@@ -107,6 +109,20 @@ const TAGS_PRESET = [
   "KCSE","KCPE","Form 1","Form 2","Form 3","Form 4",
   "Grade 7","Grade 8","Grade 9","Revision","Notes","Practicals",
   "Essays","Past Papers","Short Notes","Diagrams",
+];
+
+const CLASS_USE_OPTIONS: Array<{
+  value: VibeLearnClassUsageRole;
+  label: string;
+  help: string;
+}> = [
+  { value: "supplementary", label: "Keep in class library", help: "Save it for this class without assigning it yet." },
+  { value: "teacher_reference", label: "Use while teaching", help: "Keep it as a teacher reference for preparation and delivery." },
+  { value: "learner_reading", label: "Give to learners", help: "Make it part of the class learning material." },
+  { value: "exercise", label: "Use for practice", help: "Use it as classwork or guided practice." },
+  { value: "remedial", label: "Support learners", help: "Use it for learners who need another explanation or more practice." },
+  { value: "enrichment", label: "Extend learning", help: "Use it as a challenge or enrichment resource." },
+  { value: "assessment_source", label: "Use for assessment", help: "Use it as a source when preparing an assessment." },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -311,6 +327,58 @@ export default function VibeLearnPage() {
   const [saving,       setSaving]       = useState(false);
   const [saveError,    setSaveError]    = useState("");
 
+  const loadContent = useCallback(async (uid: string) => {
+    const { data, error } = await supabase
+      .from("vibelearn_content")
+      .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
+      .eq("submitted_by", uid)
+      .order("created_at", { ascending: false });
+    if (!error && data && mounted.current) setContent(data as Content[]);
+  }, []);
+
+  const loadStats = useCallback(async (uid: string) => {
+    if (mounted.current) setLoadingStats(true);
+    try {
+      let data: {
+        total_views: number | null;
+        total_earnings_ksh: number | null;
+        live_count: number | null;
+        teacher_rank: number | null;
+      } | null = null;
+
+      try {
+        const { data: statsRow } = await supabase
+          .from("vibelearn_teacher_stats")
+          .select(
+            "total_views,total_earnings_ksh,live_count,teacher_rank"
+          )
+          .eq("teacher_id", uid)
+          .maybeSingle();
+
+        data = statsRow;
+      } catch {
+        // Stats view may not exist yet — non-fatal.
+      }
+      const { data: top } = await supabase
+        .from("vibelearn_content")
+        .select("title,view_count")
+        .eq("submitted_by", uid)
+        .eq("status", "live")
+        .order("view_count", { ascending: false })
+        .limit(3);
+      if (!mounted.current) return;
+      setStats({
+        total_views:        data?.total_views        ?? 0,
+        total_earnings_ksh: data?.total_earnings_ksh ?? 0,
+        live_count:         data?.live_count         ?? 0,
+        teacher_rank:       data?.teacher_rank       ?? null,
+        top_content:        (top ?? []) as { title: string; view_count: number }[],
+      });
+    } finally {
+      if (mounted.current) setLoadingStats(false);
+    }
+  }, []);
+
   useEffect(() => {
     mounted.current = true;
 
@@ -402,61 +470,8 @@ export default function VibeLearnPage() {
         if (mounted.current) setLoadingPage(false);
       }
     }
-    init();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadContent = useCallback(async (uid: string) => {
-    const { data, error } = await supabase
-      .from("vibelearn_content")
-      .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
-      .eq("submitted_by", uid)
-      .order("created_at", { ascending: false });
-    if (!error && data && mounted.current) setContent(data as Content[]);
-  }, []);
-
-  const loadStats = useCallback(async (uid: string) => {
-    if (mounted.current) setLoadingStats(true);
-    try {
-      let data: {
-        total_views: number | null;
-        total_earnings_ksh: number | null;
-        live_count: number | null;
-        teacher_rank: number | null;
-      } | null = null;
-
-      try {
-        const { data: statsRow } = await supabase
-          .from("vibelearn_teacher_stats")
-          .select(
-            "total_views,total_earnings_ksh,live_count,teacher_rank"
-          )
-          .eq("teacher_id", uid)
-          .maybeSingle();
-
-        data = statsRow;
-      } catch {
-        // Stats view may not exist yet — non-fatal.
-      }
-      const { data: top } = await supabase
-        .from("vibelearn_content")
-        .select("title,view_count")
-        .eq("submitted_by", uid)
-        .eq("status", "live")
-        .order("view_count", { ascending: false })
-        .limit(3);
-      if (!mounted.current) return;
-      setStats({
-        total_views:        data?.total_views        ?? 0,
-        total_earnings_ksh: data?.total_earnings_ksh ?? 0,
-        live_count:         data?.live_count         ?? 0,
-        teacher_rank:       data?.teacher_rank       ?? null,
-        top_content:        (top ?? []) as { title: string; view_count: number }[],
-      });
-    } finally {
-      if (mounted.current) setLoadingStats(false);
-    }
-  }, []);
+    void init();
+  }, [loadContent, loadStats, router]);
 
   // ── Optimistic toggle ───────────────────────────────────────────────────────
   async function toggleStatus(item: Content) {
@@ -801,27 +816,31 @@ export default function VibeLearnPage() {
         {/* ── Hero ── */}
         <div style={{ background: "linear-gradient(135deg,#065f46 0%,#1e1b4b 100%)", borderRadius: 20, padding: "18px 20px", marginBottom: 14, color: "#fff", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle,rgba(16,185,129,0.25),transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn</div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Publish. Earn. Grow.</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginBottom: 16 }}>Your content earns every time a student reads it.</div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn · Learning Library</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Find. Use. Follow learning.</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginBottom: 16 }}>Curriculum-aware learning material for your subjects, classes and learners.</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 8 }}>
             {[
-              { label: "Earnings (KSH)", value: loadingStats ? "…" : `${(stats?.total_earnings_ksh ?? 0).toLocaleString()}`, color: "#6ee7b7" },
-              { label: "Total Views",    value: loadingStats ? "…" : `${(stats?.total_views ?? 0).toLocaleString()}`,         color: "#93c5fd" },
-              { label: "Live",           value: loadingStats ? "…" : `${stats?.live_count ?? 0}`,                             color: "#fde68a" },
-              { label: "Rank",           value: loadingStats ? "…" : stats?.teacher_rank ? `#${stats.teacher_rank}` : "—",   color: "#f9a8d4" },
-            ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", marginTop: 2, fontWeight: 600 }}>{s.label}</div>
-              </div>
+              { label: "Find learning", detail: "For a class or subject", action: () => setTab("discover") },
+              { label: "Class reading", detail: "Follow assigned learning", action: () => setTab("assignments") },
+              { label: "Create", detail: "Add or publish material", action: () => setTab("create") },
+            ].map(item => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={item.action}
+                style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 12, padding: "11px 9px", color: "#fff", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 800 }}>{item.label}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.52)", marginTop: 3, lineHeight: 1.35 }}>{item.detail}</div>
+              </button>
             ))}
           </div>
           <button
             onClick={() => router.push("/teacher/vibelearn/indexer")}
-            style={{ marginTop: 14, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10, padding: "8px 16px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ marginTop: 12, background: "transparent", border: "none", padding: "4px 0", color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
           >
-            📊 View Index Score →
+            Publishing health →
           </button>
         </div>
 
@@ -830,11 +849,11 @@ export default function VibeLearnPage() {
           {(["content","create","assignments","stats","discover"] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={S.pill(tab === t)}>
               {{
-                content: `📄 Content${liveCount > 0 ? ` (${liveCount})` : ""}`,
+                content: `📄 My content${liveCount > 0 ? ` (${liveCount})` : ""}`,
                 create: "✦ Create",
-                assignments: "📚 Assignments",
-                stats: "📊 Stats",
-                discover: "🔍 Discover",
+                assignments: "📚 Class reading",
+                stats: "📊 Publishing",
+                discover: "🔍 Find learning",
               }[t]}
             </button>
           ))}
@@ -842,7 +861,7 @@ export default function VibeLearnPage() {
 
         {publishOk && (
           <div style={{ ...S.card, background: "#d1fae5", border: "1px solid #6ee7b7", padding: "12px 16px", marginBottom: 14, animation: "fadeIn 0.3s ease" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Vibe dropped. You are now earning.</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Published to VibeLearn. It is now available for discovery.</div>
           </div>
         )}
 
@@ -857,10 +876,10 @@ export default function VibeLearnPage() {
             {content.length === 0 ? (
               <div style={{ ...S.card, textAlign: "center", padding: "48px 24px" }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No Vibes Dropped Yet</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No learning content published yet</div>
                 <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.6 }}>Create a learning page, ebook or VibeTextbook and publish it to VibeLearn.</div>
                 <button onClick={() => setTab("create")} style={S.btnPrimary(false)}>
-                  Drop Your First Vibe →
+                  Create your first resource →
                 </button>
               </div>
             ) : (
@@ -985,7 +1004,7 @@ export default function VibeLearnPage() {
                 })}
 
                 <button onClick={() => setTab("create")} style={{ width: "100%", padding: 14, borderRadius: 14, border: `2px dashed ${C.border}`, background: "transparent", color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }}>
-                  + Drop Another Vibe
+                  + Create another resource
                 </button>
               </>
             )}
@@ -1000,7 +1019,7 @@ export default function VibeLearnPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
                   { id: "epage" as const, icon: "📄", title: "Learning Page", desc: "Notes, revision material, activities or a lesson resource." },
-                  { id: "ebook" as const, icon: "📚", title: "Ebook", desc: "A longer downloadable or linked learning resource." },
+                  { id: "ebook" as const, icon: "📚", title: "eBook", desc: "Create a structured chapter-based publication in Content Studio.", badge: "Content Studio" },
                   { id: "textbook" as const, icon: "📘", title: "VibeTextbook", desc: "A structured curriculum-aligned book with chapters and publishing controls.", badge: "Full authoring studio" },
                 ].map(opt => {
                   const isSelected = cType === opt.id && opt.id !== "textbook";
@@ -1008,7 +1027,8 @@ export default function VibeLearnPage() {
                     <button
                       key={opt.id}
                       onClick={() => {
-                        if (opt.id === "textbook") { router.push("/global/create/textbook"); return; }
+                        if (opt.id === "textbook") { router.push("/teacher/studio/editor?format=vibetextbook"); return; }
+                        if (opt.id === "ebook") { router.push("/teacher/studio/editor?format=ebook"); return; }
                         setCType(opt.id);
                         requestAnimationFrame(() => {
                           createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1034,7 +1054,7 @@ export default function VibeLearnPage() {
                         <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{opt.desc}</div>
                       </div>
                       <div style={{ fontSize: 16, color: isSelected ? C.accent : C.textMuted, fontWeight: 800, flexShrink: 0, alignSelf: "center" }}>
-                        {opt.id === "textbook" ? "→" : (isSelected ? "✓" : "→")}
+                        {opt.id === "textbook" || opt.id === "ebook" ? "→" : (isSelected ? "✓" : "→")}
                       </div>
                     </button>
                   );
@@ -1228,7 +1248,7 @@ export default function VibeLearnPage() {
                     { label: "Total Views",    value: (stats?.total_views ?? 0).toLocaleString(),        color: C.accent,  bg: "#d1fae5" },
                     { label: "Earnings (KSH)", value: (stats?.total_earnings_ksh ?? 0).toLocaleString(), color: "#7c3aed", bg: "#ede9fe" },
                     { label: "Live Content",   value: String(stats?.live_count ?? 0),                    color: "#0284c7", bg: "#dbeafe" },
-                    { label: "Teacher Rank",   value: stats?.teacher_rank ? `#${stats.teacher_rank}` : "—", color: "#b45309", bg: "#fef3c7" },
+                    { label: "Creator Reach",  value: stats?.teacher_rank ? `#${stats.teacher_rank}` : "—", color: "#b45309", bg: "#fef3c7" },
                   ].map(s => (
                     <div key={s.label} style={{ background: s.bg, borderRadius: 14, padding: "16px 14px" }}>
                       <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -1239,7 +1259,7 @@ export default function VibeLearnPage() {
 
                 {stats?.top_content && stats.top_content.length > 0 && (
                   <div style={S.card}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 12 }}>Top Performing</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 12 }}>Publishing reach</div>
                     {stats.top_content.map((c, i) => (
                       <div key={c.title} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < stats.top_content.length - 1 ? `1px solid ${C.border}` : "none" }}>
                         <div style={{ fontSize: 18, flexShrink: 0 }}>{["🥇","🥈","🥉"][i]}</div>
@@ -2570,6 +2590,10 @@ function DiscoverTab({ userId }: { userId: string | null }) {
     useState<AdoptionClassOption[]>([]);
   const [classPickerContentId, setClassPickerContentId] =
     useState<string | null>(null);
+  const [preferredClassId, setPreferredClassId] =
+    useState<string | null>(null);
+  const [usageRoleByContentId, setUsageRoleByContentId] =
+    useState<Record<string, VibeLearnClassUsageRole>>({});
   const [adoptingContentId, setAdoptingContentId] =
     useState<string | null>(null);
   const [adoptionError, setAdoptionError] =
@@ -2591,8 +2615,12 @@ function DiscoverTab({ userId }: { userId: string | null }) {
 
     const requestedSubjectId =
       params.get("subjectId");
+    const requestedClassId =
+      params.get("classId");
 
     const requestedTab = params.get("tab");
+
+    setPreferredClassId(requestedClassId);
 
     if (requestedTab === "discover") {
       // Parent page already rendered DiscoverTab.
@@ -2620,7 +2648,8 @@ function DiscoverTab({ userId }: { userId: string | null }) {
               .eq("id", resolvedSubjectId)
               .maybeSingle(),
             loadSubjectAdoptionClasses(
-              resolvedSubjectId
+              resolvedSubjectId,
+              requestedClassId
             ),
           ]);
 
@@ -2656,8 +2685,14 @@ function DiscoverTab({ userId }: { userId: string | null }) {
       .replace(/[^a-z0-9]/g, "");
   }
 
+  const contextClasses =
+    preferredClassId &&
+    adoptionClasses.some(cls => cls.id === preferredClassId)
+      ? adoptionClasses.filter(cls => cls.id === preferredClassId)
+      : adoptionClasses;
+
   const selectedGradeKeys = new Set(
-    adoptionClasses.map(cls =>
+    contextClasses.map(cls =>
       normalizeCurriculumLabel(cls.name)
     )
   );
@@ -2679,7 +2714,13 @@ function DiscoverTab({ userId }: { userId: string | null }) {
         if (filter !== "all") q = q.eq("type", filter);
         // exclude own content server-side — not client-side
         if (userId) q = q.neq("submitted_by", userId);
-        if (query.trim()) q = q.ilike("title", "%" + query.trim() + "%");
+        if (query.trim()) {
+          q = q.textSearch(
+            "search_vector",
+            query.trim(),
+            { type: "websearch", config: "english" }
+          );
+        }
         const { data, error } = await q;
 
         if (error) {
@@ -2721,9 +2762,11 @@ function DiscoverTab({ userId }: { userId: string | null }) {
               );
 
             const subjectMatches =
-              Boolean(selectedSubjectKey) &&
-              resourceSubjectKey ===
-                selectedSubjectKey;
+              Boolean(subjectId) &&
+              registry?.subjectId === subjectId
+                ? true
+                : Boolean(selectedSubjectKey) &&
+                  resourceSubjectKey === selectedSubjectKey;
 
             const gradeMatches =
               Boolean(resourceGradeKey) &&
@@ -2755,6 +2798,8 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                   registry?.resourceId ?? null,
                 registry_grade:
                   registry?.grade ?? null,
+                registry_subject_id:
+                  registry?.subjectId ?? null,
                 registry_subject:
                   registry?.subject ?? null,
                 registry_strand:
@@ -2813,11 +2858,14 @@ function DiscoverTab({ userId }: { userId: string | null }) {
           color: "#047857",
           lineHeight: 1.5,
         }}>
-          Choosing content for{" "}
+          Choosing learning material for{" "}
           <strong>
             {subjectName ?? "this subject"}
-          </strong>.
-          Select an exact class before adding it.
+          </strong>
+          {preferredClassId && adoptionClasses[0]?.id === preferredClassId
+            ? <> · <strong>{adoptionClasses[0].name}{adoptionClasses[0].stream ? ` · ${adoptionClasses[0].stream}` : ""}</strong></>
+            : null}.
+          VibeLearn keeps this teaching context while you choose how to use each resource.
         </div>
       )}
 
@@ -2850,7 +2898,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
 
       <div style={{ position: "relative", marginBottom: 10 }}>
         <input value={query} onChange={e => setQuery(e.target.value)}
-          placeholder="Search content by topic, subject, tag…"
+          placeholder="Search topic, subject, strand, tag or resource…"
           style={{ width: "100%", padding: "12px 14px 12px 42px", borderRadius: 12, border: "1.5px solid #e5e7eb", fontSize: 13, fontFamily: "inherit", outline: "none", background: "#fff", color: "#111827", boxSizing: "border-box" }} />
         <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>🔍</div>
       </div>
@@ -2995,117 +3043,105 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                 </div>
               ) : classPickerContentId === item.id ? (
                 <div>
-                  <div style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: "#111827",
-                    marginBottom: 8,
-                  }}>
-                    Add to which class?
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#111827", marginBottom: 8 }}>
+                    How do you want to use this?
+                  </div>
+                  <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
+                    {CLASS_USE_OPTIONS.map(option => {
+                      const selectedRole = usageRoleByContentId[item.id] ?? "supplementary";
+                      const selected = selectedRole === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setUsageRoleByContentId(current => ({ ...current, [item.id]: option.value }))}
+                          style={{
+                            border: selected ? "1.5px solid #047857" : "1px solid #d1d5db",
+                            background: selected ? "#ecfdf5" : "#fff",
+                            borderRadius: 10,
+                            padding: "9px 10px",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          <div style={{ fontSize: 12, fontWeight: 800, color: "#111827" }}>{option.label}</div>
+                          <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2, lineHeight: 1.4 }}>{option.help}</div>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  <div style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 7,
-                  }}>
-                    {adoptionClasses.map(cls => (
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#111827", marginBottom: 8 }}>
+                    {preferredClassId && adoptionClasses[0]?.id === preferredClassId
+                      ? "Use with this class"
+                      : "Use with which class?"}
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {(preferredClassId && adoptionClasses.some(cls => cls.id === preferredClassId)
+                      ? adoptionClasses.filter(cls => cls.id === preferredClassId)
+                      : adoptionClasses
+                    ).map(cls => (
                       <button
                         key={cls.id}
-                        disabled={
-                          adoptingContentId === item.id
-                        }
+                        disabled={adoptingContentId === item.id}
                         onClick={async () => {
-                          if (
-                            !item.resource_id ||
-                            !subjectId ||
-                            adoptingContentId
-                          ) {
-                            return;
-                          }
+                          if (!item.resource_id || !subjectId || adoptingContentId) return;
 
                           setAdoptingContentId(item.id);
                           setAdoptionError("");
                           setAdoptionSuccess("");
 
                           try {
+                            const usageRole = usageRoleByContentId[item.id] ?? "supplementary";
+                            const usageLabel =
+                              CLASS_USE_OPTIONS.find(option => option.value === usageRole)?.label ??
+                              "Added to class";
+
                             await addResourceToClass({
-                              resourceId:
-                                item.resource_id,
+                              resourceId: item.resource_id,
                               classId: cls.id,
                               subjectId,
+                              usageRole,
                             });
 
                             if (!mounted.current) return;
 
-                            const classLabel =
-                              cls.name +
-                              (
-                                cls.stream
-                                  ? " · " + cls.stream
-                                  : ""
-                              );
-
-                            setAdoptionSuccess(
-                              `“${item.title}” added to ${classLabel}.`
-                            );
+                            const classLabel = cls.name + (cls.stream ? " · " + cls.stream : "");
+                            setAdoptionSuccess(`“${item.title}” · ${usageLabel.toLowerCase()} · ${classLabel}.`);
                             setClassPickerContentId(null);
                           } catch (error) {
-                            console.error(
-                              "[VibeLearn] class adoption failed",
-                              error
-                            );
-
+                            console.error("[VibeLearn] class adoption failed", error);
                             if (mounted.current) {
-                              setAdoptionError(
-                                "The resource could not be added to the class."
-                              );
+                              setAdoptionError("The resource could not be added to the class.");
                             }
                           } finally {
-                            if (mounted.current) {
-                              setAdoptingContentId(null);
-                            }
+                            if (mounted.current) setAdoptingContentId(null);
                           }
                         }}
                         style={{
                           width: "100%",
                           padding: "10px 12px",
                           borderRadius: 10,
-                          border:
-                            "1px solid #d1d5db",
-                          background: "#fff",
+                          border: "none",
+                          background: "#047857",
                           textAlign: "left",
-                          color: "#111827",
+                          color: "#fff",
                           fontSize: 12,
-                          fontWeight: 700,
-                          cursor:
-                            adoptingContentId === item.id
-                              ? "wait"
-                              : "pointer",
+                          fontWeight: 800,
+                          cursor: adoptingContentId === item.id ? "wait" : "pointer",
                           fontFamily: "inherit",
                         }}
                       >
-                        {cls.name}
-                        {cls.stream
-                          ? " · " + cls.stream
-                          : ""}
+                        {cls.name}{cls.stream ? " · " + cls.stream : ""} →
                       </button>
                     ))}
                   </div>
 
                   <button
-                    onClick={() =>
-                      setClassPickerContentId(null)
-                    }
-                    style={{
-                      marginTop: 8,
-                      border: "none",
-                      background: "transparent",
-                      color: "#6b7280",
-                      fontSize: 11,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
+                    onClick={() => setClassPickerContentId(null)}
+                    style={{ marginTop: 8, border: "none", background: "transparent", color: "#6b7280", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
                   >
                     Cancel
                   </button>
@@ -3116,6 +3152,10 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                     setAdoptionError("");
                     setAdoptionSuccess("");
                     setClassPickerContentId(item.id);
+                    setUsageRoleByContentId(current => ({
+                      ...current,
+                      [item.id]: current[item.id] ?? "supplementary",
+                    }));
                   }}
                   style={{
                     width: "100%",
@@ -3130,7 +3170,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                     fontFamily: "inherit",
                   }}
                 >
-                  Add to a class
+                  Use with my class
                 </button>
               )}
             </div>

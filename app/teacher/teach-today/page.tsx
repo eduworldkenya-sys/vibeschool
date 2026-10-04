@@ -22,7 +22,7 @@ const documentLinks = [
   { label: "Scheme of Work", detail: "Term sequence and coverage", href: "/teacher/scheme" },
   { label: "Lesson Plans", detail: "Prepare the exact lesson", href: "/teacher/lessonplan" },
   { label: "Timetable", detail: "Scheduled teaching occurrences", href: "/teacher/timetable" },
-  { label: "VibeLearn", detail: "Textbooks and teaching resources", href: "/teacher/vibelearn" },
+  { label: "VibeLearn", detail: "Curriculum-aware learning library", href: "/teacher/vibelearn" },
   { label: "Progress Record", detail: "What was taught, reflection and remarks", href: "/teacher/progress" },
 ];
 

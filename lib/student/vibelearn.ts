@@ -32,6 +32,48 @@ export interface AssignedAssessment {
   actionUrl: string
 }
 
+export interface AssignedReadingItem {
+  assignmentId: string
+  publicationId: string
+  chapterId: string
+  title: string
+  chapterTitle: string
+  chapterNumber: number | null
+  subjectName: string | null
+  instructions: string | null
+  assignedAt: string
+  dueAt: string | null
+  progressPercent: number
+  completedAt: string | null
+  isOverdue: boolean
+  actionUrl: string
+}
+
+export interface AdaptivePrerequisite {
+  outcomeId: string
+  outcomeText: string
+  requiredMastery: number
+  currentMastery: number
+  met: boolean
+}
+
+export interface AdaptiveLearningPathItem {
+  outcomeId: string
+  outcomeText: string
+  effectiveMastery: number
+  forgettingRisk: number
+  masteryBand: string
+  priority: number
+  prerequisitesReady: boolean
+  prerequisites: AdaptivePrerequisite[]
+}
+
+export interface AdaptiveLearningPath {
+  rule: string
+  revisionItemsCreated: number
+  path: AdaptiveLearningPathItem[]
+}
+
 export interface VibeLearnTutorPolicy {
   defaultMode: 'off'
   allowedActions: string[]
@@ -266,6 +308,10 @@ type GroundedPracticeRpcClient = {
   rpc(fn: 'student_record_grounded_practice_answer', args: { p_content_block_id: string; p_response_text: string; p_response_ms: number | null; p_session_id: string | null }): Promise<{ data: unknown; error: { message: string } | null }>
 }
 
+type AdaptiveLearningPathRpcClient = {
+  rpc(fn: 'student_get_adaptive_learning_path', args?: Record<string, never>): Promise<{ data: unknown; error: { message: string } | null }>
+}
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
@@ -367,8 +413,7 @@ function parseGroundedSource(row: Record<string, unknown>): GroundedPracticeSour
 }
 
 export async function getVibeLearnWorkstation(): Promise<VibeLearnWorkstation> {
-  const rpcClient = supabase as unknown as WorkstationRpcClient
-  const { data, error } = await rpcClient.rpc('student_get_vibelearn_workstation')
+  const { data, error } = await supabase.rpc('student_get_vibelearn_workstation')
   if (error) throw new Error(error.message)
   const row = asRecord(data)
   const policy = asRecord(row.tutor_policy)
@@ -437,9 +482,174 @@ export async function getVibeLearnWorkstation(): Promise<VibeLearnWorkstation> {
   }
 }
 
+export async function getAssignedReading(): Promise<AssignedReadingItem[]> {
+  const auth = await supabase.auth.getUser()
+  if (auth.error) throw new Error(auth.error.message)
+  const user = auth.data.user
+  if (!user) throw new Error('Student session not found.')
+
+  const nowIso = new Date().toISOString()
+  const { data: assignments, error: assignmentError } = await supabase
+    .from('vibe_chapter_assignments')
+    .select('id,publication_id,chapter_id,subject_id,assigned_at,due_at,opens_at,instructions,status')
+    .eq('status', 'assigned')
+    .or(`opens_at.is.null,opens_at.lte.${nowIso}`)
+    .order('due_at', { ascending: true, nullsFirst: false })
+    .order('assigned_at', { ascending: false })
+
+  if (assignmentError) throw new Error(assignmentError.message)
+  const rows = assignments ?? []
+  if (rows.length === 0) return []
+
+  const publicationIds = Array.from(new Set(rows.map(row => row.publication_id).filter(Boolean)))
+  const chapterIds = Array.from(new Set(rows.map(row => row.chapter_id).filter(Boolean)))
+  const subjectIds = Array.from(new Set(rows.map(row => row.subject_id).filter((id): id is string => typeof id === 'string' && id.length > 0)))
+
+  const [publicationsResult, chaptersResult, subjectsResult, progressResult] = await Promise.all([
+    supabase.from('vibe_publications').select('id,title').in('id', publicationIds),
+    supabase.from('vibe_chapters').select('id,title,number').in('id', chapterIds),
+    subjectIds.length
+      ? supabase.from('subjects').select('id,name').in('id', subjectIds)
+      : Promise.resolve({ data: [], error: null }),
+    supabase
+      .from('vibe_reading_progress')
+      .select('publication_id,chapter_id,progress_percent,completed_at')
+      .eq('viewer_id', user.id)
+      .in('publication_id', publicationIds)
+      .in('chapter_id', chapterIds),
+  ])
+
+  if (publicationsResult.error) throw new Error(publicationsResult.error.message)
+  if (chaptersResult.error) throw new Error(chaptersResult.error.message)
+  if (subjectsResult.error) throw new Error(subjectsResult.error.message)
+  if (progressResult.error) throw new Error(progressResult.error.message)
+
+  const publicationMap = new Map<string, string>(
+    (publicationsResult.data ?? []).map(row => [
+      row.id,
+      typeof row.title === 'string' && row.title.length > 0
+        ? row.title
+        : 'VibeTextbook',
+    ] as const),
+  )
+  const chapterMap = new Map<string, { title: string; number: number | null }>(
+    (chaptersResult.data ?? []).map(row => [
+      row.id,
+      {
+        title:
+          typeof row.title === 'string' && row.title.length > 0
+            ? row.title
+            : 'Assigned unit',
+        number:
+          typeof row.number === 'number'
+            ? row.number
+            : null,
+      },
+    ] as const),
+  )
+  const subjectMap = new Map<string, string>(
+    (subjectsResult.data ?? []).flatMap(row =>
+      typeof row.id === 'string' &&
+      typeof row.name === 'string'
+        ? [[row.id, row.name] as const]
+        : [],
+    ),
+  )
+  const progressMap = new Map<
+    string,
+    { progress_percent: number | null; completed_at: string | null }
+  >(
+    (progressResult.data ?? []).map(row => [
+      `${row.publication_id}:${row.chapter_id}`,
+      {
+        progress_percent:
+          typeof row.progress_percent === 'number'
+            ? row.progress_percent
+            : null,
+        completed_at:
+          typeof row.completed_at === 'string'
+            ? row.completed_at
+            : null,
+      },
+    ] as const),
+  )
+  const now = Date.now()
+
+  return rows.flatMap(row => {
+    const publicationTitle = publicationMap.get(row.publication_id)
+    const chapter = chapterMap.get(row.chapter_id)
+    if (!publicationTitle || !chapter) return []
+
+    const progress = progressMap.get(`${row.publication_id}:${row.chapter_id}`)
+    const progressPercent = Math.max(0, Math.min(100, Number(progress?.progress_percent ?? 0)))
+    const dueTime = row.due_at ? new Date(row.due_at).getTime() : Number.NaN
+
+    return [{
+      assignmentId: row.id,
+      publicationId: row.publication_id,
+      chapterId: row.chapter_id,
+      title: publicationTitle,
+      chapterTitle: chapter.title,
+      chapterNumber: chapter.number,
+      subjectName: row.subject_id ? subjectMap.get(row.subject_id) ?? null : null,
+      instructions: typeof row.instructions === 'string' && row.instructions.trim() ? row.instructions.trim() : null,
+      assignedAt: row.assigned_at,
+      dueAt: row.due_at,
+      progressPercent,
+      completedAt: progress?.completed_at ?? null,
+      isOverdue: Number.isFinite(dueTime) && dueTime < now && progressPercent < 100,
+      actionUrl: `/read/textbook/${row.publication_id}/${row.chapter_id}`,
+    }]
+  })
+}
+
+export async function getAdaptiveLearningPath(): Promise<AdaptiveLearningPath> {
+  const { data, error } = await supabase.rpc('student_get_adaptive_learning_path')
+  if (error) throw new Error(error.message)
+
+  const row = asRecord(data)
+  const path = (Array.isArray(row.path) ? row.path : []).flatMap(value => {
+    const item = asRecord(value)
+    const outcomeId = asString(item.outcome_id)
+    const outcomeText = asString(item.outcome_text)
+    if (!outcomeId || !outcomeText) return []
+
+    const prerequisiteStatus = asRecord(item.prerequisites)
+    const prerequisites = (Array.isArray(prerequisiteStatus.prerequisites) ? prerequisiteStatus.prerequisites : []).flatMap(value => {
+      const prereq = asRecord(value)
+      const prerequisiteOutcomeId = asString(prereq.outcome_id)
+      const prerequisiteOutcomeText = asString(prereq.outcome_text)
+      if (!prerequisiteOutcomeId || !prerequisiteOutcomeText) return []
+      return [{
+        outcomeId: prerequisiteOutcomeId,
+        outcomeText: prerequisiteOutcomeText,
+        requiredMastery: asNumber(prereq.required_mastery),
+        currentMastery: asNumber(prereq.current_mastery),
+        met: prereq.met === true,
+      }]
+    })
+
+    return [{
+      outcomeId,
+      outcomeText,
+      effectiveMastery: asNumber(item.effective_mastery),
+      forgettingRisk: asNumber(item.forgetting_risk),
+      masteryBand: asString(item.mastery_band) ?? 'not_started',
+      priority: asNumber(item.priority),
+      prerequisitesReady: prerequisiteStatus.ready !== false,
+      prerequisites,
+    }]
+  })
+
+  return {
+    rule: asString(row.rule) ?? 'Teacher obligations first; then prerequisites, mastery and revision evidence.',
+    revisionItemsCreated: asNumber(row.revision_items_created),
+    path,
+  }
+}
+
 export async function getExamReadinessBrief(): Promise<ExamReadinessBrief> {
-  const rpcClient = supabase as unknown as ReadinessRpcClient
-  const { data, error } = await rpcClient.rpc('student_get_exam_readiness_brief')
+  const { data, error } = await supabase.rpc('student_get_exam_readiness_brief')
   if (error) throw new Error(error.message)
   const row = asRecord(data)
   const evidence = asRecord(row.evidence)
@@ -474,14 +684,12 @@ export async function getExamReadinessBrief(): Promise<ExamReadinessBrief> {
 }
 
 export async function updateExamReadiness(input: { examDate: string | null; dailyRevisionMinutes: number; confidenceCheck: number | null }): Promise<void> {
-  const rpcClient = supabase as unknown as ReadinessRpcClient
-  const { error } = await rpcClient.rpc('student_update_exam_readiness', { p_exam_date: input.examDate, p_daily_revision_minutes: input.dailyRevisionMinutes, p_confidence_check: input.confidenceCheck })
+  const { error } = await supabase.rpc('student_update_exam_readiness', { p_exam_date: input.examDate, p_daily_revision_minutes: input.dailyRevisionMinutes, p_confidence_check: input.confidenceCheck })
   if (error) throw new Error(error.message)
 }
 
 export async function getRevisionWorkspace(subject: string | null = null, topic: string | null = null): Promise<RevisionWorkspace> {
-  const rpcClient = supabase as unknown as RevisionRpcClient
-  const { data, error } = await rpcClient.rpc('student_get_revision_workspace', { p_subject: subject, p_topic: topic })
+  const { data, error } = await supabase.rpc('student_get_revision_workspace', { p_subject: subject, p_topic: topic })
   if (error) throw new Error(error.message)
   const row = asRecord(data)
   const mode = asRecord(row.revision_mode)
@@ -523,33 +731,28 @@ export async function getRevisionWorkspace(subject: string | null = null, topic:
 }
 
 export async function generateRevisionPlan(startDate: string, days = 7): Promise<void> {
-  const rpcClient = supabase as unknown as RevisionRpcClient
-  const { error } = await rpcClient.rpc('student_generate_revision_plan', { p_start_date: startDate, p_days: days })
+  const { error } = await supabase.rpc('student_generate_revision_plan', { p_start_date: startDate, p_days: days })
   if (error) throw new Error(error.message)
 }
 
 export async function recordVibeLearnPracticeAnswer(input: { examQuestionId: string; selectedIndex: number; responseMs: number | null; sessionId: string | null }): Promise<unknown> {
-  const rpcClient = supabase as unknown as RevisionRpcClient
-  const { data, error } = await rpcClient.rpc('student_record_vibelearn_practice_answer', { p_exam_question_id: input.examQuestionId, p_selected_index: input.selectedIndex, p_response_ms: input.responseMs, p_session_id: input.sessionId })
+  const { data, error } = await supabase.rpc('student_record_vibelearn_practice_answer', { p_exam_question_id: input.examQuestionId, p_selected_index: input.selectedIndex, p_response_ms: input.responseMs, p_session_id: input.sessionId })
   if (error) throw new Error(error.message)
   return data
 }
 
 export async function resolveMistake(mistakeId: string): Promise<void> {
-  const rpcClient = supabase as unknown as RevisionRpcClient
-  const { error } = await rpcClient.rpc('student_resolve_mistake', { p_mistake_id: mistakeId })
+  const { error } = await supabase.rpc('student_resolve_mistake', { p_mistake_id: mistakeId })
   if (error) throw new Error(error.message)
 }
 
 export async function saveTopicNote(subject: string, topic: string, noteText: string): Promise<void> {
-  const rpcClient = supabase as unknown as RevisionRpcClient
-  const { error } = await rpcClient.rpc('student_save_topic_note', { p_subject: subject, p_topic: topic, p_note_text: noteText })
+  const { error } = await supabase.rpc('student_save_topic_note', { p_subject: subject, p_topic: topic, p_note_text: noteText })
   if (error) throw new Error(error.message)
 }
 
 export async function getGroundedChapterPractice(publicationId: string, chapterId: string, limit = 10): Promise<GroundedChapterPractice | null> {
-  const rpcClient = supabase as unknown as GroundedPracticeRpcClient
-  const { data, error } = await rpcClient.rpc('student_get_grounded_chapter_practice', { p_publication_id: publicationId, p_chapter_id: chapterId, p_limit: limit })
+  const { data, error } = await supabase.rpc('student_get_grounded_chapter_practice', { p_publication_id: publicationId, p_chapter_id: chapterId, p_limit: limit })
   if (error) throw new Error(error.message)
   const row = asRecord(data)
   const source = parseGroundedSource(asRecord(row.source ?? row))
@@ -567,8 +770,7 @@ export async function getGroundedChapterPractice(publicationId: string, chapterI
 }
 
 export async function recordGroundedPracticeAnswer(input: { contentBlockId: string; responseText: string; responseMs: number | null; sessionId: string | null }): Promise<unknown> {
-  const rpcClient = supabase as unknown as GroundedPracticeRpcClient
-  const { data, error } = await rpcClient.rpc('student_record_grounded_practice_answer', { p_content_block_id: input.contentBlockId, p_response_text: input.responseText, p_response_ms: input.responseMs, p_session_id: input.sessionId })
+  const { data, error } = await supabase.rpc('student_record_grounded_practice_answer', { p_content_block_id: input.contentBlockId, p_response_text: input.responseText, p_response_ms: input.responseMs, p_session_id: input.sessionId })
   if (error) throw new Error(error.message)
   return data
 }
