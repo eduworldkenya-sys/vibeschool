@@ -1,18 +1,6 @@
+import { readProgressPages, loadProgressAuthority } from '@/lib/learner-intelligence/progress-data'
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
-
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
-
-type LooseQueryResult = RpcResult<unknown[]>
-interface LooseQuery extends PromiseLike<LooseQueryResult> {
-  select(columns: string): LooseQuery
-  order(column: string, options?: { ascending?: boolean }): LooseQuery
-  eq(column: string, value: unknown): LooseQuery
-}
-const fromUntyped = (table: string): LooseQuery =>
-  (supabase as unknown as { from(name: string): LooseQuery }).from(table)
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Report Card Engine returned an invalid payload.')
@@ -76,7 +64,7 @@ function parseIssues(value: unknown): ReportCompletenessIssue[] {
 }
 
 export async function createReportCard(input: { studentId: string; classId: string; termId: string; academicYear: number }): Promise<string> {
-  const { data, error } = await rpc<string>('exq_create_report_card', {
+  const { data, error } = await supabase.rpc('exq_create_report_card', {
     p_student_id: input.studentId, p_class_id: input.classId, p_term_id: input.termId, p_academic_year: input.academicYear,
   })
   if (error) throw new Error(error.message || 'Report card could not be created.')
@@ -84,17 +72,17 @@ export async function createReportCard(input: { studentId: string; classId: stri
   return data
 }
 export async function generateReportCardEvidence(reportCardId: string): Promise<ReportEvidenceDetail> {
-  const { error } = await rpc<Json>('exq_generate_report_card_evidence', { p_report_card_id: reportCardId })
+  const { error } = await supabase.rpc('exq_generate_report_card_evidence', { p_report_card_id: reportCardId })
   if (error) throw new Error(error.message || 'Report evidence could not be generated.')
   return getReportCardEvidence(reportCardId)
 }
 export async function generateSubjectReportIntelligence(reportCardId: string): Promise<number> {
-  const { data, error } = await rpc<Json>('exq_generate_subject_report_intelligence', { p_report_card_id: reportCardId })
+  const { data, error } = await supabase.rpc('exq_generate_subject_report_intelligence', { p_report_card_id: reportCardId })
   if (error) throw new Error(error.message || 'Subject report intelligence could not be generated.')
   return numberOrNull(record(data).subjects_generated) ?? 0
 }
 export async function validateReportCard(reportCardId: string): Promise<ReportValidationResult> {
-  const { data, error } = await rpc<Json>('exq_validate_report_card', { p_report_card_id: reportCardId })
+  const { data, error } = await supabase.rpc('exq_validate_report_card', { p_report_card_id: reportCardId })
   if (error) throw new Error(error.message || 'Report card validation failed.')
   const payload = record(data)
   return {
@@ -105,7 +93,7 @@ export async function validateReportCard(reportCardId: string): Promise<ReportVa
   }
 }
 export async function getReportCardEvidence(reportCardId: string): Promise<ReportEvidenceDetail> {
-  const { data, error } = await rpc<Json>('exq_get_report_card_evidence', { p_report_card_id: reportCardId })
+  const { data, error } = await supabase.rpc('exq_get_report_card_evidence', { p_report_card_id: reportCardId })
   if (error) throw new Error(error.message || 'Report evidence could not be loaded.')
   const payload = record(data)
   return {
@@ -117,28 +105,52 @@ export async function getReportCardEvidence(reportCardId: string): Promise<Repor
   }
 }
 export async function submitReportCard(reportCardId: string, overallComment?: string | null): Promise<void> {
-  const { error } = await rpc<Json>('exq_submit_report_card', { p_report_card_id: reportCardId, p_overall_comment: overallComment ?? null })
+  const { error } = await supabase.rpc('exq_submit_report_card', { p_report_card_id: reportCardId, p_overall_comment: overallComment ?? null })
   if (error) throw new Error(error.message || 'Report card could not be submitted.')
 }
 export async function reviewReportCard(input: { reportCardId: string; decision: 'approved' | 'returned'; reason?: string | null }): Promise<void> {
-  const { error } = await rpc<Json>('exq_review_report_card', { p_report_card_id: input.reportCardId, p_decision: input.decision, p_reason: input.reason ?? null })
+  const { error } = await supabase.rpc('exq_review_report_card', { p_report_card_id: input.reportCardId, p_decision: input.decision, p_reason: input.reason ?? null })
   if (error) throw new Error(error.message || 'Report card review could not be saved.')
 }
 export async function publishReportCard(reportCardId: string): Promise<void> {
-  const { error } = await rpc<Json>('exq_publish_report_card', { p_report_card_id: reportCardId })
+  const { error } = await supabase.rpc('exq_publish_report_card', { p_report_card_id: reportCardId })
   if (error) throw new Error(error.message || 'Report card could not be published.')
 }
 export async function lockReportCard(reportCardId: string): Promise<void> {
-  const { error } = await rpc<Json>('exq_lock_report_card', { p_report_card_id: reportCardId })
+  const { error } = await supabase.rpc('exq_lock_report_card', { p_report_card_id: reportCardId })
   if (error) throw new Error(error.message || 'Report card could not be locked.')
 }
 
+export async function listTeacherReportCards(scope: {classId?:string|null;studentId?:string|null} = {}): Promise<ReportCardSummary[]> {
+  const auth = await supabase.auth.getUser()
+  if (auth.error || !auth.data.user) throw new Error('Sign in again to view school reports.')
+  const response = await supabase.rpc('teacher_get_operating_context')
+  if (response.error) throw new Error(response.error.message)
+  const context = record(response.data)
+  if (context.teacher_id !== auth.data.user.id || typeof context.school_id !== 'string') throw new Error('Your active teacher school could not be confirmed.')
+  if (scope.classId) await loadProgressAuthority(scope.classId)
+  const schoolId=context.school_id
+  const data = await readProgressPages((from,to) => {
+    let query = supabase.from('report_cards')
+      .select('id,student_id,class_id,term_id,academic_year,status,revision,completeness_status,completeness_issues,validation_status,validation_issues,evidence_version,evidence_generated_at,updated_at,students(name),classes(name),academic_terms(name)')
+      .eq('school_id',schoolId).order('updated_at',{ascending:false}).order('id').range(from,to)
+    if (scope.classId) query=query.eq('class_id',scope.classId)
+    if (scope.studentId) query=query.eq('student_id',scope.studentId)
+    return query
+  })
+  return decodeReportCards(data)
+}
+
+/** Generic RLS-scoped reader retained for the canonical admin review workspace. */
 export async function listReportCards(): Promise<ReportCardSummary[]> {
-  const { data, error } = await fromUntyped('report_cards')
+  const data=await readProgressPages((from,to)=>supabase.from('report_cards')
     .select('id,student_id,class_id,term_id,academic_year,status,revision,completeness_status,completeness_issues,validation_status,validation_issues,evidence_version,evidence_generated_at,updated_at,students(name),classes(name),academic_terms(name)')
-    .order('updated_at', { ascending: false })
-  if (error) throw new Error(error.message || 'Report cards could not be loaded.')
-  return (data ?? []).map(row => {
+    .order('updated_at',{ascending:false}).order('id').range(from,to))
+  return decodeReportCards(data)
+}
+
+function decodeReportCards(data: unknown[]): ReportCardSummary[] {
+  return data.map(row => {
     const value = record(row); const student = record(value.students); const klass = record(value.classes); const term = record(value.academic_terms)
     return {
       id: text(value.id) ?? '', studentId: text(value.student_id) ?? '', studentName: text(student.name) ?? 'Learner',
@@ -152,7 +164,7 @@ export async function listReportCards(): Promise<ReportCardSummary[]> {
   })
 }
 export async function listReportSubjects(reportCardId: string): Promise<ReportSubjectEvidence[]> {
-  const { data, error } = await fromUntyped('report_card_subjects')
+  const { data, error } = await supabase.from('report_card_subjects')
     .select('id,subject_id,assessment_average,mastery_average,growth_percentage,strongest_outcomes,support_outcomes,intervention_summary,achievement_summary,strengths_summary,support_summary,recommended_next_steps,parent_guidance,generated_comment,generated_comment_evidence,generated_at,teacher_comment,evidence_snapshot,subjects(name)')
     .eq('report_card_id', reportCardId).order('subject_id')
   if (error) throw new Error(error.message || 'Report subject evidence could not be loaded.')
@@ -170,7 +182,7 @@ export async function listReportSubjects(reportCardId: string): Promise<ReportSu
   })
 }
 export async function updateSubjectReport(input: { reportCardSubjectId: string; teacherComment: string; parentGuidance?: string | null }): Promise<void> {
-  const { error } = await rpc<Json>('exq_update_subject_report', {
+  const { error } = await supabase.rpc('exq_update_subject_report', {
     p_report_card_subject_id: input.reportCardSubjectId, p_teacher_comment: input.teacherComment, p_parent_guidance: input.parentGuidance ?? null,
   })
   if (error) throw new Error(error.message || 'Subject report could not be saved.')
@@ -180,7 +192,7 @@ export async function saveSubjectComment(reportCardSubjectId: string, comment: s
 }
 
 export async function listMyPublishedReportCards(): Promise<PublishedReportSummary[]> {
-  const { data, error } = await rpc<Json>('exq_list_my_published_report_cards')
+  const { data, error } = await supabase.rpc('exq_list_my_published_report_cards')
   if (error) throw new Error(error.message || 'Published report cards could not be loaded.')
   const rows = record(data).reports
   if (!Array.isArray(rows)) return []
@@ -195,7 +207,7 @@ export async function listMyPublishedReportCards(): Promise<PublishedReportSumma
   })
 }
 export async function getPublishedReportCard(reportCardId: string): Promise<PublishedReportDetail> {
-  const { data, error } = await rpc<Json>('exq_get_published_report_card', { p_report_card_id: reportCardId })
+  const { data, error } = await supabase.rpc('exq_get_published_report_card', { p_report_card_id: reportCardId })
   if (error) throw new Error(error.message || 'Published report card could not be loaded.')
   const row = record(data)
   return {
@@ -205,7 +217,7 @@ export async function getPublishedReportCard(reportCardId: string): Promise<Publ
   }
 }
 export async function getLongitudinalReportRecord(studentId: string): Promise<LongitudinalReportRecord> {
-  const { data, error } = await rpc<Json>('exq_get_longitudinal_report_record', { p_student_id: studentId })
+  const { data, error } = await supabase.rpc('exq_get_longitudinal_report_record', { p_student_id: studentId })
   if (error) throw new Error(error.message || 'Longitudinal report record could not be loaded.')
   const row = record(data)
   return { studentId: text(row.student_id) ?? studentId, reports: Array.isArray(row.reports) ? row.reports as Json[] : [], trends: (row.trends ?? {}) as Json }

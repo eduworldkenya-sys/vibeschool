@@ -1,101 +1,127 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { normalizeProgressBand, type ProgressBand } from '@/lib/learner-intelligence/progress-record'
+import ProgressDataChecks from '@/components/teacher/progress/ProgressDataChecks'
+import { downloadProgressCsv, progressCsv } from '@/lib/learner-intelligence/progress-review'
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { buildOutcomeProgress, progressSummary, unlinkedSupportObservations, type ProgressEvidence } from '@/lib/learner-intelligence/progress-record'
+import { currentProgressTerm, evidenceInProgressPeriod, progressDate, type ProgressPeriod, type ProgressTerm } from '@/lib/learner-intelligence/progress-period'
+import { loadProgressAuthority, loadProgressEvidence, loadProgressRoster, loadProgressTerms, type ProgressAuthority, type ProgressLearner } from '@/lib/learner-intelligence/progress-data'
 
 export const dynamic = 'force-dynamic'
-
-type Learner = { id:string; name:string; admission_number:string|null; isCurrent:boolean; joinedAt:string|null; leftAt:string|null }
-type Evidence = { student_id:string; score:number|null; max_score:number|null; proficiency:string|null; observed_at:string }
-type TeacherClassAssignment = { class_id:string; class_name:string; stream:string|null }
-type TeacherOperatingContext = { school_id:string|null; classes?:TeacherClassAssignment[] }
-type StudentNested = { id:string; name:string; admission_number:string|null; deleted_at:string|null }
-type EnrollmentRow = { student_id:string; is_current:boolean|null; joined_at:string|null; left_at:string|null; students:StudentNested|StudentNested[]|null }
-type EvidenceRow = { student_id:string; score:number|string|null; max_score:number|string|null; proficiency:string|null; observed_at:string }
 type View = 'current'|'archived'
-type SupportFilter = 'all'|'support'|'secure'|'no-evidence'
-const order:Record<ProgressBand,number>={BE:0,AE:1,NE:2,ME:3,EE:4}
-const label:Record<ProgressBand,string>={EE:'Exceeding',ME:'Meeting',AE:'Approaching',BE:'Below',NE:'No evidence'}
+type SupportFilter = 'all'|'support'|'secure'|'no-evidence'|'declining'|'improving'
 
-function typed<T>(value:unknown):T{return value as T}
-function average(rows:Evidence[]){
-  const scored=rows.filter(r=>r.score!=null&&r.max_score!=null&&r.max_score>0)
-  return scored.length?Math.round(scored.reduce((n,r)=>n+(r.score!/r.max_score!)*100,0)/scored.length):null
-}
-
-export default function ClassStudentProgressPage(){
-  const {id:classId}=useParams<{id:string}>(); const router=useRouter()
-  const [learners,setLearners]=useState<Learner[]>([]); const [evidence,setEvidence]=useState<Evidence[]>([]); const [className,setClassName]=useState('Class')
-  const [query,setQuery]=useState(''); const [view,setView]=useState<View>('current'); const [support,setSupport]=useState<SupportFilter>('all')
-  const [loading,setLoading]=useState(true); const [error,setError]=useState('')
-
-  const load=useCallback(async()=>{
+export default function ClassStudentProgressPage() {
+  const { id: classId } = useParams<{id:string}>(), router = useRouter(), search = useSearchParams()
+  const [authority, setAuthority] = useState<ProgressAuthority|null>(null)
+  const [learners, setLearners] = useState<ProgressLearner[]>([]), [evidence, setEvidence] = useState<ProgressEvidence[]>([])
+  const requestedSubject = search.get('subjectId')
+  const requestedFilter = search.get('filter')
+  const requestedPeriod = search.get('period')
+  const requestedTermId=search.get('termId')
+  const [termId,setTermId]=useState(requestedTermId??'')
+  const [terms, setTerms] = useState<ProgressTerm[]>([]), [subject, setSubject] = useState('all'), [period, setPeriod] = useState<ProgressPeriod>('term')
+  const [query, setQuery] = useState(''), [view, setView] = useState<View>('current'), [support, setSupport] = useState<SupportFilter>('all')
+  const [loading, setLoading] = useState(true), [error, setError] = useState('')
+  const ticketRef = useRef(0)
+  const load = useCallback(async () => {
+    const ticket = ++ticketRef.current
     setLoading(true); setError('')
-    try{
-      const {data:auth,error:authError}=await supabase.auth.getUser(); if(authError||!auth.user){router.replace('/login');return}
-      const {data:ctx,error:ce}=await supabase.rpc('teacher_get_operating_context'); if(ce)throw ce
-      const context=typed<TeacherOperatingContext>(ctx)
-      const assignment=context.classes?.find(item=>item.class_id===classId)
-      if(!context.school_id||!assignment)throw new Error('This class is not assigned to you in the active school.')
-      setClassName(`${assignment.class_name}${assignment.stream?` ${assignment.stream}`:''}`)
-
-      const enrollment=await supabase.from('student_classes').select('student_id,is_current,joined_at,left_at,students(id,name,admission_number,deleted_at)').eq('school_id',context.school_id).eq('class_id',classId).order('joined_at',{ascending:false})
-      if(enrollment.error)throw enrollment.error
-      const deduped=new Map<string,Learner>()
-      for(const row of typed<EnrollmentRow[]>(enrollment.data??[])){
-        const student=Array.isArray(row.students)?row.students[0]:row.students
-        if(!student||student.deleted_at||!student.id)continue
-        const candidate:Learner={id:student.id,name:student.name,admission_number:student.admission_number??null,isCurrent:Boolean(row.is_current),joinedAt:row.joined_at??null,leftAt:row.left_at??null}
-        const existing=deduped.get(candidate.id)
-        if(!existing||candidate.isCurrent)deduped.set(candidate.id,candidate)
-      }
-      setLearners(Array.from(deduped.values()))
-
-      const er=await supabase.from('competency_evidence_ledger').select('student_id,score,max_score,proficiency,observed_at').eq('school_id',context.school_id).eq('class_id',classId).order('observed_at',{ascending:false}).limit(3000)
-      if(er.error)throw er.error
-      const evidenceRows=typed<EvidenceRow[]>(er.data??[])
-      setEvidence(evidenceRows.map(row=>({student_id:row.student_id,score:row.score==null?null:Number(row.score),max_score:row.max_score==null?null:Number(row.max_score),proficiency:row.proficiency,observed_at:row.observed_at})))
-    }catch(e){console.error('[ClassStudentProgress] load',e);setError(e instanceof Error?e.message:'Class progress could not be loaded.')}finally{setLoading(false)}
-  },[classId,router])
-  useEffect(()=>{void load()},[load])
-
-  const cards=useMemo(()=>learners.map(l=>{
-    const rows=evidence.filter(e=>e.student_id===l.id); const avg=average(rows); const latest=rows[0]
-    const band=normalizeProgressBand(latest?.proficiency??null,avg)
-    return{...l,count:rows.length,avg,band,last:latest?.observed_at??null}
-  }).filter(l=>view==='current'?l.isCurrent:!l.isCurrent)
-    .filter(l=>!query||`${l.name} ${l.admission_number??''}`.toLowerCase().includes(query.toLowerCase().trim()))
-    .filter(l=>support==='all'||(support==='support'&&(l.band==='AE'||l.band==='BE'))||(support==='secure'&&(l.band==='ME'||l.band==='EE'))||(support==='no-evidence'&&l.band==='NE'))
-    .sort((a,b)=>order[a.band]-order[b.band]||a.name.localeCompare(b.name)),[learners,evidence,query,view,support])
-
-  const counts=useMemo(()=>({current:learners.filter(l=>l.isCurrent).length,archived:learners.filter(l=>!l.isCurrent).length}),[learners])
-  if(loading)return <main style={{padding:20}}><div style={{height:180,borderRadius:20,background:'#e5e7eb'}}/></main>
-
-  return <main style={{maxWidth:900,margin:'0 auto',padding:'16px 14px 112px'}}>
-    <section style={{padding:18,borderRadius:21,background:'linear-gradient(135deg,#0f172a,#1d4ed8)',color:'#fff'}}>
-      <button onClick={()=>router.push(`/teacher/classhub/${classId}`)} style={heroButton}>‹ Class</button>
-      <div style={{marginTop:13,fontSize:11,fontWeight:900,opacity:.7}}>STUDENT PROGRESS</div><h1 style={{margin:'4px 0',fontSize:24}}>{className}</h1>
-      <p style={{margin:0,fontSize:12,opacity:.75}}>Search the class, surface learners needing support, and retain read-only progress history after a learner leaves the class.</p>
+    try {
+      const scope = await loadProgressAuthority(classId)
+      const [roster, rows, calendar] = await Promise.all([loadProgressRoster(scope, view === 'archived'), loadProgressEvidence(scope), loadProgressTerms(scope.schoolId)])
+      if (ticket !== ticketRef.current) return
+      setAuthority(scope); setLearners(roster); setEvidence(rows); setTerms(calendar)
+      if (requestedSubject && !scope.subjects.some(item => item.id === requestedSubject)) throw new Error('This subject is not assigned to you in this class.')
+      setSubject(requestedSubject ?? 'all')
+      setTermId(requestedTermId??'')
+      setPeriod(['30','90','all'].includes(requestedPeriod ?? '') ? requestedPeriod as ProgressPeriod : 'term')
+      setSupport(['declining','improving','support','no-evidence'].includes(requestedFilter ?? '') ? requestedFilter as SupportFilter : 'all')
+    } catch (cause) {
+      if (ticket === ticketRef.current) { setAuthority(null); setLearners([]); setEvidence([]); setError(cause instanceof Error ? cause.message : 'Class progress could not be loaded.') }
+    } finally { if (ticket === ticketRef.current) setLoading(false) }
+  }, [classId, view, requestedSubject, requestedFilter, requestedPeriod, requestedTermId])
+  const invalidatePendingLoad = useCallback(() => { ++ticketRef.current }, [])
+  useEffect(() => { void load(); return invalidatePendingLoad }, [load, invalidatePendingLoad])
+  const today = progressDate(new Date())
+  const term = useMemo(() => termId?terms.find(item=>item.id===termId)??null:currentProgressTerm(terms, new Date(`${today}T12:00:00+03:00`)), [terms, today, termId])
+  const cards = useMemo(() => {
+    const byLearner = new Map<string, ProgressEvidence[]>()
+    for (const row of evidence) {
+      if (!row.subjectId || (subject !== 'all' && row.subjectId !== subject) || !evidenceInProgressPeriod(row, period, term)) continue
+      const items = byLearner.get(row.studentId) ?? []; items.push(row); byLearner.set(row.studentId, items)
+    }
+    return learners.map(learner => {
+      const rows = byLearner.get(learner.id) ?? [], outcomes = buildOutcomeProgress(rows), summary = progressSummary(outcomes)
+      return { ...learner, count: rows.length, outcomes, summary, supportObservations: unlinkedSupportObservations(rows).length, declining: outcomes.filter(item => item.trend === 'declining').length, improving: outcomes.filter(item => item.trend === 'improving').length, unlinked: rows.filter(item => !item.outcomeId).length }
+    })
+  }, [learners, evidence, subject, period, term])
+  const visible = cards.filter(learner => `${learner.name} ${learner.admission_number ?? ''}`.toLowerCase().includes(query.toLowerCase().trim()))
+    .filter(learner => support === 'all' || (support === 'support' && learner.summary.needsSupport + learner.supportObservations > 0) || (support === 'secure' && learner.summary.secure > 0) || (support === 'no-evidence' && learner.count === 0) || (support === 'declining' && learner.declining > 0) || (support === 'improving' && learner.improving > 0))
+    .sort((a,b) => b.summary.needsSupport - a.summary.needsSupport || a.name.localeCompare(b.name))
+  const gaps = useMemo(() => {
+    const map = new Map<string, { label: string; assessed: number; support: number; subjectId: string|null }>()
+    for (const learner of cards) for (const outcome of learner.outcomes) {
+      const key = JSON.stringify([outcome.subjectId, outcome.outcomeId]), item = map.get(key) ?? { label: outcome.outcomeText, assessed: 0, support: 0, subjectId: outcome.subjectId }
+      if (outcome.band !== 'NE') item.assessed++
+      if (outcome.band === 'BE' || outcome.band === 'AE') item.support++
+      map.set(key, item)
+    }
+    return Array.from(map.values()).filter(item => item.support > 0).sort((a,b) => b.support - a.support).slice(0,5)
+  }, [cards])
+  const contextFilters = new URLSearchParams()
+  if (subject !== 'all') contextFilters.set('subjectId',subject)
+  if (period !== 'term') contextFilters.set('period',period)
+  if (termId) contextFilters.set('termId',termId)
+  const contextQuery = contextFilters.size ? `?${contextFilters}` : ''
+  function exportRecord() {
+    if (!authority || period === 'term' && !term) return
+    const ids = new Set(visible.map(learner=>learner.id))
+    const rows = evidence.filter(row=>ids.has(row.studentId) && (subject==='all'||row.subjectId===subject) && evidenceInProgressPeriod(row,period,term))
+    downloadProgressCsv(progressCsv(rows,visible,authority.subjects,{className:authority.className,period:period==='term'?term!.name:period==='all'?'All evidence':`Last ${period} days`,asOf:new Date().toISOString()}),'student-progress-record.csv')
+  }
+  if (loading) return <main style={{padding:20}} aria-label="Loading class progress"><p>Loading your complete class progress record…</p></main>
+  return <main className="progress-print" style={{maxWidth:940,margin:'0 auto',padding:'16px 14px 112px',color:'#111827'}}>
+    <section style={{padding:18,borderRadius:20,background:'#172554',color:'#fff'}}>
+      <button data-progress-controls type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={heroButton}>‹ Class</button>
+      <h1 style={{margin:'12px 0 5px',fontSize:24}}>Student Progress Record · {authority?.className ?? 'Class'}</h1>
+      <p style={{margin:0,fontSize:13,lineHeight:1.6}}>Review each learner's outcome evidence and choose the next useful action. A recorded score and a recorded performance level remain separate.</p>
     </section>
-
-    {error?<div role="alert" style={{marginTop:12,padding:14,borderRadius:14,background:'#fef2f2',color:'#991b1b'}}>{error}</div>:<>
-      <nav aria-label="Progress lifecycle" style={{display:'flex',gap:8,marginTop:12}}>
-        {([['current',`Current (${counts.current})`],['archived',`Archived (${counts.archived})`]] as const).map(([key,text])=><button key={key} onClick={()=>setView(key)} style={{...pill,background:view===key?'#111827':'#fff',color:view===key?'#fff':'#374151'}}>{text}</button>)}
+    {error ? <section role="alert" style={{...card,background:'#fef2f2',color:'#991b1b'}}>{error}<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10}}><button type="button" onClick={() => void load()} style={pill}>Retry</button>{view==='archived'&&<button type="button" onClick={()=>setView('current')} style={pill}>Current learners</button>}<button type="button" onClick={()=>router.push(`/teacher/classhub/${classId}/progress`)} style={pill}>Clear progress filters</button></div></section> : <>
+      <nav data-progress-controls aria-label="Progress lifecycle" style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>
+        {([['current','Current learners'],['archived','Archived learners']] as const).map(([key,text]) => <button type="button" key={key} onClick={() => setView(key)} style={{...pill,background:view===key?'#111827':'#fff',color:view===key?'#fff':'#374151'}}>{text}</button>)}
+        <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/workbook?sheet=progress${subject==='all'?'':`&subjectId=${encodeURIComponent(subject)}`}`)} style={pill}>Open record sheet</button>
+        {view === 'current' && <button type="button" onClick={() => router.push(`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}${subject === 'all' ? '' : `&subjectId=${encodeURIComponent(subject)}`}`)} style={pill}>Review support</button>}
+        <button type="button" disabled={period==='term'&&!term} onClick={exportRecord} style={pill}>Export working copy</button>
+        <button type="button" onClick={()=>router.push(`/teacher/report-cards?classId=${encodeURIComponent(classId)}${subject==='all'?'':`&subjectId=${encodeURIComponent(subject)}`}`)} style={pill}>School reports</button>
+        {view==='current'&&<button type="button" onClick={()=>router.push(`/teacher/classhub/${classId}/groups${subject==='all'?'':`?subjectId=${encodeURIComponent(subject)}`}`)} style={pill}>Learner groups</button>}
+        <button type="button" onClick={() => window.print()} style={pill}>Print class record</button>
       </nav>
-      <section aria-label="Class progress search and filters" style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(150px,220px)',gap:8,margin:'10px 0 12px'}}>
-        <input aria-label="Search learners" placeholder="Search learner or admission number" value={query} onChange={e=>setQuery(e.target.value)} style={control}/>
-        <select aria-label="Progress status" value={support} onChange={e=>setSupport(e.target.value as SupportFilter)} style={control}><option value="all">All progress</option><option value="support">Needs support</option><option value="secure">Meeting / exceeding</option><option value="no-evidence">Not assessed yet</option></select>
+      <section data-progress-controls aria-label="Class progress search and filters" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:8,margin:'12px 0'}}>
+        <input aria-label="Search learners" placeholder="Search learner or admission number" value={query} onChange={event => setQuery(event.target.value)} style={control}/>
+        <select aria-label="Subject" value={subject} onChange={event => setSubject(event.target.value)} style={control}><option value="all">All assigned subjects</option>{authority?.subjects.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
+        <select aria-label="Period" value={period} onChange={event => setPeriod(event.target.value as ProgressPeriod)} style={control}><option value="term">{term ? term.name : 'This term unavailable'}</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All evidence</option></select>
+        {period==='term'&&<select aria-label="School term" value={termId} onChange={event=>setTermId(event.target.value)} style={control}><option value="">Current school term</option>{terms.map(item=><option key={item.id} value={item.id}>{item.name} · {item.academic_year??item.start_date.slice(0,4)}</option>)}</select>}
+        <select aria-label="Progress status" value={support} onChange={event => setSupport(event.target.value as SupportFilter)} style={control}><option value="all">All learners</option><option value="support">Recorded support evidence</option><option value="secure">Meeting / exceeding in an outcome</option><option value="no-evidence">No evidence in this period</option><option value="declining">Declining in an outcome</option><option value="improving">Improving in an outcome</option></select>
       </section>
-      {view==='archived'&&<div style={{marginBottom:10,padding:11,borderRadius:12,background:'#f9fafb',border:'1px solid #e5e7eb',fontSize:11,color:'#4b5563'}}>Archived means the learner is no longer current in this class. Their historical evidence remains available; nothing is deleted.</div>}
-      <div style={{display:'grid',gap:9}}>{cards.map(l=><button key={l.id} onClick={()=>router.push(`/teacher/classhub/${classId}/student/${l.id}/progress`)} style={{border:'1px solid #e5e7eb',borderRadius:16,background:'#fff',padding:14,textAlign:'left',font:'inherit',cursor:'pointer'}}>
-        <div style={{display:'flex',justifyContent:'space-between',gap:10}}><div><strong>{l.name}</strong><div style={{marginTop:4,fontSize:11,color:'#6b7280'}}>{l.admission_number?`Adm ${l.admission_number} · `:''}{l.count} evidence item{l.count===1?'':'s'}{l.avg==null?'':` · ${l.avg}% avg`}{!l.isCurrent&&l.leftAt?` · left ${new Date(l.leftAt).toLocaleDateString('en-KE')}`:''}</div></div><span style={{fontSize:11,fontWeight:900,color:l.band==='BE'?'#991b1b':l.band==='AE'?'#92400e':l.band==='NE'?'#6b7280':'#065f46'}}>{l.band} · {label[l.band]}</span></div>
-      </button>)}{!cards.length&&<div style={{padding:28,textAlign:'center',border:'1px solid #e5e7eb',borderRadius:16}}>{view==='archived'?'No archived learners match this view.':'No current learners match this view.'}</div>}</div>
+      {period === 'term' && !term && <section role="status" style={card}>No single school term contains today. Choose another period; no 120-day substitute has been used.</section>}
+      {view === 'archived' && <section style={card}>Read-only history: archive does not delete learning evidence. Access still depends on your current authorized class scope.</section>}
+      {(period!=='term'||term)&&<>
+      <section style={card} aria-label="Class evidence overview"><strong>{visible.length} shown · {cards.length} {view === 'current' ? 'current' : 'archived'} learners</strong><p style={{fontSize:13,lineHeight:1.6,marginBottom:0}}>{cards.filter(item => item.summary.needsSupport + item.supportObservations > 0).length} have recorded evidence indicating support · {cards.filter(item => item.count === 0).length} have no evidence in this period. This view shows your readable evidence in assigned subjects.</p></section>
+      {gaps.length > 0 && <section style={card}><h2 style={{fontSize:17,marginTop:0}}>Outcomes to review</h2>{gaps.map((gap,index) => <p key={index} style={{fontSize:13,lineHeight:1.6}}><strong>{gap.support} of {gap.assessed} learners with recorded levels need support</strong> · {cards.length - gap.assessed} have no recorded level · {authority?.subjects.find(item => item.id === gap.subjectId)?.name ?? 'Subject'} · {gap.label}</p>)}</section>}
+      <div style={{display:'grid',gap:9}}>{visible.map(learner => <button type="button" key={learner.id} onClick={() => router.push(`/teacher/classhub/${classId}/student/${learner.id}/progress${contextQuery}`)} style={{...card,margin:0,textAlign:'left',font:'inherit',cursor:'pointer'}}>
+        <strong>{learner.name}</strong><div style={{marginTop:6,fontSize:12,color:'#4b5563',lineHeight:1.7}}>{learner.admission_number ? `Adm ${learner.admission_number} · ` : ''}{learner.count} evidence items · {learner.summary.secure} meeting / exceeding outcomes · {learner.summary.needsSupport} support outcomes</div>
+        <div style={{marginTop:4,fontSize:12,color:'#4b5563'}}>{learner.declining ? `${learner.declining} declining outcome(s) · ` : ''}{learner.improving ? `${learner.improving} improving outcome(s) · ` : ''}{learner.supportObservations ? `${learner.supportObservations} CBC support observation(s) awaiting outcome links · ` : ''}{learner.unlinked ? `${learner.unlinked} evidence item(s) without an outcome link` : learner.count ? 'Open evidence and history' : 'No evidence in the selected period'}</div>
+      </button>)}{!visible.length && <section style={card}>No learners match this view. Change the filters or check your class roster.</section>}</div>
+      </>}
+      <ProgressDataChecks rows={evidence.filter(row=>!row.subjectId||subject==='all'||row.subjectId===subject)}/>
+      <p style={{fontSize:11,lineHeight:1.7,color:'#6b7280'}}>Trend labels require four comparable observations on separate Nairobi dates. Learners are never given one overall level by averaging different subjects. This is a VibeSchool evidence projection, not a released school report.</p>
     </>}
   </main>
 }
-
-const heroButton:React.CSSProperties={border:0,borderRadius:10,minHeight:38,padding:'0 11px',background:'rgba(255,255,255,.14)',color:'#fff',fontWeight:800}
-const pill:React.CSSProperties={minHeight:40,border:'1px solid #d1d5db',borderRadius:99,padding:'0 14px',fontWeight:900,cursor:'pointer'}
-const control:React.CSSProperties={width:'100%',boxSizing:'border-box',minHeight:46,border:'1px solid #d1d5db',borderRadius:13,padding:'0 13px',background:'#fff',color:'#374151',fontWeight:700}
+const card: React.CSSProperties = {padding:15,marginTop:12,border:'1px solid #e5e7eb',borderRadius:15,background:'#fff',breakInside:'avoid'}
+const heroButton: React.CSSProperties = {border:0,borderRadius:10,minHeight:44,padding:'0 12px',background:'rgba(255,255,255,.14)',color:'#fff',fontWeight:800}
+const pill: React.CSSProperties = {minHeight:44,border:'1px solid #d1d5db',borderRadius:12,padding:'0 14px',background:'#fff',fontWeight:800,cursor:'pointer'}
+const control: React.CSSProperties = {width:'100%',boxSizing:'border-box',minHeight:46,border:'1px solid #d1d5db',borderRadius:12,padding:'0 12px',background:'#fff',color:'#374151'}

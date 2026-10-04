@@ -1,3 +1,4 @@
+import { parseProgressQuery, resolveTeacherProgressQuery } from '@/lib/learner-intelligence/progress-query'
 import { supabase } from '@/lib/supabase'
 import { hqSupabase } from '@/lib/hq/supabase'
 import { searchHQ } from '@/lib/hq/search'
@@ -186,14 +187,19 @@ async function teacherLearningSignals(session:TwinSession,query:string,classHint
 }
 
 export async function executePersonalTwin(input:string,role:TwinRole,path:string,lastLinks:TwinLink[]=[]):Promise<PersonalTwinReply|null> {
+  const progressIntent=role==='teacher' ? parseProgressQuery(input) : null
   const intent=interpretTwinCommand(input)
   // Preserve learner private-space search, coaching and evidence-backed learning
   // memory in the existing deterministic tutor; activity memory augments it.
   if(role==='student' && ['domain','search','unsupported'].includes(intent.kind))return null
-  if(intent.kind==='domain'&&!/\b(search|find|student|learner|class|exam|cat|lesson|scheme|homework|resource|below|under|struggling|support|dropped|declining|falling|weakest)\b/.test(intent.query))return null
+  if(!progressIntent&&intent.kind==='domain'&&!/\b(search|find|student|learner|class|exam|cat|lesson|scheme|homework|resource|below|under|struggling|support|dropped|declining|falling|weakest)\b/.test(intent.query))return null
   const session=await openPersonalTwinSession(role)
   const url=new URL(path,'https://vibeschool.co.ke')
   const classHint=url.searchParams.get('classId')??url.pathname.match(/\/classhub\/([a-f0-9-]{36})/)?.[1]
+  if(progressIntent) {
+    const reply=await resolveTeacherProgressQuery(input,classHint)
+    if(reply)return {text:reply.text,links:reply.actionUrl?[{id:'progress-query',title:reply.actionLabel??'Open progress',detail:'Authorized learner evidence',kind:'progress',route:reply.actionUrl}]:[]}
+  }
   const scopeArgs={p_role:role,p_scope_id:session.scopeId}
   if(intent.kind==='help')return{text:'Search by a name, class, subject, lesson, homework or exam. Say “open my timetable”, “record 40 marks for Sifuna in Maths CAT”, “continue where I stopped”, “my memory” or “what next”. I use your current role and permissions. You can pause learning, clear remembered activity and choose collective learning. Unsupported changes require the original tool.'}
   if(intent.kind==='unsupported')return{text:intent.reason,links:matchTwinLinks(input,personalTwinTools(role))}
