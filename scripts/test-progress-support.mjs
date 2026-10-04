@@ -35,8 +35,11 @@ assert.equal((await support.listInterventionQueue('class',true)).length,502,'clo
 assert.equal(fixture.assessment_interventions[0].due_at,'2026-10-01','opening support must not move its due date')
 await assert.rejects(()=>support.listInterventionQueue('other'),/not assigned/)
 fixture.assessment_interventions[0].students=null
-await assert.rejects(()=>support.listInterventionQueue('class'),/invalid payload/,'missing authorized identity must not yield a successful partial queue')
+await assert.rejects(()=>support.listInterventionQueue('class'),/learner identity reconciliation/,'missing authorized identity must not yield a successful partial queue')
 fixture.assessment_interventions[0].students=item.students
+fixture.assessment_interventions[0].curriculum_learning_outcomes=null
+await assert.rejects(()=>support.listInterventionQueue('class'),/curriculum outcome reconciliation/,'missing historical outcome authority must fail explicitly instead of surfacing an invalid-payload error')
+fixture.assessment_interventions[0].curriculum_learning_outcomes=item.curriculum_learning_outcomes
 const report={id:'report',school_id:'school',class_id:'class',student_id:'learner',term_id:'term',academic_year:2026,status:'draft',revision:1,completeness_status:'incomplete',completeness_issues:[],validation_status:'not_validated',validation_issues:[],evidence_version:1,evidence_generated_at:null,updated_at:'2026-10-03',students:{name:'Charles'},classes:{name:'Grade 6'},academic_terms:{name:'Term 3'}}
 fixture.report_cards=[report,{...report,id:'other-report',school_id:'other'},{...report,id:'other-learner',student_id:'other'}]
 assert.equal((await reports.listTeacherReportCards({classId:'class',studentId:'learner'})).length,1)
