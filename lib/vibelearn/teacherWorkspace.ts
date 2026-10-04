@@ -168,30 +168,49 @@ export async function loadTeacherVibeLearnWorkspace(input: WorkspaceInput = {}):
 
   if (assignmentResult.error) throw assignmentResult.error
   const rawAssignments = assignmentResult.data ?? []
-  const classIds = [...new Set(rawAssignments.map(row => row.class_id).filter(Boolean))]
-  const subjectIds = [...new Set(rawAssignments.map(row => row.subject_id).filter(Boolean))]
+  const classIds = Array.from(new Set(
+    rawAssignments
+      .map(row => row.class_id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0),
+  ))
+  const subjectIds = Array.from(new Set(
+    rawAssignments
+      .map(row => row.subject_id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0),
+  ))
 
-  const [classResult, subjectResult] = await Promise.all([
-    classIds.length
-      ? supabase.from('classes').select('id,name,stream').in('id', classIds)
-      : Promise.resolve({ data: [], error: null }),
-    subjectIds.length
-      ? supabase.from('subjects').select('id,name').in('id', subjectIds)
-      : Promise.resolve({ data: [], error: null }),
-  ])
-  if (classResult.error) throw classResult.error
-  if (subjectResult.error) throw subjectResult.error
+  const classRows: Array<{ id: string; name: string; stream: string | null }> = []
+  if (classIds.length > 0) {
+    const result = await supabase.from('classes').select('id,name,stream').in('id', classIds)
+    if (result.error) throw result.error
+    for (const row of result.data ?? []) {
+      classRows.push({ id: row.id, name: row.name, stream: row.stream ?? null })
+    }
+  }
 
-  const classes = new Map((classResult.data ?? []).map(row => [row.id, row]))
-  const subjects = new Map((subjectResult.data ?? []).map(row => [row.id, row]))
+  const subjectRows: Array<{ id: string; name: string }> = []
+  if (subjectIds.length > 0) {
+    const result = await supabase.from('subjects').select('id,name').in('id', subjectIds)
+    if (result.error) throw result.error
+    for (const row of result.data ?? []) {
+      subjectRows.push({ id: row.id, name: row.name })
+    }
+  }
+
+  const classes = new Map<string, { name: string; stream: string | null }>()
+  for (const row of classRows) classes.set(row.id, { name: row.name, stream: row.stream })
+  const subjects = new Map<string, { name: string }>()
+  for (const row of subjectRows) subjects.set(row.id, { name: row.name })
+
   const assignments: VibeLearnAssignmentOption[] = rawAssignments.flatMap(row => {
+    if (!row.class_id || !row.subject_id || !row.school_id) return []
     const cls = classes.get(row.class_id)
     const subject = subjects.get(row.subject_id)
     if (!cls || !subject) return []
     return [{
       classId: row.class_id,
       className: cls.name,
-      classStream: cls.stream ?? null,
+      classStream: cls.stream,
       subjectId: row.subject_id,
       subjectName: subject.name,
       schoolId: row.school_id,
