@@ -37,8 +37,7 @@ begin
     'configured',true,'is_locked',false
   );
 end
-$function$
-
+$function$;
 
 revoke all on function public.teacher_set_exam_subject_policy(uuid,uuid,uuid,uuid,numeric,numeric) from public,anon;
 grant execute on function public.teacher_set_exam_subject_policy(uuid,uuid,uuid,uuid,numeric,numeric) to authenticated;
