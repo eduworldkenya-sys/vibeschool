@@ -27,8 +27,14 @@ begin
       'Chemical Bonding','Periodicity','Acids and Bases','Introduction to Salts'
     );
 
+  -- Schema-only clean rebuilds deliberately omit content seed rows.
+  -- In a populated environment, however, partial pilot data is unsafe.
+  if v_resource_count = 0 then
+    return;
+  end if;
+
   if v_resource_count <> 7 then
-    raise exception 'VIBELEARN_G10_CHEMISTRY_RESOURCE_COHORT_DRIFT: expected 7, found %',
+    raise exception 'VIBELEARN_G10_CHEMISTRY_RESOURCE_COHORT_DRIFT: expected 0 or 7, found %',
       v_resource_count;
   end if;
 
@@ -82,10 +88,28 @@ where lr.status='active'
   )
   and lr.sub_strand_id is null;
 
-do $$
+do $
 declare
+  v_resource_count integer;
   v_bound integer;
 begin
+  select count(*)::integer
+  into v_resource_count
+  from public.learning_resources lr
+  left join public.subjects s on s.id=lr.subject_id
+  where lr.status='active'
+    and lr.source_type='chapter'
+    and lower(coalesce(lr.subject,s.name,''))='chemistry'
+    and replace(lower(coalesce(lr.grade,'')),' ','')='grade10'
+    and lr.title in (
+      'Introduction to Chemistry','The Atom','The Periodic Table',
+      'Chemical Bonding','Periodicity','Acids and Bases','Introduction to Salts'
+    );
+
+  if v_resource_count = 0 then
+    return;
+  end if;
+
   select count(*)::integer
   into v_bound
   from public.learning_resources lr
