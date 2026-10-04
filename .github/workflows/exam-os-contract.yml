@@ -1,0 +1,27 @@
+name: Exam OS Canonical Contract
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/results/**'
+      - 'app/teacher/exams/**'
+      - 'app/teacher/layout.tsx'
+      - 'app/teacher/more/page.tsx'
+      - 'components/teacher/SubjectCompanion.tsx'
+      - 'components/teacher/workbook/ClassWorkbook.tsx'
+      - 'components/teacher/classroom/ClassWorkspace.tsx'
+      - 'lib/teacher/twin.ts'
+      - 'scripts/test-exam-os-contract.mjs'
+      - '.github/workflows/exam-os-contract.yml'
+  push:
+    branches: [main]
+
+jobs:
+  exam-os-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/test-exam-os-contract.mjs
