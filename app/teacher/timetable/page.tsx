@@ -1123,6 +1123,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         const occurrenceDate = nairobiDateAdd(weekStart, Number(slot.day_of_week) - 1)
         const plan = planMap.get(slot.id + ':' + occurrenceDate)
         const occurrence = occurrenceMap.get(slot.id + ':' + occurrenceDate)
+        const slotSchoolId = slot.__schoolId ?? slot.school_id
+        if (!slotSchoolId) {
+          throw new Error('[Timetable] canonical slot is missing school identity.')
+        }
         const readiness: TimetableReadiness = slot.__isSubstitute
           ? 'needs_review'
           : plan
@@ -1131,8 +1135,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
         return {
           id:        slot.id,
-          schoolId:  slot.__schoolId ?? slot.school_id,
-          schoolName: schoolNameMap.get(slot.__schoolId ?? slot.school_id) ?? 'School',
+          schoolId:  slotSchoolId,
+          schoolName: schoolNameMap.get(slotSchoolId) ?? 'School',
           classId:   slot.class_id,
           subjectId: slot.subject_id,
           subject:   subjectMap[slot.subject_id] ?? 'Unknown',
