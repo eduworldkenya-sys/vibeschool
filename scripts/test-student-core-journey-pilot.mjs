@@ -16,6 +16,7 @@ const vibeLearnLayoutPath = 'app/student/vibelearn/layout.tsx'
 const exercisePath = 'app/student/exercises/page.tsx'
 const notificationsPath = 'app/student/notifications/page.tsx'
 const navPath = 'components/student/BottomNav.tsx'
+const profilePath = 'app/student/profile/page.tsx'
 
 const normalize = value => value.replace(/\s+/g, ' ').toLowerCase()
 const migration = fs.readFileSync(contextMigrationPath, 'utf8')
@@ -34,6 +35,7 @@ const vibeLearnLayout = fs.readFileSync(vibeLearnLayoutPath, 'utf8')
 const exercisePage = fs.readFileSync(exercisePath, 'utf8')
 const notifications = fs.readFileSync(notificationsPath, 'utf8')
 const nav = fs.readFileSync(navPath, 'utf8')
+const profile = fs.readFileSync(profilePath, 'utf8')
 
 function requireText(haystack, needle, label) {
   if (!haystack.includes(needle)) throw new Error(`missing ${label}`)
@@ -118,5 +120,9 @@ requireText(nav, 'aria-label="Student primary navigation"', 'student navigation 
 requireText(notifications, '.select("id, title, body, type, related_id, is_read, created_at")', 'notification destination identity')
 requireText(notifications, 'router.push(notificationTarget(n))', 'actionable student notification navigation')
 requireText(notifications, 'Check my tasks', 'notification empty-state next action')
+requireText(profile, "fetch('/auth/logout'", 'student server logout route')
+requireText(profile, "credentials: 'same-origin'", 'student logout cookie delivery')
+requireText(profile, "supabase.auth.signOut({ scope: 'local' })", 'student browser session cleanup')
+requireText(profile, "window.location.assign('/?role=student')", 'student hard sign-in redirect')
 
 console.log('PASS: Task 5 student pilot contract covers learner-day semantics, grade-safe VibeLearn, release reconciliation, grounded assessments, homework/exercise retry integrity, Task 2-backed authoritative notifications, school-bound notification authority, navigation, and recoverable identity loading')
