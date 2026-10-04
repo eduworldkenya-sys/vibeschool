@@ -102,7 +102,7 @@ export default function AssessmentMarkingPage() {
       const events = await getScoreAudit(responseId)
       setAudit(current => ({ ...current, [responseId]: events }))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Score history could not be loaded.')
+      setError(cause instanceof Error ? cause.message : 'Mark history could not be loaded.')
     } finally { setBusy(false) }
   }
 
@@ -123,7 +123,7 @@ export default function AssessmentMarkingPage() {
     setMessage('')
     try {
       await requestModeration({ responseId, requestedScore, reason })
-      setMessage('Moderation request sent to a school administrator.')
+      setMessage('Mark review request sent to a school administrator.')
       setDrafts(current => ({ ...current, [responseId]: { ...current[responseId], moderationReason: '' } }))
       const events = await getScoreAudit(responseId)
       setAudit(current => ({ ...current, [responseId]: events }))
@@ -163,23 +163,23 @@ export default function AssessmentMarkingPage() {
     <main style={shell}>
       <div style={{ maxWidth: 1040, margin: '0 auto' }}>
         <section style={card}>
-          <div style={eyebrow}>Assessment Engine</div>
-          <h1 style={{ margin: '6px 0' }}>Marking Centre</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Review responses, preserve score history, monitor workload, request moderation, finalize totals, and release results.</p>
+          <div style={eyebrow}>Assessments</div>
+          <h1 style={{ margin: '6px 0' }}>Mark Submitted Work</h1>
+          <p style={{ margin: 0, color: '#6b7280' }}>Open learners’ submitted work, mark each answer, add feedback, finish marking, and share results when ready.</p>
         </section>
 
         {!selected && <section style={card}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: 8 }}>
             <div style={stat}><strong>{centre?.counts.submittedAttempts ?? queueStats.waiting}</strong><span>Submitted</span></div>
-            <div style={stat}><strong>{centre?.counts.partiallyMarkedAttempts ?? 0}</strong><span>Partially marked</span></div>
-            <div style={stat}><strong>{centre?.counts.markedAttempts ?? queueStats.marked}</strong><span>Ready to release</span></div>
-            <div style={stat}><strong>{centre?.counts.releasedAttempts ?? queueStats.released}</strong><span>Released</span></div>
-            <div style={{ ...stat, background: (centre?.counts.pendingModerations ?? 0) > 0 ? '#fff7ed' : '#f8fafc' }}><strong>{centre?.counts.pendingModerations ?? 0}</strong><span>Moderations</span></div>
+            <div style={stat}><strong>{centre?.counts.partiallyMarkedAttempts ?? 0}</strong><span>Started marking</span></div>
+            <div style={stat}><strong>{centre?.counts.markedAttempts ?? queueStats.marked}</strong><span>Ready to share</span></div>
+            <div style={stat}><strong>{centre?.counts.releasedAttempts ?? queueStats.released}</strong><span>Results shared</span></div>
+            <div style={{ ...stat, background: (centre?.counts.pendingModerations ?? 0) > 0 ? '#fff7ed' : '#f8fafc' }}><strong>{centre?.counts.pendingModerations ?? 0}</strong><span>Marks to review</span></div>
           </div>
         </section>}
 
         {!selected && (centre?.workload.length ?? 0) > 0 && <section style={card}>
-          <h2 style={{ marginTop: 0, fontSize: 18 }}>Assignment workload</h2>
+          <h2 style={{ marginTop: 0, fontSize: 18 }}>Work waiting to be marked</h2>
           <div style={{ display: 'grid', gap: 10 }}>
             {centre?.workload.map(item => <div key={item.assignmentId} style={workloadRow}>
               <div>
@@ -201,7 +201,7 @@ export default function AssessmentMarkingPage() {
 
         {!selected ? (
           <section style={card}>
-            {loading ? 'Loading submissions…' : queue.length === 0 ? <div><strong>No submissions in the marking queue</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Submitted assessments will appear here.</p></div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {loading ? 'Loading submissions…' : queue.length === 0 ? <div><strong>No submitted work waiting</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Submitted assessments will appear here.</p></div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {queue.map(item => <button key={item.attemptId} type="button" disabled={busy} onClick={() => void openAttempt(item.attemptId)} style={queueButton}>
                 <div style={{ textAlign: 'left' }}><strong>{item.studentName}</strong><div style={muted}>{item.assessmentTitle} · {item.className}{item.classStream ? ` ${item.classStream}` : ''}</div>{item.submittedAt && <div style={muted}>Submitted {new Date(item.submittedAt).toLocaleString('en-KE')}</div>}</div>
                 <div style={{ textAlign: 'right' }}><strong style={{ color: item.unresolvedItems > 0 ? '#b45309' : item.attemptStatus === 'released' ? '#065f46' : '#4338ca' }}>{item.unresolvedItems > 0 ? `${item.unresolvedItems} to mark` : item.attemptStatus.replaceAll('_', ' ')}</strong><div style={muted}>{item.markedItems}/{item.totalItems} scored</div>{item.percentage !== null && <div style={muted}>{item.percentage.toFixed(1)}%</div>}</div>
@@ -209,7 +209,7 @@ export default function AssessmentMarkingPage() {
             </div>}
           </section>
         ) : <>
-          <section style={card}><button type="button" onClick={() => setSelected(null)} style={secondaryButton}>← Back to queue</button><h2 style={{ margin: '14px 0 4px' }}>{selected.studentName}</h2><p style={{ margin: 0, color: '#6b7280' }}>{selected.assessmentTitle}</p><div style={{ marginTop: 10, fontSize: 12, fontWeight: 700 }}>{selected.responses.filter(response => response.finalScore !== null).length}/{selected.responses.length} responses scored</div></section>
+          <section style={card}><button type="button" onClick={() => setSelected(null)} style={secondaryButton}>← Back to submitted work</button><h2 style={{ margin: '14px 0 4px' }}>{selected.studentName}</h2><p style={{ margin: 0, color: '#6b7280' }}>{selected.assessmentTitle}</p><div style={{ marginTop: 10, fontSize: 12, fontWeight: 700 }}>{selected.responses.filter(response => response.finalScore !== null).length}/{selected.responses.length} responses scored</div></section>
 
           {selected.responses.map(response => {
             const draft = drafts[response.responseId] ?? { score: '', feedback: '', overrideReason: '', moderationReason: '' }
@@ -230,7 +230,7 @@ export default function AssessmentMarkingPage() {
               </div>
               {audit[response.responseId] && <div style={{ marginTop: 10, display: 'grid', gap: 7 }}>{audit[response.responseId].length === 0 ? <div style={muted}>No score events yet.</div> : audit[response.responseId].map(event => <div key={event.eventId} style={auditRow}><strong>{event.eventType.replaceAll('_', ' ')}</strong><div style={muted}>{event.previousScore ?? '—'} → {event.newScore ?? '—'} · {new Date(event.createdAt).toLocaleString('en-KE')}</div>{event.reason && <div style={{ marginTop: 4 }}>{event.reason}</div>}</div>)}</div>}
               {selected.attemptStatus !== 'released' && <div style={moderationBox}>
-                <strong>Request moderation</strong>
+                <strong>Ask for mark review</strong>
                 <p style={{ margin: '5px 0 8px', fontSize: 12 }}>Ask a school administrator to approve or reject the score currently entered above.</p>
                 <textarea value={draft.moderationReason} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, moderationReason: event.target.value } }))} rows={2} placeholder="Why should this score be moderated?" style={{ ...input, resize: 'vertical' }} />
                 <button type="button" disabled={busy} onClick={() => void submitModeration(response.responseId, response.maxScore)} style={{ ...secondaryButton, marginTop: 8 }}>Send moderation request</button>
@@ -238,7 +238,7 @@ export default function AssessmentMarkingPage() {
             </section>
           })}
 
-          <section style={card}><label style={label}>Overall feedback</label><textarea value={attemptFeedback} onChange={event => setAttemptFeedback(event.target.value)} rows={4} style={{ ...input, resize: 'vertical' }} />{selected.attemptStatus === 'released' ? <div style={releasedBox}>This result has been released and is locked.</div> : <div style={{ display: 'flex', gap: 10, marginTop: 12 }}><button type="button" disabled={busy} onClick={() => void finishAttempt(false)} style={{ ...secondaryButton, flex: 1 }}>Finalize only</button><button type="button" disabled={busy} onClick={() => void finishAttempt(true)} style={{ ...primaryButton, flex: 1 }}>{busy ? 'Saving…' : 'Finalize and Release'}</button></div>}</section>
+          <section style={card}><label style={label}>Overall feedback</label><textarea value={attemptFeedback} onChange={event => setAttemptFeedback(event.target.value)} rows={4} style={{ ...input, resize: 'vertical' }} />{selected.attemptStatus === 'released' ? <div style={releasedBox}>This result has been released and is locked.</div> : <div style={{ display: 'flex', gap: 10, marginTop: 12 }}><button type="button" disabled={busy} onClick={() => void finishAttempt(false)} style={{ ...secondaryButton, flex: 1 }}>Finish marking</button><button type="button" disabled={busy} onClick={() => void finishAttempt(true)} style={{ ...primaryButton, flex: 1 }}>{busy ? 'Saving…' : 'Finish & share result'}</button></div>}</section>
         </>}
       </div>
     </main>
