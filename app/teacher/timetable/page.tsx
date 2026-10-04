@@ -227,6 +227,7 @@ const SlotCard = React.memo(function SlotCard({
             {slot.readiness === 'ready' ? 'Ready' : slot.readiness === 'needs_review' ? 'Needs review' : 'Plan needed'}
           </span>
           {slot.isSubstitute && <span style={{ fontSize: 9, fontWeight: 850, color: '#1d4ed8' }}>Substitute lesson</span>}
+          {slot.exceptionReason && <span style={{ fontSize: 9, fontWeight: 750, color: '#92400e' }}>{slot.exceptionReason}</span>}
           {slot.schoolName && <span style={{ fontSize: 10, color: C.textMuted }}>{slot.schoolName}</span>}
         </div>
         {slot.room
@@ -312,13 +313,14 @@ function SlotDrawer({
   }, [])
 
   useEffect(() => {
-    if (!slot) {
+    if (!slot || slot.isSubstitute) {
       setOccurrence(null)
       setOccError(null)
       setStarting(false)
       setStartError(null)
       setOccRowId(null)
       setRecoveredFromId(null)
+      setOccLoading(false)
       return
     }
 
@@ -363,9 +365,75 @@ function SlotDrawer({
       })
 
     return () => { cancelled = true }
-  }, [slot?.id, occurrenceDate])
+  }, [slot?.id, slot?.isSubstitute, occurrenceDate])
 
   if (!slot) return null
+
+  if (slot.isSubstitute) {
+    return (
+      <>
+        <div
+          className="no-print"
+          onClick={onClose}
+          style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.3)' }}
+        />
+        <div
+          className="no-print"
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            bottom: 0, left: 0, right: 0,
+            zIndex: 810,
+            background: 'var(--sheet-bg, #ffffff)',
+            borderRadius: '20px 20px 0 0',
+            padding: '24px 20px 36px',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
+          }}
+        >
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-color, #e5e7eb)', margin: '0 auto 20px' }} />
+          <div style={{ display: 'inline-flex', padding: '5px 10px', borderRadius: 999, background: '#dbeafe', color: '#1d4ed8', fontSize: 11, fontWeight: 850 }}>
+            Substitute lesson
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.textPrimary, marginTop: 12 }}>
+            {slot.subject}
+          </div>
+          <div style={{ fontSize: 14, color: C.textMuted, marginTop: 4 }}>
+            {slot.className}{slot.schoolName ? ` · ${slot.schoolName}` : ''}
+          </div>
+          <div style={{ display: 'flex', gap: 12, marginTop: 18 }}>
+            {[
+              { label: 'Start', value: formatTime(slot.startTime) },
+              { label: 'End', value: formatTime(slot.endTime) },
+            ].map(item => (
+              <div key={item.label} style={{ flex: 1, borderRadius: 12, background: 'var(--surface-raised, #f9fafb)', padding: '12px 14px', textAlign: 'center' }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary }}>{item.value}</div>
+                <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+          {slot.exceptionReason && (
+            <div style={{ marginTop: 14, padding: 11, borderRadius: 10, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
+              {slot.exceptionReason}
+            </div>
+          )}
+          <p style={{ fontSize: 12, lineHeight: 1.5, color: C.textMuted, margin: '14px 0' }}>
+            This is an occurrence-specific substitution. The original timetable slot remains owned by the assigned teacher, so recurring schedule edits are intentionally unavailable here.
+          </p>
+          <div style={{ display: 'grid', gap: 8 }}>
+            <Btn
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => onNavigate(`/teacher/classhub/${slot.classId}`)}
+            >
+              Open Class
+            </Btn>
+            <Btn variant="muted" style={{ width: '100%', justifyContent: 'center' }} onClick={onClose}>
+              Close
+            </Btn>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   // TOS-005: clock-only comparisons are valid only for today's
   // occurrence. A past Monday slot viewed after midnight must not be labelled
