@@ -245,8 +245,7 @@ begin
 
   return v_result;
 end;
-$function$
-
+$function$;
 
 revoke all on function public.teacher_get_assessment_intelligence(uuid,uuid,uuid) from public;
 revoke all on function public.teacher_get_assessment_intelligence(uuid,uuid,uuid) from anon;
