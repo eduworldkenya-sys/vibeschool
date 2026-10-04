@@ -1016,7 +1016,7 @@ export default function VibeLearnPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
                   { id: "epage" as const, icon: "📄", title: "Learning Page", desc: "Notes, revision material, activities or a lesson resource." },
-                  { id: "ebook" as const, icon: "📚", title: "Ebook", desc: "A longer downloadable or linked learning resource." },
+                  { id: "ebook" as const, icon: "📚", title: "eBook", desc: "Create a structured chapter-based publication in Content Studio.", badge: "Content Studio" },
                   { id: "textbook" as const, icon: "📘", title: "VibeTextbook", desc: "A structured curriculum-aligned book with chapters and publishing controls.", badge: "Full authoring studio" },
                 ].map(opt => {
                   const isSelected = cType === opt.id && opt.id !== "textbook";
@@ -1024,7 +1024,8 @@ export default function VibeLearnPage() {
                     <button
                       key={opt.id}
                       onClick={() => {
-                        if (opt.id === "textbook") { router.push("/global/create/textbook"); return; }
+                        if (opt.id === "textbook") { router.push("/teacher/studio/editor?format=vibetextbook"); return; }
+                        if (opt.id === "ebook") { router.push("/teacher/studio/editor?format=ebook"); return; }
                         setCType(opt.id);
                         requestAnimationFrame(() => {
                           createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1050,7 +1051,7 @@ export default function VibeLearnPage() {
                         <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{opt.desc}</div>
                       </div>
                       <div style={{ fontSize: 16, color: isSelected ? C.accent : C.textMuted, fontWeight: 800, flexShrink: 0, alignSelf: "center" }}>
-                        {opt.id === "textbook" ? "→" : (isSelected ? "✓" : "→")}
+                        {opt.id === "textbook" || opt.id === "ebook" ? "→" : (isSelected ? "✓" : "→")}
                       </div>
                     </button>
                   );
