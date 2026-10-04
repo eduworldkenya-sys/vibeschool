@@ -145,7 +145,7 @@ function LessonNotesInner() {
         const mismatch = !row
           || row.teacher_id !== authData.user.id
           || row.timetable_slot_id !== typedPlan.timetable_slot_id
-          || row.occurrence_date !== typedPlan.taught_date
+          || (typedPlan.taught_date && row.occurrence_date !== typedPlan.taught_date)
           || (typedPlan.teacher_id && row.teacher_id !== typedPlan.teacher_id)
           || (typedPlan.class_id && row.class_id !== typedPlan.class_id)
           || (typedPlan.subject_id && row.subject_id !== typedPlan.subject_id);
@@ -390,7 +390,7 @@ function LessonNotesInner() {
             setReflectionSeed(value);
             setReflectionOpen(true);
           }}
-          onFinishLesson={occurrence && plan.timetable_slot_id && plan.taught_date && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
+          onFinishLesson={occurrence && plan.timetable_slot_id && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
             const nextSteps = outcome === "partial"
               ? "Continue the uncovered part of this lesson before advancing Scheme coverage."
               : outcome === "reteach"
@@ -401,7 +401,7 @@ function LessonNotesInner() {
             // covered lessons) Scheme coverage either all persist or all roll back.
             const { data: finalized, error: finalizeError } = await supabase.rpc("finalize_teaching_occurrence", {
               p_timetable_slot_id: plan.timetable_slot_id as string,
-              p_occurrence_date: plan.taught_date as string,
+              p_occurrence_date: occurrence.occurrence_date,
               p_outcome: outcome,
               p_what_was_taught: whatWasTaught,
               p_challenges: outcome === "reteach" ? "Teacher marked this occurrence as reteach required." : null,
