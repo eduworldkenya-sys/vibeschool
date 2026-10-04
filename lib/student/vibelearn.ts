@@ -525,10 +525,55 @@ export async function getAssignedReading(): Promise<AssignedReadingItem[]> {
   if (subjectsResult.error) throw new Error(subjectsResult.error.message)
   if (progressResult.error) throw new Error(progressResult.error.message)
 
-  const publicationMap = new Map((publicationsResult.data ?? []).map(row => [row.id, row.title ?? 'VibeTextbook']))
-  const chapterMap = new Map((chaptersResult.data ?? []).map(row => [row.id, { title: row.title ?? 'Assigned unit', number: typeof row.number === 'number' ? row.number : null }]))
-  const subjectMap = new Map((subjectsResult.data ?? []).map(row => [row.id, row.name]))
-  const progressMap = new Map((progressResult.data ?? []).map(row => [`${row.publication_id}:${row.chapter_id}`, row]))
+  const publicationMap = new Map<string, string>(
+    (publicationsResult.data ?? []).map(row => [
+      row.id,
+      typeof row.title === 'string' && row.title.length > 0
+        ? row.title
+        : 'VibeTextbook',
+    ] as const),
+  )
+  const chapterMap = new Map<string, { title: string; number: number | null }>(
+    (chaptersResult.data ?? []).map(row => [
+      row.id,
+      {
+        title:
+          typeof row.title === 'string' && row.title.length > 0
+            ? row.title
+            : 'Assigned unit',
+        number:
+          typeof row.number === 'number'
+            ? row.number
+            : null,
+      },
+    ] as const),
+  )
+  const subjectMap = new Map<string, string>(
+    (subjectsResult.data ?? []).flatMap(row =>
+      typeof row.id === 'string' &&
+      typeof row.name === 'string'
+        ? [[row.id, row.name] as const]
+        : [],
+    ),
+  )
+  const progressMap = new Map<
+    string,
+    { progress_percent: number | null; completed_at: string | null }
+  >(
+    (progressResult.data ?? []).map(row => [
+      `${row.publication_id}:${row.chapter_id}`,
+      {
+        progress_percent:
+          typeof row.progress_percent === 'number'
+            ? row.progress_percent
+            : null,
+        completed_at:
+          typeof row.completed_at === 'string'
+            ? row.completed_at
+            : null,
+      },
+    ] as const),
+  )
   const now = Date.now()
 
   return rows.flatMap(row => {
