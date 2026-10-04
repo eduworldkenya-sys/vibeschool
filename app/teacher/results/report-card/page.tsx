@@ -5,21 +5,12 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
+import { normalizeExamResultState } from "@/lib/assessment/exam-results";
 
 interface ClassOption { id: string; name: string; stream: string | null; }
 interface Student { id: string; name: string; admission_number: string | null; }
 interface Exam { id: string; name: string; term: number; academic_year: number; exam_type: string; }
-interface StudentSummary { student: Student; totalMarks: number; subjectCount: number; meanGrade: string; hasRemarks: boolean; position: number | null; }
-
-function getGrade(marks: number): string {
-  if (marks >= 80) return "EE"; if (marks >= 60) return "ME"; if (marks >= 40) return "AE"; return "BE";
-}
-function gradeColor(grade: string): { bg: string; color: string } {
-  if (grade === "EE") return { bg: "#d1fae5", color: "#065f46" };
-  if (grade === "ME") return { bg: "#dbeafe", color: "#1e40af" };
-  if (grade === "AE") return { bg: "#fef3c7", color: "#92400e" };
-  return { bg: "#fee2e2", color: "#991b1b" };
-}
+interface StudentSummary { student: Student; meanPercent: number | null; subjectCount: number; finalCount: number; hasRemarks: boolean; }
 function Skel({ h = 48 }: { h?: number }) {
   return <div style={{ height: h, borderRadius: 14, background: "linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite" }} />;
 }
@@ -94,25 +85,29 @@ function PickerInner() {
     setSelectedExam(exam); setLoading(true); setStep("students");
     if (!selectedCls) return;
     const [{ data: results }, { data: sc }, { data: remarkRows }] = await Promise.all([
-      supabase.from("exam_results").select("student_id, marks, is_absent").eq("exam_id", exam.id),
+      supabase.from("exam_results").select("student_id, percentage, result_state, is_absent").eq("exam_id", exam.id).eq("class_id", selectedCls.id),
       supabase.from("student_classes").select("student_id, students(id, name, admission_number)").eq("class_id", selectedCls.id).eq("is_current", true),
       supabase.from("report_card_remarks").select("student_id").eq("exam_id", exam.id),
     ]);
     const students: Student[] = (sc ?? []).map((r: any) => r.students).filter(Boolean);
     const remarkedSet = new Set((remarkRows ?? []).map((r: any) => r.student_id));
-    const resultMap: Record<string, { total: number; count: number }> = {};
-    for (const r of (results ?? []) as { student_id: string; marks: number; is_absent: boolean }[]) {
-      if (!r.is_absent) { if (!resultMap[r.student_id]) resultMap[r.student_id] = { total: 0, count: 0 }; resultMap[r.student_id].total += r.marks; resultMap[r.student_id].count += 1; }
+    const resultMap: Record<string, { totalPercent: number; scored: number; finalCount: number }> = {};
+    for (const raw of (results ?? []) as { student_id: string; percentage: number | null; result_state: string; is_absent: boolean }[]) {
+      const state = normalizeExamResultState(raw.result_state, raw.is_absent);
+      if (!resultMap[raw.student_id]) resultMap[raw.student_id] = { totalPercent: 0, scored: 0, finalCount: 0 };
+      if (["entered","absent","not_assessed","exempt","transferred"].includes(state)) resultMap[raw.student_id].finalCount += 1;
+      if (state === "entered" && raw.percentage != null) {
+        resultMap[raw.student_id].totalPercent += Number(raw.percentage);
+        resultMap[raw.student_id].scored += 1;
+      }
     }
-    const totals = students.map(s => ({ id: s.id, total: resultMap[s.id]?.total ?? 0 }));
-    const sorted = [...totals].sort((a, b) => b.total - a.total);
     const built: StudentSummary[] = students.map(s => {
-      const rm = resultMap[s.id]; const total = rm?.total ?? 0; const count = rm?.count ?? 0;
-      const mean = count > 0 ? total / count : 0; const grade = count > 0 ? getGrade(mean) : "—";
-      const pos  = count > 0 ? sorted.findIndex(x => x.id === s.id) + 1 : null;
-      return { student: s, totalMarks: total, subjectCount: count, meanGrade: grade, hasRemarks: remarkedSet.has(s.id), position: pos };
+      const rm = resultMap[s.id];
+      const count = rm?.scored ?? 0;
+      const meanPercent = count > 0 ? (rm?.totalPercent ?? 0) / count : null;
+      return { student: s, meanPercent, subjectCount: count, finalCount: rm?.finalCount ?? 0, hasRemarks: remarkedSet.has(s.id) };
     });
-    built.sort((a, b) => { if (a.position === null && b.position === null) return a.student.name.localeCompare(b.student.name); if (a.position === null) return 1; if (b.position === null) return -1; return a.position - b.position; });
+    built.sort((a, b) => b.meanPercent == null ? (a.meanPercent == null ? a.student.name.localeCompare(b.student.name) : -1) : a.meanPercent == null ? 1 : b.meanPercent - a.meanPercent || a.student.name.localeCompare(b.student.name));
     setSummaries(built); setLoading(false);
   }
 
@@ -188,28 +183,22 @@ function PickerInner() {
           : (
             <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
               {filteredSummaries.map((s) => {
-                const gc  = s.meanGrade !== "—" ? gradeColor(s.meanGrade) : { bg: "#f3f4f6", color: "#9ca3af" };
                 const ini = initials(s.student.name);
                 const avc = avatarColor(s.student.name);
                 return (
                   <button key={s.student.id} onClick={() => router.push(`/teacher/results/report-card/${s.student.id}?examId=${selectedExam?.id}&mode=844`)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "14px 16px", borderRadius: 16, background: "#fff", border: "1px solid #e5e7eb", cursor: "pointer", fontFamily: "inherit", textAlign: "left" as const, width: "100%", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                     <div style={{ position: "relative", flexShrink: 0 }}>
                       <div style={{ width: 44, height: 44, borderRadius: "50%", background: avc, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "#fff" }}>{ini}</div>
-                      {s.position !== null && s.position <= 3 && (
-                        <div style={{ position: "absolute", bottom: -4, right: -4, width: 20, height: 20, borderRadius: "50%", background: s.position === 1 ? "#f59e0b" : s.position === 2 ? "#9ca3af" : "#b45309", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: "#fff" }}>
-                          {s.position === 1 ? "🥇" : s.position === 2 ? "🥈" : "🥉"}
-                        </div>
-                      )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{s.student.name}</div>
                       <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
                         {s.student.admission_number && <span>#{s.student.admission_number}</span>}
-                        {s.position !== null && <span style={{ padding: "1px 6px", borderRadius: 6, background: "#f3f4f6", color: "#374151", fontSize: 10, fontWeight: 700 }}>Pos {s.position}/{totalStudentCnt}</span>}
+                        <span>{s.subjectCount} scored subject{s.subjectCount === 1 ? "" : "s"}</span>
                         {s.hasRemarks && <span style={{ fontSize: 10, color: "#059669", fontWeight: 700 }}>✓ Remarked</span>}
                       </div>
                     </div>
-                    <div style={{ padding: "6px 12px", borderRadius: 10, background: gc.bg, color: gc.color, fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{s.meanGrade}</div>
+                    <div style={{ padding: "6px 12px", borderRadius: 10, background: "#f3f4f6", color: s.meanPercent == null ? "#9ca3af" : "#111827", fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{s.meanPercent == null ? "—" : `${s.meanPercent.toFixed(1)}%`}</div>
                   </button>
                 );
               })}
