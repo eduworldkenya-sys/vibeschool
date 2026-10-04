@@ -15,6 +15,8 @@ import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
 import { deriveTeachingWorkspace } from '@/lib/teaching/workspace'
+import { isLessonPlanReadyToTeach } from '@/lib/teaching/lessonReadiness'
+import { restoreTimetableSnapshot } from '@/lib/teaching/slots'
 import type { TeachingOccurrence, EditableSlot } from '@/lib/teaching/types'
 
 // Fix 18C: human-facing text for each stable RPC error code. Kept next to
@@ -44,8 +46,12 @@ function startErrorMessage(code: StartOccurrenceErrorCode): string {
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────
+type TimetableReadiness = 'ready' | 'needs_review' | 'no_plan'
+
 interface Slot {
   id:        string
+  schoolId:  string
+  schoolName: string
   classId:   string
   subjectId: string
   subject:   string
@@ -60,6 +66,9 @@ interface Slot {
   // must appear only on its own date.
   effectiveFrom:  string
   effectiveUntil: string | null
+  readiness: TimetableReadiness
+  isSubstitute?: boolean
+  exceptionReason?: string | null
 }
 
 interface WeeklyLoadRow {
@@ -209,6 +218,17 @@ const SlotCard = React.memo(function SlotCard({
             ? <span style={{ color: C.textMuted, fontWeight: 500 }}> · {slot.className}</span>
             : null}
         </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 4, alignItems: 'center' }}>
+          <span style={{
+            fontSize: 9, fontWeight: 850, padding: '2px 7px', borderRadius: 20,
+            background: slot.readiness === 'ready' ? '#d1fae5' : slot.readiness === 'needs_review' ? '#fef3c7' : '#fee2e2',
+            color: slot.readiness === 'ready' ? '#065f46' : slot.readiness === 'needs_review' ? '#92400e' : '#991b1b',
+          }}>
+            {slot.readiness === 'ready' ? 'Ready' : slot.readiness === 'needs_review' ? 'Needs review' : 'Plan needed'}
+          </span>
+          {slot.isSubstitute && <span style={{ fontSize: 9, fontWeight: 850, color: '#1d4ed8' }}>Substitute lesson</span>}
+          {slot.schoolName && <span style={{ fontSize: 10, color: C.textMuted }}>{slot.schoolName}</span>}
+        </div>
         {slot.room
           ? <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{slot.room}</div>
           : null}
@@ -247,6 +267,8 @@ function SlotDrawer({
   onRecover,
   onCancelRecovery,
   onEdit,
+  onCopy,
+  canCopy,
 }: {
   slot:           Slot | null
   curMin:         number
@@ -256,6 +278,8 @@ function SlotDrawer({
   onRecover:        (ctx: RecoverySheetContext) => void
   onCancelRecovery: (ctx: RecoverySheetContext) => void
   onEdit:           (slot: Slot) => void
+  onCopy:           (slot: Slot) => void
+  canCopy:          boolean
 }) {
   // FIX [FATAL-03]: removed useRouter() from here — navigation lifted to page via onNavigate prop
 
@@ -597,6 +621,19 @@ function SlotDrawer({
           >
             Edit Slot
           </button>
+          {canCopy && (
+            <button
+              onClick={() => { onCopy(slot); onClose(); }}
+              style={{
+                width: '100%', padding: '12px', borderRadius: 10,
+                border: `1.5px solid ${C.border}`, background: 'none',
+                fontSize: 13, fontWeight: 700, color: C.textPrimary,
+                cursor: 'pointer', marginBottom: 8,
+              }}
+            >
+              Copy Lesson
+            </button>
+          )}
 
           {/* TBL-009B: recover a missed lesson through the TBL-009A writer. */}
           {!occError && workspace?.canRecover && occRowId && (
@@ -743,9 +780,15 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   }
   const [dayBlocks, setDayBlocks] = useState<SchoolDayBlock[]>([])
   const [blocksError, setBlocksError] = useState<string | null>(null)
+  const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null)
+  const [schools, setSchools] = useState<Array<{id:string;name:string}>>([])
+  const [schoolFilter, setSchoolFilter] = useState<string>('all')
+  const [calendarExceptions, setCalendarExceptions] = useState<Array<{id:string;school_id:string;exception_date:string;kind:string;label:string;suppress_ordinary_teaching:boolean}>>([])
+  const [lastUndoSnapshotId, setLastUndoSnapshotId] = useState<string | null>(null)
   const [initialPlacement, setInitialPlacement] = useState<{dayOfWeek:number;startTime:string;endTime:string} | undefined>()
   const [showAddSlot,     setShowAddSlot]      = useState(false)
   const [editSlot,        setEditSlot]         = useState<Slot | null>(null)
+  const [copySlot,        setCopySlot]         = useState<Slot | null>(null)
   // TBL-009B: non-null while the recovery sheet is open; carries the
   // occurrence/class/subject identity so it survives sheet navigation.
   const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
