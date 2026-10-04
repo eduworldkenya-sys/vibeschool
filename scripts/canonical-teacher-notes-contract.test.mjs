@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import assert from 'node:assert/strict'
 
 const page = fs.readFileSync('app/teacher/lesson-notes/page.tsx', 'utf8')
-const migration = fs.readFileSync('supabase/migrations/20261004122500_teacher_note_overlays.sql', 'utf8')
+const migration = fs.readFileSync('supabase/migrations/20261004092000_teacher_note_overlays.sql', 'utf8')
 
 for (const needle of [
   'Quick notes',
