@@ -15,7 +15,7 @@ const ITEMS = [
   { label: 'Attendance',   href: '/teacher/attendance',           desc: 'Mark and review attendance'        },
   { label: 'Assessment',   href: '/teacher/assessment',           desc: 'CBC assessments'                   },
   { label: 'Results',      href: '/teacher/results',              desc: 'Student results'                   },
-  { label: 'Resources',    href: '/teacher/resources',            desc: 'Notes, quizzes, exercises'         },
+  { label: 'Resources',    href: '/teacher/resources',            desc: 'Saved and lesson-linked materials'         },
   { label: 'VibeLearn',    href: '/teacher/vibelearn',            desc: 'Learning library for your classes and subjects'       },
   { label: 'SchoolHub',    href: '/teacher/schoolhub',            desc: 'School info and staff'             },
   { label: 'TPAD',         href: '/teacher/tpad',                 desc: 'Teacher performance appraisal'     },
