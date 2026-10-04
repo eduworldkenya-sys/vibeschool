@@ -364,7 +364,7 @@ function ResultsInner() {
       <div style={{overflowX:"auto",display:"flex",gap:8,padding:"8px 16px 0"}}>{subjects.map((s,i)=><button key={s.id} onClick={()=>setActiveSubjectIdx(i)} style={pill(i===activeSubjectIdx,"#4f46e5")}>{s.name}</button>)}</div>
     </>}
 
-    <div style={{padding:"14px 16px 0"}}><div style={{fontSize:11,fontWeight:800,letterSpacing:.5,textTransform:"uppercase",color:W.textMuted}}>My exam sheets</div><div style={{fontSize:13,color:W.textSoft,marginTop:3}}>Choose an exam, then record or continue results for the selected class and subject. Learner marks recorded and other final result states share one canonical sheet.</div></div>
+    <div style={{padding:"14px 16px 0"}}><div style={{fontSize:11,fontWeight:800,letterSpacing:.5,textTransform:"uppercase",color:W.textMuted}}>My exam sheets</div><div style={{fontSize:13,color:W.textSoft,marginTop:3}}>Choose an exam, then record or continue results for the selected class and subject; learner marks recorded and other final result states share one canonical sheet.</div></div>
     <div style={{padding:"10px 16px 0",display:"flex",gap:8,alignItems:"center"}}>
       <div style={{flex:1,overflowX:"auto",display:"flex",gap:8}}>{exams.length===0?<span style={{fontSize:13,color:W.textMuted}}>No exams yet</span>:exams.map(e=><button key={e.id} onClick={()=>setActiveExam(e)} style={pill(activeExam?.id===e.id,"#0a0a0a")}>{e.name}{e.is_locked?" · Locked":""}</button>)}</div>
       <button onClick={exportMarksCsv} disabled={!activeExam || results.length===0 || !policy} style={{padding:"6px 12px",borderRadius:20,border:"1px solid #EDE0CE",background:"#fff",fontWeight:700,opacity:(!activeExam || results.length===0 || !policy) ? .5 : 1}}>Export CSV</button>
