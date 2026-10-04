@@ -261,16 +261,28 @@ function LessonNotesInner() {
 
       const primaryChapterId = Array.from(chapterIds)[0] ?? null;
       if (primaryChapterId) {
-        const { data: overlayRows, error: overlayError } = await supabase
-          .from("teacher_note_overlays")
-          .select("note_kind,body,lesson_plan_id,source_chapter_id")
-          .eq("teacher_id", authData.user.id)
-          .eq("source_chapter_id", primaryChapterId)
-          .or(`note_kind.eq.concept,and(note_kind.eq.lesson,lesson_plan_id.eq.${lessonPlanId})`);
-        if (overlayError) throw overlayError;
-        const overlays = (overlayRows ?? []) as Array<{ note_kind: "concept" | "lesson"; body: string; lesson_plan_id: string | null }>;
-        setConceptNote(overlays.find((row) => row.note_kind === "concept")?.body ?? "");
-        const persistedLessonNote = overlays.find((row) => row.note_kind === "lesson" && row.lesson_plan_id === lessonPlanId)?.body;
+        const [conceptOverlay, lessonOverlay] = await Promise.all([
+          supabase
+            .from("teacher_note_overlays")
+            .select("body")
+            .eq("teacher_id", authData.user.id)
+            .eq("source_chapter_id", primaryChapterId)
+            .eq("note_kind", "concept")
+            .is("lesson_plan_id", null)
+            .maybeSingle(),
+          supabase
+            .from("teacher_note_overlays")
+            .select("body")
+            .eq("teacher_id", authData.user.id)
+            .eq("source_chapter_id", primaryChapterId)
+            .eq("note_kind", "lesson")
+            .eq("lesson_plan_id", lessonPlanId)
+            .maybeSingle(),
+        ]);
+        if (conceptOverlay.error) console.warn("[lesson-notes] concept overlay unavailable", conceptOverlay.error);
+        if (lessonOverlay.error) console.warn("[lesson-notes] lesson overlay unavailable", lessonOverlay.error);
+        setConceptNote((conceptOverlay.data as { body?: string } | null)?.body ?? "");
+        const persistedLessonNote = (lessonOverlay.data as { body?: string } | null)?.body;
         if (persistedLessonNote != null) setLiveNote(persistedLessonNote);
       } else {
         setConceptNote("");
