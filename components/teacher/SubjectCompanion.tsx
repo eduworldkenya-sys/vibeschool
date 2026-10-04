@@ -52,7 +52,7 @@ const tools: Tool[] = [
     help: "Prepare the next lesson from the same class and subject context.",
     group: "prepare",
     needsClass: true,
-    href: (classId, subject) => `/teacher/lesson-notes?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
+    href: (classId, subject) => `/teacher/lessonplan?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
   },
   {
     id: "lesson-notes",
@@ -60,7 +60,7 @@ const tools: Tool[] = [
     help: "Choose the prepared lesson, then open its lesson notes and classroom Teach mode without inventing a lesson.",
     group: "teach",
     needsClass: true,
-    href: (classId, subject) => `/teacher/lessonplan?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
+    href: (classId, subject) => `/teacher/lesson-notes?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
   },
   {
     id: "teacher-guide",
