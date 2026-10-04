@@ -134,6 +134,7 @@ function LessonNotesInner() {
   const [teachMode, setTeachMode] = useState(false);
   const [noteView, setNoteView] = useState<NoteView>("quick");
   const [liveNote, setLiveNote] = useState("");
+  const [hasPersistedLessonNote, setHasPersistedLessonNote] = useState(false);
   const [conceptNote, setConceptNote] = useState("");
   const [sourceChapterId, setSourceChapterId] = useState<string | null>(null);
   const [sourceDerivativeId, setSourceDerivativeId] = useState<string | null>(null);
@@ -317,8 +318,9 @@ function LessonNotesInner() {
         if (conceptOverlay.error) console.warn("[lesson-notes] concept overlay unavailable", conceptOverlay.error);
         if (lessonOverlay.error) console.warn("[lesson-notes] lesson overlay unavailable", lessonOverlay.error);
         setConceptNote((conceptOverlay.data as { body?: string } | null)?.body ?? "");
-        const persistedLessonNote = (lessonOverlay.data as { body?: string } | null)?.body;
-        if (persistedLessonNote != null) setLiveNote(persistedLessonNote);
+        const persistedLessonRow = lessonOverlay.data as { body?: string } | null;
+        setHasPersistedLessonNote(Boolean(persistedLessonRow));
+        if (persistedLessonRow) setLiveNote(persistedLessonRow.body ?? "");
       } else {
         setConceptNote("");
       }
@@ -341,11 +343,12 @@ function LessonNotesInner() {
       : lessonPlanId;
     const key = `vibeschool.teacher.lesson-notes.${identity}`;
     try {
-      setLiveNote(window.localStorage.getItem(key) ?? "");
+      const cached = window.localStorage.getItem(key) ?? "";
+      if (!hasPersistedLessonNote) setLiveNote(cached);
     } catch {
       // A blocked local cache must never block teaching.
     }
-  }, [lessonPlanId, occurrence]);
+  }, [lessonPlanId, occurrence, hasPersistedLessonNote]);
 
   function saveLiveNote(value: string) {
     setLiveNote(value);
@@ -632,6 +635,21 @@ function LessonNotesInner() {
                 <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{chapter.title || "Open chapter"}</div>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "#047857", marginTop: 6 }}>Open chapter →</div>
               </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {noteView === "quick" && teacherNotes[0] && (
+        <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #d1fae5" }}>
+          <div style={{ fontSize: 12, fontWeight: 900, color: "#065f46", marginBottom: 4 }}>Quick teaching notes</div>
+          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>The first essentials from the same reviewed source used by Full notes.</div>
+          <div style={{ display: "grid", gap: 10 }}>
+            {noteBodySections(teacherNotes[0].body).slice(0, 3).map((section) => (
+              <div key={section.label}>
+                <div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.6 }}>{section.label}</div>
+                <div style={{ whiteSpace: "pre-wrap", fontSize: 13, color: "#1f2937", lineHeight: 1.6, marginTop: 3 }}>{section.text}</div>
+              </div>
             ))}
           </div>
         </section>
