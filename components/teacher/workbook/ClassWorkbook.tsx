@@ -773,7 +773,7 @@ export default function ClassWorkbook() {
             <Link
               href={`/teacher/results?classId=${classId}&subjectId=${filters.subjectId}`}
             >
-              Create exam / full analysis
+              Open Exam Centre / full analysis
             </Link>
           </div>
           {filters.examId && filters.subjectId && (
