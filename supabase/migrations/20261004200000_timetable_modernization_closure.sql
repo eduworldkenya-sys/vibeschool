@@ -324,10 +324,6 @@ create index if not exists idx_calendar_exception_school_date
   on public.school_calendar_exceptions(school_id, exception_date);
 create index if not exists idx_teacher_absence_teacher_range
   on public.teacher_absences(teacher_id, starts_at, ends_at);
-create index if not exists idx_teaching_occurrences_actual_teacher_date
-  on public.teaching_occurrences(actual_teacher_id, occurrence_date)
-  where actual_teacher_id is not null;
-
 create or replace function public.assign_occurrence_substitute(
   p_occurrence_id uuid,
   p_substitute_teacher_id uuid,
