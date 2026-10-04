@@ -8,6 +8,7 @@ import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
 import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/ClassicTimetable'
 import type { SchoolPeriod } from '@/lib/timetable/periods'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
+import TimetableOperationsPanel from '@/components/teacher/TimetableOperationsPanel'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange } from '@/lib/timetable/engine'
@@ -15,6 +16,7 @@ import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
 import { deriveTeachingWorkspace } from '@/lib/teaching/workspace'
+import { isLessonPlanReadyToTeach } from '@/lib/teaching/lessonReadiness'
 import type { TeachingOccurrence, EditableSlot } from '@/lib/teaching/types'
 
 // Fix 18C: human-facing text for each stable RPC error code. Kept next to
@@ -144,12 +146,14 @@ const SlotCard = React.memo(function SlotCard({
   isNow,
   isNext,
   curMin,
+  readiness,
   onTap,
 }: {
   slot:   Slot
   isNow:  boolean
   isNext: boolean
   curMin: number
+  readiness: 'ready' | 'needs_review' | 'no_plan'
   onTap:  (s: Slot) => void
 }) {
   return (
@@ -212,6 +216,20 @@ const SlotCard = React.memo(function SlotCard({
         {slot.room
           ? <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{slot.room}</div>
           : null}
+        <div style={{ marginTop: 5 }}>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            padding: '2px 7px',
+            borderRadius: 999,
+            fontSize: 9,
+            fontWeight: 800,
+            background: readiness === 'ready' ? '#dcfce7' : readiness === 'needs_review' ? '#fef3c7' : '#fee2e2',
+            color: readiness === 'ready' ? '#166534' : readiness === 'needs_review' ? '#92400e' : '#991b1b',
+          }}>
+            {readiness === 'ready' ? 'Ready' : readiness === 'needs_review' ? 'Review plan' : 'No plan'}
+          </span>
+        </div>
       </div>
 
       {isNow && (
@@ -247,6 +265,7 @@ function SlotDrawer({
   onRecover,
   onCancelRecovery,
   onEdit,
+  onCopy,
 }: {
   slot:           Slot | null
   curMin:         number
@@ -256,6 +275,7 @@ function SlotDrawer({
   onRecover:        (ctx: RecoverySheetContext) => void
   onCancelRecovery: (ctx: RecoverySheetContext) => void
   onEdit:           (slot: Slot) => void
+  onCopy:           (slot: Slot) => void
 }) {
   // FIX [FATAL-03]: removed useRouter() from here — navigation lifted to page via onNavigate prop
 
@@ -592,10 +612,21 @@ function SlotDrawer({
               width: '100%', padding: '12px', borderRadius: 10,
               border: `1.5px solid ${C.border}`, background: 'none',
               fontSize: 13, fontWeight: 700, color: C.textPrimary,
-              cursor: 'pointer', marginBottom: 8,
+              cursor: 'pointer',
             }}
           >
             Edit Slot
+          </button>
+          <button
+            onClick={() => { onCopy(slot); onClose(); }}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 10,
+              border: `1.5px solid ${C.border}`, background: 'none',
+              fontSize: 13, fontWeight: 700, color: C.textPrimary,
+              cursor: 'pointer', marginBottom: 8,
+            }}
+          >
+            Copy lesson
           </button>
 
           {/* TBL-009B: recover a missed lesson through the TBL-009A writer. */}
@@ -743,7 +774,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   }
   const [dayBlocks, setDayBlocks] = useState<SchoolDayBlock[]>([])
   const [blocksError, setBlocksError] = useState<string | null>(null)
-  const [initialPlacement, setInitialPlacement] = useState<{dayOfWeek:number;startTime:string;endTime:string} | undefined>()
+  const [initialPlacement, setInitialPlacement] = useState<{dayOfWeek:number;startTime:string;endTime:string;classId?:string;subjectId?:string} | undefined>()
   const [showAddSlot,     setShowAddSlot]      = useState(false)
   const [editSlot,        setEditSlot]         = useState<Slot | null>(null)
   // TBL-009B: non-null while the recovery sheet is open; carries the
@@ -751,6 +782,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
   const [teacherId,       setTeacherId]        = useState<string | null>(null)
   const [weeklyLoadRows,  setWeeklyLoadRows]   = useState<WeeklyLoadRow[]>([])
+  const [readinessByOccurrence, setReadinessByOccurrence] = useState<Record<string, 'ready' | 'needs_review'>>({})
   const [showLoadCheck,   setShowLoadCheck]    = useState(false)
 
   // FIX [FATAL-02]: isMounted ref — prevents setState on unmounted component
@@ -881,6 +913,29 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       setAllSlots(mapped)
 
+      const weekEnd = nairobiDateAdd(weekStart, 6)
+      const planRes = await supabase
+        .from('lesson_plans')
+        .select('timetable_slot_id,taught_date,body')
+        .eq('teacher_id', user.id)
+        .eq('school_id', schoolId)
+        .gte('taught_date', weekStart)
+        .lte('taught_date', weekEnd)
+        .not('timetable_slot_id', 'is', null)
+
+      if (!isMounted.current) return
+      if (planRes.error) {
+        console.error('[Timetable] lesson readiness query failed:', planRes.error)
+        setReadinessByOccurrence({})
+      } else {
+        const readiness: Record<string, 'ready' | 'needs_review'> = {}
+        for (const plan of planRes.data ?? []) {
+          if (!plan.timetable_slot_id || !plan.taught_date) continue
+          readiness[`${plan.timetable_slot_id}:${plan.taught_date}`] =
+            isLessonPlanReadyToTeach(plan.body) ? 'ready' : 'needs_review'
+        }
+        setReadinessByOccurrence(readiness)
+      }
 
     } catch (err) {
       if (isMounted.current) {
@@ -1143,6 +1198,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         )}
       </div>
 
+      <TimetableOperationsPanel weekStart={weekStart} onChanged={() => void load()} />
+
       {/* Weekly Load Check — only visible when a class+subject combo is
           off the KICD allocation target, unscheduled, or missing a target.
           Silent otherwise, same rule as the scheme page's coverage indicators. */}
@@ -1261,7 +1318,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           <li>Choose your class and subject. Select one period or consecutive periods for a double.</li>
           <li>Use Suggest available periods if you need help. Review weekly allocations below.</li>
         </ol>
-        <p style={{fontSize:13}}>School periods define lesson lengths and breaks. Custom times are for genuine school exceptions. Prepare lesson plans after scheduling.</p>
+        <p style={{fontSize:13}}>School periods define real lesson lengths and breaks. Custom times are for genuine school exceptions. You can plan first or schedule first; either workflow stays connected.</p>
       </details>
       {/* Slot list */}
       {view === 'day' && <Card>
@@ -1286,6 +1343,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
                 isNow={isToday  && slot.id === nowSlot?.id}
                 isNext={isToday && slot.id === nextSlot?.id && !nowSlot}
                 curMin={curMin}
+                readiness={readinessByOccurrence[`${slot.id}:${dateForDow(activeDow)}`] ?? 'no_plan'}
                 onTap={setSelected}
               />
             ))}
@@ -1327,6 +1385,16 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onRecover={ctx => setRecoveryCtx(ctx)}
         onCancelRecovery={ctx => setRecoveryCtx(ctx)}
         onEdit={s => setEditSlot(s)}
+        onCopy={s => {
+          setInitialPlacement({
+            dayOfWeek: s.dayOfWeek,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            classId: s.classId,
+            subjectId: s.subjectId,
+          })
+          setShowAddSlot(true)
+        }}
       />
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
