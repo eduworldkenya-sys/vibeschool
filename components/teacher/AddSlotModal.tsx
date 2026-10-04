@@ -38,6 +38,7 @@ interface AssignmentOption {
   subjectId:      string
   className:      string
   subjectName:    string
+  gradeLabel:     string
 }
 
 const DAYS = [
@@ -111,6 +112,18 @@ function toFriendlyError(err: { message?: string }): string {
 
 // Today's date in Africa/Nairobi, as YYYY-MM-DD for a <input type="date">
 // default value. Avoids ever submitting an ambiguous blank effective_from.
+function addMinutesToTime(start: string, minutes: number): string {
+  const [hours, mins] = start.split(':').map(Number)
+  const total = Math.max(0, Math.min(23 * 60 + 59, hours * 60 + mins + minutes))
+  return String(Math.floor(total / 60)).padStart(2, '0') + ':' + String(total % 60).padStart(2, '0')
+}
+
+function durationBetween(start: string, end: string): number {
+  const [sh, sm] = start.split(':').map(Number)
+  const [eh, em] = end.split(':').map(Number)
+  return (eh * 60 + em) - (sh * 60 + sm)
+}
+
 function nairobiTodayISO(): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Africa/Nairobi',
@@ -178,6 +191,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
   const [suggestions, setSuggestions] = useState<SuggestedPlacement[]>([])
   const [suggesting, setSuggesting] = useState(false)
   const [preferredSession, setPreferredSession] = useState('any')
+  const [gradeDurationDefault, setGradeDurationDefault] = useState<number | null>(null)
   const modalMounted = useRef(true)
   useEffect(() => {modalMounted.current=true;return () => {modalMounted.current=false}}, [])
 
@@ -247,6 +261,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
           subjectId:      r.subject_id,
           className:      r.stream ? `${r.class_name} ${r.stream}` : r.class_name,
           subjectName:    r.subject_name,
+          gradeLabel:     r.class_name,
         }))
         .sort((a, b) => a.className.localeCompare(b.className) || a.subjectName.localeCompare(b.subjectName))
 
@@ -263,6 +278,23 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
   }, [teacherId, isEdit, copySlot])
 
   const selectedAssignment = assignments.find(a => a.teacherClassId === teacherClassId) ?? null
+
+  useEffect(() => {
+    let cancelled = false
+    setGradeDurationDefault(null)
+    if (!selectedAssignment) return
+    supabase
+      .from('school_lesson_duration_defaults')
+      .select('duration_minutes')
+      .eq('school_id', selectedAssignment.schoolId)
+      .eq('grade_label', selectedAssignment.gradeLabel)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (cancelled) return
+        if (!error && data?.duration_minutes) setGradeDurationDefault(Number(data.duration_minutes))
+      })
+    return () => { cancelled = true }
+  }, [selectedAssignment?.schoolId, selectedAssignment?.gradeLabel])
 
   const dayPeriods = selectedAssignment ? periodsForDay(periods, selectedAssignment.schoolId, Number(dayOfWeek)) : []
   const hasTeachingPeriods = dayPeriods.some(p => p.kind === 'lesson')
@@ -577,6 +609,19 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
             <label style={{display:'block',marginTop:10,fontSize:13}}><input type="checkbox" checked={customTime} onChange={e => setCustomTime(e.target.checked)} /> Use a custom school time</label>
             {customTime && <p style={{fontSize:12}}>Use this only for a genuine school exception. Breaks and clashes still apply.</p>}
           </> : <p style={{fontSize:13}}>No teaching periods are configured for this day. Enter your actual school times; do not assume a national lesson duration.</p>}
+          {gradeDurationDefault && selectedAssignment && (customTime || !hasTeachingPeriods) && (
+            <div style={{ marginTop: 8, padding: 10, borderRadius: 10, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
+              <strong>{selectedAssignment.gradeLabel} school default: {gradeDurationDefault} minutes.</strong>
+              {' '}Your current custom time is {durationBetween(startTime, endTime)} minutes.
+              <button
+                type="button"
+                onClick={() => setEndTime(addMinutesToTime(startTime, gradeDurationDefault))}
+                style={{ display: 'block', marginTop: 6, padding: 0, border: 0, background: 'transparent', color: '#1d4ed8', fontWeight: 850, cursor: 'pointer' }}
+              >
+                Use {gradeDurationDefault}-minute duration
+              </button>
+            </div>
+          )}
           <label htmlFor="preferred-session" style={labelStyle}>Preferred session (optional)</label>
           <select id="preferred-session" style={inputStyle} value={preferredSession} onChange={e=>setPreferredSession(e.target.value)}>
             <option value="any">Any teaching time</option><option value="morning">Morning first</option><option value="afternoon">Afternoon first</option>
