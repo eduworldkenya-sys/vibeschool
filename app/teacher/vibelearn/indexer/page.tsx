@@ -55,7 +55,7 @@ function ScoreRing({ value, max = 100 }: { value: number; max?: number }) {
   const dash  = circ * pct;
   const color = value >= 70 ? C.accent : value >= 40 ? "#f59e0b" : "#ef4444";
   return (
-    <svg width={100} height={100} viewBox="0 0 100 100" aria-label={`Index score: ${value} out of ${max}`}>
+    <svg width={100} height={100} viewBox="0 0 100 100" aria-label={`Publishing health: ${value} out of ${max}`}>
       <circle cx={50} cy={50} r={r} fill="none" stroke="#f0f0f0" strokeWidth={10} />
       <circle cx={50} cy={50} r={r} fill="none" stroke={color} strokeWidth={10}
         strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
@@ -137,11 +137,11 @@ export default function IndexerPage() {
 
   const tips: { icon: string; title: string; body: string; done: boolean }[] = [
     { icon: "📄", title: "Publish at least 1 live content",   body: "Live content is indexed and discoverable by students.",         done: live > 0 },
-    { icon: "🏷️", title: "Add tags to all content",           body: "Tagged content appears 3× more in student searches.",          done: tagged === items.length && items.length > 0 },
+    { icon: "🏷️", title: "Add tags to all content",           body: "Clear tags help search connect your material to relevant topics.",          done: tagged === items.length && items.length > 0 },
     { icon: "📝", title: "Add descriptions to all content",   body: "Rich descriptions improve click-through from search.",         done: described === items.length && items.length > 0 },
-    { icon: "👁️", title: "Get your first 10 views",           body: "Views signal quality to the ranking engine.",                  done: totalViews >= 10 },
+    { icon: "👁️", title: "Get your first 10 views",           body: "Views show reach. They do not prove educational quality or learner mastery.",                  done: totalViews >= 10 },
     { icon: "📚", title: "Publish 5+ pieces of content",      body: "Volume increases your search surface area.",                   done: items.length >= 5 },
-    { icon: "🔄", title: "Publish at least weekly",           body: "Freshness boosts your index score over time.",                 done: publishedThisWeek },
+    { icon: "🔄", title: "Publish at least weekly",           body: "Regular updates keep your published library current.",                 done: publishedThisWeek },
   ];
 
   const card: React.CSSProperties = {
@@ -170,8 +170,8 @@ export default function IndexerPage() {
         {/* Header */}
         <div style={{ background: `linear-gradient(135deg,${C.dark} 0%,#312e81 100%)`, borderRadius: 20, padding: "20px", marginBottom: 14, color: "#fff" }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>VibeLearn</div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Content Indexer</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>How VibeLearn ranks your content for student discovery</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Publishing Health</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>A practical check of publishing completeness and reach. This is not a learning-quality score.</div>
         </div>
 
         {/* Score card */}
@@ -182,7 +182,7 @@ export default function IndexerPage() {
               {indexScore >= 70 ? "Good Standing" : indexScore >= 40 ? "Needs Work" : "Getting Started"}
             </div>
             <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4, lineHeight: 1.5 }}>
-              {rank ? `Ranked #${rank} among all teachers on the platform.` : "Publish content to get ranked."}
+              {rank ? `Ranked #${rank} among all teachers on the platform.` : "Publish content to build reach data."}
             </div>
             {rank && (
               <div style={{ display: "inline-block", marginTop: 8, padding: "4px 12px", borderRadius: 20, background: "#fef3c7", color: "#b45309", fontSize: 11, fontWeight: 700 }}>
@@ -194,7 +194,7 @@ export default function IndexerPage() {
 
         {/* Signal bars */}
         <div style={card}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Ranking Signals</div>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Publishing Signals</div>
           {[
             { label: "Live Content",    value: live,        max: Math.max(items.length, 1), suffix: ` / ${items.length}`, color: C.accent   },
             { label: "Live Views",      value: totalViews,  max: 50,                         suffix: " views",             color: "#0284c7"  },
@@ -215,7 +215,7 @@ export default function IndexerPage() {
 
         {/* Tips */}
         <div style={card}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Improve Your Score</div>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Improve Publishing Health</div>
           {tips.map((tip, i) => (
             <div key={tip.title} style={{ display: "flex", gap: 12, alignItems: "flex-start", paddingBottom: 14, marginBottom: i < tips.length - 1 ? 14 : 0, borderBottom: i < tips.length - 1 ? `1px solid ${C.border}` : "none" }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, background: tip.done ? "#d1fae5" : "#f3f4f6", transition: "background 0.3s ease" }}>
@@ -232,7 +232,7 @@ export default function IndexerPage() {
         {/* Content performance table */}
         {items.length > 0 && (
           <div style={card}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Your Content Performance</div>
+            <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Publishing Reach</div>
             {[...items].sort((a, b) => b.view_count - a.view_count).map((item, i) => (
               <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
                 <div style={{ fontSize: 14, flexShrink: 0, width: 24, textAlign: "center", color: C.textMuted, fontWeight: 800 }}>{i + 1}</div>
