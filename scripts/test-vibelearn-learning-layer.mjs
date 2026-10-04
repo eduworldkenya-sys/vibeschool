@@ -38,7 +38,7 @@ must(service, ".from('learning_resource_versions')", 'certified resource version
 must(service, "p_target_type: 'lesson_plan'", 'class resources must be able to link into the prepared lesson')
 must(service, "p_usage_role: CLASS_ROLE_BY_INTENT[input.intent]", 'natural teacher intent must map to canonical class-library roles')
 
-must(subject, 'VibeLearn Library', 'SubjectHub should name the learning library consistently')
+must(subject, 'Open VibeLearn to find curriculum-aligned material', 'SubjectHub should explain the VibeLearn handoff without breaking the Learning Content contract')
 must(more, 'Learning library for your classes', 'Teacher More should explain VibeLearn in natural language')
 must(indexer, 'Publishing Reach', 'legacy publisher analytics should be presented as publishing reach')
 mustNot(indexer, 'appears 3× more', 'unsupported search-ranking claims must be removed')
