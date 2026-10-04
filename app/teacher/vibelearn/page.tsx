@@ -327,6 +327,58 @@ export default function VibeLearnPage() {
   const [saving,       setSaving]       = useState(false);
   const [saveError,    setSaveError]    = useState("");
 
+  const loadContent = useCallback(async (uid: string) => {
+    const { data, error } = await supabase
+      .from("vibelearn_content")
+      .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
+      .eq("submitted_by", uid)
+      .order("created_at", { ascending: false });
+    if (!error && data && mounted.current) setContent(data as Content[]);
+  }, []);
+
+  const loadStats = useCallback(async (uid: string) => {
+    if (mounted.current) setLoadingStats(true);
+    try {
+      let data: {
+        total_views: number | null;
+        total_earnings_ksh: number | null;
+        live_count: number | null;
+        teacher_rank: number | null;
+      } | null = null;
+
+      try {
+        const { data: statsRow } = await supabase
+          .from("vibelearn_teacher_stats")
+          .select(
+            "total_views,total_earnings_ksh,live_count,teacher_rank"
+          )
+          .eq("teacher_id", uid)
+          .maybeSingle();
+
+        data = statsRow;
+      } catch {
+        // Stats view may not exist yet — non-fatal.
+      }
+      const { data: top } = await supabase
+        .from("vibelearn_content")
+        .select("title,view_count")
+        .eq("submitted_by", uid)
+        .eq("status", "live")
+        .order("view_count", { ascending: false })
+        .limit(3);
+      if (!mounted.current) return;
+      setStats({
+        total_views:        data?.total_views        ?? 0,
+        total_earnings_ksh: data?.total_earnings_ksh ?? 0,
+        live_count:         data?.live_count         ?? 0,
+        teacher_rank:       data?.teacher_rank       ?? null,
+        top_content:        (top ?? []) as { title: string; view_count: number }[],
+      });
+    } finally {
+      if (mounted.current) setLoadingStats(false);
+    }
+  }, []);
+
   useEffect(() => {
     mounted.current = true;
 
@@ -418,61 +470,8 @@ export default function VibeLearnPage() {
         if (mounted.current) setLoadingPage(false);
       }
     }
-    init();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const loadContent = useCallback(async (uid: string) => {
-    const { data, error } = await supabase
-      .from("vibelearn_content")
-      .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
-      .eq("submitted_by", uid)
-      .order("created_at", { ascending: false });
-    if (!error && data && mounted.current) setContent(data as Content[]);
-  }, []);
-
-  const loadStats = useCallback(async (uid: string) => {
-    if (mounted.current) setLoadingStats(true);
-    try {
-      let data: {
-        total_views: number | null;
-        total_earnings_ksh: number | null;
-        live_count: number | null;
-        teacher_rank: number | null;
-      } | null = null;
-
-      try {
-        const { data: statsRow } = await supabase
-          .from("vibelearn_teacher_stats")
-          .select(
-            "total_views,total_earnings_ksh,live_count,teacher_rank"
-          )
-          .eq("teacher_id", uid)
-          .maybeSingle();
-
-        data = statsRow;
-      } catch {
-        // Stats view may not exist yet — non-fatal.
-      }
-      const { data: top } = await supabase
-        .from("vibelearn_content")
-        .select("title,view_count")
-        .eq("submitted_by", uid)
-        .eq("status", "live")
-        .order("view_count", { ascending: false })
-        .limit(3);
-      if (!mounted.current) return;
-      setStats({
-        total_views:        data?.total_views        ?? 0,
-        total_earnings_ksh: data?.total_earnings_ksh ?? 0,
-        live_count:         data?.live_count         ?? 0,
-        teacher_rank:       data?.teacher_rank       ?? null,
-        top_content:        (top ?? []) as { title: string; view_count: number }[],
-      });
-    } finally {
-      if (mounted.current) setLoadingStats(false);
-    }
-  }, []);
+    void init();
+  }, [loadContent, loadStats, router]);
 
   // ── Optimistic toggle ───────────────────────────────────────────────────────
   async function toggleStatus(item: Content) {
