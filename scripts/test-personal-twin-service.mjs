@@ -29,7 +29,14 @@ function load(file){
     if(name==='@/lib/learner-intelligence/progress-query')return{parseProgressQuery:input=>input==='show learners improving'?{}:null,resolveTeacherProgressQuery:async(_input,classId)=>({text:`Progress for ${classId}`,actionUrl:'/teacher/progress',actionLabel:'Open progress'})}
     if(name==='./core')return{getTwinAuthorityContext:async()=>({userId:'teacher'}),requireTwinRole:()=>[],selectTwinRoleBinding:()=>({scopeId:activeSchool,schoolId:activeSchool})}
     if(name==='./transport')return{twinRecord:v=>v??{},twinRpc:async(_role,name)=>name==='teacher_get_operating_context'?{school_id:activeSchool,classes:[assignment]}:{settings:{enabled:true},observations:[]}}
-    if(name==='@/lib/teacher/examResultAuthority')return{saveCanonicalExamResult:async()=>{saved++;return{id:'result'}}}
+    if(name==='@/lib/teacher/examResultAuthority')return{
+      saveCanonicalExamResult:async()=>{saved++;return{id:'result'}},
+      getCanonicalExamSubjectPolicy:async()=>({exam_id:'exam',school_id:activeSchool,subject_id:'math',pass_mark:50,max_marks:100,pass_percentage:50,configured:true,is_locked:false})
+    }
+    if(name==='@/lib/assessment/exam-results')return{
+      normalizeExamResultState:(value,isAbsent=false)=>isAbsent?'absent':(value||'entered'),
+      examResultStateLabel:value=>String(value).replaceAll('_',' ')
+    }
     if(name==='@/lib/teacher/twin')return{getTeacherTwinState:async()=>({decision:{}})}
     if(name==='./personal')return load('lib/twin/personal.ts')
     if(name==='./registry')return load('lib/twin/registry.ts')
