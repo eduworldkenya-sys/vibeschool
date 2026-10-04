@@ -591,10 +591,38 @@ function AssessmentInner() {
             )}
           </div>
         )}
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#0a0a0a' }}>CBC Assessment</h1>
+        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#0a0a0a' }}>Assess learners</h1>
         <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>
           {activeClass ? `${activeClass.name}${activeClass.stream ? ' ' + activeClass.stream : ''}` : '—'}
           {activeSubject ? ` · ${activeSubject.name}` : ''}
+        </p>
+        <p style={{ margin: '7px 0 0', fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
+          Record day-to-day progress here, or open the right tool for an exercise, quiz, CAT, exam or reusable question.
+        </p>
+      </div>
+
+      {/* One assessment system: make each teacher job explicit without duplicating its authority. */}
+      <div style={{ padding: '12px 16px 2px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9 }}>
+          {[
+            ['Exercise', 'Practice from a lesson', '/teacher/lessonplan'],
+            ['Quiz', 'Quick lesson check', '/teacher/lessonplan'],
+            ['CAT', 'Across completed lessons', '/teacher/assessment/cat/new'],
+            ['Exams', 'Enter marks & analyse', '/teacher/results'],
+            ['Question Bank', 'Find reusable questions', '/teacher/assessment/bank'],
+            ['Progress', 'Record CBC evidence', ''],
+          ].map(([label, desc, href]) => (
+            <button key={label} type="button" onClick={() => href && router.push(href)} style={{
+              textAlign: 'left', padding: '11px 12px', borderRadius: 12, border: '1px solid #e5e7eb',
+              background: href ? '#fff' : '#f0fdf4', cursor: href ? 'pointer' : 'default', fontFamily: 'inherit',
+            }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>{label}</div>
+              <div style={{ marginTop: 3, fontSize: 11, color: '#6b7280', lineHeight: 1.35 }}>{desc}</div>
+            </button>
+          ))}
+        </div>
+        <p style={{ margin: '8px 2px 0', fontSize: 11, color: '#6b7280', lineHeight: 1.45 }}>
+          Exercises and quizzes start from a lesson so VibeSchool can carry the class, subject, topic and learning outcomes automatically. CATs use completed lessons. Exams use the shared Exam Centre.
         </p>
       </div>
 
