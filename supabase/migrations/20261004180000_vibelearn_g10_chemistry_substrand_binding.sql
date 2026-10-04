@@ -88,7 +88,7 @@ where lr.status='active'
   )
   and lr.sub_strand_id is null;
 
-do $
+do $$
 declare
   v_resource_count integer;
   v_bound integer;
