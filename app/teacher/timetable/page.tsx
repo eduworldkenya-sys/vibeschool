@@ -15,6 +15,8 @@ import { ensureDailyOccurrences } from '@/lib/teaching/occurrenceGuard'
 import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from '@/lib/teaching/occurrence'
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
 import { deriveTeachingWorkspace } from '@/lib/teaching/workspace'
+import { isLessonPlanReadyToTeach } from '@/lib/teaching/lessonReadiness'
+import { duplicateActiveTimetable, restoreTimetableSnapshot, snapshotTimetable } from '@/lib/teaching/slots'
 import type { TeachingOccurrence, EditableSlot } from '@/lib/teaching/types'
 
 // Fix 18C: human-facing text for each stable RPC error code. Kept next to
@@ -44,8 +46,12 @@ function startErrorMessage(code: StartOccurrenceErrorCode): string {
 }
 
 // ── Types ──────────────────────────────────────────────────────────────────
+type TimetableReadiness = 'ready' | 'needs_review' | 'no_plan'
+
 interface Slot {
   id:        string
+  schoolId:  string
+  schoolName: string
   classId:   string
   subjectId: string
   subject:   string
@@ -60,6 +66,9 @@ interface Slot {
   // must appear only on its own date.
   effectiveFrom:  string
   effectiveUntil: string | null
+  readiness: TimetableReadiness
+  isSubstitute?: boolean
+  exceptionReason?: string | null
 }
 
 interface WeeklyLoadRow {
@@ -209,6 +218,18 @@ const SlotCard = React.memo(function SlotCard({
             ? <span style={{ color: C.textMuted, fontWeight: 500 }}> · {slot.className}</span>
             : null}
         </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 4, alignItems: 'center' }}>
+          <span style={{
+            fontSize: 9, fontWeight: 850, padding: '2px 7px', borderRadius: 20,
+            background: slot.readiness === 'ready' ? '#d1fae5' : slot.readiness === 'needs_review' ? '#fef3c7' : '#fee2e2',
+            color: slot.readiness === 'ready' ? '#065f46' : slot.readiness === 'needs_review' ? '#92400e' : '#991b1b',
+          }}>
+            {slot.readiness === 'ready' ? 'Ready' : slot.readiness === 'needs_review' ? 'Needs review' : 'Plan needed'}
+          </span>
+          {slot.isSubstitute && <span style={{ fontSize: 9, fontWeight: 850, color: '#1d4ed8' }}>Substitute lesson</span>}
+          {slot.exceptionReason && <span style={{ fontSize: 9, fontWeight: 750, color: '#92400e' }}>{slot.exceptionReason}</span>}
+          {slot.schoolName && <span style={{ fontSize: 10, color: C.textMuted }}>{slot.schoolName}</span>}
+        </div>
         {slot.room
           ? <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{slot.room}</div>
           : null}
@@ -247,6 +268,8 @@ function SlotDrawer({
   onRecover,
   onCancelRecovery,
   onEdit,
+  onCopy,
+  canCopy,
 }: {
   slot:           Slot | null
   curMin:         number
@@ -256,6 +279,8 @@ function SlotDrawer({
   onRecover:        (ctx: RecoverySheetContext) => void
   onCancelRecovery: (ctx: RecoverySheetContext) => void
   onEdit:           (slot: Slot) => void
+  onCopy:           (slot: Slot) => void
+  canCopy:          boolean
 }) {
   // FIX [FATAL-03]: removed useRouter() from here — navigation lifted to page via onNavigate prop
 
@@ -288,13 +313,14 @@ function SlotDrawer({
   }, [])
 
   useEffect(() => {
-    if (!slot) {
+    if (!slot || slot.isSubstitute) {
       setOccurrence(null)
       setOccError(null)
       setStarting(false)
       setStartError(null)
       setOccRowId(null)
       setRecoveredFromId(null)
+      setOccLoading(false)
       return
     }
 
@@ -339,9 +365,75 @@ function SlotDrawer({
       })
 
     return () => { cancelled = true }
-  }, [slot?.id, occurrenceDate])
+  }, [slot?.id, slot?.isSubstitute, occurrenceDate])
 
   if (!slot) return null
+
+  if (slot.isSubstitute) {
+    return (
+      <>
+        <div
+          className="no-print"
+          onClick={onClose}
+          style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.3)' }}
+        />
+        <div
+          className="no-print"
+          onClick={e => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            bottom: 0, left: 0, right: 0,
+            zIndex: 810,
+            background: 'var(--sheet-bg, #ffffff)',
+            borderRadius: '20px 20px 0 0',
+            padding: '24px 20px 36px',
+            boxShadow: '0 -8px 40px rgba(0,0,0,0.15)',
+          }}
+        >
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-color, #e5e7eb)', margin: '0 auto 20px' }} />
+          <div style={{ display: 'inline-flex', padding: '5px 10px', borderRadius: 999, background: '#dbeafe', color: '#1d4ed8', fontSize: 11, fontWeight: 850 }}>
+            Substitute lesson
+          </div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.textPrimary, marginTop: 12 }}>
+            {slot.subject}
+          </div>
+          <div style={{ fontSize: 14, color: C.textMuted, marginTop: 4 }}>
+            {slot.className}{slot.schoolName ? ` · ${slot.schoolName}` : ''}
+          </div>
+          <div style={{ display: 'flex', gap: 12, marginTop: 18 }}>
+            {[
+              { label: 'Start', value: formatTime(slot.startTime) },
+              { label: 'End', value: formatTime(slot.endTime) },
+            ].map(item => (
+              <div key={item.label} style={{ flex: 1, borderRadius: 12, background: 'var(--surface-raised, #f9fafb)', padding: '12px 14px', textAlign: 'center' }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary }}>{item.value}</div>
+                <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{item.label}</div>
+              </div>
+            ))}
+          </div>
+          {slot.exceptionReason && (
+            <div style={{ marginTop: 14, padding: 11, borderRadius: 10, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
+              {slot.exceptionReason}
+            </div>
+          )}
+          <p style={{ fontSize: 12, lineHeight: 1.5, color: C.textMuted, margin: '14px 0' }}>
+            This is an occurrence-specific substitution. The original timetable slot remains owned by the assigned teacher, so recurring schedule edits are intentionally unavailable here.
+          </p>
+          <div style={{ display: 'grid', gap: 8 }}>
+            <Btn
+              style={{ width: '100%', justifyContent: 'center' }}
+              onClick={() => onNavigate(`/teacher/classhub/${slot.classId}`)}
+            >
+              Open Class
+            </Btn>
+            <Btn variant="muted" style={{ width: '100%', justifyContent: 'center' }} onClick={onClose}>
+              Close
+            </Btn>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   // TOS-005: clock-only comparisons are valid only for today's
   // occurrence. A past Monday slot viewed after midnight must not be labelled
@@ -597,6 +689,19 @@ function SlotDrawer({
           >
             Edit Slot
           </button>
+          {canCopy && (
+            <button
+              onClick={() => { onCopy(slot); onClose(); }}
+              style={{
+                width: '100%', padding: '12px', borderRadius: 10,
+                border: `1.5px solid ${C.border}`, background: 'none',
+                fontSize: 13, fontWeight: 700, color: C.textPrimary,
+                cursor: 'pointer', marginBottom: 8,
+              }}
+            >
+              Copy Lesson
+            </button>
+          )}
 
           {/* TBL-009B: recover a missed lesson through the TBL-009A writer. */}
           {!occError && workspace?.canRecover && occRowId && (
@@ -742,10 +847,17 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     try {localStorage.setItem('teacher-timetable-view',next)} catch { /* View remains usable without storage. */ }
   }
   const [dayBlocks, setDayBlocks] = useState<SchoolDayBlock[]>([])
+  const [schoolBlocks, setSchoolBlocks] = useState<Record<string, SchoolDayBlock[]>>({})
   const [blocksError, setBlocksError] = useState<string | null>(null)
+  const [activeSchoolId, setActiveSchoolId] = useState<string | null>(null)
+  const [schools, setSchools] = useState<Array<{id:string;name:string}>>([])
+  const [schoolFilter, setSchoolFilter] = useState<string>('all')
+  const [calendarExceptions, setCalendarExceptions] = useState<Array<{id:string;school_id:string;exception_date:string;kind:string;label:string;suppress_ordinary_teaching:boolean}>>([])
+  const [lastUndoSnapshotId, setLastUndoSnapshotId] = useState<string | null>(null)
   const [initialPlacement, setInitialPlacement] = useState<{dayOfWeek:number;startTime:string;endTime:string} | undefined>()
   const [showAddSlot,     setShowAddSlot]      = useState(false)
   const [editSlot,        setEditSlot]         = useState<Slot | null>(null)
+  const [copySlot,        setCopySlot]         = useState<Slot | null>(null)
   // TBL-009B: non-null while the recovery sheet is open; carries the
   // occurrence/class/subject identity so it survives sheet navigation.
   const [recoveryCtx,     setRecoveryCtx]      = useState<RecoverySheetContext | null>(null)
@@ -804,18 +916,29 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       if (!isMounted.current) return  // FIX [FATAL-02]: guard after async
       setTeacherId(user.id)
 
-      const todayStr = nairobiDateStr()
-
       const { data: schoolContext, error: schoolContextError } = await supabase.rpc('get_my_teacher_school_context')
 
       if (!isMounted.current) return
 
-      const schoolId = (schoolContext as { active_school_id?: string | null } | null)?.active_school_id ?? null
+      const typedSchoolContext = schoolContext as {
+        active_school_id?: string | null
+        schools?: Array<{id:string;name:string;status?:string|null}>
+      } | null
+      const schoolId = typedSchoolContext?.active_school_id ?? null
+      const memberships = (typedSchoolContext?.schools ?? []).filter(s => s.id && s.name)
       if (schoolContextError || !schoolId) {
         console.error('[Timetable] failed to resolve canonical teacher school', schoolContextError)
         setSchoolError('Connect or select your active school before opening the timetable.')
         return
       }
+
+      setActiveSchoolId(schoolId)
+      setSchools(memberships)
+      setSchoolFilter(current => {
+        if (current === 'all' && memberships.length > 1) return current
+        if (memberships.some(s => s.id === current)) return current
+        return memberships.length > 1 ? 'all' : schoolId
+      })
 
       const { data: blockData, error: blockError } = await supabase.rpc('get_my_school_day_blocks')
       if (!isMounted.current) return
@@ -825,21 +948,128 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         startTime:b.start_time,endTime:b.end_time,kind:b.kind,protected:b.protected,
       })))
 
-      // TBL-009C: load every slot whose effective range overlaps the
-      // visible week, not just slots active today — otherwise a recovery
-      // scheduled for later this week is invisible until its date arrives.
-      // Per the engine contract, per-date effectiveness is validated at
-      // render time via slotActiveOn.
-      const slots = await loadTeacherTimetableForRange({
-        teacherId: user.id,
-        schoolId,
-        rangeStart: weekStart,
-        rangeEnd: nairobiDateAdd(weekStart, 6),
-      })
+      // A teacher may belong to more than one school. Read every authorized
+      // timetable and combine them only at the presentation layer. The
+      // database's teacher exclusion constraint remains the global clash gate.
+      const schoolIds = memberships.length > 0 ? memberships.map(s => s.id) : [schoolId]
+      const rangeEnd = nairobiDateAdd(weekStart, 6)
+      const blockGroups = await Promise.all(
+        schoolIds.map(async membershipSchoolId => {
+          if (membershipSchoolId === schoolId) {
+            return { schoolId: membershipSchoolId, rows: ((blockData ?? []) as SchoolPeriod[]) }
+          }
+          const { data, error } = await supabase.rpc('get_school_day_blocks_for_member', {
+            p_school_id: membershipSchoolId,
+          })
+          if (error) {
+            console.error('[Timetable] school period load failed', membershipSchoolId, error)
+            return { schoolId: membershipSchoolId, rows: [] as SchoolPeriod[] }
+          }
+          return { schoolId: membershipSchoolId, rows: (data ?? []) as SchoolPeriod[] }
+        })
+      )
+      const nextSchoolBlocks: Record<string, SchoolDayBlock[]> = {}
+      for (const group of blockGroups) {
+        nextSchoolBlocks[group.schoolId] = group.rows
+          .filter(block => block.school_id === group.schoolId)
+          .map(block => ({
+            id:block.id,scheduleDay:block.schedule_day,periodNumber:block.period_number,label:block.label,
+            startTime:block.start_time,endTime:block.end_time,kind:block.kind,protected:block.protected,
+          }))
+      }
+      setSchoolBlocks(nextSchoolBlocks)
+
+      const schoolSlotGroups = await Promise.all(
+        schoolIds.map(async membershipSchoolId => ({
+          schoolId: membershipSchoolId,
+          slots: await loadTeacherTimetableForRange({
+            teacherId: user.id,
+            schoolId: membershipSchoolId,
+            rangeStart: weekStart,
+            rangeEnd,
+          }),
+        }))
+      )
+
+      // Substitution is occurrence-specific. Pull assignments where this user
+      // is the actual teacher even though the recurring slot belongs to
+      // another teacher.
+      const { data: substituteData, error: substituteError } = await supabase.rpc(
+        'get_my_substitute_occurrences',
+        { p_from: weekStart, p_until: rangeEnd },
+      )
+      if (substituteError) {
+        const message = String(substituteError.message ?? '')
+        if (!/function .* does not exist/i.test(message)) {
+          console.error('[Timetable] substitute occurrence load failed', substituteError)
+        }
+      }
+
+      const ownedSlots = schoolSlotGroups.flatMap(group =>
+        group.slots.map(slot => ({
+          ...slot,
+          __schoolId: group.schoolId,
+          __isSubstitute: false,
+          __exceptionReason: null as string | null,
+        }))
+      )
+      const substituteSlots = ((substituteData ?? []) as Array<any>).map(row => ({
+        id: row.timetable_slot_id,
+        school_id: row.school_id,
+        teacher_id: user.id,
+        class_id: row.class_id,
+        subject_id: row.subject_id,
+        day_of_week: nairobiDayOfWeek(new Date(row.occurrence_date + 'T12:00:00+03:00')),
+        start_time: row.start_time,
+        end_time: row.end_time,
+        room: row.room ?? null,
+        period_id: null,
+        allocation_units: 1,
+        recurrence_pattern: 'ONCE',
+        effective_from: row.occurrence_date,
+        effective_until: row.occurrence_date,
+        __schoolId: row.school_id,
+        __isSubstitute: true,
+        __exceptionReason: row.exception_reason ?? null,
+      }))
+      const slots = [...ownedSlots, ...substituteSlots]
+
+      const ownedSlotIds = Array.from(new Set(ownedSlots.map(s => s.id)))
+      const [plansRes, occurrenceRes, exceptionsRes] = await Promise.all([
+        supabase
+          .from('lesson_plans')
+          .select('timetable_slot_id,taught_date,body')
+          .eq('teacher_id', user.id)
+          .gte('taught_date', weekStart)
+          .lte('taught_date', rangeEnd),
+        ownedSlotIds.length > 0
+          ? supabase
+              .from('teaching_occurrences')
+              .select('timetable_slot_id,occurrence_date,actual_teacher_id,exception_reason')
+              .in('timetable_slot_id', ownedSlotIds)
+              .gte('occurrence_date', weekStart)
+              .lte('occurrence_date', rangeEnd)
+          : Promise.resolve({ data: [] as any[], error: null }),
+        supabase
+          .from('school_calendar_exceptions')
+          .select('id,school_id,exception_date,kind,label,suppress_ordinary_teaching')
+          .in('school_id', schoolIds)
+          .gte('exception_date', weekStart)
+          .lte('exception_date', rangeEnd)
+          .order('exception_date'),
+      ])
+      if (plansRes.error) console.error('[Timetable] readiness load failed', plansRes.error)
+      if (occurrenceRes.error) console.error('[Timetable] occurrence exception load failed', occurrenceRes.error)
+      if (!exceptionsRes.error) {
+        setCalendarExceptions((exceptionsRes.data ?? []) as Array<{
+          id:string;school_id:string;exception_date:string;kind:string;label:string;suppress_ordinary_teaching:boolean
+        }>)
+      } else if (!/relation .*school_calendar_exceptions.* does not exist/i.test(String(exceptionsRes.error.message ?? ''))) {
+        console.error('[Timetable] calendar exception load failed', exceptionsRes.error)
+      }
 
       if (!isMounted.current) return
 
-      // Fetch subject and class names separately
       const subjectIds = Array.from(new Set(slots.map((s: {subject_id: string}) => s.subject_id).filter(Boolean)))
       const classIds   = Array.from(new Set(slots.map((s: {class_id: string}) => s.class_id).filter(Boolean)))
 
@@ -857,25 +1087,53 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
 
       const classMap: Record<string, string> = {}
       const gradeMap: Record<string, string> = {}
-      ;(classesRes.data ?? []).forEach((c: {id: string, name: string, stream: string|null}) => {
-        classMap[c.id] = c.name + (c.stream ? ` ${c.stream}` : '')
-        gradeMap[c.id] = c.name
+      ;(classesRes.data ?? []).forEach((classRow: {id: string, name: string, stream: string|null}) => {
+        classMap[classRow.id] = classRow.name + (classRow.stream ? ` ${classRow.stream}` : '')
+        gradeMap[classRow.id] = classRow.name
       })
 
-      const mapped: Slot[] = slots.map((s) => {
+      const schoolNameMap = new Map(memberships.map(s => [s.id, s.name]))
+      const planMap = new Map(
+        (plansRes.data ?? []).map((plan: any) => [
+          plan.timetable_slot_id + ':' + plan.taught_date,
+          plan,
+        ])
+      )
+      const occurrenceMap = new Map(
+        (occurrenceRes.data ?? []).map((row: any) => [
+          row.timetable_slot_id + ':' + row.occurrence_date,
+          row,
+        ])
+      )
+
+      const mapped: Slot[] = slots.map((slot: any) => {
+        const occurrenceDate = nairobiDateAdd(weekStart, Number(slot.day_of_week) - 1)
+        const plan = planMap.get(slot.id + ':' + occurrenceDate) as any
+        const occurrence = occurrenceMap.get(slot.id + ':' + occurrenceDate) as any
+        const readiness: TimetableReadiness = slot.__isSubstitute
+          ? 'needs_review'
+          : plan
+            ? (isLessonPlanReadyToTeach(plan.body) ? 'ready' : 'needs_review')
+            : 'no_plan'
+
         return {
-          id:        s.id,
-          classId:   s.class_id,
-          subjectId: s.subject_id,
-          subject:   subjectMap[s.subject_id] ?? 'Unknown',
-          className: classMap[s.class_id] ?? '',
-          grade:     gradeMap[s.class_id] ?? '',
-          room:      s.room ?? '',
-          startTime: s.start_time,
-          endTime:   s.end_time,
-          dayOfWeek: s.day_of_week,
-          effectiveFrom:  s.effective_from,
-          effectiveUntil: s.effective_until,
+          id:        slot.id,
+          schoolId:  slot.__schoolId ?? slot.school_id,
+          schoolName: schoolNameMap.get(slot.__schoolId ?? slot.school_id) ?? 'School',
+          classId:   slot.class_id,
+          subjectId: slot.subject_id,
+          subject:   subjectMap[slot.subject_id] ?? 'Unknown',
+          className: classMap[slot.class_id] ?? '',
+          grade:     gradeMap[slot.class_id] ?? '',
+          room:      slot.room ?? '',
+          startTime: slot.start_time,
+          endTime:   slot.end_time,
+          dayOfWeek: slot.day_of_week,
+          effectiveFrom:  slot.effective_from,
+          effectiveUntil: slot.effective_until,
+          readiness,
+          isSubstitute: Boolean(slot.__isSubstitute),
+          exceptionReason: slot.__exceptionReason ?? occurrence?.exception_reason ?? null,
         }
       })
 
@@ -897,9 +1155,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     load()
   }, [load])
 
+  const visibleSlots = useMemo(
+    () => schoolFilter === 'all' ? allSlots : allSlots.filter(slot => slot.schoolId === schoolFilter),
+    [allSlots, schoolFilter]
+  )
+
   const daySlots = useMemo(
-    () => allSlots.filter(s => s.dayOfWeek === activeDow && slotActiveOn(s, dateForDow(activeDow))),
-    [allSlots, activeDow, slotActiveOn, dateForDow]
+    () => visibleSlots.filter(s => s.dayOfWeek === activeDow && slotActiveOn(s, dateForDow(activeDow))),
+    [visibleSlots, activeDow, slotActiveOn, dateForDow]
   )
 
   const isToday = activeDow === todayDow
@@ -925,9 +1188,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // are one lesson per date, not two.
   const renderedWeekSlots = useMemo(
     () => DAYS.flatMap(day =>
-      allSlots.filter(s => s.dayOfWeek === day.dow && slotActiveOn(s, dateForDow(day.dow)))
+      visibleSlots.filter(s => s.dayOfWeek === day.dow && slotActiveOn(s, dateForDow(day.dow)))
     ),
-    [allSlots, slotActiveOn, dateForDow]
+    [visibleSlots, slotActiveOn, dateForDow]
   )
   const totalLessons  = renderedWeekSlots.length
   const uniqueClasses = useMemo(
@@ -970,9 +1233,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     () => {
       const dow = isWeekend ? 1 : todayDow
       const date = dateForDow(dow)
-      return allSlots.filter(s => s.dayOfWeek === dow && slotActiveOn(s, date)).length
+      return visibleSlots.filter(s => s.dayOfWeek === dow && slotActiveOn(s, date)).length
     },
-    [allSlots, todayDow, isWeekend, slotActiveOn, dateForDow]
+    [visibleSlots, todayDow, isWeekend, slotActiveOn, dateForDow]
   )
 
   
@@ -1201,7 +1464,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}
       >
         {DAYS.map(d => {
-          const count    = allSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
+          const count    = visibleSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
           const isActive = activeDow === d.dow
           const isTdy    = d.dow === todayDow
           const wknd     = d.weekend
@@ -1242,17 +1505,92 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         })}
       </div>
 
-      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12}} aria-label="Timetable view">
+      {schools.length > 1 && (
+        <div className="no-print" style={{ marginBottom: 12 }}>
+          <label style={{ display: 'grid', gap: 5, fontSize: 11, fontWeight: 800, color: C.textMuted }}>
+            Show timetable for
+            <select
+              value={schoolFilter}
+              onChange={e => setSchoolFilter(e.target.value)}
+              style={{ padding: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.textPrimary }}
+            >
+              <option value="all">All my schools</option>
+              {schools.map(school => <option key={school.id} value={school.id}>{school.name}{school.id === activeSchoolId ? ' · active' : ''}</option>)}
+            </select>
+          </label>
+        </div>
+      )}
+
+      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}} aria-label="Timetable view">
         <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Daily view</Btn>
         <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Weekly sheet</Btn>
         <Btn variant="ghost" small onClick={() => window.print()}>Print</Btn>
+        <Btn
+          variant="ghost"
+          small
+          onClick={async () => {
+            const nextWeek = nairobiDateAdd(weekStart, 7)
+            if (!window.confirm(`Create a new timetable revision from ${nextWeek} using the current active pattern? Existing lesson history will stay unchanged.`)) return
+            try {
+              let undoSnapshotId: string | null = null
+              try {
+                undoSnapshotId = await snapshotTimetable('Before repeating timetable into next week')
+              } catch {
+                undoSnapshotId = null
+              }
+              await duplicateActiveTimetable(nextWeek)
+              if (undoSnapshotId) setLastUndoSnapshotId(undoSnapshotId)
+              await load()
+            } catch (error) {
+              setLoadError(error instanceof Error ? error.message : 'Could not repeat the timetable into next week.')
+            }
+          }}
+        >
+          Repeat from next week
+        </Btn>
+        <Btn variant="ghost" small onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare lesson</Btn>
+        <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>
+        {lastUndoSnapshotId && (
+          <Btn
+            variant="ghost"
+            small
+            onClick={async () => {
+              if (!window.confirm('Undo the last timetable change from today forward? Taught lesson history will remain unchanged.')) return
+              try {
+                await restoreTimetableSnapshot(lastUndoSnapshotId, nairobiDateStr())
+                setLastUndoSnapshotId(null)
+                setSelected(null)
+                await load()
+              } catch (error) {
+                setLoadError(error instanceof Error ? error.message : 'Could not undo the last timetable change.')
+              }
+            }}
+          >
+            Undo last change
+          </Btn>
+        )}
       </div>
       {blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
-      {view === 'week' && !loading && !loadError && !schoolError && <ClassicTimetable
-        slots={allSlots} blocks={dayBlocks} dateForDow={dateForDow}
-        onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(allSlots.find(slot => slot.id === s.id) ?? null) }}
-        onAdd={canAddSlot && !blocksError ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
+      {view === 'week' && schoolFilter === 'all' && schools.length > 1 && !loading && (
+        <div className="no-print" style={{ padding: 12, marginBottom: 12, borderRadius: 12, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
+          Choose one school above for its weekly sheet. Daily view combines all of your schools and still respects the global teacher clash rule.
+        </div>
+      )}
+      {view === 'week' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
+        slots={visibleSlots} blocks={schoolFilter !== 'all' ? (schoolBlocks[schoolFilter] ?? []) : dayBlocks} dateForDow={dateForDow}
+        onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(visibleSlots.find(slot => slot.id === s.id) ?? null) }}
+        onAdd={canAddSlot && !blocksError && (schoolFilter === 'all' || schoolFilter === activeSchoolId) ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
+      {calendarExceptions.filter(event =>
+        event.exception_date === dateForDow(activeDow) &&
+        (schoolFilter === 'all' || event.school_id === schoolFilter)
+      ).map(event => (
+        <div key={event.id} className="no-print" style={{ marginBottom: 10, padding: 11, borderRadius: 12, background: event.suppress_ordinary_teaching ? '#fef2f2' : '#eff6ff', color: event.suppress_ordinary_teaching ? '#991b1b' : '#1e40af', fontSize: 12 }}>
+          <strong>{event.kind === 'exam' ? 'Exam timetable' : event.kind === 'holiday' ? 'Holiday' : event.kind === 'closure' ? 'School closure' : 'School event'}</strong>
+          {' · ' + event.label}
+          {event.suppress_ordinary_teaching ? ' · Ordinary lessons are suppressed.' : ''}
+        </div>
+      ))}
       <details className="no-print" style={{margin:'12px 0',padding:12,border:`1px solid ${C.border}`,borderRadius:12}}>
         <summary style={{cursor:'pointer',fontWeight:700}}>New to timetables? Start here</summary>
         <ol style={{fontSize:13,lineHeight:1.7}}>
@@ -1261,7 +1599,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           <li>Choose your class and subject. Select one period or consecutive periods for a double.</li>
           <li>Use Suggest available periods if you need help. Review weekly allocations below.</li>
         </ol>
-        <p style={{fontSize:13}}>School periods define lesson lengths and breaks. Custom times are for genuine school exceptions. Prepare lesson plans after scheduling.</p>
+        <p style={{fontSize:13}}>School periods define lesson lengths and breaks. Custom times are for genuine school exceptions. Lesson preparation can happen before or after scheduling.</p>
       </details>
       {/* Slot list */}
       {view === 'day' && <Card>
@@ -1327,6 +1665,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onRecover={ctx => setRecoveryCtx(ctx)}
         onCancelRecovery={ctx => setRecoveryCtx(ctx)}
         onEdit={s => setEditSlot(s)}
+        onCopy={s => setCopySlot(s)}
+        canCopy={Boolean(selected && activeSchoolId && selected.schoolId === activeSchoolId)}
       />
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
@@ -1342,7 +1682,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       {/* Add / edit slot modal — only when school confirmed */}
-      {(showAddSlot || editSlot) && teacherId != null && (
+      {(showAddSlot || editSlot || copySlot) && teacherId != null && (
         <AddSlotModal
           teacherId={teacherId}
           initialPlacement={initialPlacement}
@@ -1357,8 +1697,25 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             effectiveFrom:  editSlot.effectiveFrom,
             effectiveUntil: editSlot.effectiveUntil,
           } as EditableSlot : undefined}
-          onClose={() => { setShowAddSlot(false); setEditSlot(null); setInitialPlacement(undefined) }}
-          onSaved={() => { setShowAddSlot(false); setEditSlot(null); setInitialPlacement(undefined); load() }}
+          copySlot={copySlot ? {
+            classId: copySlot.classId,
+            subjectId: copySlot.subjectId,
+            className: copySlot.className,
+            subjectName: copySlot.subject,
+            dayOfWeek: copySlot.dayOfWeek,
+            startTime: copySlot.startTime,
+            endTime: copySlot.endTime,
+            room: copySlot.room,
+          } : undefined}
+          onClose={() => { setShowAddSlot(false); setEditSlot(null); setCopySlot(null); setInitialPlacement(undefined) }}
+          onSaved={(undoSnapshotId) => {
+            if (undoSnapshotId) setLastUndoSnapshotId(undoSnapshotId)
+            setShowAddSlot(false)
+            setEditSlot(null)
+            setCopySlot(null)
+            setInitialPlacement(undefined)
+            load()
+          }}
         />
       )}
 
