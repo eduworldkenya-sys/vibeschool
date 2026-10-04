@@ -820,24 +820,28 @@ export default function VibeLearnPage() {
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn · Learning Library</div>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Find. Use. Follow learning.</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginBottom: 16 }}>Curriculum-aware learning material for your subjects, classes and learners.</div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 8 }}>
             {[
-              { label: "Earnings (KSH)", value: loadingStats ? "…" : `${(stats?.total_earnings_ksh ?? 0).toLocaleString()}`, color: "#6ee7b7" },
-              { label: "Total Views",    value: loadingStats ? "…" : `${(stats?.total_views ?? 0).toLocaleString()}`,         color: "#93c5fd" },
-              { label: "Live",           value: loadingStats ? "…" : `${stats?.live_count ?? 0}`,                             color: "#fde68a" },
-              { label: "Rank",           value: loadingStats ? "…" : stats?.teacher_rank ? `#${stats.teacher_rank}` : "—",   color: "#f9a8d4" },
-            ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", marginTop: 2, fontWeight: 600 }}>{s.label}</div>
-              </div>
+              { label: "Find learning", detail: "For a class or subject", action: () => setTab("discover") },
+              { label: "Class reading", detail: "Follow assigned learning", action: () => setTab("assignments") },
+              { label: "Create", detail: "Add or publish material", action: () => setTab("create") },
+            ].map(item => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={item.action}
+                style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 12, padding: "11px 9px", color: "#fff", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
+              >
+                <div style={{ fontSize: 12, fontWeight: 800 }}>{item.label}</div>
+                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.52)", marginTop: 3, lineHeight: 1.35 }}>{item.detail}</div>
+              </button>
             ))}
           </div>
           <button
             onClick={() => router.push("/teacher/vibelearn/indexer")}
-            style={{ marginTop: 14, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10, padding: "8px 16px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ marginTop: 12, background: "transparent", border: "none", padding: "4px 0", color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
           >
-            📊 View Index Score →
+            Publishing health →
           </button>
         </div>
 
@@ -858,7 +862,7 @@ export default function VibeLearnPage() {
 
         {publishOk && (
           <div style={{ ...S.card, background: "#d1fae5", border: "1px solid #6ee7b7", padding: "12px 16px", marginBottom: 14, animation: "fadeIn 0.3s ease" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Vibe dropped. You are now earning.</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Published to VibeLearn. It is now available for discovery.</div>
           </div>
         )}
 
@@ -873,10 +877,10 @@ export default function VibeLearnPage() {
             {content.length === 0 ? (
               <div style={{ ...S.card, textAlign: "center", padding: "48px 24px" }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No Vibes Dropped Yet</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No learning content published yet</div>
                 <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.6 }}>Create a learning page, ebook or VibeTextbook and publish it to VibeLearn.</div>
                 <button onClick={() => setTab("create")} style={S.btnPrimary(false)}>
-                  Drop Your First Vibe →
+                  Create your first resource →
                 </button>
               </div>
             ) : (
@@ -1001,7 +1005,7 @@ export default function VibeLearnPage() {
                 })}
 
                 <button onClick={() => setTab("create")} style={{ width: "100%", padding: 14, borderRadius: 14, border: `2px dashed ${C.border}`, background: "transparent", color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }}>
-                  + Drop Another Vibe
+                  + Create another resource
                 </button>
               </>
             )}
@@ -1245,7 +1249,7 @@ export default function VibeLearnPage() {
                     { label: "Total Views",    value: (stats?.total_views ?? 0).toLocaleString(),        color: C.accent,  bg: "#d1fae5" },
                     { label: "Earnings (KSH)", value: (stats?.total_earnings_ksh ?? 0).toLocaleString(), color: "#7c3aed", bg: "#ede9fe" },
                     { label: "Live Content",   value: String(stats?.live_count ?? 0),                    color: "#0284c7", bg: "#dbeafe" },
-                    { label: "Teacher Rank",   value: stats?.teacher_rank ? `#${stats.teacher_rank}` : "—", color: "#b45309", bg: "#fef3c7" },
+                    { label: "Creator Reach",  value: stats?.teacher_rank ? `#${stats.teacher_rank}` : "—", color: "#b45309", bg: "#fef3c7" },
                   ].map(s => (
                     <div key={s.label} style={{ background: s.bg, borderRadius: 14, padding: "16px 14px" }}>
                       <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -1256,7 +1260,7 @@ export default function VibeLearnPage() {
 
                 {stats?.top_content && stats.top_content.length > 0 && (
                   <div style={S.card}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 12 }}>Top Performing</div>
+                    <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 12 }}>Publishing reach</div>
                     {stats.top_content.map((c, i) => (
                       <div key={c.title} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < stats.top_content.length - 1 ? `1px solid ${C.border}` : "none" }}>
                         <div style={{ fontSize: 18, flexShrink: 0 }}>{["🥇","🥈","🥉"][i]}</div>
