@@ -312,15 +312,27 @@ export async function loadTeacherVibeLearnWorkspace(input: WorkspaceInput = {}):
     : { data: [], error: null }
   if (prerequisiteResult.error) throw prerequisiteResult.error
 
-  const prerequisiteIds = [...new Set((prerequisiteResult.data ?? []).map(row => row.prerequisite_outcome_id))]
-  const prerequisiteTextResult = prerequisiteIds.length
-    ? await supabase
-        .from('curriculum_learning_outcomes')
-        .select('id,outcome_text')
-        .in('id', prerequisiteIds)
-    : { data: [], error: null }
-  if (prerequisiteTextResult.error) throw prerequisiteTextResult.error
-  const prerequisiteText = new Map((prerequisiteTextResult.data ?? []).map(row => [row.id, row.outcome_text]))
+  const prerequisiteIds: string[] = []
+  for (const row of prerequisiteResult.data ?? []) {
+    if (
+      typeof row.prerequisite_outcome_id === 'string' &&
+      !prerequisiteIds.includes(row.prerequisite_outcome_id)
+    ) {
+      prerequisiteIds.push(row.prerequisite_outcome_id)
+    }
+  }
+
+  const prerequisiteText = new Map<string, string>()
+  if (prerequisiteIds.length > 0) {
+    const prerequisiteTextResult = await supabase
+      .from('curriculum_learning_outcomes')
+      .select('id,outcome_text')
+      .in('id', prerequisiteIds)
+    if (prerequisiteTextResult.error) throw prerequisiteTextResult.error
+    for (const row of prerequisiteTextResult.data ?? []) {
+      prerequisiteText.set(row.id, row.outcome_text)
+    }
+  }
 
   const outcomes: VibeLearnOutcome[] = outcomeRows.map(row => ({
     id: row.id,
@@ -381,8 +393,17 @@ export async function loadTeacherVibeLearnWorkspace(input: WorkspaceInput = {}):
     : { data: [], error: null }
   if (certificationResult.error) throw certificationResult.error
 
-  const certifiedIds = new Set((certificationResult.data ?? []).map(row => row.resource_id))
-  const adoptedById = new Map((libraryResult.data ?? []).map(row => [row.resource_id, row.usage_role]))
+  const certifiedIds = new Set<string>()
+  for (const row of certificationResult.data ?? []) {
+    if (typeof row.resource_id === 'string') certifiedIds.add(row.resource_id)
+  }
+
+  const adoptedById = new Map<string, string>()
+  for (const row of libraryResult.data ?? []) {
+    if (typeof row.resource_id === 'string' && typeof row.usage_role === 'string') {
+      adoptedById.set(row.resource_id, row.usage_role)
+    }
+  }
   const gradeKey = norm(focus?.grade ?? selected.className)
   const subjectKey = norm(selected.subjectName)
 
