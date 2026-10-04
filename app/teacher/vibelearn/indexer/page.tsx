@@ -120,9 +120,8 @@ export default function IndexerPage() {
       setRank(statsRes.data?.teacher_rank ?? null);
       setLoading(false);
     }
-    load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void load();
+  }, [router]);
 
   const indexScore  = score(items);
   const live        = items.filter(c => c.status === "live").length;
