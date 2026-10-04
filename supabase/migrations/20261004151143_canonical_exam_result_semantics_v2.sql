@@ -15,6 +15,13 @@ create table if not exists public.exam_subject_config (
 
 alter table public.exam_subject_config enable row level security;
 
+-- authorization-test: public.exam_subject_config
+-- Anonymous callers have no table privilege. Authenticated access is further
+-- constrained by the RLS policies below; service-role/postgres retain owner grants.
+revoke all on table public.exam_subject_config from anon;
+revoke all on table public.exam_subject_config from authenticated;
+grant select, insert, update, delete on table public.exam_subject_config to authenticated;
+
 do $
 begin
   if not exists (
