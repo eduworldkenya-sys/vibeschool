@@ -4,10 +4,13 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1]
 page = (root / 'app/teacher/results/page.tsx').read_text()
 ui = (root / 'components/teacher/AssessmentIntelligenceConsole.tsx').read_text()
-sql = (root / 'supabase/migrations/20260820093000_teacher_assessment_intelligence_console.sql').read_text()
+sql = '\n'.join([
+    (root / 'supabase/migrations/20260820093000_teacher_assessment_intelligence_console.sql').read_text(),
+    (root / 'supabase/migrations/20261004151511_canonical_exam_intelligence_semantics.sql').read_text(),
+])
 
 checks = {
-    'console wired into results': 'AssessmentIntelligenceConsole' in page and "'Explore'" in page,
+    'console wired into results': 'AssessmentIntelligenceConsole' in page and 'Explore' in page and 'activeTab' in page,
     'canonical intelligence rpc': 'teacher_get_assessment_intelligence' in sql and 'returns jsonb' in sql,
     'teacher authorization': 'auth.uid()' in sql and 'teacher_assignment_required' in sql and 'teacher_classes' in sql,
     'function execution restricted': 'revoke all on function' in sql and 'grant execute' in sql and 'to authenticated' in sql,
@@ -18,7 +21,7 @@ checks = {
     'performance segmentation': 'at_risk_declining' in sql and 'recovering' in sql and 'strong_improving' in sql,
     'attention queue': "'attention_items'" in sql and "'recommended_actions'" in sql,
     'intervention feedback': "'intervention_effects'" in sql and 'baseline_mastery_score' in sql and 'followup_mastery_score' in sql,
-    'exam centre UX': 'Exam review' in ui and 'Class mean' in ui and 'Need help' in ui,
+    'exam centre UX': 'Exam review' in ui and 'Class mean' in ui and 'Need help' in ui and 'at_or_above_target' in ui,
     'trajectory visual': 'How the class is changing' in ui and 'Sparkline' in ui,
     'learner matrix': 'Marks and movement' in ui and 'MovementMatrix' in ui,
     'learner drilldown': 'Learner exam view' in ui and 'role="dialog"' in ui,

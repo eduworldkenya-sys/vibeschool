@@ -5280,7 +5280,10 @@ export type Database = {
           exam_id: string
           id: string
           is_absent: boolean
-          marks: number
+          marks: number | null
+          max_marks: number
+          percentage: number | null
+          result_state: string
           school_id: string
           student_id: string
           subject_id: string
@@ -5293,7 +5296,10 @@ export type Database = {
           exam_id: string
           id?: string
           is_absent?: boolean
-          marks: number
+          marks?: number | null
+          max_marks?: number
+          percentage?: never
+          result_state?: string
           school_id: string
           student_id: string
           subject_id: string
@@ -5306,7 +5312,10 @@ export type Database = {
           exam_id?: string
           id?: string
           is_absent?: boolean
-          marks?: number
+          marks?: number | null
+          max_marks?: number
+          percentage?: never
+          result_state?: string
           school_id?: string
           student_id?: string
           subject_id?: string

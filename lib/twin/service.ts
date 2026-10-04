@@ -5,7 +5,8 @@ import { searchHQ } from '@/lib/hq/search'
 import { getTwinAuthorityContext, requireTwinRole, selectTwinRoleBinding, type TwinRole } from './core'
 import { deriveTwinLearningSignals, interpretTwinCommand, matchTwinLinks, normalizeTwinText, predictTwinNext, safeTwinRoute, twinScreenAction, type TwinLink, type TwinObservation } from './personal'
 import { TWIN_REGISTRY } from './registry'
-import { saveCanonicalExamResult } from '@/lib/teacher/examResultAuthority'
+import { getCanonicalExamSubjectPolicy, saveCanonicalExamResult } from '@/lib/teacher/examResultAuthority'
+import { examResultStateLabel, normalizeExamResultState } from '@/lib/assessment/exam-results'
 import { getTeacherTwinState } from '@/lib/teacher/twin'
 
 import { twinRecord, twinRpc } from './transport'
@@ -32,7 +33,7 @@ async function twinIdPages<T>(ids:string[],query:(ids:string[],from:number,to:nu
 
 export interface TwinSession { userId: string; role: TwinRole; scopeId: string; schoolId: string | null; classIds: string[]; studentIds: string[]; assignments: Assignment[] }
 export interface Assignment { class_id: string; class_name: string; stream: string; subject_id: string; subject_name: string }
-export interface MarkProposal { session: TwinSession; examId: string; classId: string; subjectId: string; studentId: string; score: number; expectedUpdatedAt: string | null; before: number | null; label: string; createdAt: number }
+export interface MarkProposal { session: TwinSession; examId: string; classId: string; subjectId: string; studentId: string; score: number; maxMarks: number; expectedUpdatedAt: string | null; before: number | null; label: string; createdAt: number }
 export interface PersonalTwinReply { text: string; links?: TwinLink[]; proposal?: MarkProposal; evidence?: string[] }
 
 export async function openPersonalTwinSession(role: TwinRole): Promise<TwinSession> {
@@ -152,11 +153,15 @@ export async function prepareTwinMark(session: TwinSession,intent: Extract<Retur
   if(matchingExams.length!==1)return {text:matchingExams.length?'Several assessments match. Open the intended CAT/exam in Results, then repeat.':'No matching CAT/exam was found. Use its exact name.'}
   const exam=matchingExams[0]
   if(exam.is_locked)return {text:'This exam is locked. The score cannot be changed.'}
-  const existing=await supabase.from('exam_results').select('marks,updated_at,teacher_id,is_absent').eq('exam_id',exam.id).eq('subject_id',assignment.subject_id).eq('student_id',learner.id).maybeSingle()
+  const policy=await getCanonicalExamSubjectPolicy({examId:exam.id,schoolId:session.schoolId!,classId:assignment.class_id,subjectId:assignment.subject_id})
+  if(intent.score<0||intent.score>policy.max_marks)return {text:`Use a score from 0 to ${policy.max_marks} for this assessment.`}
+  const existing=await supabase.from('exam_results').select('marks,max_marks,result_state,updated_at,teacher_id,is_absent').eq('exam_id',exam.id).eq('subject_id',assignment.subject_id).eq('student_id',learner.id).maybeSingle()
   if(existing.error)throw new Error(existing.error.message)
   if(existing.data && existing.data.teacher_id!==session.userId)return {text:'This result was recorded by another teacher. Open the marks sheet for the appropriate review.'}
   const label=`${learner.name} · ${assignment.subject_name} · ${exam.name} · Term ${exam.term}, ${exam.academic_year}`
-  return {text:`Set ${label} to ${intent.score}/100?${existing.data?` Current record: ${existing.data.is_absent?'absent':`${existing.data.marks}/100`}.`:''}`,proposal:{session,examId:exam.id,classId:assignment.class_id,subjectId:assignment.subject_id,studentId:learner.id,score:intent.score,expectedUpdatedAt:existing.data?.updated_at??null,before:existing.data?.marks??null,label,createdAt:Date.now()}}
+  const currentState=existing.data?normalizeExamResultState(existing.data.result_state,existing.data.is_absent):null
+  const currentText=!existing.data?'':currentState==='entered'?` Current record: ${existing.data.marks}/${existing.data.max_marks}.`:` Current record: ${examResultStateLabel(currentState!)}.`
+  return {text:`Set ${label} to ${intent.score}/${policy.max_marks}?${currentText}`,proposal:{session,examId:exam.id,classId:assignment.class_id,subjectId:assignment.subject_id,studentId:learner.id,score:intent.score,maxMarks:policy.max_marks,expectedUpdatedAt:existing.data?.updated_at??null,before:existing.data?.marks??null,label,createdAt:Date.now()}}
 }
 
 async function teacherLearningSignals(session:TwinSession,query:string,classHint?:string,examHint?:string):Promise<PersonalTwinReply> {
@@ -169,7 +174,7 @@ async function teacherLearningSignals(session:TwinSession,query:string,classHint
   const [roster,exams,resultRows]=await Promise.all([
     twinPages((from,to)=>supabase.from('student_classes').select('student_id,class_id').eq('school_id',session.schoolId!).in('class_id',classes).eq('is_current',true).order('id').range(from,to)),
     twinPages((from,to)=>supabase.from('exams').select('id,name,term,academic_year,created_at').eq('school_id',session.schoolId!).order('academic_year',{ascending:false}).order('term',{ascending:false}).order('created_at',{ascending:false}).order('id').range(from,to)),
-    twinPages((from,to)=>supabase.from('exam_results').select('student_id,class_id,subject_id,exam_id,marks,is_absent').eq('school_id',session.schoolId!).in('class_id',classes).order('id').range(from,to)),
+    twinPages((from,to)=>supabase.from('exam_results').select('student_id,class_id,subject_id,exam_id,percentage,result_state,is_absent').eq('school_id',session.schoolId!).in('class_id',classes).order('id').range(from,to)),
   ])
   const ids=Array.from(new Set(roster.map(s=>s.student_id)))
   if(!ids.length)return{text:'There are no current learner enrollments in this teaching context.'}
@@ -180,7 +185,7 @@ async function teacherLearningSignals(session:TwinSession,query:string,classHint
   const thresholdMatch=query.match(/\b(?:below|under|less than)\s+(\d+(?:\.\d+)?)\b/)
   const threshold=thresholdMatch?Number(thresholdMatch[1]):40
   if(threshold<0||threshold>100)return{text:'Use a score threshold from 0 to 100.'}
-  let signals=deriveTwinLearningSignals(authorized.map(r=>({studentId:r.student_id,classId:r.class_id,subjectId:r.subject_id,score:Number(r.marks),isAbsent:r.is_absent,examId:r.exam_id,examOrder:examOrder.get(r.exam_id)!})),threshold)
+  let signals=deriveTwinLearningSignals(authorized.map(r=>({studentId:r.student_id,classId:r.class_id,subjectId:r.subject_id,score:Number(r.percentage),isAbsent:normalizeExamResultState(r.result_state,r.is_absent)!=='entered',examId:r.exam_id,examOrder:examOrder.get(r.exam_id)!})),threshold)
   if(/\b(dropped|declin|falling)\w*\b/.test(query))signals=signals.filter(s=>s.kind==='declining_scores')
   const links=signals.slice(0,30).map((s,i)=>{const assignment=assignments.find(a=>a.class_id===s.classId&&a.subject_id===s.subjectId)!;return{id:`signal:${i}`,title:`${names.get(s.studentId)??'Learner'} · ${assignment.subject_name}`,detail:s.evidence[0],kind:'support signal',route:`/teacher/classhub/${assignment.class_id}/student/${s.studentId}`}})
   return{text:signals.length?`${signals.length} learner/subject records may need a closer look. Open a learner to review the evidence and plan support.`:'No matching support signal appears in the scored records available here. Missing marks or absent learners are not treated as zero scores.',links,evidence:['Uses current enrollments and authorized subject assignments.','Assessment order uses academic year, term, then exam creation order; it does not prove when each test was sat.',`Reviewed ${authorized.length} scored/absence records across ${exams.length} assessments.`,...signals.slice(0,5).flatMap(s=>s.evidence)]}
@@ -256,7 +261,7 @@ export async function confirmPersonalTwinMark(proposal:MarkProposal):Promise<Per
   if(Date.now()-proposal.createdAt>5*60000)throw new Error('This review expired. Repeat the command to check the current record.')
   const fresh=await openPersonalTwinSession('teacher')
   if(fresh.userId!==proposal.session.userId || fresh.scopeId!==proposal.session.scopeId)throw new Error('Your identity or school changed. Repeat the command in the correct school.')
-  const data=await saveCanonicalExamResult({examId:proposal.examId,schoolId:fresh.schoolId!,classId:proposal.classId,subjectId:proposal.subjectId,studentId:proposal.studentId,marks:proposal.score,isAbsent:false,expectedUpdatedAt:proposal.expectedUpdatedAt})
+  const data=await saveCanonicalExamResult({examId:proposal.examId,schoolId:fresh.schoolId!,classId:proposal.classId,subjectId:proposal.subjectId,studentId:proposal.studentId,marks:proposal.score,resultState:'entered',expectedUpdatedAt:proposal.expectedUpdatedAt})
   window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
-  return {text:`${proposal.label}: ${proposal.score}/100 saved and verified.`,links:[{id:str(data.id),title:'Open marks sheet',detail:'Saved result',kind:'exam',route:`/teacher/results?examId=${proposal.examId}&classId=${proposal.classId}&subjectId=${proposal.subjectId}`} ]}
+  return {text:`${proposal.label}: ${proposal.score}/${proposal.maxMarks} saved and verified.`,links:[{id:str(data.id),title:'Open marks sheet',detail:'Saved result',kind:'exam',route:`/teacher/results?examId=${proposal.examId}&classId=${proposal.classId}&subjectId=${proposal.subjectId}`} ]}
 }

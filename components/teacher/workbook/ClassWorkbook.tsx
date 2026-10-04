@@ -442,8 +442,8 @@ export default function ClassWorkbook() {
           if (String(c.value).toUpperCase() === "ABS") c.value = "ABS";
           else {
             c.value = parseCell(String(c.value ?? ""), "number");
-            if (typeof c.value !== "number" || c.value < 0 || c.value > 100)
-              throw new Error("Use marks from 0 to 100, or ABS.");
+            if (typeof c.value !== "number" || c.value < 0)
+              throw new Error("Use a non-negative mark or ABS. The exam maximum is verified when you save.");
           }
         }
       setPreview(changes);
@@ -858,7 +858,7 @@ export default function ClassWorkbook() {
                         r.subject_id === filters.subjectId &&
                         c.learners.some((l) => l.id === r.student_id),
                     );
-                    const scores = results.filter((r) => !r.is_absent);
+                    const scores = results.filter((r): r is typeof r & { marks: number } => !r.is_absent && r.marks !== null);
                     return (
                       <tr key={c.classId}>
                         <td>{c.className}</td>
@@ -881,9 +881,8 @@ export default function ClassWorkbook() {
             </div>
           )}
           <p className={styles.muted}>
-            Marks are out of 100. ABS means absent; a blank means not entered.
-            Comparisons need the same subject and exam type. Position uses the
-            whole current class; equal marks share a position.{" "}
+            Marks use the exam's configured maximum. ABS means absent; a blank means not entered.
+            Comparisons need the same subject and exam type.{" "}
             {currentExam?.is_locked ? "This exam is locked." : ""}
           </p>
         </section>
@@ -1578,7 +1577,7 @@ export default function ClassWorkbook() {
                               parsed < 0 ||
                               parsed > 100)
                           )
-                            throw new Error("Use a mark from 0 to 100 or ABS.");
+                            throw new Error("Use a non-negative mark or ABS. The exam maximum is verified when you save.");
                           const existing = data.results.find(
                             (m) =>
                               m.student_id === r.learner.id &&

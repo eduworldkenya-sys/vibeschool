@@ -99,7 +99,7 @@ export type Result = {
   student_id: string;
   exam_id: string;
   subject_id: string;
-  marks: number;
+  marks: number | null;
   is_absent: boolean;
   updated_at: string;
 };

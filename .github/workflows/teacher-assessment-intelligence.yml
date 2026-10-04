@@ -6,6 +6,17 @@ on:
       - 'app/teacher/results/page.tsx'
       - 'components/teacher/AssessmentIntelligenceConsole.tsx'
       - 'supabase/migrations/20260820093000_teacher_assessment_intelligence_console.sql'
+      - 'app/teacher/results/report-card/**'
+      - 'app/admin/academics/gradebook/page.tsx'
+      - 'app/student/marks/page.tsx'
+      - 'components/teacher/ProfessionalMarkbook.tsx'
+      - 'lib/assessment/exam-results.ts'
+      - 'lib/teacher/examResultAuthority.ts'
+      - 'lib/twin/service.ts'
+      - 'supabase/migrations/20261004151143_canonical_exam_result_semantics_v2.sql'
+      - 'supabase/migrations/20261004151511_canonical_exam_intelligence_semantics.sql'
+      - 'supabase/migrations/20261004151652_teacher_exam_subject_policy_authority.sql'
+      - 'scripts/test-canonical-exam-results-contract.mjs'
       - 'scripts/validate-teacher-assessment-intelligence.py'
       - '.github/workflows/teacher-assessment-intelligence.yml'
 
@@ -14,7 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: python scripts/validate-teacher-assessment-intelligence.py
+      - run: node scripts/test-canonical-exam-results-contract.mjs

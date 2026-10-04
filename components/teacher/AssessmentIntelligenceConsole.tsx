@@ -23,6 +23,8 @@ type Intelligence = {
     subject_id: string;
     subject_name: string;
     pass_mark: number;
+    raw_pass_mark: number;
+    max_marks: number;
   };
   evidence_quality: {
     exam_scope: "aggregate";
@@ -44,7 +46,8 @@ type Intelligence = {
     mean_change: number | null;
     previous_exam_name: string | null;
   };
-  performance_distribution: Record<"EE" | "ME" | "AE" | "BE", number>;
+  performance_distribution: Record<"at_or_above_target" | "below_target" | "not_scored", number>;
+  result_states?: Record<string, number>;
   historical_trajectory: Array<{ exam_id: string; name: string; type: string; mean: number | null; learners: number }>;
   learner_rankings: Array<{ student_id: string; name: string; marks: number }>;
   learner_movements: Array<{
@@ -174,15 +177,19 @@ function Sparkline({ points }: { points: Array<{ name: string; mean: number | nu
 
 function Distribution({ data }: { data: Intelligence["performance_distribution"] }) {
   const total = Object.values(data).reduce((sum, n) => sum + n, 0);
-  const tones: Record<string, string> = { EE: "#087A55", ME: "#2563EB", AE: "#D97706", BE: "#C2413A" };
+  const rows = [
+    { key: "at_or_above_target" as const, label: "At or above target" },
+    { key: "below_target" as const, label: "Below target" },
+    { key: "not_scored" as const, label: "No score yet" },
+  ];
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      {(["EE", "ME", "AE", "BE"] as const).map(key => {
+      {rows.map(({ key, label }) => {
         const pct = total ? Math.round((data[key] / total) * 100) : 0;
-        return <div key={key} style={{ display: "grid", gridTemplateColumns: "34px minmax(0,1fr) 70px", gap: 10, alignItems: "center" }}>
-          <strong style={{ fontSize: 12 }}>{key}</strong>
+        return <div key={key} style={{ display: "grid", gridTemplateColumns: "120px minmax(0,1fr) 70px", gap: 10, alignItems: "center" }}>
+          <strong style={{ fontSize: 12 }}>{label}</strong>
           <div style={{ height: 10, borderRadius: 999, background: "#EEF0F2", overflow: "hidden" }}>
-            <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: tones[key], transition: "width .25s ease" }} />
+            <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: key === "at_or_above_target" ? C.green : key === "below_target" ? C.red : C.muted, transition: "width .25s ease" }} />
           </div>
           <span style={{ fontSize: 12, textAlign: "right", color: C.muted }}>{data[key]} · {pct}%</span>
         </div>;
@@ -310,7 +317,7 @@ export default function AssessmentIntelligenceConsole({ examId, classId, subject
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12 }}>
         <section style={{ padding: 17, border: `1px solid ${C.line}`, borderRadius: 18, background: C.panel }}>
-          <h3 style={{ margin: "0 0 14px", fontSize: 15 }}>How marks are spread</h3>
+          <h3 style={{ margin: "0 0 14px", fontSize: 15 }}>How results are spread</h3>
           <Distribution data={data.performance_distribution} />
         </section>
         <section style={{ padding: 17, border: `1px solid ${C.line}`, borderRadius: 18, background: C.panel }}>
@@ -357,7 +364,7 @@ export default function AssessmentIntelligenceConsole({ examId, classId, subject
       </section>
       <section style={{ padding: 17, border: `1px solid ${C.line}`, borderRadius: 18, background: C.panel }}>
         <h3 style={{ margin: 0, fontSize: 15 }}>Marks and movement</h3>
-        <p style={{ margin: "4px 0 14px", fontSize: 12, color: C.muted }}>Each dot is a learner. Left to right shows the mark. Up or down shows change from the last comparable exam.</p>
+        <p style={{ margin: "4px 0 14px", fontSize: 12, color: C.muted }}>Each dot is a learner. Left to right shows the percentage score. Up or down shows change from the last comparable exam.</p>
         <MovementMatrix movements={data.learner_movements} passMark={data.context.pass_mark} onSelect={setSelectedStudentId} />
       </section>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 12 }}>

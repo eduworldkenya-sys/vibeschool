@@ -4,13 +4,14 @@ export const dynamic = "force-dynamic"
 import { useEffect, useMemo, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { getAdminSchoolAuthority } from "@/lib/admin/authority"
+import { examResultStateLabel, normalizeExamResultState, type ExamResultState } from "@/lib/assessment/exam-results"
 
 type ClassRow = { id: string; name: string; stream: string | null }
 type SubjectRow = { id: string; name: string }
 type StudentRow = { id: string; name: string; admission_number: string | null }
 type TermRow = { id: string; name: string; term: number; academic_year: number }
 type ExamRow = { id: string; name: string; exam_type: string; pass_mark: number; is_locked: boolean }
-type ResultRow = { exam_id: string; student_id: string; marks: number | null; is_absent: boolean }
+type ResultRow = { exam_id: string; student_id: string; marks: number | null; max_marks: number; percentage: number | null; result_state: ExamResultState; is_absent: boolean }
 type ConfigRow = { exam_id: string; subject_id: string; pass_mark: number; max_marks: number }
 
 const fieldStyle = { width: "100%", boxSizing: "border-box" as const, border: "1px solid #cbd5e1", borderRadius: 10, padding: "10px 11px", background: "white", fontSize: 14 }
@@ -88,13 +89,12 @@ export default function AdminGradebookPage() {
         ? await supabase.from("exam_subject_config").select("exam_id,subject_id,pass_mark,max_marks").in("exam_id", examIds).eq("subject_id", subjectId)
         : { data: [], error: null }
       if (configRes.error) throw configRes.error
-      const configuredExamIds = new Set((configRes.data ?? []).map(row => row.exam_id))
-      const relevantExams = examRows.filter(row => configuredExamIds.has(row.id))
+      const relevantExams = examRows
 
       const resultRes = relevantExams.length && studentIds.length
         ? await supabase
             .from("exam_results")
-            .select("exam_id,student_id,marks,is_absent")
+            .select("exam_id,student_id,marks,max_marks,percentage,result_state,is_absent")
             .eq("school_id", schoolId)
             .eq("class_id", classId)
             .eq("subject_id", subjectId)
@@ -106,7 +106,7 @@ export default function AdminGradebookPage() {
       setStudents((studentRes.data ?? []) as StudentRow[])
       setExams(relevantExams)
       setConfigs((configRes.data ?? []) as ConfigRow[])
-      setResults((resultRes.data ?? []) as ResultRow[])
+      setResults((resultRes.data ?? []).map(row => ({ ...row, result_state: normalizeExamResultState(row.result_state, row.is_absent) })) as ResultRow[])
     } catch (cause) {
       console.error("Admin gradebook detail failed", cause)
       setError(cause instanceof Error ? cause.message : "Results could not be loaded.")
@@ -135,7 +135,7 @@ export default function AdminGradebookPage() {
             <select aria-label="Subject" value={subjectId} onChange={event => setSubjectId(event.target.value)} style={fieldStyle}>{subjects.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select>
           </section>
           {detailLoading ? <div aria-busy="true" style={{ height: 180, background: "#e2e8f0", borderRadius: 16 }} /> : exams.length === 0 ? (
-            <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 26, textAlign: "center" }}><strong>No configured exams for this subject</strong><p style={{ color: "#64748b" }}>Teacher-created assessments/results will appear here when they use the canonical exam and subject identity.</p></section>
+            <section style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: 16, padding: 26, textAlign: "center" }}><strong>No exams for this term</strong><p style={{ color: "#64748b" }}>Teacher-created exams and their results will appear here as soon as they use this school term.</p></section>
           ) : (
             <section style={{ overflowX: "auto", background: "white", border: "1px solid #e2e8f0", borderRadius: 16 }}>
               <table style={{ width: "100%", borderCollapse: "collapse", minWidth: Math.max(640, 250 + exams.length * 140) }}>
@@ -146,11 +146,11 @@ export default function AdminGradebookPage() {
                     {exams.map(exam => {
                       const result = resultMap.get(`${exam.id}:${student.id}`)
                       const config = configMap.get(exam.id)
-                      const max = config?.max_marks ?? 100
+                      const max = result?.max_marks ?? config?.max_marks ?? 100
                       const pass = config?.pass_mark ?? exam.pass_mark
                       const marks = result?.marks ?? null
-                      const passed = marks !== null && marks >= pass
-                      return <td key={exam.id} style={{ padding: 12 }}>{result?.is_absent ? <span style={{ color: "#b91c1c" }}>Absent</span> : marks === null ? <span style={{ color: "#94a3b8" }}>—</span> : <><strong style={{ color: passed ? "#047857" : "#b45309" }}>{marks}/{max}</strong><div style={{ color: "#64748b", fontSize: 10 }}>{Math.round((Number(marks) / Math.max(max, 1)) * 100)}%</div></>}</td>
+                      const passed = result?.result_state === "entered" && marks !== null && marks >= pass
+                      return <td key={exam.id} style={{ padding: 12 }}>{!result ? <span style={{ color: "#94a3b8" }}>Not entered</span> : result.result_state !== "entered" ? <span style={{ color: result.result_state === "absent" ? "#b91c1c" : "#92400e" }}>{examResultStateLabel(result.result_state)}</span> : <><strong style={{ color: passed ? "#047857" : "#b45309" }}>{marks}/{max}</strong><div style={{ color: "#64748b", fontSize: 10 }}>{result.percentage == null ? "—" : `${Number(result.percentage).toFixed(1)}%`}</div></>}</td>
                     })}
                   </tr>
                 ))}</tbody>
