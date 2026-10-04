@@ -8,11 +8,13 @@ import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import {
   getAdaptiveLearningPath,
+  getAdaptiveResourceRecommendations,
   getAssignedReading,
   getExamReadinessBrief,
   getVibeLearnWorkstation,
   updateExamReadiness,
   type AdaptiveLearningPath,
+  type AdaptiveResourceRecommendations,
   type AssignedReadingItem,
   type ExamReadinessBrief,
   type VibeLearnWorkstation,
@@ -24,6 +26,7 @@ export default function StudentVibeLearnPage() {
   const [readiness, setReadiness] = useState<ExamReadinessBrief | null>(null)
   const [assignedReading, setAssignedReading] = useState<AssignedReadingItem[]>([])
   const [learningPath, setLearningPath] = useState<AdaptiveLearningPath | null>(null)
+  const [adaptiveResources, setAdaptiveResources] = useState<AdaptiveResourceRecommendations | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [libraryOpen, setLibraryOpen] = useState(false)
@@ -34,16 +37,18 @@ export default function StudentVibeLearnPage() {
   const [confidence, setConfidence] = useState<number | null>(null)
 
   async function loadWorkspace() {
-    const [workspace, readinessBrief, reading, path] = await Promise.all([
+    const [workspace, readinessBrief, reading, path, resources] = await Promise.all([
       getVibeLearnWorkstation(),
       getExamReadinessBrief(),
       getAssignedReading().catch(() => []),
       getAdaptiveLearningPath().catch(() => null),
+      getAdaptiveResourceRecommendations().catch(() => null),
     ])
     setBrief(workspace)
     setReadiness(readinessBrief)
     setAssignedReading(reading)
     setLearningPath(path)
+    setAdaptiveResources(resources)
     setExamDate(readinessBrief.examDate ?? '')
     setDailyMinutes(readinessBrief.dailyRevisionMinutes)
     setConfidence(readinessBrief.confidenceCheck)
@@ -56,13 +61,15 @@ export default function StudentVibeLearnPage() {
       getExamReadinessBrief(),
       getAssignedReading().catch(() => []),
       getAdaptiveLearningPath().catch(() => null),
+      getAdaptiveResourceRecommendations().catch(() => null),
     ])
-      .then(([workspace, readinessBrief, reading, path]) => {
+      .then(([workspace, readinessBrief, reading, path, resources]) => {
         if (cancelled) return
         setBrief(workspace)
         setReadiness(readinessBrief)
         setAssignedReading(reading)
         setLearningPath(path)
+        setAdaptiveResources(resources)
         setExamDate(readinessBrief.examDate ?? '')
         setDailyMinutes(readinessBrief.dailyRevisionMinutes)
         setConfidence(readinessBrief.confidenceCheck)
@@ -183,6 +190,40 @@ export default function StudentVibeLearnPage() {
               })}
             </div>}
             <div style={{ marginTop:11, fontSize:10, color:'#64748b' }}>{learningPath.rule}</div>
+          </section>}
+
+          {adaptiveResources && <section style={{ ...card, borderColor:'#bbf7d0', background:'#f7fee7' }}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={{ ...eyebrowDark, color:'#15803d' }}>Recommended support</div>
+                <h2 style={{ ...title, marginBottom:4 }}>Use the next helpful resource</h2>
+                <p style={{ ...muted, lineHeight:1.6 }}>Only based on recorded learning evidence and exact curriculum matches. Missing evidence is never treated as weakness.</p>
+              </div>
+              <span style={{ ...pill, background:'#dcfce7', color:'#166534' }}>Evidence-led</span>
+            </div>
+
+            {adaptiveResources.recommendations.length === 0 ? <div style={{ ...emptyBox, marginTop:14, background:'#fff' }}>
+              <strong>No approved support resource is available yet</strong>
+              <p style={muted}>Your learning path remains valid. VibeLearn will not expose draft, inaccessible or weakly matched material just to fill this space.</p>
+            </div> : <div style={{ display:'grid', gap:9, marginTop:14 }}>
+              {adaptiveResources.recommendations.slice(0,6).map(item => <button
+                key={`${item.outcomeId}-${item.resourceId}`}
+                style={rowButton}
+                disabled={!item.actionUrl}
+                onClick={() => item.actionUrl && router.push(item.actionUrl)}
+              >
+                <div style={{ minWidth:0 }}>
+                  <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
+                    <strong>{item.title}</strong>
+                    <span style={{ ...pill, background:item.mode === 'support' ? '#fee2e2' : '#fef3c7', color:item.mode === 'support' ? '#991b1b' : '#92400e' }}>{item.mode === 'support' ? 'Focused support' : 'More practice'}</span>
+                    {item.certified && <span style={{ ...pill, background:'#dcfce7', color:'#166534' }}>Certified</span>}
+                  </div>
+                  <div style={{ ...muted, marginTop:5 }}>{item.outcomeText}</div>
+                  <div style={{ ...muted, marginTop:3 }}>{Math.round(item.masteryScore)}% mastery · {item.evidenceCount} evidence item{item.evidenceCount === 1 ? '' : 's'} · {item.representation.replaceAll('_',' ')}</div>
+                </div>
+                <span style={linkText}>{item.actionUrl ? 'Open resource →' : 'Not available'}</span>
+              </button>)}
+            </div>}
           </section>}
 
           <section style={{ ...card, borderColor:'#c4b5fd', background:'#faf5ff' }}>
