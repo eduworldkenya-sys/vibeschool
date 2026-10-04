@@ -342,10 +342,6 @@ type AdaptiveLearningPathRpcClient = {
   rpc(fn: 'student_get_adaptive_learning_path', args?: Record<string, never>): Promise<{ data: unknown; error: { message: string } | null }>
 }
 
-type AdaptiveResourceRpcClient = {
-  rpc(fn: 'student_get_vibelearn_resource_recommendations', args: { p_limit: number }): Promise<{ data: unknown; error: { message: string } | null }>
-}
-
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}
 }
@@ -638,8 +634,7 @@ export async function getAssignedReading(): Promise<AssignedReadingItem[]> {
 }
 
 export async function getAdaptiveResourceRecommendations(limit = 6): Promise<AdaptiveResourceRecommendations> {
-  const client = supabase as unknown as AdaptiveResourceRpcClient
-  const { data, error } = await client.rpc('student_get_vibelearn_resource_recommendations', {
+  const { data, error } = await supabase.rpc('student_get_vibelearn_resource_recommendations', {
     p_limit: Math.max(1, Math.min(12, Math.round(limit))),
   })
   if (error) throw new Error(error.message)
