@@ -16,7 +16,7 @@ import { resolveOccurrence, startTeachingOccurrence, StartOccurrenceError } from
 import type { StartOccurrenceErrorCode } from '@/lib/teaching/occurrence'
 import { deriveTeachingWorkspace } from '@/lib/teaching/workspace'
 import { isLessonPlanReadyToTeach } from '@/lib/teaching/lessonReadiness'
-import { restoreTimetableSnapshot } from '@/lib/teaching/slots'
+import { duplicateActiveTimetable, restoreTimetableSnapshot, snapshotTimetable } from '@/lib/teaching/slots'
 import type { TeachingOccurrence, EditableSlot } from '@/lib/teaching/types'
 
 // Fix 18C: human-facing text for each stable RPC error code. Kept next to
@@ -1525,6 +1525,29 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Daily view</Btn>
         <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Weekly sheet</Btn>
         <Btn variant="ghost" small onClick={() => window.print()}>Print</Btn>
+        <Btn
+          variant="ghost"
+          small
+          onClick={async () => {
+            const nextWeek = nairobiDateAdd(weekStart, 7)
+            if (!window.confirm(`Create a new timetable revision from ${nextWeek} using the current active pattern? Existing lesson history will stay unchanged.`)) return
+            try {
+              let undoSnapshotId: string | null = null
+              try {
+                undoSnapshotId = await snapshotTimetable('Before repeating timetable into next week')
+              } catch {
+                undoSnapshotId = null
+              }
+              await duplicateActiveTimetable(nextWeek)
+              if (undoSnapshotId) setLastUndoSnapshotId(undoSnapshotId)
+              await load()
+            } catch (error) {
+              setLoadError(error instanceof Error ? error.message : 'Could not repeat the timetable into next week.')
+            }
+          }}
+        >
+          Repeat from next week
+        </Btn>
         <Btn variant="ghost" small onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare lesson</Btn>
         <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>
         {lastUndoSnapshotId && (
