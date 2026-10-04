@@ -10,6 +10,7 @@ import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
 import LessonTeachMode, { type LessonCoverageOutcome } from "@/components/teacher/LessonTeachMode";
 import ReflectionSheet from "@/components/teacher/ReflectionSheet";
 import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
+import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 
 
 type PlanRow = {
@@ -80,8 +81,10 @@ function cleanText(value: string | undefined): string {
 function LessonNotesInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const lessonPlanId = params.get("lessonPlanId");
+  const lessonPlanId = params.get("lessonPlanId") || params.get("planId");
   const occurrenceId = params.get("occurrenceId");
+  const contextClassId = params.get("classId") || "";
+  const contextSubjectId = params.get("subjectId") || "";
 
   const [plan, setPlan] = useState<PlanRow | null>(null);
   const [resources, setResources] = useState<ResourceRow[]>([]);
@@ -103,7 +106,7 @@ function LessonNotesInner() {
 
   const load = useCallback(async () => {
     if (!lessonPlanId) {
-      setError("Open lesson notes from a lesson so VibeSchool knows what to prepare.");
+      setError(null);
       setLoading(false);
       return;
     }
@@ -142,7 +145,7 @@ function LessonNotesInner() {
         const mismatch = !row
           || row.teacher_id !== authData.user.id
           || row.timetable_slot_id !== typedPlan.timetable_slot_id
-          || row.occurrence_date !== typedPlan.taught_date
+          || (typedPlan.taught_date && row.occurrence_date !== typedPlan.taught_date)
           || (typedPlan.teacher_id && row.teacher_id !== typedPlan.teacher_id)
           || (typedPlan.class_id && row.class_id !== typedPlan.class_id)
           || (typedPlan.subject_id && row.subject_id !== typedPlan.subject_id);
@@ -298,6 +301,32 @@ function LessonNotesInner() {
     );
   }
 
+  if (!lessonPlanId && contextClassId && contextSubjectId) {
+    return (
+      <main style={{ padding: 20, maxWidth: 760, margin: "0 auto", display: "grid", gap: 12 }}>
+        <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: 0, marginBottom: 6 }}>← Back</button>
+        <section style={{ background: "#111827", color: "#fff", borderRadius: 18, padding: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 900, color: "#86efac", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes / Teach</div>
+          <h1 style={{ fontSize: 22, margin: "7px 0 5px" }}>Choose the prepared lesson</h1>
+          <div style={{ fontSize: 12, color: "#d1d5db", lineHeight: 1.5 }}>Your class and subject are preserved. VibeSchool will only open notes from the exact authorised lesson plan.</div>
+        </section>
+        <SubjectLessonHandoff classId={contextClassId} subjectId={contextSubjectId} purpose="notes" />
+      </main>
+    );
+  }
+
+  if (!lessonPlanId && !contextClassId && !contextSubjectId) {
+    return (
+      <main style={{ padding: 20, maxWidth: 760, margin: "0 auto" }}>
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 18, padding: 18 }}>
+          <div style={{ fontWeight: 900, color: "#111827" }}>Open Lesson Notes from Subjects or a lesson</div>
+          <div style={{ color: "#6b7280", fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>VibeSchool needs a valid class, subject and prepared lesson before Teach mode can start.</div>
+          <button type="button" onClick={() => router.push("/teacher/subjecthub")} style={{ marginTop: 12, border: 0, borderRadius: 10, padding: "10px 12px", background: "#111827", color: "#fff", fontWeight: 900 }}>Open Subjects</button>
+        </div>
+      </main>
+    );
+  }
+
   if (error || !plan) {
     return (
       <main style={{ padding: 20 }}>
@@ -361,7 +390,7 @@ function LessonNotesInner() {
             setReflectionSeed(value);
             setReflectionOpen(true);
           }}
-          onFinishLesson={occurrence && plan.timetable_slot_id && plan.taught_date && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
+          onFinishLesson={occurrence && plan.timetable_slot_id && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
             const nextSteps = outcome === "partial"
               ? "Continue the uncovered part of this lesson before advancing Scheme coverage."
               : outcome === "reteach"
@@ -372,7 +401,7 @@ function LessonNotesInner() {
             // covered lessons) Scheme coverage either all persist or all roll back.
             const { data: finalized, error: finalizeError } = await supabase.rpc("finalize_teaching_occurrence", {
               p_timetable_slot_id: plan.timetable_slot_id as string,
-              p_occurrence_date: plan.taught_date as string,
+              p_occurrence_date: occurrence.occurrence_date,
               p_outcome: outcome,
               p_what_was_taught: whatWasTaught,
               p_challenges: outcome === "reteach" ? "Teacher marked this occurrence as reteach required." : null,

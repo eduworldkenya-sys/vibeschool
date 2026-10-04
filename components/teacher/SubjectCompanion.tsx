@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 
 type Subject = { id: string; name: string };
 type SubjectClass = {
@@ -59,7 +60,7 @@ const tools: Tool[] = [
     help: "Choose the prepared lesson, then open its lesson notes and classroom Teach mode without inventing a lesson.",
     group: "teach",
     needsClass: true,
-    href: (classId, subject) => `/teacher/lessonplan?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
+    href: (classId, subject) => `/teacher/lesson-notes?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
   },
   {
     id: "teacher-guide",
@@ -239,6 +240,17 @@ export default function SubjectCompanion({
       <div style={{ marginTop: 8, fontSize: 11, color: "#64748b" }}>
         Current context: <strong style={{ color: "#334155" }}>{classLabel}</strong>
       </div>
+
+      {selectedClass && (
+        <div style={{ marginTop: 12 }}>
+          <SubjectLessonHandoff
+            classId={selectedClass.id}
+            subjectId={subject.id}
+            purpose="overview"
+            compact
+          />
+        </div>
+      )}
 
       {(["prepare", "teach", "evidence"] as const).map((group) => (
         <div key={group} style={{ marginTop: 16 }}>
