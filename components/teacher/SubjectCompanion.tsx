@@ -102,9 +102,9 @@ const tools: Tool[] = [
     href: (classId, subject) => `/teacher/assessment?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
   },
   {
-    id: "markbook",
-    label: "Markbook",
-    help: "Enter and analyse marks without selecting the subject again.",
+    id: "exams",
+    label: "Exams",
+    help: "Open Exam Centre with this class and subject already selected to enter marks, continue incomplete sheets and analyse results.",
     group: "evidence",
     needsClass: true,
     href: (classId, subject) => `/teacher/results?classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,

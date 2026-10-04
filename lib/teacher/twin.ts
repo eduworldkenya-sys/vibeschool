@@ -246,7 +246,7 @@ export function resolveTeacherTwinQuery(input: string, state: TeacherTwinState):
 
   const surfaces: Array<{ pattern: RegExp; label: string; url: string }> = [
     { pattern: /class(?:es|hub)?|roster|class list/, label: 'Classes', url: '/teacher/classhub' },
-    { pattern: /exam|markbook|marks|results/, label: 'Exam Centre', url: '/teacher/exams' },
+    { pattern: /exam|markbook|marks|results/, label: 'Exam Centre', url: '/teacher/results' },
     { pattern: /assessment|quiz|cat/, label: 'Assessments', url: '/teacher/assessment' },
     { pattern: /homework|assignment/, label: 'Homework', url: '/teacher/homework' },
     { pattern: /student|learner/, label: 'Students', url: '/teacher/students' },

@@ -360,7 +360,7 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
     { label: "Analytics", icon: <IconAssess size={24} />, href: "/teacher/assessment/analytics" },
     { label: "Curriculum", icon: <IconVibeLearn size={24} />, href: "/teacher/assessment/curriculum" },
     { label: "Interventions", icon: <IconStudents size={24} />, href: "/teacher/assessment/interventions" },
-    { label: "Results", icon: <IconResults size={24} />, href: "/teacher/results" },
+    { label: "Exams", icon: <IconResults size={24} />, href: "/teacher/results" },
     { label: "Report Cards", icon: <IconReportCard size={24} />, href: "/teacher/results/report-card" },
   ],
   me: [
@@ -410,7 +410,7 @@ function BottomNav({ activeId }: { activeId: string }) {
       }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 14px" }} />
         <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", color: "#9ca3af", margin: "0 0 12px 2px" }}>
-          {{ teach: "Teaching Tools", classes: "My Classes", assess: "Assessment & Results", me: "My Account" }[openTray ?? ""] ?? openTray}
+          {{ teach: "Teaching Tools", classes: "My Classes", assess: "Assessment & Exams", me: "My Account" }[openTray ?? ""] ?? openTray}
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(80px, 1fr))", gap: 8 }}>
           {trayItems?.map(item => (
