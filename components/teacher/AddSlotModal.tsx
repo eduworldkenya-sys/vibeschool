@@ -6,12 +6,12 @@ import type { SuggestedPlacement } from '@/lib/timetable/operations'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
-import { updateTimetableSlot, expireTimetableSlot, deleteTimetableSlot, SlotRpcError } from '@/lib/teaching/slots'
+import { updateTimetableSlot, expireTimetableSlot, deleteTimetableSlot, snapshotTimetable, SlotRpcError } from '@/lib/teaching/slots'
 import type { EditableSlot } from '@/lib/teaching/types'
 import { previewTimetableConflicts, type TimetableConflict } from '@/lib/timetable/engine'
 
 interface Props {
-  initialPlacement?: {dayOfWeek:number;startTime:string;endTime:string}
+  initialPlacement?: {dayOfWeek:number;startTime:string;endTime:string;classId?:string;subjectId?:string}
   teacherId: string
   editSlot?: EditableSlot
   onClose:   () => void
@@ -238,6 +238,10 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
         .sort((a, b) => a.className.localeCompare(b.className) || a.subjectName.localeCompare(b.subjectName))
 
       setAssignments(options)
+      if (initialPlacement?.classId && initialPlacement?.subjectId) {
+        const copiedAssignment = options.find(a => a.classId === initialPlacement.classId && a.subjectId === initialPlacement.subjectId)
+        if (copiedAssignment) setTeacherClassId(copiedAssignment.teacherClassId)
+      }
       setAssignmentsLoading(false)
     }
     loadAssignments()
@@ -324,6 +328,26 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     }
   }
 
+  async function createUndoPoint(label: string): Promise<boolean> {
+    try {
+      const snapshotId = await snapshotTimetable(label)
+      try {
+        localStorage.setItem('teacher-timetable-last-undo', JSON.stringify({
+          snapshotId,
+          label,
+          createdAt: new Date().toISOString(),
+        }))
+      } catch {
+        // Undo remains available server-side even when local storage is unavailable.
+      }
+      return true
+    } catch (snapshotError) {
+      console.error('[Timetable] could not create undo point', snapshotError)
+      setError('Could not create an undo point, so no timetable change was made. Try again.')
+      return false
+    }
+  }
+
   async function save() {
     // Synchronous re-entrancy guard — closes the double-tap gap that the
     // `saving` state alone can't catch (see submittingRef declaration above).
@@ -348,6 +372,11 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
       submittingRef.current = true
       setSaving(true)
       try {
+        if (!(await createUndoPoint(`Before editing ${editSlot.subjectName} — ${editSlot.className}`))) {
+          setSaving(false)
+          submittingRef.current = false
+          return
+        }
         await updateTimetableSlot(editSlot.id, {
           dayOfWeek: parseInt(dayOfWeek) || undefined,
           startTime,
@@ -388,6 +417,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     // never sent from the client — the RPC derives both from the
     // caller's own auth identity and their teacher_classes assignment.
     try {
+    if (!(await createUndoPoint(`Before adding ${selectedAssignment.subjectName} — ${selectedAssignment.className}`))) return
     const { error: err } = await supabase.rpc('create_timetable_slot_v2', {
       p_class_id:        classId,
       p_subject_id:      subjectId,
@@ -426,10 +456,11 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
 
   async function handleDelete() {
     if (!editSlot) return
-    if (!confirm("Delete this slot? This can't be undone.")) return
+    if (!confirm("Delete this slot? You can undo the change from the timetable.")) return
     setDeleting(true)
     setError(null)
     try {
+      if (!(await createUndoPoint(`Before deleting ${editSlot.subjectName} — ${editSlot.className}`))) return
       await deleteTimetableSlot(editSlot.id)
       onSaved()
     } catch (e) {
@@ -444,6 +475,7 @@ export default function AddSlotModal({ teacherId, editSlot, initialPlacement, on
     setDeleting(true)
     setError(null)
     try {
+      if (!(await createUndoPoint(`Before ending ${editSlot.subjectName} — ${editSlot.className}`))) return
       await expireTimetableSlot(editSlot.id)
       onSaved()
     } catch (e) {
