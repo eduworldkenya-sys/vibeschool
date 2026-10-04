@@ -1,9 +1,7 @@
 import { supabase } from '@/lib/supabase'
+import { loadProgressAuthority, readProgressPages } from '@/lib/learner-intelligence/progress-data'
 import type { Json } from '@/lib/database.types'
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Intervention Engine returned an invalid payload.')
@@ -61,11 +59,38 @@ export interface InterventionEvaluation {
   recommendation: string
 }
 
-export async function listInterventionQueue(classId?: string | null): Promise<InterventionQueueItem[]> {
-  const { data, error } = await rpc<Json>('exq_list_intervention_queue', { p_class_id: classId ?? null })
-  if (error) throw new Error(error.message || 'Could not load intervention queue.')
-  const payload = record(data)
-  const interventions = Array.isArray(payload.interventions) ? payload.interventions : []
+/** A list is a read. Queue refresh is an explicit teacher action. */
+export async function listInterventionQueue(classId?: string | null, includeClosed = false): Promise<InterventionQueueItem[]> {
+  const auth = await supabase.auth.getUser()
+  if (auth.error || !auth.data.user) throw new Error('Sign in again to view learner support.')
+  const response = await supabase.rpc('teacher_get_operating_context')
+  if (response.error) throw new Error(response.error.message)
+  const context = record(response.data)
+  if (context.teacher_id !== auth.data.user.id || typeof context.school_id !== 'string') throw new Error('Your active teacher school could not be confirmed.')
+  const assignments = (Array.isArray(context.classes) ? context.classes : []).map(record)
+  const classIds = Array.from(new Set(assignments.map(item => text(item.class_id)).filter((id): id is string => Boolean(id))))
+  if (classId && !classIds.includes(classId)) throw new Error('This class is not assigned to you in your active school.')
+  const interventions: unknown[] = []
+  for (const id of classId ? [classId] : classIds) {
+    const scope = await loadProgressAuthority(id)
+    if (!scope.subjects.length) continue
+    const rows = await readProgressPages((from,to) => {
+      let query = supabase.from('assessment_interventions')
+        .select('*,students(name,admission_number),curriculum_learning_outcomes(outcome_code,outcome_text)')
+        .eq('teacher_id',scope.teacherId).eq('school_id',scope.schoolId).eq('class_id',scope.classId)
+        .in('subject_id',scope.subjects.map(subject => subject.id)).order('due_at').order('id').range(from,to)
+      if (!includeClosed) query = query.in('status',['open','in_progress','escalated'])
+      return query
+    })
+    for (const value of rows) {
+      const row = record(value)
+      const learner = record(row.students), outcome = record(row.curriculum_learning_outcomes)
+      if (!text(learner.name)) throw new Error('A support record needs learner identity reconciliation. No partial queue is shown.')
+      interventions.push({...row,intervention_id:row.id,student_name:learner.name,admission_number:learner.admission_number,
+        class_name:scope.className,class_stream:null,subject_name:scope.subjects.find(subject=>subject.id===row.subject_id)?.name,
+        outcome_code:outcome.outcome_code,outcome_text:outcome.outcome_text})
+    }
+  }
   return interventions.map(value => {
     const item = record(value)
     return {
@@ -103,7 +128,7 @@ export async function listInterventionQueue(classId?: string | null): Promise<In
 }
 
 export async function createInterventionAssessment(interventionId: string): Promise<string> {
-  const { data, error } = await rpc<Json>('exq_create_intervention_assessment', {
+  const { data, error } = await supabase.rpc('exq_create_intervention_assessment', {
     p_intervention_id: interventionId,
     p_title: null,
   })
@@ -115,7 +140,7 @@ export async function createInterventionAssessment(interventionId: string): Prom
 }
 
 export async function evaluateIntervention(interventionId: string): Promise<InterventionEvaluation> {
-  const { data, error } = await rpc<Json>('exq_evaluate_intervention', { p_intervention_id: interventionId })
+  const { data, error } = await supabase.rpc('exq_evaluate_intervention', { p_intervention_id: interventionId })
   if (error) throw new Error(error.message || 'Intervention could not be evaluated.')
   const payload = record(data)
   return {
@@ -133,7 +158,7 @@ export async function updateIntervention(input: {
   completionNote?: string | null
   dueAt?: string | null
 }): Promise<void> {
-  const { error } = await rpc<Json>('exq_update_intervention', {
+  const { error } = await supabase.rpc('exq_update_intervention', {
     p_intervention_id: input.interventionId,
     p_status: input.status,
     p_completion_note: input.completionNote ?? null,

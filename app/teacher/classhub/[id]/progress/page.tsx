@@ -1,9 +1,12 @@
 'use client'
 
+import ProgressDataChecks from '@/components/teacher/progress/ProgressDataChecks'
+import { downloadProgressCsv, progressCsv } from '@/lib/learner-intelligence/progress-review'
+
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { buildOutcomeProgress, progressSummary, unlinkedSupportObservations, type ProgressEvidence } from '@/lib/learner-intelligence/progress-record'
-import { currentProgressTerm, inProgressPeriod, progressDate, type ProgressPeriod, type ProgressTerm } from '@/lib/learner-intelligence/progress-period'
+import { currentProgressTerm, evidenceInProgressPeriod, progressDate, type ProgressPeriod, type ProgressTerm } from '@/lib/learner-intelligence/progress-period'
 import { loadProgressAuthority, loadProgressEvidence, loadProgressRoster, loadProgressTerms, type ProgressAuthority, type ProgressLearner } from '@/lib/learner-intelligence/progress-data'
 
 export const dynamic = 'force-dynamic'
@@ -16,6 +19,9 @@ export default function ClassStudentProgressPage() {
   const [learners, setLearners] = useState<ProgressLearner[]>([]), [evidence, setEvidence] = useState<ProgressEvidence[]>([])
   const requestedSubject = search.get('subjectId')
   const requestedFilter = search.get('filter')
+  const requestedPeriod = search.get('period')
+  const requestedTermId=search.get('termId')
+  const [termId,setTermId]=useState(requestedTermId??'')
   const [terms, setTerms] = useState<ProgressTerm[]>([]), [subject, setSubject] = useState('all'), [period, setPeriod] = useState<ProgressPeriod>('term')
   const [query, setQuery] = useState(''), [view, setView] = useState<View>('current'), [support, setSupport] = useState<SupportFilter>('all')
   const [loading, setLoading] = useState(true), [error, setError] = useState('')
@@ -30,19 +36,21 @@ export default function ClassStudentProgressPage() {
       setAuthority(scope); setLearners(roster); setEvidence(rows); setTerms(calendar)
       if (requestedSubject && !scope.subjects.some(item => item.id === requestedSubject)) throw new Error('This subject is not assigned to you in this class.')
       setSubject(requestedSubject ?? 'all')
+      setTermId(requestedTermId??'')
+      setPeriod(['30','90','all'].includes(requestedPeriod ?? '') ? requestedPeriod as ProgressPeriod : 'term')
       setSupport(['declining','improving','support','no-evidence'].includes(requestedFilter ?? '') ? requestedFilter as SupportFilter : 'all')
     } catch (cause) {
       if (ticket === ticketRef.current) { setAuthority(null); setLearners([]); setEvidence([]); setError(cause instanceof Error ? cause.message : 'Class progress could not be loaded.') }
     } finally { if (ticket === ticketRef.current) setLoading(false) }
-  }, [classId, view, requestedSubject, requestedFilter])
+  }, [classId, view, requestedSubject, requestedFilter, requestedPeriod, requestedTermId])
   const invalidatePendingLoad = useCallback(() => { ++ticketRef.current }, [])
   useEffect(() => { void load(); return invalidatePendingLoad }, [load, invalidatePendingLoad])
   const today = progressDate(new Date())
-  const term = useMemo(() => currentProgressTerm(terms, new Date(`${today}T12:00:00+03:00`)), [terms, today])
+  const term = useMemo(() => termId?terms.find(item=>item.id===termId)??null:currentProgressTerm(terms, new Date(`${today}T12:00:00+03:00`)), [terms, today, termId])
   const cards = useMemo(() => {
     const byLearner = new Map<string, ProgressEvidence[]>()
     for (const row of evidence) {
-      if ((subject !== 'all' && row.subjectId !== subject) || !inProgressPeriod(row.observedAt, period, term)) continue
+      if (!row.subjectId || (subject !== 'all' && row.subjectId !== subject) || !evidenceInProgressPeriod(row, period, term)) continue
       const items = byLearner.get(row.studentId) ?? []; items.push(row); byLearner.set(row.studentId, items)
     }
     return learners.map(learner => {
@@ -63,25 +71,39 @@ export default function ClassStudentProgressPage() {
     }
     return Array.from(map.values()).filter(item => item.support > 0).sort((a,b) => b.support - a.support).slice(0,5)
   }, [cards])
-  const contextQuery = subject === 'all' ? '' : `?subjectId=${encodeURIComponent(subject)}`
+  const contextFilters = new URLSearchParams()
+  if (subject !== 'all') contextFilters.set('subjectId',subject)
+  if (period !== 'term') contextFilters.set('period',period)
+  if (termId) contextFilters.set('termId',termId)
+  const contextQuery = contextFilters.size ? `?${contextFilters}` : ''
+  function exportRecord() {
+    if (!authority || period === 'term' && !term) return
+    const ids = new Set(visible.map(learner=>learner.id))
+    const rows = evidence.filter(row=>ids.has(row.studentId) && (subject==='all'||row.subjectId===subject) && evidenceInProgressPeriod(row,period,term))
+    downloadProgressCsv(progressCsv(rows,visible,authority.subjects,{className:authority.className,period:period==='term'?term!.name:period==='all'?'All evidence':`Last ${period} days`,asOf:new Date().toISOString()}),'student-progress-record.csv')
+  }
   if (loading) return <main style={{padding:20}} aria-label="Loading class progress"><p>Loading your complete class progress record…</p></main>
-  return <main style={{maxWidth:940,margin:'0 auto',padding:'16px 14px 112px',color:'#111827'}}>
+  return <main className="progress-print" style={{maxWidth:940,margin:'0 auto',padding:'16px 14px 112px',color:'#111827'}}>
     <section style={{padding:18,borderRadius:20,background:'#172554',color:'#fff'}}>
-      <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={heroButton}>‹ Class</button>
+      <button data-progress-controls type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={heroButton}>‹ Class</button>
       <h1 style={{margin:'12px 0 5px',fontSize:24}}>Student Progress Record · {authority?.className ?? 'Class'}</h1>
       <p style={{margin:0,fontSize:13,lineHeight:1.6}}>Review each learner's outcome evidence and choose the next useful action. A recorded score and a recorded performance level remain separate.</p>
     </section>
     {error ? <section role="alert" style={{...card,background:'#fef2f2',color:'#991b1b'}}>{error}<div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:10}}><button type="button" onClick={() => void load()} style={pill}>Retry</button>{view==='archived'&&<button type="button" onClick={()=>setView('current')} style={pill}>Current learners</button>}<button type="button" onClick={()=>router.push(`/teacher/classhub/${classId}/progress`)} style={pill}>Clear progress filters</button></div></section> : <>
-      <nav aria-label="Progress lifecycle" style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>
+      <nav data-progress-controls aria-label="Progress lifecycle" style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:12}}>
         {([['current','Current learners'],['archived','Archived learners']] as const).map(([key,text]) => <button type="button" key={key} onClick={() => setView(key)} style={{...pill,background:view===key?'#111827':'#fff',color:view===key?'#fff':'#374151'}}>{text}</button>)}
         <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/workbook?sheet=progress${subject==='all'?'':`&subjectId=${encodeURIComponent(subject)}`}`)} style={pill}>Open record sheet</button>
         {view === 'current' && <button type="button" onClick={() => router.push(`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}${subject === 'all' ? '' : `&subjectId=${encodeURIComponent(subject)}`}`)} style={pill}>Review support</button>}
+        <button type="button" disabled={period==='term'&&!term} onClick={exportRecord} style={pill}>Export working copy</button>
+        <button type="button" onClick={()=>router.push(`/teacher/report-cards?classId=${encodeURIComponent(classId)}${subject==='all'?'':`&subjectId=${encodeURIComponent(subject)}`}`)} style={pill}>School reports</button>
+        {view==='current'&&<button type="button" onClick={()=>router.push(`/teacher/classhub/${classId}/groups${subject==='all'?'':`?subjectId=${encodeURIComponent(subject)}`}`)} style={pill}>Learner groups</button>}
         <button type="button" onClick={() => window.print()} style={pill}>Print class record</button>
       </nav>
-      <section aria-label="Class progress search and filters" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:8,margin:'12px 0'}}>
+      <section data-progress-controls aria-label="Class progress search and filters" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:8,margin:'12px 0'}}>
         <input aria-label="Search learners" placeholder="Search learner or admission number" value={query} onChange={event => setQuery(event.target.value)} style={control}/>
         <select aria-label="Subject" value={subject} onChange={event => setSubject(event.target.value)} style={control}><option value="all">All assigned subjects</option>{authority?.subjects.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
         <select aria-label="Period" value={period} onChange={event => setPeriod(event.target.value as ProgressPeriod)} style={control}><option value="term">{term ? term.name : 'This term unavailable'}</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All evidence</option></select>
+        {period==='term'&&<select aria-label="School term" value={termId} onChange={event=>setTermId(event.target.value)} style={control}><option value="">Current school term</option>{terms.map(item=><option key={item.id} value={item.id}>{item.name} · {item.academic_year??item.start_date.slice(0,4)}</option>)}</select>}
         <select aria-label="Progress status" value={support} onChange={event => setSupport(event.target.value as SupportFilter)} style={control}><option value="all">All learners</option><option value="support">Recorded support evidence</option><option value="secure">Meeting / exceeding in an outcome</option><option value="no-evidence">No evidence in this period</option><option value="declining">Declining in an outcome</option><option value="improving">Improving in an outcome</option></select>
       </section>
       {period === 'term' && !term && <section role="status" style={card}>No single school term contains today. Choose another period; no 120-day substitute has been used.</section>}
@@ -94,6 +116,7 @@ export default function ClassStudentProgressPage() {
         <div style={{marginTop:4,fontSize:12,color:'#4b5563'}}>{learner.declining ? `${learner.declining} declining outcome(s) · ` : ''}{learner.improving ? `${learner.improving} improving outcome(s) · ` : ''}{learner.supportObservations ? `${learner.supportObservations} CBC support observation(s) awaiting outcome links · ` : ''}{learner.unlinked ? `${learner.unlinked} evidence item(s) without an outcome link` : learner.count ? 'Open evidence and history' : 'No evidence in the selected period'}</div>
       </button>)}{!visible.length && <section style={card}>No learners match this view. Change the filters or check your class roster.</section>}</div>
       </>}
+      <ProgressDataChecks rows={evidence.filter(row=>!row.subjectId||subject==='all'||row.subjectId===subject)}/>
       <p style={{fontSize:11,lineHeight:1.7,color:'#6b7280'}}>Trend labels require four comparable observations on separate Nairobi dates. Learners are never given one overall level by averaging different subjects. This is a VibeSchool evidence projection, not a released school report.</p>
     </>}
   </main>

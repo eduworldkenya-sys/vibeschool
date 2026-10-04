@@ -81,7 +81,7 @@ export async function loadProgressEvidence(authority: ProgressAuthority, student
     return query
   })
   const cbcPromise = readProgressPages((from, to) => {
-    let query = supabase.from('cbc_assessments').select('id,student_id,subject_id,sub_strand,performance,notes,created_at')
+    let query = supabase.from('cbc_assessments').select('id,student_id,subject_id,sub_strand,performance,notes,term,academic_year,created_at,updated_at')
       .eq('school_id', authority.schoolId).eq('class_id', authority.classId).eq('teacher_id', authority.teacherId).in('subject_id', subjectIds)
       .order('created_at', { ascending: false }).order('id').range(from, to)
     if (studentId) query = query.eq('student_id', studentId)
@@ -95,7 +95,7 @@ export async function loadProgressEvidence(authority: ProgressAuthority, student
     return query
   })
   const examsPromise = readProgressPages((from, to) => {
-    let query = supabase.from('exam_results').select('id,student_id,subject_id,marks,is_absent,updated_at')
+    let query = supabase.from('exam_results').select('id,student_id,subject_id,marks,is_absent,created_at,updated_at,exam_id,exams(name,term,academic_year)')
       .eq('school_id', authority.schoolId).eq('class_id', authority.classId).eq('teacher_id', authority.teacherId).in('subject_id', subjectIds)
       .order('updated_at', { ascending: false }).order('id').range(from, to)
     if (studentId) query = query.eq('student_id', studentId)
@@ -110,20 +110,22 @@ export async function loadProgressEvidence(authority: ProgressAuthority, student
     const row = record(value), sourceId = required(row[idKey]), observedAt = required(row[dateKey])
     if (!Number.isFinite(Date.parse(observedAt))) throw new Error('A source result date needs reconciliation.')
     result.push({ id: `${source}:${sourceId}`, studentId: required(row.student_id), subjectId: optional(row.subject_id), outcomeId: null,
-      outcomeText: 'Subject result — curriculum outcome not linked', outcomeCode: null, source, sourceId, observedAt,
+      timestampKind:'recorded',outcomeText: 'Subject result — curriculum outcome not linked', outcomeCode: null, source, sourceId, observedAt,updatedAt:optional(row.updated_at)??observedAt,
       score: null, maxScore: null, proficiency: null, notes: null, weight: 1, ...extra })
   }
   for (const value of cbc) {
     const row = record(value)
-    add(row, 'cbc_observation', 'id', 'created_at', { proficiency: optional(row.performance), outcomeText: optional(row.sub_strand) || 'CBC observation — outcome not linked', notes: optional(row.notes) })
+    add(row, 'cbc_observation', 'id', 'created_at', { reportingTerm:numeric(row.term),reportingYear:numeric(row.academic_year),proficiency: optional(row.performance), outcomeText: optional(row.sub_strand) || 'CBC observation — outcome not linked', notes: optional(row.notes) })
   }
   for (const value of gradebook) {
     const row = record(value)
-    add(row, 'released_assessment', 'attempt_id', 'released_at', { score: numeric(row.score), maxScore: numeric(row.max_score), outcomeText: optional(row.assessment_title) || 'Released assessment result' })
+    add(row, 'released_assessment', 'attempt_id', 'released_at', { timestampKind:'released',score: numeric(row.score), maxScore: numeric(row.max_score), outcomeText: optional(row.assessment_title) || 'Released assessment result' })
   }
   for (const value of exams) {
     const row = record(value), absent = row.is_absent === true
-    add(row, 'exam_result', 'id', 'updated_at', { score: absent ? null : numeric(row.marks), maxScore: absent ? null : 100,
+    const exam = record(row.exams)
+    if (numeric(exam.term) == null || numeric(exam.academic_year) == null) throw new Error('An exam needs reporting term reconciliation.')
+    add(row, 'exam_result', 'id', 'created_at', { reportingTerm:numeric(exam.term),reportingYear:numeric(exam.academic_year),outcomeText:optional(exam.name)??'Exam result',score: absent ? null : numeric(row.marks), maxScore: absent ? null : 100,
       notes: absent ? 'Absent — no score. Exam result has no outcome mapping.' : 'Marks recorded on this date. The Exam Centre uses marks out of 100. This subject total does not establish a curriculum outcome level or report release.' })
   }
   const homeworkById = new Map(homework.map(value => { const row = record(value); return [required(row.id), row] }))
@@ -141,18 +143,17 @@ export async function loadProgressEvidence(authority: ProgressAuthority, student
       if (!assignment || !optional(row.student_id)) throw new Error('A marked submission needs learner and homework reconciliation.')
       const matches = authority.subjects.filter(subject => subject.name.toLowerCase().trim() === optional(assignment.subject)?.toLowerCase().trim())
       // An old text subject must resolve uniquely; no fuzzy subject authority.
-      if (matches.length !== 1) throw new Error('A marked homework subject needs reconciliation before complete progress can be shown.')
-      add(row, 'marked_homework', 'id', 'updated_at', { subjectId: matches[0].id, score: numeric(row.mark), maxScore: null,
-        outcomeText: optional(assignment.title) || 'Marked homework', notes: `${numeric(row.mark) == null ? 'No numeric mark recorded.' : `Recorded mark: ${numeric(row.mark)}. Maximum not recorded; no percentage calculated.`}${optional(row.feedback) ? ` ${optional(row.feedback)}` : ''}` })
+      add(row, 'marked_homework', 'id', 'updated_at', { subjectId: matches.length===1?matches[0].id:null, score: numeric(row.mark), maxScore: null,
+        outcomeText: optional(assignment.title) || 'Marked homework', notes: `${matches.length===1?'':'Subject identity needs reconciliation. '}${numeric(row.mark) == null ? 'No numeric mark recorded.' : `Recorded mark: ${numeric(row.mark)}. Maximum not recorded; no percentage calculated.`}${optional(row.feedback) ? ` ${optional(row.feedback)}` : ''}` })
     }
   }
   return result
 }
 
 export async function loadProgressTerms(schoolId: string): Promise<ProgressTerm[]> {
-  const rows = await readProgressPages((from, to) => supabase.from('academic_terms').select('id,name,start_date,end_date')
+  const rows = await readProgressPages((from, to) => supabase.from('academic_terms').select('id,name,start_date,end_date,term,academic_year')
     .eq('school_id', schoolId).order('start_date', { ascending: false }).order('id').range(from, to))
-  return rows.map(value => { const row = record(value); return { id: required(row.id), name: required(row.name), start_date: required(row.start_date), end_date: required(row.end_date) } })
+  return rows.map(value => { const row = record(value); return { id: required(row.id), name: required(row.name), start_date: required(row.start_date), end_date: required(row.end_date),term:numeric(row.term)??undefined,academic_year:numeric(row.academic_year)??undefined } })
 }
 
 export type ProgressLearner = { id: string; name: string; admission_number: string | null; isCurrent: boolean; joinedAt: string | null; leftAt: string | null }
@@ -179,4 +180,17 @@ export async function loadProgressRoster(authority: ProgressAuthority, historica
     ? 'Historical learner identity access is not available for this class. Its enrollment records remain saved; the canonical historical roster authority must be reconciled before this view can be shown.'
     : 'Some enrolled learners could not be read. Retry or check class access; do not add them again.')
   return learners
+}
+
+
+export type ProgressAttendance = {id:string;studentId:string;date:string;status:'present'|'absent'|'excused';isLate:boolean;slotId:string|null}
+/** Register context is separate from learning evidence and cannot establish ability. */
+export async function loadProgressAttendance(authority:ProgressAuthority, studentId:string):Promise<ProgressAttendance[]> {
+  const rows=await readProgressPages((from,to)=>supabase.from('attendance').select('id,student_id,date,status,is_late,timetable_slot_id')
+    .eq('school_id',authority.schoolId).eq('class_id',authority.classId).eq('teacher_id',authority.teacherId).eq('student_id',studentId)
+    .order('date',{ascending:false}).order('id').range(from,to))
+  return rows.map(value=>{const row=record(value),status=row.status
+    if(!['present','absent','excused'].includes(String(status)))throw new Error('A register status needs reconciliation.')
+    return {id:required(row.id),studentId:required(row.student_id),date:required(row.date),status:status as ProgressAttendance['status'],isLate:row.is_late===true,slotId:optional(row.timetable_slot_id)}
+  })
 }

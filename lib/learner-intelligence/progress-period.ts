@@ -1,4 +1,5 @@
-export type ProgressTerm = { id: string; name: string; start_date: string; end_date: string }
+import type { ProgressEvidence } from './progress-record'
+export type ProgressTerm = { id: string; name: string; start_date: string; end_date: string; term?: number; academic_year?: number }
 export type ProgressPeriod = '30' | '90' | 'term' | 'all'
 
 /** Nairobi calendar dates, including observations near UTC midnight. */
@@ -27,4 +28,11 @@ export function inProgressPeriod(observedAt: string, period: ProgressPeriod, ter
   const start = new Date(`${today}T00:00:00Z`)
   start.setUTCDate(start.getUTCDate() - (period === '30' ? 29 : 89))
   return date >= start.toISOString().slice(0,10)
+}
+
+/** Explicit source term wins over data-entry and correction timestamps. */
+export function evidenceInProgressPeriod(row: ProgressEvidence, period: ProgressPeriod, term: ProgressTerm | null, now = new Date()): boolean {
+  if (!inProgressPeriod(row.observedAt,'all',null,now)) return false
+  if (period==='term' && row.reportingTerm != null && row.reportingYear != null) return Boolean(term && term.term===row.reportingTerm && term.academic_year===row.reportingYear)
+  return inProgressPeriod(row.observedAt,period,term,now)
 }

@@ -1,3 +1,4 @@
+import { readProgressPages, loadProgressAuthority } from '@/lib/learner-intelligence/progress-data'
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
 
@@ -133,12 +134,36 @@ export async function lockReportCard(reportCardId: string): Promise<void> {
   if (error) throw new Error(error.message || 'Report card could not be locked.')
 }
 
+export async function listTeacherReportCards(scope: {classId?:string|null;studentId?:string|null} = {}): Promise<ReportCardSummary[]> {
+  const auth = await supabase.auth.getUser()
+  if (auth.error || !auth.data.user) throw new Error('Sign in again to view school reports.')
+  const response = await supabase.rpc('teacher_get_operating_context')
+  if (response.error) throw new Error(response.error.message)
+  const context = record(response.data)
+  if (context.teacher_id !== auth.data.user.id || typeof context.school_id !== 'string') throw new Error('Your active teacher school could not be confirmed.')
+  if (scope.classId) await loadProgressAuthority(scope.classId)
+  const schoolId=context.school_id
+  const data = await readProgressPages((from,to) => {
+    let query = supabase.from('report_cards')
+      .select('id,student_id,class_id,term_id,academic_year,status,revision,completeness_status,completeness_issues,validation_status,validation_issues,evidence_version,evidence_generated_at,updated_at,students(name),classes(name),academic_terms(name)')
+      .eq('school_id',schoolId).order('updated_at',{ascending:false}).order('id').range(from,to)
+    if (scope.classId) query=query.eq('class_id',scope.classId)
+    if (scope.studentId) query=query.eq('student_id',scope.studentId)
+    return query
+  })
+  return decodeReportCards(data)
+}
+
+/** Generic RLS-scoped reader retained for the canonical admin review workspace. */
 export async function listReportCards(): Promise<ReportCardSummary[]> {
-  const { data, error } = await fromUntyped('report_cards')
+  const data=await readProgressPages((from,to)=>supabase.from('report_cards')
     .select('id,student_id,class_id,term_id,academic_year,status,revision,completeness_status,completeness_issues,validation_status,validation_issues,evidence_version,evidence_generated_at,updated_at,students(name),classes(name),academic_terms(name)')
-    .order('updated_at', { ascending: false })
-  if (error) throw new Error(error.message || 'Report cards could not be loaded.')
-  return (data ?? []).map(row => {
+    .order('updated_at',{ascending:false}).order('id').range(from,to))
+  return decodeReportCards(data)
+}
+
+function decodeReportCards(data: unknown[]): ReportCardSummary[] {
+  return data.map(row => {
     const value = record(row); const student = record(value.students); const klass = record(value.classes); const term = record(value.academic_terms)
     return {
       id: text(value.id) ?? '', studentId: text(value.student_id) ?? '', studentName: text(student.name) ?? 'Learner',

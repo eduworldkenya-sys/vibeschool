@@ -2,11 +2,13 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { loadProgressAuthority } from '@/lib/learner-intelligence/progress-data'
 import {
   generateReportCardEvidence,
   generateSubjectReportIntelligence,
-  listReportCards,
+  listTeacherReportCards,
   listReportSubjects,
   submitReportCard,
   updateSubjectReport,
@@ -16,6 +18,9 @@ import {
 } from '@/lib/report-cards/service'
 
 export default function TeacherReportCardsPage() {
+  const router=useRouter(),search=useSearchParams(),classId=search.get('classId'),studentId=search.get('studentId'),subjectId=search.get('subjectId')
+  const ticketRef=useRef(0)
+  const scopeRef=useRef('');scopeRef.current=`${classId}|${studentId}|${subjectId}`
   const [items, setItems] = useState<ReportCardSummary[]>([])
   const [subjects, setSubjects] = useState<Record<string, ReportSubjectEvidence[]>>({})
   const [comments, setComments] = useState<Record<string, string>>({})
@@ -26,69 +31,88 @@ export default function TeacherReportCardsPage() {
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
 
-  async function load() {
+  const load=useCallback(async()=> {
+    const ticket=++ticketRef.current
     setLoading(true)
     setError('')
-    try { setItems(await listReportCards()) }
-    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not load report cards.') }
-    finally { setLoading(false) }
-  }
+    try {
+      if(subjectId){if(!classId)throw new Error('Choose a class before opening a subject report.');const scope=await loadProgressAuthority(classId);if(!scope.subjects.some(subject=>subject.id===subjectId))throw new Error('This subject is not assigned to you in this class.')}
+      const reports=await listTeacherReportCards({classId,studentId})
+      if(ticket===ticketRef.current)setItems(reports)
+    }
+    catch (cause) { if(ticket===ticketRef.current)setError(cause instanceof Error ? cause.message : 'Could not load report cards.') }
+    finally { if(ticket===ticketRef.current)setLoading(false) }
+  },[classId,studentId,subjectId])
 
-  useEffect(() => { void load() }, [])
+  const invalidatePendingLoad=useCallback(()=>{++ticketRef.current},[])
+  useEffect(() => {setItems([]);setSubjects({});setOpenId(null);setComments({});setGuidance({});setMessage('');void load();return invalidatePendingLoad}, [load,invalidatePendingLoad])
 
   function hydrate(reportId: string, rows: ReportSubjectEvidence[]) {
+    rows=rows.filter(row=>!subjectId||row.subjectId===subjectId)
     setSubjects(current => ({ ...current, [reportId]: rows }))
     setComments(current => ({ ...current, ...Object.fromEntries(rows.map(row => [row.reportCardSubjectId, row.teacherComment ?? row.generatedComment ?? ''])) }))
     setGuidance(current => ({ ...current, ...Object.fromEntries(rows.map(row => [row.reportCardSubjectId, row.parentGuidance ?? ''])) }))
   }
 
   async function open(item: ReportCardSummary) {
+    const scope=scopeRef.current
     setBusyId(item.id)
     setError('')
     try {
-      hydrate(item.id, await listReportSubjects(item.id))
+      const rows=await listReportSubjects(item.id)
+      if(scope!==scopeRef.current)return
+      hydrate(item.id,rows)
       setOpenId(current => current === item.id ? null : item.id)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Report evidence could not be opened.') }
-    finally { setBusyId(null) }
+    } catch (cause) { if(scope===scopeRef.current)setError(cause instanceof Error ? cause.message : 'Report evidence could not be opened.') }
+    finally { if(scope===scopeRef.current)setBusyId(null) }
   }
 
   async function generateEvidence(item: ReportCardSummary) {
+    const scope=scopeRef.current
     setBusyId(item.id); setError(''); setMessage('')
     try {
       const detail = await generateReportCardEvidence(item.id)
-      hydrate(item.id, await listReportSubjects(item.id))
+      const rows=await listReportSubjects(item.id)
+      if(scope!==scopeRef.current)return
+      hydrate(item.id,rows)
       setOpenId(item.id)
       setMessage(detail.completenessStatus === 'complete'
         ? `Evidence snapshot v${detail.evidenceVersion} generated and complete.`
         : `Evidence snapshot generated with ${detail.completenessIssues.length} issue(s).`)
       await load()
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Evidence snapshot could not be generated.') }
-    finally { setBusyId(null) }
+    } catch (cause) { if(scope===scopeRef.current)setError(cause instanceof Error ? cause.message : 'Evidence snapshot could not be generated.') }
+    finally { if(scope===scopeRef.current)setBusyId(null) }
   }
 
   async function generateNarratives(item: ReportCardSummary) {
+    const scope=scopeRef.current
     setBusyId(item.id); setError(''); setMessage('')
     try {
       const count = await generateSubjectReportIntelligence(item.id)
-      hydrate(item.id, await listReportSubjects(item.id))
+      const rows=await listReportSubjects(item.id)
+      if(scope!==scopeRef.current)return
+      hydrate(item.id,rows)
       setOpenId(item.id)
       setMessage(`${count} subject narrative${count === 1 ? '' : 's'} generated from the current evidence snapshot.`)
       await load()
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Subject narratives could not be generated.') }
-    finally { setBusyId(null) }
+    } catch (cause) { if(scope===scopeRef.current)setError(cause instanceof Error ? cause.message : 'Subject narratives could not be generated.') }
+    finally { if(scope===scopeRef.current)setBusyId(null) }
   }
 
   async function validate(item: ReportCardSummary) {
+    const scope=scopeRef.current
     setBusyId(item.id); setError(''); setMessage('')
     try {
       const result = await validateReportCard(item.id)
+      if(scope!==scopeRef.current)return
       setMessage(`Validation ${result.validationStatus}: ${result.blockingCount} blocking issue(s), ${result.warningCount} warning(s).`)
       await load()
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Report validation failed.') }
-    finally { setBusyId(null) }
+    } catch (cause) { if(scope===scopeRef.current)setError(cause instanceof Error ? cause.message : 'Report validation failed.') }
+    finally { if(scope===scopeRef.current)setBusyId(null) }
   }
 
   async function save(row: ReportSubjectEvidence) {
+    const scope=scopeRef.current
     setBusyId(row.reportCardSubjectId); setError(''); setMessage('')
     try {
       await updateSubjectReport({
@@ -96,28 +120,32 @@ export default function TeacherReportCardsPage() {
         teacherComment: comments[row.reportCardSubjectId] ?? '',
         parentGuidance: guidance[row.reportCardSubjectId] ?? null,
       })
+      if(scope!==scopeRef.current)return
       setMessage(`${row.subjectName} report saved. Revalidate before submission.`)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Subject report could not be saved.') }
-    finally { setBusyId(null) }
+    } catch (cause) { if(scope===scopeRef.current)setError(cause instanceof Error ? cause.message : 'Subject report could not be saved.') }
+    finally { if(scope===scopeRef.current)setBusyId(null) }
   }
 
   async function submit(item: ReportCardSummary) {
+    const scope=scopeRef.current
     setBusyId(item.id); setError(''); setMessage('')
     try {
       await submitReportCard(item.id)
+      if(scope!==scopeRef.current)return
       setMessage('Report card submitted for school review.')
       setOpenId(null)
       await load()
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Report card could not be submitted.') }
-    finally { setBusyId(null) }
+    } catch (cause) { if(scope===scopeRef.current)setError(cause instanceof Error ? cause.message : 'Report card could not be submitted.') }
+    finally { if(scope===scopeRef.current)setBusyId(null) }
   }
 
   return <main style={shell}><div style={{ maxWidth: 980, margin: '0 auto' }}>
     <section style={card}><div style={eyebrow}>Report Card Engine</div><h1 style={{ margin: '6px 0' }}>Teacher Report Cards</h1><p style={{ margin: 0, color: '#6b7280' }}>Generate evidence, create traceable narratives, resolve validation issues, and submit only academically complete reports.</p></section>
-    {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
+    {error && <section role="alert" style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}<div><button type="button" onClick={()=>void load()} style={secondaryButton}>Retry</button></div></section>}
+    {classId&&<section style={card}><button type="button" onClick={()=>router.push(`/teacher/classhub/${classId}${studentId?`/student/${studentId}`:''}/progress${subjectId?`?subjectId=${encodeURIComponent(subjectId)}`:''}`)} style={secondaryButton}>Progress Record</button><p style={muted}>Reports are limited to this class{studentId?' and learner':''}. Parent sharing follows the school review and publication workflow.</p></section>}
     {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
 
-    {loading ? <section style={card}>Loading report cards…</section> : items.length === 0 ? <section style={card}>No report cards yet.</section> : items.map(item => {
+    {loading ? <section style={card}>Loading report cards…</section> : !error && items.length === 0 ? <section style={card}>No report cards yet.</section> : items.map(item => {
       const rows = subjects[item.id] ?? []
       const editable = item.status === 'draft' || item.status === 'returned'
       const canSubmit = editable && (item.validationStatus === 'passed' || item.validationStatus === 'warnings')
@@ -172,5 +200,5 @@ const issueBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius
 const validationBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fef2f2', color: '#991b1b', fontSize: 13, lineHeight: 1.5 }
 const emptyBox: React.CSSProperties = { padding: 12, borderRadius: 10, background: '#f8fafc', color: '#6b7280' }
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
-const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 12, padding: '12px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
-const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
+const primaryButton: React.CSSProperties = { minHeight:44, border: 'none', borderRadius: 12, padding: '12px 16px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const secondaryButton: React.CSSProperties = { minHeight:44, border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }

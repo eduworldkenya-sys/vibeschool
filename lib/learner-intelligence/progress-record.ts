@@ -10,6 +10,10 @@ export type ProgressEvidence = {
   source: string
   sourceId: string | null
   observedAt: string
+  updatedAt?: string
+  timestampKind?: 'observed'|'recorded'|'released'|'marked'
+  reportingTerm?: number | null
+  reportingYear?: number | null
   score: number | null
   maxScore: number | null
   proficiency: string | null
@@ -76,7 +80,7 @@ export function evidencePercentage(row: ProgressEvidence) {
 /** Corrections to one source are one observation, never extra learning evidence. */
 export function reconcileProgressEvidence(rows: ProgressEvidence[]): ProgressEvidence[] {
   const unique = new Map<string, ProgressEvidence>()
-  for (const row of [...rows].sort((a,b) => Date.parse(b.observedAt) - Date.parse(a.observedAt) || b.id.localeCompare(a.id))) {
+  for (const row of [...rows].sort((a,b) => Date.parse(b.updatedAt ?? b.observedAt) - Date.parse(a.updatedAt ?? a.observedAt) || b.id.localeCompare(a.id))) {
     if (!row.id || !row.studentId || !Number.isFinite(Date.parse(row.observedAt))) continue
     const key = JSON.stringify([row.studentId, row.subjectId, row.outcomeId, row.source, row.sourceId || row.id])
     if (!unique.has(key)) unique.set(key, row)

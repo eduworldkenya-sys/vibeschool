@@ -56,7 +56,7 @@ const fixture={
  students:[{id:'a',name:'Charles',admission_number:'1024',deleted_at:null,profile_id:null}],
  competency_evidence_ledger:[{id:'e',student_id:'a',subject_id:'math',outcome_id:'fractions',evidence_source:'quiz',evidence_id:'q',score:0,max_score:100,proficiency:'BE',observed_at:new Date().toISOString(),observed_by:'teacher',school_id:'school',class_id:'class',notes:null,weight:1,curriculum_learning_outcomes:{outcome_text:'Fractions',outcome_code:'M1'}}],
  cbc_assessments:[{id:'cbc',student_id:'a',subject_id:'math',sub_strand:'Fractions',performance:'BE',notes:null,created_at:new Date().toISOString(),school_id:'school',class_id:'class',teacher_id:'teacher'}],
- exam_results:[{id:'exam',student_id:'a',subject_id:'math',marks:0,is_absent:true,updated_at:new Date().toISOString(),school_id:'school',class_id:'class',teacher_id:'teacher'}],
+ exam_results:[{id:'exam',student_id:'a',subject_id:'math',marks:0,is_absent:true,created_at:new Date().toISOString(),updated_at:new Date().toISOString(),exams:{name:'CAT',term:3,academic_year:2026},school_id:'school',class_id:'class',teacher_id:'teacher'}],
  homework:[{id:'homework',title:'Fractions practice',subject:'Mathematics',school_id:'school',class_id:'class',teacher_id:'teacher'}],
  homework_submissions:[{id:'submission',student_id:'a',homework_id:'homework',mark:7,feedback:'Try again',status:'marked',updated_at:new Date().toISOString()}],
  academic_terms:[{id:'current',name:'Term',start_date:'2026-01-01',end_date:'2026-12-31',school_id:'school'}]
@@ -110,3 +110,18 @@ const ambiguous=await query.resolveTeacherProgressQuery('show learners declining
 assert(ambiguous.text.includes('more than one matching class'))
 assert(requests.every(item=>!item.rpc||item.rpc==='teacher_get_operating_context'),'progress reads have no refresh/write RPC')
 console.log('Progress workspace: PASS — evidence reconciliation, comparability, Nairobi terms, scope/pagination, missing-identity recovery and bounded Twin queries. Isolated tests do not certify production RLS or release lineage.')
+
+const correction={...row('corrected'),observedAt:'2026-03-01T09:00:00Z',updatedAt:'2026-10-03T09:00:00Z',reportingTerm:1,reportingYear:2026}
+assert.equal(period.evidenceInProgressPeriod(correction,'term',{id:'t3',name:'Term 3',term:3,academic_year:2026,start_date:'2026-09-01',end_date:'2026-11-30'},new Date('2026-10-03')),false,'an old-term correction cannot become current-term evidence')
+assert.equal(period.evidenceInProgressPeriod(correction,'term',{id:'t1',name:'Term 1',term:1,academic_year:2026,start_date:'2026-01-01',end_date:'2026-03-30'},new Date('2026-10-03')),true)
+assert.equal(period.evidenceInProgressPeriod(correction,'30',null,new Date('2026-10-03')),false,'a correction does not become a new recent observation')
+
+fixture.homework[0].subject='Unresolved legacy name'
+const unresolved=await data.loadProgressEvidence(authority,'a')
+assert.equal(unresolved.find(item=>item.source==='marked_homework').subjectId,null,'an unknown text subject cannot receive a fabricated subject ID')
+assert(unresolved.find(item=>item.source==='marked_homework').notes.includes('Subject identity needs reconciliation'))
+fixture.homework[0].subject='Mathematics'
+fixture.academic_terms=[]
+const recentWithoutTerm=await query.resolveTeacherProgressQuery('which learners have not been assessed recently','class')
+assert(recentWithoutTerm.text.includes('last 30 days'),'recent-evidence queries do not depend on a configured term')
+assert(recentWithoutTerm.actionUrl.includes('period=30'))

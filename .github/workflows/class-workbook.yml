@@ -6,7 +6,12 @@ on:
       - "lib/class-workbook/**"
       - "lib/learner-intelligence/**"
       - "app/teacher/progress/**"
-      - "scripts/test-progress-workspace*"
+      - "scripts/test-progress-*"
+      - "components/teacher/progress/**"
+      - "lib/assessment/interventions.ts"
+      - "lib/report-cards/service.ts"
+      - "app/teacher/report-cards/**"
+      - "app/teacher/assessment/interventions/**"
       - "components/teacher/workbook/**"
       - "app/teacher/classhub/**"
       - "supabase/migrations/*class_workbook*"
@@ -36,6 +41,7 @@ jobs:
           prebuild_command: |
             node scripts/test-class-workbook.mjs
             node scripts/test-progress-workspace.mjs
+            node scripts/test-progress-support.mjs
             node scripts/test-student-progress-record-contract.mjs
             node scripts/test-classroom-workspace.mjs
       - name: Install isolated PostgreSQL test runtime
@@ -50,5 +56,7 @@ jobs:
         run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-class-workbook-ui.mjs
       - name: Exercise connected progress views and stale-scope recovery
         run: PROGRESS_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-progress-workspace-ui.mjs
+      - name: Exercise support and report context recovery
+        run: PROGRESS_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-progress-support-ui.mjs
       - name: Exercise classroom workspace interactions and recovery
         run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-classroom-workspace-ui.mjs

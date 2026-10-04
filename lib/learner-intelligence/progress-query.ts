@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase'
 import type { TeacherTwinReply } from '@/lib/teacher/twin'
 import { loadProgressAuthority, loadProgressEvidence, loadProgressRoster, loadProgressTerms } from './progress-data'
 import { buildOutcomeProgress, progressSummary, unlinkedSupportObservations } from './progress-record'
-import { currentProgressTerm, inProgressPeriod } from './progress-period'
+import { currentProgressTerm, evidenceInProgressPeriod } from './progress-period'
 
 export type ProgressQuery = { filter: 'declining' | 'improving' | 'support' | 'no-evidence'; subjectName: string | null }
 
@@ -37,18 +37,18 @@ export async function resolveTeacherProgressQuery(input: string, requestedClassI
   if (!classIds.length) return { text: 'No assigned class and subject match that progress request in your active school. Choose your class and subject first.', actionUrl: '/teacher/progress', actionLabel: 'Choose progress context' }
   if (requestedClassId && !classIds.includes(requestedClassId)) return { text: 'That subject is not assigned to you in the open class. Choose an authorized class before viewing progress.', actionUrl: '/teacher/progress', actionLabel: 'Choose class' }
   const classId = requestedClassId ?? (classIds.length === 1 ? classIds[0] : null)
-  if (!classId) return { text: 'You have more than one matching class. Choose a class to see its learner evidence; I have not combined different classes.', actionUrl: `/teacher/progress?filter=${command.filter}${command.subjectName ? `&subjectName=${encodeURIComponent(command.subjectName)}` : ''}`, actionLabel: 'Choose class' }
+  if (!classId) return { text: 'You have more than one matching class. Choose a class to see its learner evidence; I have not combined different classes.', actionUrl: `/teacher/progress?filter=${command.filter}&period=${command.filter === 'no-evidence' ? '30' : 'term'}${command.subjectName ? `&subjectName=${encodeURIComponent(command.subjectName)}` : ''}`, actionLabel: 'Choose class' }
   const authority = await loadProgressAuthority(classId)
   const subjects = authority.subjects.filter(subject => !command.subjectName || subjectKey(subject.name) === subjectKey(command.subjectName))
   if (command.subjectName && subjects.length !== 1) return { text: 'The subject identity is ambiguous. Select the exact assigned subject in Progress Record.', actionUrl: `/teacher/classhub/${encodeURIComponent(classId)}/progress`, actionLabel: 'Choose subject' }
   const [learners, evidence, terms] = await Promise.all([loadProgressRoster(authority, false), loadProgressEvidence(authority), loadProgressTerms(authority.schoolId)])
   const term = currentProgressTerm(terms)
-  const url = `/teacher/classhub/${encodeURIComponent(classId)}/progress?filter=${command.filter}${command.subjectName ? `&subjectId=${encodeURIComponent(subjects[0].id)}` : ''}`
-  if (!term) return { text: 'No single school term contains today. Choose a period before interpreting learner progress.', actionUrl: url, actionLabel: 'Choose period' }
+  const url = `/teacher/classhub/${encodeURIComponent(classId)}/progress?filter=${command.filter}&period=${command.filter === 'no-evidence' ? '30' : 'term'}${command.subjectName ? `&subjectId=${encodeURIComponent(subjects[0].id)}` : ''}`
+  if (!term && command.filter !== 'no-evidence') return { text: 'No single school term contains today. Choose a period before interpreting learner progress.', actionUrl: url, actionLabel: 'Choose period' }
   const subjectIds = new Set(subjects.map(subject => subject.id))
   const rowsByLearner = new Map<string, typeof evidence>()
   for (const row of evidence) {
-    if (!row.subjectId || !subjectIds.has(row.subjectId) || !inProgressPeriod(row.observedAt, 'term', term)) continue
+    if (!row.subjectId || !subjectIds.has(row.subjectId) || !evidenceInProgressPeriod(row, command.filter === 'no-evidence' ? '30' : 'term', term)) continue
     const rows = rowsByLearner.get(row.studentId) ?? []; rows.push(row); rowsByLearner.set(row.studentId, rows)
   }
   const matching = learners.filter(learner => {
@@ -59,5 +59,5 @@ export async function resolveTeacherProgressQuery(input: string, requestedClassI
   })
   const state = command.filter === 'no-evidence' ? 'have no readable learning result or outcome evidence' : command.filter === 'support' ? 'have recorded evidence indicating support; unmapped CBC observations still need an outcome link' : `have an outcome ${command.filter}`
   const names = matching.slice(0,10).map(learner => `${learner.name}${learner.admission_number ? ` (Adm ${learner.admission_number})` : ''}`).join(', ')
-  return { text: `${authority.className} · ${command.subjectName ? subjects[0].name : 'assigned subjects'} · ${term.name}: ${matching.length} of ${learners.length} learners ${state}.${names ? `\n${names}${matching.length > 10 ? ` and ${matching.length - 10} more` : ''}.` : ''}\nBased on your readable evidence. Trends require four comparable observations on separate dates; missing evidence is not a low score.`, actionUrl: url, actionLabel: 'Open matching progress' }
+  return { text: `${authority.className} · ${command.subjectName ? subjects[0].name : 'assigned subjects'} · ${command.filter === 'no-evidence' ? 'last 30 days' : term!.name}: ${matching.length} of ${learners.length} learners ${state}.${names ? `\n${names}${matching.length > 10 ? ` and ${matching.length - 10} more` : ''}.` : ''}\nBased on your readable evidence. Trends require four comparable observations on separate dates; missing evidence is not a low score. Legacy dates can be record-entry dates; no recent record does not prove no assessment took place.`, actionUrl: url, actionLabel: 'Open matching progress' }
 }

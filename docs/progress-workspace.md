@@ -170,3 +170,22 @@ The production `teacher_get_class_roster` RPC was absent. Historical learner ide
 Implemented in this candidate: canonical entry and context links, class/learner evidence views, shared source projection, real Nairobi term boundaries, current/historical error handling, sheet deep links, scoped support links, bounded deterministic Twin reads and regression coverage. Existing workbook and intervention features are reused; a navigation link does not prove assignment, reassessment or closure.
 
 Still required for the full 13-capability module: complete roster/history authority, outcome mapping and release policy, source correction/duplicate receipts, intervention read/write separation and lifecycle proof, permissioned parent sharing, immutable report snapshots, validated imports/external adapters, accessibility/mobile pilot, independent assurance and signed-in production verification. No migration or production configuration was changed in this investigation. This is an implementation candidate plus finished design, not a claim that the full module is deployed or certified.
+
+
+## Continuation candidate — 3 October 2026
+
+The first candidate's 18 GitHub Actions workflows passed at `04cf86c0e8327f5d812101abc885ab793ca1d069`. Those results do not certify the subsequent continuation bytes.
+
+Continuation repairs extend the same workspace: source term/year takes precedence over record correction timestamps; corrected records retain their original source date; previous actual school terms can be selected; “recent evidence” Twin queries explicitly mean the last 30 days and work without a configured current term. Unresolved text-subject homework stays visible as a data-check issue and is excluded from learning judgments instead of being assigned a guessed subject ID.
+
+Legacy CBC and exam entries have no exact assessment-date field: their original data-entry date is explicitly identified, while stated term/year governs term inclusion. Recent-record queries must not be interpreted as proof that a learner was or was not assessed.
+
+Class and learner views now expose source-data checks, teacher working-copy CSV export with source identity, zero-safe marks and formula-safe text, and print scoping. Private teacher notes are excluded from CSV. Learner register context is a separate read and cannot establish mastery or an explanation for a learning gap; its failure does not suppress learning evidence.
+
+The support client reads authorized saved interventions directly through existing RLS, fully paginated and scoped to the active school/class/assigned subjects. Loading no longer calls the mutating legacy list RPC. Closed records can be inspected without exposing write controls. The existing legacy refresh RPC is unchanged and is not offered as an automatic or new manual action. No database grant, migration, identity history authority or runtime was altered. A deployed status authority currently ignores completion-note input; the misleading unsaved note box was removed rather than pretending notes persisted.
+
+Progress links into canonical school reports with class, learner and subject context. The Teacher reader verifies operating context and paginates within the active school; the existing generic admin reader remains available with RLS. Published reports retain read-only controls. Delayed loads/actions cannot populate a later context. School publication is still the parent-sharing authority; working copies are not published report snapshots.
+
+New fixture gates exercise actual support/report readers and components, signed-out and wrong-scope denials, incomplete identity, all-page reads, zero/invalid scales, private-note exclusion, formula safety, read-only completed support, error/retry and late-scope rejection. These fixtures do not replace production RLS or a signed-in browser journey.
+
+The live Progress URL redirected this investigation browser to the account-choice sign-in screen. No signed-in candidate journey is established by that observation. The PR's review list was empty at inspection: implementer tests and green CI do not supply a distinct independent assessor. The complete 13-capability product remains subject to the open acceptance contract above; do not equate this continuation with automatic release reconciliation, parent messaging, external exchange certification or full production readiness.
