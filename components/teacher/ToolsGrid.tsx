@@ -4,7 +4,7 @@ const TOOLS = [
   { key: 'attendance',  label: 'Attendance',  icon: '✓' },
   { key: 'timetable',   label: 'Timetable',   icon: '▦' },
   { key: 'lessonplan',  label: 'Lesson Plan', icon: '✎' },
-  { key: 'gradebook',   label: 'Gradebook',   icon: '▐' },
+  { key: 'gradebook',   label: 'Class Results', icon: '▐' },
   { key: 'connecthub',  label: 'ConnectHub',  icon: '⬡' },
   { key: 'twin',        label: 'Twin',        icon: '◎' },
 ] as const
