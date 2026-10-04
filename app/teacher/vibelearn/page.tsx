@@ -11,6 +11,7 @@ import {
 } from "@/lib/content-engine/vibelearnClassAdoption";
 import type {
   AdoptionClassOption,
+  VibeLearnClassUsageRole,
 } from "@/lib/content-engine/vibelearnClassAdoption";
 import { C } from "@/components/teacher/ui";
 
@@ -107,6 +108,20 @@ const TAGS_PRESET = [
   "KCSE","KCPE","Form 1","Form 2","Form 3","Form 4",
   "Grade 7","Grade 8","Grade 9","Revision","Notes","Practicals",
   "Essays","Past Papers","Short Notes","Diagrams",
+];
+
+const CLASS_USE_OPTIONS: Array<{
+  value: VibeLearnClassUsageRole;
+  label: string;
+  help: string;
+}> = [
+  { value: "supplementary", label: "Keep in class library", help: "Save it for this class without assigning it yet." },
+  { value: "teacher_reference", label: "Use while teaching", help: "Keep it as a teacher reference for preparation and delivery." },
+  { value: "learner_reading", label: "Give to learners", help: "Make it part of the class learning material." },
+  { value: "exercise", label: "Use for practice", help: "Use it as classwork or guided practice." },
+  { value: "remedial", label: "Support learners", help: "Use it for learners who need another explanation or more practice." },
+  { value: "enrichment", label: "Extend learning", help: "Use it as a challenge or enrichment resource." },
+  { value: "assessment_source", label: "Use for assessment", help: "Use it as a source when preparing an assessment." },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -801,9 +816,9 @@ export default function VibeLearnPage() {
         {/* ── Hero ── */}
         <div style={{ background: "linear-gradient(135deg,#065f46 0%,#1e1b4b 100%)", borderRadius: 20, padding: "18px 20px", marginBottom: 14, color: "#fff", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle,rgba(16,185,129,0.25),transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn</div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Publish. Earn. Grow.</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginBottom: 16 }}>Your content earns every time a student reads it.</div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn · Learning Library</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Find. Use. Follow learning.</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginBottom: 16 }}>Curriculum-aware learning material for your subjects, classes and learners.</div>
           <div style={{ display: "flex", gap: 8 }}>
             {[
               { label: "Earnings (KSH)", value: loadingStats ? "…" : `${(stats?.total_earnings_ksh ?? 0).toLocaleString()}`, color: "#6ee7b7" },
@@ -830,11 +845,11 @@ export default function VibeLearnPage() {
           {(["content","create","assignments","stats","discover"] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={S.pill(tab === t)}>
               {{
-                content: `📄 Content${liveCount > 0 ? ` (${liveCount})` : ""}`,
+                content: `📄 My content${liveCount > 0 ? ` (${liveCount})` : ""}`,
                 create: "✦ Create",
-                assignments: "📚 Assignments",
-                stats: "📊 Stats",
-                discover: "🔍 Discover",
+                assignments: "📚 Class reading",
+                stats: "📊 Publishing",
+                discover: "🔍 Find learning",
               }[t]}
             </button>
           ))}
@@ -2570,6 +2585,10 @@ function DiscoverTab({ userId }: { userId: string | null }) {
     useState<AdoptionClassOption[]>([]);
   const [classPickerContentId, setClassPickerContentId] =
     useState<string | null>(null);
+  const [preferredClassId, setPreferredClassId] =
+    useState<string | null>(null);
+  const [usageRoleByContentId, setUsageRoleByContentId] =
+    useState<Record<string, VibeLearnClassUsageRole>>({});
   const [adoptingContentId, setAdoptingContentId] =
     useState<string | null>(null);
   const [adoptionError, setAdoptionError] =
@@ -2591,8 +2610,12 @@ function DiscoverTab({ userId }: { userId: string | null }) {
 
     const requestedSubjectId =
       params.get("subjectId");
+    const requestedClassId =
+      params.get("classId");
 
     const requestedTab = params.get("tab");
+
+    setPreferredClassId(requestedClassId);
 
     if (requestedTab === "discover") {
       // Parent page already rendered DiscoverTab.
@@ -2620,7 +2643,8 @@ function DiscoverTab({ userId }: { userId: string | null }) {
               .eq("id", resolvedSubjectId)
               .maybeSingle(),
             loadSubjectAdoptionClasses(
-              resolvedSubjectId
+              resolvedSubjectId,
+              requestedClassId
             ),
           ]);
 
@@ -2679,7 +2703,13 @@ function DiscoverTab({ userId }: { userId: string | null }) {
         if (filter !== "all") q = q.eq("type", filter);
         // exclude own content server-side — not client-side
         if (userId) q = q.neq("submitted_by", userId);
-        if (query.trim()) q = q.ilike("title", "%" + query.trim() + "%");
+        if (query.trim()) {
+          q = q.textSearch(
+            "search_vector",
+            query.trim(),
+            { type: "websearch", config: "english" }
+          );
+        }
         const { data, error } = await q;
 
         if (error) {
@@ -2813,11 +2843,14 @@ function DiscoverTab({ userId }: { userId: string | null }) {
           color: "#047857",
           lineHeight: 1.5,
         }}>
-          Choosing content for{" "}
+          Choosing learning material for{" "}
           <strong>
             {subjectName ?? "this subject"}
-          </strong>.
-          Select an exact class before adding it.
+          </strong>
+          {preferredClassId && adoptionClasses[0]?.id === preferredClassId
+            ? <> · <strong>{adoptionClasses[0].name}{adoptionClasses[0].stream ? ` · ${adoptionClasses[0].stream}` : ""}</strong></>
+            : null}.
+          VibeLearn keeps this teaching context while you choose how to use each resource.
         </div>
       )}
 
@@ -2850,7 +2883,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
 
       <div style={{ position: "relative", marginBottom: 10 }}>
         <input value={query} onChange={e => setQuery(e.target.value)}
-          placeholder="Search content by topic, subject, tag…"
+          placeholder="Search topic, subject, strand, tag or resource…"
           style={{ width: "100%", padding: "12px 14px 12px 42px", borderRadius: 12, border: "1.5px solid #e5e7eb", fontSize: 13, fontFamily: "inherit", outline: "none", background: "#fff", color: "#111827", boxSizing: "border-box" }} />
         <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>🔍</div>
       </div>
@@ -2995,117 +3028,105 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                 </div>
               ) : classPickerContentId === item.id ? (
                 <div>
-                  <div style={{
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: "#111827",
-                    marginBottom: 8,
-                  }}>
-                    Add to which class?
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#111827", marginBottom: 8 }}>
+                    How do you want to use this?
+                  </div>
+                  <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
+                    {CLASS_USE_OPTIONS.map(option => {
+                      const selectedRole = usageRoleByContentId[item.id] ?? "supplementary";
+                      const selected = selectedRole === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setUsageRoleByContentId(current => ({ ...current, [item.id]: option.value }))}
+                          style={{
+                            border: selected ? "1.5px solid #047857" : "1px solid #d1d5db",
+                            background: selected ? "#ecfdf5" : "#fff",
+                            borderRadius: 10,
+                            padding: "9px 10px",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                          }}
+                        >
+                          <div style={{ fontSize: 12, fontWeight: 800, color: "#111827" }}>{option.label}</div>
+                          <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2, lineHeight: 1.4 }}>{option.help}</div>
+                        </button>
+                      );
+                    })}
                   </div>
 
-                  <div style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 7,
-                  }}>
-                    {adoptionClasses.map(cls => (
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#111827", marginBottom: 8 }}>
+                    {preferredClassId && adoptionClasses[0]?.id === preferredClassId
+                      ? "Use with this class"
+                      : "Use with which class?"}
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {(preferredClassId && adoptionClasses.some(cls => cls.id === preferredClassId)
+                      ? adoptionClasses.filter(cls => cls.id === preferredClassId)
+                      : adoptionClasses
+                    ).map(cls => (
                       <button
                         key={cls.id}
-                        disabled={
-                          adoptingContentId === item.id
-                        }
+                        disabled={adoptingContentId === item.id}
                         onClick={async () => {
-                          if (
-                            !item.resource_id ||
-                            !subjectId ||
-                            adoptingContentId
-                          ) {
-                            return;
-                          }
+                          if (!item.resource_id || !subjectId || adoptingContentId) return;
 
                           setAdoptingContentId(item.id);
                           setAdoptionError("");
                           setAdoptionSuccess("");
 
                           try {
+                            const usageRole = usageRoleByContentId[item.id] ?? "supplementary";
+                            const usageLabel =
+                              CLASS_USE_OPTIONS.find(option => option.value === usageRole)?.label ??
+                              "Added to class";
+
                             await addResourceToClass({
-                              resourceId:
-                                item.resource_id,
+                              resourceId: item.resource_id,
                               classId: cls.id,
                               subjectId,
+                              usageRole,
                             });
 
                             if (!mounted.current) return;
 
-                            const classLabel =
-                              cls.name +
-                              (
-                                cls.stream
-                                  ? " · " + cls.stream
-                                  : ""
-                              );
-
-                            setAdoptionSuccess(
-                              `“${item.title}” added to ${classLabel}.`
-                            );
+                            const classLabel = cls.name + (cls.stream ? " · " + cls.stream : "");
+                            setAdoptionSuccess(`“${item.title}” · ${usageLabel.toLowerCase()} · ${classLabel}.`);
                             setClassPickerContentId(null);
                           } catch (error) {
-                            console.error(
-                              "[VibeLearn] class adoption failed",
-                              error
-                            );
-
+                            console.error("[VibeLearn] class adoption failed", error);
                             if (mounted.current) {
-                              setAdoptionError(
-                                "The resource could not be added to the class."
-                              );
+                              setAdoptionError("The resource could not be added to the class.");
                             }
                           } finally {
-                            if (mounted.current) {
-                              setAdoptingContentId(null);
-                            }
+                            if (mounted.current) setAdoptingContentId(null);
                           }
                         }}
                         style={{
                           width: "100%",
                           padding: "10px 12px",
                           borderRadius: 10,
-                          border:
-                            "1px solid #d1d5db",
-                          background: "#fff",
+                          border: "none",
+                          background: "#047857",
                           textAlign: "left",
-                          color: "#111827",
+                          color: "#fff",
                           fontSize: 12,
-                          fontWeight: 700,
-                          cursor:
-                            adoptingContentId === item.id
-                              ? "wait"
-                              : "pointer",
+                          fontWeight: 800,
+                          cursor: adoptingContentId === item.id ? "wait" : "pointer",
                           fontFamily: "inherit",
                         }}
                       >
-                        {cls.name}
-                        {cls.stream
-                          ? " · " + cls.stream
-                          : ""}
+                        {cls.name}{cls.stream ? " · " + cls.stream : ""} →
                       </button>
                     ))}
                   </div>
 
                   <button
-                    onClick={() =>
-                      setClassPickerContentId(null)
-                    }
-                    style={{
-                      marginTop: 8,
-                      border: "none",
-                      background: "transparent",
-                      color: "#6b7280",
-                      fontSize: 11,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
+                    onClick={() => setClassPickerContentId(null)}
+                    style={{ marginTop: 8, border: "none", background: "transparent", color: "#6b7280", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
                   >
                     Cancel
                   </button>
@@ -3116,6 +3137,10 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                     setAdoptionError("");
                     setAdoptionSuccess("");
                     setClassPickerContentId(item.id);
+                    setUsageRoleByContentId(current => ({
+                      ...current,
+                      [item.id]: current[item.id] ?? "supplementary",
+                    }));
                   }}
                   style={{
                     width: "100%",
@@ -3130,7 +3155,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                     fontFamily: "inherit",
                   }}
                 >
-                  Add to a class
+                  Use with my class
                 </button>
               )}
             </div>
