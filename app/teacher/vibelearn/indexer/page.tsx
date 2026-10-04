@@ -182,11 +182,11 @@ export default function IndexerPage() {
               {indexScore >= 70 ? "Good Standing" : indexScore >= 40 ? "Needs Work" : "Getting Started"}
             </div>
             <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4, lineHeight: 1.5 }}>
-              {rank ? `Ranked #${rank} among all teachers on the platform.` : "Publish content to build reach data."}
+              {rank ? `Creator reach #${rank}. This reflects publishing visibility, not teaching quality.` : "Publish content to build reach data."}
             </div>
             {rank && (
               <div style={{ display: "inline-block", marginTop: 8, padding: "4px 12px", borderRadius: 20, background: "#fef3c7", color: "#b45309", fontSize: 11, fontWeight: 700 }}>
-                🏆 Rank #{rank}
+                Reach #{rank}
               </div>
             )}
           </div>
