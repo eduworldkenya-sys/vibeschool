@@ -7,9 +7,13 @@ import { useRouter } from 'next/navigation'
 import VibeLearnShellWrapper from '@/components/student/VibeLearnShellWrapper'
 import VibeLearnSubnav from '@/components/student/VibeLearnSubnav'
 import {
+  getAdaptiveLearningPath,
+  getAssignedReading,
   getExamReadinessBrief,
   getVibeLearnWorkstation,
   updateExamReadiness,
+  type AdaptiveLearningPath,
+  type AssignedReadingItem,
   type ExamReadinessBrief,
   type VibeLearnWorkstation,
 } from '@/lib/student/vibelearn'
@@ -18,6 +22,8 @@ export default function StudentVibeLearnPage() {
   const router = useRouter()
   const [brief, setBrief] = useState<VibeLearnWorkstation | null>(null)
   const [readiness, setReadiness] = useState<ExamReadinessBrief | null>(null)
+  const [assignedReading, setAssignedReading] = useState<AssignedReadingItem[]>([])
+  const [learningPath, setLearningPath] = useState<AdaptiveLearningPath | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [libraryOpen, setLibraryOpen] = useState(false)
@@ -28,9 +34,16 @@ export default function StudentVibeLearnPage() {
   const [confidence, setConfidence] = useState<number | null>(null)
 
   async function loadWorkspace() {
-    const [workspace, readinessBrief] = await Promise.all([getVibeLearnWorkstation(), getExamReadinessBrief()])
+    const [workspace, readinessBrief, reading, path] = await Promise.all([
+      getVibeLearnWorkstation(),
+      getExamReadinessBrief(),
+      getAssignedReading().catch(() => []),
+      getAdaptiveLearningPath().catch(() => null),
+    ])
     setBrief(workspace)
     setReadiness(readinessBrief)
+    setAssignedReading(reading)
+    setLearningPath(path)
     setExamDate(readinessBrief.examDate ?? '')
     setDailyMinutes(readinessBrief.dailyRevisionMinutes)
     setConfidence(readinessBrief.confidenceCheck)
@@ -38,11 +51,18 @@ export default function StudentVibeLearnPage() {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([getVibeLearnWorkstation(), getExamReadinessBrief()])
-      .then(([workspace, readinessBrief]) => {
+    Promise.all([
+      getVibeLearnWorkstation(),
+      getExamReadinessBrief(),
+      getAssignedReading().catch(() => []),
+      getAdaptiveLearningPath().catch(() => null),
+    ])
+      .then(([workspace, readinessBrief, reading, path]) => {
         if (cancelled) return
         setBrief(workspace)
         setReadiness(readinessBrief)
+        setAssignedReading(reading)
+        setLearningPath(path)
         setExamDate(readinessBrief.examDate ?? '')
         setDailyMinutes(readinessBrief.dailyRevisionMinutes)
         setConfidence(readinessBrief.confidenceCheck)
@@ -129,6 +149,42 @@ export default function StudentVibeLearnPage() {
             <div style={psychologyNote}><strong>{readiness.comparisonRule}</strong><span>{readiness.predictionDisclaimer}</span></div>
           </section>}
 
+          {learningPath && <section style={{ ...card, borderColor:'#bfdbfe', background:'#f8fbff' }}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={{ ...eyebrowDark, color:'#1d4ed8' }}>Your learning path</div>
+                <h2 style={{ ...title, marginBottom:4 }}>What to strengthen next</h2>
+                <p style={{ ...muted, lineHeight:1.6 }}>Built from verified mastery, prerequisite readiness and revision evidence. VibeLearn does not invent a weakness when evidence is missing.</p>
+              </div>
+              <button style={secondaryButton} onClick={() => router.push('/student/vibelearn/revision')}>Open revision</button>
+            </div>
+
+            {learningPath.path.length === 0 ? <div style={{ ...emptyBox, marginTop:14 }}>
+              <strong>No evidence-based learning gap yet</strong>
+              <p style={muted}>As you complete learning and assessments, VibeLearn will order the next outcomes using your verified evidence.</p>
+            </div> : <div style={{ display:'grid', gap:9, marginTop:14 }}>
+              {learningPath.path.slice(0,4).map(item => {
+                const unmet = item.prerequisites.filter(prerequisite => !prerequisite.met)
+                return <div key={item.outcomeId} style={{ border:'1px solid #dbeafe', background:'#fff', borderRadius:13, padding:13 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', gap:10, alignItems:'flex-start' }}>
+                    <div style={{ minWidth:0 }}>
+                      <strong style={{ display:'block', lineHeight:1.4 }}>{item.outcomeText}</strong>
+                      <div style={{ ...muted, marginTop:5 }}>Effective mastery {Math.round(item.effectiveMastery)}% · {item.masteryBand.replaceAll('_',' ')}</div>
+                    </div>
+                    <span style={{ ...pill, background: item.prerequisitesReady ? '#dcfce7' : '#fef3c7', color: item.prerequisitesReady ? '#166534' : '#92400e' }}>
+                      {item.prerequisitesReady ? 'Ready to continue' : 'Build foundation first'}
+                    </span>
+                  </div>
+                  {unmet.length > 0 && <div style={{ marginTop:10, padding:'9px 10px', borderRadius:10, background:'#fffbeb', color:'#78350f', fontSize:11, lineHeight:1.5 }}>
+                    <strong>Before this:</strong> {unmet.slice(0,2).map(prerequisite => prerequisite.outcomeText).join(' · ')}
+                  </div>}
+                  {item.forgettingRisk >= .35 && <div style={{ marginTop:8, fontSize:11, color:'#475569' }}>Worth revisiting: earlier evidence may be fading.</div>}
+                </div>
+              })}
+            </div>}
+            <div style={{ marginTop:11, fontSize:10, color:'#64748b' }}>{learningPath.rule}</div>
+          </section>}
+
           <section style={{ ...card, borderColor:'#c4b5fd', background:'#faf5ff' }}>
             <div style={sectionHeader}>
               <div>
@@ -171,7 +227,29 @@ export default function StudentVibeLearnPage() {
             {brief.practiceBySubject.length === 0 ? <p style={muted}>Practice questions will appear when the exam bank is ready for your subjects.</p> : <div style={grid}>{brief.practiceBySubject.map(item => <button key={item.subject} style={actionCard} onClick={() => router.push(item.actionUrl)}><span style={cardIcon}>🧠</span><strong>{item.subject}</strong><span style={muted}>{item.questionCount} verified questions available</span><span style={linkText}>Start practice →</span></button>)}</div>}
           </section>
 
-          <section style={card}><div style={eyebrowDark}>Teacher-assigned learning</div><h2 style={title}>Your class work</h2>{brief.assignedAssessments.length === 0 ? <p style={muted}>Assigned quizzes, tests and revision activities will appear here.</p> : <div style={{ display:'grid', gap:10 }}>{brief.assignedAssessments.map(item => <button key={item.assignmentId} style={rowButton} onClick={() => router.push(item.actionUrl)}><div><strong>{item.title}</strong><div style={muted}>{item.subjectName ?? 'General'} · {item.assessmentType.replaceAll('_',' ')}</div></div><span style={linkText}>Open →</span></button>)}</div>}</section>
+          <section style={card}>
+            <div style={eyebrowDark}>Teacher-assigned learning</div>
+            <h2 style={title}>Your class work</h2>
+
+            {assignedReading.length > 0 && <div style={{ marginBottom:14 }}>
+              <div style={{ fontSize:12, fontWeight:900, color:'#334155', marginBottom:8 }}>Reading and learning material</div>
+              <div style={{ display:'grid', gap:9 }}>
+                {assignedReading.map(item => <button key={item.assignmentId} style={{ ...rowButton, borderColor:item.isOverdue ? '#fecaca' : '#e2e8f0' }} onClick={() => router.push(item.actionUrl)}>
+                  <div style={{ minWidth:0 }}>
+                    <strong>{item.chapterNumber ? `Unit ${item.chapterNumber} · ` : ''}{item.chapterTitle}</strong>
+                    <div style={muted}>{item.subjectName ?? item.title} · {item.progressPercent}% read{item.isOverdue ? ' · overdue' : item.dueAt ? ` · due ${new Date(item.dueAt).toLocaleDateString('en-KE')}` : ''}</div>
+                    {item.instructions && <div style={{ ...muted, marginTop:4 }}>{item.instructions}</div>}
+                  </div>
+                  <span style={linkText}>{item.completedAt ? 'Review' : item.progressPercent > 0 ? 'Continue' : 'Start'} →</span>
+                </button>)}
+              </div>
+            </div>}
+
+            <div style={{ fontSize:12, fontWeight:900, color:'#334155', marginBottom:8 }}>Quizzes, tests and assessed work</div>
+            {brief.assignedAssessments.length === 0
+              ? <p style={muted}>{assignedReading.length === 0 ? 'Teacher-assigned learning will appear here.' : 'No assessed work is waiting right now.'}</p>
+              : <div style={{ display:'grid', gap:10 }}>{brief.assignedAssessments.map(item => <button key={item.assignmentId} style={rowButton} onClick={() => router.push(item.actionUrl)}><div><strong>{item.title}</strong><div style={muted}>{item.subjectName ?? 'General'} · {item.assessmentType.replaceAll('_',' ')}</div></div><span style={linkText}>Open →</span></button>)}</div>}
+          </section>
 
           <section style={card}><div style={eyebrowDark}>Subjects</div><h2 style={title}>Your mini learning library</h2>{brief.subjects.length === 0 ? <p style={muted}>Subjects will appear after your class and content library are linked.</p> : <div style={grid}>{brief.subjects.map(subject => <button key={subject.id} style={subjectCard} onClick={() => setLibraryOpen(true)}><strong>{subject.name}</strong><span style={muted}>{subject.resourceCount} learning resources</span></button>)}</div>}</section>
         </>}
