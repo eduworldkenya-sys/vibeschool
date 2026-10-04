@@ -4,7 +4,7 @@ Owner instruction: preserve all existing timetable behavior; investigate and imp
 
 Base inspected: `82f36cff29469fc4c4eeca6bc8ce55762b27996a`.
 Mission: `CYBORG-20261004052050-116dc4`.
-Status: IN PROGRESS / NOT CERTIFIED. This document is a checkpoint, not a release certificate.
+Status: CLOSURE CANDIDATE / NOT CERTIFIED. The remaining modernization scope is implemented on the closure branch; exact-head CI, production migration, browser/mobile/print and live postflight remain release gates.
 
 ## Binding requirements and checkpoint
 
@@ -16,22 +16,22 @@ Status: IN PROGRESS / NOT CERTIFIED. This document is a checkpoint, not a releas
 | Tap empty period to create | Implemented; partial occupied periods suppressed |
 | Structured single/double/triple creation using configured school periods | Implemented; consecutive-period regressions pass |
 | Preserve genuine custom school exceptions and explain unusual timings | Implemented; no unverified level duration mandated |
-| Grade/education-level suggested defaults grounded in current official guidance | Pending research and reviewed setup design |
-| School-day configuration with safe school-level permissions and preview | Pending |
+| Grade/education-level suggested defaults grounded in current official guidance | Reframed safely: school-owned grade duration defaults implemented; no unverified national duration rule is imposed |
+| School-day configuration with safe school-level permissions and preview | Implemented in closure candidate with member read, school-admin write, overlap protection and in-use deletion guard |
 | Guided first-use and later class setup | Inline guide and class setup link implemented; full setup journey pending |
 | Teacher-accessible placement suggestions, preferred sessions, clash checks | Implemented through existing teacher-authorized conflict preview; browser proof pending |
 | School-configured subject spread, resource, workload and morning preferences | Existing canonical intelligence retained; full UI reconciliation pending |
 | Repeat weekly or create a single-date lesson | Implemented; browser/date regression proof pending |
 | Preserve form during failures and block duplicate submissions | Implemented; async browser failure proof pending |
 | View preference, mobile sheet navigation and print | Preference and print control implemented; Android/print proof pending |
-| Copy/move/repeat week with conflict revalidation | Existing edit retained; additional copy/repeat flow pending |
-| Undo with concurrency-safe server semantics | Pending; destructive deletion remains existing confirmed behavior |
+| Copy/move/repeat week with conflict revalidation | Implemented in closure candidate: edit/move retained, lesson copy added, next-week revision exposed through canonical duplicate authority |
+| Undo with concurrency-safe server semantics | Implemented in closure candidate using pre-change snapshots and history-preserving restore; multi-school snapshot bug repaired |
 | Effective-date revisions and today-only changes preserve lesson history | Existing recovery/effective range paths retained; complete journey proof pending |
-| Multi-school clash checking | Pending cross-school canonical reconciliation |
-| Preparation status and connected teaching actions from sheet | Existing drawer reused; preparation badges pending |
-| Holidays/exams/events/substitutions | Existing domain code inspected; teacher UI/reconciliation pending |
-| Independent lesson creation from Lessons, Scheme and Subject | Pending schema, repository and UI work; live lesson_plans.timetable_slot_id is NOT NULL |
-| Reusable plan to dated lesson attachment without sharing evidence | Pending design and integrity proof |
+| Multi-school clash checking | Implemented in closure candidate: all authorized school schedules are combined for teacher visibility while canonical teacher overlap remains the write gate |
+| Preparation status and connected teaching actions from sheet | Implemented in closure candidate with Ready / Needs review / Plan needed indicators |
+| Holidays/exams/events/substitutions | Implemented in closure candidate: calendar exceptions surfaced; absence/substitute authority reconciled; substitute slots remain occurrence-scoped and non-editable |
+| Independent lesson creation from Lessons, Scheme and Subject | Implemented without weakening occurrence identity: independent lesson_plan_drafts plus explicit attachment to a dated timetable occurrence |
+| Reusable plan to dated lesson attachment without sharing evidence | Implemented in closure candidate; attachment copies planning content only and keeps attendance/evidence/delivery lineage occurrence-specific |
 | Exact-head CI, independent assurance, main merge and post-merge verification | Pending; do not merge this checkpoint as complete mission |
 
 ## Verified findings
