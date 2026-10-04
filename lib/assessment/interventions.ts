@@ -84,6 +84,12 @@ export async function listInterventionQueue(classId?: string | null, includeClos
     })
     for (const value of rows) {
       const row = record(value)
+      if (!row.students || typeof row.students !== 'object' || Array.isArray(row.students)) {
+        throw new Error('A support record needs learner identity reconciliation. No partial queue is shown.')
+      }
+      if (!row.curriculum_learning_outcomes || typeof row.curriculum_learning_outcomes !== 'object' || Array.isArray(row.curriculum_learning_outcomes)) {
+        throw new Error('A support record needs curriculum outcome reconciliation. Historical support remains saved; no partial queue is shown.')
+      }
       const learner = record(row.students), outcome = record(row.curriculum_learning_outcomes)
       if (!text(learner.name)) throw new Error('A support record needs learner identity reconciliation. No partial queue is shown.')
       interventions.push({...row,intervention_id:row.id,student_name:learner.name,admission_number:learner.admission_number,
