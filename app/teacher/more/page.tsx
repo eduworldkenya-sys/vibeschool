@@ -16,7 +16,7 @@ const ITEMS = [
   { label: 'Assessment',   href: '/teacher/assessment',           desc: 'CBC assessments'                   },
   { label: 'Results',      href: '/teacher/results',              desc: 'Student results'                   },
   { label: 'Resources',    href: '/teacher/resources',            desc: 'Notes, quizzes, exercises'         },
-  { label: 'VibeLearn',    href: '/teacher/vibelearn',            desc: 'AI-powered learning content'       },
+  { label: 'VibeLearn',    href: '/teacher/vibelearn',            desc: 'Learning library for your classes'  },
   { label: 'SchoolHub',    href: '/teacher/schoolhub',            desc: 'School info and staff'             },
   { label: 'TPAD',         href: '/teacher/tpad',                 desc: 'Teacher performance appraisal'     },
   { label: 'Credits',      href: '/teacher/credits',              desc: 'Vibe Credits wallet'               },

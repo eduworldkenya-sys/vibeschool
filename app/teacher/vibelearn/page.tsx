@@ -13,6 +13,7 @@ import type {
   AdoptionClassOption,
 } from "@/lib/content-engine/vibelearnClassAdoption";
 import { C } from "@/components/teacher/ui";
+import VibeLearnWorkspace from "@/components/teacher/VibeLearnWorkspace";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Content {
@@ -271,7 +272,7 @@ export default function VibeLearnPage() {
   const mounted = useRef(true);
   const createFormRef = useRef<HTMLDivElement>(null);
 
-  const [tab,          setTab]          = useState<Tab>("content");
+  const [tab,          setTab]          = useState<Tab>("discover");
   const [userId,       setUserId]       = useState<string | null>(null);
   const [content,      setContent]      = useState<Content[]>([]);
   const [stats,        setStats]        = useState<Stats | null>(null);
@@ -332,6 +333,58 @@ export default function VibeLearnPage() {
     return () => {
       mounted.current = false;
     };
+  }, []);
+
+  const loadContent = useCallback(async (uid: string) => {
+    const { data, error } = await supabase
+      .from("vibelearn_content")
+      .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
+      .eq("submitted_by", uid)
+      .order("created_at", { ascending: false });
+    if (!error && data && mounted.current) setContent(data as Content[]);
+  }, []);
+
+  const loadStats = useCallback(async (uid: string) => {
+    if (mounted.current) setLoadingStats(true);
+    try {
+      let data: {
+        total_views: number | null;
+        total_earnings_ksh: number | null;
+        live_count: number | null;
+        teacher_rank: number | null;
+      } | null = null;
+
+      try {
+        const { data: statsRow } = await supabase
+          .from("vibelearn_teacher_stats")
+          .select(
+            "total_views,total_earnings_ksh,live_count,teacher_rank"
+          )
+          .eq("teacher_id", uid)
+          .maybeSingle();
+
+        data = statsRow;
+      } catch {
+        // Stats view may not exist yet — non-fatal.
+      }
+      const { data: top } = await supabase
+        .from("vibelearn_content")
+        .select("title,view_count")
+        .eq("submitted_by", uid)
+        .eq("status", "live")
+        .order("view_count", { ascending: false })
+        .limit(3);
+      if (!mounted.current) return;
+      setStats({
+        total_views:        data?.total_views        ?? 0,
+        total_earnings_ksh: data?.total_earnings_ksh ?? 0,
+        live_count:         data?.live_count         ?? 0,
+        teacher_rank:       data?.teacher_rank       ?? null,
+        top_content:        (top ?? []) as { title: string; view_count: number }[],
+      });
+    } finally {
+      if (mounted.current) setLoadingStats(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -402,61 +455,9 @@ export default function VibeLearnPage() {
         if (mounted.current) setLoadingPage(false);
       }
     }
-    init();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    void init();
+  }, [loadContent, loadStats, router]);
 
-  const loadContent = useCallback(async (uid: string) => {
-    const { data, error } = await supabase
-      .from("vibelearn_content")
-      .select("id,title,description,body,type,source,url,tags,status,view_count,earnings_ksh,created_at,submitted_by,vibe_publication_id")
-      .eq("submitted_by", uid)
-      .order("created_at", { ascending: false });
-    if (!error && data && mounted.current) setContent(data as Content[]);
-  }, []);
-
-  const loadStats = useCallback(async (uid: string) => {
-    if (mounted.current) setLoadingStats(true);
-    try {
-      let data: {
-        total_views: number | null;
-        total_earnings_ksh: number | null;
-        live_count: number | null;
-        teacher_rank: number | null;
-      } | null = null;
-
-      try {
-        const { data: statsRow } = await supabase
-          .from("vibelearn_teacher_stats")
-          .select(
-            "total_views,total_earnings_ksh,live_count,teacher_rank"
-          )
-          .eq("teacher_id", uid)
-          .maybeSingle();
-
-        data = statsRow;
-      } catch {
-        // Stats view may not exist yet — non-fatal.
-      }
-      const { data: top } = await supabase
-        .from("vibelearn_content")
-        .select("title,view_count")
-        .eq("submitted_by", uid)
-        .eq("status", "live")
-        .order("view_count", { ascending: false })
-        .limit(3);
-      if (!mounted.current) return;
-      setStats({
-        total_views:        data?.total_views        ?? 0,
-        total_earnings_ksh: data?.total_earnings_ksh ?? 0,
-        live_count:         data?.live_count         ?? 0,
-        teacher_rank:       data?.teacher_rank       ?? null,
-        top_content:        (top ?? []) as { title: string; view_count: number }[],
-      });
-    } finally {
-      if (mounted.current) setLoadingStats(false);
-    }
-  }, []);
 
   // ── Optimistic toggle ───────────────────────────────────────────────────────
   async function toggleStatus(item: Content) {
@@ -801,40 +802,32 @@ export default function VibeLearnPage() {
         {/* ── Hero ── */}
         <div style={{ background: "linear-gradient(135deg,#065f46 0%,#1e1b4b 100%)", borderRadius: 20, padding: "18px 20px", marginBottom: 14, color: "#fff", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle,rgba(16,185,129,0.25),transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn</div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Publish. Earn. Grow.</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", marginBottom: 16 }}>Your content earns every time a student reads it.</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            {[
-              { label: "Earnings (KSH)", value: loadingStats ? "…" : `${(stats?.total_earnings_ksh ?? 0).toLocaleString()}`, color: "#6ee7b7" },
-              { label: "Total Views",    value: loadingStats ? "…" : `${(stats?.total_views ?? 0).toLocaleString()}`,         color: "#93c5fd" },
-              { label: "Live",           value: loadingStats ? "…" : `${stats?.live_count ?? 0}`,                             color: "#fde68a" },
-              { label: "Rank",           value: loadingStats ? "…" : stats?.teacher_rank ? `#${stats.teacher_rank}` : "—",   color: "#f9a8d4" },
-            ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 12, padding: "10px 8px", textAlign: "center" }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.45)", marginTop: 2, fontWeight: 600 }}>{s.label}</div>
-              </div>
+          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn · Teacher</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Learning Library</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginBottom: 14, lineHeight: 1.6 }}>Find what this class needs, use it in a lesson, give it to learners, and follow the learning evidence.</div>
+          <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {["Curriculum-aware","Class-aware","Lesson-linked","Evidence-informed"].map(label => (
+              <span key={label} style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 999, padding: "5px 9px", fontSize: 9, fontWeight: 750, color: "rgba(255,255,255,.78)" }}>{label}</span>
             ))}
           </div>
           <button
             onClick={() => router.push("/teacher/vibelearn/indexer")}
-            style={{ marginTop: 14, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10, padding: "8px 16px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+            style={{ marginTop: 13, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 10, padding: "8px 13px", color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
           >
-            📊 View Index Score →
+            Publishing reach →
           </button>
         </div>
 
         {/* ── Tabs ── */}
         <div style={{ display: "flex", gap: 8, marginBottom: 14, overflowX: "auto", paddingBottom: 2 }}>
-          {(["content","create","assignments","stats","discover"] as Tab[]).map(t => (
+          {(["discover","assignments","content","create","stats"] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={S.pill(tab === t)}>
               {{
-                content: `📄 Content${liveCount > 0 ? ` (${liveCount})` : ""}`,
-                create: "✦ Create",
-                assignments: "📚 Assignments",
-                stats: "📊 Stats",
-                discover: "🔍 Discover",
+                content: `My publishing${liveCount > 0 ? ` (${liveCount})` : ""}`,
+                create: "Create",
+                assignments: "Learner reading",
+                stats: "Publishing stats",
+                discover: "Learning library",
               }[t]}
             </button>
           ))}
@@ -842,7 +835,7 @@ export default function VibeLearnPage() {
 
         {publishOk && (
           <div style={{ ...S.card, background: "#d1fae5", border: "1px solid #6ee7b7", padding: "12px 16px", marginBottom: 14, animation: "fadeIn 0.3s ease" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Vibe dropped. You are now earning.</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Resource published to VibeLearn.</div>
           </div>
         )}
 
@@ -857,10 +850,10 @@ export default function VibeLearnPage() {
             {content.length === 0 ? (
               <div style={{ ...S.card, textAlign: "center", padding: "48px 24px" }}>
                 <div style={{ fontSize: 36, marginBottom: 12 }}>📚</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No Vibes Dropped Yet</div>
-                <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.6 }}>Create a learning page, ebook or VibeTextbook and publish it to VibeLearn.</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, marginBottom: 6 }}>No published resources yet</div>
+                <div style={{ fontSize: 13, color: C.textMuted, marginBottom: 20, lineHeight: 1.6 }}>Your authored learning pages and publications will appear here after you create them.</div>
                 <button onClick={() => setTab("create")} style={S.btnPrimary(false)}>
-                  Drop Your First Vibe →
+                  Create your first resource →
                 </button>
               </div>
             ) : (
@@ -985,7 +978,7 @@ export default function VibeLearnPage() {
                 })}
 
                 <button onClick={() => setTab("create")} style={{ width: "100%", padding: 14, borderRadius: 14, border: `2px dashed ${C.border}`, background: "transparent", color: C.textMuted, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit", marginBottom: 14 }}>
-                  + Drop Another Vibe
+                  + Create another resource
                 </button>
               </>
             )}
@@ -1000,16 +993,17 @@ export default function VibeLearnPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
                   { id: "epage" as const, icon: "📄", title: "Learning Page", desc: "Notes, revision material, activities or a lesson resource." },
-                  { id: "ebook" as const, icon: "📚", title: "Ebook", desc: "A longer downloadable or linked learning resource." },
-                  { id: "textbook" as const, icon: "📘", title: "VibeTextbook", desc: "A structured curriculum-aligned book with chapters and publishing controls.", badge: "Full authoring studio" },
+                  { id: "ebook" as const, icon: "📚", title: "eBook", desc: "Structured long-form content created and versioned in Content Studio.", badge: "Content Studio" },
+                  { id: "textbook" as const, icon: "📘", title: "Interactive textbook", desc: "Curriculum-aligned chapters, activities and publishing controls in Content Studio.", badge: "Content Studio" },
                 ].map(opt => {
                   const isSelected = cType === opt.id && opt.id !== "textbook";
                   return (
                     <button
                       key={opt.id}
                       onClick={() => {
-                        if (opt.id === "textbook") { router.push("/global/create/textbook"); return; }
-                        setCType(opt.id);
+                        if (opt.id === "textbook") { router.push("/teacher/studio/editor?format=vibetextbook"); return; }
+                        if (opt.id === "ebook") { router.push("/teacher/studio/editor?format=ebook"); return; }
+                        setCType("epage");
                         requestAnimationFrame(() => {
                           createFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                         });
@@ -1034,7 +1028,7 @@ export default function VibeLearnPage() {
                         <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{opt.desc}</div>
                       </div>
                       <div style={{ fontSize: 16, color: isSelected ? C.accent : C.textMuted, fontWeight: 800, flexShrink: 0, alignSelf: "center" }}>
-                        {opt.id === "textbook" ? "→" : (isSelected ? "✓" : "→")}
+                        {opt.id === "textbook" || opt.id === "ebook" ? "→" : (isSelected ? "✓" : "→")}
                       </div>
                     </button>
                   );
@@ -1265,7 +1259,7 @@ export default function VibeLearnPage() {
         {tab === "assignments" && <ReadingAssignmentsTab />}
 
         {/* ══ DISCOVER TAB ══ */}
-        {tab === "discover" && <DiscoverTab userId={userId} />}
+        {tab === "discover" && <VibeLearnWorkspace />}
 
       </div>
     </>

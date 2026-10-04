@@ -33,7 +33,7 @@ const tools: Tool[] = [
   {
     id: "content",
     label: "Learning Content",
-    help: "Find curriculum-aligned notes, examples, exercises and approved learning material.",
+    help: "Open VibeLearn to find curriculum-aligned material for this exact class, subject and current teaching focus.",
     group: "prepare",
     needsClass: true,
     href: (classId, subject) => `/teacher/vibelearn?tab=discover&classId=${encodeURIComponent(classId)}&subjectId=${encodeURIComponent(subject.id)}`,
