@@ -27,6 +27,7 @@ const sequenceLib = read('lib/vibelearn/lessonLearningSequence.ts')
 const sequenceUi = read('components/teacher/VibeLearnLessonSequence.tsx')
 const lessonModal = read('components/teacher/LessonPlanModal.tsx')
 const graphRepair = read('supabase/migrations/20261004123000_vibelearn_learning_graph_production_reconcile.sql')
+const verifiedOutcomeFix = read('supabase/migrations/20261004153000_vibelearn_lesson_verified_outcome_status.sql')
 
 requireText('teacher VibeLearn identity', page, 'VibeLearn · Learning Library')
 requireText('teacher VibeLearn identity', page, 'Find. Use. Follow learning.')
@@ -89,6 +90,8 @@ requireText('graph authorization', graphRepair, 'grant all on table public.curri
 requireText('evidence-safe differentiation', graphRepair, "'missing_evidence_is_not_weakness',true")
 requireText('teacher controls differentiation', graphRepair, "'teacher_controls_assignment',true")
 requireText('graph fallback', graphRepair, "'graph_is_enrichment_not_invention',true")
+requireText('verified lesson outcome authority', verifiedOutcomeFix, "clo.status in ('active','verified')")
+forbidText('verified lesson outcome authority', verifiedOutcomeFix, "clo.status = 'active'")
 
 requireText('lesson sequence client', sequenceLib, "teacher_get_vibelearn_lesson_recommendations")
 requireText('lesson sequence client', sequenceLib, "link_learning_resource")
