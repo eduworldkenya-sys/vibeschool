@@ -137,7 +137,7 @@ export default function IndexerPage() {
 
   const tips: { icon: string; title: string; body: string; done: boolean }[] = [
     { icon: "📄", title: "Publish at least 1 live content",   body: "Live content is indexed and discoverable by students.",         done: live > 0 },
-    { icon: "🏷️", title: "Add tags to all content",           body: "Tagged content appears 3× more in student searches.",          done: tagged === items.length && items.length > 0 },
+    { icon: "🏷️", title: "Add useful tags to all content",    body: "Tags help describe and retrieve your material. They do not override curriculum relevance.", done: tagged === items.length && items.length > 0 },
     { icon: "📝", title: "Add descriptions to all content",   body: "Rich descriptions improve click-through from search.",         done: described === items.length && items.length > 0 },
     { icon: "👁️", title: "Get your first 10 views",           body: "Views signal quality to the ranking engine.",                  done: totalViews >= 10 },
     { icon: "📚", title: "Publish 5+ pieces of content",      body: "Volume increases your search surface area.",                   done: items.length >= 5 },
@@ -170,8 +170,8 @@ export default function IndexerPage() {
         {/* Header */}
         <div style={{ background: `linear-gradient(135deg,${C.dark} 0%,#312e81 100%)`, borderRadius: 20, padding: "20px", marginBottom: 14, color: "#fff" }}>
           <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>VibeLearn</div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Content Indexer</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>How VibeLearn ranks your content for student discovery</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Publishing Reach</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>A transparent publishing-health score for your own content. It is not the learning-library recommendation rank.</div>
         </div>
 
         {/* Score card */}
@@ -182,7 +182,7 @@ export default function IndexerPage() {
               {indexScore >= 70 ? "Good Standing" : indexScore >= 40 ? "Needs Work" : "Getting Started"}
             </div>
             <div style={{ fontSize: 13, color: C.textMuted, marginTop: 4, lineHeight: 1.5 }}>
-              {rank ? `Ranked #${rank} among all teachers on the platform.` : "Publish content to get ranked."}
+              {rank ? `Publisher position #${rank} in the current legacy stats view.` : "Publish content to build a reach history."}
             </div>
             {rank && (
               <div style={{ display: "inline-block", marginTop: 8, padding: "4px 12px", borderRadius: 20, background: "#fef3c7", color: "#b45309", fontSize: 11, fontWeight: 700 }}>
@@ -194,7 +194,7 @@ export default function IndexerPage() {
 
         {/* Signal bars */}
         <div style={card}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Ranking Signals</div>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Publishing Health Signals</div>
           {[
             { label: "Live Content",    value: live,        max: Math.max(items.length, 1), suffix: ` / ${items.length}`, color: C.accent   },
             { label: "Live Views",      value: totalViews,  max: 50,                         suffix: " views",             color: "#0284c7"  },
@@ -215,7 +215,7 @@ export default function IndexerPage() {
 
         {/* Tips */}
         <div style={card}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Improve Your Score</div>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Improve Publishing Readiness</div>
           {tips.map((tip, i) => (
             <div key={tip.title} style={{ display: "flex", gap: 12, alignItems: "flex-start", paddingBottom: 14, marginBottom: i < tips.length - 1 ? 14 : 0, borderBottom: i < tips.length - 1 ? `1px solid ${C.border}` : "none" }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, background: tip.done ? "#d1fae5" : "#f3f4f6", transition: "background 0.3s ease" }}>
