@@ -18,6 +18,17 @@ interface SlotWithPlan {
   plan: PlanRow | null
 }
 
+interface UnscheduledPlan {
+  id: string
+  classId: string
+  subjectId: string
+  title: string
+  topic: string
+  taughtDate: string
+  className: string
+  subjectName: string
+}
+
 type ReadinessState = 'ready' | 'needs_review' | 'no_plan'
 type ReadinessFilter = 'all' | ReadinessState
 
@@ -125,6 +136,8 @@ function LessonPlanInner() {
   )
   const [items,       setItems]       = useState<SlotWithPlan[]>([])
   const [history,     setHistory]     = useState<HistoryRow[]>([])
+  const [unscheduledPlans, setUnscheduledPlans] = useState<UnscheduledPlan[]>([])
+  const [attachingPlanId, setAttachingPlanId] = useState<string | null>(null)
   const [loading,     setLoading]     = useState(true)
   const [histLoading, setHistLoading] = useState(true)
   const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
@@ -137,6 +150,26 @@ function LessonPlanInner() {
   function showToast(msg: string) {
     setToast(msg)
     setTimeout(() => setToast(''), 3000)
+  }
+
+  async function attachIndependentPlan(plan: UnscheduledPlan, item: SlotWithPlan) {
+    if (attachingPlanId) return
+    setAttachingPlanId(plan.id)
+    try {
+      const { error } = await supabase.rpc('attach_independent_lesson_plan', {
+        p_lesson_plan_id: plan.id,
+        p_timetable_slot_id: item.slot.id,
+        p_taught_date: item.slot.occurrenceDate,
+      })
+      if (error) throw error
+      showToast('Lesson plan attached to timetable')
+      setRefreshNonce(value => value + 1)
+    } catch (error) {
+      console.error('[LessonPlan] attach independent plan failed:', error)
+      showToast('Could not attach that plan to the timetable')
+    } finally {
+      setAttachingPlanId(null)
+    }
   }
 
   useEffect(() => {
@@ -199,7 +232,7 @@ function LessonPlanInner() {
 
       const plansRes = await supabase
         .from('lesson_plans')
-        .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
+        .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,taught_date,status,curriculum_id,strand_id')
         .eq('teacher_id', user.id)
         .eq('school_id', resolvedSchoolId)
         .eq('week_start', weekStart)
@@ -211,6 +244,7 @@ function LessonPlanInner() {
         return
       }
 
+      const unscheduledRows = (plansRes.data ?? []).filter(p => !p.timetable_slot_id)
       const planMap = new Map<string, PlanRow>()
       for (const p of plansRes.data ?? []) {
         if (!p.timetable_slot_id) continue
@@ -232,10 +266,16 @@ function LessonPlanInner() {
         )
       })
       const subjectIds = Array.from(
-        new Set(slots.map(s => s.subject_id).filter(Boolean))
+        new Set([
+          ...slots.map(s => s.subject_id),
+          ...(plansRes.data ?? []).map(p => p.subject_id),
+        ].filter(Boolean))
       )
       const classIds = Array.from(
-        new Set(slots.map(s => s.class_id).filter(Boolean))
+        new Set([
+          ...slots.map(s => s.class_id),
+          ...(plansRes.data ?? []).map(p => p.class_id),
+        ].filter(Boolean))
       )
       const [subjRes, clsRes] = await Promise.all([
         subjectIds.length > 0
@@ -259,6 +299,17 @@ function LessonPlanInner() {
       const clsMap = Object.fromEntries(
         classRows.map(c => [c.id, c.name + (c.stream ? ' ' + c.stream : '')]),
       )
+
+      setUnscheduledPlans(unscheduledRows.map(p => ({
+        id: p.id,
+        classId: p.class_id,
+        subjectId: p.subject_id,
+        title: p.title ?? '',
+        topic: p.topic ?? '',
+        taughtDate: p.taught_date,
+        className: clsMap[p.class_id] ?? 'Class',
+        subjectName: subjMap[p.subject_id] ?? 'Subject',
+      })))
 
       const mapped: SlotWithPlan[] = slots.map(s => {
         const occurrenceDate = nairobiDateAdd(
@@ -405,7 +456,13 @@ function LessonPlanInner() {
       }}>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Lesson Plans</div>
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>{isThisWeek ? "Today's Plans" : 'Week of ' + weekStart}</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 4 }}>Week of {weekStart} · Linked to your timetable.</div>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 4 }}>Week of {weekStart} · Timetabled and unscheduled draft plans.</div>
+        <button
+          onClick={() => router.push('/teacher/lessonplan/new')}
+          style={{ marginTop: 10, padding: '7px 12px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.12)', color: '#fff', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}
+        >
+          + Plan without timetable
+        </button>
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
           <button onClick={() => setWeekStart(w => nairobiDateAdd(w, -7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Prev</button>
           <button onClick={() => setWeekStart(nairobiWeekStart())} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: isThisWeek ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Today</button>
@@ -429,6 +486,50 @@ function LessonPlanInner() {
           </div>
         )}
       </div>
+
+      {unscheduledPlans.length > 0 && (
+        <Card>
+          <SectionLabel>Planned before scheduling</SectionLabel>
+          <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 8 }}>
+            These drafts are valid without a timetable. Attach one only when the matching class and subject gets a real slot.
+          </div>
+          {unscheduledPlans.map(plan => {
+            const matching = items.filter(item =>
+              item.slot.class_id === plan.classId &&
+              item.slot.subject_id === plan.subjectId &&
+              item.plan === null
+            )
+            return (
+              <div key={plan.id} style={{ padding: '12px 0', borderTop: '1px solid ' + C.border }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.textPrimary }}>
+                  {plan.topic || plan.title || 'Untitled lesson'}
+                </div>
+                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
+                  {plan.className} · {plan.subjectName} · planned {plan.taughtDate}
+                </div>
+                {matching.length === 0 ? (
+                  <div style={{ fontSize: 11, color: C.textMuted, marginTop: 7 }}>
+                    No free matching timetable occurrence in this week. Keep the draft and schedule later.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                    {matching.slice(0, 5).map(item => (
+                      <button
+                        key={item.slot.id}
+                        disabled={attachingPlanId === plan.id}
+                        onClick={() => void attachIndependentPlan(plan, item)}
+                        style={{ padding: '6px 9px', borderRadius: 9, border: '1px solid ' + C.border, background: '#fff', fontSize: 11, fontWeight: 800, cursor: 'pointer' }}
+                      >
+                        Attach · {item.slot.occurrenceDate} {formatTime(item.slot.start)}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </Card>
+      )}
 
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
