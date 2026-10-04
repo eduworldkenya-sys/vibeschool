@@ -1130,7 +1130,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         const readiness: TimetableReadiness = slot.__isSubstitute
           ? 'needs_review'
           : plan
-            ? (isLessonPlanReadyToTeach(plan.body) ? 'ready' : 'needs_review')
+            ? (isLessonPlanReadyToTeach(plan.body ?? '') ? 'ready' : 'needs_review')
             : 'no_plan'
 
         return {
