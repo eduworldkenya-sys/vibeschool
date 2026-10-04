@@ -1,0 +1,18 @@
+[
+  {
+    "missionId": "CYBORG-20261004052050-116dc4",
+    "runId": "e91fecd1-55c4-4dc1-bc90-71e482512624",
+    "paths": [
+      "app/teacher/timetable",
+      "components/teacher/AddSlotModal.tsx",
+      "components/teacher/ClassicTimetable.tsx",
+      "lib/timetable",
+      "scripts/test-timetable-guided-periods.mjs",
+      "scripts/register-typescript.mjs",
+      "package.json",
+      "docs/engineering/timetable-modernization-locked-mission.md"
+    ],
+    "acquiredAt": "2026-10-04T05:21:24.615Z",
+    "releasedAt": null
+  }
+]
