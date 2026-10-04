@@ -11,7 +11,8 @@
     "test:seo-authority": "node scripts/seo-content-authority-contract-test.mjs",
     "validate": "npm run typecheck && npm run lint && npm run test:twin && npm run test:seo-authority && npm run test:timetable && npm run build",
     "test:timetable": "node --import ./scripts/register-typescript.mjs scripts/test-timetable-modern-intelligence.mjs && node --import ./scripts/register-typescript.mjs scripts/test-timetable-guided-periods.mjs",
-    "test:twin": "node scripts/test-deterministic-twin-contract.mjs && node scripts/test-personal-twin.mjs && node scripts/test-personal-twin-service.mjs"
+    "test:twin": "node scripts/test-deterministic-twin-contract.mjs && node scripts/test-personal-twin.mjs && node scripts/test-personal-twin-service.mjs",
+    "test:vibelearn": "node scripts/test-vibelearn-teacher-learning-os.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.97.1",
