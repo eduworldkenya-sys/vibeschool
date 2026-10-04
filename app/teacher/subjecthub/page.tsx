@@ -101,7 +101,6 @@ export default function SubjectHubPage() {
   const [addingSubject,     setAddingSubject]     = useState(false)
   const [addSubjectError,   setAddSubjectError]   = useState<string | null>(null)
   const [allClasses,        setAllClasses]        = useState<{id: string; name: string; stream: string | null; school_id: string | null}[]>([])
-  const [impactScore,      setImpactScore]      = useState<number>(0)
   const [streak,           setStreak]           = useState<number>(0)
   const [lessonCount,      setLessonCount]      = useState<number>(0)
   const [assessCount,      setAssessCount]      = useState<number>(0)
@@ -119,9 +118,6 @@ export default function SubjectHubPage() {
   const [suggLoading,      setSuggLoading]      = useState(false)
   const [weakStrand,       setWeakStrand]       = useState<{ name: string; pct: number } | null>(null)
   const [curriculumPct,    setCurriculumPct]    = useState<number | null>(null)
-  const [removeConfirmId,  setRemoveConfirmId]  = useState<string | null>(null)
-  const [removingSubjectId, setRemovingSubjectId] =
-    useState<string | null>(null)
   // Task 2A — attendance rate per class for this subject this term
   const [attRateByClass,   setAttRateByClass]   = useState<Record<string, number>>({})
   const [outcomesByStrand, setOutcomesByStrand] = useState<{strand: string; count: number}[]>([])
@@ -430,60 +426,6 @@ export default function SubjectHubPage() {
     setAddSubjectError(null)
     setAddingSubject(false)
     setUseOtherSubject(false)
-  }
-
-  async function removeSubject(subjectId: string) {
-    if (!currentId || !schoolId || removingSubjectId) return
-
-    setRemovingSubjectId(subjectId)
-    setError(null)
-
-    try {
-      const { error: delErr } = await supabase
-        .from('teacher_classes')
-        .delete()
-        .eq('teacher_id', currentId)
-        .eq('school_id', schoolId)
-        .eq('subject_id', subjectId)
-
-      if (delErr) {
-        throw delErr
-      }
-
-      const nextSubjects =
-        subjects.filter(subject => subject.id !== subjectId)
-
-      setSubjects(nextSubjects)
-
-      const nextIdx = Math.max(
-        0,
-        Math.min(
-          activeIdx,
-          nextSubjects.length - 1,
-        ),
-      )
-
-      setActiveIdx(nextIdx)
-      setClasses([])
-      setTeammates([])
-      setRemoveConfirmId(null)
-
-      if (nextSubjects.length > 0) {
-        void loadGrowthData(
-          nextSubjects[nextIdx].id,
-        )
-      }
-    } catch (unlinkError) {
-      console.error(
-        '[SubjectHub] subject unlink failed',
-        unlinkError,
-      )
-      setError(
-        'The subject could not be unlinked. No assignments were removed.',
-      )
-    } finally {
-      setRemovingSubjectId(null)
-    }
   }
 
   async function loadGrowthData(subjectId: string) {
@@ -800,9 +742,6 @@ export default function SubjectHubPage() {
       setCurriculumPct(null)
     }
 
-    const score = (lCount * 15) + (aCount * 8) + (atCount * 5) + (rCount * 20)
-    setImpactScore(score)
-
     const activityDates = new Set([
       ...(lpRes.data ?? []).map((r: {created_at: string}) => r.created_at.split('T')[0]),
       ...(assRes.data ?? []).map((r: {created_at: string}) => r.created_at.split('T')[0]),
@@ -1101,107 +1040,33 @@ export default function SubjectHubPage() {
       {/* ── SUBJECT TABS ── */}
       {!loading && subjects.length > 0 && (
         <div style={{ padding: '14px 16px 0', display: 'flex', gap: 8, overflowX: 'auto' }}>
-          {subjects.map((s, i) => (
-            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0 }}>
-              {removeConfirmId === s.id ? (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  background: '#fee2e2',
-                  borderRadius: 20,
-                  padding: '4px 10px',
-                }}>
-                  <span style={{
-                    fontSize: 12,
-                    color: '#991b1b',
-                    fontWeight: 700,
-                  }}>
-                    Remove {s.name} from {
-                      i === activeIdx
-                        ? classes.length
-                        : 'all assigned'
-                    } {
-                      i === activeIdx &&
-                      classes.length === 1
-                        ? 'class'
-                        : 'classes'
-                    }?
-                  </span>
-
-                  <button
-                    disabled={removingSubjectId === s.id}
-                    onClick={() => {
-                      void removeSubject(s.id)
-                    }}
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: '#fff',
-                      background: '#dc2626',
-                      border: 'none',
-                      borderRadius: 12,
-                      padding: '3px 9px',
-                      cursor:
-                        removingSubjectId === s.id
-                          ? 'wait'
-                          : 'pointer',
-                      fontFamily: 'inherit',
-                      opacity:
-                        removingSubjectId === s.id
-                          ? 0.65
-                          : 1,
-                    }}
-                  >
-                    {removingSubjectId === s.id
-                      ? 'Removing…'
-                      : 'Unlink all'}
-                  </button>
-
-                  <button
-                    disabled={removingSubjectId === s.id}
-                    onClick={() =>
-                      setRemoveConfirmId(null)
-                    }
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: '#6b7280',
-                      background: '#fff',
-                      border: 'none',
-                      borderRadius: 12,
-                      padding: '3px 8px',
-                      cursor:
-                        removingSubjectId === s.id
-                          ? 'not-allowed'
-                          : 'pointer',
-                      fontFamily: 'inherit',
-                    }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setActiveIdx(i)}
-                  style={{
-                    padding: '7px 12px 7px 16px', borderRadius: 20, border: 'none',
-                    cursor: 'pointer', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-                    background: i === activeIdx ? '#075985' : '#fff',
-                    color:      i === activeIdx ? '#fff'    : C.textMuted,
-                    boxShadow: i === activeIdx ? '0 2px 8px rgba(7,89,133,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
-                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  {s.name}
-                </button>
-              )}
-            </div>
+          {subjects.map((subject, index) => (
+            <button
+              key={subject.id}
+              type="button"
+              onClick={() => setActiveIdx(index)}
+              style={{
+                flexShrink: 0,
+                padding: '7px 14px',
+                borderRadius: 20,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: 700,
+                whiteSpace: 'nowrap',
+                background: index === activeIdx ? '#075985' : '#fff',
+                color: index === activeIdx ? '#fff' : C.textMuted,
+                boxShadow: index === activeIdx ? '0 2px 8px rgba(7,89,133,0.3)' : '0 1px 3px rgba(0,0,0,0.08)',
+                fontFamily: 'inherit',
+              }}
+            >
+              {subject.name}
+            </button>
           ))}
         </div>
       )}
 
-      {/* ── TASK 1: SUBJECT INTELLIGENCE CARD ── */}
+      {/* ── SUBJECT INTELLIGENCE CARD ── */}
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -1312,24 +1177,15 @@ export default function SubjectHubPage() {
       {/* ── GROWTH ENGINE ── */}
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0' }}>
-
-          {/* Impact Score + Streak */}
-          <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-            <div style={{ flex: 1, background: 'linear-gradient(135deg, #1e1b4b 0%, #4338ca 100%)', borderRadius: 16, padding: '12px', boxShadow: '0 4px 12px rgba(67,56,202,0.3)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{impactScore}</div>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1, textTransform: 'uppercase' }}>Impact</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>pts this term</div>
+          {/* Activity continuity is descriptive only; it is not a quality or performance score. */}
+          {streak > 0 && (
+            <div style={{ background: '#fff', borderRadius: 16, padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Recent teaching activity</div>
+              <div style={{ fontSize: 13, color: C.textPrimary, marginTop: 4 }}>
+                Records exist on {streak} consecutive day{streak === 1 ? '' : 's'}.
               </div>
             </div>
-            <div style={{ flex: 1, background: 'linear-gradient(135deg, #065f46 0%, #10b981 100%)', borderRadius: 16, padding: '12px', boxShadow: '0 4px 12px rgba(16,185,129,0.3)', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{streak}🔥</div>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1, textTransform: 'uppercase' }}>Streak</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)' }}>{streak === 0 ? 'Start today' : 'days active'}</div>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Curriculum Completion */}
           {curriculumPct !== null && (

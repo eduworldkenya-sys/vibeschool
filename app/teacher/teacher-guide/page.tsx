@@ -6,6 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadLessonWorkspace, type LessonWorkspaceBootResult } from "@/lib/teaching/lessonWorkspace";
 import { parseLessonPlanBody, type LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
+import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 
 const card: React.CSSProperties = { background:"#fff", border:"1px solid #e2e8f0", borderRadius:16, padding:16 };
 const action: React.CSSProperties = { border:0, borderRadius:12, padding:"11px 14px", fontWeight:800, cursor:"pointer", background:"#1e1b4b", color:"#fff" };
@@ -76,13 +77,25 @@ function TeacherGuideInner() {
   if(loading) return <div role="status" style={{padding:24,color:"#475569",fontWeight:700}}>Opening the canonical Teacher Guide…</div>;
 
   if(!occurrenceDate || !classId || !subjectId) return (
-    <div style={{maxWidth:760,margin:"0 auto",padding:18}}>
+    <div style={{maxWidth:760,margin:"0 auto",padding:18,display:"grid",gap:12}}>
       <div style={{...card,borderColor:"#c7d2fe"}}>
         <div style={{fontSize:11,fontWeight:900,color:"#4f46e5",textTransform:"uppercase"}}>Teacher Guide</div>
-        <h1 style={{fontSize:24,margin:"6px 0"}}>Open a guide from your teaching context</h1>
-        <p style={{fontSize:13,lineHeight:1.6,color:"#64748b"}}>Teacher Guide does not invent a class, subject, curriculum position or lesson. Open it from a scheduled lesson, Scheme or Lesson Plan so VibeSchool can preserve the authoritative teaching context.</p>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button style={action} onClick={()=>router.push("/teacher/teach-today")}>Choose a lesson</button><button style={secondary} onClick={()=>router.push("/teacher/subjecthub")}>Open Subjects</button><button style={secondary} onClick={()=>router.push("/teacher/scheme")}>Open Scheme</button></div>
+        <h1 style={{fontSize:24,margin:"6px 0"}}>{classId && subjectId ? "Choose the lesson you are teaching" : "Open a guide from your teaching context"}</h1>
+        <p style={{fontSize:13,lineHeight:1.6,color:"#64748b"}}>
+          {classId && subjectId
+            ? "Your class and subject are already preserved. Choose the exact scheduled lesson so the guide can use the correct curriculum position."
+            : "Teacher Guide does not invent a class, subject, curriculum position or lesson. Open it from Subjects, a scheduled lesson, Scheme or Lesson Plan."}
+        </p>
       </div>
+      {classId && subjectId ? (
+        <SubjectLessonHandoff classId={classId} subjectId={subjectId} purpose="guide" />
+      ) : (
+        <div style={{...card,display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button style={action} onClick={()=>router.push("/teacher/teach-today")}>Choose a lesson</button>
+          <button style={secondary} onClick={()=>router.push("/teacher/subjecthub")}>Open Subjects</button>
+          <button style={secondary} onClick={()=>router.push("/teacher/scheme")}>Open Scheme</button>
+        </div>
+      )}
     </div>
   );
 
@@ -96,7 +109,7 @@ function TeacherGuideInner() {
         <div style={{fontSize:12,opacity:.78}}>{subjectName || "Subject"} · {context?.grade || workspace.context.grade || "Class"} · {context?.schoolName || "Active school"}</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:14}}>
           <button style={{...action,background:"#10b981"}} onClick={()=>router.push(`/teacher/lessonplan?${query}`)}>{workspace.existingPlan?"Open Lesson Plan":"Prepare Lesson Plan"}</button>
-          {workspace.existingPlan && <button style={{...secondary,border:0}} onClick={()=>router.push(`/teacher/lesson-notes?planId=${workspace.existingPlan?.id}&${query}`)}>Lesson Notes / Teach</button>}
+          {workspace.existingPlan && <button style={{...secondary,border:0}} onClick={()=>router.push(`/teacher/lesson-notes?lessonPlanId=${workspace.existingPlan?.id}&${query}`)}>Lesson Notes / Teach</button>}
         </div>
       </header>
 
