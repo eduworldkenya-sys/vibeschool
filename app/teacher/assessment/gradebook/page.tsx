@@ -17,7 +17,7 @@ export default function AssessmentGradebookPage() {
         const data = await getTeacherGradebook()
         if (!cancelled) setGradebook(data)
       } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load gradebook.')
+        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load class results.')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -30,9 +30,9 @@ export default function AssessmentGradebookPage() {
     <main style={shell}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <section style={card}>
-          <div style={eyebrow}>Assessment Engine</div>
-          <h1 style={{ margin: '6px 0' }}>Unified Gradebook</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Released assessment results synchronized with competency evidence, learner progress, and report cards.</p>
+          <div style={eyebrow}>Assessments</div>
+          <h1 style={{ margin: '6px 0' }}>Class Results</h1>
+          <p style={{ margin: 0, color: '#6b7280' }}>See assessment results that have been shared with learners, together with the scores used by progress and reports.</p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
@@ -47,7 +47,7 @@ export default function AssessmentGradebookPage() {
         </section>}
 
         <section style={card}>
-          {loading ? 'Loading gradebook…' : !gradebook || gradebook.entries.length === 0 ? (
+          {loading ? 'Loading class results…' : !gradebook || gradebook.entries.length === 0 ? (
             <div><strong>No released assessment results yet</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Results appear here after marking and release.</p></div>
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
