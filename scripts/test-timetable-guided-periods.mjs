@@ -48,3 +48,44 @@ const modal=fs.readFileSync('components/teacher/AddSlotModal.tsx','utf8');
 assert.ok(modal.includes('checkConflicts(onceSchedule ?? undefined)'),'preview uses same bounded schedule as writer');
 for(const field of ['dayOfWeek','effectiveFrom','effectiveUntil'])assert.ok(modal.includes(`onceSchedule?.${field}`),'writer uses derived one-date identity');
 console.log('Single-date placement regressions: PASS');
+
+
+const closureModal=fs.readFileSync('components/teacher/AddSlotModal.tsx','utf8');
+assert.ok(closureModal.includes('snapshotTimetable'),'slot mutations create an undo point');
+assert.ok(closureModal.includes('initialPlacement?.classId') && closureModal.includes('initialPlacement?.subjectId'),'copy pre-fills the canonical assignment');
+
+const operationsPanel=fs.readFileSync('components/teacher/TimetableOperationsPanel.tsx','utf8');
+assert.ok(operationsPanel.includes('restoreTimetableSnapshot'),'teacher timetable exposes safe undo');
+assert.ok(operationsPanel.includes('duplicateActiveTimetable'),'teacher timetable exposes repeat workflow');
+assert.ok(operationsPanel.includes('set_my_active_teacher_school'),'multi-school context uses canonical active-school authority');
+assert.ok(operationsPanel.includes('school_calendar_exceptions'),'week exceptions are surfaced');
+
+const timetablePage=fs.readFileSync('app/teacher/timetable/page.tsx','utf8');
+assert.ok(timetablePage.includes('isLessonPlanReadyToTeach'),'timetable readiness consumes canonical lesson readiness');
+assert.ok(timetablePage.includes('Copy lesson'),'slot drawer exposes copy');
+assert.ok(timetablePage.includes('TimetableOperationsPanel'),'modern operations remain connected to the existing timetable page');
+
+const independentPlan=fs.readFileSync('app/teacher/lessonplan/new/page.tsx','utf8');
+assert.ok(independentPlan.includes('create_independent_lesson_plan'),'plan-first workflow uses its guarded RPC');
+assert.ok(independentPlan.includes('class_timetable_preferences'),'independent planning consumes class duration guidance');
+const lessonPlanPage=fs.readFileSync('app/teacher/lessonplan/page.tsx','utf8');
+assert.ok(lessonPlanPage.includes('attach_independent_lesson_plan'),'unscheduled drafts can attach to a real occurrence');
+
+const adminTimetable=fs.readFileSync('app/admin/timetable/page.tsx','utf8');
+for(const authority of ['class_timetable_preferences','school_calendar_exceptions','assign_occurrence_substitute']) {
+  assert.ok(adminTimetable.includes(authority),`admin timetable exposes ${authority}`);
+}
+
+const migration=fs.readFileSync('supabase/migrations/20261004150925_timetable_modernization_closure.sql','utf8');
+for(const contract of [
+  'alter column timetable_slot_id drop not null',
+  'lesson_plans_unscheduled_draft_only',
+  'create_independent_lesson_plan',
+  'attach_independent_lesson_plan',
+  'Teacher already has an overlapping lesson at another school.',
+  'class_timetable_preferences',
+  "'school_id',s.school_id",
+]) {
+  assert.ok(migration.includes(contract),`closure migration contains ${contract}`);
+}
+console.log('Timetable modernization closure regressions: PASS');
