@@ -22,7 +22,7 @@ export default function AssessmentPulseCard({ schoolId }: { schoolId?: string })
   if (error) return null
 
   const total = summary
-    ? summary.awaitingMarking + summary.partiallyMarked + summary.readyToRelease + summary.pendingModeration + summary.highPriorityInterventions
+    ? summary.awaitingMarking + summary.partiallyMarked + summary.readyToRelease + summary.pendingMarks to review + summary.highPriorityInterventions
     : 0
 
   if (summary && total === 0) {
@@ -32,11 +32,11 @@ export default function AssessmentPulseCard({ schoolId }: { schoolId?: string })
           <div>
             <div style={eyebrow}>Assessment</div>
             <h2 style={{ margin: '5px 0 3px', fontSize: 16, color: '#111827' }}>Nothing awaiting review</h2>
-            <div style={muted}>Your marking workload is clear.</div>
+            <div style={muted}>No submitted work is waiting for you.</div>
           </div>
           <div aria-hidden="true" style={clearBadge}>✓</div>
         </div>
-        <button type="button" onClick={() => router.push('/teacher/assessment/gradebook')} style={quietButton}>Open gradebook</button>
+        <button type="button" onClick={() => router.push('/teacher/assessment/gradebook')} style={quietButton}>Open class results</button>
       </section>
     )
   }
@@ -52,16 +52,16 @@ export default function AssessmentPulseCard({ schoolId }: { schoolId?: string })
       </div>
 
       {!summary ? <div style={{ ...muted, marginTop: 12 }}>Loading assessment workload…</div> : <div style={grid}>
-        {summary.awaitingMarking > 0 && <Metric label="Awaiting marking" value={summary.awaitingMarking} />}
-        {summary.partiallyMarked > 0 && <Metric label="Partially marked" value={summary.partiallyMarked} />}
-        {summary.readyToRelease > 0 && <Metric label="Ready to release" value={summary.readyToRelease} />}
+        {summary.awaitingMarking > 0 && <Metric label="Waiting to be marked" value={summary.awaitingMarking} />}
+        {summary.partiallyMarked > 0 && <Metric label="Started marking" value={summary.partiallyMarked} />}
+        {summary.readyToRelease > 0 && <Metric label="Ready to share" value={summary.readyToRelease} />}
         {summary.pendingModeration > 0 && <Metric label="Moderation" value={summary.pendingModeration} />}
         {summary.highPriorityInterventions > 0 && <Metric label="High-priority support" value={summary.highPriorityInterventions} />}
       </div>}
 
       <div style={buttonGrid}>
-        <button type="button" onClick={() => router.push('/teacher/assessment/marking')} style={primaryButton}>Open marking centre</button>
-        <button type="button" onClick={() => router.push('/teacher/assessment/gradebook')} style={secondaryButton}>Gradebook</button>
+        <button type="button" onClick={() => router.push('/teacher/assessment/marking')} style={primaryButton}>Mark submitted work</button>
+        <button type="button" onClick={() => router.push('/teacher/assessment/gradebook')} style={secondaryButton}>Class Results</button>
       </div>
     </section>
   )

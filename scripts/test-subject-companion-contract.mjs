@@ -49,7 +49,7 @@ for (const label of [
   "Attendance",
   "Homework",
   "Assessment",
-  "Markbook",
+  "Exams",
   "Students & Class Data",
   "Class Workbook",
   "Learner Progress",

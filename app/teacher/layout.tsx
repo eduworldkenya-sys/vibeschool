@@ -355,9 +355,9 @@ const TRAY_ITEMS: Record<string, TrayItem[]> = {
   ],
   assess: [
     { label: "Assessments", icon: <IconAssess size={24} />, href: "/teacher/assessment" },
-    { label: "Marking", icon: <IconAttendance size={24} />, href: "/teacher/assessment/marking" },
-    { label: "Gradebook", icon: <IconResults size={24} />, href: "/teacher/assessment/gradebook" },
-    { label: "Analytics", icon: <IconAssess size={24} />, href: "/teacher/assessment/analytics" },
+    { label: "Mark Submitted Work", icon: <IconAttendance size={24} />, href: "/teacher/assessment/marking" },
+    { label: "Class Results", icon: <IconResults size={24} />, href: "/teacher/assessment/gradebook" },
+    { label: "Results Analysis", icon: <IconAssess size={24} />, href: "/teacher/assessment/analytics" },
     { label: "Curriculum", icon: <IconVibeLearn size={24} />, href: "/teacher/assessment/curriculum" },
     { label: "Interventions", icon: <IconStudents size={24} />, href: "/teacher/assessment/interventions" },
     { label: "Exams", icon: <IconResults size={24} />, href: "/teacher/results" },

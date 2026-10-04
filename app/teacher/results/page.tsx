@@ -54,6 +54,7 @@ function ResultsInner() {
   const [exams,setExams]=useState<Exam[]>([])
   const [activeExam,setActiveExam]=useState<Exam|null>(null)
   const [showExamSheet,setShowExamSheet]=useState(false)
+  const [showContextSheet,setShowContextSheet]=useState(false)
   const [newExamName,setNewExamName]=useState('')
   const [newExamType,setNewExamType]=useState('summative')
   const [newExamTerm,setNewExamTerm]=useState(1)
@@ -261,20 +262,15 @@ function ResultsInner() {
 
   return <div style={{padding:'0 0 80px',fontFamily:W.font,background:W.bg,minHeight:'100vh'}}>
     <div style={{padding:'20px 16px 12px',borderBottom:'1px solid #EDE0CE'}}>
-      <h1 style={{margin:0,fontSize:20,fontWeight:800,color:W.text}}>Exam Centre</h1>
-      <p style={{margin:'4px 0 0',fontSize:13,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''} · enter once, reuse across Workbook, progress and reports`:'Set up a class and subject to enter and explore exam marks.'}</p>
-    </div>
-
-    {tier===1 && <>
-      <div style={{overflowX:'auto',display:'flex',gap:8,padding:'12px 16px 0'}}>{classes.map((c,i)=><button key={c.id} onClick={()=>setActiveClassIdx(i)} style={pill(i===activeClassIdx)}>{c.name}{c.stream?' '+c.stream:''}</button>)}</div>
-      <div style={{overflowX:'auto',display:'flex',gap:8,padding:'8px 16px 0'}}>{subjects.map((s,i)=><button key={s.id} onClick={()=>setActiveSubjectIdx(i)} style={pill(i===activeSubjectIdx,'#4f46e5')}>{s.name}</button>)}</div>
-    </>}
-
-    <div style={{padding:'14px 16px 0'}}><div style={{fontSize:11,fontWeight:800,letterSpacing:.5,textTransform:'uppercase',color:W.textMuted}}>My exam sheets</div><div style={{fontSize:13,color:W.textSoft,marginTop:3}}>Choose an exam, then record or continue marks for the selected class and subject.</div></div>
-    <div style={{padding:'10px 16px 0',display:'flex',gap:8,alignItems:'center'}}>
-      <div style={{flex:1,overflowX:'auto',display:'flex',gap:8}}>{exams.length===0?<span style={{fontSize:13,color:W.textMuted}}>No exam has been created for this school yet.</span>:exams.map(e=><button key={e.id} onClick={()=>setActiveExam(e)} style={pill(activeExam?.id===e.id,'#0a0a0a')}>{e.name}{e.is_locked?' · Locked':''}</button>)}</div>
-      <button onClick={exportMarksCsv} disabled={!activeExam || results.length===0} style={{padding:'6px 12px',borderRadius:20,border:'1px solid #EDE0CE',background:'#fff',fontWeight:700,opacity:!activeExam||results.length===0?.5:1}}>Export CSV</button>
-      <button onClick={()=>setShowExamSheet(true)} style={{padding:'6px 14px',borderRadius:20,border:'1px solid #EDE0CE',background:'#fff',fontWeight:700}}>＋ New exam</button>
+      <div style={{fontSize:11,fontWeight:800,letterSpacing:.7,textTransform:'uppercase',color:W.textMuted}}>Exam Centre</div>
+      <h1 style={{margin:'5px 0 0',fontSize:22,fontWeight:900,color:W.text}}>{activeExam?.name??'Choose an exam'}</h1>
+      <p style={{margin:'4px 0 0',fontSize:14,fontWeight:700,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''}`:'Set up a class and subject to enter exam marks.'}</p>
+      {activeExam&&tier===1&&<p style={{margin:'5px 0 0',fontSize:12,color:W.textMuted}}>{results.length}/{students.length} marks entered{students.length>0?` · ${Math.round((results.length/students.length)*100)}% complete`:''}</p>}
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
+        {tier===1&&<button onClick={()=>setShowContextSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>Change exam / class / subject</button>}
+        <button onClick={()=>setShowExamSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>＋ New exam</button>
+        <button onClick={exportMarksCsv} disabled={!activeExam || results.length===0} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text,opacity:!activeExam||results.length===0?.5:1}}>Export</button>
+      </div>
     </div>
 
     {activeExam && students.length>0 && <div style={{margin:'12px 16px 0',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
@@ -296,6 +292,8 @@ function ResultsInner() {
     {activeTab==='analysis' && <div style={{padding:'14px 16px 0'}}>
       {!activeExam || !activeClass || !activeSubject ? <div style={{padding:40,textAlign:'center',color:W.textMuted}}>Select a class, subject and exam to open intelligence.</div> : <AssessmentIntelligenceConsole examId={activeExam.id} classId={activeClass.id} subjectId={activeSubject.id} refreshKey={`${activeExam.id}:${activeClass.id}:${activeSubject.id}:${results.length}:${results.map(r=>`${r.id}:${r.marks}:${r.is_absent}`).join('|')}`} onOpenMarkbook={()=>setActiveTab('entry')} />}
     </div>}
+
+    {showContextSheet && <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'flex-end'}} onClick={e=>{if(e.target===e.currentTarget)setShowContextSheet(false)}}><div style={{width:'100%',background:W.bg,borderRadius:'22px 22px 0 0',padding:'18px 16px 28px',maxHeight:'80vh',overflowY:'auto'}}><h2 style={{margin:'0 0 4px',fontSize:18}}>Change exam details</h2><p style={{margin:'0 0 14px',fontSize:12,color:W.textSoft}}>Choose where you are entering marks. VibeSchool keeps this context as you work.</p><label style={labelStyle}>Exam</label><select style={inputStyle} value={activeExam?.id??''} onChange={e=>setActiveExam(exams.find(x=>x.id===e.target.value)??null)}><option value="">Choose exam</option>{exams.map(e=><option key={e.id} value={e.id}>{e.name}{e.is_locked?' · Locked':''}</option>)}</select><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:12}}><div><label style={labelStyle}>Class</label><select style={inputStyle} value={activeClassIdx} onChange={e=>setActiveClassIdx(Number(e.target.value))}>{classes.map((x,i)=><option key={x.id} value={i}>{x.name}{x.stream?' '+x.stream:''}</option>)}</select></div><div><label style={labelStyle}>Subject</label><select style={inputStyle} value={activeSubjectIdx} onChange={e=>setActiveSubjectIdx(Number(e.target.value))}>{subjects.map((x,i)=><option key={x.id} value={i}>{x.name}</option>)}</select></div></div><button onClick={()=>setShowContextSheet(false)} style={{...btnPrimary,marginTop:16}}>Use this mark sheet</button></div></div>}
 
     {showExamSheet && <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'flex-end'}} onClick={e=>{if(e.target===e.currentTarget)setShowExamSheet(false)}}><div style={{width:'100%',background:W.bg,borderRadius:'22px 22px 0 0',padding:'18px 16px 32px'}}><h2 style={{margin:'0 0 6px',fontSize:18}}>Create exam</h2><p style={{margin:'0 0 16px',fontSize:12,color:W.textSoft}}>Create the shared exam once, then teachers enter marks against the same exam record. Use a clear school-facing name such as “Term 3 End-Term”.</p><label style={labelStyle}>Exam name</label><input style={inputStyle} value={newExamName} onChange={e=>setNewExamName(e.target.value)} placeholder="e.g. Term 2 Midterm"/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:12}}><div><label style={labelStyle}>Type</label><select style={inputStyle} value={newExamType} onChange={e=>setNewExamType(e.target.value)}>{['summative','cat','midterm','opener','endterm'].map(t=><option key={t} value={t}>{t}</option>)}</select></div><div><label style={labelStyle}>Pass mark</label><input type="number" min={0} max={100} style={inputStyle} value={newExamPass} onChange={e=>setNewExamPass(Number(e.target.value))}/></div><div><label style={labelStyle}>Term</label><select style={inputStyle} value={newExamTerm} onChange={e=>setNewExamTerm(Number(e.target.value))}>{[1,2,3].map(t=><option key={t} value={t}>Term {t}</option>)}</select></div><div><label style={labelStyle}>Year</label><input type="number" style={inputStyle} value={newExamYear} onChange={e=>setNewExamYear(Number(e.target.value))}/></div></div>{examError&&<p style={{color:'#b91c1c',fontSize:12,fontWeight:700}}>{examError}</p>}<button onClick={()=>void createExam()} disabled={creatingExam} style={{...btnPrimary,marginTop:16,opacity:creatingExam?.6:1}}>{creatingExam?'Creating…':'Create exam'}</button></div></div>}
   </div>

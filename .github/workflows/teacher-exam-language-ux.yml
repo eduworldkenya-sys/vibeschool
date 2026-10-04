@@ -1,0 +1,27 @@
+name: Teacher Exam Language and Mobile UX
+
+on:
+  pull_request:
+    paths:
+      - 'app/teacher/results/**'
+      - 'app/teacher/assessment/**'
+      - 'app/teacher/layout.tsx'
+      - 'app/teacher/more/page.tsx'
+      - 'components/teacher/ProfessionalMarkbook.tsx'
+      - 'components/teacher/AssessmentPulseCard.tsx'
+      - 'components/teacher/QuickActions.tsx'
+      - 'components/teacher/ToolsGrid.tsx'
+      - 'scripts/test-teacher-exam-language-ux.mjs'
+      - '.github/workflows/teacher-exam-language-ux.yml'
+  push:
+    branches: [main]
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/test-teacher-exam-language-ux.mjs

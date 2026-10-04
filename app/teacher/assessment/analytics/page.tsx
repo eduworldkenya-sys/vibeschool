@@ -74,9 +74,9 @@ export default function AssessmentAnalyticsPage() {
     <main style={shell}>
       <div style={{ maxWidth: 1040, margin: '0 auto' }}>
         <section style={card}>
-          <div style={eyebrow}>Assessment Intelligence</div>
-          <h1 style={{ margin: '6px 0' }}>Teacher Analytics</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Released-result evidence for learner performance, outcomes, difficulty, Bloom levels, misconceptions, interventions, and assessment quality.</p>
+          <div style={eyebrow}>Assessments</div>
+          <h1 style={{ margin: '6px 0' }}>Results Analysis</h1>
+          <p style={{ margin: 0, color: '#6b7280' }}>Understand how learners performed, where they struggled, and what may need reteaching or follow-up.</p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
