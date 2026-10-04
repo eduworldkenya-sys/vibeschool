@@ -8,7 +8,7 @@ on:
       - 'lib/pulse/rules.ts'
       - 'scripts/test-teacher-zero-friction-journey.mjs'
       - 'scripts/canonical-teacher-notes-contract.test.mjs'
-      - 'supabase/migrations/20261004122500_teacher_note_overlays.sql'
+      - 'supabase/migrations/20261004092000_teacher_note_overlays.sql'
       - '.github/workflows/teacher-zero-friction-journey.yml'
   workflow_dispatch:
 
