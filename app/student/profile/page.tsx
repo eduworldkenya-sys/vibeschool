@@ -70,6 +70,7 @@ export default function StudentProfilePage() {
   const [data, setData] = useState<Learner360Data | null>(null)
   const [loading, setLoading] = useState(true)
   const [pageError, setPageError] = useState<string | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     if (identityLoading) return
@@ -133,9 +134,26 @@ export default function StudentProfilePage() {
   const focus = useMemo(() => [...(data?.twin.mastery.subjects ?? [])].filter(s => s.masteryPercentage != null).sort((a, b) => (a.masteryPercentage ?? 0) - (b.masteryPercentage ?? 0)).slice(0, 3), [data])
 
   async function signOut() {
-    await supabase.auth.signOut()
-    document.cookie = 'vibe_role=; path=/; max-age=0'
-    router.replace('/')
+    if (signingOut) return
+    setSigningOut(true)
+    setPageError(null)
+    try {
+      const response = await fetch('/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+      })
+      if (!response.ok) throw new Error('server_logout_failed')
+
+      // Keep the in-memory browser client in sync with the server-cleared SSR cookies.
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined)
+      document.cookie = 'vibe_role=; path=/; max-age=0'
+      window.location.assign('/?role=student')
+    } catch (signOutError) {
+      console.error('[StudentProfile] signout', signOutError)
+      setPageError('You could not be signed out. Please try again.')
+      setSigningOut(false)
+    }
   }
 
   if (identityLoading || loading) return <div style={{ display: 'grid', gap: 12, padding: 16 }}><style>{`@keyframes shimmer {0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style><Skeleton h={190} /><Skeleton h={112} /><Skeleton h={180} /><Skeleton h={180} /></div>
@@ -182,7 +200,7 @@ export default function StudentProfilePage() {
       <Card><SectionHead title="Display" /><div style={{ display: 'flex', gap: 8 }}>{(['light', 'dark', 'auto'] as const).map(option => <button key={option} onClick={() => setTheme(option)} style={{ flex: 1, padding: '10px 4px', borderRadius: 12, border: `1px solid ${theme === option ? C.accent : C.border}`, background: theme === option ? C.accent : '#fff', color: theme === option ? '#fff' : C.textMuted, fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>{option === 'light' ? '☀️ Light' : option === 'dark' ? '🌙 Dark' : '⚙️ Auto'}</button>)}</div></Card>
 
       <button onClick={() => router.push('/student/workspace')} style={{ width: '100%', padding: 14, borderRadius: 14, border: `1px solid ${C.border}`, background: '#fff', color: C.textPrimary, fontSize: 13, fontWeight: 850, cursor: 'pointer' }}>📚 My Study Workspace</button>
-      <button onClick={() => void signOut()} style={{ width: '100%', padding: 13, borderRadius: 14, border: `1.5px solid ${C.error}`, background: 'transparent', color: C.error, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>Sign Out</button>
+      <button disabled={signingOut} onClick={() => void signOut()} style={{ width: '100%', padding: 13, borderRadius: 14, border: `1.5px solid ${C.error}`, background: 'transparent', color: C.error, fontSize: 13, fontWeight: 800, cursor: signingOut ? 'wait' : 'pointer', opacity: signingOut ? .65 : 1 }}>{signingOut ? 'Signing out…' : 'Sign Out'}</button>
     </div>}
   </div>
 }
