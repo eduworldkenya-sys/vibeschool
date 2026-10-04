@@ -677,6 +677,30 @@ revoke all on function public.restore_timetable_snapshot(uuid,date)
 grant execute on function public.restore_timetable_snapshot(uuid,date) to authenticated;
 
 
+create or replace function public.get_school_day_blocks_for_member(p_school_id uuid)
+returns setof public.school_periods
+language sql
+security definer
+stable
+set search_path = ''
+as $function$
+  select sp.*
+  from public.school_periods sp
+  where sp.school_id = p_school_id
+    and exists (
+      select 1 from public.school_members sm
+      where sm.school_id = p_school_id
+        and sm.profile_id = auth.uid()
+        and sm.role::text = 'teacher'
+    )
+  order by sp.schedule_day, sp.start_time, sp.period_number;
+$function$;
+
+revoke all on function public.get_school_day_blocks_for_member(uuid)
+  from public, anon, authenticated;
+grant execute on function public.get_school_day_blocks_for_member(uuid)
+  to authenticated;
+
 create or replace function public.can_manage_my_school_timetable(p_school_id uuid)
 returns boolean
 language sql
