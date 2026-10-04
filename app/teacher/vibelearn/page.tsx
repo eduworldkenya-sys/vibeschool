@@ -34,6 +34,7 @@ interface Content {
   subject_id?: string | null;
   resource_id?: string | null;
   registry_grade?: string | null;
+  registry_subject_id?: string | null;
   registry_subject?: string | null;
   registry_strand?: string | null;
   registry_learning_outcomes?: string[];
@@ -2680,8 +2681,14 @@ function DiscoverTab({ userId }: { userId: string | null }) {
       .replace(/[^a-z0-9]/g, "");
   }
 
+  const contextClasses =
+    preferredClassId &&
+    adoptionClasses.some(cls => cls.id === preferredClassId)
+      ? adoptionClasses.filter(cls => cls.id === preferredClassId)
+      : adoptionClasses;
+
   const selectedGradeKeys = new Set(
-    adoptionClasses.map(cls =>
+    contextClasses.map(cls =>
       normalizeCurriculumLabel(cls.name)
     )
   );
@@ -2751,9 +2758,11 @@ function DiscoverTab({ userId }: { userId: string | null }) {
               );
 
             const subjectMatches =
-              Boolean(selectedSubjectKey) &&
-              resourceSubjectKey ===
-                selectedSubjectKey;
+              Boolean(subjectId) &&
+              registry?.subjectId === subjectId
+                ? true
+                : Boolean(selectedSubjectKey) &&
+                  resourceSubjectKey === selectedSubjectKey;
 
             const gradeMatches =
               Boolean(resourceGradeKey) &&
@@ -2785,6 +2794,8 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                   registry?.resourceId ?? null,
                 registry_grade:
                   registry?.grade ?? null,
+                registry_subject_id:
+                  registry?.subjectId ?? null,
                 registry_subject:
                   registry?.subject ?? null,
                 registry_strand:
