@@ -1410,17 +1410,69 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         })}
       </div>
 
-      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12}} aria-label="Timetable view">
+      {schools.length > 1 && (
+        <div className="no-print" style={{ marginBottom: 12 }}>
+          <label style={{ display: 'grid', gap: 5, fontSize: 11, fontWeight: 800, color: C.textMuted }}>
+            Show timetable for
+            <select
+              value={schoolFilter}
+              onChange={e => setSchoolFilter(e.target.value)}
+              style={{ padding: 10, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, color: C.textPrimary }}
+            >
+              <option value="all">All my schools</option>
+              {schools.map(school => <option key={school.id} value={school.id}>{school.name}{school.id === activeSchoolId ? ' · active' : ''}</option>)}
+            </select>
+          </label>
+        </div>
+      )}
+
+      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12,flexWrap:'wrap'}} aria-label="Timetable view">
         <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Daily view</Btn>
         <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Weekly sheet</Btn>
         <Btn variant="ghost" small onClick={() => window.print()}>Print</Btn>
+        <Btn variant="ghost" small onClick={() => router.push('/teacher/lessonplan/prepare')}>Prepare lesson</Btn>
+        <Btn variant="ghost" small onClick={() => router.push('/teacher/timetable/setup')}>School day setup</Btn>
+        {lastUndoSnapshotId && (
+          <Btn
+            variant="ghost"
+            small
+            onClick={async () => {
+              if (!window.confirm('Undo the last timetable change from today forward? Taught lesson history will remain unchanged.')) return
+              try {
+                await restoreTimetableSnapshot(lastUndoSnapshotId, nairobiDateStr())
+                setLastUndoSnapshotId(null)
+                setSelected(null)
+                await load()
+              } catch (error) {
+                setLoadError(error instanceof Error ? error.message : 'Could not undo the last timetable change.')
+              }
+            }}
+          >
+            Undo last change
+          </Btn>
+        )}
       </div>
       {blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
-      {view === 'week' && !loading && !loadError && !schoolError && <ClassicTimetable
-        slots={allSlots} blocks={dayBlocks} dateForDow={dateForDow}
-        onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(allSlots.find(slot => slot.id === s.id) ?? null) }}
-        onAdd={canAddSlot && !blocksError ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
+      {view === 'week' && schoolFilter === 'all' && schools.length > 1 && !loading && (
+        <div className="no-print" style={{ padding: 12, marginBottom: 12, borderRadius: 12, background: '#eff6ff', color: '#1e40af', fontSize: 12 }}>
+          Choose one school above for its weekly sheet. Daily view combines all of your schools and still respects the global teacher clash rule.
+        </div>
+      )}
+      {view === 'week' && (schoolFilter !== 'all' || schools.length <= 1) && !loading && !loadError && !schoolError && <ClassicTimetable
+        slots={visibleSlots} blocks={dayBlocks} dateForDow={dateForDow}
+        onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(visibleSlots.find(slot => slot.id === s.id) ?? null) }}
+        onAdd={canAddSlot && !blocksError && (schoolFilter === 'all' || schoolFilter === activeSchoolId) ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
       />}
+      {calendarExceptions.filter(event =>
+        event.exception_date === dateForDow(activeDow) &&
+        (schoolFilter === 'all' || event.school_id === schoolFilter)
+      ).map(event => (
+        <div key={event.id} className="no-print" style={{ marginBottom: 10, padding: 11, borderRadius: 12, background: event.suppress_ordinary_teaching ? '#fef2f2' : '#eff6ff', color: event.suppress_ordinary_teaching ? '#991b1b' : '#1e40af', fontSize: 12 }}>
+          <strong>{event.kind === 'exam' ? 'Exam timetable' : event.kind === 'holiday' ? 'Holiday' : event.kind === 'closure' ? 'School closure' : 'School event'}</strong>
+          {' · ' + event.label}
+          {event.suppress_ordinary_teaching ? ' · Ordinary lessons are suppressed.' : ''}
+        </div>
+      ))}
       <details className="no-print" style={{margin:'12px 0',padding:12,border:`1px solid ${C.border}`,borderRadius:12}}>
         <summary style={{cursor:'pointer',fontWeight:700}}>New to timetables? Start here</summary>
         <ol style={{fontSize:13,lineHeight:1.7}}>
@@ -1429,7 +1481,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
           <li>Choose your class and subject. Select one period or consecutive periods for a double.</li>
           <li>Use Suggest available periods if you need help. Review weekly allocations below.</li>
         </ol>
-        <p style={{fontSize:13}}>School periods define lesson lengths and breaks. Custom times are for genuine school exceptions. Prepare lesson plans after scheduling.</p>
+        <p style={{fontSize:13}}>School periods define lesson lengths and breaks. Custom times are for genuine school exceptions. Lesson preparation can happen before or after scheduling.</p>
       </details>
       {/* Slot list */}
       {view === 'day' && <Card>
@@ -1495,6 +1547,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         onRecover={ctx => setRecoveryCtx(ctx)}
         onCancelRecovery={ctx => setRecoveryCtx(ctx)}
         onEdit={s => setEditSlot(s)}
+        onCopy={s => setCopySlot(s)}
+        canCopy={Boolean(selected && activeSchoolId && selected.schoolId === activeSchoolId)}
       />
 
       {/* TBL-009B: recovery sheet — schedule a recovery for a missed lesson
@@ -1510,7 +1564,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       )}
 
       {/* Add / edit slot modal — only when school confirmed */}
-      {(showAddSlot || editSlot) && teacherId != null && (
+      {(showAddSlot || editSlot || copySlot) && teacherId != null && (
         <AddSlotModal
           teacherId={teacherId}
           initialPlacement={initialPlacement}
@@ -1525,8 +1579,25 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             effectiveFrom:  editSlot.effectiveFrom,
             effectiveUntil: editSlot.effectiveUntil,
           } as EditableSlot : undefined}
-          onClose={() => { setShowAddSlot(false); setEditSlot(null); setInitialPlacement(undefined) }}
-          onSaved={() => { setShowAddSlot(false); setEditSlot(null); setInitialPlacement(undefined); load() }}
+          copySlot={copySlot ? {
+            classId: copySlot.classId,
+            subjectId: copySlot.subjectId,
+            className: copySlot.className,
+            subjectName: copySlot.subject,
+            dayOfWeek: copySlot.dayOfWeek,
+            startTime: copySlot.startTime,
+            endTime: copySlot.endTime,
+            room: copySlot.room,
+          } : undefined}
+          onClose={() => { setShowAddSlot(false); setEditSlot(null); setCopySlot(null); setInitialPlacement(undefined) }}
+          onSaved={(undoSnapshotId) => {
+            if (undoSnapshotId) setLastUndoSnapshotId(undoSnapshotId)
+            setShowAddSlot(false)
+            setEditSlot(null)
+            setCopySlot(null)
+            setInitialPlacement(undefined)
+            load()
+          }}
         />
       )}
 
