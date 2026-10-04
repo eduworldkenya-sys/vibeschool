@@ -22,68 +22,49 @@ function active(slot:ClassicSlot,date:string){
 function fmt(t:string){ return t.slice(0,5); }
 
 export default function ClassicTimetable({
-  slots,blocks,dateForDow,onSelect,
+  slots,blocks,dateForDow,onSelect,onAdd,
 }:{
   slots:ClassicSlot[];
   blocks:SchoolDayBlock[];
   dateForDow:(dow:number)=>string;
   onSelect:(slot:ClassicSlot)=>void;
+  onAdd?:(placement:{dayOfWeek:number;startTime:string;endTime:string})=>void;
 }){
-  const visibleDays=DAYS.filter(day =>
-    slots.some(s=>s.dayOfWeek===day.d && active(s,dateForDow(day.d))) ||
-    blocks.some(b=>b.scheduleDay===0 || b.scheduleDay===day.d)
-  );
-  const days=visibleDays.length?visibleDays:DAYS.slice(0,5);
-
-  const rows=React.useMemo(()=>{
-    const keyed=new Map<string,{start:string;end:string;label:string;kind:string;period:number}>();
-    for(const b of blocks){
-      const key=`${b.startTime.slice(0,5)}-${b.endTime.slice(0,5)}-${b.periodNumber}`;
-      if(!keyed.has(key)) keyed.set(key,{start:b.startTime,end:b.endTime,label:b.label,kind:b.kind,period:b.periodNumber});
-    }
-    for(const s of slots){
-      const key=`${s.startTime.slice(0,5)}-${s.endTime.slice(0,5)}-lesson`;
-      if(![...keyed.values()].some(r=>r.start.slice(0,5)===s.startTime.slice(0,5)&&r.end.slice(0,5)===s.endTime.slice(0,5)))
-        keyed.set(key,{start:s.startTime,end:s.endTime,label:"Lesson",kind:"lesson",period:999});
-    }
-    return [...keyed.values()].sort((a,b)=>a.start.localeCompare(b.start)||a.period-b.period);
-  },[blocks,slots]);
-
-  if(!rows.length) return <div style={{padding:"28px 12px",textAlign:"center",color:C.textMuted,fontSize:13}}>No timetable periods configured yet.</div>;
-
+  const activeSlots=slots.filter(s => active(s,dateForDow(s.dayOfWeek)));
+  const days=DAYS.filter(day => day.d <= 5 || activeSlots.some(s => s.dayOfWeek === day.d) || blocks.some(b => b.scheduleDay === day.d));
+  // Atomic boundaries allow a double lesson to span rows without duplicating
+  // it or creating an overlapping extra row. Historical slots stay invisible.
+  const boundaries=[...new Set([...blocks.flatMap(b => [fmt(b.startTime),fmt(b.endTime)]),
+    ...activeSlots.flatMap(s => [fmt(s.startTime),fmt(s.endTime)])])].sort();
+  const rows=boundaries.slice(0,-1).map((start,i) => ({start,end:boundaries[i+1]}));
+  if(!rows.length) return <div style={{padding:28,textAlign:"center",color:C.textMuted}}>No lessons or school periods yet. Use Add lesson to enter your timetable.</div>;
+  const covering=(day:number,row:{start:string;end:string}) => {
+    const specific=blocks.find(b => b.scheduleDay===day && fmt(b.startTime)<=row.start && fmt(b.endTime)>=row.end);
+    return specific ?? blocks.find(b => b.scheduleDay===0 && fmt(b.startTime)<=row.start && fmt(b.endTime)>=row.end);
+  };
   return <div style={{overflowX:"auto",WebkitOverflowScrolling:"touch",border:`1px solid ${C.border}`,borderRadius:14}}>
     <table aria-label="Conventional weekly timetable" style={{borderCollapse:"separate",borderSpacing:0,minWidth:720,width:"100%",background:C.surface,fontSize:12}}>
-      <thead><tr>
-        <th style={head(true)}>Period</th>
-        {days.map(x=><th key={x.d} style={head(false)}>{x.l}</th>)}
-      </tr></thead>
-      <tbody>
-        {rows.map((row,ri)=>{
-          const rowBlocks=blocks.filter(b=>b.startTime.slice(0,5)===row.start.slice(0,5)&&b.endTime.slice(0,5)===row.end.slice(0,5));
-          const generic=rowBlocks.find(b=>b.scheduleDay===0);
-          const isGenericNonLesson=generic && generic.kind!=="lesson";
-          return <tr key={row.start+row.end+ri}>
-            <th scope="row" style={periodCell}>
-              <div style={{fontWeight:800,color:C.textPrimary}}>{generic?.label ?? row.label}</div>
-              <div style={{fontSize:10,color:C.textMuted,marginTop:2}}>{fmt(row.start)}–{fmt(row.end)}</div>
-            </th>
-            {days.map(day=>{
-              const dayBlock=rowBlocks.find(b=>b.scheduleDay===day.d) ?? generic;
-              const nonLesson=dayBlock && dayBlock.kind!=="lesson";
-              if(nonLesson || isGenericNonLesson) return <td key={day.d} style={{...cell,background:"var(--surface-raised, #f9fafb)",textAlign:"center"}}>
-                <strong style={{color:C.textMuted,textTransform:"capitalize"}}>{dayBlock?.label ?? generic?.label}</strong>
-              </td>;
-              const found=slots.filter(s=>s.dayOfWeek===day.d&&active(s,dateForDow(day.d))&&s.startTime.slice(0,5)===row.start.slice(0,5)&&s.endTime.slice(0,5)===row.end.slice(0,5));
-              return <td key={day.d} style={cell}>
-                {found.map(s=><button key={s.id} type="button" onClick={()=>onSelect(s)} style={slotButton}>
-                  <span style={{fontWeight:800,color:C.textPrimary}}>{s.subject}</span>
-                  <span style={{fontSize:10,color:C.textMuted}}>{s.className}{s.room?` · ${s.room}`:""}</span>
-                </button>)}
-              </td>;
-            })}
-          </tr>;
+      <thead><tr><th scope="col" style={head(true)}>Time</th>{days.map(day=><th scope="col" key={day.d} style={head(false)}>{day.l}</th>)}</tr></thead>
+      <tbody>{rows.map((row,ri) => <tr key={row.start}>
+        <th scope="row" style={periodCell}>{row.start}–{row.end}</th>
+        {days.map(day => {
+          const found=activeSlots.filter(s => s.dayOfWeek===day.d && fmt(s.startTime)<=row.start && fmt(s.endTime)>row.start);
+          const preceding=found.length===1 && fmt(found[0].startTime)<row.start && !activeSlots.some(s => s.id!==found[0].id && s.dayOfWeek===day.d && fmt(s.startTime)<fmt(found[0].endTime) && fmt(s.endTime)>fmt(found[0].startTime));
+          if(preceding) return null;
+          const hasOverlap=found.length===1 && activeSlots.some(s => s.id!==found[0].id && s.dayOfWeek===day.d && fmt(s.startTime)<fmt(found[0].endTime) && fmt(s.endTime)>fmt(found[0].startTime));
+          const span=found.length===1 && !hasOverlap ? rows.filter(r => r.start>=row.start && r.start<fmt(found[0].endTime)).length : 1;
+          const block=covering(day.d,row);
+          // Always expose existing lessons, even when school configuration
+          // later changes underneath them; never hide a conflicting baseline.
+          if(found.length) return <td key={day.d} rowSpan={span} style={cell}>{found.map(s=><button key={s.id} type="button" onClick={()=>onSelect(s)} style={slotButton}>
+            <span style={{fontWeight:800,color:C.textPrimary}}>{s.subject}</span>
+            <span style={{fontSize:11,color:C.textMuted}}>{s.className}{s.room?` · ${s.room}`:""}</span>
+            <span style={{fontSize:10,color:C.textMuted}}>{fmt(s.startTime)}–{fmt(s.endTime)}</span>
+          </button>)}</td>;
+          if(block && block.kind!=="lesson") return <td key={day.d} style={{...cell,textAlign:"center",background:"var(--surface-raised, #f9fafb)"}}><strong>{block.label}</strong></td>;
+          return <td key={day.d} style={cell}>{onAdd && (!blocks.length || (block?.kind==='lesson' && !activeSlots.some(s => s.dayOfWeek===day.d && fmt(s.startTime)<fmt(block.endTime) && fmt(s.endTime)>fmt(block.startTime)))) && <button type="button" aria-label={`Add lesson ${day.l} ${row.start}`} onClick={()=>onAdd({dayOfWeek:day.d,startTime:block?fmt(block.startTime):row.start,endTime:block?fmt(block.endTime):row.end})} style={slotButton}>+ Add lesson</button>}</td>;
         })}
-      </tbody>
+      </tr>)}</tbody>
     </table>
   </div>;
 }

@@ -5,6 +5,8 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
+import ClassicTimetable, { type SchoolDayBlock } from '@/components/teacher/ClassicTimetable'
+import type { SchoolPeriod } from '@/lib/timetable/periods'
 import AddSlotModal from '@/components/teacher/AddSlotModal'
 import RecoverySheet, { type RecoverySheetContext } from '@/components/teacher/RecoverySheet'
 import { nairobiDateStr, nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
@@ -731,6 +733,17 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   const [loadError,       setLoadError]        = useState<string | null>(null)
   const [schoolError,     setSchoolError]      = useState<string | null>(null)
   const [selected,        setSelected]         = useState<Slot | null>(null)
+  const [view, setView] = useState<'day' | 'week'>('day')
+  useEffect(() => {
+    try {if (localStorage.getItem('teacher-timetable-view') === 'week') setView('week')} catch { /* View preference is optional. */ }
+  }, [])
+  const chooseView = (next: 'day' | 'week') => {
+    setView(next)
+    try {localStorage.setItem('teacher-timetable-view',next)} catch { /* View remains usable without storage. */ }
+  }
+  const [dayBlocks, setDayBlocks] = useState<SchoolDayBlock[]>([])
+  const [blocksError, setBlocksError] = useState<string | null>(null)
+  const [initialPlacement, setInitialPlacement] = useState<{dayOfWeek:number;startTime:string;endTime:string} | undefined>()
   const [showAddSlot,     setShowAddSlot]      = useState(false)
   const [editSlot,        setEditSlot]         = useState<Slot | null>(null)
   // TBL-009B: non-null while the recovery sheet is open; carries the
@@ -803,6 +816,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         setSchoolError('Connect or select your active school before opening the timetable.')
         return
       }
+
+      const { data: blockData, error: blockError } = await supabase.rpc('get_my_school_day_blocks')
+      if (!isMounted.current) return
+      setBlocksError(blockError ? 'School periods could not load. Retry before creating lessons.' : null)
+      setDayBlocks(((blockData ?? []) as SchoolPeriod[]).filter(b => b.school_id === schoolId).map(b => ({
+        id:b.id,scheduleDay:b.schedule_day,periodNumber:b.period_number,label:b.label,
+        startTime:b.start_time,endTime:b.end_time,kind:b.kind,protected:b.protected,
+      })))
 
       // TBL-009C: load every slot whose effective range overlaps the
       // visible week, not just slots active today — otherwise a recovery
@@ -1221,8 +1242,29 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         })}
       </div>
 
+      <div className="no-print" style={{display:'flex',gap:8,marginBottom:12}} aria-label="Timetable view">
+        <Btn variant={view === 'day' ? 'primary' : 'ghost'} small onClick={() => chooseView('day')}>Daily view</Btn>
+        <Btn variant={view === 'week' ? 'primary' : 'ghost'} small onClick={() => chooseView('week')}>Weekly sheet</Btn>
+        <Btn variant="ghost" small onClick={() => window.print()}>Print</Btn>
+      </div>
+      {blocksError && <p role="alert">{blocksError} <button type="button" onClick={() => load()}>Retry</button></p>}
+      {view === 'week' && !loading && !loadError && !schoolError && <ClassicTimetable
+        slots={allSlots} blocks={dayBlocks} dateForDow={dateForDow}
+        onSelect={s => { setActiveDow(s.dayOfWeek); setSelected(allSlots.find(slot => slot.id === s.id) ?? null) }}
+        onAdd={canAddSlot && !blocksError ? placement => {setInitialPlacement(placement);setShowAddSlot(true)} : undefined}
+      />}
+      <details className="no-print" style={{margin:'12px 0',padding:12,border:`1px solid ${C.border}`,borderRadius:12}}>
+        <summary style={{cursor:'pointer',fontWeight:700}}>New to timetables? Start here</summary>
+        <ol style={{fontSize:13,lineHeight:1.7}}>
+          <li>Enter the timetable your school already uses. Existing lessons stay in place.</li>
+          <li>Choose Weekly sheet and tap a free teaching period, or use Add lesson.</li>
+          <li>Choose your class and subject. Select one period or consecutive periods for a double.</li>
+          <li>Use Suggest available periods if you need help. Review weekly allocations below.</li>
+        </ol>
+        <p style={{fontSize:13}}>School periods define lesson lengths and breaks. Custom times are for genuine school exceptions. Prepare lesson plans after scheduling.</p>
+      </details>
       {/* Slot list */}
-      <Card>
+      {view === 'day' && <Card>
         <SectionLabel>
           {DAYS.find(d => d.dow === activeDow)?.label ?? ''}{isToday ? ' — Today' : ''}
         </SectionLabel>
@@ -1249,7 +1291,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             ))}
           </div>
         )}
-      </Card>
+      </Card>}
 
       {/* Week summary */}
       {!loading && (
@@ -1303,6 +1345,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       {(showAddSlot || editSlot) && teacherId != null && (
         <AddSlotModal
           teacherId={teacherId}
+          initialPlacement={initialPlacement}
           editSlot={editSlot ? {
             id:             editSlot.id,
             className:      editSlot.className,
@@ -1314,8 +1357,8 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             effectiveFrom:  editSlot.effectiveFrom,
             effectiveUntil: editSlot.effectiveUntil,
           } as EditableSlot : undefined}
-          onClose={() => { setShowAddSlot(false); setEditSlot(null) }}
-          onSaved={() => { setShowAddSlot(false); setEditSlot(null); load() }}
+          onClose={() => { setShowAddSlot(false); setEditSlot(null); setInitialPlacement(undefined) }}
+          onSaved={() => { setShowAddSlot(false); setEditSlot(null); setInitialPlacement(undefined); load() }}
         />
       )}
 

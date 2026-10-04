@@ -1,5 +1,8 @@
 "use client";
 
+import { nairobiDayOfWeek } from '@/lib/time'
+import { periodsForDay, teachingBlock, protectedBlockConflict, singleDateSchedule, type SchoolPeriod } from '@/lib/timetable/periods'
+import type { SuggestedPlacement } from '@/lib/timetable/operations'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Btn, C } from '@/components/teacher/ui'
@@ -8,6 +11,7 @@ import type { EditableSlot } from '@/lib/teaching/types'
 import { previewTimetableConflicts, type TimetableConflict } from '@/lib/timetable/engine'
 
 interface Props {
+  initialPlacement?: {dayOfWeek:number;startTime:string;endTime:string}
   teacherId: string
   editSlot?: EditableSlot
   onClose:   () => void
@@ -68,6 +72,14 @@ function toFriendlyError(err: { message?: string }): string {
       return 'This class already has a lesson at this time.'
     case 'ROOM_CONFLICT':
       return 'This room is already occupied.'
+    case 'PROTECTED_SCHOOL_BLOCK':
+      return 'This lesson overlaps a break, lunch or another protected activity.'
+    case 'PERIOD_TIME_MISMATCH':
+      return 'Use the start and end time of the selected school period.'
+    case 'NON_TEACHING_PERIOD':
+    case 'PERIOD_DAY_MISMATCH':
+    case 'PERIOD_SCHOOL_MISMATCH':
+      return 'Choose a teaching period for this school and day.'
     case 'INVALID_ASSIGNMENT':
       return 'You are not assigned to teach this subject for this class.'
     case 'SCHOOL_MISMATCH':
@@ -119,7 +131,7 @@ function toFriendlyEditError(err: { message?: string }): string {
   }
 }
 
-export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: Props) {
+export default function AddSlotModal({ teacherId, editSlot, initialPlacement, onClose, onSaved }: Props) {
   const isEdit = !!editSlot
 
   const [saving,            setSaving]            = useState(false)
@@ -131,13 +143,46 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
   const [checkingConflicts, setCheckingConflicts] = useState(false)
 
   const [teacherClassId, setTeacherClassId] = useState('')
-  const [dayOfWeek,      setDayOfWeek]      = useState(editSlot ? String(editSlot.dayOfWeek) : '1')
-  const [startTime,      setStartTime]      = useState(editSlot?.startTime ?? '08:00')
-  const [endTime,        setEndTime]        = useState(editSlot?.endTime ?? '09:00')
+  const [dayOfWeek,      setDayOfWeek]      = useState(editSlot ? String(editSlot.dayOfWeek) : String(initialPlacement?.dayOfWeek ?? 1))
+  const [startTime,      setStartTime]      = useState(editSlot?.startTime ?? initialPlacement?.startTime ?? '08:00')
+  const [endTime,        setEndTime]        = useState(editSlot?.endTime ?? initialPlacement?.endTime ?? '08:40')
   const [room,           setRoom]           = useState(editSlot?.room ?? '')
   const [effectiveFrom,  setEffectiveFrom]  = useState(editSlot?.effectiveFrom ?? nairobiTodayISO())
   const [effectiveUntil, setEffectiveUntil] = useState(editSlot?.effectiveUntil ?? '')
+  const [recurrence, setRecurrence] = useState<'weekly' | 'once'>('weekly')
+  useEffect(() => {
+    if (isEdit) return
+    if (recurrence === 'once' && effectiveFrom) {setDayOfWeek(String(nairobiDayOfWeek(new Date(`${effectiveFrom}T12:00:00Z`))));setEffectiveUntil(effectiveFrom)}
+    else if (recurrence === 'weekly') setEffectiveUntil('')
+  }, [recurrence,effectiveFrom,isEdit])
   const [allocationUnits, setAllocationUnits] = useState('1')
+
+  const [periods, setPeriods] = useState<SchoolPeriod[]>([])
+  const [periodsLoading, setPeriodsLoading] = useState(!isEdit)
+  const [periodsError, setPeriodsError] = useState<string | null>(null)
+  const [periodId, setPeriodId] = useState('')
+  const [customTime, setCustomTime] = useState(false)
+  const [suggestions, setSuggestions] = useState<SuggestedPlacement[]>([])
+  const [suggesting, setSuggesting] = useState(false)
+  const [preferredSession, setPreferredSession] = useState('any')
+  const modalMounted = useRef(true)
+  useEffect(() => {modalMounted.current=true;return () => {modalMounted.current=false}}, [])
+
+  useEffect(() => {
+    if (isEdit) return
+    let cancelled = false
+    async function loadPeriods() {
+      try {
+        const {data,error} = await supabase.rpc('get_my_school_day_blocks')
+        if (error) throw error
+        if (!cancelled) setPeriods((data ?? []) as SchoolPeriod[])
+      } catch {
+        if (!cancelled) setPeriodsError('School periods could not load. Close and reopen to retry.')
+      } finally { if (!cancelled) setPeriodsLoading(false) }
+    }
+    loadPeriods()
+    return () => {cancelled = true}
+  }, [isEdit])
 
   // Synchronous guard against duplicate submission. `saving` (React state)
   // only disables the button on the *next* render — a fast double-tap can
@@ -200,7 +245,60 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
 
   const selectedAssignment = assignments.find(a => a.teacherClassId === teacherClassId) ?? null
 
-  async function checkConflicts(): Promise<boolean> {
+  const dayPeriods = selectedAssignment ? periodsForDay(periods, selectedAssignment.schoolId, Number(dayOfWeek)) : []
+  const hasTeachingPeriods = dayPeriods.some(p => p.kind === 'lesson')
+  const selectedBlock = teachingBlock(dayPeriods, periodId, Number(allocationUnits))
+  useEffect(() => {
+    const block = teachingBlock(selectedAssignment ? periodsForDay(periods, selectedAssignment.schoolId, Number(dayOfWeek)) : [], periodId, Number(allocationUnits))
+    if (isEdit || customTime || !block) return
+    setStartTime(block[0].start_time.slice(0,5))
+    setEndTime(block[block.length-1].end_time.slice(0,5))
+  }, [isEdit, customTime, periodId, allocationUnits, dayOfWeek, teacherClassId, periods, selectedAssignment])
+
+  useEffect(() => {
+    if (!initialPlacement || isEdit || periodId || !selectedAssignment) return
+    const first = periodsForDay(periods, selectedAssignment.schoolId, Number(dayOfWeek)).find(p => p.kind === 'lesson' && p.start_time.slice(0,5) === initialPlacement.startTime)
+    if (first) setPeriodId(first.id)
+  }, [initialPlacement, isEdit, periodId, selectedAssignment, periods, dayOfWeek])
+
+  const suggestionContext = useRef('')
+  suggestionContext.current = [teacherClassId,effectiveFrom,effectiveUntil,allocationUnits,room,preferredSession,recurrence,dayOfWeek].join('|')
+  useEffect(() => {setSuggestions([])}, [teacherClassId,effectiveFrom,effectiveUntil,allocationUnits,room,preferredSession,recurrence,dayOfWeek])
+
+  async function suggestPeriods() {
+    if (!selectedAssignment || suggesting) return
+    setSuggesting(true); setError(null); setSuggestions([])
+    const contextKey = suggestionContext.current
+    try {
+      const candidates = (recurrence === 'once' ? [Number(dayOfWeek)] : [1,2,3,4,5]).flatMap(day => {
+        const dayBlocks = periodsForDay(periods,selectedAssignment.schoolId,day)
+        return dayBlocks.filter(p => p.kind === 'lesson').flatMap(p => {
+          const block = teachingBlock(dayBlocks,p.id,Number(allocationUnits))
+          if (!block) return []
+          return [{day_of_week:day,period_id:p.id,start_time:block[0].start_time,end_time:block.at(-1)!.end_time,score:0,explanation:'Consecutive teaching periods; no clash found.'}]
+        })
+      })
+      candidates.sort((a,b) => {
+        const preference=(c:SuggestedPlacement) => preferredSession === 'any' ? 0 : (preferredSession === 'morning' ? c.start_time < '12:00' : c.start_time >= '12:00') ? 0 : 1
+        return preference(a)-preference(b) || a.start_time.localeCompare(b.start_time) || a.day_of_week-b.day_of_week
+      })
+      const free: SuggestedPlacement[] = []
+      // Bound the preview work and stop as soon as five useful suggestions
+      // exist. The same server-authoritative preview is available to teachers.
+      for (const candidate of candidates.slice(0,30)) {
+        if (!modalMounted.current || contextKey !== suggestionContext.current) return
+        const conflicts = await previewTimetableConflicts({schoolId:selectedAssignment.schoolId,teacherId,
+          classId:selectedAssignment.classId,dayOfWeek:candidate.day_of_week,startTime:candidate.start_time,
+          endTime:candidate.end_time,room:room.trim() || null,effectiveFrom,effectiveUntil:effectiveUntil || null})
+        if (!conflicts.length) free.push(candidate)
+        if (free.length === 5) break
+      }
+      if (modalMounted.current && contextKey === suggestionContext.current) {setSuggestions(free);if(!free.length)setError('No free periods found in the checked teaching periods. Try another day or review existing lessons.')}
+    } catch { if(modalMounted.current && contextKey === suggestionContext.current) setError('Suggestions could not load. You can still choose a period yourself.') }
+    finally {if(modalMounted.current)setSuggesting(false)}
+  }
+
+  async function checkConflicts(schedule?: {dayOfWeek:number;effectiveFrom:string;effectiveUntil:string}): Promise<boolean> {
     if (!selectedAssignment || isEdit) return true
     setCheckingConflicts(true)
     try {
@@ -208,11 +306,12 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
         schoolId: selectedAssignment.schoolId,
         teacherId,
         classId: selectedAssignment.classId,
-        dayOfWeek: parseInt(dayOfWeek) || 1,
+        dayOfWeek: schedule?.dayOfWeek ?? (parseInt(dayOfWeek) || 1),
         startTime,
         endTime,
         room: room.trim() || null,
-        effectiveFrom: effectiveFrom || null,
+        effectiveFrom: schedule?.effectiveFrom ?? (effectiveFrom || null),
+        effectiveUntil: schedule?.effectiveUntil ?? (effectiveUntil || null),
       })
       setConflicts(rows)
       return rows.length === 0
@@ -231,6 +330,15 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
     if (submittingRef.current) return
 
     setError(null)
+    const onceSchedule = !isEdit && recurrence === 'once' ? singleDateSchedule(effectiveFrom) : null
+    if (!isEdit && recurrence === 'once' && !onceSchedule) {setError('Choose a valid date for this one-time lesson.');return}
+    if (!isEdit) {
+      if (periodsLoading || periodsError) {setError('Load school periods before saving.');return}
+      const blocked = protectedBlockConflict(dayPeriods, startTime, endTime)
+      if (blocked) {setError(`This lesson overlaps ${blocked.label}. Choose a teaching period.`);return}
+      if (hasTeachingPeriods && !customTime && !selectedBlock) {setError('Choose consecutive teaching periods without crossing a break.');return}
+      if (effectiveUntil && effectiveUntil < effectiveFrom) {setError('End date cannot be before start date.');return}
+    }
 
     if (!startTime) { setError('Enter start time.'); return }
     if (!endTime)   { setError('Enter end time.');   return }
@@ -265,8 +373,10 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
     const { classId, subjectId } = selectedAssignment
     if (!classId || !subjectId) { setError('This assignment is missing required data.'); return }
 
-    const clear = await checkConflicts()
+    submittingRef.current = true
+    const clear = await checkConflicts(onceSchedule ?? undefined)
     if (!clear) {
+      submittingRef.current = false
       setError('Resolve the timetable conflict before saving.')
       return
     }
@@ -277,15 +387,16 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
     // transaction (create_timetable_slot). school_id and teacher_id are
     // never sent from the client — the RPC derives both from the
     // caller's own auth identity and their teacher_classes assignment.
+    try {
     const { error: err } = await supabase.rpc('create_timetable_slot_v2', {
       p_class_id:        classId,
       p_subject_id:      subjectId,
-      p_day_of_week:     parseInt(dayOfWeek) || 1,
+      p_day_of_week:     onceSchedule?.dayOfWeek ?? (parseInt(dayOfWeek) || 1),
       p_start_time:      startTime,
       p_end_time:        endTime,
       p_room:            room.trim() || undefined,
-      p_effective_from:  effectiveFrom || undefined,
-      p_effective_until: effectiveUntil || undefined,
+      p_effective_from:  onceSchedule?.effectiveFrom ?? (effectiveFrom || undefined),
+      p_effective_until: onceSchedule?.effectiveUntil ?? (effectiveUntil || undefined),
       p_allocation_units: Number(allocationUnits) || 1,
       p_period_id: undefined,
     })
@@ -305,6 +416,12 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
     // Only reset on confirmed success — never on a recoverable error.
     resetForm()
     onSaved()
+    } catch {
+      setError('Could not save. Your entries are still here; retry when connected.')
+    } finally {
+      setSaving(false)
+      submittingRef.current = false
+    }
   }
 
   async function handleDelete() {
@@ -342,9 +459,9 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
       background: 'rgba(0,0,0,0.45)',
       display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
     }}
-      onClick={onClose}
+      onClick={() => {if (!submittingRef.current && !saving && !deleting) onClose()}}
     >
-      <div style={{
+      <div role="dialog" aria-modal="true" aria-label={isEdit ? 'Edit lesson time' : 'Add lesson to timetable'} style={{
         background: C.bg,
         borderRadius: '20px 20px 0 0',
         padding: '24px 20px 60px',
@@ -357,13 +474,14 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
         <div style={{ width: 40, height: 4, borderRadius: 2, background: C.border, margin: '0 auto' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>
-            {isEdit ? 'Edit Timetable Slot' : 'Add Timetable Slot'}
+            {isEdit ? 'Edit lesson time' : 'Add lesson to timetable'}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.textMuted }}>✕</button>
+          <button aria-label="Close lesson form" disabled={saving || deleting || checkingConflicts} onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: C.textMuted }}>✕</button>
         </div>
 
+        {!isEdit && <p style={{fontSize:13,color:C.textMuted,margin:0}}>Choose your class and subject, then a teaching period. You can prepare the lesson plan later.</p>}
         {error && (
-          <div style={{ fontSize: 12, color: C.error, background: '#fef2f2', padding: '8px 12px', borderRadius: 8 }}>
+          <div role="alert" style={{ fontSize: 12, color: C.error, background: '#fef2f2', padding: '8px 12px', borderRadius: 8 }}>
             {error}
           </div>
         )}
@@ -374,6 +492,7 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
           </div>
         )}
 
+        <fieldset disabled={saving || deleting || checkingConflicts} style={{border:0,padding:0,margin:0,display:'flex',flexDirection:'column',gap:16,minWidth:0}}>
         {isEdit ? (
           <div>
             <label style={labelStyle}>Class &amp; Subject</label>
@@ -388,10 +507,10 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
               <div style={{ fontSize: 13, color: C.textMuted }}>Loading your assignments…</div>
             ) : assignments.length === 0 ? (
               <div style={{ fontSize: 13, color: C.error }}>
-                No class/subject assignments found. Ask an admin to assign you in ClassHub first.
+                No teaching assignments yet. <a href="/teacher/onboarding/class">Set up class and subject</a>
               </div>
             ) : (
-              <select value={teacherClassId} onChange={e => setTeacherClassId(e.target.value)} style={inputStyle}>
+              <select value={teacherClassId} onChange={e => {setTeacherClassId(e.target.value);setPeriodId('');setSuggestions([])}} style={inputStyle}>
                 <option value="">Select class &amp; subject</option>
                 {assignments.map(a => (
                   <option key={a.teacherClassId} value={a.teacherClassId}>
@@ -403,21 +522,44 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
           </div>
         )}
 
+        {!isEdit && <div>
+          <label htmlFor="lesson-recurrence" style={labelStyle}>Repeat</label>
+          <select id="lesson-recurrence" style={inputStyle} value={recurrence} onChange={e=>setRecurrence(e.target.value as 'weekly' | 'once')}>
+            <option value="weekly">Every week</option><option value="once">One date only</option>
+          </select>
+        </div>}
         <div>
           <label style={labelStyle}>Day *</label>
-          <select value={dayOfWeek} onChange={e => setDayOfWeek(e.target.value)} style={inputStyle}>
+          <select disabled={!isEdit && recurrence === 'once'} value={dayOfWeek} onChange={e => {setDayOfWeek(e.target.value);setPeriodId('')}} style={inputStyle}>
             {DAYS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
           </select>
         </div>
 
+        {!isEdit && <div>
+          {periodsLoading ? <p>Loading school periods…</p> : periodsError ? <p role="alert">{periodsError}</p> : hasTeachingPeriods ? <>
+            <label htmlFor="teaching-period" style={labelStyle}>Teaching period</label>
+            <select id="teaching-period" style={inputStyle} value={periodId} onChange={e => {setPeriodId(e.target.value);setCustomTime(false)}}>
+              <option value="">Choose a period</option>
+              {dayPeriods.filter(p => p.kind === 'lesson').map(p => <option key={p.id} value={p.id}>{p.label} · {p.start_time.slice(0,5)}–{p.end_time.slice(0,5)}</option>)}
+            </select>
+            <label style={{display:'block',marginTop:10,fontSize:13}}><input type="checkbox" checked={customTime} onChange={e => setCustomTime(e.target.checked)} /> Use a custom school time</label>
+            {customTime && <p style={{fontSize:12}}>Use this only for a genuine school exception. Breaks and clashes still apply.</p>}
+          </> : <p style={{fontSize:13}}>No teaching periods are configured for this day. Enter your actual school times; do not assume a national lesson duration.</p>}
+          <label htmlFor="preferred-session" style={labelStyle}>Preferred session (optional)</label>
+          <select id="preferred-session" style={inputStyle} value={preferredSession} onChange={e=>setPreferredSession(e.target.value)}>
+            <option value="any">Any teaching time</option><option value="morning">Morning first</option><option value="afternoon">Afternoon first</option>
+          </select>
+          <Btn variant="ghost" small disabled={!selectedAssignment || suggesting || periodsLoading || !!periodsError} onClick={suggestPeriods}>{suggesting ? 'Finding periods…' : 'Suggest available periods'}</Btn>
+          {suggestions.slice(0,5).map((p,i) => <button type="button" key={`${p.period_id}-${p.day_of_week}-${i}`} style={{...inputStyle,marginTop:6,textAlign:'left'}} onClick={() => {setDayOfWeek(String(p.day_of_week));setPeriodId(p.period_id);setCustomTime(false);setStartTime(p.start_time.slice(0,5));setEndTime(p.end_time.slice(0,5))}}>{DAYS.find(d => d.value === p.day_of_week)?.label} · {p.start_time.slice(0,5)} — {p.explanation}</button>)}
+        </div>}
         <div style={{ display: 'flex', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>Start Time *</label>
-            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
+            <input disabled={!isEdit && hasTeachingPeriods && !customTime} type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={inputStyle} />
           </div>
           <div style={{ flex: 1 }}>
             <label style={labelStyle}>End Time *</label>
-            <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
+            <input disabled={!isEdit && hasTeachingPeriods && !customTime} type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={inputStyle} />
           </div>
         </div>
 
@@ -438,22 +580,23 @@ export default function AddSlotModal({ teacherId, editSlot, onClose, onSaved }: 
         </div>
 
         <div>
-          <label style={labelStyle}>Effective From (optional)</label>
+          <label style={labelStyle}>{!isEdit && recurrence === 'once' ? 'Lesson date *' : 'Effective From (optional)'}</label>
           <input type="date" value={effectiveFrom} onChange={e => setEffectiveFrom(e.target.value)} style={inputStyle} />
         </div>
 
-        {isEdit && (
+        {(
           <div>
-            <label style={labelStyle}>Effective Until (optional)</label>
-            <input type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} style={inputStyle} />
+            <label style={labelStyle}>End date (leave blank to repeat weekly)</label>
+            <input disabled={!isEdit && recurrence === 'once'} type="date" value={effectiveUntil} onChange={e => setEffectiveUntil(e.target.value)} style={inputStyle} />
           </div>
         )}
 
+        </fieldset>
         <Btn
           onClick={save}
-          disabled={saving || deleting || checkingConflicts || (!isEdit && (assignmentsLoading || assignments.length === 0))}
+          disabled={saving || deleting || checkingConflicts || (!isEdit && (assignmentsLoading || periodsLoading || !!periodsError || assignments.length === 0))}
         >
-          {checkingConflicts ? 'Checking…' : saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add Slot'}
+          {checkingConflicts ? 'Checking…' : saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Save lesson'}
         </Btn>
 
         {isEdit && (
