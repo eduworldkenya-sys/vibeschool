@@ -59,6 +59,7 @@ for (const token of [
   'Substitute lesson',
   'School day setup',
   'Prepare lesson',
+  'Repeat from next week',
 ]) requireText('timetable closure UI', timetable, token)
 
 requireText('multi-school slot reader', timetable, 'schoolSlotGroups')
