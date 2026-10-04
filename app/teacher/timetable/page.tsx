@@ -1060,9 +1060,14 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     load()
   }, [load])
 
+  const visibleSlots = useMemo(
+    () => schoolFilter === 'all' ? allSlots : allSlots.filter(slot => slot.schoolId === schoolFilter),
+    [allSlots, schoolFilter]
+  )
+
   const daySlots = useMemo(
-    () => allSlots.filter(s => s.dayOfWeek === activeDow && slotActiveOn(s, dateForDow(activeDow))),
-    [allSlots, activeDow, slotActiveOn, dateForDow]
+    () => visibleSlots.filter(s => s.dayOfWeek === activeDow && slotActiveOn(s, dateForDow(activeDow))),
+    [visibleSlots, activeDow, slotActiveOn, dateForDow]
   )
 
   const isToday = activeDow === todayDow
@@ -1088,9 +1093,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
   // are one lesson per date, not two.
   const renderedWeekSlots = useMemo(
     () => DAYS.flatMap(day =>
-      allSlots.filter(s => s.dayOfWeek === day.dow && slotActiveOn(s, dateForDow(day.dow)))
+      visibleSlots.filter(s => s.dayOfWeek === day.dow && slotActiveOn(s, dateForDow(day.dow)))
     ),
-    [allSlots, slotActiveOn, dateForDow]
+    [visibleSlots, slotActiveOn, dateForDow]
   )
   const totalLessons  = renderedWeekSlots.length
   const uniqueClasses = useMemo(
@@ -1133,9 +1138,9 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
     () => {
       const dow = isWeekend ? 1 : todayDow
       const date = dateForDow(dow)
-      return allSlots.filter(s => s.dayOfWeek === dow && slotActiveOn(s, date)).length
+      return visibleSlots.filter(s => s.dayOfWeek === dow && slotActiveOn(s, date)).length
     },
-    [allSlots, todayDow, isWeekend, slotActiveOn, dateForDow]
+    [visibleSlots, todayDow, isWeekend, slotActiveOn, dateForDow]
   )
 
   
@@ -1364,7 +1369,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
         style={{ display: 'flex', gap: 8, marginBottom: 14, overflowX: 'auto', paddingBottom: 4 }}
       >
         {DAYS.map(d => {
-          const count    = allSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
+          const count    = visibleSlots.filter(s => s.dayOfWeek === d.dow && slotActiveOn(s, dateForDow(d.dow))).length
           const isActive = activeDow === d.dow
           const isTdy    = d.dow === todayDow
           const wknd     = d.weekend
