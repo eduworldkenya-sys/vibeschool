@@ -1,5 +1,10 @@
 begin;
 
+-- authorization-test: public.lesson_plan_drafts authenticated teachers read/write only their own school-member drafts; anon denied.
+-- authorization-test: public.school_lesson_duration_defaults school members may read; only school admins may write; anon denied.
+-- authorization-test: public.school_calendar_exceptions school members may read; only school admins may write; anon denied.
+-- authorization-test: public.teacher_absences teachers may manage their own school-bound absences and school admins may manage school absences; anon denied.
+
 -- Timetable modernization closure.
 -- Adds independent lesson preparation, grade-aware duration defaults,
 -- school calendar/absence/substitution authority, and multi-school-safe undo.
