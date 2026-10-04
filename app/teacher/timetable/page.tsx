@@ -71,6 +71,19 @@ interface Slot {
   exceptionReason?: string | null
 }
 
+interface TimetablePlanReadinessRow {
+  timetable_slot_id: string
+  taught_date: string
+  body: string | null
+}
+
+interface TimetableOccurrenceExceptionRow {
+  timetable_slot_id: string
+  occurrence_date: string
+  actual_teacher_id: string | null
+  exception_reason: string | null
+}
+
 interface WeeklyLoadRow {
   classId:         string
   subjectId:       string
@@ -1049,7 +1062,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
               .in('timetable_slot_id', ownedSlotIds)
               .gte('occurrence_date', weekStart)
               .lte('occurrence_date', rangeEnd)
-          : Promise.resolve({ data: [] as any[], error: null }),
+          : Promise.resolve({ data: [] as TimetableOccurrenceExceptionRow[], error: null }),
         supabase
           .from('school_calendar_exceptions')
           .select('id,school_id,exception_date,kind,label,suppress_ordinary_teaching')
@@ -1093,23 +1106,23 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
       })
 
       const schoolNameMap = new Map(memberships.map(s => [s.id, s.name]))
-      const planMap = new Map(
-        (plansRes.data ?? []).map((plan: any) => [
+      const planMap = new Map<string, TimetablePlanReadinessRow>(
+        ((plansRes.data ?? []) as TimetablePlanReadinessRow[]).map(plan => [
           plan.timetable_slot_id + ':' + plan.taught_date,
           plan,
         ])
       )
-      const occurrenceMap = new Map(
-        (occurrenceRes.data ?? []).map((row: any) => [
+      const occurrenceMap = new Map<string, TimetableOccurrenceExceptionRow>(
+        ((occurrenceRes.data ?? []) as TimetableOccurrenceExceptionRow[]).map(row => [
           row.timetable_slot_id + ':' + row.occurrence_date,
           row,
         ])
       )
 
-      const mapped: Slot[] = slots.map((slot: any) => {
+      const mapped: Slot[] = slots.map(slot => {
         const occurrenceDate = nairobiDateAdd(weekStart, Number(slot.day_of_week) - 1)
-        const plan = planMap.get(slot.id + ':' + occurrenceDate) as any
-        const occurrence = occurrenceMap.get(slot.id + ':' + occurrenceDate) as any
+        const plan = planMap.get(slot.id + ':' + occurrenceDate)
+        const occurrence = occurrenceMap.get(slot.id + ':' + occurrenceDate)
         const readiness: TimetableReadiness = slot.__isSubstitute
           ? 'needs_review'
           : plan
