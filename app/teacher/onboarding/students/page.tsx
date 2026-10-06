@@ -11,18 +11,23 @@ const accent = C.accent
 interface StudentRow {
   name: string
   admission_number: string
+  request_id: string
+}
+
+function newStudentRow(): StudentRow {
+  return { name: '', admission_number: '', request_id: crypto.randomUUID() }
 }
 
 export default function StudentsOnboardingPage() {
   const router = useRouter()
   const [students, setStudents] = useState<StudentRow[]>([
-    { name: '', admission_number: '' },
+    newStudentRow(),
   ])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   function addRow() {
-    setStudents(s => [...s, { name: '', admission_number: '' }])
+    setStudents(s => [...s, newStudentRow()])
   }
 
   function removeRow(i: number) {
@@ -38,12 +43,6 @@ export default function StudentsOnboardingPage() {
     const valid = students.filter(s => s.name.trim())
     if (valid.length === 0) {
       router.replace('/teacher/pulse')
-      return
-    }
-
-    const missingAdmission = valid.findIndex(s => !s.admission_number.trim())
-    if (missingAdmission >= 0) {
-      setError(`Admission number is required for Student ${missingAdmission + 1}. It protects the learner from duplicate creation if saving is retried.`)
       return
     }
 
@@ -72,13 +71,15 @@ export default function StudentsOnboardingPage() {
       schoolId = tcData.school_id
     }
 
+    const addedStudentIds: string[] = []
     for (let i = 0; i < valid.length; i += 1) {
       const s = valid[i]
-      const { error: insertErr } = await supabase.rpc('teacher_add_student', {
+      const { data: studentId, error: insertErr } = await supabase.rpc('teacher_add_student_v2', {
         p_name: s.name.trim(),
-        p_admission_number: s.admission_number.trim(),
+        p_admission_number: s.admission_number.trim() || null,
         p_class_id: classId,
         p_school_id: schoolId,
+        p_request_id: s.request_id,
       })
       if (insertErr) {
         console.error('[StudentOnboarding] insert error', insertErr)
@@ -90,9 +91,14 @@ export default function StudentsOnboardingPage() {
         }
         return
       }
+      if (typeof studentId === 'string') addedStudentIds.push(studentId)
     }
 
     setLoading(false)
+    if (addedStudentIds[0] && classId) {
+      router.replace(`/teacher/classhub/${classId}/student/${addedStudentIds[0]}?tab=about&setup=1`)
+      return
+    }
     router.replace('/teacher/pulse')
   }
 
@@ -114,7 +120,7 @@ export default function StudentsOnboardingPage() {
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input type="text" placeholder={`Student ${i + 1} name`} value={s.name} onChange={e => updateRow(i, 'name', e.target.value)} disabled={loading}
                 style={{ flex: 2, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
-              <input type="text" required aria-label={`Student ${i + 1} admission number`} placeholder="Adm. No. *" value={s.admission_number} onChange={e => updateRow(i, 'admission_number', e.target.value)} disabled={loading}
+              <input type="text" aria-label={`Student ${i + 1} admission number (optional)`} placeholder="Adm. No. (optional)" value={s.admission_number} onChange={e => updateRow(i, 'admission_number', e.target.value)} disabled={loading}
                 style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: 14, fontFamily: 'inherit', outline: 'none' }} />
               {students.length > 1 && (
                 <button onClick={() => removeRow(i)} disabled={loading} style={{ background: 'none', border: 'none', color: C.error, fontSize: 18, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}>×</button>
@@ -134,7 +140,7 @@ export default function StudentsOnboardingPage() {
             Skip for now
           </button>
           <button onClick={handleSave} disabled={loading} style={{ flex: 2, padding: '13px', borderRadius: 12, border: 'none', background: accent, color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>
-            {loading ? 'Saving…' : "Done — Enter Teacher OS →"}
+            {loading ? 'Saving…' : "Add learners →"}
           </button>
         </div>
       </div>

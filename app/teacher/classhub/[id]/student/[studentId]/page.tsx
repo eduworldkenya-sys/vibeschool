@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
@@ -20,10 +20,31 @@ type ExamRow = { id: string; exam_id: string; subject_id: string; marks: number;
 type LibraryLoan = { id: string; book_id: string; issued_at: string; due_date: string; returned_at: string | null };
 type LibraryBook = { id: string; title: string };
 type SubjectRow = { id: string; name: string };
-type TeacherEvent = { id: string; subject_id: string | null; event_kind: string; event_code: string | null; note: string | null; visibility: string; due_at: string | null; resolved_at: string | null; created_at: string; created_by: string };
-type Tab = "now" | "work" | "assessment" | "attendance" | "timeline";
+type TeacherEvent = { id: string; subject_id: string | null; event_kind: string; event_code: string | null; note: string | null; visibility: string; metadata: unknown; due_at: string | null; resolved_at: string | null; created_at: string; created_by: string };
+type LearnerContextKey = "strengths" | "interests" | "learning_preferences" | "helpful_strategies" | "support_needs" | "accommodations" | "communication_preferences" | "responsibilities";
+type Tab = "now" | "about" | "work" | "assessment" | "attendance" | "timeline";
 
-const tabs: Tab[] = ["now", "work", "assessment", "attendance", "timeline"];
+const tabs: Tab[] = ["now", "about", "work", "assessment", "attendance", "timeline"];
+const learnerContextFields: Array<{ key: LearnerContextKey; label: string; help: string; placeholder: string }> = [
+  { key: "strengths", label: "Strengths noticed", help: "Specific strengths you have observed in learning or participation.", placeholder: "e.g. Explains ideas clearly during group work" },
+  { key: "interests", label: "Interests", help: "Topics or activities that help this learner engage.", placeholder: "e.g. Football, nature, drawing" },
+  { key: "learning_preferences", label: "How this learner learns well", help: "Teacher-tested preferences, not fixed labels.", placeholder: "e.g. Understands faster after seeing one worked example" },
+  { key: "helpful_strategies", label: "Strategies that help", help: "Classroom approaches that have worked in practice.", placeholder: "e.g. Short instructions followed by a check-in" },
+  { key: "support_needs", label: "Current learning support", help: "Describe the learning need and evidence without labelling the learner.", placeholder: "e.g. Needs extra practice interpreting scale on graphs" },
+  { key: "accommodations", label: "Classroom adjustments", help: "Practical adjustments currently used by the school or teacher.", placeholder: "e.g. Seat near the board; allow extra reading time" },
+  { key: "communication_preferences", label: "Communication notes", help: "Useful language or communication preferences for teaching.", placeholder: "e.g. Responds well to questions given one at a time" },
+  { key: "responsibilities", label: "Roles and responsibilities", help: "Class roles, clubs, games or responsibilities that matter in school.", placeholder: "e.g. Group leader; football team; library monitor" },
+];
+
+function isLearnerContextEvent(event: TeacherEvent) {
+  return event.event_kind === "management" && Boolean(event.event_code?.startsWith("learner_context_"));
+}
+
+function learnerContextKey(event: TeacherEvent): LearnerContextKey | null {
+  if (!isLearnerContextEvent(event)) return null;
+  const key = event.event_code?.replace("learner_context_", "") as LearnerContextKey;
+  return learnerContextFields.some((field) => field.key === key) ? key : null;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -83,7 +104,11 @@ export default function TeacherStudentProgressPage() {
   const [eventNote, setEventNote] = useState("");
   const [eventSaving, setEventSaving] = useState(false);
   const [eventMessage, setEventMessage] = useState("");
-  const [tab, setTab] = useState<Tab>("now");
+  const [tab, setTab] = useState<Tab>(!requestedSubjectId && searchParams.get("tab") === "about" ? "about" : "now");
+  const [contextDrafts, setContextDrafts] = useState<Record<LearnerContextKey, string>>(() => Object.fromEntries(learnerContextFields.map((field) => [field.key, ""])) as Record<LearnerContextKey, string>);
+  const [contextSaving, setContextSaving] = useState<LearnerContextKey | null>(null);
+  const [contextMessage, setContextMessage] = useState("");
+  const contextRequestIds = useRef<Record<LearnerContextKey, string>>(Object.fromEntries(learnerContextFields.map((field) => [field.key, crypto.randomUUID()])) as Record<LearnerContextKey, string>);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,7 +150,7 @@ export default function TeacherStudentProgressPage() {
         subjectIds.length ? supabase.from("cbc_assessments").select("id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("exam_results").select("id,exam_id,subject_id,marks,is_absent,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("subjects").select("id,name").in("id", subjectIds) : Promise.resolve({ data: [], error: null }),
-        supabase.from("teacher_learner_events").select("id,subject_id,event_kind,event_code,note,visibility,due_at,resolved_at,created_at,created_by").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).is("archived_at", null).order("created_at", { ascending: false }).limit(80),
+        supabase.from("teacher_learner_events").select("id,subject_id,event_kind,event_code,note,visibility,metadata,due_at,resolved_at,created_at,created_by").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).is("archived_at", null).order("created_at", { ascending: false }).limit(120),
         supabase.from("library_borrowings").select("id,book_id,issued_at,due_date,returned_at").eq("school_id", ctx.school_id).eq("student_id", studentId).eq("borrower_type", "student").is("deleted_at", null).or(`issued_for_class_id.eq.${classId},issued_for_class_id.is.null`).order("issued_at", { ascending: false }).limit(80),
         supabase.from("library_books").select("id,title").eq("school_id", ctx.school_id).is("deleted_at", null),
         listInterventionQueue(classId),
@@ -145,7 +170,17 @@ export default function TeacherStudentProgressPage() {
       setLibraryLoans((libraryLoansRes.data ?? []) as LibraryLoan[]);
       setLibraryBooks((libraryBooksRes.data ?? []) as LibraryBook[]);
       setSubjects(subjectRes.data ?? []);
-      setTeacherEvents((eventsRes.data ?? []) as TeacherEvent[]);
+      const loadedEvents = (eventsRes.data ?? []) as TeacherEvent[];
+      setTeacherEvents(loadedEvents);
+      const nextDrafts = Object.fromEntries(learnerContextFields.map((field) => [field.key, ""])) as Record<LearnerContextKey, string>;
+      const seen = new Set<LearnerContextKey>();
+      for (const event of loadedEvents) {
+        const key = learnerContextKey(event);
+        if (!key || seen.has(key)) continue;
+        nextDrafts[key] = event.note ?? "";
+        seen.add(key);
+      }
+      setContextDrafts(nextDrafts);
       setInterventions(interventionRows.filter((item) => item.studentId === studentId));
     } catch (loadError) {
       console.error("[LearnerWorkspace] load", loadError);
@@ -183,6 +218,48 @@ export default function TeacherStudentProgressPage() {
     }
     setEventSaving(false);
   }, [classId, context, eventNote, load, requestedSubjectId, student]);
+
+  const saveLearnerContext = useCallback(async (key: LearnerContextKey) => {
+    if (!context?.school_id || !context.teacher_id || !student || requestedSubjectId) return;
+    const value = contextDrafts[key].trim();
+    if (value.length > 1200) {
+      setContextMessage("Keep each section below 1,200 characters.");
+      return;
+    }
+    setContextSaving(key);
+    setContextMessage("");
+    const previous = teacherEvents.find((event) => learnerContextKey(event) === key);
+    const requestId = contextRequestIds.current[key];
+    const { error: insertError } = await supabase.from("teacher_learner_events").insert({
+      school_id: context.school_id,
+      class_id: classId,
+      student_id: student.id,
+      subject_id: null,
+      event_kind: "management",
+      event_code: `learner_context_${key}`,
+      note: value || null,
+      visibility: "class_teacher",
+      metadata: { context_key: key, provenance: "teacher-entered", supersedes_event_id: previous?.id ?? null, request_id: requestId },
+      created_by: context.teacher_id,
+    });
+    if (insertError) {
+      const { data: existing } = insertError.code === "23505"
+        ? await supabase.from("teacher_learner_events").select("id,event_code,note").eq("created_by", context.teacher_id).eq("student_id", student.id).contains("metadata", { request_id: requestId }).maybeSingle()
+        : { data: null };
+      if (existing?.event_code === `learner_context_${key}` && (existing.note ?? "") === value) {
+        contextRequestIds.current[key] = crypto.randomUUID();
+        setContextMessage("Saved. The earlier version remains in the learner history.");
+        await load();
+      } else {
+        setContextMessage(insertError.message);
+      }
+    } else {
+      contextRequestIds.current[key] = crypto.randomUUID();
+      setContextMessage("Saved. The earlier version remains in the learner history.");
+      await load();
+    }
+    setContextSaving(null);
+  }, [classId, context, contextDrafts, load, requestedSubjectId, student, teacherEvents]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -231,8 +308,9 @@ export default function TeacherStudentProgressPage() {
       { id: `book-issued-${item.id}`, at: item.issued_at, type: "Class operations", title: `Borrowed · ${libraryBooks.find((book) => book.id === item.book_id)?.title ?? "School library book"}`, detail: `Return by ${formatDate(item.due_date)}` },
       ...(item.returned_at ? [{ id: `book-returned-${item.id}`, at: item.returned_at, type: "Class operations", title: `Returned · ${libraryBooks.find((book) => book.id === item.book_id)?.title ?? "School library book"}`, detail: "School library record updated" }] : []),
     ]),
-    ...teacherEvents.map((item) => ({ id: `teacher-event-${item.id}`, at: item.created_at, type: item.event_kind === "parent_contact" ? "Parent follow-up" : item.event_kind.charAt(0).toUpperCase() + item.event_kind.slice(1), title: item.event_code?.replaceAll("_", " ") ?? item.event_kind, detail: item.note ?? (item.due_at ? `Follow-up due ${formatDate(item.due_at)}` : "Teacher-recorded event") })),
+    ...teacherEvents.filter((item) => !isLearnerContextEvent(item)).map((item) => ({ id: `teacher-event-${item.id}`, at: item.created_at, type: item.event_kind === "parent_contact" ? "Parent follow-up" : item.event_kind.charAt(0).toUpperCase() + item.event_kind.slice(1), title: item.event_code?.replaceAll("_", " ") ?? item.event_kind, detail: item.note ?? (item.due_at ? `Follow-up due ${formatDate(item.due_at)}` : "Teacher-recorded event") })),
   ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 40);
+  const availableTabs = requestedSubjectId ? tabs.filter((item) => item !== "about") : tabs;
 
 
   return <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
@@ -244,7 +322,7 @@ export default function TeacherStudentProgressPage() {
 
     <section style={{ marginBottom: 12, borderRadius: 16, padding: 13, background: truth.evidenceState === "sufficient" ? "#ecfdf5" : "#fffbeb", color: truth.evidenceState === "sufficient" ? "#065f46" : "#92400e", border: `1px solid ${truth.evidenceState === "sufficient" ? "#a7f3d0" : "#fde68a"}` }}><div style={{ fontWeight: 900, fontSize: 12 }}>{truth.evidenceState === "sufficient" ? "Learning picture available" : "Still building this learner picture"}</div><div style={{ marginTop: 3, fontSize: 11 }}>{truth.evidenceState === "sufficient" ? "There is enough recorded evidence to explore patterns, concerns and next actions." : "Keep recording real learning evidence. VibeSchool will not invent a mastery or trend conclusion before the evidence is strong enough."}</div></section>
 
-    <div style={{ display: "flex", gap: 7, overflowX: "auto", marginBottom: 12 }}>{tabs.map((item) => <button key={item} type="button" onClick={() => setTab(item)} style={{ minHeight: 40, border: tab === item ? "1px solid #312e81" : "1px solid #e5e7eb", borderRadius: 99, background: tab === item ? "#312e81" : "#fff", color: tab === item ? "#fff" : "#374151", padding: "0 14px", fontWeight: 900, textTransform: "capitalize" }}>{item}</button>)}</div>
+    <div style={{ display: "flex", gap: 7, overflowX: "auto", marginBottom: 12 }}>{availableTabs.map((item) => <button key={item} type="button" aria-pressed={tab === item} onClick={() => setTab(item)} style={{ minHeight: 40, border: tab === item ? "1px solid #312e81" : "1px solid #e5e7eb", borderRadius: 99, background: tab === item ? "#312e81" : "#fff", color: tab === item ? "#fff" : "#374151", padding: "0 14px", fontWeight: 900, textTransform: "capitalize" }}>{item}</button>)}</div>
 
     {tab === "now" && <div style={{ display: "grid", gap: 10 }}>
       <Card>
@@ -279,7 +357,7 @@ export default function TeacherStudentProgressPage() {
           <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("recognition")} style={{ minHeight: 42, border: 0, borderRadius: 11, background: "#065f46", color: "#fff", fontWeight: 900 }}>Recognise effort</button>
         </div>
         {eventMessage && <div style={{ marginTop: 8, fontSize: 11, color: eventMessage.startsWith("Saved") ? "#065f46" : "#92400e" }}>{eventMessage}</div>}
-        {teacherEvents.length > 0 && <div style={{ marginTop: 12, display: "grid", gap: 7 }}>{teacherEvents.slice(0,5).map((item) => <div key={item.id} style={{ background: "#f8fafc", borderRadius: 11, padding: 9 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong style={{ fontSize: 11, textTransform: "capitalize" }}>{item.event_kind.replaceAll("_", " ")}</strong><span style={{ fontSize: 9, color: "#6b7280" }}>{formatDate(item.created_at)}</span></div>{item.note && <div style={{ marginTop: 3, fontSize: 11, color: "#4b5563" }}>{item.note}</div>}</div>)}</div>}
+        {teacherEvents.some((item) => !isLearnerContextEvent(item)) && <div style={{ marginTop: 12, display: "grid", gap: 7 }}>{teacherEvents.filter((item) => !isLearnerContextEvent(item)).slice(0,5).map((item) => <div key={item.id} style={{ background: "#f8fafc", borderRadius: 11, padding: 9 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong style={{ fontSize: 11, textTransform: "capitalize" }}>{item.event_kind.replaceAll("_", " ")}</strong><span style={{ fontSize: 9, color: "#6b7280" }}>{formatDate(item.created_at)}</span></div>{item.note && <div style={{ marginTop: 3, fontSize: 11, color: "#4b5563" }}>{item.note}</div>}</div>)}</div>}
       </Card>
 
       <Card>
@@ -289,6 +367,19 @@ export default function TeacherStudentProgressPage() {
       </Card>
 
       <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>MORE ACTIONS</div><div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#0f766e", color: "#fff", fontWeight: 900 }}>Assign / review work</button><button type="button" onClick={() => router.push(`/teacher/assessment?classId=${classId}`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#92400e", color: "#fff", fontWeight: 900 }}>Assess learner</button><button type="button" onClick={() => router.push(`/teacher/attendance?classId=${classId}`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#065f46", color: "#fff", fontWeight: 900 }}>Attendance</button><button type="button" onClick={() => setTab("assessment")} style={{ minHeight: 46, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", fontWeight: 900 }}>Inspect evidence</button></div></Card>
+    </div>}
+
+    {tab === "about" && <div style={{ display: "grid", gap: 10 }}>
+      {searchParams.get("setup") === "1" && <section style={{ borderRadius: 16, padding: 14, background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46" }}><strong style={{ fontSize: 13 }}>Learner added successfully</strong><div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.45 }}>You can add useful information now or return later. These sections are optional and should only contain information that helps teaching and support.</div></section>}
+      <Card><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>ABOUT THIS LEARNER</div><h2 style={{ margin: "5px 0", fontSize: 18 }}>Build the learner picture gradually</h2><div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records and appear automatically elsewhere. These notes are visible only to the class teacher.</div></Card>
+      {learnerContextFields.map((field) => <Card key={field.key}>
+        <label htmlFor={`learner-context-${field.key}`} style={{ display: "block", fontSize: 13, fontWeight: 900 }}>{field.label}</label>
+        <div style={{ marginTop: 3, color: "#6b7280", fontSize: 10, lineHeight: 1.4 }}>{field.help}</div>
+        <textarea id={`learner-context-${field.key}`} value={contextDrafts[field.key]} onChange={(event) => setContextDrafts((current) => ({ ...current, [field.key]: event.target.value }))} rows={3} maxLength={1200} placeholder={field.placeholder} style={{ width: "100%", boxSizing: "border-box", marginTop: 9, border: "1px solid #d1d5db", borderRadius: 12, padding: 10, fontFamily: "inherit", resize: "vertical" }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 8 }}><span style={{ color: "#9ca3af", fontSize: 9 }}>{contextDrafts[field.key].length}/1200</span><button type="button" disabled={contextSaving !== null} onClick={() => void saveLearnerContext(field.key)} style={{ minHeight: 40, border: 0, borderRadius: 11, background: "#312e81", color: "#fff", padding: "0 14px", fontWeight: 900 }}>{contextSaving === field.key ? "Saving…" : "Save section"}</button></div>
+      </Card>)}
+      {contextMessage && <div role="status" style={{ borderRadius: 13, padding: 11, background: contextMessage.startsWith("Saved") ? "#ecfdf5" : "#fffbeb", color: contextMessage.startsWith("Saved") ? "#065f46" : "#92400e", fontSize: 11 }}>{contextMessage}</div>}
+      <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={{ minHeight: 46, border: "1px solid #d1d5db", borderRadius: 13, background: "#fff", fontWeight: 900 }}>Done — return to class</button>
     </div>}
 
     {tab === "work" && <Card>{homework.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "#6b7280" }}>No homework assigned by you for this class yet.</div> : <div style={{ display: "grid", gap: 9 }}>{homework.map((item) => { const submission = submissionMap.get(item.id); const overdue = Boolean(item.due_date) && !submission && new Date(item.due_date ?? "").getTime() < Date.now(); return <button type="button" key={item.id} onClick={() => router.push(`/teacher/classhub/${classId}/homework/${item.id}`)} style={{ width: "100%", textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 13, padding: 11, background: "#fff" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div><div style={{ fontSize: 13, fontWeight: 900 }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 10, color: "#6b7280" }}>{item.subject || "Subject"} · {item.due_date ? `Due ${formatDate(item.due_date)}` : "No due date"}</div></div>{submission ? <Badge text={submission.status} tone={submission.status === "marked" ? "good" : "neutral"} /> : <Badge text={overdue ? "Missing" : "Not submitted"} tone={overdue ? "bad" : "warn"} />}</div>{submission?.mark != null && <div style={{ marginTop: 7, fontSize: 12, fontWeight: 900, color: "#065f46" }}>Mark: {submission.mark}</div>}{submission?.feedback && <div style={{ marginTop: 5, fontSize: 11, color: "#6b7280" }}>{submission.feedback}</div>}</button>; })}</div>}</Card>}

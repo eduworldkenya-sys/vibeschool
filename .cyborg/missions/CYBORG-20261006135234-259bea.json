@@ -2,13 +2,13 @@
   "schemaVersion": 1,
   "kernelVersion": 2,
   "registryVersion": 5,
-  "missionId": "CYBORG-20261004091241-041451",
-  "runId": "987b8f35-9add-43ab-9537-470d4169871b",
+  "missionId": "CYBORG-20261006135234-259bea",
+  "runId": "a215d9e3-f215-48dd-ba3b-fc6cb697aeee",
   "missionType": "IMPLEMENTATION",
-  "intent": "Implement VibeSchool class and school hub reconciliation, onboarding assignments and profile, shared dated responsibilities, duties, borrowing, canonical contextual records and handover; preserve timetable and concurrent assessment work; verify and merge",
-  "baseSha": "351cf95e05436ad5436e7a8a1ea5d2ccd233c850",
-  "headSha": "UNRESOLVED",
-  "riskLevel": "R5",
+  "intent": "Implement canonical learner information using existing students, student_classes and teacher_learner_events: repair onboarding to use optional admission numbers and idempotent learner creation; add progressive teacher-maintained learner context to the canonical learner workspace; preserve Class Hub, Attendance, Assessments, Exams, Progress, Homework, Intervention, Student OS and Parent OS authorities; verify tenant isolation, mobile UX, exact-head CI, independent assurance, merge and post-merge verification",
+  "baseSha": "b3d14fd67cd7dac962ca9dc97055737c1174fa9f",
+  "headSha": "b3d14fd67cd7dac962ca9dc97055737c1174fa9f",
+  "riskLevel": "R2",
   "capabilities": [
     "READ_REPO",
     "READ_CI",
@@ -17,17 +17,14 @@
     "RUN_TESTS",
     "EDIT_CODE",
     "CREATE_BRANCH",
-    "CREATE_PR"
+    "CREATE_PR",
+    "MERGE_PR"
   ],
   "scope": {
     "mission": [
-      "app/teacher/classhub/[id]",
-      "app/teacher/schoolhub/page.tsx",
-      "app/teacher/profile/page.tsx",
-      "supabase/migrations/20261004210000_school_class_responsibility_operations.sql",
-      "scripts/test-class-school-responsibility-contract.mjs",
-      ".github/workflows/class-workbook.yml",
-      "scripts/test-class-school-responsibility-db.mjs"
+      "app/teacher/onboarding/students/page.tsx",
+      "app/teacher/classhub/[id]/student/[studentId]/page.tsx",
+      "scripts/test-canonical-learner-record.mjs"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -344,6 +341,20 @@
       "reason": null
     },
     {
+      "id": "supabase-rls-security",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    },
+    {
+      "id": "hq-ux-operational-truth",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    },
+    {
       "id": "journey-integrity",
       "activation": "domain-match",
       "required": true,
@@ -359,9 +370,9 @@
   "attempts": {},
   "state": "MISSION",
   "learningClosure": false,
-  "createdAt": "2026-10-04T09:12:41.697Z",
-  "updatedAt": "2026-10-06T13:50:04.464Z",
-  "journalPath": ".cyborg/journal/CYBORG-20261004091241-041451.ndjson",
+  "createdAt": "2026-10-06T13:52:34.575Z",
+  "updatedAt": "2026-10-06T13:52:44.905Z",
+  "journalPath": ".cyborg/journal/CYBORG-20261006135234-259bea.ndjson",
   "activation": {
     "runtime": false,
     "schedulers": false,
@@ -369,5 +380,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "0350b70a7771d89061220330d4b377d3de5a57edc66d299a21b379d9c5ed7fa0"
+  "lastJournalHash": "d7acb2d129cede0286b4b6dfefa7fb64047d542455ea83bb973a413ee45f58c9"
 }
