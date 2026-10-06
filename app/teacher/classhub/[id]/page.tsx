@@ -580,7 +580,7 @@ function ClassPageInner() {
         </div>
       )}
 
-      <div style={{margin:'14px 16px'}}><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/workbook${subjectId ? `?subjectId=${encodeURIComponent(subjectId)}` : ''}`)} style={{width:'100%',padding:14,borderRadius:14,border:0,background:'#244c37',color:'white',fontWeight:800,fontSize:14}}>Open Class Workbook — lists, marks & trackers</button></div>
+      <div style={{margin:'14px 16px',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:8}}><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/workbook${subjectId ? `?subjectId=${encodeURIComponent(subjectId)}` : ''}`)} style={{width:'100%',padding:14,borderRadius:14,border:0,background:'#244c37',color:'white',fontWeight:800,fontSize:14}}>Open Class Workbook — lists, marks & trackers</button><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/operations`)} style={{width:'100%',padding:14,borderRadius:14,border:0,background:'#155e75',color:'white',fontWeight:800,fontSize:14}}>Run the class — duties & books</button></div>
 
       {!isSubject && !showRoster && <div style={{ margin:'14px 16px 0' }}><button onClick={() => setShowRoster(true)} style={{ width:'100%',padding:'13px',borderRadius:14,border:'1.5px dashed #d1d5db',background:'transparent',color:C.textMuted,fontWeight:700,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>👥 View Student Roster ({students.length})</button></div>}
 

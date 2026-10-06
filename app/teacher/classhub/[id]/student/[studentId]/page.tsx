@@ -17,6 +17,8 @@ type SubmissionRow = { homework_id: string | null; status: string; mark: number 
 type GradebookRow = { assessment_id: string; subject_id: string | null; score: number | null; max_score: number | null; percentage: number | null; assessment_type: string; assessment_title: string; released_at: string | null };
 type CbcRow = { id: string; subject_id: string; strand_id: string | null; sub_strand: string | null; assessment_type: string; performance: string; notes: string | null; created_at: string };
 type ExamRow = { id: string; exam_id: string; subject_id: string; marks: number; is_absent: boolean; created_at: string };
+type LibraryLoan = { id: string; book_id: string; issued_at: string; due_date: string; returned_at: string | null };
+type LibraryBook = { id: string; title: string };
 type SubjectRow = { id: string; name: string };
 type TeacherEvent = { id: string; subject_id: string | null; event_kind: string; event_code: string | null; note: string | null; visibility: string; due_at: string | null; resolved_at: string | null; created_at: string; created_by: string };
 type Tab = "now" | "work" | "assessment" | "attendance" | "timeline";
@@ -73,6 +75,8 @@ export default function TeacherStudentProgressPage() {
   const [gradebook, setGradebook] = useState<GradebookRow[]>([]);
   const [cbc, setCbc] = useState<CbcRow[]>([]);
   const [exams, setExams] = useState<ExamRow[]>([]);
+  const [libraryLoans, setLibraryLoans] = useState<LibraryLoan[]>([]);
+  const [libraryBooks, setLibraryBooks] = useState<LibraryBook[]>([]);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
   const [interventions, setInterventions] = useState<InterventionQueueItem[]>([]);
   const [teacherEvents, setTeacherEvents] = useState<TeacherEvent[]>([]);
@@ -114,7 +118,7 @@ export default function TeacherStudentProgressPage() {
       const subjectIds = requestedSubjectId
         ? [requestedSubjectId]
         : Array.from(new Set(ctx.classes.filter((item) => item.class_id === classId).map((item) => item.subject_id)));
-      const [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, eventsRes, interventionRows] = await Promise.all([
+      const [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, eventsRes, libraryLoansRes, libraryBooksRes, interventionRows] = await Promise.all([
         supabase.from("attendance").select("date,status,is_late").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).order("date", { ascending: false }).limit(120),
         supabase.from("homework").select("id,title,subject,due_date,type").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("due_date", { ascending: false }).limit(80),
         subjectIds.length ? supabase.from("assessment_gradebook_entries").select("assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("released_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
@@ -122,9 +126,11 @@ export default function TeacherStudentProgressPage() {
         subjectIds.length ? supabase.from("exam_results").select("id,exam_id,subject_id,marks,is_absent,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
         subjectIds.length ? supabase.from("subjects").select("id,name").in("id", subjectIds) : Promise.resolve({ data: [], error: null }),
         supabase.from("teacher_learner_events").select("id,subject_id,event_kind,event_code,note,visibility,due_at,resolved_at,created_at,created_by").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).is("archived_at", null).order("created_at", { ascending: false }).limit(80),
+        supabase.from("library_borrowings").select("id,book_id,issued_at,due_date,returned_at").eq("school_id", ctx.school_id).eq("student_id", studentId).eq("borrower_type", "student").is("deleted_at", null).or(`issued_for_class_id.eq.${classId},issued_for_class_id.is.null`).order("issued_at", { ascending: false }).limit(80),
+        supabase.from("library_books").select("id,title").eq("school_id", ctx.school_id).is("deleted_at", null),
         listInterventionQueue(classId),
       ]);
-      for (const result of [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, eventsRes]) if (result.error) throw result.error;
+      for (const result of [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, eventsRes, libraryLoansRes, libraryBooksRes]) if (result.error) throw result.error;
 
       const homeworkRows: HomeworkRow[] = homeworkRes.data ?? [];
       const submissionRes = homeworkRows.length ? await supabase.from("homework_submissions").select("homework_id,status,mark,feedback,submitted_at").eq("student_id", studentId).in("homework_id", homeworkRows.map((item) => item.id)) : { data: [], error: null };
@@ -136,6 +142,8 @@ export default function TeacherStudentProgressPage() {
       setGradebook(gradebookRes.data ?? []);
       setCbc(cbcRes.data ?? []);
       setExams(examRes.data ?? []);
+      setLibraryLoans((libraryLoansRes.data ?? []) as LibraryLoan[]);
+      setLibraryBooks((libraryBooksRes.data ?? []) as LibraryBook[]);
       setSubjects(subjectRes.data ?? []);
       setTeacherEvents((eventsRes.data ?? []) as TeacherEvent[]);
       setInterventions(interventionRows.filter((item) => item.studentId === studentId));
@@ -219,6 +227,10 @@ export default function TeacherStudentProgressPage() {
     ...gradebook.filter((item) => item.released_at).map((item, index) => ({ id: `assessment-${item.assessment_id}-${index}`, at: item.released_at as string, type: "Assessment", title: item.assessment_title, detail: item.percentage == null ? item.assessment_type : `${Math.round(item.percentage)}% · ${item.assessment_type}` })),
     ...cbc.map((item) => ({ id: `cbc-${item.id}`, at: item.created_at, type: "Learning evidence", title: `${subjectNames.get(item.subject_id) ?? "Subject"}${item.sub_strand ? ` · ${item.sub_strand}` : ""}`, detail: `${item.assessment_type} · ${item.performance}` })),
     ...interventions.filter((item) => item.updatedAt).map((item) => ({ id: `support-${item.interventionId}`, at: item.updatedAt, type: "Support", title: `${item.subjectName} · ${item.priority === "extension" ? "Challenge" : "Learning support"}`, detail: item.status.replaceAll("_", " ") })),
+    ...libraryLoans.flatMap((item) => [
+      { id: `book-issued-${item.id}`, at: item.issued_at, type: "Class operations", title: `Borrowed · ${libraryBooks.find((book) => book.id === item.book_id)?.title ?? "School library book"}`, detail: `Return by ${formatDate(item.due_date)}` },
+      ...(item.returned_at ? [{ id: `book-returned-${item.id}`, at: item.returned_at, type: "Class operations", title: `Returned · ${libraryBooks.find((book) => book.id === item.book_id)?.title ?? "School library book"}`, detail: "School library record updated" }] : []),
+    ]),
     ...teacherEvents.map((item) => ({ id: `teacher-event-${item.id}`, at: item.created_at, type: item.event_kind === "parent_contact" ? "Parent follow-up" : item.event_kind.charAt(0).toUpperCase() + item.event_kind.slice(1), title: item.event_code?.replaceAll("_", " ") ?? item.event_kind, detail: item.note ?? (item.due_at ? `Follow-up due ${formatDate(item.due_at)}` : "Teacher-recorded event") })),
   ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 40);
 

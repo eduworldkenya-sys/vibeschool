@@ -14,5 +14,20 @@
     ],
     "acquiredAt": "2026-10-04T05:21:24.615Z",
     "releasedAt": null
+  },
+  {
+    "missionId": "CYBORG-20261004091241-041451",
+    "runId": "987b8f35-9add-43ab-9537-470d4169871b",
+    "paths": [
+      "app/teacher/classhub/[id]",
+      "app/teacher/schoolhub/page.tsx",
+      "app/teacher/profile/page.tsx",
+      "supabase/migrations/20261004210000_school_class_responsibility_operations.sql",
+      "scripts/test-class-school-responsibility-contract.mjs",
+      ".github/workflows/class-workbook.yml",
+      "scripts/test-class-school-responsibility-db.mjs"
+    ],
+    "acquiredAt": "2026-10-04T19:47:04.913Z",
+    "releasedAt": null
   }
 ]
