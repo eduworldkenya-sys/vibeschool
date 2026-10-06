@@ -7,6 +7,8 @@ on:
       - 'components/teacher/LessonFlowCard.tsx'
       - 'lib/pulse/rules.ts'
       - 'scripts/test-teacher-zero-friction-journey.mjs'
+      - 'scripts/canonical-teacher-notes-contract.test.mjs'
+      - 'supabase/migrations/20261004092000_teacher_note_overlays.sql'
       - '.github/workflows/teacher-zero-friction-journey.yml'
   workflow_dispatch:
 
@@ -23,3 +25,5 @@ jobs:
           node-version: 20
       - name: Verify teacher zero-friction journey contract
         run: node scripts/test-teacher-zero-friction-journey.mjs
+      - name: Verify canonical teacher notes contract
+        run: node scripts/canonical-teacher-notes-contract.test.mjs
