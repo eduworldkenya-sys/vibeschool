@@ -70,7 +70,7 @@ must(!groups.includes('Math.random() - 0.5') || groups.includes('Random'), 'rand
 must(learner.includes('teacher_learner_events'), 'learner workspace reads operational teacher events')
 must(learner.includes('saveTeacherEvent'), 'learner workspace can persist factual teacher actions')
 must(learner.includes('TEACHER NOTES & ACTIONS'), 'learner workspace exposes teacher notes/actions in simple language')
-must(learner.includes('teacherEvents.map'), 'learner story timeline includes teacher actions')
+must(/teacherEvents(?:\.filter\([^\n]+\))?\.map/.test(learner), 'learner story timeline includes teacher actions')
 must(learner.includes('buildLearnerTruthSummary'), 'learner intelligence remains evidence-backed')
 must(learner.includes('VibeSchool will not invent'), 'learner workspace preserves no-fake-intelligence boundary')
 must(migration.includes('teacher_snapshot_class_group'), 'smart list assignment snapshots historical membership')
