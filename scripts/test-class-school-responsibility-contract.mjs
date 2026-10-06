@@ -9,12 +9,13 @@ const profile=fs.readFileSync('app/teacher/profile/page.tsx','utf8');
 const studentProfile=fs.readFileSync('app/teacher/classhub/[id]/student/[studentId]/page.tsx','utf8');
 
 assert.match(migration,/create table public\.school_responsibilities[\s\S]*sharing_mode text not null default 'shared'/,'school appointments support shared and lead/support responsibilities');
+assert.match(migration,/create table if not exists public\.library_books[\s\S]*create table if not exists public\.library_borrowings[\s\S]*alter table public\.library_borrowings enable row level security/,'clean migration rebuild creates the canonical library ledger with RLS before class operations extend it');
 assert.match(migration,/p_category not in \('department','games','club','teacher_duty','examination','event','other'\)/,'appointment types are constrained');
 assert.match(migration,/public\.is_school_admin\(p_school_id\)/,'only school administrators assign official responsibilities');
 assert.match(migration,/responsibility_teacher_membership_required/,'appointments cannot assign a teacher outside the school');
 assert.match(migration,/one_lead_and_support_required/,'lead-and-support assignment requires one lead and at least one colleague');
 assert.match(migration,/teacher_can_read_school_responsibility[\s\S]*security definer[\s\S]*set search_path=public,auth,pg_temp/,'responsibility RLS avoids recursive policy evaluation through a fixed-path helper');
-assert.match(migration,/m\.profile_id=p_profile_id and m\.ended_at is null and \(m\.ends_on is null or m\.ends_on>=current_date\)/,'responsibility access ends with the teacher appointment');
+assert.match(migration,/m\.profile_id=p_profile_id and m\.ended_at is null and m\.starts_on<=current_date and \(m\.ends_on is null or m\.ends_on>=current_date\)/,'responsibility access is bounded by the teacher membership interval');
 assert.match(migration,/update public\.school_responsibility_members set ends_on=p_effective_on-1[\s\S]*starts_on<=current_date/,'handover closes only the current membership interval');
 assert.match(migration,/create table public\.class_duty_rosters[\s\S]*unique \(class_id, duty_code, starts_on\)/,'class duties have a canonical class/date identity');
 assert.match(migration,/if not public\.teacher_can_access_class\(p_class_id,null,true\) then raise exception 'class_teacher_required'/,'only the assigned class teacher can change class duty rosters');
@@ -24,6 +25,9 @@ assert.match(migration,/for update;[\s\S]*if coalesce\(v_available,0\)<=0 then r
 assert.match(migration,/issue_request_id uuid[\s\S]*library_borrowings_issue_request_uidx[\s\S]*issue_request_payload_conflict/,'retries cannot issue duplicate books or reuse a request for different loan details');
 assert.match(migration,/condition_out is distinct from p_condition/,'loan retry identity includes the issued-book condition');
 assert.match(migration,/school_responsibility_requests[\s\S]*responsibility_request_payload_conflict/,'responsibility assignment retries return one canonical appointment');
+assert.match(migration,/admin_transfer_school_responsibility\(p_responsibility_id uuid,p_effective_on date,p_members jsonb,p_request_id uuid\)[\s\S]*transfer_handover[\s\S]*responsibility_request_payload_conflict/,'initial handover retries return one canonical result and reject changed payloads');
+assert.match(migration,/m\.starts_on<=current_date[\s\S]*teacher_can_read_school_responsibility/,'direct teacher responsibility access is bounded by the active membership start date');
+assert.match(migration,/'upcoming_appointments',[\s\S]*m\.starts_on>current_date/,'future responsibilities are returned in a distinct upcoming collection');
 assert.match(migration,/'members',coalesce\([\s\S]*m\.starts_on<=current_date/,'admin responsibility context exposes current team members only');
 assert.match(migration,/'upcoming_members',coalesce\([\s\S]*'starts_on',m\.starts_on[\s\S]*m\.starts_on>current_date/,'admin responsibility context identifies future team members and their start dates');
 assert.match(migration,/library_borrowings_assigned_read[\s\S]*teacher_can_access_class/,'loan history is limited to an assigned class or school administrator');
@@ -42,6 +46,7 @@ assert.match(schoolHub,/Scheduled from \$\{selectedTransfer\.upcoming_members\[0
 assert.match(schoolHub,/selectedTransfer\?\.upcoming_members\.length/,'School Hub prevents overlapping future handovers');
 assert.match(schoolHub,/admin_reschedule_school_responsibility_handover/,'School Hub exposes an administrator-only correction path for scheduled handovers');
 assert.match(schoolHub,/Previous team history:/,'School Hub makes prior and rescheduled teams inspectable to school administrators');
+assert.match(schoolHub,/Upcoming responsibilities[\s\S]*do not grant access to the records before they start/,'School Hub labels future assignments and explains access starts only on the effective date');
 assert.match(migration,/reschedule_handover[\s\S]*responsibility_request_payload_conflict/,'reschedule retries are idempotent and reject changed payloads');
 assert.match(migration,/end_recorded_by uuid references public\.profiles[\s\S]*end_reason text/,'responsibility history records who made each handover or reschedule change');
 assert.match(profile,/MY TEACHING RESPONSIBILITIES/,'profile reflects class-teacher and subject-teacher assignments');

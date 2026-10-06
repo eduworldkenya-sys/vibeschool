@@ -79,7 +79,7 @@ returns boolean language sql stable security definer set search_path=public,auth
       and public.is_operational_school_member(r.school_id)
       and (
         public.is_school_admin(r.school_id)
-        or exists(select 1 from public.school_responsibility_members m where m.responsibility_id=r.id and m.profile_id=p_profile_id and m.ended_at is null and (m.ends_on is null or m.ends_on>=current_date))
+        or exists(select 1 from public.school_responsibility_members m where m.responsibility_id=r.id and m.profile_id=p_profile_id and m.ended_at is null and m.starts_on<=current_date and (m.ends_on is null or m.ends_on>=current_date))
       )
   )
 $$;
@@ -97,9 +97,50 @@ for select to authenticated using (
   public.teacher_can_read_school_responsibility(responsibility_id,auth.uid())
   and (
     exists(select 1 from public.school_responsibilities r where r.id=responsibility_id and public.is_school_admin(r.school_id))
-    or (profile_id=auth.uid() and ended_at is null and (ends_on is null or ends_on>=current_date))
+    or (profile_id=auth.uid() and ended_at is null and starts_on<=current_date and (ends_on is null or ends_on>=current_date))
   )
 );
+
+-- Production already has this canonical ledger, but its creation was never captured in tracked migrations.
+-- Reconstruct its verified production shape here so a clean migration replay can apply class operations.
+-- authorization-test: public.library_books assigned-class teachers read; same-school administrators write; other teachers, cross-school actors and anon denied
+create table if not exists public.library_books (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references public.schools(id) on delete cascade,
+  title text not null,
+  author text,
+  isbn text,
+  subject text,
+  class_level text,
+  total_copies integer default 1,
+  available_copies integer default 1,
+  added_by uuid references public.profiles(id),
+  created_at timestamptz default now(),
+  deleted_at timestamptz
+);
+alter table public.library_books enable row level security;
+
+-- authorization-test: public.library_borrowings assigned-class learner history readable; same-school administrators write; unassigned, cross-school actors and anon denied
+create table if not exists public.library_borrowings (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid references public.schools(id) on delete cascade,
+  book_id uuid references public.library_books(id) on delete cascade,
+  borrower_type text check (borrower_type in ('student', 'staff')),
+  student_id uuid references public.students(id),
+  staff_id uuid references public.profiles(id),
+  issued_by uuid references public.profiles(id),
+  issued_at timestamptz default now(),
+  due_date date not null,
+  returned_at timestamptz,
+  condition_out text default 'good' check (condition_out in ('good', 'fair', 'damaged')),
+  condition_in text check (condition_in in ('good', 'fair', 'damaged', 'lost')),
+  fine_amount numeric(10, 2) default 0,
+  fine_paid boolean default false,
+  notes text,
+  created_at timestamptz default now(),
+  deleted_at timestamptz
+);
+alter table public.library_borrowings enable row level security;
 
 -- Keep the school library canonical, but grant teachers only class-context reads.
 -- Legacy borrowings without a class snapshot remain readable only through current assigned learner-class access.
@@ -115,6 +156,9 @@ create unique index if not exists library_borrowings_issue_request_uidx
 
 drop policy if exists school_library_books on public.library_books;
 drop policy if exists school_library_borrowings on public.library_borrowings;
+revoke all on public.library_books, public.library_borrowings from public, anon, authenticated;
+grant select, insert, update, delete on public.library_books, public.library_borrowings to authenticated;
+grant all on public.library_books, public.library_borrowings to service_role;
 create policy school_library_books_read on public.library_books
 for select to authenticated using (
   public.is_operational_school_member(school_id)
@@ -312,12 +356,13 @@ declare v_uid uuid:=auth.uid(); v_school uuid; v_result jsonb;
 begin
   if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
   select active_school_id into v_school from public.get_my_teacher_school_context();
-  if v_school is null then return jsonb_build_object('school_id',null,'teaching_roles','[]'::jsonb,'appointments','[]'::jsonb); end if;
+  if v_school is null then return jsonb_build_object('school_id',null,'teaching_roles','[]'::jsonb,'appointments','[]'::jsonb,'upcoming_appointments','[]'::jsonb); end if;
   if not public.is_operational_school_member(v_school) then raise exception 'school_membership_required' using errcode='42501'; end if;
   select jsonb_build_object(
     'school_id',v_school,
     'teaching_roles',coalesce((select jsonb_agg(jsonb_build_object('class_id',c.id,'class_name',concat_ws(' ',c.name,c.stream),'subject_name',sub.name,'is_class_teacher',tc.is_class_teacher) order by c.name,sub.name) from public.teacher_classes tc join public.classes c on c.id=tc.class_id and c.school_id=tc.school_id join public.subjects sub on sub.id=tc.subject_id where tc.teacher_id=v_uid and tc.school_id=v_school),'[]'::jsonb),
-    'appointments',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'title',r.title,'category',r.category,'scope_label',r.scope_label,'sharing_mode',r.sharing_mode,'member_role',m.member_role,'starts_on',m.starts_on,'ends_on',coalesce(m.ends_on,r.ends_on),'colleagues',coalesce((select jsonb_agg(jsonb_build_object('name',p.full_name,'role',cm.member_role) order by cm.member_role,p.full_name) from public.school_responsibility_members cm join public.profiles p on p.id=cm.profile_id where cm.responsibility_id=r.id and cm.ended_at is null and cm.profile_id<>v_uid),'[]'::jsonb)) order by r.starts_on desc) from public.school_responsibility_members m join public.school_responsibilities r on r.id=m.responsibility_id join public.profiles p on p.id=m.profile_id where r.school_id=v_school and m.profile_id=v_uid and r.ended_at is null and m.ended_at is null and coalesce(m.ends_on,r.ends_on,'infinity'::date)>=current_date),'[]'::jsonb)
+    'appointments',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'title',r.title,'category',r.category,'scope_label',r.scope_label,'sharing_mode',r.sharing_mode,'member_role',m.member_role,'starts_on',m.starts_on,'ends_on',coalesce(m.ends_on,r.ends_on),'colleagues',coalesce((select jsonb_agg(jsonb_build_object('name',p.full_name,'role',cm.member_role) order by cm.member_role,p.full_name) from public.school_responsibility_members cm join public.profiles p on p.id=cm.profile_id where cm.responsibility_id=r.id and cm.ended_at is null and cm.starts_on<=current_date and (cm.ends_on is null or cm.ends_on>=current_date) and cm.profile_id<>v_uid),'[]'::jsonb)) order by r.starts_on desc) from public.school_responsibility_members m join public.school_responsibilities r on r.id=m.responsibility_id join public.profiles p on p.id=m.profile_id where r.school_id=v_school and m.profile_id=v_uid and r.ended_at is null and m.ended_at is null and m.starts_on<=current_date and coalesce(m.ends_on,r.ends_on,'infinity'::date)>=current_date),'[]'::jsonb),
+    'upcoming_appointments',coalesce((select jsonb_agg(jsonb_build_object('id',r.id,'title',r.title,'category',r.category,'scope_label',r.scope_label,'sharing_mode',r.sharing_mode,'member_role',m.member_role,'starts_on',m.starts_on,'ends_on',coalesce(m.ends_on,r.ends_on),'colleagues',coalesce((select jsonb_agg(jsonb_build_object('name',p.full_name,'role',cm.member_role) order by cm.member_role,p.full_name) from public.school_responsibility_members cm join public.profiles p on p.id=cm.profile_id where cm.responsibility_id=r.id and cm.ended_at is null and cm.starts_on=m.starts_on and coalesce(cm.ends_on,r.ends_on,'infinity'::date)>=cm.starts_on and cm.profile_id<>v_uid),'[]'::jsonb)) order by m.starts_on,r.title) from public.school_responsibility_members m join public.school_responsibilities r on r.id=m.responsibility_id join public.profiles p on p.id=m.profile_id where r.school_id=v_school and m.profile_id=v_uid and r.ended_at is null and m.ended_at is null and m.starts_on>current_date and coalesce(m.ends_on,r.ends_on,'infinity'::date)>=m.starts_on),'[]'::jsonb)
   ) into v_result;
   return v_result;
 end; $$;
@@ -368,14 +413,22 @@ begin
   return v_result;
 end; $$;
 
-create or replace function public.admin_transfer_school_responsibility(p_responsibility_id uuid,p_effective_on date,p_members jsonb)
+create or replace function public.admin_transfer_school_responsibility(p_responsibility_id uuid,p_effective_on date,p_members jsonb,p_request_id uuid)
 returns uuid language plpgsql security definer set search_path=public,auth,pg_temp as $$
-declare v_uid uuid:=auth.uid(); v_row public.school_responsibilities%rowtype; v_member jsonb; v_profile uuid; v_role text; v_count integer:=0; v_leads integer:=0;
+declare v_uid uuid:=auth.uid(); v_row public.school_responsibilities%rowtype; v_member jsonb; v_profile uuid; v_role text; v_count integer:=0; v_leads integer:=0; v_payload jsonb; v_existing jsonb; v_result uuid;
 begin
   if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
   select * into v_row from public.school_responsibilities where id=p_responsibility_id and ended_at is null for update;
   if not found then raise exception 'responsibility_not_found'; end if;
   if not public.is_school_admin(v_row.school_id) then raise exception 'school_admin_required' using errcode='42501'; end if;
+  if p_request_id is null then raise exception 'responsibility_request_id_required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_uid::text||':'||p_request_id::text,0));
+  v_payload:=jsonb_build_object('operation','transfer_handover','responsibility_id',p_responsibility_id,'effective_on',p_effective_on,'members',p_members);
+  select payload,result_id into v_existing,v_result from public.school_responsibility_requests where actor_id=v_uid and request_id=p_request_id;
+  if found then
+    if v_existing is distinct from v_payload then raise exception 'responsibility_request_payload_conflict'; end if;
+    return v_result;
+  end if;
   if p_effective_on is null or p_effective_on<=current_date or p_effective_on<=v_row.starts_on or (v_row.ends_on is not null and p_effective_on>v_row.ends_on) then raise exception 'responsibility_transfer_date_invalid'; end if;
   if exists(select 1 from public.school_responsibility_members where responsibility_id=v_row.id and ended_at is null and starts_on>current_date) then raise exception 'responsibility_future_handover_already_scheduled'; end if;
   if jsonb_typeof(p_members) is distinct from 'array' or jsonb_array_length(p_members) not between 1 and 20 then raise exception 'responsibility_members_required'; end if;
@@ -396,6 +449,7 @@ begin
     values(v_row.id,nullif(v_member->>'profile_id','')::uuid,v_member->>'role',p_effective_on,v_row.ends_on)
     on conflict(responsibility_id,profile_id,starts_on) where ended_at is null do update set member_role=excluded.member_role,ends_on=excluded.ends_on,ended_at=null;
   end loop;
+  insert into public.school_responsibility_requests(actor_id,request_id,payload,result_id) values(v_uid,p_request_id,v_payload,v_row.id);
   return v_row.id;
 end; $$;
 
@@ -482,7 +536,7 @@ revoke all on function public.teacher_get_my_school_responsibilities() from publ
 revoke all on function public.teacher_can_read_school_responsibility(uuid,uuid) from public,anon;
 revoke all on function public.teacher_get_school_responsibility_admin_context() from public,anon;
 revoke all on function public.admin_assign_school_responsibility(uuid,text,text,text,text,date,date,jsonb,uuid) from public,anon;
-revoke all on function public.admin_transfer_school_responsibility(uuid,date,jsonb) from public,anon;
+revoke all on function public.admin_transfer_school_responsibility(uuid,date,jsonb,uuid) from public,anon;
 revoke all on function public.admin_reschedule_school_responsibility_handover(uuid,date,jsonb,uuid) from public,anon;
 grant execute on function public.teacher_save_class_duty_roster(uuid,text,text,date,date,uuid[]) to authenticated;
 grant execute on function public.teacher_issue_class_library_book(uuid,uuid,uuid,date,text,uuid) to authenticated;
@@ -492,7 +546,7 @@ grant execute on function public.teacher_get_my_school_responsibilities() to aut
 grant execute on function public.teacher_can_read_school_responsibility(uuid,uuid) to authenticated;
 grant execute on function public.teacher_get_school_responsibility_admin_context() to authenticated;
 grant execute on function public.admin_assign_school_responsibility(uuid,text,text,text,text,date,date,jsonb,uuid) to authenticated;
-grant execute on function public.admin_transfer_school_responsibility(uuid,date,jsonb) to authenticated;
+grant execute on function public.admin_transfer_school_responsibility(uuid,date,jsonb,uuid) to authenticated;
 grant execute on function public.admin_reschedule_school_responsibility_handover(uuid,date,jsonb,uuid) to authenticated;
 
 commit;
