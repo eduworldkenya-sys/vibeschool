@@ -2,6 +2,7 @@ begin;
 
 -- One school-authoritative appointment can be shared by several teachers.
 -- A membership row, rather than a job-title permission, determines who sees it.
+-- authorization-test: public.school_responsibilities assigned same-school teacher/admin allowed; unassigned, former, cross-school teacher and anon denied
 create table public.school_responsibilities (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -18,6 +19,7 @@ create table public.school_responsibilities (
   check (ends_on is null or ends_on >= starts_on)
 );
 
+-- authorization-test: public.school_responsibility_members teacher reads own active interval only; admin reads history; former, unassigned, cross-school and anon denied
 create table public.school_responsibility_members (
   id uuid primary key default gen_random_uuid(),
   responsibility_id uuid not null references public.school_responsibilities(id) on delete cascade,
@@ -47,6 +49,8 @@ create unique index school_responsibility_members_active_start_uidx
   where ended_at is null;
 
 -- Stable request receipts make network retries safe for official appointments.
+-- access: service-only public.school_responsibility_requests
+-- authorization-test: public.school_responsibility_requests anon/authenticated denied; security-definer admin RPC writes receipts; service role only direct access
 create table public.school_responsibility_requests (
   actor_id uuid not null references public.profiles(id) on delete cascade,
   request_id uuid not null,
@@ -158,6 +162,7 @@ for all to authenticated
 using (public.is_school_admin(school_id))
 with check (public.is_school_admin(school_id));
 
+-- authorization-test: public.class_duty_rosters assigned same-class teacher read; class teacher write; subject-only, cross-school and anon denied
 create table public.class_duty_rosters (
   id uuid primary key default gen_random_uuid(),
   school_id uuid not null references public.schools(id) on delete cascade,
@@ -173,6 +178,7 @@ create table public.class_duty_rosters (
   check (ends_on >= starts_on),
   unique (class_id, duty_code, starts_on)
 );
+-- authorization-test: public.class_duty_roster_members assigned class teacher read; subject-only, cross-school and anon denied
 create table public.class_duty_roster_members (
   id uuid primary key default gen_random_uuid(),
   roster_id uuid not null references public.class_duty_rosters(id) on delete cascade,
