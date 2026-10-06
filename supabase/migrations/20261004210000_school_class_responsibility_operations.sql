@@ -299,7 +299,7 @@ begin
     return v_existing.id;
   end if;
   if p_due_date is null or p_due_date<current_date then raise exception 'due_date_invalid'; end if;
-  if p_condition not in ('good','fair','damaged') then raise exception 'book_condition_invalid'; end if;
+  if p_condition is null or p_condition not in ('good','fair','damaged') then raise exception 'book_condition_invalid'; end if;
   select c.school_id into v_school_id from public.classes c where c.id=p_class_id;
   if v_school_id is null then raise exception 'class_not_found'; end if;
   if not exists(select 1 from public.student_classes sc where sc.student_id=p_student_id and sc.class_id=p_class_id and sc.school_id=v_school_id and sc.is_current) then raise exception 'learner_not_currently_enrolled' using errcode='42501'; end if;
@@ -317,7 +317,7 @@ returns uuid language plpgsql security definer set search_path=public,auth,pg_te
 declare v_uid uuid:=auth.uid(); v_loan public.library_borrowings%rowtype;
 begin
   if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
-  if p_condition_in not in ('good','fair','damaged','lost') then raise exception 'book_condition_invalid'; end if;
+  if p_condition_in is null or p_condition_in not in ('good','fair','damaged','lost') then raise exception 'book_condition_invalid'; end if;
   select * into v_loan from public.library_borrowings where id=p_borrowing_id and borrower_type='student' and deleted_at is null for update;
   if not found then raise exception 'borrowing_not_found'; end if;
   if v_loan.issued_for_class_id is not null then

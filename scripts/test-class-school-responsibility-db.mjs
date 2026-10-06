@@ -40,6 +40,8 @@ await db.query('insert into public.library_books(id,school_id,title,author,total
 async function asUser(user){await db.exec(`reset role;set request.jwt.claim.sub='${user}';set role authenticated;`)}
 async function scalar(sql,params=[]){const result=await db.query(sql,params);return result.rows[0]?.value}
 await asUser(teacher);
+await assert.rejects(()=>scalar("select public.teacher_issue_class_library_book($1,$2,$3,current_date+7,null,$4) value",[cls,student,book,id(52)]),/book_condition_invalid/,'null issue condition is rejected before changing stock');
+assert.equal((await db.query('select available_copies from public.library_books where id=$1',[book])).rows[0].available_copies,2,'invalid issue condition leaves stock unchanged');
 const loan=await scalar("select public.teacher_issue_class_library_book($1,$2,$3,current_date+7,'good',$4) value",[cls,student,book,request]);
 assert.equal(loan,await scalar("select public.teacher_issue_class_library_book($1,$2,$3,current_date+7,'good',$4) value",[cls,student,book,request]),'issue retry must return the original borrowing');
 assert.equal((await db.query('select available_copies from public.library_books where id=$1',[book])).rows[0].available_copies,1,'retry decrements stock only once');
@@ -54,6 +56,9 @@ await db.exec('reset role');
 await db.query("insert into public.library_borrowings(school_id,book_id,borrower_type,student_id,issued_by,issued_at,due_date,condition_out,fine_amount,fine_paid) values($1,$2,'student',$3,$4,now(),current_date+1,'good',0,false)",[school,book,student,admin]);
 await asUser(teacher);
 const legacy=(await db.query('select id from public.library_borrowings where issued_for_class_id is null')).rows[0].id;
+await assert.rejects(()=>scalar("select public.teacher_return_class_library_book($1,null) value",[legacy]),/book_condition_invalid/,'null return condition is rejected before recording a return');
+assert.equal((await db.query('select returned_at from public.library_borrowings where id=$1',[legacy])).rows[0].returned_at,null,'invalid return condition leaves the borrowing open');
+assert.equal((await db.query('select available_copies from public.library_books where id=$1',[book])).rows[0].available_copies,1,'invalid return condition does not alter stock');
 await scalar("select public.teacher_return_class_library_book($1,'good') value",[legacy]);
 assert.equal((await db.query('select available_copies from public.library_books where id=$1',[book])).rows[0].available_copies,2,'return restores stock once');
 await assert.rejects(()=>scalar("select public.teacher_return_class_library_book($1,'good') value",[legacy]),/borrowing_already_returned/);

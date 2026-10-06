@@ -24,6 +24,8 @@ assert.match(migration,/update public\.class_duty_roster_members set active=fals
 assert.match(migration,/for update;[\s\S]*if coalesce\(v_available,0\)<=0 then raise exception 'no_copies_available'/,'book stock is locked and checked in the issue transaction');
 assert.match(migration,/issue_request_id uuid[\s\S]*library_borrowings_issue_request_uidx[\s\S]*issue_request_payload_conflict/,'retries cannot issue duplicate books or reuse a request for different loan details');
 assert.match(migration,/condition_out is distinct from p_condition/,'loan retry identity includes the issued-book condition');
+assert.match(migration,/p_condition is null or p_condition not in \('good','fair','damaged'\)/,'book issue explicitly rejects null conditions');
+assert.match(migration,/p_condition_in is null or p_condition_in not in \('good','fair','damaged','lost'\)/,'book return explicitly rejects null conditions');
 assert.match(migration,/school_responsibility_requests[\s\S]*responsibility_request_payload_conflict/,'responsibility assignment retries return one canonical appointment');
 assert.match(migration,/admin_transfer_school_responsibility\(p_responsibility_id uuid,p_effective_on date,p_members jsonb,p_request_id uuid\)[\s\S]*transfer_handover[\s\S]*responsibility_request_payload_conflict/,'initial handover retries return one canonical result and reject changed payloads');
 assert.match(migration,/m\.starts_on<=current_date[\s\S]*teacher_can_read_school_responsibility/,'direct teacher responsibility access is bounded by the active membership start date');
