@@ -5,7 +5,7 @@ import type { PulseSnapshot, Slot, WorkflowState } from "@/lib/types";
 import type { TeachingWorkspaceStage, WorkspaceStageState } from "@/lib/teaching/workspace";
 import EvidenceCaptureSheet from "./EvidenceCaptureSheet";
 import ReflectionSheet from "./ReflectionSheet";
-import { nairobiDateStr } from "@/lib/time";
+import { nairobiDateAdd, nairobiDateStr } from "@/lib/time";
 
 interface LessonFlowCardProps {
   slots: Slot[];
@@ -20,8 +20,8 @@ type StepName =
   | "Take Attendance"
   | "Teach Lesson"
   | "Collect Evidence"
-  | "Assign Task"
-  | "Mark Learner Work"
+  | "Set Homework"
+  | "Mark Homework"
   | "Record Assessment"
   | "Write Reflection"
   | "Complete Lesson"
@@ -33,8 +33,8 @@ const steps: StepName[] = [
   "Take Attendance",
   "Teach Lesson",
   "Collect Evidence",
-  "Assign Task",
-  "Mark Learner Work",
+  "Set Homework",
+  "Mark Homework",
   "Record Assessment",
   "Write Reflection",
   "Complete Lesson",
@@ -70,8 +70,8 @@ function cardStepState(step: StepName, slot: Slot): WorkflowState {
     case "Take Attendance": return workspaceStageState(slot, "attendance");
     case "Teach Lesson": return workspaceStageState(slot, "teach");
     case "Collect Evidence": return workspaceStageState(slot, "evidence");
-    case "Assign Task": return workspaceStageState(slot, "homework");
-    case "Mark Learner Work": return markingState(slot);
+    case "Set Homework": return workspaceStageState(slot, "homework");
+    case "Mark Homework": return markingState(slot);
     case "Record Assessment": return workspaceStageState(slot, "assessment");
     case "Write Reflection": return workspaceStageState(slot, "reflection");
     case "Complete Lesson": return workspaceStageState(slot, "complete");
@@ -97,8 +97,8 @@ function stepHelp(step: StepName) {
     "Take Attendance": "Record learners for this exact lesson occurrence.",
     "Teach Lesson": "Start or continue the authoritative teaching occurrence.",
     "Collect Evidence": "Capture learner work or proof of teaching.",
-    "Assign Task": "Create homework, an exercise, quiz or project linked to this lesson.",
-    "Mark Learner Work": "Open submitted learner work and record marks without re-entering the class.",
+    "Set Homework": "Set take-home work linked to this lesson. Exercises, quizzes and CATs are available from Assessments.",
+    "Mark Homework": "Review homework submissions for this class and record marks.",
     "Record Assessment": "Record formative or summative evidence.",
     "Write Reflection": "Record what worked, difficulties and the next response.",
     "Complete Lesson": "Close the teaching occurrence after delivery.",
@@ -115,8 +115,8 @@ function icon(step: StepName) {
     case "Take Attendance": return <svg {...p}><path d="M20 6L9 17l-5-5"/></svg>;
     case "Teach Lesson": return <svg {...p}><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8"/></svg>;
     case "Collect Evidence": return <svg {...p}><path d="M4 7h3l2-2h6l2 2h3v12H4z"/><circle cx="12" cy="13" r="3"/></svg>;
-    case "Assign Task": return <svg {...p}><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8"/></svg>;
-    case "Mark Learner Work": return <svg {...p}><path d="M5 4h14v16H5z"/><path d="M8 12l2 2 5-5"/></svg>;
+    case "Set Homework": return <svg {...p}><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8"/></svg>;
+    case "Mark Homework": return <svg {...p}><path d="M5 4h14v16H5z"/><path d="M8 12l2 2 5-5"/></svg>;
     case "Record Assessment": return <svg {...p}><path d="M4 19V5h16v14z"/><path d="M8 15l3-3 2 2 3-4"/></svg>;
     case "Write Reflection": return <svg {...p}><path d="M4 19V5a2 2 0 0 1 2-2h8l6 6v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M14 3v6h6"/></svg>;
     case "Complete Lesson": return <svg {...p}><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>;
@@ -132,7 +132,7 @@ function EmptyWorkflow({ snap, onNavigate }: { snap?: PulseSnapshot; onNavigate:
       <div style={{ fontSize: 15, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>No lesson scheduled today.</div>
       <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 4 }}>Prepare the next occurrence or review your teaching documents.</div>
       <button
-        onClick={() => onNavigate(tomorrow ? `/teacher/lessonplan?classId=${tomorrow.class_id}&subjectId=${tomorrow.subject_id}` : "/teacher/timetable")}
+        onClick={() => onNavigate(tomorrow ? `/teacher/lessonplan?classId=${encodeURIComponent(tomorrow.class_id)}&subjectId=${encodeURIComponent(tomorrow.subject_id)}&timetableSlotId=${encodeURIComponent(tomorrow.id)}&date=${encodeURIComponent(tomorrow.teaching_workspace?.key.occurrenceDate ?? nairobiDateAdd(nairobiDateStr(), 1))}` : "/teacher/timetable")}
         style={{ marginTop: 12, border: 0, borderRadius: 10, padding: "9px 13px", background: "var(--teacher-ink, #1c2923)", color: "#fff", fontWeight: 800 }}
       >
         {tomorrow ? "Prepare tomorrow" : "Open timetable"}
@@ -164,12 +164,12 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
     "Plan Lesson": exactLessonUrl,
     "Take Attendance": `/teacher/attendance?mode=lesson&classId=${encodeURIComponent(activeSlot.class_id)}&timetableSlotId=${encodeURIComponent(activeSlot.id)}&date=${encodeURIComponent(occurrenceDate)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}`,
     "Teach Lesson": exactLessonUrl,
-    "Assign Task": `/teacher/classhub/${encodeURIComponent(activeSlot.class_id)}/homework?${lineage}`,
-    "Mark Learner Work": `/teacher/classhub/${encodeURIComponent(activeSlot.class_id)}/homework`,
+    "Set Homework": `/teacher/classhub/${encodeURIComponent(activeSlot.class_id)}/homework?${lineage}`,
+    "Mark Homework": `/teacher/classhub/${encodeURIComponent(activeSlot.class_id)}/homework`,
     "Record Assessment": `/teacher/assessment/new?classId=${encodeURIComponent(activeSlot.class_id)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&lessonPlanId=${encodeURIComponent(lessonPlanId ?? "")}&teachingOccurrenceId=${encodeURIComponent(occurrenceId ?? "")}`,
     "Complete Lesson": exactLessonUrl,
     "Record Progress": `/teacher/progress?planId=${encodeURIComponent(lessonPlanId ?? "")}&occurrenceId=${encodeURIComponent(occurrenceId ?? "")}&classId=${encodeURIComponent(activeSlot.class_id)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&date=${encodeURIComponent(occurrenceDate)}`,
-    "Prepare Next Lesson": `/teacher/lessonplan?classId=${encodeURIComponent(activeSlot.class_id)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}`,
+    "Prepare Next Lesson": `/teacher/lessonplan?classId=${encodeURIComponent(activeSlot.class_id)}&subjectId=${encodeURIComponent(activeSlot.subject_id)}&date=${encodeURIComponent(nairobiDateAdd(occurrenceDate, 1))}`,
   };
 
   const modals: Partial<Record<StepName, () => void>> = {

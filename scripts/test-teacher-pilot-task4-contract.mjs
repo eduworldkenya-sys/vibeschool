@@ -71,7 +71,8 @@ requireText(!contextMigration.includes('teacher_profiles'), 'teacher operating c
 requireText(contextMigration.includes('-- authorization-test: public.teacher_active_school_preferences'), 'active-school preference declares its authorization-test contract')
 
 const homework = read('app/teacher/homework/page.tsx')
-requireText(homework.includes('.from("student_classes")'), 'homework overview counts current enrollment through student_classes')
+requireText(homework.includes("homework_submissions(id,student_id,status)"), "homework overview reads learner identity and handed-in status for submission counts")
+requireText(!homework.includes('label: "Expected"'), "homework overview does not imply a whole-class denominator for targeted assignments")
 requireText(homework.includes('teacher_get_operating_context'), 'homework overview uses canonical active-school context')
 requireText(!homework.includes('.from("students").select("id, class_id")'), 'homework overview no longer counts legacy students.class_id')
 

@@ -29,6 +29,7 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
   const [role, setRole] = useState<TeacherClassRole>('subject_teacher')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [retryNonce, setRetryNonce] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -67,13 +68,15 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
       }
     })()
     return () => { cancelled = true }
-  }, [schoolId])
+  }, [schoolId, retryNonce])
 
   useEffect(() => {
     let cancelled = false
     setSubject('')
     setSubjects([])
+    setSubjectsLoading(false)
     if (!grade || authorityState !== 'ready') return () => { cancelled = true }
+    setError('')
     setSubjectsLoading(true)
     void (async () => {
       try {
@@ -104,6 +107,7 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
     if (!schoolId || loading) return
 
     setLoading(true)
+    try {
     const { data: classId, error: rpcError } = await supabase.rpc('create_teacher_class_assignment' as never, {
       p_school_id: schoolId,
       p_grade: grade,
@@ -111,7 +115,6 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
       p_subject: subject,
       p_is_class_teacher: role === 'class_teacher',
     } as never) as { data: string | null; error: { message: string } | null }
-    setLoading(false)
 
     if (rpcError || !classId) {
       const message = rpcError?.message ?? 'No class was returned.'
@@ -124,11 +127,16 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
       return
     }
 
-    if (mode === 'onboarding') {
+    if (mode === 'onboarding' && role === 'class_teacher') {
       router.push(`/teacher/onboarding/students?class_id=${encodeURIComponent(String(classId))}&school_id=${encodeURIComponent(schoolId)}`)
     } else {
       router.push('/teacher/classhub?added=1')
       router.refresh()
+    }
+    } catch {
+      setError('The class could not be added. Your choices are still here. Please retry.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -163,7 +171,7 @@ export default function TeacherClassForm({ schoolId, mode }: Props) {
           </label>
         ))}
       </fieldset>
-      {error && <div role="alert" style={{ color: C.error, background: '#fef2f2', borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 650 }}>{error}</div>}
+      {error && <div role="alert" style={{ color: C.error, background: '#fef2f2', borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 650 }}>{error}{authorityState === 'error' && <button type="button" onClick={() => setRetryNonce(n => n + 1)} style={{ display: 'block', marginTop: 8, minHeight: 44 }}>Retry class setup</button>}</div>}
       <button type="button" onClick={() => void submit()} disabled={disabled || subjectsLoading || !grade || !subject} style={{ padding: 13, border: 0, borderRadius: 12, background: disabled || subjectsLoading || !grade || !subject ? '#9ca3af' : C.accent, color: '#fff', fontWeight: 800, fontSize: 15, cursor: loading ? 'wait' : 'pointer' }}>
         {loading ? 'Adding class…' : mode === 'onboarding' ? 'Create or join class →' : 'Add or join class'}
       </button>

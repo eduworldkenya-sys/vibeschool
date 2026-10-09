@@ -578,9 +578,9 @@ function AssessmentInner() {
       </section>
 
       <nav className={styles.tools} aria-label="Assessment tools">
-        <button className={styles.tool} onClick={() => router.push('/teacher/lessonplan')}><BookOpen size={21}/><span>Exercise</span></button>
-        <button className={styles.tool} onClick={() => router.push('/teacher/lessonplan')}><ClipboardCheck size={21}/><span>Quiz</span></button>
-        <button className={styles.tool} onClick={() => router.push('/teacher/assessment/cat/new')}><FileText size={21}/><span>CAT</span></button>
+        <button className={styles.tool} onClick={() => router.push(`/teacher/classhub/${activeClassId}/exercises`)}><BookOpen size={21}/><span>Class exercises</span></button>
+        <button className={styles.tool} onClick={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(activeClassId ?? '')}&subjectId=${encodeURIComponent(activeSubjectId ?? '')}`)}><ClipboardCheck size={21}/><span>Lesson quiz / CAT</span></button>
+
         <button className={styles.tool} onClick={() => router.push('/teacher/results')}><BarChart3 size={21}/><span>Exams</span></button>
       </nav>
       <div className={styles.secondaryTools}>

@@ -238,7 +238,7 @@ export const templates: {
   {
     kind: "custom",
     title: "Projects & practicals",
-    why: "Track project stages, materials and rubric evidence.",
+    why: "Private project tracker. These cells do not assign projects, collect submissions or publish marks.",
     columns: [
       col("stage", "Stage"),
       col("materials", "Materials ready", "check"),
