@@ -358,7 +358,7 @@ export default function EvidencePage() {
                           display: 'inline-block', marginBottom: 6,
                           padding: '2px 8px', borderRadius: 99,
                           background: badge.bg, color: badge.color,
-                          fontSize: 10, fontWeight: 700,
+                          fontSize: 11, fontWeight: 700,
                         }}>
                           {sourceLabel(e.source)}
                         </span>

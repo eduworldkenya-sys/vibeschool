@@ -270,7 +270,7 @@ function HomeworkGradePageInner() {
         <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
           {questions.map((question, index) => {
             const answer = selectedSub.answers.find(item => item.question_id === question.id)?.answer_text;
-            return <div key={question.id} style={{ padding: 12, borderRadius: 12, background: "#f8fafc" }}><strong style={{ fontSize: 12 }}>Q{index + 1}. {question.question}</strong><div style={{ marginTop: 7, fontSize: 12, whiteSpace: "pre-wrap" }}>{answer || "No answer"}</div></div>;
+            return <div key={question.id} style={{ padding: 12, borderRadius: 12, background: "var(--teacher-canvas, #f5f6f2)" }}><strong style={{ fontSize: 12 }}>Q{index + 1}. {question.question}</strong><div style={{ marginTop: 7, fontSize: 12, whiteSpace: "pre-wrap" }}>{answer || "No answer"}</div></div>;
           })}
           {selectedSub.photo_url && <a href={selectedSub.photo_url} target="_blank" rel="noreferrer" style={{ color: C.accent, fontWeight: 700, fontSize: 12 }}>Open uploaded work ↗</a>}
         </div>
@@ -294,10 +294,10 @@ function HomeworkGradePageInner() {
 
   return <div style={{ padding: 18, maxWidth: 980, margin: "0 auto" }}>
     <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ border: "none", background: "transparent", color: C.textMuted, cursor: "pointer", marginBottom: 12 }}>← Homework</button>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h1 style={{ margin: 0, fontSize: 22 }}>{hw.title}</h1><div style={{ marginTop: 4, color: C.textMuted, fontSize: 12 }}>{hw.subject} · Due {new Date(hw.due_date).toLocaleDateString()}</div></div><div style={{ display: "flex", gap: 8 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "#ecfdf5", color: "#047857", fontSize: 11, fontWeight: 800 }}>{handedIn.length} handed in</span><span style={{ padding: "7px 10px", borderRadius: 999, background: "#f3f4f6", color: "#6b7280", fontSize: 11, fontWeight: 800 }}>{pending.length} pending</span></div></div>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h1 style={{ margin: 0, fontSize: 22 }}>{hw.title}</h1><div style={{ marginTop: 4, color: C.textMuted, fontSize: 12 }}>{hw.subject} · Due {new Date(hw.due_date).toLocaleDateString()}</div></div><div style={{ display: "flex", gap: 8 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "#ecfdf5", color: "#047857", fontSize: 11, fontWeight: 800 }}>{handedIn.length} handed in</span><span style={{ padding: "7px 10px", borderRadius: 999, background: "#f3f4f6", color: "var(--teacher-muted, #627168)", fontSize: 11, fontWeight: 800 }}>{pending.length} pending</span></div></div>
     {bulkMsg && <div style={{ marginTop: 12, padding: 10, borderRadius: 10, background: "#eff6ff", color: "#1d4ed8", fontSize: 12 }}>{bulkMsg}</div>}
     <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
-      {handedIn.length === 0 ? <div style={{ padding: 20, borderRadius: 12, background: "#f8fafc", color: C.textMuted, fontSize: 13 }}>No learner submissions yet.</div> : handedIn.map(student => {
+      {handedIn.length === 0 ? <div style={{ padding: 20, borderRadius: 12, background: "var(--teacher-canvas, #f5f6f2)", color: C.textMuted, fontSize: 13 }}>No learner submissions yet.</div> : handedIn.map(student => {
         const sub = subMap.get(student.id)!;
         const badge = statusBadge(sub.status, sub.mark);
         return <button type="button" key={student.id} onClick={() => openGrade(student, sub)} style={{ padding: 13, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", textAlign: "left", cursor: "pointer" }}><div><strong>{student.name}</strong><div style={{ color: C.textMuted, fontSize: 11, marginTop: 3 }}>{student.admission_number}</div></div><span style={{ borderRadius: 999, padding: "5px 9px", background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 800 }}>{badge.label}</span></button>;

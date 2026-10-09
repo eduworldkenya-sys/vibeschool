@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import assert from 'node:assert/strict'
 
 const read = p => fs.readFileSync(p, 'utf8')
-const layout = read('app/teacher/layout.tsx')
+const layout = read('components/teacher/navigation.ts')
 const marking = read('app/teacher/assessment/marking/page.tsx')
 const results = read('app/teacher/results/page.tsx')
 const marks = read('components/teacher/ProfessionalMarkbook.tsx')
@@ -10,9 +10,9 @@ const classResults = read('app/teacher/assessment/gradebook/page.tsx')
 const analytics = read('app/teacher/assessment/analytics/page.tsx')
 const pulse = read('components/teacher/AssessmentPulseCard.tsx')
 
-assert.match(layout, /Mark Submitted Work/)
-assert.match(layout, /Class Results/)
-assert.match(layout, /Results Analysis/)
+assert.match(layout, /Mark submitted work/)
+assert.match(layout, /Class results/)
+assert.match(layout, /Results analysis/)
 assert.doesNotMatch(layout, /label: "Gradebook"/)
 assert.doesNotMatch(layout, /label: "Marking"/)
 

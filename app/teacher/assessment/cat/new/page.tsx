@@ -88,12 +88,12 @@ function CatWorkspace() {
     } finally { setSaving(false) }
   }
 
-  return <main style={page}><div style={{ maxWidth: 760, margin: '0 auto' }}>
+  return <section style={page}><div style={{ maxWidth: 760, margin: '0 auto' }}>
     <button type="button" onClick={() => router.back()} style={secondary}>← Back</button>
-    <section style={card}><div style={eyebrow}>Cumulative CAT · No AI</div><h1 style={{ margin: '6px 0' }}>Built only from completed teaching</h1><p style={{ margin: 0, color: '#6b7280', lineHeight: 1.55 }}>CAT does not copy one lesson. It uses outcomes from multiple lessons with authoritative completed teaching occurrences for this class, subject and term.</p></section>
+    <section style={card}><div style={eyebrow}>Cumulative CAT · No AI</div><h1 style={{ margin: '6px 0' }}>Built only from completed teaching</h1><p style={{ margin: 0, color: "var(--teacher-muted, #627168)", lineHeight: 1.55 }}>CAT does not copy one lesson. It uses outcomes from multiple lessons with authoritative completed teaching occurrences for this class, subject and term.</p></section>
     {error && <section style={errorBox}>{error}</section>}
-    {loading ? <section style={card}>Loading completed teaching…</section> : !context ? null : <><section style={card}><strong>{context.completedLessonCount} completed lessons · {context.outcomes.length} taught outcomes</strong>{!cumulativeReady ? <div style={notice}>CAT preparation requires at least two completed lessons and two taught outcomes. VibeSchool will not create a false cumulative assessment.</div> : <><div style={{ marginTop: 6, color: '#6b7280' }}>{questions.length} CAT questions · {totalMarks} marks · about 40 minutes</div><ol style={{ paddingLeft: 22, lineHeight: 1.55 }}>{questions.map(item => <li key={item.outcome.id} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong></li>)}</ol></>}</section>{cumulativeReady && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><button type="button" disabled={saving} onClick={() => void prepare(false)} style={primary}>{saving ? 'Preparing…' : 'Review & assign CAT'}</button><button type="button" disabled={saving} onClick={() => void prepare(true)} style={secondary}>Advanced Edit</button></div>}</>}
-  </div></main>
+    {loading ? <section style={card}>Loading completed teaching…</section> : !context ? null : <><section style={card}><strong>{context.completedLessonCount} completed lessons · {context.outcomes.length} taught outcomes</strong>{!cumulativeReady ? <div style={notice}>CAT preparation requires at least two completed lessons and two taught outcomes. VibeSchool will not create a false cumulative assessment.</div> : <><div style={{ marginTop: 6, color: "var(--teacher-muted, #627168)" }}>{questions.length} CAT questions · {totalMarks} marks · about 40 minutes</div><ol style={{ paddingLeft: 22, lineHeight: 1.55 }}>{questions.map(item => <li key={item.outcome.id} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong></li>)}</ol></>}</section>{cumulativeReady && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><button type="button" disabled={saving} onClick={() => void prepare(false)} style={primary}>{saving ? 'Preparing…' : 'Review & assign CAT'}</button><button type="button" disabled={saving} onClick={() => void prepare(true)} style={secondary}>Advanced Edit</button></div>}</>}
+  </div></section>
 }
 
 const page: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
@@ -103,4 +103,4 @@ const primary: React.CSSProperties = { border: 'none', borderRadius: 12, padding
 const secondary: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }
 const errorBox: React.CSSProperties = { background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12, padding: 12, color: '#b91c1c', marginBottom: 12 }
 const notice: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' }
-export default function CatNewPage() { return <Suspense fallback={<main style={{ padding: 20 }}>Loading CAT workspace…</main>}><CatWorkspace /></Suspense> }
+export default function CatNewPage() { return <Suspense fallback={<section style={{ padding: 20 }}>Loading CAT workspace…</section>}><CatWorkspace /></Suspense> }

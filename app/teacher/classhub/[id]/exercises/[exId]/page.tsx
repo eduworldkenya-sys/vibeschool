@@ -150,18 +150,18 @@ function GradingInner() {
     setBulkBusy(false);
   }
 
-  if (loading) return <div style={{padding:20,color:C.textMuted,fontFamily:"'Plus Jakarta Sans',sans-serif"}}>Loading…</div>;
-  if (loadError) return <div style={{padding:20,color:"#ef4444",fontFamily:"'Plus Jakarta Sans',sans-serif"}}>{loadError}</div>;
+  if (loading) return <div style={{padding:20,color:C.textMuted,fontFamily:"inherit"}}>Loading…</div>;
+  if (loadError) return <div style={{padding:20,color:"#ef4444",fontFamily:"inherit"}}>{loadError}</div>;
 
   if (view==="grade" && active) {
     const sub = subMap.get(active.id);
     return (
-      <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",paddingBottom:100,background:C.surface,minHeight:"100vh"}}>
+      <div style={{fontFamily:"inherit",paddingBottom:100,background:C.surface,minHeight:"100vh"}}>
         <div style={{background:"linear-gradient(135deg,#075985,#0369a1)",padding:"20px 16px 24px"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
             <button onClick={()=>setView("list")} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:10,width:36,height:36,color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
             <div>
-              <div style={{fontSize:18,fontWeight:900,color:"#fff"}}>{active.name}</div>
+              <div style={{fontSize:18,fontWeight:750,color:"#fff"}}>{active.name}</div>
               <div style={{fontSize:12,color:"rgba(255,255,255,0.65)"}}>{active.admission_number} · {ex?.title}</div>
             </div>
           </div>
@@ -187,12 +187,12 @@ function GradingInner() {
   }
 
   return (
-    <div style={{fontFamily:"'Plus Jakarta Sans',sans-serif",paddingBottom:100,background:C.surface,minHeight:"100vh"}}>
+    <div style={{fontFamily:"inherit",paddingBottom:100,background:C.surface,minHeight:"100vh"}}>
       <div style={{background:"linear-gradient(135deg,#075985,#0369a1)",padding:"20px 16px 28px"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
           <button onClick={()=>router.back()} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:10,width:36,height:36,color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
           <div>
-            <div style={{fontSize:18,fontWeight:900,color:"#fff"}}>{ex?.title}</div>
+            <div style={{fontSize:18,fontWeight:750,color:"#fff"}}>{ex?.title}</div>
             <div style={{fontSize:12,color:"rgba(255,255,255,0.65)"}}>In-class exercise</div>
           </div>
         </div>
@@ -204,7 +204,7 @@ function GradingInner() {
           ].map(s=>(
             <div key={s.label} style={{flex:1,background:"rgba(255,255,255,0.15)",borderRadius:10,padding:"8px 4px",textAlign:"center"}}>
               <div style={{fontSize:16,fontWeight:800,color:"#fff"}}>{s.value}</div>
-              <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",fontWeight:600}}>{s.label}</div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:600}}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -235,7 +235,7 @@ function GradingInner() {
                     <div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{s.admission_number}</div>
                   </div>
                   <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <span style={{fontSize:10,fontWeight:700,padding:"3px 8px",borderRadius:20,background:badge.bg,color:badge.color}}>{badge.label}</span>
+                    <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:20,background:badge.bg,color:badge.color}}>{badge.label}</span>
                     <span style={{color:C.textMuted,fontSize:14}}>›</span>
                   </div>
                 </div>
@@ -264,7 +264,7 @@ function GradingInner() {
 
 export default function GradingPage() {
   return (
-    <Suspense fallback={<div style={{padding:20,color:"#6b7280"}}>Loading…</div>}>
+    <Suspense fallback={<div style={{padding:20,color:"var(--teacher-muted, #627168)"}}>Loading…</div>}>
       <GradingInner />
     </Suspense>
   );

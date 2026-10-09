@@ -70,8 +70,9 @@ requireText('truthful publishing metrics', indexer, 'This is not a learning-qual
 forbidText('truthful publishing metrics', indexer, 'Tagged content appears 3× more')
 forbidText('truthful publishing metrics', indexer, 'Views signal quality to the ranking engine.')
 
-requireText('teacher navigation', more, 'Learning library for your classes and subjects')
-requireText('teaching desk', today, 'Curriculum-aware learning library')
+requireText('teacher navigation', fs.readFileSync('components/teacher/navigation.ts', 'utf8'), "href: '/teacher/vibelearn'")
+requireText('shared tool navigation', more, 'teacherTools[tab.id]')
+requireText('teaching desk', today, '/teacher/vibelearn')
 
 requireText('student assigned reading', studentLib, 'getAssignedReading')
 requireText('student assigned reading', studentLib, "from('vibe_chapter_assignments')")

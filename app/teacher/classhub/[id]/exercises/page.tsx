@@ -139,14 +139,14 @@ function ExercisesInner() {
   const completed = list.filter(e => e.status === "completed").length;
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: "100%" }}>
+    <div style={{ fontFamily: "inherit", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: "100%" }}>
 
       <div style={{ background: "linear-gradient(135deg, #075985 0%, #0369a1 100%)", padding: "20px 16px 28px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10, width: 36, height: 36, color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>←</button>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 900, color: "#fff", margin: 0 }}>Exercises</h1>
+              <h1 style={{ fontSize: 20, fontWeight: 750, color: "#fff", margin: 0 }}>Exercises</h1>
               <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", margin: "2px 0 0" }}>
                 {classInfo ? `${classInfo.name}${classInfo.stream ? " · " + classInfo.stream : ""}` : ""}
               </p>
@@ -164,7 +164,7 @@ function ExercisesInner() {
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: "rgba(255,255,255,0.15)", borderRadius: 10, padding: "8px", textAlign: "center" }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: "#fff" }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", fontWeight: 600 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -214,7 +214,7 @@ function ExercisesInner() {
                         {e.instructions && <p style={{ fontSize: 12, color: C.textMuted, margin: "6px 0 0", lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" } as React.CSSProperties}>{e.instructions}</p>}
                       </div>
                       <div style={{ flexShrink: 0, textAlign: "right" }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 20, background: e.status === "completed" ? "#e0f2fe" : "#fef3c7", color: e.status === "completed" ? "#075985" : "#92400e" }}>
+                        <span style={{ fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 20, background: e.status === "completed" ? "#e0f2fe" : "#fef3c7", color: e.status === "completed" ? "#075985" : "#92400e" }}>
                           {e.status}
                         </span>
                         {e.duration_minutes && <p style={{ fontSize: 11, color: C.textMuted, margin: "4px 0 0", fontWeight: 600 }}>{e.duration_minutes} min</p>}
@@ -222,7 +222,7 @@ function ExercisesInner() {
                     </div>
                     <div style={{ marginTop: 10 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted }}>
                           {subjects.find(s => s.id === e.subject_id)?.name ?? "General"}
                         </span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: e.sub_count > 0 ? "#075985" : C.textMuted }}>
@@ -255,7 +255,7 @@ function ExercisesInner() {
 
 export default function ExercisesPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 20, color: "#6b7280" }}>Loading…</div>}>
+    <Suspense fallback={<div style={{ padding: 20, color: "var(--teacher-muted, #627168)" }}>Loading…</div>}>
       <ExercisesInner />
     </Suspense>
   );

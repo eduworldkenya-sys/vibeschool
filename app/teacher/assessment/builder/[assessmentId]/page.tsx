@@ -232,12 +232,12 @@ export default function AssessmentBuilderPage() {
   }
 
   return (
-    <main style={shell}>
+    <section style={shell}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessment Builder · Advanced</div>
           <h1 style={{ margin: '6px 0' }}>{assessment?.title ?? 'Assessment'}</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>
             Organize questions and reuse compatible Question Bank items. Curriculum grounding is preserved automatically.
           </p>
           {isGrounded && (
@@ -320,7 +320,7 @@ export default function AssessmentBuilderPage() {
                         <>
                           <div style={eyebrow}>Section {index + 1}</div>
                           <h2 style={{ margin: '5px 0' }}>{section.title}</h2>
-                          {section.instructions && <p style={{ color: '#6b7280' }}>{section.instructions}</p>}
+                          {section.instructions && <p style={{ color: "var(--teacher-muted, #627168)" }}>{section.instructions}</p>}
                           <div style={muted}>{section.items.length} questions · {section.items.reduce((sum, item) => sum + item.marks, 0)} marks{section.estimatedMinutes ? ` · ${section.estimatedMinutes} min` : ''}</div>
                         </>
                       )}
@@ -371,7 +371,7 @@ export default function AssessmentBuilderPage() {
           </>
         )}
       </div>
-    </main>
+    </section>
   )
 }
 

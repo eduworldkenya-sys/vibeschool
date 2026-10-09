@@ -616,7 +616,7 @@ export default function AddSlotModal({ teacherId, editSlot, copySlot, initialPla
               <button
                 type="button"
                 onClick={() => setEndTime(addMinutesToTime(startTime, gradeDurationDefault))}
-                style={{ display: 'block', marginTop: 6, padding: 0, border: 0, background: 'transparent', color: '#1d4ed8', fontWeight: 850, cursor: 'pointer' }}
+                style={{ display: 'block', marginTop: 6, padding: 0, border: 0, background: 'transparent', color: '#1d4ed8', fontWeight: 750, cursor: 'pointer' }}
               >
                 Use {gradeDurationDefault}-minute duration
               </button>

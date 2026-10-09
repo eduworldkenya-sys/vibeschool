@@ -164,53 +164,53 @@ export default function TeacherHomeworkPage() {
   const rosterTotal = items.reduce((sum, item) => sum + item.roster, 0);
 
   return (
-    <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
-      <section style={{ background: "linear-gradient(135deg,#0f766e,#14b8a6)", borderRadius: 20, padding: 18, color: "#fff", marginBottom: 12 }}>
-        <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>Homework</div>
+    <div className="vs-teacher-workspace teacher-homework">
+      <section className="teacher-homework__summary">
+        <div style={{ fontSize: 11, fontWeight: 750, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>Homework</div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "flex-start" }}>
-          <div><h1 style={{ margin: "4px 0 0", fontSize: 23 }}>Assignments & learner work</h1><div style={{ marginTop: 4, fontSize: 12, opacity: .78 }}>Current school · current class memberships</div></div>
-          <button type="button" onClick={() => router.push("/teacher/pulse")} style={{ minWidth: 44, minHeight: 44, border: 0, borderRadius: 12, background: "rgba(255,255,255,.16)", color: "#fff", fontSize: 20 }}>‹</button>
+          <div><h1 style={{ margin: "4px 0 0", fontSize: 23 }}>Homework</h1><div style={{ marginTop: 4, fontSize: 12, opacity: .78 }}>Assignments and submissions</div></div>
+          <button type="button" aria-label="Back to Today" onClick={() => router.push("/teacher/pulse")} style={{ minWidth: 44, minHeight: 44, border: 0, borderRadius: 12, background: "var(--teacher-green-soft)", color: "var(--teacher-green)", fontSize: 20 }}>‹</button>
         </div>
 
         {context && context.schools.length > 1 && (
-          <select aria-label="Active school" value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={{ marginTop: 12, width: "100%", minHeight: 44, border: 0, borderRadius: 12, padding: "0 12px", background: "#fff", color: "#111827", fontWeight: 800 }}>
+          <select aria-label="Active school" value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={{ marginTop: 12, width: "100%", minHeight: 44, border: 0, borderRadius: 12, padding: "0 12px", background: "#fff", color: "var(--teacher-ink, #1c2923)", fontWeight: 800 }}>
             {context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
           </select>
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 7, marginTop: 12 }}>
           {[{ label: "Assignments", value: items.length }, { label: "Submitted", value: submittedTotal }, { label: "Expected", value: rosterTotal }].map((metric) => (
-            <div key={metric.label} style={{ borderRadius: 11, padding: "8px 5px", textAlign: "center", background: "rgba(255,255,255,.14)" }}><div style={{ fontSize: 17, fontWeight: 900 }}>{metric.value}</div><div style={{ fontSize: 9, opacity: .72 }}>{metric.label}</div></div>
+            <div key={metric.label} style={{ borderRadius: 11, padding: "8px 5px", textAlign: "center", background: "var(--teacher-canvas)" }}><div style={{ fontSize: 17, fontWeight: 750 }}>{metric.value}</div><div style={{ fontSize: 11, opacity: .72 }}>{metric.label}</div></div>
           ))}
         </div>
       </section>
 
-      {error && <div role="alert" style={{ background: "#fef2f2", color: "#991b1b", borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13 }}>{error} <button type="button" onClick={() => void load()} style={{ border: 0, background: "transparent", color: "#991b1b", fontWeight: 900, textDecoration: "underline" }}>Retry</button></div>}
+      {error && <div role="alert" style={{ background: "#fef2f2", color: "#991b1b", borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13 }}>{error} <button type="button" onClick={() => void load()} style={{ border: 0, background: "transparent", color: "#991b1b", fontWeight: 750, textDecoration: "underline" }}>Retry</button></div>}
 
       {context?.state === "needs_school" ? (
-        <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center" }}><h2 style={{ margin: 0, fontSize: 17 }}>Connect a school first</h2><p style={{ color: "#6b7280", fontSize: 13 }}>Homework must belong to an authorized school and class.</p><button type="button" onClick={() => router.push("/teacher/onboarding/school")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Connect school</button></section>
+        <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center" }}><h2 style={{ margin: 0, fontSize: 17 }}>Connect a school first</h2><p style={{ color: "var(--teacher-muted, #627168)", fontSize: 13 }}>Homework must belong to an authorized school and class.</p><button type="button" onClick={() => router.push("/teacher/onboarding/school")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "var(--teacher-ink, #1c2923)", color: "#fff", padding: "0 16px", fontWeight: 750 }}>Connect school</button></section>
       ) : context?.state === "needs_class" ? (
-        <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center" }}><h2 style={{ margin: 0, fontSize: 17 }}>No class assignment yet</h2><p style={{ color: "#6b7280", fontSize: 13 }}>Set up a class before creating learner work.</p><button type="button" onClick={() => router.push("/teacher/onboarding/class")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Set up class</button></section>
+        <section style={{ background: "#fff", borderRadius: 18, padding: 28, textAlign: "center" }}><h2 style={{ margin: 0, fontSize: 17 }}>No class assignment yet</h2><p style={{ color: "var(--teacher-muted, #627168)", fontSize: 13 }}>Set up a class before creating learner work.</p><button type="button" onClick={() => router.push("/teacher/onboarding/class")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "var(--teacher-ink, #1c2923)", color: "#fff", padding: "0 16px", fontWeight: 750 }}>Set up class</button></section>
       ) : (
         <>
           <div style={{ display: "flex", gap: 7, overflowX: "auto", marginBottom: 12 }}>
             {(["all", "active", "overdue"] as Filter[]).map((value) => (
-              <button key={value} type="button" onClick={() => setFilter(value)} style={{ minHeight: 40, border: filter === value ? "1px solid #0f766e" : "1px solid #e5e7eb", borderRadius: 99, background: filter === value ? "#0f766e" : "#fff", color: filter === value ? "#fff" : "#374151", padding: "0 15px", fontWeight: 900, textTransform: "capitalize" }}>{value}</button>
+              <button key={value} type="button" onClick={() => setFilter(value)} aria-pressed={filter === value} style={{ minHeight: 44, border: filter === value ? "1px solid #0f766e" : "1px solid #e5e7eb", borderRadius: 99, background: filter === value ? "#0f766e" : "#fff", color: filter === value ? "#fff" : "#374151", padding: "0 15px", fontWeight: 750, textTransform: "capitalize" }}>{value}</button>
             ))}
           </div>
 
           {loading ? (
-            <div aria-label="Loading homework" style={{ display: "grid", gap: 9 }}>{[1,2,3].map((item) => <div key={item} style={{ height: 100, borderRadius: 16, background: "#e5e7eb" }} />)}</div>
+            <div aria-label="Loading homework" style={{ display: "grid", gap: 9 }}>{[1,2,3].map((item) => <div key={item} style={{ height: 100, borderRadius: 16, background: "var(--teacher-border, #dfe5de)" }} />)}</div>
           ) : shown.length === 0 ? (
-            <section style={{ background: "#fff", borderRadius: 18, padding: 30, textAlign: "center", boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}><h2 style={{ margin: 0, fontSize: 17 }}>No homework here</h2><p style={{ color: "#6b7280", fontSize: 13, lineHeight: 1.5 }}>Create work from a class or directly from a lesson so class, subject and teaching evidence stay linked.</p>{context?.classes[0]?.class_id && <button type="button" onClick={() => router.push(`/teacher/classhub/${context.classes[0].class_id}/homework`)} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#0f766e", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Open class homework</button>}</section>
+            <section style={{ background: "#fff", borderRadius: 18, padding: 30, textAlign: "center", boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}><h2 style={{ margin: 0, fontSize: 17 }}>No homework here</h2><p style={{ color: "var(--teacher-muted, #627168)", fontSize: 13, lineHeight: 1.5 }}>Open a class to set your first assignment.</p>{context?.classes[0]?.class_id && <button type="button" onClick={() => router.push(`/teacher/classhub/${context.classes[0].class_id}/homework`)} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#0f766e", color: "#fff", padding: "0 16px", fontWeight: 750 }}>Open class homework</button>}</section>
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div className="teacher-homework__list">
               {shown.map((item) => {
                 const isOverdue = item.due_date.slice(0, 10) < today;
                 const percentage = item.roster > 0 ? Math.round((item.submitted / item.roster) * 100) : 0;
                 return (
                   <button key={item.id} type="button" onClick={() => router.push(`/teacher/classhub/${item.class_id}/homework/${item.id}`)} style={{ width: "100%", minHeight: 102, textAlign: "left", border: "1px solid #e5e7eb", borderLeft: `4px solid ${isOverdue ? "#ef4444" : "#0f766e"}`, borderRadius: 16, background: "#fff", padding: 14, boxShadow: "0 1px 5px rgba(0,0,0,.05)" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 900, color: "#111827" }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 11, color: "#6b7280" }}>{item.class_name}{item.class_stream ? ` ${item.class_stream}` : ""}{item.subject ? ` · ${item.subject}` : ""}</div></div><div style={{ flexShrink: 0, textAlign: "right" }}><div style={{ fontSize: 10, fontWeight: 900, color: isOverdue ? "#991b1b" : "#065f46" }}>{isOverdue ? "Overdue" : "Active"}</div><div style={{ marginTop: 3, fontSize: 10, color: "#6b7280" }}>Due {formatDate(item.due_date)}</div></div></div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div style={{ minWidth: 0 }}><div style={{ fontSize: 14, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.class_name}{item.class_stream ? ` ${item.class_stream}` : ""}{item.subject ? ` · ${item.subject}` : ""}</div></div><div style={{ flexShrink: 0, textAlign: "right" }}><div style={{ fontSize: 11, fontWeight: 750, color: isOverdue ? "#991b1b" : "#065f46" }}>{isOverdue ? "Overdue" : "Active"}</div><div style={{ marginTop: 3, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>Due {formatDate(item.due_date)}</div></div></div>
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 12, fontSize: 11, color: "#374151" }}><span style={{ textTransform: "capitalize" }}>{item.type}</span><strong>{item.submitted}/{item.roster} submitted</strong></div>
                     <div style={{ marginTop: 6, height: 5, borderRadius: 99, background: "#f3f4f6", overflow: "hidden" }}><div style={{ width: `${Math.min(100, percentage)}%`, height: "100%", background: isOverdue && percentage < 100 ? "#ef4444" : "#0f766e" }} /></div>
                   </button>

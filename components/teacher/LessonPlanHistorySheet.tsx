@@ -77,15 +77,15 @@ export default function LessonPlanHistorySheet({
           width: "100%", maxHeight: "85vh", overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 900, color: "#1e1b4b", marginBottom: 4 }}>
+        <div style={{ fontSize: 16, fontWeight: 750, color: "var(--teacher-ink, #1c2923)", marginBottom: 4 }}>
           Lesson Plan History
         </div>
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginBottom: 16 }}>
           Every saved edit and status change for this lesson plan.
         </div>
 
         {loading && (
-          <div style={{ fontSize: 13, color: "#6b7280", padding: "20px 0", textAlign: "center" }}>
+          <div style={{ fontSize: 13, color: "var(--teacher-muted, #627168)", padding: "20px 0", textAlign: "center" }}>
             Loading…
           </div>
         )}
@@ -95,7 +95,7 @@ export default function LessonPlanHistorySheet({
         )}
 
         {!loading && !error && rows.length === 0 && (
-          <div style={{ fontSize: 13, color: "#6b7280", padding: "20px 0", textAlign: "center" }}>
+          <div style={{ fontSize: 13, color: "var(--teacher-muted, #627168)", padding: "20px 0", textAlign: "center" }}>
             No history yet — this plan hasn't been edited since it was created.
           </div>
         )}
@@ -119,10 +119,10 @@ export default function LessonPlanHistorySheet({
                 }}>
                   {row.change_type === "status_change" ? "Status change" : "Edit"}
                 </span>
-                <span style={{ fontSize: 11, color: "#6b7280" }}>
+                <span style={{ fontSize: 11, color: "var(--teacher-muted, #627168)" }}>
                   {STATUS_LABEL[row.status] ?? row.status}
                 </span>
-                <span style={{ fontSize: 11, color: "#9ca3af", marginLeft: "auto" }}>
+                <span style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginLeft: "auto" }}>
                   {formatWhen(row.created_at)}
                 </span>
               </div>
@@ -139,7 +139,7 @@ export default function LessonPlanHistorySheet({
                     <div style={{ marginTop: 4 }}><strong>Notes:</strong> {String(row.snapshot.notes).slice(0, 200)}</div>
                   )}
                   {!row.snapshot?.topic && !row.snapshot?.objectives && !row.snapshot?.notes && (
-                    <div style={{ color: "#9ca3af" }}>No content preview available for this version.</div>
+                    <div style={{ color: "var(--teacher-muted, #627168)" }}>No content preview available for this version.</div>
                   )}
                 </div>
               )}
@@ -151,7 +151,7 @@ export default function LessonPlanHistorySheet({
           onClick={onClose}
           style={{
             width: "100%", padding: "12px 0", borderRadius: 12, border: "1px solid #e5e7eb",
-            background: "#fff", color: "#6b7280", fontWeight: 700, fontSize: 13,
+            background: "#fff", color: "var(--teacher-muted, #627168)", fontWeight: 700, fontSize: 13,
             cursor: "pointer", marginTop: 4,
           }}
         >

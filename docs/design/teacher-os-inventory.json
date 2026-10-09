@@ -1,0 +1,2762 @@
+[
+  {
+    "route": "/teacher/academics",
+    "file": "app/teacher/academics/page.tsx",
+    "purpose": "academics",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/time"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "teacher_profiles",
+        "school_members",
+        "profiles",
+        "teacher_classes",
+        "subjects",
+        "classes",
+        "student_classes",
+        "lesson_plans",
+        "cbc_assessments",
+        "cbc_assessments",
+        "cbc_strands",
+        "attendance",
+        "tpad_appraisals",
+        "tpad_evidence",
+        "profiles"
+      ]
+    },
+    "links": [
+      "/teacher/assessment",
+      "/teacher/classhub/",
+      "/teacher/lessonplan",
+      "/teacher/progress",
+      "/teacher/scheme",
+      "/teacher/subjecthub",
+      "/teacher/tpad"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/analytics",
+    "file": "app/teacher/assessment/analytics/page.tsx",
+    "purpose": "analytics",
+    "components": [
+      "@/lib/assessment/analytics",
+      "@/lib/assessment/intelligence",
+      "@/lib/assessment/centre"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/bank",
+    "file": "app/teacher/assessment/bank/page.tsx",
+    "purpose": "bank",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "assessment_questions"
+      ]
+    },
+    "links": [
+      "/teacher/assessment"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/builder/[assessmentId]",
+    "file": "app/teacher/assessment/builder/[assessmentId]/page.tsx",
+    "purpose": "[assessmentId]",
+    "components": [
+      "@/lib/assessment",
+      "@/lib/assessment/builder"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/builder/[assessmentId]/preview",
+    "file": "app/teacher/assessment/builder/[assessmentId]/preview/page.tsx",
+    "purpose": "preview",
+    "components": [
+      "@/lib/assessment/builder",
+      "@/lib/assessment/authoring"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/assessment/builder/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/builder/item/[itemId]",
+    "file": "app/teacher/assessment/builder/item/[itemId]/page.tsx",
+    "purpose": "[itemId]",
+    "components": [
+      "@/lib/assessment/authoring"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/assessment/builder/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/cat/new",
+    "file": "app/teacher/assessment/cat/new/page.tsx",
+    "purpose": "new",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/assessment"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/assessment/builder/",
+      "/teacher/assessment/review/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/curriculum",
+    "file": "app/teacher/assessment/curriculum/page.tsx",
+    "purpose": "curriculum",
+    "components": [
+      "@/lib/assessment/curriculumIntelligence"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/gradebook",
+    "file": "app/teacher/assessment/gradebook/page.tsx",
+    "purpose": "gradebook",
+    "components": [
+      "@/lib/assessment/integration"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/interventions",
+    "file": "app/teacher/assessment/interventions/page.tsx",
+    "purpose": "interventions",
+    "components": [
+      "@/lib/assessment/interventions"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/assessment/builder/",
+      "/teacher/classhub/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/marking",
+    "file": "app/teacher/assessment/marking/page.tsx",
+    "purpose": "marking",
+    "components": [
+      "@/lib/assessment/marking",
+      "@/lib/assessment/moderation",
+      "@/lib/assessment/centre"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/new",
+    "file": "app/teacher/assessment/new/page.tsx",
+    "purpose": "new",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/assessment",
+      "@/lib/assessment",
+      "@/lib/teaching/lessonOutcomeAuthority",
+      "@/lib/teaching/lessonOutcomeAuthority"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "lesson_plans"
+      ]
+    },
+    "links": [
+      "/teacher/assessment/builder/",
+      "/teacher/assessment/cat/new",
+      "/teacher/assessment/review/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment",
+    "file": "app/teacher/assessment/page.tsx",
+    "purpose": "assessment",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/academicTerm",
+      "@/lib/curriculum/globalSubjects",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context"
+      ],
+      "tables": [
+        "cbc_strands",
+        "student_classes",
+        "students",
+        "cbc_assessments",
+        "academic_terms",
+        "scheme_of_work",
+        "cbc_assessments",
+        "cbc_assessments",
+        "cbc_assessments",
+        "cbc_assessments"
+      ]
+    },
+    "links": [
+      "/teacher/assessment/bank",
+      "/teacher/assessment/cat/new",
+      "/teacher/classhub/",
+      "/teacher/lessonplan",
+      "/teacher/onboarding/class",
+      "/teacher/progress",
+      "/teacher/results",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/assessment/review/[assessmentId]",
+    "file": "app/teacher/assessment/review/[assessmentId]/page.tsx",
+    "purpose": "[assessmentId]",
+    "components": [
+      "@/lib/assessment",
+      "@/lib/assessment/builder",
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "assessment_definitions",
+        "assessment_assignments"
+      ]
+    },
+    "links": [
+      "/teacher/assessment",
+      "/teacher/assessment/builder/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/attendance",
+    "file": "app/teacher/attendance/page.tsx",
+    "purpose": "attendance",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/time",
+      "@/lib/timetable/engine",
+      "@/lib/teaching/lessonAttendance",
+      "@/lib/pulse/refresh"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "teacher_set_active_school",
+        "upsert_attendance_batch"
+      ],
+      "tables": [
+        "subjects",
+        "classes",
+        "attendance",
+        "teaching_occurrences",
+        "student_classes",
+        "attendance",
+        "attendance",
+        "students"
+      ]
+    },
+    "links": [
+      "/teacher/lessonplan",
+      "/teacher/onboarding/class",
+      "/teacher/onboarding/school"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/attendance-history",
+    "file": "app/teacher/classhub/[id]/attendance-history/page.tsx",
+    "purpose": "attendance-history",
+    "components": [
+      "@/components/teacher/ui",
+      "@/lib/supabase",
+      "@/lib/attendance/summary",
+      "@/lib/attendance/ranges",
+      "@/lib/types"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "teacher_classes",
+        "classes",
+        "student_classes"
+      ]
+    },
+    "links": [
+      "/teacher/classhub",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/exercises/[exId]",
+    "file": "app/teacher/classhub/[id]/exercises/[exId]/page.tsx",
+    "purpose": "[exId]",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "profiles",
+        "classes",
+        "exercises",
+        "students",
+        "exercise_submissions",
+        "exercise_submissions",
+        "exercise_submissions",
+        "exercise_submissions",
+        "exercise_submissions"
+      ]
+    },
+    "links": [
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/exercises",
+    "file": "app/teacher/classhub/[id]/exercises/page.tsx",
+    "purpose": "exercises",
+    "components": [
+      "@/components/teacher/ui",
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "exercises",
+        "classes",
+        "subjects",
+        "student_classes",
+        "exercises",
+        "exercise_submissions",
+        "exercises"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/games",
+    "file": "app/teacher/classhub/[id]/games/page.tsx",
+    "purpose": "games",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "teacher_start_class_game",
+        "teacher_adjust_game_score",
+        "teacher_reset_class_game"
+      ],
+      "tables": [
+        "class_groups",
+        "classroom_games",
+        "classroom_game_teams",
+        "classroom_games"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/groups",
+    "file": "app/teacher/classhub/[id]/groups/page.tsx",
+    "purpose": "groups",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui",
+      "@/lib/database.types"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "teacher_resolve_class_group_members",
+        "teacher_snapshot_class_group"
+      ],
+      "tables": [
+        "student_classes",
+        "students",
+        "class_groups",
+        "class_group_members",
+        "class_groups",
+        "class_group_members",
+        "class_groups",
+        "class_groups",
+        "class_group_members",
+        "assessment_gradebook_entries",
+        "class_groups",
+        "class_group_members",
+        "class_groups",
+        "class_group_members",
+        "teacher_learner_events"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/homework/[hwId]",
+    "file": "app/teacher/classhub/[id]/homework/[hwId]/page.tsx",
+    "purpose": "[hwId]",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "review_homework_submission"
+      ],
+      "tables": [
+        "profiles",
+        "classes",
+        "homework_submissions",
+        "homework",
+        "homework",
+        "students",
+        "homework_questions",
+        "homework_answers"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/homework",
+    "file": "app/teacher/classhub/[id]/homework/page.tsx",
+    "purpose": "homework",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/time"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context"
+      ],
+      "tables": [
+        "homework",
+        "student_classes",
+        "class_groups",
+        "class_group_members",
+        "teaching_occurrences",
+        "teaching_occurrences",
+        "homework",
+        "homework"
+      ]
+    },
+    "links": [
+      "/teacher/classhub",
+      "/teacher/classhub/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/operations",
+    "file": "app/teacher/classhub/[id]/operations/page.tsx",
+    "purpose": "operations",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/class-workbook/data",
+      "@/lib/class-workbook/model"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_class_operations",
+        "teacher_save_class_duty_roster",
+        "teacher_issue_class_library_book",
+        "teacher_return_class_library_book"
+      ],
+      "tables": []
+    },
+    "links": [
+      "/teacher/assessment",
+      "/teacher/attendance",
+      "/teacher/classhub",
+      "/teacher/classhub/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]",
+    "file": "app/teacher/classhub/[id]/page.tsx",
+    "purpose": "[id]",
+    "components": [
+      "@/lib/classroom/model",
+      "@/lib/time",
+      "@/components/teacher/ui",
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "teacher_add_student_v2",
+        "teacher_add_student_v2",
+        "teacher_generate_shared_claim_code"
+      ],
+      "tables": [
+        "cbc_assessments",
+        "student_classes",
+        "class_join_requests",
+        "attendance",
+        "class_groups",
+        "students",
+        "student_claim_codes",
+        "homework",
+        "homework_submissions",
+        "class_group_members",
+        "teacher_learner_events",
+        "class_group_members"
+      ]
+    },
+    "links": [
+      "/teacher/assessment",
+      "/teacher/attendance",
+      "/teacher/classhub",
+      "/teacher/classhub/",
+      "/teacher/lessonplan",
+      "/teacher/scheme",
+      "/teacher/subjecthub",
+      "/teacher/timetable",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/progress",
+    "file": "app/teacher/classhub/[id]/progress/page.tsx",
+    "purpose": "progress",
+    "components": [
+      "@/components/teacher/progress/ProgressDataChecks",
+      "@/lib/learner-intelligence/progress-review",
+      "@/lib/learner-intelligence/progress-record",
+      "@/lib/learner-intelligence/progress-period",
+      "@/lib/learner-intelligence/progress-data"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/assessment/interventions",
+      "/teacher/classhub/",
+      "/teacher/progress/ProgressDataChecks",
+      "/teacher/report-cards"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/projects/[projId]",
+    "file": "app/teacher/classhub/[id]/projects/[projId]/page.tsx",
+    "purpose": "[projId]",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "profiles",
+        "classes",
+        "projects",
+        "students",
+        "project_submissions",
+        "project_submissions",
+        "project_submissions",
+        "project_submissions",
+        "notifications"
+      ]
+    },
+    "links": [
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/projects",
+    "file": "app/teacher/classhub/[id]/projects/page.tsx",
+    "purpose": "projects",
+    "components": [
+      "@/components/teacher/ui",
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "projects",
+        "classes",
+        "subjects",
+        "students",
+        "projects",
+        "project_submissions",
+        "projects"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/requests",
+    "file": "app/teacher/classhub/[id]/requests/page.tsx",
+    "purpose": "requests",
+    "components": [
+      "@/components/teacher/ui",
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "classes",
+        "class_join_requests",
+        "students",
+        "profiles",
+        "classes",
+        "students",
+        "student_classes",
+        "parent_student_links",
+        "parent_student_links",
+        "parent_student_links",
+        "class_join_requests",
+        "student_claim_codes",
+        "student_claim_codes",
+        "student_claim_codes",
+        "class_join_requests"
+      ]
+    },
+    "links": [
+      "/teacher/classhub",
+      "/teacher/classhub/",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/student/[studentId]",
+    "file": "app/teacher/classhub/[id]/student/[studentId]/page.tsx",
+    "purpose": "[studentId]",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/learner-intelligence/truth",
+      "@/lib/assessment/interventions"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context"
+      ],
+      "tables": [
+        "student_classes",
+        "students",
+        "attendance",
+        "homework",
+        "assessment_gradebook_entries",
+        "cbc_assessments",
+        "exam_results",
+        "subjects",
+        "teacher_learner_events",
+        "library_borrowings",
+        "library_books",
+        "homework_submissions",
+        "teacher_learner_events",
+        "teacher_learner_events",
+        "teacher_learner_events"
+      ]
+    },
+    "links": [
+      "/teacher/assessment",
+      "/teacher/assessment/interventions",
+      "/teacher/attendance",
+      "/teacher/classhub/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/student/[studentId]/progress",
+    "file": "app/teacher/classhub/[id]/student/[studentId]/progress/page.tsx",
+    "purpose": "progress",
+    "components": [
+      "@/components/teacher/progress/ProgressDataChecks",
+      "@/lib/learner-intelligence/progress-review",
+      "@/lib/learner-intelligence/progress-data",
+      "@/lib/learner-intelligence/progress-period",
+      "@/lib/learner-intelligence/progress-record"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/assessment",
+      "/teacher/assessment/interventions",
+      "/teacher/classhub/",
+      "/teacher/progress/ProgressDataChecks",
+      "/teacher/report-cards"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/workbook",
+    "file": "app/teacher/classhub/[id]/workbook/page.tsx",
+    "purpose": "workbook",
+    "components": [
+      "@/components/teacher/workbook/ClassWorkbook"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/workbook/ClassWorkbook"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/[id]/workspace",
+    "file": "app/teacher/classhub/[id]/workspace/page.tsx",
+    "purpose": "workspace",
+    "components": [
+      "@/components/teacher/classroom/ClassWorkspace"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/classroom/ClassWorkspace"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub/add",
+    "file": "app/teacher/classhub/add/page.tsx",
+    "purpose": "add",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/TeacherClassForm",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "get_my_teacher_school_context"
+      ],
+      "tables": []
+    },
+    "links": [
+      "/teacher/TeacherClassForm",
+      "/teacher/onboarding/school",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/classhub",
+    "file": "app/teacher/classhub/page.tsx",
+    "purpose": "classhub",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context"
+      ],
+      "tables": [
+        "student_classes"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/classhub/add",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/content-assessments/[assessmentId]",
+    "file": "app/teacher/content-assessments/[assessmentId]/page.tsx",
+    "purpose": "[assessmentId]",
+    "components": [
+      "@/components/teacher/content/AssessmentDeliveryPanel"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "generated_assessments",
+        "content_assessment_blueprints",
+        "generated_assessment_items",
+        "generated_assessment_items",
+        "generated_assessments",
+        "content_assessment_blueprints",
+        "generated_assessments",
+        "content_assessment_blueprints"
+      ]
+    },
+    "links": [
+      "/teacher/content/AssessmentDeliveryPanel"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/content-materials/[derivativeId]",
+    "file": "app/teacher/content-materials/[derivativeId]/page.tsx",
+    "purpose": "[derivativeId]",
+    "components": [],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "content_derivatives",
+        "content_derivatives"
+      ]
+    },
+    "links": [],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/creators",
+    "file": "app/teacher/creators/page.tsx",
+    "purpose": "creators",
+    "components": [
+      "@/components/public/TrackedLink"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/profile",
+      "/teacher/pulse"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/credits",
+    "file": "app/teacher/credits/page.tsx",
+    "purpose": "credits",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "get_credit_balance"
+      ],
+      "tables": [
+        "vibe_credit_packages"
+      ]
+    },
+    "links": [
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/exams",
+    "file": "app/teacher/exams/page.tsx",
+    "purpose": "exams",
+    "components": [],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/results"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/from-textbook",
+    "file": "app/teacher/from-textbook/page.tsx",
+    "purpose": "from-textbook",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "register_learning_resource",
+        "link_learning_resource"
+      ],
+      "tables": [
+        "vibe_chapters",
+        "lesson_plans",
+        "homework"
+      ]
+    },
+    "links": [
+      "/teacher/from-textbook",
+      "/teacher/homework",
+      "/teacher/lessonplan"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/help",
+    "file": "app/teacher/help/page.tsx",
+    "purpose": "help",
+    "components": [
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/homework",
+    "file": "app/teacher/homework/page.tsx",
+    "purpose": "homework",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/time"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "teacher_set_active_school"
+      ],
+      "tables": [
+        "homework",
+        "student_classes"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/onboarding/class",
+      "/teacher/onboarding/school",
+      "/teacher/pulse"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/lesson-notes",
+    "file": "app/teacher/lesson-notes/page.tsx",
+    "purpose": "lesson-notes",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/teaching/lessonPlanCodec",
+      "@/lib/teaching/lessonPlanCodec",
+      "@/components/teacher/LessonTeachMode",
+      "@/components/teacher/ReflectionSheet",
+      "@/components/teacher/EvidenceCaptureSheet",
+      "@/components/teacher/SubjectLessonHandoff"
+    ],
+    "data": {
+      "rpcs": [
+        "finalize_teaching_occurrence"
+      ],
+      "tables": [
+        "lesson_plans",
+        "teaching_occurrences",
+        "scheme_of_work",
+        "vibe_chapters",
+        "content_derivatives"
+      ]
+    },
+    "links": [
+      "/teacher/EvidenceCaptureSheet",
+      "/teacher/LessonTeachMode",
+      "/teacher/ReflectionSheet",
+      "/teacher/SubjectLessonHandoff",
+      "/teacher/subjecthub"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/lessonplan",
+    "file": "app/teacher/lessonplan/page.tsx",
+    "purpose": "lessonplan",
+    "components": [
+      "@/lib/time",
+      "@/lib/timetable/engine",
+      "@/lib/timetable/engine",
+      "@/lib/supabase",
+      "@/components/teacher/ui",
+      "@/components/teacher/LessonPlanModal",
+      "@/lib/teaching/lessonReadiness",
+      "@/lib/types"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "lesson_plans",
+        "subjects",
+        "classes",
+        "lesson_plans"
+      ]
+    },
+    "links": [
+      "/teacher/LessonPlanModal",
+      "/teacher/classhub/",
+      "/teacher/lessonplan/prepare",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/lessonplan/prepare",
+    "file": "app/teacher/lessonplan/prepare/page.tsx",
+    "purpose": "prepare",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui",
+      "@/lib/time",
+      "@/lib/timetable/engine",
+      "@/lib/teaching/lessonDrafts"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/lessonplan",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/more",
+    "file": "app/teacher/more/page.tsx",
+    "purpose": "more",
+    "components": [
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/academics",
+      "/teacher/assessment",
+      "/teacher/assessment/analytics",
+      "/teacher/assessment/gradebook",
+      "/teacher/assessment/marking",
+      "/teacher/attendance",
+      "/teacher/credits",
+      "/teacher/help",
+      "/teacher/lessonplan",
+      "/teacher/profile",
+      "/teacher/progress",
+      "/teacher/pulse",
+      "/teacher/resources",
+      "/teacher/results",
+      "/teacher/scheme",
+      "/teacher/schoolhub",
+      "/teacher/settings",
+      "/teacher/subjecthub",
+      "/teacher/timetable",
+      "/teacher/tpad",
+      "/teacher/ui",
+      "/teacher/vibelearn"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/notifications",
+    "file": "app/teacher/notifications/page.tsx",
+    "purpose": "notifications",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "homework",
+        "notifications",
+        "notifications",
+        "notifications"
+      ]
+    },
+    "links": [
+      "/teacher/attendance",
+      "/teacher/classhub/",
+      "/teacher/homework",
+      "/teacher/pulse"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/onboarding/class",
+    "file": "app/teacher/onboarding/class/page.tsx",
+    "purpose": "class",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/TeacherClassForm",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "get_my_teacher_school_context",
+        "set_my_active_teacher_school",
+        "leave_my_teacher_school"
+      ],
+      "tables": []
+    },
+    "links": [
+      "/teacher/TeacherClassForm",
+      "/teacher/onboarding/school",
+      "/teacher/pulse",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/onboarding/school",
+    "file": "app/teacher/onboarding/school/page.tsx",
+    "purpose": "school",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "search_school_directory",
+        "get_my_teacher_school_context",
+        "submit_school_discovery_request"
+      ],
+      "tables": []
+    },
+    "links": [
+      "/teacher/onboarding/class"
+    ],
+    "states": {
+      "loading": false,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/onboarding/students",
+    "file": "app/teacher/onboarding/students/page.tsx",
+    "purpose": "students",
+    "components": [
+      "@/components/teacher/ui",
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_add_student_v2"
+      ],
+      "tables": [
+        "teacher_classes"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/onboarding/class",
+      "/teacher/pulse",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher",
+    "file": "app/teacher/page.tsx",
+    "purpose": "teacher",
+    "components": [
+      "@/components/public/PublicHeader",
+      "@/components/public/PublicFooter",
+      "@/components/public/TrackedLink",
+      "@/components/public/PublicLanding.module.css"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/assessment",
+      "/teacher/creators",
+      "/teacher/credits",
+      "/teacher/lessonplan",
+      "/teacher/pulse",
+      "/teacher/scheme"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/pathways",
+    "file": "app/teacher/pathways/page.tsx",
+    "purpose": "pathways",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_assigned_pathway_passports"
+      ],
+      "tables": []
+    },
+    "links": [
+      "/teacher/pulse"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/profile/account",
+    "file": "app/teacher/profile/account/page.tsx",
+    "purpose": "account",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "teacher_profile_privacy",
+        "teacher_profile_verifications",
+        "teacher_profile_privacy",
+        "avatars",
+        "avatars",
+        "profiles"
+      ]
+    },
+    "links": [
+      "/teacher/profile"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/profile",
+    "file": "app/teacher/profile/page.tsx",
+    "purpose": "profile",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "teacher_set_active_school"
+      ],
+      "tables": [
+        "profiles",
+        "teacher_profiles",
+        "profiles",
+        "teacher_profiles",
+        "avatars",
+        "avatars",
+        "profiles"
+      ]
+    },
+    "links": [
+      "/teacher/profile/teaching-scope",
+      "/teacher/schoolhub"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/profile/teaching-scope",
+    "file": "app/teacher/profile/teaching-scope/page.tsx",
+    "purpose": "teaching-scope",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "get_allowed_teaching_subjects",
+        "teacher_reconcile_class_subject"
+      ],
+      "tables": []
+    },
+    "links": [
+      "/teacher/profile"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/progress",
+    "file": "app/teacher/progress/page.tsx",
+    "purpose": "progress",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/teaching/progress"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "teacher_set_active_school"
+      ],
+      "tables": [
+        "progress_records",
+        "teaching_occurrences",
+        "progress_records",
+        "lesson_plans",
+        "homework"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/onboarding/class",
+      "/teacher/onboarding/school",
+      "/teacher/progress",
+      "/teacher/teach-today"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/pulse",
+    "file": "app/teacher/pulse/page.tsx",
+    "purpose": "pulse",
+    "components": [
+      "@/lib/supabase",
+      "@/app/teacher/layout",
+      "@/lib/pulse/fetcher",
+      "@/lib/types",
+      "@/lib/pulse/rules",
+      "@/lib/pulse/cache",
+      "@/components/teacher/AssessmentPulseCard",
+      "@/components/teacher/LessonFlowCard",
+      "@/components/teacher/NextTeachingAction",
+      "@/components/teacher/PulseHeader",
+      "@/components/teacher/QuickActions",
+      "@/components/teacher/RecentActivity",
+      "@/components/teacher/TodayGlance",
+      "@/components/teacher/TodayHero",
+      "@/components/teacher/TwinShortcut",
+      "@/components/teacher/WeekOverview",
+      "@/lib/pulse/refresh"
+    ],
+    "data": {
+      "rpcs": [
+        "get_my_teacher_school_context",
+        "set_my_active_teacher_school"
+      ],
+      "tables": [
+        "profiles"
+      ]
+    },
+    "links": [
+      "/teacher/AssessmentPulseCard",
+      "/teacher/LessonFlowCard",
+      "/teacher/NextTeachingAction",
+      "/teacher/PulseHeader",
+      "/teacher/QuickActions",
+      "/teacher/RecentActivity",
+      "/teacher/TodayGlance",
+      "/teacher/TodayHero",
+      "/teacher/TwinShortcut",
+      "/teacher/WeekOverview",
+      "/teacher/attendance",
+      "/teacher/classhub/",
+      "/teacher/layout",
+      "/teacher/students",
+      "/teacher/timetable",
+      "/teacher/twin"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/report-cards",
+    "file": "app/teacher/report-cards/page.tsx",
+    "purpose": "report-cards",
+    "components": [
+      "@/lib/learner-intelligence/progress-data",
+      "@/lib/report-cards/service"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/classhub/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/resources",
+    "file": "app/teacher/resources/page.tsx",
+    "purpose": "resources",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "resolve_instructional_week_for_date",
+        "list_scheme_lesson_resources_batch"
+      ],
+      "tables": [
+        "teacher_profiles",
+        "school_members",
+        "profiles",
+        "teacher_classes",
+        "resources",
+        "classes",
+        "subjects",
+        "scheme_of_work",
+        "learning_resources",
+        "resources",
+        "resources"
+      ]
+    },
+    "links": [
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/results",
+    "file": "app/teacher/results/page.tsx",
+    "purpose": "results",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/teacher/examResultAuthority",
+      "@/components/teacher/ProfessionalMarkbook",
+      "@/components/teacher/AssessmentIntelligenceConsole",
+      "@/lib/database.types"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context"
+      ],
+      "tables": [
+        "exams",
+        "exams",
+        "student_classes",
+        "students",
+        "exam_results",
+        "exams"
+      ]
+    },
+    "links": [
+      "/teacher/AssessmentIntelligenceConsole",
+      "/teacher/ProfessionalMarkbook",
+      "/teacher/examResultAuthority",
+      "/teacher/results/report-card/"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/results/report-card/[studentId]",
+    "file": "app/teacher/results/report-card/[studentId]/page.tsx",
+    "purpose": "[studentId]",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/database.types"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "profiles",
+        "schools",
+        "students",
+        "manual_students",
+        "exams",
+        "exam_results",
+        "exam_results",
+        "exam_results",
+        "subjects",
+        "cbc_assessments",
+        "cbc_strands",
+        "exam_results",
+        "exams",
+        "exam_results",
+        "report_card_remarks",
+        "report_card_remarks"
+      ]
+    },
+    "links": [],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/results/report-card",
+    "file": "app/teacher/results/report-card/page.tsx",
+    "purpose": "report-card",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "teacher_classes",
+        "exam_results",
+        "exams",
+        "exam_results",
+        "student_classes",
+        "report_card_remarks"
+      ]
+    },
+    "links": [
+      "/teacher/results/report-card/",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/scheme/generate",
+    "file": "app/teacher/scheme/generate/page.tsx",
+    "purpose": "generate",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/time",
+      "@/lib/timetable/engine",
+      "@/lib/timetable/engine"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "school_members",
+        "teacher_profiles",
+        "profiles",
+        "scheme_of_work",
+        "lesson_plans"
+      ]
+    },
+    "links": [
+      "/teacher/lessonplan",
+      "/teacher/timetable"
+    ],
+    "states": {
+      "loading": false,
+      "error": true,
+      "empty": true,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/scheme",
+    "file": "app/teacher/scheme/page.tsx",
+    "purpose": "scheme",
+    "components": [],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/schoolhub",
+    "file": "app/teacher/schoolhub/page.tsx",
+    "purpose": "schoolhub",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "get_my_teacher_school_context",
+        "get_my_teacher_school_information",
+        "teacher_get_my_school_responsibilities",
+        "teacher_get_school_responsibility_admin_context",
+        "admin_assign_school_responsibility"
+      ],
+      "tables": [
+        "schools"
+      ]
+    },
+    "links": [
+      "/teacher/classhub",
+      "/teacher/onboarding/school",
+      "/teacher/resources",
+      "/teacher/timetable",
+      "/teacher/ui",
+      "/teacher/vibeconnect"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/settings",
+    "file": "app/teacher/settings/page.tsx",
+    "purpose": "settings",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "profiles",
+        "profiles"
+      ]
+    },
+    "links": [
+      "/teacher/profile/account",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/students",
+    "file": "app/teacher/students/page.tsx",
+    "purpose": "students",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "teacher_set_active_school"
+      ],
+      "tables": [
+        "student_classes",
+        "students"
+      ]
+    },
+    "links": [
+      "/teacher/classhub/",
+      "/teacher/onboarding/class",
+      "/teacher/onboarding/school"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/studio/editor",
+    "file": "app/teacher/studio/editor/page.tsx",
+    "purpose": "editor",
+    "components": [
+      "@/components/global/publish/PublicationEditor",
+      "@/lib/publishTypes"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "profiles"
+      ]
+    },
+    "links": [],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/studio/governance",
+    "file": "app/teacher/studio/governance/page.tsx",
+    "purpose": "governance",
+    "components": [
+      "@/components/global/publish/CurriculumImportDrawer",
+      "@/components/global/publish/PublicationHistoryDrawer"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "profiles",
+        "vibe_publications"
+      ]
+    },
+    "links": [
+      "/teacher/studio"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/studio",
+    "file": "app/teacher/studio/page.tsx",
+    "purpose": "studio",
+    "components": [
+      "@/lib/publishTypes"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "profiles",
+        "vibe_publications"
+      ]
+    },
+    "links": [
+      "/teacher/studio/editor",
+      "/teacher/studio/governance",
+      "/teacher/vibelearn"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/subjecthub",
+    "file": "app/teacher/subjecthub/page.tsx",
+    "purpose": "subjecthub",
+    "components": [
+      "@/lib/time",
+      "@/lib/academicTerm",
+      "@/lib/academicTerm",
+      "@/lib/timetable/engine",
+      "@/components/teacher/ui",
+      "@/components/teacher/SubjectCompanion",
+      "@/lib/supabase",
+      "@/lib/content-engine/subjectClassLibrary",
+      "@/lib/content-engine/subjectClassLibrary"
+    ],
+    "data": {
+      "rpcs": [
+        "teacher_get_operating_context",
+        "get_allowed_teaching_subjects",
+        "create_teacher_class_assignment"
+      ],
+      "tables": [
+        "teacher_classes",
+        "cbc_assessments",
+        "classes",
+        "student_classes",
+        "attendance",
+        "teacher_classes",
+        "profiles",
+        "subjects",
+        "teacher_classes",
+        "classes",
+        "lesson_plans",
+        "cbc_assessments",
+        "cbc_assessments",
+        "curriculum",
+        "curriculum",
+        "scheme_of_work",
+        "attendance",
+        "classes",
+        "learner_outcomes",
+        "learner_outcomes"
+      ]
+    },
+    "links": [
+      "/teacher/SubjectCompanion",
+      "/teacher/assessment",
+      "/teacher/attendance",
+      "/teacher/classhub",
+      "/teacher/classhub/",
+      "/teacher/lessonplan",
+      "/teacher/onboarding/class",
+      "/teacher/profile",
+      "/teacher/resources",
+      "/teacher/scheme",
+      "/teacher/settings",
+      "/teacher/timetable",
+      "/teacher/tpad",
+      "/teacher/ui",
+      "/teacher/vibelearn"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/teach",
+    "file": "app/teacher/teach/page.tsx",
+    "purpose": "teach",
+    "components": [],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/teach-today"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/teach-today",
+    "file": "app/teacher/teach-today/page.tsx",
+    "purpose": "teach-today",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/pulse/fetcher",
+      "@/lib/types",
+      "@/components/teacher/LessonFlowCard"
+    ],
+    "data": {
+      "rpcs": [
+        "get_my_teacher_school_context"
+      ],
+      "tables": [
+        "profiles"
+      ]
+    },
+    "links": [
+      "/teacher/LessonFlowCard",
+      "/teacher/lessonplan",
+      "/teacher/progress",
+      "/teacher/scheme",
+      "/teacher/subjecthub",
+      "/teacher/timetable",
+      "/teacher/vibelearn"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/teacher-guide",
+    "file": "app/teacher/teacher-guide/page.tsx",
+    "purpose": "teacher-guide",
+    "components": [
+      "@/lib/teaching/lessonWorkspace",
+      "@/lib/teaching/lessonPlanCodec",
+      "@/components/teacher/SubjectLessonHandoff"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/SubjectLessonHandoff",
+      "/teacher/lesson-notes",
+      "/teacher/lessonplan",
+      "/teacher/scheme",
+      "/teacher/subjecthub",
+      "/teacher/teach-today"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": true,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/timetable",
+    "file": "app/teacher/timetable/page.tsx",
+    "purpose": "timetable",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui",
+      "@/components/teacher/ClassicTimetable",
+      "@/lib/timetable/periods",
+      "@/components/teacher/AddSlotModal",
+      "@/components/teacher/RecoverySheet",
+      "@/lib/time",
+      "@/lib/timetable/engine",
+      "@/lib/teaching/occurrenceGuard",
+      "@/lib/teaching/occurrence",
+      "@/lib/teaching/occurrence",
+      "@/lib/teaching/workspace",
+      "@/lib/teaching/lessonReadiness",
+      "@/lib/teaching/slots",
+      "@/lib/teaching/types"
+    ],
+    "data": {
+      "rpcs": [
+        "get_my_teacher_school_context",
+        "get_my_school_day_blocks",
+        "get_school_day_blocks_for_member",
+        "get_teacher_weekly_timetable_load"
+      ],
+      "tables": [
+        "teaching_occurrences",
+        "lesson_plans",
+        "teaching_occurrences",
+        "school_calendar_exceptions",
+        "subjects",
+        "classes"
+      ]
+    },
+    "links": [
+      "/teacher/AddSlotModal",
+      "/teacher/ClassicTimetable",
+      "/teacher/RecoverySheet",
+      "/teacher/attendance",
+      "/teacher/classhub/",
+      "/teacher/lessonplan",
+      "/teacher/lessonplan/prepare",
+      "/teacher/timetable/setup",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/timetable/setup",
+    "file": "app/teacher/timetable/setup/page.tsx",
+    "purpose": "setup",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "get_school_day_blocks_for_member",
+        "can_manage_my_school_timetable",
+        "get_my_teacher_school_context",
+        "save_school_period_block",
+        "delete_school_period_block",
+        "set_school_lesson_duration_default"
+      ],
+      "tables": [
+        "school_lesson_duration_defaults"
+      ]
+    },
+    "links": [
+      "/teacher/timetable",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/tpad/evidence",
+    "file": "app/teacher/tpad/evidence/page.tsx",
+    "purpose": "evidence",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/academicTerm",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "lesson_plans",
+        "tpad_evidence",
+        "school_members",
+        "academic_terms",
+        "tpad_appraisals",
+        "tpad_evidence",
+        "tpad_evidence",
+        "tpad_evidence"
+      ]
+    },
+    "links": [
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/tpad/history",
+    "file": "app/teacher/tpad/history/page.tsx",
+    "purpose": "history",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "tpad_appraisals"
+      ]
+    },
+    "links": [
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/tpad",
+    "file": "app/teacher/tpad/page.tsx",
+    "purpose": "tpad",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/academicTerm",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "school_members",
+        "profiles",
+        "academic_terms",
+        "tpad_appraisals",
+        "tpad_deadlines"
+      ]
+    },
+    "links": [
+      "/teacher/tpad/evidence",
+      "/teacher/tpad/history",
+      "/teacher/tpad/self-appraisal",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/tpad/self-appraisal",
+    "file": "app/teacher/tpad/self-appraisal/page.tsx",
+    "purpose": "self-appraisal",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/academicTerm",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "school_members",
+        "academic_terms",
+        "tpad_appraisals",
+        "tpad_appraisals",
+        "tpad_appraisals"
+      ]
+    },
+    "links": [
+      "/teacher/tpad",
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/twin",
+    "file": "app/teacher/twin/page.tsx",
+    "purpose": "twin",
+    "components": [],
+    "data": {
+      "rpcs": [],
+      "tables": []
+    },
+    "links": [
+      "/teacher/pulse"
+    ],
+    "states": {
+      "loading": false,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/vibeconnect",
+    "file": "app/teacher/vibeconnect/page.tsx",
+    "purpose": "vibeconnect",
+    "components": [
+      "@/lib/supabase"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "profiles",
+        "profiles",
+        "vc_participants",
+        "vc_participants",
+        "vc_threads",
+        "vc_participants",
+        "profiles",
+        "teacher_profiles",
+        "school_members",
+        "vc_participants",
+        "vc_circular_recipients",
+        "vc_threads",
+        "vc_participants",
+        "profiles",
+        "vc_messages",
+        "vc_circulars",
+        "vc_participants",
+        "vc_messages",
+        "vc_messages",
+        "vc_threads",
+        "profiles",
+        "vc_circular_recipients"
+      ]
+    },
+    "links": [
+      "/teacher/pulse"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/vibelearn/indexer",
+    "file": "app/teacher/vibelearn/indexer/page.tsx",
+    "purpose": "indexer",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [],
+      "tables": [
+        "vibelearn_content",
+        "vibelearn_teacher_stats"
+      ]
+    },
+    "links": [
+      "/teacher/ui"
+    ],
+    "states": {
+      "loading": true,
+      "error": false,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/vibelearn",
+    "file": "app/teacher/vibelearn/page.tsx",
+    "purpose": "vibelearn",
+    "components": [
+      "@/lib/supabase",
+      "@/lib/content-engine/vibelearnClassAdoption",
+      "@/lib/content-engine/vibelearnClassAdoption",
+      "@/components/teacher/ui"
+    ],
+    "data": {
+      "rpcs": [
+        "publish_textbook",
+        "unpublish_textbook",
+        "remove_textbook_from_vibelearn",
+        "reconcile_textbook_index"
+      ],
+      "tables": [
+        "vibelearn_content",
+        "vibelearn_teacher_stats",
+        "vibelearn_content",
+        "teacher_classes",
+        "subjects",
+        "vibelearn_content",
+        "vibelearn_content",
+        "vibe_publications",
+        "vibelearn_content",
+        "vibelearn_content",
+        "vibelearn_content",
+        "vibelearn_content",
+        "subjects",
+        "vibelearn_content"
+      ]
+    },
+    "links": [
+      "/teacher/studio/editor",
+      "/teacher/ui",
+      "/teacher/vibelearn/indexer"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": true,
+      "disabled": true
+    },
+    "status": "Untouched; static discovery only"
+  },
+  {
+    "route": "/teacher/week",
+    "file": "app/teacher/week/page.tsx",
+    "purpose": "week",
+    "components": [
+      "@/lib/supabase",
+      "@/components/teacher/ui",
+      "@/lib/teacher/workspace",
+      "@/lib/time"
+    ],
+    "data": {
+      "rpcs": [
+        "get_my_teacher_school_context"
+      ],
+      "tables": []
+    },
+    "links": [
+      "/teacher/lessonplan",
+      "/teacher/onboarding/school",
+      "/teacher/timetable",
+      "/teacher/ui",
+      "/teacher/workspace"
+    ],
+    "states": {
+      "loading": true,
+      "error": true,
+      "empty": false,
+      "saving": false,
+      "disabled": false
+    },
+    "status": "Untouched; static discovery only"
+  }
+]

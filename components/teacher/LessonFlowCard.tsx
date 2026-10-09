@@ -129,11 +129,11 @@ function EmptyWorkflow({ snap, onNavigate }: { snap?: PulseSnapshot; onNavigate:
   const tomorrow = snap?.tomorrowSlots[0];
   return (
     <div style={{ background: "#fff", borderRadius: 20, padding: 16, boxShadow: "0 2px 16px rgba(0,0,0,0.06)" }}>
-      <div style={{ fontSize: 15, fontWeight: 900, color: "#111827" }}>No lesson scheduled today.</div>
-      <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>Prepare the next occurrence or review your teaching documents.</div>
+      <div style={{ fontSize: 15, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>No lesson scheduled today.</div>
+      <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 4 }}>Prepare the next occurrence or review your teaching documents.</div>
       <button
         onClick={() => onNavigate(tomorrow ? `/teacher/lessonplan?classId=${tomorrow.class_id}&subjectId=${tomorrow.subject_id}` : "/teacher/timetable")}
-        style={{ marginTop: 12, border: 0, borderRadius: 10, padding: "9px 13px", background: "#111827", color: "#fff", fontWeight: 800 }}
+        style={{ marginTop: 12, border: 0, borderRadius: 10, padding: "9px 13px", background: "var(--teacher-ink, #1c2923)", color: "#fff", fontWeight: 800 }}
       >
         {tomorrow ? "Prepare tomorrow" : "Open timetable"}
       </button>
@@ -192,31 +192,31 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
 
       <div style={{ marginTop: 14, display: "flex", justifyContent: "space-between", gap: 12 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 900, color: "#111827" }}>{activeSlot.subject}</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>{activeSlot.class_name} · {activeSlot.start_time}–{activeSlot.end_time}</div>
+          <div style={{ fontSize: 16, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{activeSlot.subject}</div>
+          <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 3 }}>{activeSlot.class_name} · {activeSlot.start_time}–{activeSlot.end_time}</div>
         </div>
         <div style={{ minWidth: 54, textAlign: "right" }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: "#111827" }}>{workspace?.completionPercent ?? 0}%</div>
-          <div style={{ fontSize: 9, color: "#6b7280" }}>complete</div>
+          <div style={{ fontSize: 18, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{workspace?.completionPercent ?? 0}%</div>
+          <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)" }}>complete</div>
         </div>
       </div>
 
-      <div style={{ height: 6, borderRadius: 99, background: "#e5e7eb", overflow: "hidden", margin: "12px 0 12px" }}>
-        <div style={{ height: "100%", width: `${workspace?.completionPercent ?? 0}%`, background: "#10b981" }} />
+      <div style={{ height: 6, borderRadius: 99, background: "var(--teacher-border, #dfe5de)", overflow: "hidden", margin: "12px 0 12px" }}>
+        <div style={{ height: "100%", width: `${workspace?.completionPercent ?? 0}%`, background: "var(--teacher-green, #087451)" }} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
         <button
           type="button"
           onClick={() => onNavigate(exactLessonUrl)}
-          style={{ border: "1px solid #d1d5db", background: "#fff", color: "#111827", borderRadius: 12, padding: "11px 10px", fontSize: 12, fontWeight: 900 }}
+          style={{ border: "1px solid #d1d5db", background: "#fff", color: "var(--teacher-ink, #1c2923)", borderRadius: 12, padding: "11px 10px", fontSize: 12, fontWeight: 750 }}
         >
           Lesson plan
         </button>
         <button
           type="button"
           onClick={() => onNavigate(lessonNotesUrl)}
-          style={{ border: 0, background: lessonPlanId ? "#047857" : "#111827", color: "#fff", borderRadius: 12, padding: "11px 10px", fontSize: 12, fontWeight: 900 }}
+          style={{ border: 0, background: lessonPlanId ? "#047857" : "#111827", color: "#fff", borderRadius: 12, padding: "11px 10px", fontSize: 12, fontWeight: 750 }}
         >
           {lessonPlanId ? "Open lesson notes" : "Prepare lesson notes"}
         </button>
@@ -241,13 +241,13 @@ export default function LessonFlowCard({ slots, snap, teacherId, onNavigate, onS
               style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, textAlign: "left", padding: 12, borderRadius: 14, border: state === "Current" ? "1px solid #bfdbfe" : "1px solid #f3f4f6", background: state === "Current" ? "#f8fafc" : "#fff", opacity: enabled || state === "Done" ? 1 : 0.55 }}
             >
               <div style={{ display: "flex", gap: 9 }}>
-                <div style={{ color: "#6b7280", marginTop: 2 }}>{icon(step)}</div>
+                <div style={{ color: "var(--teacher-muted, #627168)", marginTop: 2 }}>{icon(step)}</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{step}</div>
-                  <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2 }}>{stepHelp(step)}</div>
+                  <div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{step}</div>
+                  <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>{stepHelp(step)}</div>
                 </div>
               </div>
-              <span style={{ fontSize: 9, fontWeight: 900, textTransform: "uppercase", color: badge.color, background: badge.bg, borderRadius: 999, padding: "5px 8px" }}>{badge.label}</span>
+              <span style={{ fontSize: 11, fontWeight: 750, textTransform: "uppercase", color: badge.color, background: badge.bg, borderRadius: 999, padding: "5px 8px" }}>{badge.label}</span>
             </button>
           );
         })}

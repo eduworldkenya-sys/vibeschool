@@ -524,27 +524,27 @@ export default function ClassWorkbook() {
   );
   if (loading)
     return (
-      <main className={styles.workbook} onClickCapture={protectLink}>
+      <section className={styles.workbook} onClickCapture={protectLink}>
         <h1>Class workbook</h1>
         <p role="status">Opening your learners and their records…</p>
-      </main>
+      </section>
     );
   if (!data || !doc || !sheet)
     return (
-      <main className={styles.workbook} onClickCapture={protectLink}>
+      <section className={styles.workbook} onClickCapture={protectLink}>
         <h1>Class workbook</h1>
         <div className={styles.error} role="alert">
           {error || "Your workbook is unavailable."}
         </div>
         <button onClick={() => void load()}>Try again</button>{" "}
         <Link href="/teacher/classhub">My classes</Link>
-      </main>
+      </section>
     );
   const currentExam = data.exams.find((e) => e.id === filters.examId);
   const allVisibleSelected =
     rows.length > 0 && rows.every((r) => selected.includes(r.learner.id));
   return (
-    <main className={styles.workbook} onClickCapture={protectLink}>
+    <section className={styles.workbook} onClickCapture={protectLink}>
       <div className={styles.header}>
         <div>
           <Link href={`/teacher/classhub/${classId}`}>← Back to class</Link>
@@ -1737,6 +1737,6 @@ export default function ClassWorkbook() {
           collect payments.
         </p>
       </section>
-    </main>
+    </section>
   );
 }

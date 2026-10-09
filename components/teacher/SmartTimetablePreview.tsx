@@ -97,12 +97,12 @@ function LessonCard({ slot, onAttend, onPlan, onClass }: {
               display: 'inline-block', animation: 'livePulse 1.8s infinite', flexShrink: 0,
             }} />
           )}
-          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: isLive ? '#6ee7b7' : '#9ca3af' }}>
+          <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: isLive ? '#6ee7b7' : '#9ca3af' }}>
             {isLive ? 'Now' : mins < 60 ? `In ${mins}m` : fmt12(slot.startTime)}
           </span>
         </div>
         <span style={{
-          fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 20,
+          fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20,
           background: slot.attendanceMarked ? (isLive ? 'rgba(52,211,153,0.2)' : '#d1fae5') : (isLive ? 'rgba(245,158,11,0.2)' : '#fef3c7'),
           color:      slot.attendanceMarked ? (isLive ? '#6ee7b7' : '#065f46') : (isLive ? '#fbbf24' : '#92400e'),
         }}>
@@ -127,7 +127,7 @@ function LessonCard({ slot, onAttend, onPlan, onClass }: {
         {!slot.attendanceMarked && (
           <button onClick={onAttend} style={{
             flex: 1, padding: '9px 0', borderRadius: 12, border: 'none',
-            background: '#10b981', color: '#fff', fontWeight: 700, fontSize: 12,
+            background: "var(--teacher-green, #087451)", color: '#fff', fontWeight: 700, fontSize: 12,
             cursor: 'pointer', fontFamily: 'inherit',
           }}>
             Mark Attendance
@@ -459,9 +459,9 @@ export default function SmartTimetablePreview() {
       {/* ── TODAY'S LESSONS — active only, max 3, done auto-removed ── */}
       {activeSlots.length > 0 && (
         <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: '#9ca3af', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 12, paddingLeft: 2 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--teacher-muted, #627168)", letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 12, paddingLeft: 2 }}>
             {DAYS_S[todayDow]} — TODAY · {activeSlots.length} {activeSlots.length === 1 ? 'lesson' : 'lessons'}
-            {doneLessons > 0 && <span style={{ color: '#10b981', marginLeft: 8 }}>{doneLessons} done</span>}
+            {doneLessons > 0 && <span style={{ color: "var(--teacher-green, #087451)", marginLeft: 8 }}>{doneLessons} done</span>}
           </div>
           <div
             ref={lessonRef}
@@ -510,7 +510,7 @@ export default function SmartTimetablePreview() {
           >
             <div style={{ position: 'absolute', bottom: -50, right: -30, width: 160, height: 160, borderRadius: '50%', background: slide.accentDim, pointerEvents: 'none' }} />
             <div style={{ display: 'inline-flex', alignItems: 'center', padding: '4px 10px', borderRadius: 20, background: slide.accentDim, border: `1px solid ${slide.accent}30`, marginBottom: 14 }}>
-              <span style={{ fontSize: 10, fontWeight: 800, color: slide.accent, letterSpacing: 0.8 }}>{slide.label}</span>
+              <span style={{ fontSize: 11, fontWeight: 800, color: slide.accent, letterSpacing: 0.8 }}>{slide.label}</span>
             </div>
             {slide.content()}
           </div>

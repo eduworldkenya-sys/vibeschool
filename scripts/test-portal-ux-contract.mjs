@@ -15,11 +15,11 @@ const adminError = read('app/admin/error.tsx')
 const checks = [
   ['global focus-visible ring', globals.includes(':focus-visible') && globals.includes('outline: 3px solid')],
   ['reduced-motion support', globals.includes('prefers-reduced-motion: reduce')],
-  ['teacher primary 44px target', teacherUi.includes('minHeight: small ? 36 : 44')],
+  ['teacher primary 44px target', teacherUi.includes('minHeight: 44,')],
   ['native disabled buttons', teacherUi.includes('disabled={disabled}')],
   ['semantic clickable avatar', teacherUi.includes('<button type="button" aria-label={ariaLabel}')],
   ['semantic modal dialog', teacherUi.includes('role="dialog"') && teacherUi.includes('aria-modal="true"')],
-  ['modal close target', teacherUi.includes('width: 44, height: 44')],
+  ['modal close target', teacherUi.includes('className="teacher-icon-button"') && read('components/teacher/teacher-workspace.css').includes('min-width:44px;min-height:44px')],
   ['shared loading state', portalState.includes('PortalLoading') && teacherLoading.includes('PortalLoading') && adminLoading.includes('PortalLoading')],
   ['shared recoverable error state', portalState.includes('PortalError') && teacherError.includes('PortalError') && adminError.includes('PortalError')],
   ['error state has three recovery paths', portalState.includes('Retry') && portalState.includes('Return to workspace') && portalState.includes('Sign in again')],

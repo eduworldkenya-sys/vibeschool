@@ -131,14 +131,14 @@ function PickerInner() {
           {selectedCls && (<><span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>›</span><span style={{ fontSize: 11, color: step === "exam" ? "#fff" : "rgba(255,255,255,0.5)", cursor: step === "students" ? "pointer" : "default", fontWeight: 600 }} onClick={() => { if (step === "students") { setStep("exam"); setSummaries([]); setSelectedExam(null); } }}>{selectedCls.name}{selectedCls.stream ? ` ${selectedCls.stream}` : ""}</span></>)}
           {selectedExam && (<><span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>›</span><span style={{ fontSize: 11, color: "#fff", fontWeight: 600 }}>{selectedExam.name}</span></>)}
         </div>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase" as const }}>Report Cards</div>
+        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase" as const }}>Report Cards</div>
         <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
           {step === "class" ? "Select Class" : step === "exam" ? `${selectedCls?.name} — Select Exam` : `${selectedExam?.name} · Term ${selectedExam?.term}`}
         </div>
         {step === "students" && totalStudentCnt > 0 && (
           <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}><span style={{ fontWeight: 800, color: "#10b981", fontSize: 14 }}>{remarkedCount}</span>/{totalStudentCnt} remarked</div>
-            <div style={{ flex: 1, alignSelf: "center" }}><div style={{ height: 4, borderRadius: 4, background: "rgba(255,255,255,0.15)" }}><div style={{ height: 4, borderRadius: 4, background: "#10b981", width: `${totalStudentCnt > 0 ? (remarkedCount / totalStudentCnt) * 100 : 0}%`, transition: "width 0.5s ease" }} /></div></div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}><span style={{ fontWeight: 800, color: "var(--teacher-green, #087451)", fontSize: 14 }}>{remarkedCount}</span>/{totalStudentCnt} remarked</div>
+            <div style={{ flex: 1, alignSelf: "center" }}><div style={{ height: 4, borderRadius: 4, background: "rgba(255,255,255,0.15)" }}><div style={{ height: 4, borderRadius: 4, background: "var(--teacher-green, #087451)", width: `${totalStudentCnt > 0 ? (remarkedCount / totalStudentCnt) * 100 : 0}%`, transition: "width 0.5s ease" }} /></div></div>
           </div>
         )}
       </div>
@@ -147,12 +147,12 @@ function PickerInner() {
       {step === "class" && (
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 10, animation: "fadeUp 0.25s ease" }}>
           {loading ? [1,2,3].map(i => <Skel key={i} h={72} />) : classes.length === 0 ? (
-            <div style={{ textAlign: "center" as const, padding: 40, color: "#6b7280", fontSize: 13 }}>No classes found. Create a class in ClassHub first.</div>
+            <div style={{ textAlign: "center" as const, padding: 40, color: "var(--teacher-muted, #627168)", fontSize: 13 }}>No classes found. Create a class in ClassHub first.</div>
           ) : classes.map(cls => (
             <button key={cls.id} onClick={() => loadExams(cls)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px", borderRadius: 16, background: "#fff", border: "1px solid #e5e7eb", cursor: "pointer", fontFamily: "inherit", textAlign: "left" as const, width: "100%", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
               <div style={{ width: 44, height: 44, borderRadius: 13, background: "linear-gradient(135deg,#1e1b4b,#2d2a6e)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>📋</div>
-              <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>{cls.name}{cls.stream ? ` · ${cls.stream}` : ""}</div><div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Tap to view exams</div></div>
-              <span style={{ fontSize: 18, color: "#6b7280" }}>›</span>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: "var(--teacher-ink, #1c2923)" }}>{cls.name}{cls.stream ? ` · ${cls.stream}` : ""}</div><div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>Tap to view exams</div></div>
+              <span style={{ fontSize: 18, color: "var(--teacher-muted, #627168)" }}>›</span>
             </button>
           ))}
         </div>
@@ -162,15 +162,15 @@ function PickerInner() {
       {step === "exam" && (
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 10, animation: "fadeUp 0.25s ease" }}>
           {loading ? [1,2,3].map(i => <Skel key={i} h={72} />) : exams.length === 0 ? (
-            <div style={{ textAlign: "center" as const, padding: 40, color: "#6b7280", fontSize: 13 }}>No exams recorded for this class yet.</div>
+            <div style={{ textAlign: "center" as const, padding: 40, color: "var(--teacher-muted, #627168)", fontSize: 13 }}>No exams recorded for this class yet.</div>
           ) : exams.map(exam => {
             const typeColors: Record<string, { bg: string; color: string }> = { endterm: { bg: "#fee2e2", color: "#991b1b" }, midterm: { bg: "#fef3c7", color: "#92400e" }, opener: { bg: "#d1fae5", color: "#065f46" }, cat: { bg: "#dbeafe", color: "#1e40af" }, summative: { bg: "#ede9fe", color: "#5b21b6" } };
             const tc = typeColors[exam.exam_type] ?? { bg: "#f3f4f6", color: "#374151" };
             return (
               <button key={exam.id} onClick={() => loadStudents(exam)} style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px", borderRadius: 16, background: "#fff", border: "1px solid #e5e7eb", cursor: "pointer", fontFamily: "inherit", textAlign: "left" as const, width: "100%", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-                <div style={{ width: 44, height: 44, borderRadius: 13, background: tc.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ fontSize: 10, fontWeight: 800, color: tc.color, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>{exam.exam_type.slice(0, 3).toUpperCase()}</span></div>
-                <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: "#111827" }}>{exam.name}</div><div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Term {exam.term} · {exam.academic_year}</div></div>
-                <span style={{ fontSize: 18, color: "#6b7280" }}>›</span>
+                <div style={{ width: 44, height: 44, borderRadius: 13, background: tc.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}><span style={{ fontSize: 11, fontWeight: 800, color: tc.color, textTransform: "uppercase" as const, letterSpacing: 0.5 }}>{exam.exam_type.slice(0, 3).toUpperCase()}</span></div>
+                <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 700, color: "var(--teacher-ink, #1c2923)" }}>{exam.name}</div><div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>Term {exam.term} · {exam.academic_year}</div></div>
+                <span style={{ fontSize: 18, color: "var(--teacher-muted, #627168)" }}>›</span>
               </button>
             );
           })}
@@ -181,10 +181,10 @@ function PickerInner() {
       {step === "students" && (
         <div style={{ animation: "fadeUp 0.25s ease" }}>
           <div style={{ marginBottom: 14 }}>
-            <input placeholder="Search student or admission no…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 14, border: "1.5px solid #e5e7eb", fontSize: 13, fontFamily: "inherit", outline: "none", color: "#111827", boxSizing: "border-box" as const, background: "#fff" }} />
+            <input placeholder="Search student or admission no…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 14, border: "1.5px solid #e5e7eb", fontSize: 13, fontFamily: "inherit", outline: "none", color: "var(--teacher-ink, #1c2923)", boxSizing: "border-box" as const, background: "#fff" }} />
           </div>
           {loading ? <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>{[1,2,3,4,5].map(i => <Skel key={i} h={76} />)}</div>
-          : filteredSummaries.length === 0 ? <div style={{ textAlign: "center" as const, padding: 40, color: "#6b7280", fontSize: 13 }}>{search ? "No students match your search." : "No students enrolled in this class."}</div>
+          : filteredSummaries.length === 0 ? <div style={{ textAlign: "center" as const, padding: 40, color: "var(--teacher-muted, #627168)", fontSize: 13 }}>{search ? "No students match your search." : "No students enrolled in this class."}</div>
           : (
             <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>
               {filteredSummaries.map((s) => {
@@ -196,17 +196,17 @@ function PickerInner() {
                     <div style={{ position: "relative", flexShrink: 0 }}>
                       <div style={{ width: 44, height: 44, borderRadius: "50%", background: avc, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: "#fff" }}>{ini}</div>
                       {s.position !== null && s.position <= 3 && (
-                        <div style={{ position: "absolute", bottom: -4, right: -4, width: 20, height: 20, borderRadius: "50%", background: s.position === 1 ? "#f59e0b" : s.position === 2 ? "#9ca3af" : "#b45309", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9, fontWeight: 900, color: "#fff" }}>
+                        <div style={{ position: "absolute", bottom: -4, right: -4, width: 20, height: 20, borderRadius: "50%", background: s.position === 1 ? "#f59e0b" : s.position === 2 ? "#9ca3af" : "#b45309", border: "2px solid #fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 750, color: "#fff" }}>
                           {s.position === 1 ? "🥇" : s.position === 2 ? "🥈" : "🥉"}
                         </div>
                       )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{s.student.name}</div>
-                      <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--teacher-ink, #1c2923)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" as const }}>{s.student.name}</div>
+                      <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
                         {s.student.admission_number && <span>#{s.student.admission_number}</span>}
-                        {s.position !== null && <span style={{ padding: "1px 6px", borderRadius: 6, background: "#f3f4f6", color: "#374151", fontSize: 10, fontWeight: 700 }}>Pos {s.position}/{totalStudentCnt}</span>}
-                        {s.hasRemarks && <span style={{ fontSize: 10, color: "#059669", fontWeight: 700 }}>✓ Remarked</span>}
+                        {s.position !== null && <span style={{ padding: "1px 6px", borderRadius: 6, background: "#f3f4f6", color: "#374151", fontSize: 11, fontWeight: 700 }}>Pos {s.position}/{totalStudentCnt}</span>}
+                        {s.hasRemarks && <span style={{ fontSize: 11, color: "var(--teacher-green, #087451)", fontWeight: 700 }}>✓ Remarked</span>}
                       </div>
                     </div>
                     <div style={{ padding: "6px 12px", borderRadius: 10, background: gc.bg, color: gc.color, fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{s.meanGrade}</div>
@@ -223,7 +223,7 @@ function PickerInner() {
 
 export default function ReportCardPickerPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, color: "#9ca3af", fontSize: 13 }}>Loading…</div>}>
+    <Suspense fallback={<div style={{ padding: 24, color: "var(--teacher-muted, #627168)", fontSize: 13 }}>Loading…</div>}>
       <PickerInner />
     </Suspense>
   );

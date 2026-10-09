@@ -11,7 +11,7 @@ type ReportRemarkInsert =
 
 const C = {
   bg:"#f4f4f5",surface:"#ffffff",border:"#e4e4e7",text:"#18181b",textSoft:"#52525b",textMuted:"#a1a1aa",
-  accent:"#10b981",accentDim:"#d1fae5",navy:"#1e1b4b",navyMid:"#2d2a6e",
+  accent:"var(--teacher-green, #087451)",accentDim:"#d1fae5",navy:"#1e1b4b",navyMid:"#2d2a6e",
   error:"#dc2626",errorDim:"#fee2e2",warning:"#d97706",warningDim:"#fef3c7",
   info:"#0284c7",infoDim:"#e0f2fe",
 };
@@ -327,16 +327,16 @@ function ReportCardInner(){
           {/* Hero */}
           <div style={{background:`linear-gradient(135deg,${C.navy} 0%,${C.navyMid} 100%)`,borderRadius:20,padding:"20px",marginBottom:14,color:"#fff"}}>
             <div style={{display:"flex",alignItems:"flex-start",gap:14}}>
-              <div style={{width:52,height:52,borderRadius:16,flexShrink:0,background:"rgba(16,185,129,0.25)",border:"2px solid rgba(16,185,129,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:900,color:"#10b981"}}>
+              <div style={{width:52,height:52,borderRadius:16,flexShrink:0,background:"rgba(16,185,129,0.25)",border:"2px solid rgba(16,185,129,0.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,fontWeight:750,color:"var(--teacher-green, #087451)"}}>
                 {student.name.trim().split(" ").filter(Boolean).slice(0,2).map((w:string)=>w[0]).join("").toUpperCase()}
               </div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:10,color:"rgba(255,255,255,0.45)",fontWeight:700,letterSpacing:1.4,textTransform:"uppercase" as const}}>{schoolName||"VibeSchool"}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.45)",fontWeight:700,letterSpacing:1.4,textTransform:"uppercase" as const}}>{schoolName||"VibeSchool"}</div>
                 <div style={{fontSize:18,fontWeight:800,marginTop:2,lineHeight:1.2}}>{student.name}</div>
                 {exam&&<div style={{fontSize:12,color:"rgba(255,255,255,0.6)",marginTop:4}}>{exam.name} · Term {exam.term} · {exam.academic_year}</div>}
                 {(student.admission||student.class_name)&&<div style={{fontSize:11,color:"rgba(255,255,255,0.4)",marginTop:2}}>{student.admission?`Adm: ${student.admission}`:student.class_name}</div>}
               </div>
-              {overallGrade&&overallGC&&<div style={{padding:"6px 12px",borderRadius:12,flexShrink:0,background:overallGC.bg,color:overallGC.color,fontSize:16,fontWeight:900}}>{overallGrade}</div>}
+              {overallGrade&&overallGC&&<div style={{padding:"6px 12px",borderRadius:12,flexShrink:0,background:overallGC.bg,color:overallGC.color,fontSize:16,fontWeight:750}}>{overallGrade}</div>}
             </div>
             <div style={{display:"flex",gap:12,marginTop:16}}>
               {[
@@ -347,7 +347,7 @@ function ReportCardInner(){
               ].map(stat=>(
                 <div key={stat.label} style={{flex:1,background:"rgba(255,255,255,0.08)",borderRadius:12,padding:"8px 10px",textAlign:"center" as const}}>
                   <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{stat.value}</div>
-                  <div style={{fontSize:9,color:"rgba(255,255,255,0.45)",fontWeight:600,textTransform:"uppercase" as const,letterSpacing:0.8,marginTop:2}}>{stat.label}</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.45)",fontWeight:600,textTransform:"uppercase" as const,letterSpacing:0.8,marginTop:2}}>{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -383,16 +383,16 @@ function ReportCardInner(){
               <div style={{background:"#fff",borderRadius:20,border:`1px solid ${C.border}`,overflow:"hidden",boxShadow:"0 2px 12px rgba(0,0,0,0.06)"}}>
                 {/* School header */}
                 <div style={{background:C.navy,padding:"16px 20px",textAlign:"center" as const}}>
-                  {schoolName&&<div style={{fontSize:10,color:"rgba(255,255,255,0.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase" as const,marginBottom:4}}>{schoolName}</div>}
+                  {schoolName&&<div style={{fontSize:11,color:"rgba(255,255,255,0.45)",fontWeight:700,letterSpacing:2,textTransform:"uppercase" as const,marginBottom:4}}>{schoolName}</div>}
                   <div style={{fontSize:15,fontWeight:800,color:"#fff"}}>{activeMode==="844"?"ACADEMIC REPORT CARD":"CBC PERFORMANCE REPORT"}</div>
-                  {exam&&<div style={{fontSize:11,color:"#10b981",marginTop:4}}>{exam.name} · Term {exam.term} · {exam.academic_year}</div>}
+                  {exam&&<div style={{fontSize:11,color:"var(--teacher-green, #087451)",marginTop:4}}>{exam.name} · Term {exam.term} · {exam.academic_year}</div>}
                 </div>
 
                 {/* 8-4-4 mode */}
                 {activeMode==="844"&&(
                   <>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 54px 44px",padding:"8px 20px",background:C.bg,borderBottom:`1px solid ${C.border}`}}>
-                      {["Subject","Marks","Grade"].map((h,i)=><span key={h} style={{fontSize:10,fontWeight:700,color:C.textMuted,textTransform:"uppercase" as const,textAlign:(i>0?"center":"left") as any}}>{h}</span>)}
+                      {["Subject","Marks","Grade"].map((h,i)=><span key={h} style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase" as const,textAlign:(i>0?"center":"left") as any}}>{h}</span>)}
                     </div>
                     {results.length===0?(
                       <div style={{padding:"28px",textAlign:"center" as const,color:C.textMuted,fontSize:13}}>No results recorded yet.</div>
@@ -421,8 +421,8 @@ function ReportCardInner(){
                       <div style={{padding:"14px 20px",background:C.bg,borderTop:`2px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
                         {[{label:"Total",value:totalMarks.toFixed(0)},{label:"Mean",value:meanScore.toFixed(1)},{label:"Mean Grade",value:overallGrade??"—"}].map(s=>(
                           <div key={s.label} style={{textAlign:"center" as const}}>
-                            <div style={{fontSize:10,color:C.textMuted,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:0.8}}>{s.label}</div>
-                            <div style={{fontSize:18,fontWeight:900,color:overallGC?.color??C.text,marginTop:4}}>{s.value}</div>
+                            <div style={{fontSize:11,color:C.textMuted,fontWeight:700,textTransform:"uppercase" as const,letterSpacing:0.8}}>{s.label}</div>
+                            <div style={{fontSize:18,fontWeight:750,color:overallGC?.color??C.text,marginTop:4}}>{s.value}</div>
                           </div>
                         ))}
                       </div>
@@ -430,7 +430,7 @@ function ReportCardInner(){
                     {position!==null&&totalStudents>0&&(
                       <div style={{padding:"12px 20px",borderTop:`1px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <span style={{fontSize:12,color:C.textSoft,fontWeight:600}}>Class Position</span>
-                        <span style={{fontSize:16,fontWeight:900,color:C.text}}>{position}<span style={{fontSize:11,color:C.textMuted}}>/{totalStudents}</span></span>
+                        <span style={{fontSize:16,fontWeight:750,color:C.text}}>{position}<span style={{fontSize:11,color:C.textMuted}}>/{totalStudents}</span></span>
                       </div>
                     )}
                   </>
@@ -444,19 +444,19 @@ function ReportCardInner(){
                     ):(
                       <>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 70px 46px",padding:"8px 20px",background:C.bg,borderBottom:`1px solid ${C.border}`}}>
-                          {["Strand","Type","Level"].map((h,i)=><span key={h} style={{fontSize:10,fontWeight:700,color:C.textMuted,textTransform:"uppercase" as const,textAlign:(i>0?"center":"left") as any}}>{h}</span>)}
+                          {["Strand","Type","Level"].map((h,i)=><span key={h} style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase" as const,textAlign:(i>0?"center":"left") as any}}>{h}</span>)}
                         </div>
                         {cbcData.map((a,idx)=>{const pm=perfMeta(a.performance);return(
                           <div key={a.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 46px",padding:"12px 20px",borderBottom:idx<cbcData.length-1?`1px solid ${C.border}`:"none",alignItems:"center"}}>
-                            <div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{strandName(a.strand_id)}</div>{a.sub_strand&&<div style={{fontSize:10,color:C.textMuted,marginTop:2}}>{a.sub_strand}</div>}</div>
-                            <span style={{fontSize:10,color:C.textSoft,textAlign:"center" as const}}>{a.assessment_type}</span>
+                            <div><div style={{fontSize:13,fontWeight:600,color:C.text}}>{strandName(a.strand_id)}</div>{a.sub_strand&&<div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{a.sub_strand}</div>}</div>
+                            <span style={{fontSize:11,color:C.textSoft,textAlign:"center" as const}}>{a.assessment_type}</span>
                             <div style={{display:"flex",justifyContent:"center"}}><span style={{padding:"3px 7px",borderRadius:8,fontSize:11,fontWeight:800,background:pm.bg,color:pm.color}}>{pm.short}</span></div>
                           </div>
                         );})}
                         {(()=>{const agg=aggregatePerf(cbcData.map(a=>a.performance));const pm=perfMeta(agg);return(
                           <div style={{padding:"14px 20px",background:pm.bg,borderTop:`2px solid ${C.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                             <span style={{fontSize:13,fontWeight:700,color:pm.color}}>Overall Performance</span>
-                            <span style={{fontSize:14,fontWeight:900,color:pm.color}}>{pm.label}</span>
+                            <span style={{fontSize:14,fontWeight:750,color:pm.color}}>{pm.label}</span>
                           </div>
                         );})()}
                       </>
@@ -495,7 +495,7 @@ function ReportCardInner(){
                 {/* Signature lines */}
                 <div style={{padding:"16px 20px 24px",borderTop:`1px solid ${C.border}`,display:"grid",gridTemplateColumns:"1fr 1fr",gap:24}}>
                   {["Class Teacher","Principal's"].map(label=>(
-                    <div key={label}><div style={{height:1,background:C.text,marginBottom:6}}/><p style={{margin:0,fontSize:10,color:C.textMuted}}>{label} Signature</p></div>
+                    <div key={label}><div style={{height:1,background:C.text,marginBottom:6}}/><p style={{margin:0,fontSize:11,color:C.textMuted}}>{label} Signature</p></div>
                   ))}
                 </div>
               </div>
@@ -516,7 +516,7 @@ function ReportCardInner(){
                       {validResults.map(r=>{const g=getGrade(r.marks);const gc=gradeColor(g);return(
                         <div key={r.id} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 10px",borderRadius:8,background:gc.bg}}>
                           <span style={{fontSize:11,fontWeight:600,color:gc.color}}>{subjectName(r.subject_id)}</span>
-                          <span style={{fontSize:12,fontWeight:900,color:gc.color}}>{r.marks}</span>
+                          <span style={{fontSize:12,fontWeight:750,color:gc.color}}>{r.marks}</span>
                         </div>
                       );})}
                     </div>
@@ -556,7 +556,7 @@ function ReportCardInner(){
                     <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:20}}>
                       <Sparkline data={history.map(h=>h.meanScore)}/>
                       {(()=>{const first=history[0].meanScore,last=history[history.length-1].meanScore,diff=last-first;return(
-                        <div><div style={{fontSize:22,fontWeight:900,color:diff>=0?C.accent:C.error}}>{diff>=0?"+":""}{diff.toFixed(1)}</div><div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{diff>=0?"Overall improvement":"Needs intervention"}</div></div>
+                        <div><div style={{fontSize:22,fontWeight:750,color:diff>=0?C.accent:C.error}}>{diff>=0?"+":""}{diff.toFixed(1)}</div><div style={{fontSize:11,color:C.textMuted,marginTop:2}}>{diff>=0?"Overall improvement":"Needs intervention"}</div></div>
                       );})()}
                     </div>
                     <div style={{display:"flex",flexDirection:"column" as const,gap:10}}>
@@ -564,13 +564,13 @@ function ReportCardInner(){
                         const gc=gradeColor(h.grade);const isCurrent=h.examId===examId;
                         return(
                           <div key={h.examId} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",borderRadius:14,background:isCurrent?C.accentDim:C.bg,border:`1.5px solid ${isCurrent?C.accent:C.border}`}}>
-                            <div style={{width:36,height:36,borderRadius:10,flexShrink:0,background:gc.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:13,fontWeight:900,color:gc.color}}>{h.grade}</span></div>
+                            <div style={{width:36,height:36,borderRadius:10,flexShrink:0,background:gc.bg,display:"flex",alignItems:"center",justifyContent:"center"}}><span style={{fontSize:13,fontWeight:750,color:gc.color}}>{h.grade}</span></div>
                             <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:C.text}}>{h.exam_name}</div><div style={{fontSize:11,color:C.textMuted,marginTop:1}}>Term {h.term} · {h.academic_year}</div></div>
                             <div style={{textAlign:"right" as const}}>
-                              <div style={{fontSize:16,fontWeight:900,color:C.text}}>{h.meanScore.toFixed(1)}</div>
-                              {idx>0&&(()=>{const delta=h.meanScore-history[idx-1].meanScore;return<div style={{fontSize:10,color:delta>=0?C.accent:C.error,fontWeight:700}}>{delta>=0?"▲":"▼"} {Math.abs(delta).toFixed(1)}</div>;})()}
+                              <div style={{fontSize:16,fontWeight:750,color:C.text}}>{h.meanScore.toFixed(1)}</div>
+                              {idx>0&&(()=>{const delta=h.meanScore-history[idx-1].meanScore;return<div style={{fontSize:11,color:delta>=0?C.accent:C.error,fontWeight:700}}>{delta>=0?"▲":"▼"} {Math.abs(delta).toFixed(1)}</div>;})()}
                             </div>
-                            {isCurrent&&<span style={{fontSize:9,fontWeight:800,color:C.accent,textTransform:"uppercase" as const,letterSpacing:0.8}}>Current</span>}
+                            {isCurrent&&<span style={{fontSize:11,fontWeight:800,color:C.accent,textTransform:"uppercase" as const,letterSpacing:0.8}}>Current</span>}
                           </div>
                         );
                       })}
@@ -588,7 +588,7 @@ function ReportCardInner(){
 
 export default function ReportCardPage(){
   return(
-    <Suspense fallback={<div style={{padding:24,color:"#9ca3af",fontSize:13}}>Loading report card…</div>}>
+    <Suspense fallback={<div style={{padding:24,color:"var(--teacher-muted, #627168)",fontSize:13}}>Loading report card…</div>}>
       <ReportCardInner/>
     </Suspense>
   );

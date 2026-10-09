@@ -74,13 +74,13 @@ function AttendanceHistoryInner() {
   }, [classId, range])
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: "100%" }}>
+    <div style={{ fontFamily: "inherit", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: "100%" }}>
 
       <div style={{ background: "linear-gradient(135deg, #065f46 0%, #10b981 100%)", padding: "20px 16px 28px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
           <button onClick={() => router.back()} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: 10, width: 36, height: 36, color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>\u2190</button>
           <div>
-            <h1 style={{ fontSize: 20, fontWeight: 900, color: "#fff", margin: 0 }}>Attendance History</h1>
+            <h1 style={{ fontSize: 20, fontWeight: 750, color: "#fff", margin: 0 }}>Attendance History</h1>
             <p style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", margin: "2px 0 0" }}>
               {classInfo ? `${classInfo.name}${classInfo.stream ? " \u00b7 " + classInfo.stream : ""}` : ""}
             </p>
@@ -115,8 +115,8 @@ function AttendanceHistoryInner() {
             { label: "Late",    value: overall.late },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: "#fff", borderRadius: 14, padding: "12px 6px", textAlign: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: C.textPrimary }}>{s.value}</div>
-              <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 18, fontWeight: 750, color: C.textPrimary }}>{s.value}</div>
+              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -136,13 +136,13 @@ function AttendanceHistoryInner() {
                 <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", borderBottom: `1px solid ${C.border}`, gap: 8 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{s.name}</div>
-                    {s.admNo && <div style={{ fontSize: 10, color: C.textMuted }}>{s.admNo}</div>}
+                    {s.admNo && <div style={{ fontSize: 11, color: C.textMuted }}>{s.admNo}</div>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                     <span style={{ fontSize: 11, color: "#065f46", fontWeight: 700 }}>{sum.present}P</span>
                     <span style={{ fontSize: 11, color: "#991b1b", fontWeight: 700 }}>{sum.absent}A</span>
                     <span style={{ fontSize: 11, color: "#92400e", fontWeight: 700 }}>{sum.late}L</span>
-                    <span style={{ fontSize: 12, fontWeight: 900, color: C.textPrimary, minWidth: 36, textAlign: "right" }}>{sum.rate}%</span>
+                    <span style={{ fontSize: 12, fontWeight: 750, color: C.textPrimary, minWidth: 36, textAlign: "right" }}>{sum.rate}%</span>
                   </div>
                 </div>
               )
@@ -156,7 +156,7 @@ function AttendanceHistoryInner() {
 
 export default function AttendanceHistoryPage() {
   return (
-    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: "#6b7280" }}>Loading\u2026</div>}>
+    <Suspense fallback={<div style={{ padding: 24, fontSize: 13, color: "var(--teacher-muted, #627168)" }}>Loading\u2026</div>}>
       <AttendanceHistoryInner />
     </Suspense>
   )

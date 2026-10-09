@@ -16,6 +16,6 @@ export default function ProgressDataChecks({rows}:{rows:ProgressEvidence[]}) {
       <li>{checks.captureDates} legacy entries use their original data-entry date. This does not establish the exact assessment date.</li>
       <li>{checks.futureDated} future-dated observations are excluded from progress judgments.</li>
     </ul>
-    <p style={{fontSize:11,lineHeight:1.7,color:'#6b7280'}}>Only evidence readable in your assigned scope is included. These checks do not prove every source is complete or released. Use the school report workflow for parent sharing.</p>
+    <p style={{fontSize:11,lineHeight:1.7,color:"var(--teacher-muted, #627168)"}}>Only evidence readable in your assigned scope is included. These checks do not prove every source is complete or released. Use the school report workflow for parent sharing.</p>
   </details></>
 }

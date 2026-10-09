@@ -143,7 +143,7 @@ export default function HistoryPage() {
                   </p>
                   <span style={{
                     display: 'inline-block', marginTop: 4,
-                    padding: '2px 10px', borderRadius: 99, fontSize: 10, fontWeight: 700,
+                    padding: '2px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700,
                     background: entry.status === 'countersigned' ? C.accentLight :
                                 entry.status === 'submitted'     ? '#fef3c7' : C.surface,
                     color:      entry.status === 'countersigned' ? C.accent :
@@ -162,13 +162,13 @@ export default function HistoryPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ padding: '10px 14px', borderRadius: 10, background: C.surface, textAlign: 'center' }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>Self Score</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>Self Score</p>
                   <p style={{ fontSize: 22, fontWeight: 800, color: scoreColor(self), margin: '4px 0 0' }}>
                     {self !== null ? self + '%' : '—'}
                   </p>
                 </div>
                 <div style={{ padding: '10px 14px', borderRadius: 10, background: C.surface, textAlign: 'center' }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>Head Score</p>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 1, margin: 0 }}>Head Score</p>
                   <p style={{ fontSize: 22, fontWeight: 800, color: scoreColor(head), margin: '4px 0 0' }}>
                     {head !== null ? head + '%' : '—'}
                   </p>

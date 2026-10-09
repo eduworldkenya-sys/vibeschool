@@ -334,7 +334,7 @@ export default function PrepareLessonPage() {
               const targets = targetMap.get(draft.id) ?? []
               return (
                 <div key={draft.id} style={{ border: '1px solid ' + C.border, borderRadius: 14, padding: 13 }}>
-                  <div style={{ fontWeight: 850, color: C.textPrimary }}>
+                  <div style={{ fontWeight: 750, color: C.textPrimary }}>
                     {draft.title || draft.topic || 'Prepared lesson'}
                   </div>
                   <div style={{ fontSize: 12, color: C.textMuted, marginTop: 4 }}>

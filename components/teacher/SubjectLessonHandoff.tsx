@@ -105,7 +105,7 @@ export default function SubjectLessonHandoff({
   if (error) {
     return (
       <div style={{ ...box, borderColor: "#fecaca" }}>
-        <div style={{ fontWeight: 900, color: "#991b1b", fontSize: 13 }}>Teaching context needs attention</div>
+        <div style={{ fontWeight: 750, color: "#991b1b", fontSize: 13 }}>Teaching context needs attention</div>
         <div style={{ color: "#7f1d1d", fontSize: 11, marginTop: 4, lineHeight: 1.5 }}>{error}</div>
       </div>
     );
@@ -114,7 +114,7 @@ export default function SubjectLessonHandoff({
   if (!authority) {
     return (
       <div style={box}>
-        <div style={{ fontWeight: 900, color: "#111827" }}>Choose a class first</div>
+        <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>Choose a class first</div>
         <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>VibeSchool will keep the subject and class together.</div>
       </div>
     );
@@ -123,7 +123,7 @@ export default function SubjectLessonHandoff({
   if (visible.length === 0) {
     return (
       <div style={box}>
-        <div style={{ fontWeight: 900, color: "#111827", fontSize: 13 }}>
+        <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)", fontSize: 13 }}>
           No scheduled {authority.subjectName} lesson found
         </div>
         <div style={{ color: "#64748b", fontSize: 11, marginTop: 4, lineHeight: 1.5 }}>
@@ -139,7 +139,7 @@ export default function SubjectLessonHandoff({
 
   return (
     <div style={box}>
-      <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, color: "#0369a1", textTransform: "uppercase" }}>
+      <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: 1, color: "#0369a1", textTransform: "uppercase" }}>
         {purpose === "overview" ? "Next teaching action" : purpose === "notes" ? "Choose prepared lesson" : "Choose lesson"}
       </div>
       {!compact && (
@@ -167,20 +167,20 @@ export default function SubjectLessonHandoff({
             >
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                 <strong style={{ color: "#0f172a", fontSize: 12 }}>{candidate.lessonTitle || `${authority.subjectName} lesson`}</strong>
-                <span style={{ color: candidate.relation === "today" ? "#1d4ed8" : "#64748b", fontSize: 10, fontWeight: 900 }}>{dateLabel(candidate)}</span>
+                <span style={{ color: candidate.relation === "today" ? "#1d4ed8" : "#64748b", fontSize: 11, fontWeight: 750 }}>{dateLabel(candidate)}</span>
               </div>
-              <div style={{ color: "#64748b", fontSize: 10, marginTop: 4 }}>
+              <div style={{ color: "#64748b", fontSize: 11, marginTop: 4 }}>
                 {timeLabel(candidate.startTime)}–{timeLabel(candidate.endTime)}
                 {candidate.room ? ` · ${candidate.room}` : ""}
                 {candidate.lessonPlanId ? " · Plan ready" : " · No lesson plan yet"}
               </div>
-              {needsPlan && <div style={{ color: "#92400e", fontSize: 10, fontWeight: 800, marginTop: 5 }}>Prepare this lesson before opening notes →</div>}
+              {needsPlan && <div style={{ color: "#92400e", fontSize: 11, fontWeight: 800, marginTop: 5 }}>Prepare this lesson before opening notes →</div>}
             </button>
           );
         })}
       </div>
       {!compact && candidates.length > visible.length && (
-        <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 8 }}>Showing the most relevant lessons first.</div>
+        <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 8 }}>Showing the most relevant lessons first.</div>
       )}
     </div>
   );

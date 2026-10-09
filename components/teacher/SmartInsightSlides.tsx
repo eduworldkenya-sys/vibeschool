@@ -168,7 +168,7 @@ export default function SmartInsightSlides() {
 
   const slides = [
     <div key="learner" style={{ minWidth: '100%', padding: 20, boxSizing: 'border-box', background: 'linear-gradient(135deg,#1e3a5f 0%,#1a2a4a 100%)' }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: '#60c8f5', letterSpacing: .8, marginBottom: 14 }}>LEARNER EVIDENCE SNAPSHOT</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: '#60c8f5', letterSpacing: .8, marginBottom: 14 }}>LEARNER EVIDENCE SNAPSHOT</div>
       {!loaded ? <div style={{ color: 'rgba(255,255,255,.55)' }}>Reading assigned-class evidence…</div> : !student ? <div style={{ color: 'rgba(255,255,255,.55)' }}>No current learner enrollment is available in your assigned classes.</div> : <>
         <div style={{ fontSize: 24, fontWeight: 800, color: '#fff' }}>{student.name}</div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,.45)', margin: '4px 0 14px' }}>{student.className}</div>
@@ -179,7 +179,7 @@ export default function SmartInsightSlides() {
       </>}
     </div>,
     <div key="priority" style={{ minWidth: '100%', padding: 20, boxSizing: 'border-box', background: 'linear-gradient(135deg,#1a2a1a 0%,#0f3d1f 50%,#0a2010 100%)' }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: '#4ade80', letterSpacing: .8, marginBottom: 14 }}>DETERMINISTIC CLASS SIGNALS</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: '#4ade80', letterSpacing: .8, marginBottom: 14 }}>DETERMINISTIC CLASS SIGNALS</div>
       <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 12 }}>{firstName}, evidence before inference.</div>
       <StatRow label="Assigned learners" value={students.length} />
       <StatRow label="Need attendance check-in" value={needingCheckIn} accent={needingCheckIn > 0 ? '#fbbf24' : '#34d399'} />
@@ -188,7 +188,7 @@ export default function SmartInsightSlides() {
       <div style={{ marginTop: 14, fontSize: 12, lineHeight: 1.6, color: 'rgba(255,255,255,.7)' }}>These are workflow signals from VibeSchool records. They are not labels about a learner's ability, behaviour or circumstances.</div>
     </div>,
     <div key="principle" style={{ minWidth: '100%', padding: 20, boxSizing: 'border-box', background: 'linear-gradient(135deg,#2d1b4e 0%,#1e1b4b 100%)' }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: '#c4b5fd', letterSpacing: .8, marginBottom: 14 }}>TWIN EVIDENCE PRINCIPLE</div>
+      <div style={{ fontSize: 11, fontWeight: 800, color: '#c4b5fd', letterSpacing: .8, marginBottom: 14 }}>TWIN EVIDENCE PRINCIPLE</div>
       <div style={{ fontSize: 24, fontWeight: 800, color: '#fff', lineHeight: 1.25, marginBottom: 14 }}>Missing data is not positive or negative evidence.</div>
       <div style={{ fontSize: 13, lineHeight: 1.7, color: 'rgba(255,255,255,.7)' }}>Twin should tell you what is recorded, what is missing, why an item matters, and the next safe action. It should not invent a story to fill the gap.</div>
       <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 12, background: 'rgba(196,181,253,.1)', color: '#ddd6fe', fontSize: 12, fontWeight: 700 }}>Deterministic · authorized school data · no AI</div>

@@ -84,14 +84,14 @@ export default function ReflectionSheet({
           width: "100%", maxHeight: "85vh", overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 900, color: "#1e1b4b", marginBottom: 6 }}>
+        <div style={{ fontSize: 16, fontWeight: 750, color: "var(--teacher-ink, #1c2923)", marginBottom: 6 }}>
           Quick lesson reflection
         </div>
-        <div style={{ fontSize: 12, color: "#6b7280", marginBottom: 14, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginBottom: 14, lineHeight: 1.5 }}>
           Capture the teaching insight here. After saving, VibeSchool opens the exact completed lesson progress record for you to confirm participation, challenges and next steps.
         </div>
 
-        <div style={{ fontSize: 12, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>
           What worked, what didn't, what's next?
         </div>
         <textarea
@@ -116,7 +116,7 @@ export default function ReflectionSheet({
             disabled={saving}
             style={{
               flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid #e5e7eb",
-              background: "#fff", color: "#6b7280", fontWeight: 700, fontSize: 13,
+              background: "#fff", color: "var(--teacher-muted, #627168)", fontWeight: 700, fontSize: 13,
               cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1,
             }}
           >
@@ -127,7 +127,7 @@ export default function ReflectionSheet({
             disabled={saving}
             style={{
               flex: 2, padding: "12px 0", borderRadius: 12, border: "none",
-              background: "#10b981", color: "#fff", fontWeight: 800, fontSize: 13,
+              background: "var(--teacher-green, #087451)", color: "#fff", fontWeight: 800, fontSize: 13,
               cursor: saving ? "default" : "pointer", opacity: saving ? 0.6 : 1,
             }}
           >

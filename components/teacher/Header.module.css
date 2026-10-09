@@ -1,5 +1,5 @@
 .header {
-  background: #1e1b4b;
+  background: var(--teacher-ink, #1c2923);
   color: #fff;
   padding: 0 20px;
   height: 56px;
@@ -22,7 +22,7 @@
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: #10b981;
+  background: var(--teacher-green, #087451);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -58,7 +58,7 @@
 }
 
 .syncDot.online {
-  background: #10b981;
+  background: var(--teacher-green, #087451);
 }
 
 .syncDot.offline {
@@ -79,7 +79,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #10b981;
+  background: var(--teacher-green, #087451);
   display: flex;
   align-items: center;
   justify-content: center;

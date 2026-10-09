@@ -89,7 +89,7 @@ type Props = {
 
 const C = {
   ink: "#111827",
-  muted: "#6B7280",
+  muted: "var(--teacher-muted, #627168)",
   line: "#E5E7EB",
   panel: "#FFFFFF",
   canvas: "#F7F7F5",
@@ -133,7 +133,7 @@ function Metric({ label, value, detail, emphasis }: { label: string; value: stri
   return (
     <div style={{ minWidth: 154, flex: "1 0 154px", padding: "16px 17px", border: `1px solid ${C.line}`, borderRadius: 16, background: C.panel }}>
       <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: ".06em", textTransform: "uppercase", color: C.muted }}>{label}</div>
-      <div style={{ marginTop: 6, fontSize: 29, lineHeight: 1, fontWeight: 850, letterSpacing: "-.04em", color: fg }}>{value}</div>
+      <div style={{ marginTop: 6, fontSize: 29, lineHeight: 1, fontWeight: 750, letterSpacing: "-.04em", color: fg }}>{value}</div>
       {detail && <div style={{ marginTop: 7, fontSize: 12, color: C.muted, lineHeight: 1.35 }}>{detail}</div>}
     </div>
   );
@@ -199,10 +199,10 @@ function MovementMatrix({ movements, passMark, onSelect }: { movements: Intellig
       <div style={{ position: "relative", height: 300, border: `1px solid ${C.line}`, borderRadius: 16, overflow: "hidden", background: "linear-gradient(90deg,#FFF8F7 0 50%,#F3FCF8 50%),linear-gradient(#F6F9FF 0 50%,#FFFDF5 50%)" }}>
         <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: "#D1D5DB" }} />
         <div style={{ position: "absolute", top: "50%", left: 0, right: 0, height: 1, background: "#D1D5DB" }} />
-        <span style={{ position: "absolute", top: 10, left: 12, fontSize: 10, fontWeight: 800, color: C.muted }}>BELOW TARGET · IMPROVING</span>
-        <span style={{ position: "absolute", top: 10, right: 12, fontSize: 10, fontWeight: 800, color: C.muted }}>STRONG · IMPROVING</span>
-        <span style={{ position: "absolute", bottom: 10, left: 12, fontSize: 10, fontWeight: 800, color: C.muted }}>AT RISK</span>
-        <span style={{ position: "absolute", bottom: 10, right: 12, fontSize: 10, fontWeight: 800, color: C.muted }}>STRONG · DECLINING</span>
+        <span style={{ position: "absolute", top: 10, left: 12, fontSize: 11, fontWeight: 800, color: C.muted }}>BELOW TARGET · IMPROVING</span>
+        <span style={{ position: "absolute", top: 10, right: 12, fontSize: 11, fontWeight: 800, color: C.muted }}>STRONG · IMPROVING</span>
+        <span style={{ position: "absolute", bottom: 10, left: 12, fontSize: 11, fontWeight: 800, color: C.muted }}>AT RISK</span>
+        <span style={{ position: "absolute", bottom: 10, right: 12, fontSize: 11, fontWeight: 800, color: C.muted }}>STRONG · DECLINING</span>
         {plotted.map(m => {
           const x = Math.max(5, Math.min(95, m.marks));
           const change = Math.max(-20, Math.min(20, m.change ?? 0));
@@ -278,10 +278,10 @@ export default function AssessmentIntelligenceConsole({ examId, classId, subject
   ] as const;
 
   return <div style={{ display: "grid", gap: 14, color: C.ink }}>
-    <section style={{ padding: "18px 18px 16px", borderRadius: 18, background: "#111827", color: "#fff" }}>
+    <section style={{ padding: "18px 18px 16px", borderRadius: 18, background: "var(--teacher-ink, #1c2923)", color: "#fff" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "flex-start", flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".09em", color: "#9CA3AF", fontWeight: 800 }}>Assessment intelligence</div>
+          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".09em", color: "var(--teacher-muted, #627168)", fontWeight: 800 }}>Assessment intelligence</div>
           <h2 style={{ margin: "5px 0 0", fontSize: 22, letterSpacing: "-.025em" }}>{data.context.exam_name}</h2>
           <div style={{ marginTop: 4, fontSize: 13, color: "#CBD5E1" }}>{data.context.class_name}{data.context.class_stream ? ` ${data.context.class_stream}` : ""} · {data.context.subject_name}</div>
         </div>
@@ -367,7 +367,7 @@ export default function AssessmentIntelligenceConsole({ examId, classId, subject
     </>}
 
     {section === "outcomes" && <section style={{ padding: 17, border: `1px solid ${C.line}`, borderRadius: 18, background: C.panel }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h3 style={{ margin: 0, fontSize: 15 }}>Topic evidence</h3><p style={{ margin: "4px 0 0", fontSize: 12, color: C.muted, maxWidth: 780, lineHeight: 1.45 }}>{data.evidence_quality.outcome_note}</p></div><span style={{ alignSelf: "flex-start", padding: "6px 9px", borderRadius: 999, background: data.evidence_quality.has_outcome_evidence ? C.greenSoft : C.amberSoft, color: data.evidence_quality.has_outcome_evidence ? C.green : C.amber, fontSize: 10, fontWeight: 850 }}>{data.evidence_quality.has_outcome_evidence ? "OUTCOME EVIDENCE AVAILABLE" : "AGGREGATE EXAM ONLY"}</span></div>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h3 style={{ margin: 0, fontSize: 15 }}>Topic evidence</h3><p style={{ margin: "4px 0 0", fontSize: 12, color: C.muted, maxWidth: 780, lineHeight: 1.45 }}>{data.evidence_quality.outcome_note}</p></div><span style={{ alignSelf: "flex-start", padding: "6px 9px", borderRadius: 999, background: data.evidence_quality.has_outcome_evidence ? C.greenSoft : C.amberSoft, color: data.evidence_quality.has_outcome_evidence ? C.green : C.amber, fontSize: 11, fontWeight: 750 }}>{data.evidence_quality.has_outcome_evidence ? "OUTCOME EVIDENCE AVAILABLE" : "AGGREGATE EXAM ONLY"}</span></div>
       {data.outcome_weaknesses.length === 0 ? <div style={{ marginTop: 14, padding: 16, borderRadius: 14, background: C.amberSoft, color: "#713F12", fontSize: 13, lineHeight: 1.5 }}><strong>We do not yet know which topic caused the marks.</strong><br />This exam has total subject marks, but its questions are not linked closely enough to curriculum outcomes. VibeSchool will not guess.</div> : <div style={{ display: "grid", gap: 9, marginTop: 14 }}>{data.outcome_weaknesses.map(outcome => <div key={outcome.outcome_id} style={{ padding: 13, border: `1px solid ${C.line}`, borderRadius: 14 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><strong style={{ fontSize: 13, lineHeight: 1.4 }}>{outcome.outcome_text}</strong><strong style={{ whiteSpace: "nowrap", color: outcome.mastery_score != null && outcome.mastery_score < 50 ? C.red : C.ink }}>{format(outcome.mastery_score)}%</strong></div><div style={{ marginTop: 7, display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11, color: C.muted }}><span>{outcome.learners_affected} learners affected</span><span>{outcome.evidence_count} evidence points</span><span>Repeated {outcome.repeated_weakness_count}×</span>{outcome.confidence_score != null && <span>Confidence {format(outcome.confidence_score)}%</span>}</div></div>)}</div>}
       {data.intervention_effects.length > 0 && <div style={{ marginTop: 18 }}><h4 style={{ margin: "0 0 9px", fontSize: 13 }}>Did previous support help?</h4><div style={{ display: "grid", gap: 8 }}>{data.intervention_effects.map(effect => <div key={effect.id} style={{ padding: 12, borderRadius: 13, background: (effect.change ?? 0) > 0 ? C.greenSoft : "#F9FAFB" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><strong style={{ fontSize: 12 }}>{effect.student_name ?? "Learner"}</strong><strong style={{ color: (effect.change ?? 0) > 0 ? C.green : C.ink }}>{effect.baseline == null || effect.followup == null ? "—" : `${format(effect.baseline)} → ${format(effect.followup)}`}</strong></div>{effect.recommendation && <div style={{ marginTop: 4, color: C.muted, fontSize: 11 }}>{effect.recommendation}</div>}</div>)}</div></div>}
     </section>}

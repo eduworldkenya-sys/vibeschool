@@ -164,7 +164,7 @@ export default function ProfessionalMarkbook({
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           {!locked && <button type="button" onClick={() => setShowPaste(v => !v)} style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #d6d3d1", background: "#fff", color: "#44403c", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Paste marks</button>}
-          {!locked && <button type="button" onClick={() => void onSaveAll()} disabled={savingAll} style={{ padding: "8px 10px", borderRadius: 10, border: "none", background: "#111827", color: "#fff", cursor: savingAll ? "default" : "pointer", fontSize: 11, fontWeight: 800, opacity: savingAll ? .65 : 1 }}>{savingAll ? "Saving…" : "Save all"}</button>}
+          {!locked && <button type="button" onClick={() => void onSaveAll()} disabled={savingAll} style={{ padding: "8px 10px", borderRadius: 10, border: "none", background: "var(--teacher-ink, #1c2923)", color: "#fff", cursor: savingAll ? "default" : "pointer", fontSize: 11, fontWeight: 800, opacity: savingAll ? .65 : 1 }}>{savingAll ? "Saving…" : "Save all"}</button>}
           <div style={{ fontSize: 12, color: locked ? "#991b1b" : "#57534e", fontWeight: 700 }}>
             {locked ? "Locked — read only" : "Enter saves · Enter key moves down"}
           </div>
@@ -212,7 +212,7 @@ export default function ProfessionalMarkbook({
                   <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: isAbsent ? "#991b1b" : validMark ? (mark >= passMark ? "#047857" : "#b91c1c") : "#a8a29e" }}>{isAbsent ? "Absent" : validMark ? (mark >= passMark ? "At/above pass" : "Below pass") : "Not entered"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 12, color: isSaving ? "#92400e" : justSaved ? "#047857" : result ? "#57534e" : "#a8a29e", fontWeight: 700 }}>{isSaving ? "Saving…" : justSaved ? "Saved ✓" : result ? "Saved" : "—"}</td>
                   <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap", position: "relative" }}>
-                    <button type="button" onClick={() => setOpenMore(openMore === student.id ? null : student.id)} style={{ minWidth: 36, minHeight: 36, borderRadius: 9, border: "1px solid #e7e5e4", background: "#fff", fontWeight: 900, cursor: "pointer" }}>⋯</button>
+                    <button type="button" onClick={() => setOpenMore(openMore === student.id ? null : student.id)} style={{ minWidth: 36, minHeight: 36, borderRadius: 9, border: "1px solid #e7e5e4", background: "#fff", fontWeight: 750, cursor: "pointer" }}>⋯</button>
                     {openMore === student.id && <div style={{ position: "absolute", right: 12, top: 46, zIndex: 5, minWidth: 160, padding: 6, border: "1px solid #e7e5e4", borderRadius: 10, background: "#fff", boxShadow: "0 8px 24px rgba(0,0,0,.12)", textAlign: "left" }}>
                       {!locked && <button type="button" disabled={isSaving} onClick={() => { setOpenMore(null); void (isAbsent ? onClearAbsent(student) : onSaveMark(student, true)); }} style={menuButton}>{isAbsent ? "Clear absence" : "Mark absent"}</button>}
                       <a href={reportCardHref(student.id)} style={{ ...menuButton, display: "block", textDecoration: "none" }}>View report</a>
@@ -236,10 +236,10 @@ export default function ProfessionalMarkbook({
           return <article key={student.id} style={{ border: `1px solid ${rowError ? "#fecaca" : "#e7e5e4"}`, borderRadius: 14, padding: 12, background: rowError ? "#fff7f7" : "#fff" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
               <div style={{ minWidth: 0 }}><div style={{ fontSize: 12, color: "#a8a29e" }}>{index + 1}</div><strong style={{ display: "block", fontSize: 14, color: "#1c1917", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{student.name}</strong></div>
-              <button type="button" onClick={() => setOpenMore(openMore === student.id ? null : student.id)} style={{ minWidth: 38, minHeight: 38, borderRadius: 10, border: "1px solid #e7e5e4", background: "#fff", fontWeight: 900 }}>⋯</button>
+              <button type="button" onClick={() => setOpenMore(openMore === student.id ? null : student.id)} style={{ minWidth: 38, minHeight: 38, borderRadius: 10, border: "1px solid #e7e5e4", background: "#fff", fontWeight: 750 }}>⋯</button>
             </div>
             <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10, alignItems: "center" }}>
-              <div><div style={{ fontSize: 10, fontWeight: 800, color: "#78716c", marginBottom: 5 }}>MARK</div><MarkInput student={student} index={index} isAbsent={isAbsent} raw={raw} rowError={rowError} isSaving={isSaving} /></div>
+              <div><div style={{ fontSize: 11, fontWeight: 800, color: "#78716c", marginBottom: 5 }}>MARK</div><MarkInput student={student} index={index} isAbsent={isAbsent} raw={raw} rowError={rowError} isSaving={isSaving} /></div>
               {!locked && <button type="button" disabled={isSaving} onClick={() => void (isAbsent ? onClearAbsent(student) : onSaveMark(student, true))} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid #d6d3d1", background: isAbsent ? "#fef2f2" : "#fff", color: isAbsent ? "#b91c1c" : "#44403c", fontWeight: 800 }}>{isAbsent ? "Absent ✓" : "Absent"}</button>}
             </div>
             <div style={{ marginTop: 8, fontSize: 11, color: isSaving ? "#92400e" : justSaved ? "#047857" : result ? "#57534e" : "#a8a29e", fontWeight: 700 }}>{isSaving ? "Saving…" : justSaved ? "Saved ✓" : result ? (isAbsent ? "Absent · Saved" : "Saved") : "Not entered"}</div>

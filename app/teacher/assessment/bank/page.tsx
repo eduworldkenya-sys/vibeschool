@@ -49,7 +49,7 @@ export default function TeacherQuestionBankPage() {
     )
   }, [questions, query])
 
-  return <main style={page}><div style={{ maxWidth: 860, margin: '0 auto' }}>
+  return <section style={page}><div style={{ maxWidth: 860, margin: '0 auto' }}>
     <button type="button" onClick={() => router.push('/teacher/assessment')} style={secondary}>← Assess learners</button>
     <section style={card}>
       <div style={eyebrow}>Reusable assessment material</div>
@@ -61,22 +61,22 @@ export default function TeacherQuestionBankPage() {
     {error && <div style={errorBox}>{error}<button type="button" onClick={() => void load()} style={{ ...secondary, marginLeft: 10 }}>Retry</button></div>}
     {loading ? <section style={card}>Loading Question Bank…</section> :
       <section style={card}>
-        <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>{visible.length} question{visible.length === 1 ? '' : 's'} available</div>
+        <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>{visible.length} question{visible.length === 1 ? '' : 's'} available</div>
         {visible.length === 0 ? <div style={empty}>No matching questions are available yet.</div> :
           <div style={{ display: 'grid', gap: 9 }}>{visible.map(item =>
             <article key={item.id} style={row}>
               <div style={{ fontSize: 13, fontWeight: 750, lineHeight: 1.5 }}>{item.question_text}</div>
-              <div style={{ marginTop: 6, fontSize: 11, color: '#6b7280' }}>
+              <div style={{ marginTop: 6, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>
                 {friendlyType(item.question_type)}{item.difficulty ? ` · ${friendly(item.difficulty)}` : ''}{item.competency_tag ? ` · ${item.competency_tag}` : ''}
               </div>
             </article>
           )}</div>}
       </section>}
-    <section style={{ ...card, background: '#f8fafc' }}>
+    <section style={{ ...card, background: "var(--teacher-canvas, #f5f6f2)" }}>
       <strong style={{ fontSize: 13 }}>How the bank works</strong>
       <p style={{ ...muted, marginTop: 6 }}>The bank is the reusable library. Exercise, Quiz, CAT and Exam are the jobs teachers create from that library. Building or assigning an assessment continues through the existing assessment Builder so question lineage and review are preserved.</p>
     </section>
-  </div></main>
+  </div></section>
 }
 
 function friendly(value: string) { return value ? value.charAt(0).toUpperCase() + value.slice(1) : '—' }

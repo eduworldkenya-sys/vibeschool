@@ -99,9 +99,9 @@ export default function TeacherAccountTrustPage() {
     window.location.assign("/login");
   }
 
-  if (loading) return <main className="acct"><div className="loading"><Loader2 className="spin" size={22}/> Loading account security…</div><Style/></main>;
+  if (loading) return <section className="acct"><div className="loading"><Loader2 className="spin" size={22}/> Loading account security…</div><Style/></section>;
 
-  return <main className="acct"><div className="wrap">
+  return <section className="acct"><div className="wrap">
     <Link href="/teacher/profile" className="back"><ArrowLeft size={16}/> Back to professional profile</Link>
     <header><div><p>Teacher account</p><h1>Security, privacy & trust</h1><span>Manage login security, audience visibility and your verified professional status without mixing them into your editable professional record.</span></div><ShieldCheck size={34}/></header>
     {notice && <div className={`notice ${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>{notice.kind === "ok" ? <CheckCircle2 size={17}/> : <ShieldCheck size={17}/>} {notice.text}</div>}
@@ -132,7 +132,7 @@ export default function TeacherAccountTrustPage() {
     </section>
 
     <section className="ops"><h2>Operational records live elsewhere</h2><p>Attendance, leave, appraisal, messaging, documents, payroll and finance remain dedicated operational modules. They are intentionally not editable profile tabs.</p></section>
-  </div><Style/></main>;
+  </div><Style/></section>;
 }
 
 function Trust({label,value}:{label:string;value:string}) { const verified=value==="verified"; return <div className="trust"><span>{label}</span><strong className={verified?"verified":"pending"}>{verified?<CheckCircle2 size={15}/>:<EyeOff size={15}/>} {value.replaceAll("_"," ")}</strong></div>; }

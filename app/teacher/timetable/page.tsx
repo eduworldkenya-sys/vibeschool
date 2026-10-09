@@ -219,7 +219,7 @@ const SlotCard = React.memo(function SlotCard({
         <div style={{ fontSize: 12, fontWeight: 800, color: C.textPrimary }}>
           {formatTime(slot.startTime)}
         </div>
-        <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>
+        <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
           {formatTime(slot.endTime)}
         </div>
       </div>
@@ -233,15 +233,15 @@ const SlotCard = React.memo(function SlotCard({
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 4, alignItems: 'center' }}>
           <span style={{
-            fontSize: 9, fontWeight: 850, padding: '2px 7px', borderRadius: 20,
+            fontSize: 11, fontWeight: 750, padding: '2px 7px', borderRadius: 20,
             background: slot.readiness === 'ready' ? '#d1fae5' : slot.readiness === 'needs_review' ? '#fef3c7' : '#fee2e2',
             color: slot.readiness === 'ready' ? '#065f46' : slot.readiness === 'needs_review' ? '#92400e' : '#991b1b',
           }}>
             {slot.readiness === 'ready' ? 'Ready' : slot.readiness === 'needs_review' ? 'Needs review' : 'Plan needed'}
           </span>
-          {slot.isSubstitute && <span style={{ fontSize: 9, fontWeight: 850, color: '#1d4ed8' }}>Substitute lesson</span>}
-          {slot.exceptionReason && <span style={{ fontSize: 9, fontWeight: 750, color: '#92400e' }}>{slot.exceptionReason}</span>}
-          {slot.schoolName && <span style={{ fontSize: 10, color: C.textMuted }}>{slot.schoolName}</span>}
+          {slot.isSubstitute && <span style={{ fontSize: 11, fontWeight: 750, color: '#1d4ed8' }}>Substitute lesson</span>}
+          {slot.exceptionReason && <span style={{ fontSize: 11, fontWeight: 750, color: '#92400e' }}>{slot.exceptionReason}</span>}
+          {slot.schoolName && <span style={{ fontSize: 11, color: C.textMuted }}>{slot.schoolName}</span>}
         </div>
         {slot.room
           ? <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{slot.room}</div>
@@ -250,7 +250,7 @@ const SlotCard = React.memo(function SlotCard({
 
       {isNow && (
         <span style={{
-          fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 20,
+          fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 20,
           background: C.accent, color: '#fff', flexShrink: 0,
         }}>
           NOW
@@ -258,7 +258,7 @@ const SlotCard = React.memo(function SlotCard({
       )}
       {!isNow && isNext && (
         <span style={{
-          fontSize: 10, fontWeight: 800, padding: '3px 9px', borderRadius: 20,
+          fontSize: 11, fontWeight: 800, padding: '3px 9px', borderRadius: 20,
           background: '#fef3c7', color: '#92400e', flexShrink: 0,
         }}>
           in {formatCountdown(minutesUntil(slot.startTime, curMin))}
@@ -404,7 +404,7 @@ function SlotDrawer({
           }}
         >
           <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--border-color, #e5e7eb)', margin: '0 auto 20px' }} />
-          <div style={{ display: 'inline-flex', padding: '5px 10px', borderRadius: 999, background: '#dbeafe', color: '#1d4ed8', fontSize: 11, fontWeight: 850 }}>
+          <div style={{ display: 'inline-flex', padding: '5px 10px', borderRadius: 999, background: '#dbeafe', color: '#1d4ed8', fontSize: 11, fontWeight: 750 }}>
             Substitute lesson
           </div>
           <div style={{ fontSize: 22, fontWeight: 800, color: C.textPrimary, marginTop: 12 }}>
@@ -420,7 +420,7 @@ function SlotDrawer({
             ].map(item => (
               <div key={item.label} style={{ flex: 1, borderRadius: 12, background: 'var(--surface-raised, #f9fafb)', padding: '12px 14px', textAlign: 'center' }}>
                 <div style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary }}>{item.value}</div>
-                <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{item.label}</div>
+                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{item.label}</div>
               </div>
             ))}
           </div>
@@ -648,7 +648,7 @@ function SlotDrawer({
               }}
             >
               <div style={{ fontSize: 15, fontWeight: 800, color: C.textPrimary }}>{r.value}</div>
-              <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{r.label}</div>
+              <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{r.label}</div>
             </div>
           ))}
         </div>
@@ -1392,7 +1392,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             {nowSlot && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
                     Now
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginTop: 2 }}>
@@ -1407,7 +1407,7 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
             {nextSlot && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>
                     Next
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginTop: 2 }}>
@@ -1506,10 +1506,10 @@ export default function TimetablePage() {  // FIX [TYPE-04]: removed `: JSX.Elem
               }}
             >
               {d.label}
-              {wknd && !isActive && <span style={{ fontSize: 9, marginLeft: 3 }}>✦</span>}
+              {wknd && !isActive && <span style={{ fontSize: 11, marginLeft: 3 }}>✦</span>}
               {count > 0 && (
                 <span style={{
-                  marginLeft: 6, fontSize: 10, fontWeight: 800,
+                  marginLeft: 6, fontSize: 11, fontWeight: 800,
                   padding: '1px 6px', borderRadius: 10,
                   background: isActive ? 'rgba(255,255,255,0.25)' : wknd ? '#fef3c7' : C.accentLight,
                   color:      isActive ? '#fff' : wknd ? '#d97706' : C.accent,

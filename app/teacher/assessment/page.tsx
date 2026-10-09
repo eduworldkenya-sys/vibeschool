@@ -565,7 +565,7 @@ function AssessmentInner() {
   })
 
   return (
-    <main className={styles.page}>
+    <section className={styles.page}>
       <header className={styles.top}>
         <div><p className={styles.eyebrow}>{activeClass.name}{activeClass.stream ? ` ${activeClass.stream}` : ''} · {activeSubject?.name}</p><h1 className={styles.title}>Assessment</h1></div>
         <button type="button" className={styles.iconButton} aria-label="Open class" onClick={() => router.push('/teacher/classhub/' + activeClassId)}><ArrowLeft size={19} /></button>
@@ -629,7 +629,7 @@ function AssessmentInner() {
           <div style={sheetStyle}>
 
             {/* Handle */}
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--teacher-border, #dfe5de)", margin: '0 auto 16px' }} />
 
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -637,7 +637,7 @@ function AssessmentInner() {
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>
                   {viewMode ? 'History' : editingId ? 'Edit assessment' : 'New assessment'}
                 </p>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>{modalStudent.name}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: "var(--teacher-muted, #627168)" }}>{modalStudent.name}</p>
               </div>
               <div style={{display:'flex',gap:6}}>
                 {viewMode && <button className={styles.quietButton} onClick={()=>{setReportStudent(modalStudent);closeModal()}}><FileText size={16}/>Report</button>}
@@ -657,8 +657,8 @@ function AssessmentInner() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0a0a0a' }}>{strandName(a.strand_id)}</p>
-                              {a.sub_strand && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#6b7280' }}>{a.sub_strand}</p>}
-                              <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9ca3af' }}>{a.assessment_type} · Term {a.term}</p>
+                              {a.sub_strand && <p style={{ margin: '2px 0 0', fontSize: 12, color: "var(--teacher-muted, #627168)" }}>{a.sub_strand}</p>}
+                              <p style={{ margin: '4px 0 0', fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{a.assessment_type} · Term {a.term}</p>
                               {a.notes && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#374151', fontStyle: 'italic' }}>"{a.notes}"</p>}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0, marginLeft: 10 }}>
@@ -730,7 +730,7 @@ function AssessmentInner() {
                         borderColor: selPerf === p.value ? p.color : '#e5e7eb',
                         background:  selPerf === p.value ? p.bg   : '#fff',
                         color:       selPerf === p.value ? p.color : '#6b7280',
-                      }}>{p.short}<br /><span style={{ fontSize: 10, fontWeight: 500 }}>{p.label}</span></button>
+                      }}>{p.short}<br /><span style={{ fontSize: 11, fontWeight: 500 }}>{p.label}</span></button>
                     ))}
                   </div>
                 </div>
@@ -768,14 +768,14 @@ function AssessmentInner() {
       {reportStudent && (
         <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) setReportStudent(null) }}>
           <div style={sheetStyle}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--teacher-border, #dfe5de)", margin: '0 auto 16px' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>📄 Report</p>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>{reportStudent.name}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: "var(--teacher-muted, #627168)" }}>{reportStudent.name}</p>
               </div>
-              <button onClick={() => setReportStudent(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', padding: 4 }}>×</button>
+              <button onClick={() => setReportStudent(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: "var(--teacher-muted, #627168)", padding: 4 }}>×</button>
             </div>
 
             {/* Aggregate badge */}
@@ -802,7 +802,7 @@ function AssessmentInner() {
                   <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: 12, background: '#fafafa', border: '1px solid #f0f0f0' }}>
                     <div>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#0a0a0a' }}>{strandName(a.strand_id)}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af' }}>{a.assessment_type}{a.sub_strand ? ' · ' + a.sub_strand : ''}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{a.assessment_type}{a.sub_strand ? ' · ' + a.sub_strand : ''}</p>
                     </div>
                     <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800, background: pm.bg, color: pm.color }}>{pm.short}</span>
                   </div>
@@ -824,7 +824,7 @@ function AssessmentInner() {
 
       {/* shimmer keyframe */}
       <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
-    </main>
+    </section>
   )
 }
 

@@ -70,7 +70,7 @@ function MiniBar({pct,color,h=5}:{pct:number;color:string;h?:number}){
 }
 function PerfChip({perf,count}:{perf:string;count:number}){
   const m=PERF_META[perf];if(!m)return null;
-  return(<div style={{display:"flex",alignItems:"center",gap:3,background:m.bg,borderRadius:8,padding:"3px 8px"}}><span style={{fontSize:11,fontWeight:900,color:m.color}}>{m.short}</span><span style={{fontSize:11,fontWeight:700,color:m.color}}>{count}</span></div>);
+  return(<div style={{display:"flex",alignItems:"center",gap:3,background:m.bg,borderRadius:8,padding:"3px 8px"}}><span style={{fontSize:11,fontWeight:750,color:m.color}}>{m.short}</span><span style={{fontSize:11,fontWeight:700,color:m.color}}>{count}</span></div>);
 }
 function PerfBar({dist,total}:{dist:Record<string,number>;total:number}){
   if(total===0)return<div style={{fontSize:11,color:C.text3}}>No assessments yet</div>;
@@ -276,21 +276,21 @@ export default function TeacherAcademicsPage(){
   for(const sub of subjects)for(const[k,v]of Object.entries(sub.perfDist))globalDist[k]=(globalDist[k]??0)+v;
 
   return(
-    <div style={{background:C.bg,minHeight:"100vh",paddingBottom:100,fontFamily:"'Plus Jakarta Sans',sans-serif",maxWidth:480,margin:"0 auto"}}>
+    <div style={{background:C.bg,minHeight:"100vh",paddingBottom:100,fontFamily:"inherit",maxWidth:480,margin:"0 auto"}}>
       <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}`}</style>
 
       <div style={{background:"linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4338ca 150%)",padding:"20px 16px 28px",position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-40,right:-40,width:140,height:140,borderRadius:"50%",background:"rgba(255,255,255,0.05)"}}/>
         <button onClick={()=>router.back()} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"5px 12px",fontSize:12,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"inherit",marginBottom:14}}>← Back</button>
-        <div style={{fontSize:10,fontWeight:800,color:"rgba(255,255,255,0.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>My Academics</div>
-        <div style={{fontSize:26,fontWeight:900,color:"#fff",letterSpacing:-0.5}}>Term {currentTerm()} Hub</div>
+        <div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.5)",letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>My Academics</div>
+        <div style={{fontSize:26,fontWeight:750,color:"#fff",letterSpacing:-0.5}}>Term {currentTerm()} Hub</div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:2}}><div style={{fontSize:12,color:"rgba(255,255,255,0.6)"}}>All subjects · All classes · One view</div><button onClick={boot} style={{background:"rgba(255,255,255,0.12)",border:"none",borderRadius:8,padding:"4px 10px",fontSize:11,fontWeight:700,color:"#fff",cursor:"pointer",fontFamily:"inherit"}}>↻ Refresh</button></div>
         {!loading&&termStats&&(
           <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6,marginTop:18}}>
             {[{label:"Subjects",value:termStats.subjectCount,color:"#a5b4fc"},{label:"Students",value:termStats.studentCount,color:"#bfdbfe"},{label:"Lessons",value:termStats.totalLessons,color:"#bbf7d0"},{label:"Assessed",value:termStats.totalAssess,color:"#fde68a"},{label:"Att%",value:termStats.avgAttRate!==null?termStats.avgAttRate+"%":"—",color:"#ddd6fe"}].map(s=>(
               <div key={s.label} style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 4px",textAlign:"center"}}>
-                <div style={{fontSize:16,fontWeight:900,color:s.color}}>{s.value}</div>
-                <div style={{fontSize:8,color:"rgba(255,255,255,0.5)",fontWeight:700,lineHeight:1.3}}>{s.label}</div>
+                <div style={{fontSize:16,fontWeight:750,color:s.color}}>{s.value}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700,lineHeight:1.3}}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -299,7 +299,7 @@ export default function TeacherAcademicsPage(){
 
       <div style={{display:"flex",background:C.surface,borderBottom:`1px solid ${C.border}`,position:"sticky",top:0,zIndex:10}}>
         {([{key:"overview",label:"Overview"},{key:"gradebook",label:"Gradebook"},{key:"atrisk",label:`At Risk${atRisk.length>0?" ("+atRisk.length+")":""}`},{key:"tpad",label:"TPAD"}] as{key:Tab;label:string}[]).map(t=>(
-          <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"12px 2px",border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",fontSize:10,fontWeight:800,color:tab===t.key?C.indigo:C.text3,borderBottom:`2px solid ${tab===t.key?C.indigo:"transparent"}`,transition:"color 0.15s,border-color 0.15s"}}>{t.label}</button>
+          <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:"12px 2px",border:"none",background:"transparent",cursor:"pointer",fontFamily:"inherit",fontSize:11,fontWeight:800,color:tab===t.key?C.indigo:C.text3,borderBottom:`2px solid ${tab===t.key?C.indigo:"transparent"}`,transition:"color 0.15s,border-color 0.15s"}}>{t.label}</button>
         ))}
       </div>
 
@@ -310,19 +310,19 @@ export default function TeacherAcademicsPage(){
 
         {tab==="overview"&&(
           <div style={{animation:"fadeUp 0.25s ease"}}>
-            {insight&&!loading&&(<div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:14,padding:"13px 15px",marginBottom:12}}><div style={{fontSize:9,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>{insightLoading?"✨ Upgrading...":"✨ Twin Insight"}</div><div style={{fontSize:13,fontWeight:600,color:"#e0e7ff",lineHeight:1.5}}>{insight}</div></div>)}
+            {insight&&!loading&&(<div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:14,padding:"13px 15px",marginBottom:12}}><div style={{fontSize:11,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>{insightLoading?"✨ Upgrading...":"✨ Twin Insight"}</div><div style={{fontSize:13,fontWeight:600,color:"#e0e7ff",lineHeight:1.5}}>{insight}</div></div>)}
             {loading?<Skel h={130}/>:subjects.length>0?(
               <div style={{background:C.surface,borderRadius:16,border:`1px solid ${C.border}`,padding:16,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
-                <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:14}}>Overall Mastery</div>
+                <div style={{fontSize:11,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:14}}>Overall Mastery</div>
                 <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:overallMastery!==null&&totalAssessments>0?14:0}}>
                   <div style={{width:68,height:68,borderRadius:"50%",flexShrink:0,background:overallMastery!==null?`conic-gradient(${barColor(overallMastery)} ${overallMastery*3.6}deg,${C.border} 0deg)`:`conic-gradient(${C.border} 360deg,${C.border} 0deg)`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                    <div style={{width:52,height:52,borderRadius:"50%",background:C.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:overallMastery!==null?16:12,fontWeight:900,color:overallMastery!==null?barColor(overallMastery):C.text3}}>{overallMastery!==null?overallMastery+"%":"—"}</div>
+                    <div style={{width:52,height:52,borderRadius:"50%",background:C.surface,display:"flex",alignItems:"center",justifyContent:"center",fontSize:overallMastery!==null?16:12,fontWeight:750,color:overallMastery!==null?barColor(overallMastery):C.text3}}>{overallMastery!==null?overallMastery+"%":"—"}</div>
                   </div>
                   <div style={{flex:1}}>
                     {overallMastery!==null?(
-                      <><div style={{fontSize:17,fontWeight:900,color:C.text}}>{overallMastery>=70?"On Track 🎯":overallMastery>=40?"Needs Attention ⚠️":"Getting Started 📚"}</div><div style={{fontSize:12,color:C.text2,marginTop:3}}>Avg mastery across {subjects.length} subject{subjects.length!==1?"s":""}</div></>
+                      <><div style={{fontSize:17,fontWeight:750,color:C.text}}>{overallMastery>=70?"On Track 🎯":overallMastery>=40?"Needs Attention ⚠️":"Getting Started 📚"}</div><div style={{fontSize:12,color:C.text2,marginTop:3}}>Avg mastery across {subjects.length} subject{subjects.length!==1?"s":""}</div></>
                     ):(
-                      <><div style={{fontSize:15,fontWeight:900,color:C.text}}>No strands assessed yet</div><div style={{fontSize:12,color:C.text2,marginTop:3}}>Record assessments to see mastery progress</div></>
+                      <><div style={{fontSize:15,fontWeight:750,color:C.text}}>No strands assessed yet</div><div style={{fontSize:12,color:C.text2,marginTop:3}}>Record assessments to see mastery progress</div></>
                     )}
                     {termStats?.avgAttRate!==null&&termStats?.avgAttRate!==undefined&&(<div style={{fontSize:12,color:C.text2,marginTop:2}}>Avg attendance: <span style={{color:barColor(termStats.avgAttRate),fontWeight:700}}>{termStats.avgAttRate}%</span></div>)}
                   </div>
@@ -341,7 +341,7 @@ export default function TeacherAcademicsPage(){
                 <div style={{fontSize:18,color:C.red}}>›</div>
               </button>
             )}
-            <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Subject Breakdown</div>
+            <div style={{fontSize:11,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Subject Breakdown</div>
             {loading?(<div style={{display:"flex",flexDirection:"column",gap:10}}>{[1,2,3].map(i=><Skel key={i} h={100}/>)}</div>):subjects.length===0?(
               <EmptyAction icon="📚" title="No subjects assigned" sub="Go to SubjectHub to claim your subjects." btnLabel="Open SubjectHub" onPress={()=>router.push("/teacher/subjecthub")}/>
             ):(
@@ -368,9 +368,9 @@ export default function TeacherAcademicsPage(){
                         <div style={{display:"flex",flexDirection:"column",gap:6}}>
                           {[{label:"Coverage",pct:sub.coveragePct,color:C.sky},{label:"Assessed",pct:sub.assessedPct,color:C.indigo},{label:"Mastered",pct:sub.masteredPct,color:C.emerald}].map(({label,pct,color})=>(
                             <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
-                              <div style={{fontSize:10,color:C.text3,fontWeight:600,width:56,flexShrink:0}}>{label}</div>
+                              <div style={{fontSize:11,color:C.text3,fontWeight:600,width:56,flexShrink:0}}>{label}</div>
                               <div style={{flex:1}}><MiniBar pct={pct??0} color={pct!==null&&pct>0?color:C.border2}/></div>
-                              <div style={{fontSize:10,fontWeight:800,color:pct!==null&&pct>0?color:C.text3,width:30,textAlign:"right"}}>{pct!==null?pct+"%":"—"}</div>
+                              <div style={{fontSize:11,fontWeight:800,color:pct!==null&&pct>0?color:C.text3,width:30,textAlign:"right"}}>{pct!==null?pct+"%":"—"}</div>
                             </div>
                           ))}
                         </div>
@@ -380,7 +380,7 @@ export default function TeacherAcademicsPage(){
                         <div style={{borderTop:`1px solid ${C.border}`,padding:"12px 15px",background:C.surface2}}>
                           {sub.strands.length>0&&(
                             <div style={{marginBottom:14}}>
-                              <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Strand Coverage</div>
+                              <div style={{fontSize:11,fontWeight:800,color:C.text3,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>Strand Coverage</div>
                               {sub.strands.map(st=>{
                                 const pct=st.total>0?Math.round((st.assessed/st.total)*100):0;
                                 const stColor=pct>=70?C.emerald:pct>=30?C.amber:C.text3;
@@ -388,7 +388,7 @@ export default function TeacherAcademicsPage(){
                                   <div key={st.strand} style={{marginBottom:8}}>
                                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                                       <span style={{fontSize:11,fontWeight:700,color:C.text2,flex:1,marginRight:8}}>{st.strand}</span>
-                                      <span style={{fontSize:10,fontWeight:800,color:stColor}}>{pct}%</span>
+                                      <span style={{fontSize:11,fontWeight:800,color:stColor}}>{pct}%</span>
                                     </div>
                                     <MiniBar pct={pct} color={stColor} h={4}/>
                                   </div>
@@ -398,7 +398,7 @@ export default function TeacherAcademicsPage(){
                           )}
                           {sub.classes.length>0&&(
                             <div style={{marginBottom:12}}>
-                              <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>By Class</div>
+                              <div style={{fontSize:11,fontWeight:800,color:C.text3,letterSpacing:1.2,textTransform:"uppercase",marginBottom:8}}>By Class</div>
                               {sub.classes.map(cls=>{
                                 const clsTotal=Object.values(cls.perfDist).reduce((a,b)=>a+b,0);
                                 return(
@@ -406,8 +406,8 @@ export default function TeacherAcademicsPage(){
                                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
                                       <span style={{fontSize:12,fontWeight:800,color:C.text}}>{cls.name}{cls.stream?" "+cls.stream:""}</span>
                                       <div style={{display:"flex",gap:4,alignItems:"center"}}>
-                                        {cls.attRate!==null&&<span style={{fontSize:10,fontWeight:700,color:barColor(cls.attRate),background:cls.attRate>=70?C.emeraldDim:cls.attRate>=40?C.amberDim:C.redDim,borderRadius:8,padding:"2px 7px"}}>Att {cls.attRate}%</span>}
-                                        <span style={{fontSize:10,color:C.text3}}>{cls.studentCount} students</span>
+                                        {cls.attRate!==null&&<span style={{fontSize:11,fontWeight:700,color:barColor(cls.attRate),background:cls.attRate>=70?C.emeraldDim:cls.attRate>=40?C.amberDim:C.redDim,borderRadius:8,padding:"2px 7px"}}>Att {cls.attRate}%</span>}
+                                        <span style={{fontSize:11,color:C.text3}}>{cls.studentCount} students</span>
                                       </div>
                                     </div>
                                     {clsTotal>0?(<><PerfBar dist={cls.perfDist} total={clsTotal}/><div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>{PERF_ORDER.map(p=>cls.perfDist[p]?<PerfChip key={p} perf={p} count={cls.perfDist[p]}/>:null)}</div></>):<div style={{fontSize:11,color:C.text3}}>No assessments yet</div>}
@@ -433,11 +433,11 @@ export default function TeacherAcademicsPage(){
             )}
             {!loading&&subjects.length>0&&(
               <div style={{marginTop:16}}>
-                <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Quick Actions</div>
+                <div style={{fontSize:11,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>Quick Actions</div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
                   {[{label:"SubjectHub",icon:"🔬",route:"/teacher/subjecthub",bg:C.navy},{label:"Scheme",icon:"📋",route:"/teacher/scheme",bg:"#312e81"},{label:"Assessment",icon:"📊",route:"/teacher/assessment",bg:"#92400e"},{label:"Lesson Plans",icon:"📖",route:"/teacher/lessonplan",bg:"#4c1d95"},{label:"Progress Record",icon:"📝",route:"/teacher/progress",bg:"#064e3b"},{label:"TPAD",icon:"🏅",route:"/teacher/tpad",bg:"#1e3a5f"}].map(a=>(
                     <button key={a.label} onClick={()=>router.push(a.route)} style={{padding:"12px 4px",borderRadius:14,border:"none",background:a.bg,cursor:"pointer",fontFamily:"inherit",display:"flex",flexDirection:"column",alignItems:"center",gap:5,boxShadow:"0 2px 6px rgba(0,0,0,0.1)"}}>
-                      <span style={{fontSize:22}}>{a.icon}</span><span style={{fontSize:10,fontWeight:800,color:"#fff",textAlign:"center",lineHeight:1.3}}>{a.label}</span>
+                      <span style={{fontSize:22}}>{a.icon}</span><span style={{fontSize:11,fontWeight:800,color:"#fff",textAlign:"center",lineHeight:1.3}}>{a.label}</span>
                     </button>
                   ))}
                 </div>
@@ -448,7 +448,7 @@ export default function TeacherAcademicsPage(){
 
         {tab==="gradebook"&&(
           <div style={{animation:"fadeUp 0.25s ease"}}>
-            <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:14}}>CBC Performance Distribution</div>
+            <div style={{fontSize:11,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:14}}>CBC Performance Distribution</div>
             {loading?(<div style={{display:"flex",flexDirection:"column",gap:12}}>{[1,2,3].map(i=><Skel key={i} h={140}/>)}</div>):!hasAnyAssessments?(
               <EmptyAction icon="📊" title="No assessments recorded yet" sub="Record your first CBC assessment to see performance distribution across your classes." btnLabel="Record Assessment" onPress={()=>router.push("/teacher/assessment")}/>
             ):(
@@ -458,9 +458,9 @@ export default function TeacherAcademicsPage(){
                   <div key={sub.id} style={{background:C.surface,borderRadius:16,border:`1px solid ${C.border}`,padding:15,marginBottom:12,boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
                       <div><div style={{fontSize:14,fontWeight:800,color:C.text}}>{sub.name}</div><div style={{fontSize:11,color:C.text3,marginTop:2}}>{sub.assessCount} assessments</div></div>
-                      {sub.avgPerfPct!==null&&(<div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:900,color:barColor(sub.avgPerfPct)}}>{sub.avgPerfPct}%</div><div style={{fontSize:9,color:C.text3,fontWeight:700}}>AVG PERF</div></div>)}
+                      {sub.avgPerfPct!==null&&(<div style={{textAlign:"right"}}><div style={{fontSize:20,fontWeight:750,color:barColor(sub.avgPerfPct)}}>{sub.avgPerfPct}%</div><div style={{fontSize:11,color:C.text3,fontWeight:700}}>AVG PERF</div></div>)}
                     </div>
-                    {subTotal>0?(<div style={{marginBottom:14}}><PerfBar dist={sub.perfDist} total={subTotal}/><div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>{PERF_ORDER.map(p=>sub.perfDist[p]?(<div key={p} style={{display:"flex",alignItems:"center",gap:4}}><PerfChip perf={p} count={sub.perfDist[p]}/><span style={{fontSize:10,color:C.text3}}>{Math.round((sub.perfDist[p]/subTotal)*100)}%</span></div>):null)}</div></div>):(<div style={{fontSize:12,color:C.text3,marginBottom:12}}>No assessments yet</div>)}
+                    {subTotal>0?(<div style={{marginBottom:14}}><PerfBar dist={sub.perfDist} total={subTotal}/><div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>{PERF_ORDER.map(p=>sub.perfDist[p]?(<div key={p} style={{display:"flex",alignItems:"center",gap:4}}><PerfChip perf={p} count={sub.perfDist[p]}/><span style={{fontSize:11,color:C.text3}}>{Math.round((sub.perfDist[p]/subTotal)*100)}%</span></div>):null)}</div></div>):(<div style={{fontSize:12,color:C.text3,marginBottom:12}}>No assessments yet</div>)}
                     {sub.classes.map(cls=>{
                       const cTotal=Object.values(cls.perfDist).reduce((a,b)=>a+b,0);
                       const eeCount=cls.perfDist["exceeds_expectation"]??0;
@@ -469,9 +469,9 @@ export default function TeacherAcademicsPage(){
                         <div key={cls.id} style={{background:C.surface2,borderRadius:12,padding:"10px 12px",marginBottom:6,border:`1px solid ${C.border}`}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:cTotal>0?8:0}}>
                             <div><span style={{fontSize:13,fontWeight:800,color:C.text}}>{cls.name}{cls.stream?" "+cls.stream:""}</span><span style={{fontSize:11,color:C.text3,marginLeft:8}}>{cls.studentCount} students</span></div>
-                            {cls.attRate!==null&&<span style={{fontSize:10,fontWeight:700,color:barColor(cls.attRate),background:cls.attRate>=70?C.emeraldDim:cls.attRate>=40?C.amberDim:C.redDim,borderRadius:8,padding:"2px 7px"}}>Att {cls.attRate}%</span>}
+                            {cls.attRate!==null&&<span style={{fontSize:11,fontWeight:700,color:barColor(cls.attRate),background:cls.attRate>=70?C.emeraldDim:cls.attRate>=40?C.amberDim:C.redDim,borderRadius:8,padding:"2px 7px"}}>Att {cls.attRate}%</span>}
                           </div>
-                          {cTotal>0?(<><PerfBar dist={cls.perfDist} total={cTotal}/><div style={{display:"flex",justifyContent:"space-between",marginTop:6}}><div style={{display:"flex",gap:4}}>{PERF_ORDER.map(p=>cls.perfDist[p]?<PerfChip key={p} perf={p} count={cls.perfDist[p]}/>:null)}</div><div style={{display:"flex",gap:6,alignItems:"center"}}>{eeCount>0&&<span style={{fontSize:10,color:C.emerald,fontWeight:700}}>🏆 {eeCount} excelling</span>}{beCount>0&&<span style={{fontSize:10,color:C.red,fontWeight:700}}>⚠️ {beCount} need help</span>}</div></div></>):<div style={{fontSize:11,color:C.text3}}>No assessments yet</div>}
+                          {cTotal>0?(<><PerfBar dist={cls.perfDist} total={cTotal}/><div style={{display:"flex",justifyContent:"space-between",marginTop:6}}><div style={{display:"flex",gap:4}}>{PERF_ORDER.map(p=>cls.perfDist[p]?<PerfChip key={p} perf={p} count={cls.perfDist[p]}/>:null)}</div><div style={{display:"flex",gap:6,alignItems:"center"}}>{eeCount>0&&<span style={{fontSize:11,color:C.emerald,fontWeight:700}}>🏆 {eeCount} excelling</span>}{beCount>0&&<span style={{fontSize:11,color:C.red,fontWeight:700}}>⚠️ {beCount} need help</span>}</div></div></>):<div style={{fontSize:11,color:C.text3}}>No assessments yet</div>}
                         </div>
                       );
                     })}
@@ -504,15 +504,15 @@ export default function TeacherAcademicsPage(){
                     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                       <div style={{flex:1}}>
                         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                          <div style={{width:28,height:28,borderRadius:"50%",background:C.redDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:900,color:C.red,flexShrink:0}}>{s.name.charAt(0).toUpperCase()}</div>
+                          <div style={{width:28,height:28,borderRadius:"50%",background:C.redDim,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:750,color:C.red,flexShrink:0}}>{s.name.charAt(0).toUpperCase()}</div>
                           <div><div style={{fontSize:13,fontWeight:800,color:C.text}}>{s.name}</div><div style={{fontSize:11,color:C.text3}}>{s.className}</div></div>
                         </div>
-                        <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>{s.subjects.map(sj=><span key={sj} style={{fontSize:10,fontWeight:700,color:C.red,background:C.redDim,padding:"2px 8px",borderRadius:8}}>{sj}</span>)}</div>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:4,marginTop:6}}>{s.subjects.map(sj=><span key={sj} style={{fontSize:11,fontWeight:700,color:C.red,background:C.redDim,padding:"2px 8px",borderRadius:8}}>{sj}</span>)}</div>
                       </div>
                       <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
-                        <div style={{fontSize:18,fontWeight:900,color:C.red}}>{s.beCount}</div>
-                        <div style={{fontSize:9,color:C.text3,fontWeight:700}}>BE marks</div>
-                        {s.attRate!==null&&<div style={{fontSize:10,fontWeight:700,color:barColor(s.attRate),marginTop:4}}>Att {s.attRate}%</div>}
+                        <div style={{fontSize:18,fontWeight:750,color:C.red}}>{s.beCount}</div>
+                        <div style={{fontSize:11,color:C.text3,fontWeight:700}}>BE marks</div>
+                        {s.attRate!==null&&<div style={{fontSize:11,fontWeight:700,color:barColor(s.attRate),marginTop:4}}>Att {s.attRate}%</div>}
                       </div>
                     </div>
                     <button onClick={()=>router.push("/teacher/classhub/"+s.classId)} style={{marginTop:10,width:"100%",padding:"8px",borderRadius:10,border:`1px solid ${C.border}`,background:C.surface2,color:C.text2,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>View in ClassHub →</button>
@@ -533,26 +533,26 @@ export default function TeacherAcademicsPage(){
           <div style={{animation:"fadeUp 0.25s ease"}}>
             {loading?<Skel h={120}/>:termStats&&(
               <div style={{background:"linear-gradient(135deg,#1e1b4b,#312e81)",borderRadius:18,border:`1px solid ${C.indigo}44`,padding:18,marginBottom:14}}>
-                <div style={{fontSize:10,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>TPAD Score</div>
-                <div style={{fontSize:48,fontWeight:900,color:"#818cf8",letterSpacing:-2}}>{termStats.tpadFinalScore!==null?termStats.tpadFinalScore:"—"}</div>
+                <div style={{fontSize:11,fontWeight:800,color:"#a5b4fc",letterSpacing:1.5,textTransform:"uppercase",marginBottom:4}}>TPAD Score</div>
+                <div style={{fontSize:48,fontWeight:750,color:"#818cf8",letterSpacing:-2}}>{termStats.tpadFinalScore!==null?termStats.tpadFinalScore:"—"}</div>
                 <div style={{fontSize:12,color:"#c7d2fe",marginTop:2}}>{termStats.tpadStatus?`Status: ${termStats.tpadStatus}`:"No appraisal submitted yet"}</div>
                 <div style={{display:"flex",gap:12,marginTop:12}}>
                   <div style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
-                    <div style={{fontSize:18,fontWeight:900,color:"#a5b4fc"}}>{termStats.evidenceCount}</div>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Evidence items</div>
+                    <div style={{fontSize:18,fontWeight:750,color:"#a5b4fc"}}>{termStats.evidenceCount}</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Evidence items</div>
                   </div>
                   <div style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
-                    <div style={{fontSize:18,fontWeight:900,color:"#bbf7d0"}}>{termStats.totalLessons}</div>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Lesson plans</div>
+                    <div style={{fontSize:18,fontWeight:750,color:"#bbf7d0"}}>{termStats.totalLessons}</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Lesson plans</div>
                   </div>
                   <div style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 14px",textAlign:"center"}}>
-                    <div style={{fontSize:18,fontWeight:900,color:"#fde68a"}}>{termStats.totalAssess}</div>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Assessments</div>
+                    <div style={{fontSize:18,fontWeight:750,color:"#fde68a"}}>{termStats.totalAssess}</div>
+                    <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:700}}>Assessments</div>
                   </div>
                 </div>
               </div>
             )}
-            <div style={{fontSize:10,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>All 8 TSC Standards</div>
+            <div style={{fontSize:11,fontWeight:800,color:C.text3,letterSpacing:1.5,textTransform:"uppercase",marginBottom:10}}>All 8 TSC Standards</div>
             {loading?(<div style={{display:"flex",flexDirection:"column",gap:8}}>{TSC_STANDARDS.map((_,i)=><Skel key={i} h={64}/>)}</div>):(
               <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
                 {TSC_STANDARDS.map((std,i)=>{
@@ -562,11 +562,11 @@ export default function TeacherAcademicsPage(){
                     <div key={std.key} style={{background:C.surface,borderRadius:14,border:`1px solid ${C.border}`,padding:"13px 14px",boxShadow:"0 1px 3px rgba(0,0,0,0.05)"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                         <div style={{flex:1,marginRight:8}}>
-                          <div style={{fontSize:10,fontWeight:800,color:C.text3,marginBottom:2}}>Standard {i+1}{i>=4?" · Self only":""}</div>
+                          <div style={{fontSize:11,fontWeight:800,color:C.text3,marginBottom:2}}>Standard {i+1}{i>=4?" · Self only":""}</div>
                           <div style={{fontSize:12,fontWeight:700,color:C.text}}>{std.label}</div>
                         </div>
                         <div style={{textAlign:"right",flexShrink:0}}>
-                          <div style={{fontSize:18,fontWeight:900,color:score!==null?barColor(pct):C.text3}}>{score!==null?score+"/4":"—"}</div>
+                          <div style={{fontSize:18,fontWeight:750,color:score!==null?barColor(pct):C.text3}}>{score!==null?score+"/4":"—"}</div>
                         </div>
                       </div>
                       <MiniBar pct={score!==null?pct:0} color={score!==null?barColor(pct):C.border2} h={5}/>

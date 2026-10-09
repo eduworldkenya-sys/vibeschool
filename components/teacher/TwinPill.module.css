@@ -4,7 +4,7 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 750;
-  background: #1e1b4b;
+  background: var(--teacher-ink, #1c2923);
   border-radius: 40px;
   padding: 10px 20px;
   display: flex;
@@ -34,7 +34,7 @@
   align-items: center;
   justify-content: center;
   font-size: 14px;
-  color: #10b981;
+  color: var(--teacher-green, #087451);
   flex-shrink: 0;
 }
 
@@ -69,7 +69,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #10b981;
+  background: var(--teacher-green, #087451);
   margin: 0 2px;
   animation: twinPulse 1.4s ease-in-out infinite;
 }
@@ -107,7 +107,7 @@
 }
 
 .drawerHeader {
-  background: #1e1b4b;
+  background: var(--teacher-ink, #1c2923);
   padding: 14px 18px;
   display: flex;
   align-items: center;
@@ -125,7 +125,7 @@
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  color: #10b981;
+  color: var(--teacher-green, #087451);
 }
 
 .drawerTitle {
@@ -166,14 +166,14 @@
 
 .bubbleTwin {
   border-radius: 4px 16px 16px 16px;
-  background: #f8f9fa;
-  color: #111827;
+  background: var(--teacher-canvas, #f5f6f2);
+  color: var(--teacher-ink, #1c2923);
   align-self: flex-start;
 }
 
 .bubbleUser {
   border-radius: 16px 16px 4px 16px;
-  background: #10b981;
+  background: var(--teacher-green, #087451);
   color: #fff;
   align-self: flex-end;
 }
@@ -182,18 +182,18 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #d1fae5;
+  background: var(--teacher-green-soft, #e9f4ed);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  color: #10b981;
+  color: var(--teacher-green, #087451);
   flex-shrink: 0;
 }
 
 .inputRow {
   padding: 10px 14px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--teacher-border, #dfe5de);
   display: flex;
   gap: 8px;
   flex-shrink: 0;
@@ -203,18 +203,18 @@
   flex: 1;
   padding: 9px 13px;
   border-radius: 10px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--teacher-border, #dfe5de);
   outline: none;
   font-size: 13px;
   font-family: inherit;
-  color: #111827;
+  color: var(--teacher-ink, #1c2923);
 }
 
 .sendBtn {
   padding: 9px 18px;
   border-radius: 10px;
   border: none;
-  background: #10b981;
+  background: var(--teacher-green, #087451);
   color: #fff;
   font-weight: 700;
   font-size: 13px;

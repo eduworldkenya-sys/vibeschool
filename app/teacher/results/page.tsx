@@ -263,7 +263,7 @@ function ResultsInner() {
   return <div style={{padding:'0 0 80px',fontFamily:W.font,background:W.bg,minHeight:'100vh'}}>
     <div style={{padding:'20px 16px 12px',borderBottom:'1px solid #EDE0CE'}}>
       <div style={{fontSize:11,fontWeight:800,letterSpacing:.7,textTransform:'uppercase',color:W.textMuted}}>Exam Centre</div>
-      <h1 style={{margin:'5px 0 0',fontSize:22,fontWeight:900,color:W.text}}>{activeExam?.name??'Choose an exam'}</h1>
+      <h1 style={{margin:'5px 0 0',fontSize:22,fontWeight:750,color:W.text}}>{activeExam?.name??'Choose an exam'}</h1>
       <p style={{margin:'4px 0 0',fontSize:14,fontWeight:700,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''}`:'Set up a class and subject to enter exam marks.'}</p>
       {activeExam&&tier===1&&<p style={{margin:'5px 0 0',fontSize:12,color:W.textMuted}}>{results.length}/{students.length} marks entered{students.length>0?` · ${Math.round((results.length/students.length)*100)}% complete`:''}</p>}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>

@@ -218,7 +218,7 @@ export default function EvidenceCaptureSheet({
         onClick={(event) => event.stopPropagation()}
         style={{
           background: "#fff",
-          color: "#111827",
+          color: "var(--teacher-ink, #1c2923)",
           colorScheme: "light",
           borderRadius: "20px 20px 0 0",
           width: "100%",
@@ -232,16 +232,16 @@ export default function EvidenceCaptureSheet({
           style={{
             width: 36,
             height: 4,
-            background: "#e5e7eb",
+            background: "var(--teacher-border, #dfe5de)",
             borderRadius: 4,
             margin: "0 auto 16px",
           }}
         />
-        <div style={{ fontSize: 15, fontWeight: 800, color: "#1e1b4b", marginBottom: 14 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: "var(--teacher-ink, #1c2923)", marginBottom: 14 }}>
           Log Learning Evidence
         </div>
 
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>
           TYPE
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }}>
@@ -267,7 +267,7 @@ export default function EvidenceCaptureSheet({
           ))}
         </div>
 
-        <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
+        <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>
           TITLE
         </label>
         <input
@@ -280,7 +280,7 @@ export default function EvidenceCaptureSheet({
             borderRadius: 10,
             padding: "10px 12px",
             fontSize: 13,
-            color: "#111827",
+            color: "var(--teacher-ink, #1c2923)",
             background: "#fff",
             caretColor: "#111827",
             marginBottom: 14,
@@ -288,7 +288,7 @@ export default function EvidenceCaptureSheet({
           }}
         />
 
-        <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
+        <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>
           NOTES (optional)
         </label>
         <textarea
@@ -302,7 +302,7 @@ export default function EvidenceCaptureSheet({
             borderRadius: 10,
             padding: "10px 12px",
             fontSize: 13,
-            color: "#111827",
+            color: "var(--teacher-ink, #1c2923)",
             background: "#fff",
             caretColor: "#111827",
             marginBottom: 14,
@@ -314,7 +314,7 @@ export default function EvidenceCaptureSheet({
 
         <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
           <div style={{ flex: 1 }}>
-            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
+            <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>
               SCORE (optional)
             </label>
             <input
@@ -328,7 +328,7 @@ export default function EvidenceCaptureSheet({
                 borderRadius: 10,
                 padding: "10px 12px",
                 fontSize: 13,
-                color: "#111827",
+                color: "var(--teacher-ink, #1c2923)",
                 background: "#fff",
                 caretColor: "#111827",
                 boxSizing: "border-box",
@@ -336,7 +336,7 @@ export default function EvidenceCaptureSheet({
             />
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#6b7280", marginBottom: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>
               PHOTO (optional)
             </div>
             <label
@@ -348,7 +348,7 @@ export default function EvidenceCaptureSheet({
                 borderRadius: 10,
                 padding: "9px 12px",
                 fontSize: 12,
-                color: "#6b7280",
+                color: "var(--teacher-muted, #627168)",
                 cursor: "pointer",
               }}
             >
@@ -406,7 +406,7 @@ export default function EvidenceCaptureSheet({
               borderRadius: 12,
               fontSize: 13,
               fontWeight: 700,
-              color: "#6b7280",
+              color: "var(--teacher-muted, #627168)",
               background: "#f3f4f6",
               cursor: saving ? "default" : "pointer",
             }}

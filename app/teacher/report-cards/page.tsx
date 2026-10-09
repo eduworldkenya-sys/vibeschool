@@ -139,8 +139,8 @@ export default function TeacherReportCardsPage() {
     finally { if(scope===scopeRef.current)setBusyId(null) }
   }
 
-  return <main style={shell}><div style={{ maxWidth: 980, margin: '0 auto' }}>
-    <section style={card}><div style={eyebrow}>Report Card Engine</div><h1 style={{ margin: '6px 0' }}>Teacher Report Cards</h1><p style={{ margin: 0, color: '#6b7280' }}>Generate evidence, create traceable narratives, resolve validation issues, and submit only academically complete reports.</p></section>
+  return <section style={shell}><div style={{ maxWidth: 980, margin: '0 auto' }}>
+    <section style={card}><div style={eyebrow}>Report Card Engine</div><h1 style={{ margin: '6px 0' }}>Teacher Report Cards</h1><p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Generate evidence, create traceable narratives, resolve validation issues, and submit only academically complete reports.</p></section>
     {error && <section role="alert" style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}<div><button type="button" onClick={()=>void load()} style={secondaryButton}>Retry</button></div></section>}
     {classId&&<section style={card}><button type="button" onClick={()=>router.push(`/teacher/classhub/${classId}${studentId?`/student/${studentId}`:''}/progress${subjectId?`?subjectId=${encodeURIComponent(subjectId)}`:''}`)} style={secondaryButton}>Progress Record</button><p style={muted}>Reports are limited to this class{studentId?' and learner':''}. Parent sharing follows the school review and publication workflow.</p></section>}
     {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
@@ -181,7 +181,7 @@ export default function TeacherReportCardsPage() {
         </div>}
       </section>
     })}
-  </div></main>
+  </div></section>
 }
 
 function Narrative({ label: title, text }: { label: string; text: string | null }) {

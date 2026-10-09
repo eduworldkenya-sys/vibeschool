@@ -56,12 +56,12 @@ export default function AssessmentPreviewPage() {
   }
 
   return (
-    <main style={shell}>
+    <section style={shell}>
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessment Builder</div>
           <h1 style={{ margin: '6px 0' }}>Preview and Validate</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Review the learner experience and resolve every publish blocker.</p>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Review the learner experience and resolve every publish blocker.</p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
@@ -98,7 +98,7 @@ export default function AssessmentPreviewPage() {
               </div>
 
               {assessment.instructions && (
-                <div style={{ ...issueBox, background: '#f8fafc', color: '#374151', marginBottom: 18 }}>
+                <div style={{ ...issueBox, background: "var(--teacher-canvas, #f5f6f2)", color: '#374151', marginBottom: 18 }}>
                   <strong>Instructions</strong>
                   <div style={{ marginTop: 4 }}>{assessment.instructions}</div>
                 </div>
@@ -144,7 +144,7 @@ export default function AssessmentPreviewPage() {
           </>
         )}
       </div>
-    </main>
+    </section>
   )
 }
 

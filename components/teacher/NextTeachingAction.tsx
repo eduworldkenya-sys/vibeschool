@@ -86,22 +86,22 @@ export default function NextTeachingAction({
         borderRadius: 20,
         padding: 16,
         marginBottom: 14,
-        color: "#111827",
+        color: "var(--teacher-ink, #1c2923)",
         boxShadow: "0 2px 12px rgba(15,23,42,0.04)",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 7 }}>
-        <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase", color: "#047857" }}>
+        <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: 1, textTransform: "uppercase", color: "#047857" }}>
           Next step
         </div>
         {countdown && (
-          <div style={{ fontSize: 10, fontWeight: 800, color: "#047857", background: "#fff", border: "1px solid #d1fae5", borderRadius: 999, padding: "4px 9px", whiteSpace: "nowrap" }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#047857", background: "#fff", border: "1px solid #d1fae5", borderRadius: 999, padding: "4px 9px", whiteSpace: "nowrap" }}>
             In {countdown}
           </div>
         )}
       </div>
 
-      <h2 id="teacher-next-action-title" style={{ margin: "0 0 5px", fontSize: 19, fontWeight: 900, lineHeight: 1.2 }}>
+      <h2 id="teacher-next-action-title" style={{ margin: "0 0 5px", fontSize: 19, fontWeight: 750, lineHeight: 1.2 }}>
         {title}
       </h2>
       <div style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.45, marginBottom: 13 }}>
@@ -111,7 +111,7 @@ export default function NextTeachingAction({
       <button
         type="button"
         onClick={() => onNavigate(href)}
-        style={{ width: "100%", minHeight: 46, border: "none", borderRadius: 13, padding: "12px 14px", background: "#10b981", color: "#fff", fontSize: 14, fontWeight: 900, cursor: "pointer", fontFamily: "inherit" }}
+        style={{ width: "100%", minHeight: 46, border: "none", borderRadius: 13, padding: "12px 14px", background: "var(--teacher-green, #087451)", color: "#fff", fontSize: 14, fontWeight: 750, cursor: "pointer", fontFamily: "inherit" }}
       >
         {task?.label ? `${task.label} →` : "Continue →"}
       </button>

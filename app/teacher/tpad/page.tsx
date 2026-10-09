@@ -252,7 +252,7 @@ export default function TPADDashboard() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
                 Current Term
               </p>
               <p style={{ fontSize: 20, fontWeight: 800, color: '#fff', margin: '4px 0 0' }}>
@@ -263,7 +263,7 @@ export default function TPADDashboard() {
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+              <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
                 Status
               </p>
               <span style={{
@@ -319,7 +319,7 @@ export default function TPADDashboard() {
               }}>
                 {daysUntil(deadline.self_appraisal_due) < 0 ? 'Past' : daysUntil(deadline.self_appraisal_due) + 'd'}
               </p>
-              <p style={{ fontSize: 10, color: C.textMuted, margin: '2px 0 0' }}>
+              <p style={{ fontSize: 11, color: C.textMuted, margin: '2px 0 0' }}>
                 {new Date(deadline.self_appraisal_due).toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}
               </p>
             </>
@@ -367,7 +367,7 @@ export default function TPADDashboard() {
                   <>
                     <p style={{ fontSize: 16, fontWeight: 800, color: C.accent, margin: 0 }}>{selfVal}/5</p>
                     {headVal !== null && (
-                      <p style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>Head: {headVal}/5</p>
+                      <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>Head: {headVal}/5</p>
                     )}
                   </>
                 ) : (

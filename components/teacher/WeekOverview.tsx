@@ -3,8 +3,8 @@
 function Stat({ value, label }: { value: number | string; label: string }) {
   return (
     <div style={{ flex: 1, textAlign: "center" }}>
-      <div style={{ fontSize: 18, fontWeight: 900, color: "#1e1b4b" }}>{value}</div>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 18, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{value}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>{label}</div>
     </div>
   );
 }
@@ -26,7 +26,7 @@ export default function WeekOverview({
         boxShadow: "0 2px 16px rgba(0,0,0,0.06)",
       }}
     >
-      <div style={{ fontSize: 10, fontWeight: 900, color: "#9ca3af", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 12 }}>
+      <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 12 }}>
         This Week
       </div>
       <div style={{ display: "flex" }}>

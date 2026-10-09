@@ -27,17 +27,18 @@ requireText(teacherRoot.includes('PublicHeader'), 'public /teacher remains the i
 requireText(teacherRoot.includes('/teacher/pulse'), 'public teacher gateway exposes an explicit Teacher OS entry')
 
 const teacherLayout = read('app/teacher/layout.tsx')
+const teacherNav = read('components/teacher/navigation.ts')
 const teacherNavHrefs = Array.from(
-  teacherLayout.matchAll(/href:\s*["'](\/teacher\/[^"']+)["']/g),
+  teacherNav.matchAll(/href:\s*["'](\/teacher\/[^"']+)["']/g),
   match => match[1],
 )
 requireText(teacherNavHrefs.length >= 20, 'teacher mobile navigation exposes the operating-system destinations')
 for (const href of new Set(teacherNavHrefs)) {
   requireText(routeExists(href), `teacher navigation destination exists: ${href}`)
 }
-requireText(teacherLayout.includes('BottomNav'), 'teacher layout retains mobile bottom navigation')
+requireText(teacherLayout.includes('TeacherNavigation') && read('components/teacher/TeacherNavigation.tsx').includes('teacher-bottom-nav'), 'teacher layout retains mobile bottom navigation')
 requireText(teacherLayout.includes('OfflineBar'), 'teacher layout exposes network/offline state')
-requireText(teacherLayout.includes('onClick={() => router.push("/teacher/pulse")}'), 'authenticated VibeSchool brand returns to canonical Teacher OS Today home')
+requireText(teacherLayout.includes('href="/teacher/pulse"'), 'authenticated VibeSchool brand returns to canonical Teacher OS Today home')
 requireText(!teacherLayout.includes('onClick={() => router.push("/teacher")}'), 'authenticated teacher shell cannot escape into the public teacher gateway through the brand')
 
 const notifications = read('app/teacher/notifications/page.tsx')

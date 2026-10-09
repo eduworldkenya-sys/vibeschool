@@ -28,11 +28,11 @@ export default function CoverageSheet({
           width: "100%", maxHeight: "85vh", overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 900, color: "#1e1b4b", marginBottom: 10 }}>
+        <div style={{ fontSize: 16, fontWeight: 750, color: "var(--teacher-ink, #1c2923)", marginBottom: 10 }}>
           Was this scheme item fully covered?
         </div>
 
-        <div style={{ fontSize: 13, color: "#6b7280", lineHeight: 1.5, marginBottom: 18 }}>
+        <div style={{ fontSize: 13, color: "var(--teacher-muted, #627168)", lineHeight: 1.5, marginBottom: 18 }}>
           Mark it covered to include it in your curriculum coverage.
           You can leave it in progress if more teaching is needed.
         </div>
@@ -47,7 +47,7 @@ export default function CoverageSheet({
             disabled={marking}
             style={{
               flex: 1, padding: "12px 0", borderRadius: 12, border: "1px solid #e5e7eb",
-              background: "#fff", color: "#6b7280", fontWeight: 700, fontSize: 13,
+              background: "#fff", color: "var(--teacher-muted, #627168)", fontWeight: 700, fontSize: 13,
               cursor: marking ? "not-allowed" : "pointer",
             }}
           >
@@ -58,7 +58,7 @@ export default function CoverageSheet({
             disabled={marking}
             style={{
               flex: 2, padding: "12px 0", borderRadius: 12, border: "none",
-              background: "#10b981", color: "#fff", fontWeight: 800, fontSize: 13,
+              background: "var(--teacher-green, #087451)", color: "#fff", fontWeight: 800, fontSize: 13,
               cursor: marking ? "default" : "pointer", opacity: marking ? 0.6 : 1,
             }}
           >
