@@ -17,6 +17,8 @@ assert.match(document.body.textContent,/Correct learner details/);assert.match(d
 await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Who is improving'})));assert.match(document.body.textContent,/0 learners shown/);assert.match(document.body.textContent,/same type and subject/);
 await act(async()=>fireEvent.change(screen.getByRole('textbox',{name:'Ask about your class or find a learner'}),{target:{value:''}}));
 await act(async()=>fireEvent.click(screen.getByRole('checkbox',{name:'Select Charles'})));await act(async()=>fireEvent.click(screen.getByRole('checkbox',{name:'Select Mary'})));assert.match(document.body.textContent,/2 selected/);
+await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Classroom tools',exact:true})));
+assert.equal(screen.queryByRole('checkbox',{name:'Select Charles'}),null,'roster is separated from classroom tools');
 await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Pick a learner'})));const first=screen.getByRole('status').textContent;await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Pick next learner'})));assert.notEqual(screen.getByRole('status').textContent,first,'picker must not repeat a learner in a round');
 await act(async()=>fireEvent.change(screen.getByRole('textbox',{name:'Factual teacher note'}),{target:{value:'Used worked examples'}}));await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Save for 2 learners'})));assert.equal(globalThis.__actions.length,1);assert.equal(globalThis.__actions[0].ids.length,2);
 await act(async()=>fireEvent.click(screen.getByRole('button',{name:'Save alphabetical seating'})));assert.equal(globalThis.__saved.cells.seating.a.position,1);assert.equal(globalThis.__saved.cells.seating.b.position,2);

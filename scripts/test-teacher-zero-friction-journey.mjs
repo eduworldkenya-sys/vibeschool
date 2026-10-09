@@ -17,8 +17,8 @@ mustContain(flow, "Open lesson notes", "Teacher daily flow");
 mustContain(flow, "/teacher/lesson-notes?lessonPlanId=", "Teacher daily flow");
 mustContain(flow, "Lesson plan", "Teacher daily flow");
 mustContain(flow, "Take Attendance", "Teacher daily flow");
-mustContain(flow, "Assign Task", "Teacher daily flow");
-mustContain(flow, "Mark Learner Work", "Teacher daily flow");
+mustContain(flow, "Set Homework", "Teacher daily flow");
+mustContain(flow, "Mark Homework", "Teacher daily flow");
 mustContain(flow, "slot.submission_count > 0 && slot.marking_status === \"pending\"", "Teacher daily flow");
 mustContain(flow, "`/teacher/classhub/${encodeURIComponent(activeSlot.class_id)}/homework`", "Teacher daily flow");
 mustContain(flow, "Record Assessment", "Teacher daily flow");
@@ -59,7 +59,7 @@ if (notes.includes("typedPlan.strand_id")) {
   throw new Error("A curriculum strand id must never be treated as a sub-strand id.");
 }
 
-mustContain(rules, "function classHomeworkHref", "Pulse next action");
+mustContain(rules, "function exactLessonHref", "Pulse next action");
 mustContain(rules, "/teacher/classhub/", "Pulse next action");
 mustContain(rules, "/homework/${encodeURIComponent(first.homework_id)}", "Pulse marking route");
 mustContain(rules, "/homework/${encodeURIComponent(homework.homework_id)}", "Pulse marking route");

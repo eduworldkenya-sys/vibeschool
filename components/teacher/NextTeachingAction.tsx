@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { nairobiDateStr } from "@/lib/time";
 import type { PriorityTask, PulseSnapshot, Slot } from "@/lib/types";
 
 interface NextTeachingActionProps {
@@ -20,9 +21,7 @@ function parseTimeToday(time: string): Date | null {
   const match = time.match(/^(\d{1,2}):(\d{2})/);
   if (!match) return null;
 
-  const date = new Date();
-  date.setHours(Number(match[1]), Number(match[2]), 0, 0);
-  return date;
+  return new Date(`${nairobiDateStr()}T${match[1].padStart(2, "0")}:${match[2]}:00+03:00`);
 }
 
 function useCountdown(target: Date | null): string | null {
@@ -51,7 +50,7 @@ function nextUpcomingLesson(snap?: PulseSnapshot): UpcomingLesson | null {
   if (!snap) return null;
 
   return snap.todaySlots
-    .filter((slot) => slot.attendance_status === "none")
+    .filter((slot) => !slot.teaching_workspace || !["completed", "cancelled", "missed"].includes(slot.teaching_workspace.lifecycle))
     .map((slot) => ({ slot, time: parseTimeToday(slot.start_time) }))
     .filter((entry): entry is UpcomingLesson => Boolean(entry.time))
     .filter((entry) => entry.time.getTime() > Date.now())

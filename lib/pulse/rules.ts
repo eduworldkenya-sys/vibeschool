@@ -1,6 +1,6 @@
 import type { PulseSnapshot, Slot, TaskSeverity, PriorityTask, RuleResult } from "@/lib/types";
 import { detectTeacherMode } from "./userMode";
-import { nairobiDateStr } from "@/lib/time";
+import { nairobiDateAdd, nairobiDateStr } from "@/lib/time";
 
 function byStartTime(a: Slot, b: Slot): number {
   return a.start_time.localeCompare(b.start_time);
@@ -9,7 +9,8 @@ function byStartTime(a: Slot, b: Slot): number {
 function firstCurrentSlot(slots: Slot[]): Slot | null {
   const sorted = [...slots].sort(byStartTime);
   const now = new Date();
-  const currentMins = now.getHours() * 60 + now.getMinutes();
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Africa/Nairobi', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(now);
+  const currentMins = Number(parts.find(p => p.type === 'hour')?.value) * 60 + Number(parts.find(p => p.type === 'minute')?.value);
 
   return (
     sorted.find((slot) => {
@@ -26,26 +27,26 @@ function firstCurrentSlot(slots: Slot[]): Slot | null {
   );
 }
 
-function classHomeworkHref(slot: Slot): string {
-  const query = new URLSearchParams({
-    subjectId: slot.subject_id,
-    subject: slot.subject,
-  });
-  if (slot.lesson_plan_id) query.set("lessonPlanId", slot.lesson_plan_id);
-  if (slot.teaching_workspace?.occurrenceId) {
-    query.set("occurrenceId", slot.teaching_workspace.occurrenceId);
-  }
-  return `/teacher/classhub/${encodeURIComponent(slot.class_id)}/homework?${query.toString()}`;
+function exactLessonHref(slot: Slot, fallbackDate = nairobiDateStr()): string {
+  const query = new URLSearchParams({ classId: slot.class_id, subjectId: slot.subject_id, timetableSlotId: slot.id, date: slot.teaching_workspace?.key.occurrenceDate ?? fallbackDate });
+  return `/teacher/lessonplan?${query}`;
 }
 
 function nextTaskForSlot(slot: Slot): PriorityTask | null {
+  const workspace = slot.teaching_workspace;
+  if (workspace) {
+    const action = workspace.primaryAction;
+    if (action === 'none') return null;
+    const labels = { prepare_lesson: 'Plan lesson', start_lesson: 'Start teaching', continue_lesson: 'Continue teaching', review_lesson: 'Review lesson', record_progress: 'Record learner progress', recover_lesson: 'Recover lesson' };
+    return { id: `lesson-${slot.id}`, label: labels[action], detail: `${slot.subject} · ${slot.class_name}`, severity: action === 'start_lesson' || action === 'continue_lesson' ? 'critical' : 'calm', href: exactLessonHref(slot) };
+  }
   if (!slot.lesson_plan_id) {
     return {
       id: `plan-${slot.id}`,
       label: "Plan lesson",
       detail: `${slot.subject} for ${slot.class_name} needs a lesson plan.`,
       severity: "urgent",
-      href: `/teacher/lessonplan?subjectId=${slot.subject_id}&classId=${slot.class_id}`,
+      href: exactLessonHref(slot),
     };
   }
 
@@ -63,14 +64,10 @@ function nextTaskForSlot(slot: Slot): PriorityTask | null {
     };
   }
 
-  if (slot.task_status === "none") {
-    return {
-      id: `task-${slot.id}`,
-      label: "Assign learner work",
-      detail: `Give ${slot.class_name} a task connected to this lesson.`,
-      severity: "calm",
-      href: classHomeworkHref(slot),
-    };
+  // A saved plan and completed attendance do not mean the lesson was taught.
+  // Without occurrence authority, open the lesson rather than promoting homework.
+  if (slot.task_status === 'none') {
+    return { id: `teach-${slot.id}`, label: 'Open lesson', detail: `${slot.subject} · ${slot.class_name}`, severity: 'calm', href: exactLessonHref(slot) };
   }
 
   if (slot.submission_count > 0 && slot.marking_status === "pending") {
@@ -125,7 +122,7 @@ function noLessonTasks(snap: PulseSnapshot): PriorityTask[] {
       label: "Prepare tomorrow’s lesson",
       detail: `${first.subject} for ${first.class_name}.`,
       severity: "calm",
-      href: `/teacher/lessonplan?subjectId=${first.subject_id}&classId=${first.class_id}`,
+      href: exactLessonHref(first, nairobiDateAdd(nairobiDateStr(), 1)),
     });
   }
 

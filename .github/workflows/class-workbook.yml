@@ -12,6 +12,10 @@ on:
       - "lib/report-cards/service.ts"
       - "app/teacher/report-cards/**"
       - "app/teacher/assessment/interventions/**"
+      - "app/teacher/homework/**"
+      - "app/teacher/onboarding/students/**"
+      - "components/teacher/TeacherClassForm.tsx"
+      - "scripts/test-teacher-workflow-v2*"
       - "components/teacher/workbook/**"
       - "app/teacher/classhub/**"
       - "app/teacher/schoolhub/**"
@@ -72,6 +76,18 @@ jobs:
         run: PROGRESS_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-progress-workspace-ui.mjs
       - name: Exercise support and report context recovery
         run: PROGRESS_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-progress-support-ui.mjs
+      - name: Set up TypeScript loader test runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify authoritative teaching priorities
+        run: node --import ./scripts/register-typescript.mjs scripts/test-teacher-workflow-v2.mjs
+      - name: Exercise class creation and learner save recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-teacher-workflow-v2-ui.mjs
+      - name: Restore canonical application runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Exercise classroom workspace interactions and recovery
         run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-classroom-workspace-ui.mjs
       - name: Exercise canonical homework roster and marking recovery
