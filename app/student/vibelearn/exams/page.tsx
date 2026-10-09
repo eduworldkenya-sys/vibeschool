@@ -72,6 +72,9 @@ export default function VibeLearnExamsPage() {
           {assignments.length === 0 ? <p style={muted}>Teacher-assigned quizzes, tests and exams will appear here.</p> : <div style={{ display: 'grid', gap: 10 }}>
             {assignments.map(item => {
               const enabled = item.canStart || item.percentage !== null
+              const destination = item.percentage !== null && item.attemptId
+                ? `/student/results/${item.attemptId}`
+                : `/student/assessment/${item.assignmentId}`
               return <article key={item.assignmentId} style={itemCard}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <div><div style={eyebrowDark}>{item.assessmentType.replaceAll('_', ' ')}</div><strong>{item.title}</strong></div>
@@ -82,7 +85,7 @@ export default function VibeLearnExamsPage() {
                   {item.timeLimitMinutes && <span style={pill}>{item.timeLimitMinutes} min</span>}
                   {item.attemptNumber && <span style={pill}>Attempt {item.attemptNumber}/{item.maxAttempts}</span>}
                 </div>
-                <button style={{ ...primaryButton, marginTop: 12, opacity: enabled ? 1 : 0.55 }} disabled={!enabled} onClick={() => enabled && router.push(`/student/assessment/${item.assignmentId}`)}>{actionLabel(item)}</button>
+                <button style={{ ...primaryButton, marginTop: 12, opacity: enabled ? 1 : 0.55 }} disabled={!enabled} onClick={() => enabled && router.push(destination)}>{actionLabel(item)}</button>
               </article>
             })}
           </div>}
@@ -92,10 +95,10 @@ export default function VibeLearnExamsPage() {
           <div style={eyebrowDark}>Released results</div>
           <h2 style={title}>Your exam history</h2>
           {!hub || hub.results.length === 0 ? <p style={muted}>Released marks and feedback will appear here.</p> : <div style={{ display: 'grid', gap: 9 }}>
-            {hub.results.map(result => <div key={result.attemptId} style={row}>
-              <div><strong>{result.assessmentTitle}</strong><div style={muted}>{result.assessmentType.replaceAll('_', ' ')} · {new Date(result.releasedAt).toLocaleDateString('en-KE')}</div>{result.feedback && <div style={{ marginTop: 5, fontSize: 12 }}>{result.feedback}</div>}</div>
-              <strong>{result.percentage == null ? '—' : `${result.percentage.toFixed(1)}%`}</strong>
-            </div>)}
+            {hub.results.map(result => <button key={result.attemptId} type="button" style={resultRowButton} onClick={() => router.push(`/student/results/${result.attemptId}`)}>
+              <div style={{ textAlign: 'left' }}><strong>{result.assessmentTitle}</strong><div style={muted}>{result.assessmentType.replaceAll('_', ' ')} · {new Date(result.releasedAt).toLocaleDateString('en-KE')}</div>{result.feedback && <div style={{ marginTop: 5, fontSize: 12 }}>{result.feedback}</div>}</div>
+              <div style={{ display: 'grid', justifyItems: 'end', gap: 4 }}><strong>{result.percentage == null ? '—' : `${result.percentage.toFixed(1)}%`}</strong><span style={{ ...muted, color: '#4338ca', fontWeight: 800 }}>Review →</span></div>
+            </button>)}
           </div>}
         </section>
       </>}
@@ -117,7 +120,7 @@ const muted: React.CSSProperties = { fontSize: 12, color: '#64748b', margin: 0 }
 const metrics: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 10 }
 const metric: React.CSSProperties = { border: '1px solid #fde68a', background: '#fff', borderRadius: 12, padding: 12, display: 'grid', gap: 4 }
 const itemCard: React.CSSProperties = { border: '1px solid #e2e8f0', borderRadius: 13, padding: 13 }
-const row: React.CSSProperties = { border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }
+const resultRowButton: React.CSSProperties = { width: '100%', border: '1px solid #e2e8f0', borderRadius: 12, padding: 12, display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', background: '#fff', color: '#0f172a', cursor: 'pointer', fontFamily: 'inherit' }
 const pill: React.CSSProperties = { fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 999, background: '#f1f5f9', color: '#475569' }
 const primaryButton: React.CSSProperties = { border: 'none', background: '#4f46e5', color: '#fff', borderRadius: 11, padding: '10px 14px', fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
 const secondaryButton: React.CSSProperties = { border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4338ca', borderRadius: 10, padding: '8px 11px', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }
