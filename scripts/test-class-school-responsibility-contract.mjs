@@ -58,4 +58,15 @@ for(const name of ['teacher_get_class_operations','teacher_save_class_duty_roste
 assert.match(classOps,/Borrowing history/,'borrowed-item history is available within Class Operations');
 assert.match(classOps,/p_request_id:requestId/,'book issue retries keep one canonical borrowing record');
 assert.match(classOps,/activeLoans=operations\.borrowings\.filter\(loan=>!loan\.returned_at\)/,'outstanding returns are derived from the canonical borrowing ledger');
+const correction=fs.readFileSync('supabase/migrations/20261009111500_fix_school_responsibility_context_json.sql','utf8');
+for(const fn of ['teacher_get_my_school_responsibilities','teacher_get_school_responsibility_admin_context']){
+ const start=migration.indexOf(`create or replace function public.${fn}()`);
+ const original=migration.slice(start,migration.indexOf('end; $$;',start)+'end; $$;'.length);
+ const correctedStart=correction.indexOf(`create or replace function public.${fn}()`);
+ const corrected=correction.slice(correctedStart,correction.indexOf('end; $$;',correctedStart)+'end; $$;'.length);
+ assert.equal(corrected.replace("v_school := nullif(public.get_my_teacher_school_context()->>'active_school_id','')::uuid;",'select active_school_id into v_school from public.get_my_teacher_school_context();'),original,`${fn} preserves every existing authority and scope check`);
+}
+assert.doesNotMatch(correction,/\b(?:grant|revoke|alter table|drop table|disable row level security)\b\s/i,'context repair does not change privileges or tables');
+assert.match(schoolHub,/informationError&&<div role="alert"/,'unavailable school updates are exposed as a recoverable error');
+assert.match(schoolHub,/!informationError&&<>/,'a failed updates fetch is not reported as an empty calendar');
 console.log('Class and School responsibility integration contract passed.');

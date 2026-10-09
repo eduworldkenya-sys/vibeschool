@@ -816,7 +816,7 @@ export default function VibeLearnPage() {
         {/* ── Hero ── */}
         <div style={{ background: "linear-gradient(135deg,#065f46 0%,#1e1b4b 100%)", borderRadius: 20, padding: "18px 20px", marginBottom: 14, color: "#fff", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle,rgba(16,185,129,0.25),transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn · Learning Library</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn · Learning Library</div>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Find. Use. Follow learning.</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginBottom: 16 }}>Curriculum-aware learning material for your subjects, classes and learners.</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 8 }}>
@@ -832,7 +832,7 @@ export default function VibeLearnPage() {
                 style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 12, padding: "11px 9px", color: "#fff", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
               >
                 <div style={{ fontSize: 12, fontWeight: 800 }}>{item.label}</div>
-                <div style={{ fontSize: 9, color: "rgba(255,255,255,0.52)", marginTop: 3, lineHeight: 1.35 }}>{item.detail}</div>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.52)", marginTop: 3, lineHeight: 1.35 }}>{item.detail}</div>
               </button>
             ))}
           </div>
@@ -860,7 +860,7 @@ export default function VibeLearnPage() {
         </div>
 
         {publishOk && (
-          <div style={{ ...S.card, background: "#d1fae5", border: "1px solid #6ee7b7", padding: "12px 16px", marginBottom: 14, animation: "fadeIn 0.3s ease" }}>
+          <div style={{ ...S.card, background: "var(--teacher-green-soft, #e9f4ed)", border: "1px solid #6ee7b7", padding: "12px 16px", marginBottom: 14, animation: "fadeIn 0.3s ease" }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "#065f46" }}>✓ Published to VibeLearn. It is now available for discovery.</div>
           </div>
         )}
@@ -892,7 +892,7 @@ export default function VibeLearnPage() {
                   ].map(s => (
                     <div key={s.label} style={{ flex: 1, ...S.card, padding: "12px 14px", marginBottom: 0, textAlign: "center" }}>
                       <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{typeof s.value === "number" ? s.value.toLocaleString() : s.value}</div>
-                      <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>{s.label}</div>
+                      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -913,13 +913,13 @@ export default function VibeLearnPage() {
                           {item.tags?.length > 0 && (
                             <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
                               {item.tags.slice(0, 3).map(tag => (
-                                <span key={tag} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted }}>{tag}</span>
+                                <span key={tag} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted }}>{tag}</span>
                               ))}
                             </div>
                           )}
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
-                          <div style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 10, fontWeight: 700, background: item.status === "live" ? "#d1fae5" : "#f3f4f6", color: item.status === "live" ? "#065f46" : C.textMuted }}>
+                          <div style={{ display: "inline-block", padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: item.status === "live" ? "#d1fae5" : "#f3f4f6", color: item.status === "live" ? "#065f46" : C.textMuted }}>
                             {item.status === "live" ? "● Live" : "Draft"}
                           </div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginTop: 6 }}>{item.view_count.toLocaleString()} views</div>
@@ -1046,9 +1046,9 @@ export default function VibeLearnPage() {
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                           <div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{opt.title}</div>
                           {isSelected ? (
-                            <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#d1fae5", color: "#065f46", textTransform: "uppercase", letterSpacing: 0.5 }}>Selected</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "var(--teacher-green-soft, #e9f4ed)", color: "#065f46", textTransform: "uppercase", letterSpacing: 0.5 }}>Selected</span>
                           ) : opt.badge ? (
-                            <span style={{ fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#ede9fe", color: "#6d28d9", textTransform: "uppercase", letterSpacing: 0.5 }}>{opt.badge}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#ede9fe", color: "#6d28d9", textTransform: "uppercase", letterSpacing: 0.5 }}>{opt.badge}</span>
                           ) : null}
                         </div>
                         <div style={{ fontSize: 12, color: C.textMuted, marginTop: 3, lineHeight: 1.5 }}>{opt.desc}</div>
@@ -1252,14 +1252,14 @@ export default function VibeLearnPage() {
                   ].map(s => (
                     <div key={s.label} style={{ background: s.bg, borderRadius: 14, padding: "16px 14px" }}>
                       <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-                      <div style={{ fontSize: 10, color: s.color, fontWeight: 600, marginTop: 3, opacity: 0.7, textTransform: "uppercase", letterSpacing: 0.8 }}>{s.label}</div>
+                      <div style={{ fontSize: 11, color: s.color, fontWeight: 600, marginTop: 3, opacity: 0.7, textTransform: "uppercase", letterSpacing: 0.8 }}>{s.label}</div>
                     </div>
                   ))}
                 </div>
 
                 {stats?.top_content && stats.top_content.length > 0 && (
                   <div style={S.card}>
-                    <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 12 }}>Publishing reach</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 12 }}>Publishing reach</div>
                     {stats.top_content.map((c, i) => (
                       <div key={c.title} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < stats.top_content.length - 1 ? `1px solid ${C.border}` : "none" }}>
                         <div style={{ fontSize: 18, flexShrink: 0 }}>{["🥇","🥈","🥉"][i]}</div>
@@ -1560,7 +1560,7 @@ function ReadingAssignmentsTab() {
         <div
           style={{
             fontSize: 16,
-            fontWeight: 850,
+            fontWeight: 750,
             color: C.textPrimary,
             marginBottom: 4,
           }}
@@ -1611,7 +1611,7 @@ function ReadingAssignmentsTab() {
               key={metric.label}
               style={{
                 borderRadius: 11,
-                background: "#f8fafc",
+                background: "var(--teacher-canvas, #f5f6f2)",
                 border: `1px solid ${C.border}`,
                 padding: "10px 5px",
                 textAlign: "center",
@@ -1621,7 +1621,7 @@ function ReadingAssignmentsTab() {
                 style={{
                   color: metric.color,
                   fontSize: 17,
-                  fontWeight: 900,
+                  fontWeight: 750,
                 }}
               >
                 {metric.value}
@@ -1629,7 +1629,7 @@ function ReadingAssignmentsTab() {
               <div
                 style={{
                   color: C.textMuted,
-                  fontSize: 8,
+                  fontSize: 11,
                   fontWeight: 800,
                   marginTop: 2,
                 }}
@@ -1836,7 +1836,7 @@ function ReadingAssignmentCard({
               style={{
                 color: C.textPrimary,
                 fontSize: 14,
-                fontWeight: 850,
+                fontWeight: 750,
                 lineHeight: 1.35,
               }}
             >
@@ -1848,8 +1848,8 @@ function ReadingAssignmentCard({
                 flexShrink: 0,
                 borderRadius: 999,
                 padding: "4px 8px",
-                fontSize: 9,
-                fontWeight: 850,
+                fontSize: 11,
+                fontWeight: 750,
                 background: cancelled
                   ? "#f1f5f9"
                   : overdueCount > 0
@@ -1901,7 +1901,7 @@ function ReadingAssignmentCard({
           <div
             style={{
               color: C.textMuted,
-              fontSize: 10,
+              fontSize: 11,
               marginTop: 4,
             }}
           >
@@ -1927,7 +1927,7 @@ function ReadingAssignmentCard({
           <div
             key={metric.label}
             style={{
-              background: "#f8fafc",
+              background: "var(--teacher-canvas, #f5f6f2)",
               borderRadius: 9,
               padding: "8px 4px",
               textAlign: "center",
@@ -1937,7 +1937,7 @@ function ReadingAssignmentCard({
               style={{
                 color: C.textPrimary,
                 fontSize: 14,
-                fontWeight: 850,
+                fontWeight: 750,
               }}
             >
               {metric.value}
@@ -1945,7 +1945,7 @@ function ReadingAssignmentCard({
             <div
               style={{
                 color: C.textMuted,
-                fontSize: 8,
+                fontSize: 11,
                 fontWeight: 750,
                 marginTop: 2,
               }}
@@ -1962,7 +1962,7 @@ function ReadingAssignmentCard({
             display: "flex",
             justifyContent: "space-between",
             color: C.textMuted,
-            fontSize: 10,
+            fontSize: 11,
             marginBottom: 5,
           }}
         >
@@ -2060,7 +2060,7 @@ function ReadingAssignmentCard({
                 <div
                   style={{
                     color: C.textMuted,
-                    fontSize: 9,
+                    fontSize: 11,
                     fontWeight: 800,
                     textTransform: "uppercase",
                     letterSpacing: 0.7,
@@ -2247,7 +2247,7 @@ function AssignmentLearnersSheet({
           }}
         >
           <div>
-            <div style={{ fontSize: 15, fontWeight: 850, color: C.textPrimary }}>
+            <div style={{ fontSize: 15, fontWeight: 750, color: C.textPrimary }}>
               {item.chapter_title
                 ? `Unit ${item.chapter_number} · ${item.chapter_title}`
                 : `Unit ${item.chapter_number}`}
@@ -2408,13 +2408,13 @@ function AssignmentLearnerRow({ row }: { row: AssignmentLearnerItem }) {
         </div>
 
         {row.admission_number && (
-          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>
             Adm. {row.admission_number}
           </div>
         )}
 
         {!unlinked && (
-          <div style={{ fontSize: 10, color: C.textMuted, marginTop: 4 }}>
+          <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
             {Math.round(row.progress_percent || 0)}% ·{" "}
             {row.completed_at
               ? `Completed ${formatAssignmentDate(row.completed_at, true)}`
@@ -2427,7 +2427,7 @@ function AssignmentLearnerRow({ row }: { row: AssignmentLearnerItem }) {
         {row.intervention_reason && (
           <div
             style={{
-              fontSize: 10,
+              fontSize: 11,
               color: "#b91c1c",
               marginTop: 4,
               fontWeight: 700,
@@ -2443,8 +2443,8 @@ function AssignmentLearnerRow({ row }: { row: AssignmentLearnerItem }) {
           flexShrink: 0,
           borderRadius: 999,
           padding: "4px 8px",
-          fontSize: 9,
-          fontWeight: 850,
+          fontSize: 11,
+          fontWeight: 750,
           whiteSpace: "nowrap",
           background: colors.bg,
           color: colors.fg,
@@ -2899,7 +2899,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
       <div style={{ position: "relative", marginBottom: 10 }}>
         <input value={query} onChange={e => setQuery(e.target.value)}
           placeholder="Search topic, subject, strand, tag or resource…"
-          style={{ width: "100%", padding: "12px 14px 12px 42px", borderRadius: 12, border: "1.5px solid #e5e7eb", fontSize: 13, fontFamily: "inherit", outline: "none", background: "#fff", color: "#111827", boxSizing: "border-box" }} />
+          style={{ width: "100%", padding: "12px 14px 12px 42px", borderRadius: 12, border: "1.5px solid #e5e7eb", fontSize: 13, fontFamily: "inherit", outline: "none", background: "#fff", color: "var(--teacher-ink, #1c2923)", boxSizing: "border-box" }} />
         <div style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }}>🔍</div>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
@@ -2920,7 +2920,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
       {loading ? (
         [1,2,3].map(i => <div key={i} style={{ marginBottom: 10 }}><Shimmer h={90} r={14} /></div>)
       ) : items.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "#6b7280", fontSize: 13 }}>
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--teacher-muted, #627168)", fontSize: 13 }}>
           {query ? `No results for "${query}"` : "No content from other teachers yet."}
         </div>
       ) : items.map(item => (
@@ -2928,11 +2928,11 @@ function DiscoverTab({ userId }: { userId: string | null }) {
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
             <div style={{ fontSize: 22, flexShrink: 0 }}>{contentIcon(item.type)}</div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: "#111827", lineHeight: 1.3 }}>{item.title}</div>
-              <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{item.source}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--teacher-ink, #1c2923)", lineHeight: 1.3 }}>{item.title}</div>
+              <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>{item.source}</div>
               {item.tags?.length > 0 && (
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
-                  {item.tags.slice(0, 3).map(t => <span key={t} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: "#6b7280" }}>{t}</span>)}
+                  {item.tags.slice(0, 3).map(t => <span key={t} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: "var(--teacher-muted, #627168)" }}>{t}</span>)}
                 </div>
               )}
             </div>
@@ -2944,14 +2944,14 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                 if (dest.external) {
                   return (
                     <a href={dest.href} target="_blank" rel="noopener noreferrer"
-                      style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, background: "#f3f4f6", color: "#111827", fontWeight: 700, textDecoration: "none" }}>
+                      style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, background: "#f3f4f6", color: "var(--teacher-ink, #1c2923)", fontWeight: 700, textDecoration: "none" }}>
                       Open →
                     </a>
                   );
                 }
                 return (
                   <button onClick={() => router.push(dest.href)}
-                    style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "#111827", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                    style={{ display: "inline-block", marginTop: 6, fontSize: 11, padding: "5px 12px", borderRadius: 8, border: "none", background: "#f3f4f6", color: "var(--teacher-ink, #1c2923)", fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
                     Read →
                   </button>
                 );
@@ -2969,7 +2969,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
               marginTop: 10,
             }}>
               <span style={{
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 800,
                 padding: "3px 8px",
                 borderRadius: 20,
@@ -2989,7 +2989,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
 
               {item.registry_grade && (
                 <span style={{
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: 700,
                   padding: "3px 8px",
                   borderRadius: 20,
@@ -3002,7 +3002,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
 
               {item.registry_strand && (
                 <span style={{
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: 700,
                   padding: "3px 8px",
                   borderRadius: 20,
@@ -3036,14 +3036,14 @@ function DiscoverTab({ userId }: { userId: string | null }) {
               ) : adoptionClasses.length === 0 ? (
                 <div style={{
                   fontSize: 11,
-                  color: "#6b7280",
+                  color: "var(--teacher-muted, #627168)",
                 }}>
                   No assigned classes are available
                   for this subject.
                 </div>
               ) : classPickerContentId === item.id ? (
                 <div>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#111827", marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "var(--teacher-ink, #1c2923)", marginBottom: 8 }}>
                     How do you want to use this?
                   </div>
                   <div style={{ display: "grid", gap: 6, marginBottom: 12 }}>
@@ -3065,14 +3065,14 @@ function DiscoverTab({ userId }: { userId: string | null }) {
                             fontFamily: "inherit",
                           }}
                         >
-                          <div style={{ fontSize: 12, fontWeight: 800, color: "#111827" }}>{option.label}</div>
-                          <div style={{ fontSize: 10, color: "#6b7280", marginTop: 2, lineHeight: 1.4 }}>{option.help}</div>
+                          <div style={{ fontSize: 12, fontWeight: 800, color: "var(--teacher-ink, #1c2923)" }}>{option.label}</div>
+                          <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 2, lineHeight: 1.4 }}>{option.help}</div>
                         </button>
                       );
                     })}
                   </div>
 
-                  <div style={{ fontSize: 11, fontWeight: 800, color: "#111827", marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "var(--teacher-ink, #1c2923)", marginBottom: 8 }}>
                     {preferredClassId && adoptionClasses[0]?.id === preferredClassId
                       ? "Use with this class"
                       : "Use with which class?"}
@@ -3141,7 +3141,7 @@ function DiscoverTab({ userId }: { userId: string | null }) {
 
                   <button
                     onClick={() => setClassPickerContentId(null)}
-                    style={{ marginTop: 8, border: "none", background: "transparent", color: "#6b7280", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
+                    style={{ marginTop: 8, border: "none", background: "transparent", color: "var(--teacher-muted, #627168)", fontSize: 11, cursor: "pointer", fontFamily: "inherit" }}
                   >
                     Cancel
                   </button>

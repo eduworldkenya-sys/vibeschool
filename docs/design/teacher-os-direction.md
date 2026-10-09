@@ -1,0 +1,32 @@
+# Teacher OS direction and current evidence
+
+The Teacher workspace uses a quiet neutral canvas, white working surfaces, dark readable text and one green action color. Information is ordered around the task: context, next action, working records, then supporting details. Today, Teach, Classes, Assess and Me remain the five primary mobile destinations. Desktop uses those same destinations and contextual tools; the tool directory and mobile sheets share one route registry.
+
+The direction draws on the clarity of Linear's work lists, Notion's document hierarchy and Google Classroom's class identity. Existing Teacher routes, school authority, RPCs, mutations and teaching identities remain canonical. This document is a progress record, not a completion or release certificate.
+
+Implemented structural changes include the shared shell/navigation, searchable tool directory, class cards and search, Today hierarchy, concise lesson-plan and Teach Today headers, searchable Help, accessible preference controls, homework summary/list and notification presentation. Shared modals support Escape, focus containment and focus restoration. Closed navigation sheets are unmounted. The visual token migration covers 100 Teacher files plus seven CSS modules; those changes alone do not prove that every screen meets the redesign brief.
+
+## Validation boundaries
+
+- Real components were exercised with isolated fixtures at 360, 390, 412, 768, 1440 and 1920 pixels. Checks cover overflow, one main landmark, tools/class search, class empty/error states, navigation sheet keyboard behavior, Help search, preference saving and modal keyboard behavior. Fixture saving never reaches Supabase.
+- The supplied test account signs in through the real login, auth middleware and school authority. Live Class Hub rendered three classes and six learners; tools, Help and Settings rendered without horizontal overflow. The browser harness rejects non-allowlisted operations, including Twin observation and occurrence generation. These checks do not certify write journeys or every route.
+- The real credit-balance RPC returns HTTP 403 for this account. The shell now distinguishes an unavailable balance from loading. No production grants, RLS, migrations or records were changed to repair it.
+- Twin, timetable, SEO, guide, exam, pilot and portal UX contracts pass. TypeScript and lint pass with existing repository lint warnings. The changed-source production build passed, generating all 315 pages; standalone TypeScript verification also passed after the build.
+- The legacy teacher-authority-convergence test referenced a nonexistent migration timestamp. Its reference now names the actual canonical migration. It previously failed because it expected the assessment page to use `get_my_teacher_school_context`; baseline HEAD already uses `teacher_get_operating_context`. The test now checks the current server-owned operating-context API and strengthens SQL assertions for authenticated teacher identity, authorized preferences and class/subject school joins. It passes without changing application data flow.
+- An AST comparison found unchanged data/auth/mutation call expressions across 109 changed Teacher source files. This is a preservation check, not a substitute for functional journey tests.
+
+## Cloud runtime correction
+
+Chromium requires access to its NSS trust database and the user-approved platform proxy CA. TLS-verified Supabase browser requests succeed with authorized browser access. Next 14 middleware has a separate Edge VM HTTP client; the local startup adapter adds the existing platform proxy dispatcher to that fetch client and Node fetch. The adapter and its dependency live outside the repository. TLS and auth remain enabled. Reusable installation and startup instructions are saved in the environment draft; publishing and fresh-task restoration are separate steps.
+
+## Remaining delivery gates
+
+The route ledger retains pending states for screens and journeys that have not been rendered or exercised. All-route structural review, saving/failure/retry flows, accessible interaction review, exact-commit CI/review, merge and production verification remain open. The owner now authorizes reversible functional test writes in the prelaunch production-designated project, conditional on verified backup/recovery evidence. Backup access is currently blocked; no write test has run. Merge and deployment still require separate approval. No production deployment or full Teacher OS completion is claimed.
+
+## Functional investigation update
+
+Authenticated read-only diagnostics confirmed: credit-balance execute privilege denied (`42501`), school-information RPC absent from the schema cache (`PGRST202`), and both school-responsibility readers fail on `active_school_id` (`42703`). The responsibility functions treat the canonical JSON school context as a table. The existing isolated test mocked a table return and hid this defect. The fixture now returns JSON, explicitly reproduces both baseline 42703 errors, then applies the proposed corrective migration only in PGlite. The full existing authorization, tenant, retry, handover and responsibility tests pass. The corrective migration changes only active-school JSON extraction; a contract check compares both complete function bodies to preserve every other guard/query. Nothing was applied to the connected project.
+
+School Hub now renders failed optional updates as recoverable alerts instead of claiming an empty calendar. Isolated browser verification confirms failed fetches do not show false empty-event/notice messages. Teacher UI contexts were moved out of the Next layout into `TeacherUiContext.tsx`, matching the Student portal pattern. Development-generated Next type checks exposed the invalid baseline layout exports; they pass after extraction.
+
+A self-contained interactive UI review is exported to `/workspace/artifacts/teacher-os-ui-review.html`. It contains six implemented components (Classes, All tools, Help, Settings, Resources, My school), synthetic fixtures and an explicit preview-scope notice. A browser content check verifies class search, screen navigation, resource dialog and Escape with no network requests. Local file URL navigation is blocked by this environment browser policy; the embedded HTML content was tested directly. This is a UI review artifact, not a deployed application or proof of write persistence.

@@ -3,7 +3,7 @@
   border-radius: 16px;
   margin: 16px 16px 0;
   border: 1px solid var(--border);
-  border-left: 3px solid #10B981;
+  border-left: 3px solid var(--teacher-green, #087451);
   box-shadow: var(--card-shadow);
   overflow: hidden;
 }
@@ -27,9 +27,9 @@
 }
 
 .tabActive {
-  background: #10B981;
+  background: var(--teacher-green, #087451);
   color: #000;
-  border-color: #10B981;
+  border-color: var(--teacher-green, #087451);
 }
 
 .livePill {
@@ -43,7 +43,7 @@
 
 .liveDot {
   width: 6px; height: 6px; border-radius: 50%;
-  background: #10B981;
+  background: var(--teacher-green, #087451);
   animation: pulse 2s infinite;
 }
 
@@ -135,7 +135,7 @@
 
 .nextTime {
   font-size: 12px; font-weight: 700;
-  color: #10B981;
+  color: var(--teacher-green, #087451);
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
@@ -144,7 +144,7 @@
 
 .btnMark {
   flex: 1;
-  background: #10B981; color: #000;
+  background: var(--teacher-green, #087451); color: #000;
   border: none; border-radius: 10px;
   padding: 12px 0;
   font-size: 13px; font-weight: 700; cursor: pointer;
@@ -156,7 +156,7 @@
 
 .btnGradebook {
   flex: 1;
-  background: #10B981; color: #000;
+  background: var(--teacher-green, #087451); color: #000;
   border: none; border-radius: 10px;
   padding: 12px 0;
   font-size: 13px; font-weight: 700; cursor: pointer;
@@ -182,7 +182,7 @@
 .nextFullSubject {
   font-size: 22px; font-weight: 800;
   color: var(--text);
-  font-family: 'DM Serif Display', serif;
+  font-family: inherit;
 }
 
 .nextFullMeta {
@@ -192,7 +192,7 @@
 
 .nextFullCountdown {
   font-size: 18px; font-weight: 700;
-  color: #10B981;
+  color: var(--teacher-green, #087451);
   font-family: 'Plus Jakarta Sans', sans-serif;
   margin-top: 4px;
 }

@@ -243,7 +243,7 @@ function MpesaModal({ pkg, onClose, onSuccess }: { pkg: Package; onClose: () => 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 900, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
       <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", padding: "28px 24px 40px", width: "100%", maxWidth: 480 }}>
-        <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 20px" }} />
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--teacher-border, #dfe5de)", margin: "0 auto 20px" }} />
         <p style={{ fontSize: 13, color: C.textMuted, margin: "0 0 4px" }}>Paying for</p>
         <p style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary, margin: "0 0 4px" }}>{pkg.name}</p>
         <p style={{ fontSize: 14, color: C.accent, fontWeight: 700, margin: "0 0 24px" }}>KES {pkg.price_kes} · {pkg.credits} Vibe Credits</p>
@@ -329,22 +329,22 @@ export default function CreditsPage() {
       <div style={{ background: C.dark, borderRadius: 20, padding: "24px 24px 20px", marginBottom: 28, color: "#fff" }}>
         <p style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", margin: "0 0 4px", fontWeight: 600, letterSpacing: "0.5px", textTransform: "uppercase" }}>Vibe Wallet</p>
         <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "0 0 16px" }}>
-          <span style={{ fontSize: 48, fontWeight: 900, lineHeight: 1 }}>{wallet?.balance ?? 0}</span>
+          <span style={{ fontSize: 48, fontWeight: 750, lineHeight: 1 }}>{wallet?.balance ?? 0}</span>
           <span style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", fontWeight: 600 }}>credits</span>
         </div>
         <div style={{ display: "flex", gap: 20 }}>
-          <div><p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", margin: "0 0 2px", textTransform: "uppercase" }}>Earned</p><p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>{wallet?.total_earned ?? 0}</p></div>
-          <div><p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", margin: "0 0 2px", textTransform: "uppercase" }}>Spent</p><p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>{wallet?.total_spent ?? 0}</p></div>
-          <div><p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", margin: "0 0 2px", textTransform: "uppercase" }}>Never Expire</p><p style={{ fontSize: 14, fontWeight: 700, margin: 0, color: C.accent }}>✓</p></div>
+          <div><p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", margin: "0 0 2px", textTransform: "uppercase" }}>Earned</p><p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>{wallet?.total_earned ?? 0}</p></div>
+          <div><p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", margin: "0 0 2px", textTransform: "uppercase" }}>Spent</p><p style={{ fontSize: 14, fontWeight: 700, margin: 0 }}>{wallet?.total_spent ?? 0}</p></div>
+          <div><p style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", margin: "0 0 2px", textTransform: "uppercase" }}>Never Expire</p><p style={{ fontSize: 14, fontWeight: 700, margin: 0, color: C.accent }}>✓</p></div>
         </div>
       </div>
 
       <p style={{ fontSize: 13, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: "0.6px", margin: "0 0 14px" }}>Top Up Credits</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 32 }}>
-        {packages.length === 0 && <p style={{ fontSize: 13, color: "#9ca3af", textAlign: "center", padding: "20px 0" }}>No packages available right now.</p>}
+        {packages.length === 0 && <p style={{ fontSize: 13, color: "var(--teacher-muted, #627168)", textAlign: "center", padding: "20px 0" }}>No packages available right now.</p>}
         {packages.map(pkg => (
           <div key={pkg.id} onClick={() => setSelected(pkg)} style={{ background: "#fff", borderRadius: 16, padding: "16px 18px", border: `1.5px solid ${pkg.name === "Vibe Term" ? C.accent : C.border}`, cursor: "pointer", position: "relative", boxShadow: pkg.name === "Vibe Term" ? "0 4px 20px rgba(16,185,129,0.15)" : "0 1px 4px rgba(0,0,0,0.06)" }}>
-            {BADGE[pkg.name] && <span style={{ position: "absolute", top: -10, right: 16, background: C.accent, color: "#fff", fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>{BADGE[pkg.name]}</span>}
+            {BADGE[pkg.name] && <span style={{ position: "absolute", top: -10, right: 16, background: C.accent, color: "#fff", fontSize: 11, fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>{BADGE[pkg.name]}</span>}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
                 <p style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, margin: "0 0 3px" }}>{pkg.name}</p>
@@ -355,8 +355,8 @@ export default function CreditsPage() {
                 </div>
               </div>
               <div style={{ textAlign: "right", flexShrink: 0, marginLeft: 12 }}>
-                <p style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary, margin: "0 0 2px" }}>KES {pkg.price_kes}</p>
-                <p style={{ fontSize: 10, color: C.accent, fontWeight: 700, margin: 0 }}>Pay via M-Pesa</p>
+                <p style={{ fontSize: 20, fontWeight: 750, color: C.textPrimary, margin: "0 0 2px" }}>KES {pkg.price_kes}</p>
+                <p style={{ fontSize: 11, color: C.accent, fontWeight: 700, margin: 0 }}>Pay via M-Pesa</p>
               </div>
             </div>
           </div>
@@ -375,7 +375,7 @@ export default function CreditsPage() {
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <p style={{ fontSize: 15, fontWeight: 800, margin: "0 0 2px", color: tx.amount > 0 ? C.accent : C.error }}>{tx.amount > 0 ? "+" : ""}{tx.amount}</p>
-                  <p style={{ fontSize: 10, color: C.textMuted, margin: 0 }}>bal: {tx.balance_after}</p>
+                  <p style={{ fontSize: 11, color: C.textMuted, margin: 0 }}>bal: {tx.balance_after}</p>
                 </div>
               </div>
             ))}

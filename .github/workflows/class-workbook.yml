@@ -12,6 +12,10 @@ on:
       - "lib/report-cards/service.ts"
       - "app/teacher/report-cards/**"
       - "app/teacher/assessment/interventions/**"
+      - "app/teacher/homework/**"
+      - "app/teacher/onboarding/students/**"
+      - "components/teacher/TeacherClassForm.tsx"
+      - "scripts/test-teacher-workflow-v2*"
       - "components/teacher/workbook/**"
       - "app/teacher/classhub/**"
       - "app/teacher/schoolhub/**"
@@ -21,6 +25,12 @@ on:
       - "scripts/test-class-school-responsibility-db.mjs"
       - "supabase/migrations/*class_workbook*"
       - "scripts/test-class-workbook*"
+      - "scripts/test-homework-grading-ui.mjs"
+      - "scripts/test-attendance-history-ui.mjs"
+      - "scripts/test-class-task-rosters-ui.mjs"
+      - "scripts/test-report-card-picker-ui.mjs"
+      - "app/teacher/results/report-card/**"
+      - "lib/attendance/**"
       - "scripts/test-classroom-workspace*"
       - "lib/classroom/**"
       - "components/teacher/classroom/**"
@@ -66,5 +76,25 @@ jobs:
         run: PROGRESS_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-progress-workspace-ui.mjs
       - name: Exercise support and report context recovery
         run: PROGRESS_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-progress-support-ui.mjs
+      - name: Set up TypeScript loader test runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Verify authoritative teaching priorities
+        run: node --import ./scripts/register-typescript.mjs scripts/test-teacher-workflow-v2.mjs
+      - name: Exercise class creation and learner save recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-teacher-workflow-v2-ui.mjs
+      - name: Restore canonical application runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Exercise classroom workspace interactions and recovery
         run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-classroom-workspace-ui.mjs
+      - name: Exercise canonical homework roster and marking recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-homework-grading-ui.mjs
+      - name: Exercise attendance history authority and read failure recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-attendance-history-ui.mjs
+      - name: Exercise project and exercise canonical roster recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-class-task-rosters-ui.mjs
+      - name: Exercise report picker authority and read recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-report-card-picker-ui.mjs

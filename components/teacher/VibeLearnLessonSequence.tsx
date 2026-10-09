@@ -31,7 +31,7 @@ function badge(text: string) {
       border: '1px solid #dbeafe',
       background: '#eff6ff',
       color: '#1d4ed8',
-      fontSize: 9,
+      fontSize: 11,
       fontWeight: 800,
       padding: '2px 7px',
       textTransform: 'capitalize',
@@ -160,7 +160,7 @@ export default function VibeLearnLessonSequence({
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 900, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: .8 }}>
+          <div style={{ fontSize: 11, fontWeight: 750, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: .8 }}>
             VibeLearn lesson sequence
           </div>
           <div style={{ marginTop: 3, color: '#475569', fontSize: 11, lineHeight: 1.45 }}>
@@ -173,7 +173,7 @@ export default function VibeLearnLessonSequence({
           background: '#fff',
           color: '#1d4ed8',
           padding: '5px 8px',
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 800,
           cursor: 'pointer',
         }}>
@@ -199,13 +199,13 @@ export default function VibeLearnLessonSequence({
             borderRadius: 9,
             padding: '8px 9px',
           }}>
-            <div style={{ fontSize: 16, fontWeight: 900, color: '#0f172a' }}>{String(value)}</div>
-            <div style={{ fontSize: 9, color: '#64748b', marginTop: 2 }}>{String(label)}</div>
+            <div style={{ fontSize: 16, fontWeight: 750, color: '#0f172a' }}>{String(value)}</div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{String(label)}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ marginTop: 8, fontSize: 10, color: '#64748b', lineHeight: 1.45 }}>
+      <div style={{ marginTop: 8, fontSize: 11, color: '#64748b', lineHeight: 1.45 }}>
         {d.classSize > 0
           ? `${d.classSize} learner${d.classSize === 1 ? '' : 's'} in this class · ${d.learnersWithObservedMisconceptions} with recorded misconception signals.`
           : 'No active class roster was available for differentiation.'}
@@ -222,7 +222,7 @@ export default function VibeLearnLessonSequence({
       </div>
 
       {error && (
-        <div style={{ marginTop: 9, borderRadius: 8, background: '#fff7ed', color: '#9a3412', padding: 8, fontSize: 10 }}>
+        <div style={{ marginTop: 9, borderRadius: 8, background: '#fff7ed', color: '#9a3412', padding: 8, fontSize: 11 }}>
           {error}
         </div>
       )}
@@ -240,8 +240,8 @@ export default function VibeLearnLessonSequence({
               padding: 10,
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 900, color: '#0f172a' }}>{stage.label}</div>
-                <div style={{ fontSize: 9, color: '#64748b' }}>{stage.help}</div>
+                <div style={{ fontSize: 12, fontWeight: 750, color: '#0f172a' }}>{stage.label}</div>
+                <div style={{ fontSize: 11, color: '#64748b' }}>{stage.help}</div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 8 }}>
@@ -265,7 +265,7 @@ export default function VibeLearnLessonSequence({
                           {item.graphMatch && badge('concept match')}
                           {item.misconceptionMatch && badge('misconception support')}
                         </div>
-                        <div style={{ fontSize: 9, color: '#64748b', marginTop: 4, lineHeight: 1.4 }}>{item.reason}</div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 4, lineHeight: 1.4 }}>{item.reason}</div>
                       </div>
                       <button
                         type="button"
@@ -278,8 +278,8 @@ export default function VibeLearnLessonSequence({
                           background: item.alreadyAttached ? '#f0fdf4' : '#eff6ff',
                           color: item.alreadyAttached ? '#166534' : '#1d4ed8',
                           padding: '6px 8px',
-                          fontSize: 9,
-                          fontWeight: 900,
+                          fontSize: 11,
+                          fontWeight: 750,
                           cursor: item.alreadyAttached || adding ? 'default' : 'pointer',
                           opacity: adding && !isAdding ? .55 : 1,
                         }}

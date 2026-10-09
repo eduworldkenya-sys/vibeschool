@@ -6,14 +6,16 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { fetchPulseData } from "@/lib/pulse/fetcher";
 import type { PulseSnapshot } from "@/lib/types";
+import { TeacherWorkspace } from "@/components/teacher/ui";
+import { RefreshCw } from "lucide-react";
 import LessonFlowCard from "@/components/teacher/LessonFlowCard";
 
 const C = {
-  bg: "#f8fafc",
+  bg: "var(--teacher-canvas, #f5f6f2)",
   card: "#ffffff",
-  border: "#e5e7eb",
-  text: "#111827",
-  muted: "#6b7280",
+  border: "var(--teacher-border, #dfe5de)",
+  text: "var(--teacher-ink, #1c2923)",
+  muted: "var(--teacher-muted, #627168)",
   danger: "#dc2626",
 };
 
@@ -21,9 +23,9 @@ const documentLinks = [
   { label: "Curriculum", detail: "Learning outcomes and strands", href: "/teacher/subjecthub" },
   { label: "Scheme of Work", detail: "Term sequence and coverage", href: "/teacher/scheme" },
   { label: "Lesson Plans", detail: "Prepare the exact lesson", href: "/teacher/lessonplan" },
-  { label: "Timetable", detail: "Scheduled teaching occurrences", href: "/teacher/timetable" },
+  { label: "Timetable", detail: "Your teaching schedule", href: "/teacher/timetable" },
   { label: "VibeLearn", detail: "Curriculum-aware learning library", href: "/teacher/vibelearn" },
-  { label: "Progress Record", detail: "What was taught, reflection and remarks", href: "/teacher/progress" },
+  { label: "Progress Record", detail: "Teaching progress and reflection", href: "/teacher/progress" },
 ];
 
 function activeTeacherSchoolId(value: unknown): string | null {
@@ -83,41 +85,27 @@ export default function TeachTodayPage() {
 
   if (loading) {
     return (
-      <main style={{ minHeight: "100vh", background: C.bg, padding: 20 }}>
+      <section style={{ minHeight: "100vh", background: C.bg, padding: 20 }}>
         <div style={{ color: C.muted, fontSize: 14 }}>Loading your teaching desk…</div>
-      </main>
+      </section>
     );
   }
 
   if (!snap || error) {
     return (
-      <main style={{ minHeight: "100vh", background: C.bg, padding: 20 }}>
+      <section style={{ minHeight: "100vh", background: C.bg, padding: 20 }}>
         <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 18 }}>
           <div style={{ color: C.danger, fontSize: 14, marginBottom: 12 }}>{error ?? "Teaching data is unavailable."}</div>
           <button onClick={() => void load()} style={{ border: 0, borderRadius: 10, padding: "9px 14px", background: C.text, color: "#fff", fontWeight: 800 }}>
             Retry
           </button>
         </div>
-      </main>
+      </section>
     );
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: C.bg, padding: "20px 16px 96px" }}>
-      <header style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start", marginBottom: 16 }}>
-        <div>
-          <div style={{ color: C.muted, fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.6 }}>Teacher OS</div>
-          <h1 style={{ margin: "4px 0 0", color: C.text, fontSize: 24, lineHeight: 1.2 }}>
-            {name ? `${name}'s Teaching Desk` : "Teaching Desk"}
-          </h1>
-          <p style={{ margin: "6px 0 0", color: C.muted, fontSize: 13 }}>
-            One occurrence from curriculum and planning through attendance, teaching, tasks, reflection and progress.
-          </p>
-        </div>
-        <button disabled={refreshing} onClick={() => void load(true)} style={{ border: `1px solid ${C.border}`, background: C.card, borderRadius: 10, padding: "8px 11px", color: C.text, fontWeight: 800, opacity: refreshing ? 0.6 : 1 }}>
-          {refreshing ? "Refreshing…" : "Refresh"}
-        </button>
-      </header>
+    <TeacherWorkspace title="Teach today" eyebrow={name ? `${name}’s teaching desk` : "Teaching desk"} actions={<button type="button" className="teacher-icon-button" aria-label={refreshing ? "Refreshing teaching desk" : "Refresh teaching desk"} disabled={refreshing} onClick={()=>void load(true)}><RefreshCw size={20} aria-hidden="true"/></button>}>
 
       <section aria-label="Today's teaching workflow">
         <LessonFlowCard
@@ -132,26 +120,26 @@ export default function TeachTodayPage() {
       <section style={{ marginTop: 18 }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 9 }}>
           <h2 style={{ margin: 0, color: C.text, fontSize: 16 }}>Teaching documents</h2>
-          <span style={{ color: C.muted, fontSize: 11 }}>Curriculum-linked</span>
+          <span style={{ color: C.muted, fontSize: 11 }}></span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 }}>
           {documentLinks.map((item) => (
             <button key={item.href} onClick={() => router.push(item.href)} style={{ textAlign: "left", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 13, cursor: "pointer" }}>
-              <div style={{ color: C.text, fontSize: 13, fontWeight: 900 }}>{item.label}</div>
-              <div style={{ color: C.muted, fontSize: 10, marginTop: 4, lineHeight: 1.4 }}>{item.detail}</div>
+              <div style={{ color: C.text, fontSize: 13, fontWeight: 750 }}>{item.label}</div>
+              <div style={{ color: C.muted, fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>{item.detail}</div>
             </button>
           ))}
         </div>
       </section>
 
       <section style={{ marginTop: 18, background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 14 }}>
-        <h2 style={{ margin: 0, color: C.text, fontSize: 15 }}>Today's control totals</h2>
+        <h2 style={{ margin: 0, color: C.text, fontSize: 15 }}>Today at a glance</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginTop: 12 }}>
-          <div><div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>{snap.todaySlots.length}</div><div style={{ color: C.muted, fontSize: 10 }}>Lessons</div></div>
-          <div><div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>{snap.missedLessonPlans.length}</div><div style={{ color: C.muted, fontSize: 10 }}>Plans needed</div></div>
-          <div><div style={{ fontSize: 20, fontWeight: 900, color: C.text }}>{snap.homeworkUngraded.reduce((sum, item) => sum + item.count, 0)}</div><div style={{ color: C.muted, fontSize: 10 }}>Waiting to mark</div></div>
+          <div><div style={{ fontSize: 20, fontWeight: 750, color: C.text }}>{snap.todaySlots.length}</div><div style={{ color: C.muted, fontSize: 11 }}>Lessons</div></div>
+          <div><div style={{ fontSize: 20, fontWeight: 750, color: C.text }}>{snap.missedLessonPlans.length}</div><div style={{ color: C.muted, fontSize: 11 }}>Plans needed</div></div>
+          <div><div style={{ fontSize: 20, fontWeight: 750, color: C.text }}>{snap.homeworkUngraded.reduce((sum, item) => sum + item.count, 0)}</div><div style={{ color: C.muted, fontSize: 11 }}>Waiting to mark</div></div>
         </div>
       </section>
-    </main>
+    </TeacherWorkspace>
   );
 }

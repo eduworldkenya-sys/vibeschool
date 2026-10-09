@@ -369,7 +369,7 @@ export default function TimetableSetupPage() {
           <div style={{ display: 'grid', gap: 12 }}>
             {[...groupedPeriods.entries()].sort((a,b) => a[0]-b[0]).map(([day, rows]) => (
               <div key={day}>
-                <div style={{ fontSize: 11, fontWeight: 850, color: C.textMuted, marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 750, color: C.textMuted, marginBottom: 6 }}>
                   {DAYS.find(item => item.value === day)?.label ?? 'School day'}
                 </div>
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -380,7 +380,7 @@ export default function TimetableSetupPage() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 750, color: C.textPrimary }}>{period.label}</div>
-                        <div style={{ fontSize: 10, color: C.textMuted }}>{period.kind}{period.protected ? ' · protected' : ''}</div>
+                        <div style={{ fontSize: 11, color: C.textMuted }}>{period.kind}{period.protected ? ' · protected' : ''}</div>
                       </div>
                       {canManage && <>
                         <button type="button" onClick={() => editPeriod(period)} style={{ border: 0, background: 'transparent', color: C.accent, fontWeight: 800 }}>Edit</button>

@@ -56,7 +56,7 @@ for (const token of [
   'vibeschool-school-term-reconcile',
   'private.school_term_health',
 ]) {
-  assert.match(termProvisioningMigration, new RegExp(token.replaceAll('.', '\\\\.')))
+  assert.ok(termProvisioningMigration.includes(token), `Missing canonical term authority: ${token}`)
 }
 assert.match(termProvisioningMigration, /revoke all on function private\.generate_term_weeks_internal\(uuid\) from public,anon,authenticated,service_role/)
 assert.match(termProvisioningMigration, /on conflict\(term_id,week_number\) do nothing/)

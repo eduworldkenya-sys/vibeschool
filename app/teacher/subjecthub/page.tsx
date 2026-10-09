@@ -8,7 +8,7 @@ import type {
 } from '@/lib/academicTerm'
 import { loadActiveTeacherTimetable, timetableSlotsForDay, type CanonicalTimetableSlot } from '@/lib/timetable/engine'
 export const dynamic = "force-dynamic";
-import { Card, C } from '@/components/teacher/ui'
+import { Card, C, Modal as SharedModal } from '@/components/teacher/ui'
 import SubjectCompanion from '@/components/teacher/SubjectCompanion'
 
 import { useEffect, useState } from 'react'
@@ -402,14 +402,6 @@ export default function SubjectHubPage() {
     return () => { cancelled = true }
   }, [newSubjectClassId, schoolId, allClasses])
 
-  useEffect(() => {
-    if (showAddSubject) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => { document.body.style.overflow = '' }
-  }, [showAddSubject])
 
   function openAddSubject() {
     setNewSubjectName('')
@@ -950,18 +942,18 @@ export default function SubjectHubPage() {
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13, color: C.textMuted, paddingBottom: 60, background: C.surface, minHeight: '100%' }}>
+    <div style={{ fontFamily: "inherit", fontSize: 13, color: C.textMuted, paddingBottom: 60, background: C.surface, minHeight: '100%' }}>
       <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
 
       {/* ── HERO ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #075985 0%, #0ea5e9 80%, #10b981 150%)',
+        background: '#fff',
         padding: '14px 16px 18px',
         position: 'relative', overflow: 'hidden',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.5)', letterSpacing: 1.4, textTransform: 'uppercase' }}>SubjectHub</div>
-          <button onClick={() => router.push('/teacher/settings')} style={{ background: 'rgba(255,255,255,0.12)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13 }}>🔔</button>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase' }}>SubjectHub</div>
+          <button type="button" aria-label="Open notifications" onClick={() => router.push('/teacher/notifications')} style={{ background: C.surface, border: 'none', borderRadius: 8, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 13 }}>🔔</button>
         </div>
 
         {loading ? (
@@ -974,7 +966,7 @@ export default function SubjectHubPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{
                 width: 56, height: 56, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.18)',
+                background: C.accentLight,
                 backdropFilter: 'blur(8px)',
                 border: '2px solid rgba(255,255,255,0.3)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -982,7 +974,7 @@ export default function SubjectHubPage() {
                 boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
               }}>🔬</div>
               <div style={{ flex: 1 }}>
-                <h1 style={{ fontSize: 22, fontWeight: 900, color: '#fff', margin: 0, lineHeight: 1.2 }}>
+                <h1 style={{ fontSize: 22, fontWeight: 750, color: C.textPrimary, margin: 0, lineHeight: 1.2 }}>
                   {activeSubject ? activeSubject.name : 'No Subjects'}
                 </h1>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
@@ -996,7 +988,7 @@ export default function SubjectHubPage() {
                         else alert("To become Ready:\n• " + missing.join('\n• '))
                       }}
                       style={{
-                        fontSize: 10, fontWeight: 800, borderRadius: 20,
+                        fontSize: 11, fontWeight: 800, borderRadius: 20,
                         padding: '3px 9px', background: readiness.bg, color: readiness.color,
                         letterSpacing: 0.5, whiteSpace: 'nowrap',
                         border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -1004,7 +996,7 @@ export default function SubjectHubPage() {
                       {readiness.label} {readiness.label !== 'Ready' ? 'ℹ️' : '✅'}
                     </button>
                   )}
-                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', margin: 0 }}>
+                  <p style={{ fontSize: 12, color: C.textMuted, margin: 0 }}>
                     {subjects.length > 1 ? `${subjects.length} subjects` : 'Subject Teacher'}
                   </p>
                 </div>
@@ -1021,15 +1013,15 @@ export default function SubjectHubPage() {
                   key={s.label}
                   onClick={() => s.route ? router.push(s.route) : null}
                   style={{
-                    flex: 1, background: 'rgba(255,255,255,0.12)',
+                    flex: 1, background: C.surface,
                     borderRadius: 16, padding: '10px 8px', textAlign: 'center',
                     border: 'none', cursor: s.route ? 'pointer' : 'default',
                     backdropFilter: 'blur(4px)',
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                     fontFamily: 'inherit',
                   }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{s.value}</div>
-                  <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginTop: 2 }}>{s.label}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div>
                 </button>
               ))}
             </div>
@@ -1070,19 +1062,19 @@ export default function SubjectHubPage() {
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase' }}>Subject Intelligence</span>
-            <span style={{ fontSize: 10, fontWeight: 700, background: '#dbeafe', color: '#1d4ed8', borderRadius: 20, padding: '3px 9px' }}>{termTag}</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase' }}>Subject Intelligence</span>
+            <span style={{ fontSize: 11, fontWeight: 700, background: '#dbeafe', color: '#1d4ed8', borderRadius: 20, padding: '3px 9px' }}>{termTag}</span>
           </div>
 
           <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary }}>{classes.length}</div>
-              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>Classes</div>
+              <div style={{ fontSize: 20, fontWeight: 750, color: C.textPrimary }}>{classes.length}</div>
+              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>Classes</div>
             </div>
             <div style={{ width: 1, background: C.border }} />
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 900, color: C.textPrimary }}>{totalStudents}</div>
-              <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>Students</div>
+              <div style={{ fontSize: 20, fontWeight: 750, color: C.textPrimary }}>{totalStudents}</div>
+              <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600 }}>Students</div>
             </div>
           </div>
 
@@ -1106,7 +1098,7 @@ export default function SubjectHubPage() {
           ].map(({ label, pct, color, hint }) => (
             <div key={label} style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 600 }}>{label} <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400 }}>— {hint}</span></span>
+                <span style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", fontWeight: 600 }}>{label} <span style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", fontWeight: 400 }}>— {hint}</span></span>
                 <span style={{ fontSize: 11, fontWeight: 800, color: pct !== null ? barColor(pct) : '#9ca3af' }}>{pct !== null ? `${pct}%` : '—'}</span>
               </div>
               <div style={{ width: '100%', height: 6, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden' }}>
@@ -1117,7 +1109,7 @@ export default function SubjectHubPage() {
           {avgPerfPct !== null && (
             <div style={{ marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ fontSize: 11, color: '#6b7280', fontWeight: 600 }}>Avg Perf <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 400 }}>— Assessment scores</span></span>
+                <span style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", fontWeight: 600 }}>Avg Perf <span style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", fontWeight: 400 }}>— Assessment scores</span></span>
                 <span style={{ fontSize: 11, fontWeight: 800, color: barColor(avgPerfPct) }}>{avgPerfPct}%</span>
               </div>
               <div style={{ width: '100%', height: 6, borderRadius: 6, background: '#f3f4f6', overflow: 'hidden' }}>
@@ -1142,8 +1134,8 @@ export default function SubjectHubPage() {
       {!loading && activeSubject && outcomesByStrand.length > 0 && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 10, fontWeight: 800, color: '#6b7280', letterSpacing: 1.4, textTransform: 'uppercase' }}>Curriculum Outcomes</span>
-            <span style={{ fontSize: 10, fontWeight: 700, background: '#d1fae5', color: '#065f46', borderRadius: 20, padding: '3px 9px' }}>
+            <span style={{ fontSize: 11, fontWeight: 800, color: "var(--teacher-muted, #627168)", letterSpacing: 1.4, textTransform: 'uppercase' }}>Curriculum Outcomes</span>
+            <span style={{ fontSize: 11, fontWeight: 700, background: "var(--teacher-green-soft, #e9f4ed)", color: '#065f46', borderRadius: 20, padding: '3px 9px' }}>
               {outcomesByStrand.reduce((s, o) => s + o.count, 0)} total
             </span>
           </div>
@@ -1154,7 +1146,7 @@ export default function SubjectHubPage() {
               return (
                 <div key={o.strand}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#111827' }}>{o.strand}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--teacher-ink, #1c2923)" }}>{o.strand}</span>
                     <span style={{ fontSize: 11, fontWeight: 800, color: '#065f46' }}>{o.count} outcome{o.count !== 1 ? 's' : ''}</span>
                   </div>
                   <div style={{ width: '100%', height: 5, borderRadius: 5, background: '#f3f4f6', overflow: 'hidden' }}>
@@ -1164,7 +1156,7 @@ export default function SubjectHubPage() {
               )
             })}
           </div>
-          <div style={{ marginTop: 10, fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
+          <div style={{ marginTop: 10, fontSize: 11, color: "var(--teacher-muted, #627168)", lineHeight: 1.5 }}>
             Curriculum outcomes linked to this subject. Open a class below to inspect learner evidence and follow-up.
           </div>
         </div>
@@ -1180,7 +1172,7 @@ export default function SubjectHubPage() {
           {/* Activity continuity is descriptive only; it is not a quality or performance score. */}
           {streak > 0 && (
             <div style={{ background: '#fff', borderRadius: 16, padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Recent teaching activity</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Recent teaching activity</div>
               <div style={{ fontSize: 13, color: C.textPrimary, marginTop: 4 }}>
                 Records exist on {streak} consecutive day{streak === 1 ? '' : 's'}.
               </div>
@@ -1191,8 +1183,8 @@ export default function SubjectHubPage() {
           {curriculumPct !== null && (
             <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Curriculum Completion</div>
-                <div style={{ fontSize: 16, fontWeight: 900, color: curriculumPct >= 70 ? '#065f46' : curriculumPct >= 40 ? '#92400e' : '#991b1b' }}>{curriculumPct}%</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Curriculum Completion</div>
+                <div style={{ fontSize: 16, fontWeight: 750, color: curriculumPct >= 70 ? '#065f46' : curriculumPct >= 40 ? '#92400e' : '#991b1b' }}>{curriculumPct}%</div>
               </div>
               <div style={{ width: '100%', height: 8, borderRadius: 8, background: C.surface, overflow: 'hidden' }}>
                 <div style={{
@@ -1209,16 +1201,16 @@ export default function SubjectHubPage() {
             <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 24 }}>⚠️</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Weakest Strand This Term</div>
-                <div style={{ fontSize: 15, fontWeight: 900, color: '#991b1b', marginTop: 2 }}>{weakStrand.name}</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1, textTransform: 'uppercase' }}>Weakest Strand This Term</div>
+                <div style={{ fontSize: 15, fontWeight: 750, color: '#991b1b', marginTop: 2 }}>{weakStrand.name}</div>
               </div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: '#991b1b' }}>{weakStrand.pct}%</div>
+              <div style={{ fontSize: 20, fontWeight: 750, color: '#991b1b' }}>{weakStrand.pct}%</div>
             </div>
           )}
 
           {/* Cumulative Stats */}
           <div style={{ background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 12 }}>Your Growth This Term</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', marginBottom: 12 }}>Your Growth This Term</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {[
                 { label: 'Lessons Planned', value: lessonCount, icon: '📖', color: '#6d28d9' },
@@ -1227,8 +1219,8 @@ export default function SubjectHubPage() {
               ].map(s => (
                 <div key={s.label} style={{ textAlign: 'center', padding: '10px 4px', borderRadius: 12, background: C.surface }}>
                   <div style={{ fontSize: 20 }}>{s.icon}</div>
-                  <div style={{ fontSize: 22, fontWeight: 900, color: s.color, lineHeight: 1.1, marginTop: 4 }}>{s.value}</div>
-                  <div style={{ fontSize: 9, color: C.textMuted, fontWeight: 700, marginTop: 3, lineHeight: 1.3 }}>{s.label}</div>
+                  <div style={{ fontSize: 22, fontWeight: 750, color: s.color, lineHeight: 1.1, marginTop: 4 }}>{s.value}</div>
+                  <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, marginTop: 3, lineHeight: 1.3 }}>{s.label}</div>
                 </div>
               ))}
             </div>
@@ -1244,7 +1236,7 @@ export default function SubjectHubPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 20 }}>🏅</span>
                 <div>
-                  <div style={{ fontSize: 12, fontWeight: 900, color: '#fff' }}>TPAD EVIDENCE READY</div>
+                  <div style={{ fontSize: 12, fontWeight: 750, color: '#fff' }}>TPAD EVIDENCE READY</div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)', marginTop: 1 }}>Your activity this term qualifies as TSC evidence.</div>
                 </div>
               </div>
@@ -1252,19 +1244,19 @@ export default function SubjectHubPage() {
                 {lessonCount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{lessonCount} lesson plan{lessonCount !== 1 ? 's' : ''}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 1</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 1</span>
                   </div>
                 )}
                 {attCount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{attCount} attendance log{attCount !== 1 ? 's' : ''}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 2</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 2</span>
                   </div>
                 )}
                 {assessCount > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: 600 }}>{assessCount} assessment{assessCount !== 1 ? 's' : ''}</span>
-                    <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 4</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, background: 'rgba(255,255,255,0.15)', color: '#c7d2fe', borderRadius: 8, padding: '2px 8px' }}>Standard 4</span>
                   </div>
                 )}
               </div>
@@ -1272,7 +1264,7 @@ export default function SubjectHubPage() {
                 onClick={() => router.push('/teacher/tpad')}
                 style={{
                   width: '100%', padding: '11px', borderRadius: 10, border: 'none',
-                  background: '#fff', color: '#1e1b4b', fontSize: 13, fontWeight: 800,
+                  background: '#fff', color: "var(--teacher-ink, #1c2923)", fontSize: 13, fontWeight: 800,
                   cursor: 'pointer', fontFamily: 'inherit',
                 }}>
                 Generate TPAD Evidence
@@ -1285,7 +1277,7 @@ export default function SubjectHubPage() {
             <div style={{ background: 'linear-gradient(135deg, #0ea5e9 0%, #075985 100%)', borderRadius: 20, padding: '14px 16px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 4px 12px rgba(14,165,233,0.25)' }}>
               <div style={{ fontSize: 28 }}>⏰</div>
               <div>
-                <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1.2, textTransform: 'uppercase' }}>Next Class Today</div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: 1.2, textTransform: 'uppercase' }}>Next Class Today</div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginTop: 2 }}>{nextSlot.class} · {nextSlot.start.slice(0,5)}</div>
               </div>
             </div>
@@ -1301,14 +1293,14 @@ export default function SubjectHubPage() {
 
           {dailyFact && !suggLoading && (
             <div style={{ background: 'linear-gradient(135deg, #fef3c7 0%, #fffbeb 100%)', borderRadius: 20, padding: '16px', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: '4px solid #f59e0b' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#92400e', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>💡 Did You Know?</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#92400e', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>💡 Did You Know?</div>
               <div style={{ fontSize: 13, color: '#78350f', lineHeight: 1.6, fontWeight: 500 }}>{dailyFact}</div>
             </div>
           )}
 
           {aiSuggestion && !suggLoading && (
             <div style={{ background: 'linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%)', borderRadius: 20, padding: '16px', marginBottom: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderLeft: '4px solid #7c3aed' }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#5b21b6', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>🚀 Your Next Move</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#5b21b6', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>🚀 Your Next Move</div>
               <div style={{ fontSize: 13, color: '#4c1d95', lineHeight: 1.6, fontWeight: 500 }}>{aiSuggestion}</div>
             </div>
           )}
@@ -1338,7 +1330,7 @@ export default function SubjectHubPage() {
           }}>
             <div>
               <p style={{
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 800,
                 color: C.textMuted,
                 letterSpacing: 1.4,
@@ -1372,7 +1364,7 @@ export default function SubjectHubPage() {
               justifyContent:
                 'center',
               fontSize: 14,
-              fontWeight: 900,
+              fontWeight: 750,
             }}>
               {subjectLibraryItems.length}
             </div>
@@ -1513,7 +1505,7 @@ export default function SubjectHubPage() {
 
                       <div style={{
                         marginTop: 2,
-                        fontSize: 10,
+                        fontSize: 11,
                         color: C.textMuted,
                       }}>
                         {
@@ -1580,7 +1572,7 @@ export default function SubjectHubPage() {
                   border: 'none',
                   borderTop:
                     '1px solid #f3f4f6',
-                  background: '#f8fafc',
+                  background: "var(--teacher-canvas, #f5f6f2)",
                   color: '#047857',
                   fontSize: 12,
                   fontWeight: 800,
@@ -1599,7 +1591,7 @@ export default function SubjectHubPage() {
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
-            <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>My Classes</p>
+            <p style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>My Classes</p>
             <p style={{
               fontSize: 12,
               color: C.textMuted,
@@ -1646,7 +1638,7 @@ export default function SubjectHubPage() {
                 >
                   <div style={{
                     padding: '10px 16px',
-                    background: '#f8fafc',
+                    background: "var(--teacher-canvas, #f5f6f2)",
                     borderBottom:
                       '1px solid #e5e7eb',
                     display: 'flex',
@@ -1657,7 +1649,7 @@ export default function SubjectHubPage() {
                     <div>
                       <div style={{
                         fontSize: 13,
-                        fontWeight: 900,
+                        fontWeight: 750,
                         color: C.textPrimary,
                       }}>
                         {gradeGroup.grade}
@@ -1665,7 +1657,7 @@ export default function SubjectHubPage() {
 
                       <div style={{
                         marginTop: 2,
-                        fontSize: 10,
+                        fontSize: 11,
                         color: C.textMuted,
                         fontWeight: 600,
                       }}>
@@ -1680,7 +1672,7 @@ export default function SubjectHubPage() {
                     </div>
 
                     <div style={{
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: 800,
                       color: '#075985',
                       background: '#dbeafe',
@@ -1890,7 +1882,7 @@ export default function SubjectHubPage() {
 
                             <span style={{
                               fontSize: 18,
-                              color: '#9ca3af',
+                              color: "var(--teacher-muted, #627168)",
                             }}>
                               ›
                             </span>
@@ -1909,7 +1901,7 @@ export default function SubjectHubPage() {
       {!loading && activeSubject && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid #f3f4f6' }}>
-            <p style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Department Team</p>
+            <p style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: 0 }}>Department Team</p>
             <p style={{ fontSize: 12, color: C.textMuted, margin: '3px 0 0' }}>Teachers in {activeSubject.name}</p>
           </div>
 
@@ -1979,12 +1971,13 @@ export default function SubjectHubPage() {
       )}
 
       {showAddSubject && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 64 }}>
-          <div style={{ background: '#fff', borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 480, maxHeight: 'calc(90vh - 64px)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+        <SharedModal open={showAddSubject} title="Add subject" onClose={closeAddSubject}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ overflowY: 'auto', padding: '24px 24px 8px', flex: 1 }}>
               <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary, marginBottom: 16 }}>Add Subject</div>
               <div style={{ fontSize: 12, color: C.textMuted, marginBottom: 6, fontWeight: 600 }}>SUBJECT NAME</div>
               <select
+                aria-label="Subject name"
                 value={useOtherSubject ? 'Other' : newSubjectName}
                 onChange={e => {
                   const v = e.target.value
@@ -1998,6 +1991,7 @@ export default function SubjectHubPage() {
               </select>
               {useOtherSubject && (
                 <input
+                  aria-label="Subject name"
                   value={newSubjectName}
                   onChange={e => setNewSubjectName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') addSubject() }}
@@ -2015,6 +2009,7 @@ export default function SubjectHubPage() {
                 </div>
               ) : (
                 <select
+                  aria-label="Class (optional)"
                   value={newSubjectClassId}
                   onChange={e => setNewSubjectClassId(e.target.value)}
                   style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: 'inherit', background: '#fff' }}>
@@ -2043,7 +2038,7 @@ export default function SubjectHubPage() {
               </button>
             </div>
           </div>
-        </div>
+        </SharedModal>
       )}
 
       {error && (

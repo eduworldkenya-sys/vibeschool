@@ -108,14 +108,14 @@ function FromTextbookInner() {
     }
   }
 
-  if (loading) return <main style={{ padding: 20, maxWidth: 760, margin: "0 auto" }}>Preparing teaching tools…</main>;
+  if (loading) return <section style={{ padding: 20, maxWidth: 760, margin: "0 auto" }}>Preparing teaching tools…</section>;
 
   return (
-    <main style={{ padding: "14px 14px 36px", maxWidth: 760, margin: "0 auto", background: "#f8fafc", minHeight: "100dvh" }}>
-      <button type="button" onClick={() => router.push(returnUrl)} style={{ border: 0, background: "transparent", fontWeight: 850, padding: "8px 0 14px", cursor: "pointer" }}>← Back to chapter</button>
+    <section style={{ padding: "14px 14px 36px", maxWidth: 760, margin: "0 auto", background: "var(--teacher-canvas, #f5f6f2)", minHeight: "100dvh" }}>
+      <button type="button" onClick={() => router.push(returnUrl)} style={{ border: 0, background: "transparent", fontWeight: 750, padding: "8px 0 14px", cursor: "pointer" }}>← Back to chapter</button>
 
       <section style={{ ...card, background: "linear-gradient(135deg,#111827,#1f2937)", color: "#fff", border: 0, marginBottom: 12 }}>
-        <div style={{ color: "#cfff00", textTransform: "uppercase", letterSpacing: 1.1, fontSize: 11, fontWeight: 900 }}>Teacher OS bridge</div>
+        <div style={{ color: "#cfff00", textTransform: "uppercase", letterSpacing: 1.1, fontSize: 11, fontWeight: 750 }}>Teacher OS bridge</div>
         <h1 style={{ margin: "7px 0 5px", fontSize: 23, lineHeight: 1.2 }}>{chapter?.title || "Textbook chapter"}</h1>
         <p style={{ margin: 0, color: "#d1d5db", fontSize: 13, lineHeight: 1.55 }}>Use the exact published chapter as a canonical source for teaching work. VibeSchool keeps the publication and chapter identity attached instead of copying the text into a disconnected document.</p>
       </section>
@@ -126,18 +126,18 @@ function FromTextbookInner() {
       {error ? <div role="alert" style={{ ...card, marginBottom: 12, borderColor: "#fecaca", background: "#fef2f2", color: "#991b1b", fontSize: 13 }}>{error}</div> : null}
 
       <section style={{ ...card, marginBottom: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 10 }}><div><strong style={{ fontSize: 14 }}>Teach this chapter</strong><div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Attach it to one of your lesson plans.</div></div><button type="button" onClick={() => router.push(`/teacher/lessonplan?sourcePublicationId=${publicationId}&sourceChapterId=${chapterId}`)} style={{ ...button, fontSize: 12 }}>Create lesson →</button></div>
-        {plans.length ? <div style={{ display: "grid", gap: 7 }}>{plans.map(plan => <button key={plan.id} type="button" disabled={busy !== null} onClick={() => void attach("lesson_plan", plan.id)} style={{ ...button, opacity: busy && busy !== `lesson_plan:${plan.id}` ? .55 : 1 }}><div style={{ fontSize: 13 }}>{plan.topic || plan.title || "Lesson plan"}</div><div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{plan.taught_date || "Date not set"} · {plan.status || "draft"}{busy === `lesson_plan:${plan.id}` ? " · Linking…" : ""}</div></button>)}</div> : <div style={{ fontSize: 12, color: "#6b7280" }}>No lesson plans yet. Create one, then return here to attach this chapter.</div>}
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 10 }}><div><strong style={{ fontSize: 14 }}>Teach this chapter</strong><div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>Attach it to one of your lesson plans.</div></div><button type="button" onClick={() => router.push(`/teacher/lessonplan?sourcePublicationId=${publicationId}&sourceChapterId=${chapterId}`)} style={{ ...button, fontSize: 12 }}>Create lesson →</button></div>
+        {plans.length ? <div style={{ display: "grid", gap: 7 }}>{plans.map(plan => <button key={plan.id} type="button" disabled={busy !== null} onClick={() => void attach("lesson_plan", plan.id)} style={{ ...button, opacity: busy && busy !== `lesson_plan:${plan.id}` ? .55 : 1 }}><div style={{ fontSize: 13 }}>{plan.topic || plan.title || "Lesson plan"}</div><div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>{plan.taught_date || "Date not set"} · {plan.status || "draft"}{busy === `lesson_plan:${plan.id}` ? " · Linking…" : ""}</div></button>)}</div> : <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)" }}>No lesson plans yet. Create one, then return here to attach this chapter.</div>}
       </section>
 
       <section style={card}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 10 }}><div><strong style={{ fontSize: 14 }}>Assign from this chapter</strong><div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>Attach the chapter to existing homework or create homework first.</div></div><button type="button" onClick={() => router.push(`/teacher/homework?sourcePublicationId=${publicationId}&sourceChapterId=${chapterId}`)} style={{ ...button, fontSize: 12 }}>Create homework →</button></div>
-        {homework.length ? <div style={{ display: "grid", gap: 7 }}>{homework.map(item => <button key={item.id} type="button" disabled={busy !== null} onClick={() => void attach("homework", item.id)} style={{ ...button, opacity: busy && busy !== `homework:${item.id}` ? .55 : 1 }}><div style={{ fontSize: 13 }}>{item.title}</div><div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>{item.subject || "Subject"}{item.due_date ? ` · due ${item.due_date}` : ""}{busy === `homework:${item.id}` ? " · Linking…" : ""}</div></button>)}</div> : <div style={{ fontSize: 12, color: "#6b7280" }}>No homework found yet. Create homework, then return here to attach this chapter.</div>}
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 10 }}><div><strong style={{ fontSize: 14 }}>Assign from this chapter</strong><div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>Attach the chapter to existing homework or create homework first.</div></div><button type="button" onClick={() => router.push(`/teacher/homework?sourcePublicationId=${publicationId}&sourceChapterId=${chapterId}`)} style={{ ...button, fontSize: 12 }}>Create homework →</button></div>
+        {homework.length ? <div style={{ display: "grid", gap: 7 }}>{homework.map(item => <button key={item.id} type="button" disabled={busy !== null} onClick={() => void attach("homework", item.id)} style={{ ...button, opacity: busy && busy !== `homework:${item.id}` ? .55 : 1 }}><div style={{ fontSize: 13 }}>{item.title}</div><div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>{item.subject || "Subject"}{item.due_date ? ` · due ${item.due_date}` : ""}{busy === `homework:${item.id}` ? " · Linking…" : ""}</div></button>)}</div> : <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)" }}>No homework found yet. Create homework, then return here to attach this chapter.</div>}
       </section>
-    </main>
+    </section>
   );
 }
 
 export default function FromTextbookPage() {
-  return <Suspense fallback={<main style={{ padding: 20 }}>Preparing teaching tools…</main>}><FromTextbookInner /></Suspense>;
+  return <Suspense fallback={<section style={{ padding: 20 }}>Preparing teaching tools…</section>}><FromTextbookInner /></Suspense>;
 }

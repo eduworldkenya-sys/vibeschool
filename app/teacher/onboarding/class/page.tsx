@@ -99,10 +99,10 @@ export default function ClassOnboardingPage() {
   }, [load])
 
   return (
-    <main style={{ minHeight: '100vh', background: '#f0f2f5', padding: 20 }}>
+    <section style={{ minHeight: '100vh', background: '#f0f2f5', padding: 20 }}>
       <section style={{ width: '100%', maxWidth: 460, margin: '32px auto', background: '#fff', borderRadius: 20, padding: 28, boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <div style={{ fontSize: 20, fontWeight: 900, color: C.dark }}>Add your first class</div>
+          <div style={{ fontSize: 20, fontWeight: 750, color: C.dark }}>Add your first class</div>
           <p style={{ margin: '6px 0 0', color: C.textMuted, fontSize: 13, lineHeight: 1.5 }}>Optional. You can enter Teacher OS now and add classes later from My Classes.</p>
         </div>
         {loading && <div role="status" aria-live="polite" aria-busy="true" style={{ minHeight: 120, padding: 20, borderRadius: 16, background: '#f3f4f6', color: C.textMuted, textAlign: 'center' }}>Loading your class setup…</div>}
@@ -140,6 +140,6 @@ export default function ClassOnboardingPage() {
         )}
         <button type="button" onClick={() => router.replace('/teacher/pulse')} style={{ width: '100%', marginTop: 12, padding: 12, borderRadius: 11, border: `1px solid ${C.border}`, background: '#fff', color: C.textMuted, fontWeight: 800 }}>Skip — go to Teacher OS</button>
       </section>
-    </main>
+    </section>
   )
 }

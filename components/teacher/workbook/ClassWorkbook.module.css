@@ -273,3 +273,33 @@
     break-inside: avoid;
   }
 }
+
+.rosterGrid th:first-child,
+.rosterGrid td:first-child {
+  min-width: 44px;
+  max-width: 44px;
+  width: 44px;
+}
+.rosterGrid th:nth-child(2) {
+  position: sticky;
+  left: 44px;
+  min-width: 170px;
+  max-width: 210px;
+  background: white;
+  z-index: 2;
+  border-right: 1px solid #dbe3da;
+}
+.classWorkspace > .card input:not([type="checkbox"]),
+.classWorkspace > .card select { max-width: 100%; }
+@media (max-width: 600px) {
+  .workbook { padding: 16px 10px 80px; }
+  .search { min-width: 0; }
+  .tabs button { flex-shrink: 0; }
+}
+.rosterGrid tbody th {
+  top: auto;
+}
+.rosterGrid thead th:nth-child(2) {
+  background: #f0f4ed;
+  z-index: 4;
+}

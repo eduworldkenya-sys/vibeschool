@@ -73,16 +73,16 @@ export default function AssessmentQuestionEditorPage() {
     }
   }
 
-  if (loading) return <main style={shell}>Loading question…</main>
-  if (!item) return <main style={shell}><section style={{ ...card, color: '#b91c1c' }}>{error || 'Question unavailable.'}</section></main>
+  if (loading) return <section style={shell}>Loading question…</section>
+  if (!item) return <section style={shell}><section style={{ ...card, color: '#b91c1c' }}>{error || 'Question unavailable.'}</section></section>
 
   return (
-    <main style={shell}>
+    <section style={shell}>
       <div style={{ maxWidth: 820, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessment Builder</div>
           <h1 style={{ margin: '6px 0' }}>Edit Question {item.orderNum}</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Author the learner prompt, marking rules, metadata, and feedback support.</p>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Author the learner prompt, marking rules, metadata, and feedback support.</p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
@@ -144,7 +144,7 @@ export default function AssessmentQuestionEditorPage() {
           <button type="button" disabled={saving} onClick={() => void save()} style={{ ...primaryButton, flex: 1 }}>{saving ? 'Saving…' : 'Save Question'}</button>
         </div>
       </div>
-    </main>
+    </section>
   )
 }
 

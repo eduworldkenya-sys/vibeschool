@@ -294,48 +294,48 @@ function LessonNotesInner() {
 
   if (loading) {
     return (
-      <main style={{ padding: 16 }}>
+      <section style={{ padding: 16 }}>
         <div style={{ height: 28, width: 180, borderRadius: 8, background: "#f3f4f6", marginBottom: 12 }} />
         <div style={{ height: 120, borderRadius: 18, background: "#f3f4f6" }} />
-      </main>
+      </section>
     );
   }
 
   if (!lessonPlanId && contextClassId && contextSubjectId) {
     return (
-      <main style={{ padding: 20, maxWidth: 760, margin: "0 auto", display: "grid", gap: 12 }}>
+      <section style={{ padding: 20, maxWidth: 760, margin: "0 auto", display: "grid", gap: 12 }}>
         <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: 0, marginBottom: 6 }}>← Back</button>
-        <section style={{ background: "#111827", color: "#fff", borderRadius: 18, padding: 18 }}>
-          <div style={{ fontSize: 11, fontWeight: 900, color: "#86efac", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes / Teach</div>
+        <section style={{ background: "var(--teacher-ink, #1c2923)", color: "#fff", borderRadius: 18, padding: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 750, color: "#86efac", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes / Teach</div>
           <h1 style={{ fontSize: 22, margin: "7px 0 5px" }}>Choose the prepared lesson</h1>
           <div style={{ fontSize: 12, color: "#d1d5db", lineHeight: 1.5 }}>Your class and subject are preserved. VibeSchool will only open notes from the exact authorised lesson plan.</div>
         </section>
         <SubjectLessonHandoff classId={contextClassId} subjectId={contextSubjectId} purpose="notes" />
-      </main>
+      </section>
     );
   }
 
   if (!lessonPlanId && !contextClassId && !contextSubjectId) {
     return (
-      <main style={{ padding: 20, maxWidth: 760, margin: "0 auto" }}>
+      <section style={{ padding: 20, maxWidth: 760, margin: "0 auto" }}>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 18, padding: 18 }}>
-          <div style={{ fontWeight: 900, color: "#111827" }}>Open Lesson Notes from Subjects or a lesson</div>
-          <div style={{ color: "#6b7280", fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>VibeSchool needs a valid class, subject and prepared lesson before Teach mode can start.</div>
-          <button type="button" onClick={() => router.push("/teacher/subjecthub")} style={{ marginTop: 12, border: 0, borderRadius: 10, padding: "10px 12px", background: "#111827", color: "#fff", fontWeight: 900 }}>Open Subjects</button>
+          <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>Open Lesson Notes from Subjects or a lesson</div>
+          <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>VibeSchool needs a valid class, subject and prepared lesson before Teach mode can start.</div>
+          <button type="button" onClick={() => router.push("/teacher/subjecthub")} style={{ marginTop: 12, border: 0, borderRadius: 10, padding: "10px 12px", background: "var(--teacher-ink, #1c2923)", color: "#fff", fontWeight: 750 }}>Open Subjects</button>
         </div>
-      </main>
+      </section>
     );
   }
 
   if (error || !plan) {
     return (
-      <main style={{ padding: 20 }}>
+      <section style={{ padding: 20 }}>
         <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: 0, marginBottom: 18 }}>← Back</button>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 18, padding: 18 }}>
-          <div style={{ fontWeight: 900, color: "#111827" }}>Lesson notes are not ready</div>
-          <div style={{ color: "#6b7280", fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>{error}</div>
+          <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>Lesson notes are not ready</div>
+          <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>{error}</div>
         </div>
-      </main>
+      </section>
     );
   }
 
@@ -344,11 +344,11 @@ function LessonNotesInner() {
     : [];
 
   return (
-    <main style={{ padding: "12px 14px 32px", maxWidth: 760, margin: "0 auto" }}>
+    <section style={{ padding: "12px 14px 32px", maxWidth: 760, margin: "0 auto" }}>
       <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: "8px 0", color: "#374151" }}>← Back to lesson</button>
 
       <section style={{ background: "linear-gradient(135deg,#111827,#1f2937)", color: "#fff", borderRadius: 22, padding: 18, marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: "#86efac", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes</div>
+        <div style={{ fontSize: 11, fontWeight: 750, color: "#86efac", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes</div>
         <h1 style={{ fontSize: 22, lineHeight: 1.2, margin: "7px 0 5px" }}>{plan.topic || plan.title || "Today’s lesson"}</h1>
         <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.45 }}>Everything here belongs to this lesson. Teach from it, then return to the lesson flow.</div>
       </section>
@@ -356,14 +356,14 @@ function LessonNotesInner() {
       <section style={{ background: "#fff", borderRadius: 18, padding: 14, marginBottom: 14, border: "1px solid #e5e7eb" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>Teach mode</div>
-            <div style={{ fontSize: 11, color: "#6b7280", marginTop: 2 }}>A phone-first view of this exact lesson. It does not change curriculum or Scheme authority.</div>
+            <div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>Teach mode</div>
+            <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>A phone-first view of this exact lesson. It does not change curriculum or Scheme authority.</div>
           </div>
-          <button type="button" onClick={() => setTeachMode((value) => !value)} style={{ border: 0, borderRadius: 12, padding: "9px 12px", background: teachMode ? "#dcfce7" : "#111827", color: teachMode ? "#166534" : "#fff", fontWeight: 900 }}>
+          <button type="button" onClick={() => setTeachMode((value) => !value)} style={{ border: 0, borderRadius: 12, padding: "9px 12px", background: teachMode ? "#dcfce7" : "#111827", color: teachMode ? "#166534" : "#fff", fontWeight: 750 }}>
             {teachMode ? "Exit teach mode" : "Start teach mode"}
           </button>
         </div>
-        {plan.duration_minutes && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 8 }}>Planned duration: {plan.duration_minutes} minutes</div>}
+        {plan.duration_minutes && <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 8 }}>Planned duration: {plan.duration_minutes} minutes</div>}
       </section>
 
       {teachMode && sections && (
@@ -432,15 +432,15 @@ function LessonNotesInner() {
 
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
-        <div style={{ fontSize: 12, fontWeight: 900, color: "#111827" }}>Live teacher note</div>
-        <div style={{ fontSize: 11, color: "#6b7280", margin: "4px 0 9px" }}>Capture a reminder while teaching. This private device note does not alter the canonical lesson plan, Scheme or learner record.</div>
+        <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>Live teacher note</div>
+        <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", margin: "4px 0 9px" }}>Capture a reminder while teaching. This private device note does not alter the canonical lesson plan, Scheme or learner record.</div>
         <textarea value={liveNote} onChange={(event) => saveLiveNote(event.target.value)} rows={3} placeholder="e.g. Revisit balancing equations with another example next lesson." style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 11, font: "inherit", fontSize: 13, resize: "vertical" }} />
-        <div style={{ fontSize: 10, color: "#9ca3af", marginTop: 6 }}>Saved on this device for this lesson so a weak connection does not erase the note.</div>
+        <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 6 }}>Saved on this device for this lesson so a weak connection does not erase the note.</div>
       </section>
 
       {resources.length > 0 && (
         <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
-          <div style={{ fontSize: 12, fontWeight: 900, color: "#111827", marginBottom: 10 }}>Linked books and resources</div>
+          <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)", marginBottom: 10 }}>Linked books and resources</div>
           <div style={{ display: "grid", gap: 8 }}>
             {resources.map((resource) => (
               <button
@@ -450,8 +450,8 @@ function LessonNotesInner() {
                 disabled={!resource.publicationId}
                 style={{ textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f9fafb", opacity: resource.publicationId ? 1 : 0.65 }}
               >
-                <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{resource.title}</div>
-                {resource.description && <div style={{ fontSize: 11, color: "#6b7280", marginTop: 3 }}>{resource.description}</div>}
+                <div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{resource.title}</div>
+                {resource.description && <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 3 }}>{resource.description}</div>}
                 {resource.publicationId && <div style={{ fontSize: 11, fontWeight: 800, color: "#047857", marginTop: 7 }}>Open resource →</div>}
               </button>
             ))}
@@ -461,12 +461,12 @@ function LessonNotesInner() {
 
       {exactChapters.length > 0 && resources.length === 0 && (
         <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
-          <div style={{ fontSize: 12, fontWeight: 900, color: "#111827", marginBottom: 4 }}>From VibeSchool books</div>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>These chapters carry the same curriculum identity as this lesson.</div>
+          <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)", marginBottom: 4 }}>From VibeSchool books</div>
+          <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>These chapters carry the same curriculum identity as this lesson.</div>
           <div style={{ display: "grid", gap: 8 }}>
             {exactChapters.map((chapter) => (
               <button key={chapter.id} type="button" onClick={() => router.push(`/read/textbook/${chapter.publication_id}?chapterId=${encodeURIComponent(chapter.id)}`)} style={{ textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f9fafb" }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{chapter.title || "Open chapter"}</div>
+                <div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{chapter.title || "Open chapter"}</div>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "#047857", marginTop: 6 }}>Open chapter →</div>
               </button>
             ))}
@@ -476,12 +476,12 @@ function LessonNotesInner() {
 
       {teacherNotes.length > 0 && (
         <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
-          <div style={{ fontSize: 12, fontWeight: 900, color: "#111827", marginBottom: 4 }}>Approved teaching notes</div>
-          <div style={{ fontSize: 11, color: "#6b7280", marginBottom: 10 }}>Optional source-grounded enrichment for this curriculum context. Your lesson plan remains the teaching authority.</div>
+          <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)", marginBottom: 4 }}>Approved teaching notes</div>
+          <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>Optional source-grounded enrichment for this curriculum context. Your lesson plan remains the teaching authority.</div>
           <div style={{ display: "grid", gap: 8 }}>
             {teacherNotes.map((note) => (
               <article key={note.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12, background: "#f9fafb" }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{note.title}</div>
+                <div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{note.title}</div>
                 <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "inherit", fontSize: 12, color: "#374151", lineHeight: 1.55, margin: "8px 0 0" }}>{typeof note.body === "string" ? note.body : JSON.stringify(note.body, null, 2)}</pre>
               </article>
             ))}
@@ -493,15 +493,15 @@ function LessonNotesInner() {
         <div style={{ display: "grid", gap: 10 }}>
           {visibleSections.map(({ key, label }) => (
             <section key={key} style={{ background: "#fff", borderRadius: 18, padding: 16, border: "1px solid #e5e7eb" }}>
-              <div style={{ fontSize: 11, fontWeight: 900, color: key === "development" ? "#047857" : "#6b7280", textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 7 }}>{label}</div>
+              <div style={{ fontSize: 11, fontWeight: 750, color: key === "development" ? "#047857" : "#6b7280", textTransform: "uppercase", letterSpacing: 0.7, marginBottom: 7 }}>{label}</div>
               <div style={{ whiteSpace: "pre-wrap", fontSize: 14, color: "#1f2937", lineHeight: 1.65 }}>{sections ? sections[key] : ""}</div>
             </section>
           ))}
         </div>
       ) : (
         <section style={{ background: "#fff", borderRadius: 18, padding: 16, border: "1px solid #e5e7eb" }}>
-          <div style={{ fontWeight: 900, color: "#111827" }}>No written notes yet</div>
-          <div style={{ fontSize: 12, color: "#6b7280", marginTop: 5 }}>Return to the lesson plan and prepare the lesson. VibeSchool uses the canonical lesson plan as the baseline teaching notes; approved source-grounded teacher notes can enrich it when available.</div>
+          <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>No written notes yet</div>
+          <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 5 }}>Return to the lesson plan and prepare the lesson. VibeSchool uses the canonical lesson plan as the baseline teaching notes; approved source-grounded teacher notes can enrich it when available.</div>
         </section>
       )}
       {evidenceOpen && occurrence && (
@@ -531,13 +531,13 @@ function LessonNotesInner() {
           }}
         />
       )}
-    </main>
+    </section>
   );
 }
 
 export default function LessonNotesPage() {
   return (
-    <Suspense fallback={<main style={{ padding: 16 }}>Opening lesson notes…</main>}>
+    <Suspense fallback={<section style={{ padding: 16 }}>Opening lesson notes…</section>}>
       <LessonNotesInner />
     </Suspense>
   );

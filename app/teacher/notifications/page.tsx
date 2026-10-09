@@ -154,31 +154,31 @@ export default function TeacherNotificationsPage() {
     <div style={{ maxWidth: 760, margin: "0 auto", padding: "18px 16px 110px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 16 }}>
         <div>
-          <div style={{ fontSize: 11, fontWeight: 900, color: "#10b981", letterSpacing: 1.1, textTransform: "uppercase" }}>Teacher inbox</div>
-          <h1 style={{ margin: "4px 0 0", fontSize: 24, color: "#111827" }}>Notifications</h1>
-          <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280" }}>{unreadCount ? `${unreadCount} unread` : "You're up to date"}</div>
+          <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-green, #087451)", letterSpacing: 1.1, textTransform: "uppercase" }}>Teacher inbox</div>
+          <h1 style={{ margin: "4px 0 0", fontSize: 24, color: "var(--teacher-ink, #1c2923)" }}>Notifications</h1>
+          <div style={{ marginTop: 4, fontSize: 12, color: "var(--teacher-muted, #627168)" }}>{unreadCount ? `${unreadCount} unread` : "You're up to date"}</div>
         </div>
         <button type="button" onClick={markAllRead} disabled={unreadCount === 0 || savingId !== null} style={{ minHeight: 44, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", padding: "0 13px", fontWeight: 800, color: "#374151", opacity: unreadCount === 0 ? 0.5 : 1 }}>Mark all read</button>
       </div>
 
       {error && (
         <div role="alert" style={{ background: "#fef2f2", color: "#991b1b", borderRadius: 14, padding: 14, marginBottom: 12, fontSize: 13 }}>
-          {error} <button type="button" onClick={() => void load()} style={{ border: 0, background: "transparent", color: "#991b1b", fontWeight: 900, textDecoration: "underline" }}>Retry</button>
+          {error} <button type="button" onClick={() => void load()} style={{ border: 0, background: "transparent", color: "#991b1b", fontWeight: 750, textDecoration: "underline" }}>Retry</button>
         </div>
       )}
 
       {loading ? (
         <div aria-label="Loading notifications" style={{ display: "grid", gap: 10 }}>
-          {[1,2,3].map((item) => <div key={item} style={{ height: 88, borderRadius: 16, background: "#e5e7eb" }} />)}
+          {[1,2,3].map((item) => <div key={item} style={{ height: 88, borderRadius: 16, background: "var(--teacher-border, #dfe5de)" }} />)}
         </div>
       ) : rows.length === 0 ? (
         <div style={{ background: "#fff", borderRadius: 18, padding: "34px 20px", textAlign: "center", boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
-          <div style={{ fontSize: 18, fontWeight: 900, color: "#111827" }}>No notifications yet</div>
-          <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.5, color: "#6b7280" }}>School announcements, learner submissions and actions that need your attention will appear here.</div>
-          <button type="button" onClick={() => router.push("/teacher/pulse")} style={{ marginTop: 16, minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Back to Today</button>
+          <div style={{ fontSize: 18, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>No notifications yet</div>
+          <div style={{ marginTop: 6, fontSize: 13, lineHeight: 1.5, color: "var(--teacher-muted, #627168)" }}>Announcements and learner submissions will appear here.</div>
+          <button type="button" onClick={() => router.push("/teacher/pulse")} style={{ marginTop: 16, minHeight: 44, border: 0, borderRadius: 12, background: "var(--teacher-ink, #1c2923)", color: "#fff", padding: "0 16px", fontWeight: 750 }}>Back to Today</button>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 9 }}>
+        <div className="teacher-notifications__list">
           {rows.map((row) => {
             const known = KNOWN_TYPES.has((row.type ?? "general").toLowerCase());
             return (
@@ -186,11 +186,11 @@ export default function TeacherNotificationsPage() {
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
                   <span aria-hidden="true" style={{ marginTop: 6, width: 8, height: 8, borderRadius: 99, background: row.is_read ? "#d1d5db" : "#10b981", flexShrink: 0 }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: row.is_read ? 750 : 900, color: "#111827" }}>{row.title}</div>
-                    {row.body && <div style={{ marginTop: 4, fontSize: 12, color: "#6b7280", lineHeight: 1.45 }}>{row.body}</div>}
-                    <div style={{ marginTop: 7, fontSize: 10, fontWeight: 800, color: known ? "#9ca3af" : "#b45309" }}>{relativeTime(row.created_at)}{known ? "" : " · General destination"}</div>
+                    <div style={{ fontSize: 14, fontWeight: row.is_read ? 550 : 650, color: "var(--teacher-ink, #1c2923)" }}>{row.title}</div>
+                    {row.body && <div style={{ marginTop: 4, fontSize: 12, color: "var(--teacher-muted, #627168)", lineHeight: 1.45 }}>{row.body}</div>}
+                    <div style={{ marginTop: 7, fontSize: 11, fontWeight: 800, color: known ? "var(--teacher-muted)" : "#b45309" }}>{relativeTime(row.created_at)}{known ? "" : " · General destination"}</div>
                   </div>
-                  <span aria-hidden="true" style={{ color: "#9ca3af", fontSize: 20 }}>›</span>
+                  <span aria-hidden="true" style={{ color: "var(--teacher-muted, #627168)", fontSize: 20 }}>›</span>
                 </div>
               </button>
             );

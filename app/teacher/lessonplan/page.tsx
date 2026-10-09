@@ -384,7 +384,7 @@ function LessonPlanInner() {
   })
 
   return (
-    <>
+    <section className="vs-teacher-workspace">
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes fadeIn  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
@@ -393,43 +393,18 @@ function LessonPlanInner() {
       {toast && (
         <div style={{
           position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 999, background: '#1e1b4b', color: '#fff',
+          zIndex: 999, background: "var(--teacher-ink, #1c2923)", color: '#fff',
           padding: '10px 20px', borderRadius: 20, fontSize: 13, fontWeight: 700,
           animation: 'fadeIn 0.2s ease', whiteSpace: 'nowrap',
         }}>{toast}</div>
       )}
 
-      <div style={{
-        background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-        borderRadius: 20, padding: '20px', marginBottom: 14, color: '#fff',
-      }}>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>Lesson Plans</div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>{isThisWeek ? "Today's Plans" : 'Week of ' + weekStart}</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 4 }}>Week of {weekStart} · Linked to your timetable.</div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          <button onClick={() => setWeekStart(w => nairobiDateAdd(w, -7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Prev</button>
-          <button onClick={() => setWeekStart(nairobiWeekStart())} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: isThisWeek ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Today</button>
-          <button onClick={() => setWeekStart(w => nairobiDateAdd(w, 7))} style={{ padding: '6px 14px', borderRadius: 10, border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Next →</button>
-          <button onClick={() => router.push('/teacher/lessonplan/prepare')} style={{ padding: '6px 14px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.22)', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Prepare without timetable</button>
-        </div>
-        {urlClassId && (
-          <button onClick={() => router.push('/teacher/classhub/' + urlClassId)} style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>← View Class</button>
-        )}
-        {!loading && !loadError && (
-          <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-            {[
-              { label: 'Ready to Teach', value: readyCount,       bg: 'rgba(16,185,129,0.25)' },
-              { label: 'Needs Review',   value: needsReviewCount, bg: 'rgba(245,158,11,0.25)' },
-              { label: 'No Plan',        value: noPlanCount,      bg: 'rgba(239,68,68,0.25)' },
-            ].map(s => (
-              <div key={s.label} style={{ flex: 1, background: s.bg, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', fontWeight: 700 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <header className="teacher-plans-header">
+        <div className="vs-teacher-workspace__header"><div><p className="teacher-eyebrow">Week of {weekStart}</p><h1 className="vs-teacher-workspace__title">Lesson plans</h1></div><button type="button" className="teacher-btn" onClick={()=>router.push('/teacher/lessonplan/prepare')}>Prepare without timetable</button></div>
+        <div className="teacher-plans-week"><button type="button" className="teacher-icon-button" aria-label="Previous week" onClick={()=>setWeekStart(w=>nairobiDateAdd(w,-7))}>←</button><button type="button" className="teacher-btn teacher-btn--secondary" aria-pressed={isThisWeek} onClick={()=>setWeekStart(nairobiWeekStart())}>{isThisWeek?'This week':'Back to this week'}</button><button type="button" className="teacher-icon-button" aria-label="Next week" onClick={()=>setWeekStart(w=>nairobiDateAdd(w,7))}>→</button></div>
+        {urlClassId&&<button type="button" className="teacher-btn teacher-btn--secondary" onClick={()=>router.push('/teacher/classhub/'+urlClassId)}>View class</button>}
+        {!loading&&!loadError&&<div className="teacher-plans-metrics">{[{label:'Ready to teach',value:readyCount,state:'ready'},{label:'Needs review',value:needsReviewCount,state:'warning'},{label:'No plan',value:noPlanCount,state:'missing'}].map(item=><div key={item.label} data-state={item.state}><strong>{item.value}</strong><span>{item.label}</span></div>)}</div>}
+      </header>
 
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -485,7 +460,7 @@ function LessonPlanInner() {
                         </div>
                       )}
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0 }}>{badge.label}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0 }}>{badge.label}</span>
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
                     <Btn small variant="ghost" onClick={() => setActiveSlot(slot)}>
@@ -572,7 +547,7 @@ function LessonPlanInner() {
                       )}
                     </div>
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', marginLeft: 8 }}>{badge.label}</span>
+                  <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', marginLeft: 8 }}>{badge.label}</span>
                 </div>
               )
             })}
@@ -593,7 +568,7 @@ function LessonPlanInner() {
           }}
         />
       )}
-    </>
+    </section>
   )
 }
 

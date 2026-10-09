@@ -160,12 +160,12 @@ export default function AssessmentMarkingPage() {
   }), [queue])
 
   return (
-    <main style={shell}>
+    <section style={shell}>
       <div style={{ maxWidth: 1040, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessments</div>
           <h1 style={{ margin: '6px 0' }}>Mark Submitted Work</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Open learners’ submitted work, mark each answer, add feedback, finish marking, and share results when ready.</p>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Open learners’ submitted work, mark each answer, add feedback, finish marking, and share results when ready.</p>
         </section>
 
         {!selected && <section style={card}>
@@ -201,7 +201,7 @@ export default function AssessmentMarkingPage() {
 
         {!selected ? (
           <section style={card}>
-            {loading ? 'Loading submissions…' : queue.length === 0 ? <div><strong>No submitted work waiting</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Submitted assessments will appear here.</p></div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {loading ? 'Loading submissions…' : queue.length === 0 ? <div><strong>No submitted work waiting</strong><p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>Submitted assessments will appear here.</p></div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {queue.map(item => <button key={item.attemptId} type="button" disabled={busy} onClick={() => void openAttempt(item.attemptId)} style={queueButton}>
                 <div style={{ textAlign: 'left' }}><strong>{item.studentName}</strong><div style={muted}>{item.assessmentTitle} · {item.className}{item.classStream ? ` ${item.classStream}` : ''}</div>{item.submittedAt && <div style={muted}>Submitted {new Date(item.submittedAt).toLocaleString('en-KE')}</div>}</div>
                 <div style={{ textAlign: 'right' }}><strong style={{ color: item.unresolvedItems > 0 ? '#b45309' : item.attemptStatus === 'released' ? '#065f46' : '#4338ca' }}>{item.unresolvedItems > 0 ? `${item.unresolvedItems} to mark` : item.attemptStatus.replaceAll('_', ' ')}</strong><div style={muted}>{item.markedItems}/{item.totalItems} scored</div>{item.percentage !== null && <div style={muted}>{item.percentage.toFixed(1)}%</div>}</div>
@@ -209,13 +209,13 @@ export default function AssessmentMarkingPage() {
             </div>}
           </section>
         ) : <>
-          <section style={card}><button type="button" onClick={() => setSelected(null)} style={secondaryButton}>← Back to submitted work</button><h2 style={{ margin: '14px 0 4px' }}>{selected.studentName}</h2><p style={{ margin: 0, color: '#6b7280' }}>{selected.assessmentTitle}</p><div style={{ marginTop: 10, fontSize: 12, fontWeight: 700 }}>{selected.responses.filter(response => response.finalScore !== null).length}/{selected.responses.length} responses scored</div></section>
+          <section style={card}><button type="button" onClick={() => setSelected(null)} style={secondaryButton}>← Back to submitted work</button><h2 style={{ margin: '14px 0 4px' }}>{selected.studentName}</h2><p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>{selected.assessmentTitle}</p><div style={{ marginTop: 10, fontSize: 12, fontWeight: 700 }}>{selected.responses.filter(response => response.finalScore !== null).length}/{selected.responses.length} responses scored</div></section>
 
           {selected.responses.map(response => {
             const draft = drafts[response.responseId] ?? { score: '', feedback: '', overrideReason: '', moderationReason: '' }
             const overridesAuto = response.autoScore !== null && Number(draft.score) !== response.autoScore
             return <section key={response.responseId} style={card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><strong>Question {response.orderNum}</strong><span style={{ color: '#6b7280' }}>/{response.maxScore}</span></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><strong>Question {response.orderNum}</strong><span style={{ color: "var(--teacher-muted, #627168)" }}>/{response.maxScore}</span></div>
               <p style={{ lineHeight: 1.6 }}>{response.prompt}</p>
               <div style={answerBox}>{response.responseText || JSON.stringify(response.responseValue)}</div>
               {response.autoScore !== null && <div style={autoBox}>Automatic score: {response.autoScore}/{response.maxScore}</div>}
@@ -241,7 +241,7 @@ export default function AssessmentMarkingPage() {
           <section style={card}><label style={label}>Overall feedback</label><textarea value={attemptFeedback} onChange={event => setAttemptFeedback(event.target.value)} rows={4} style={{ ...input, resize: 'vertical' }} />{selected.attemptStatus === 'released' ? <div style={releasedBox}>This result has been released and is locked.</div> : <div style={{ display: 'flex', gap: 10, marginTop: 12 }}><button type="button" disabled={busy} onClick={() => void finishAttempt(false)} style={{ ...secondaryButton, flex: 1 }}>Finish marking</button><button type="button" disabled={busy} onClick={() => void finishAttempt(true)} style={{ ...primaryButton, flex: 1 }}>{busy ? 'Saving…' : 'Finish & share result'}</button></div>}</section>
         </>}
       </div>
-    </main>
+    </section>
   )
 }
 

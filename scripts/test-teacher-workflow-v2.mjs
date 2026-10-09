@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {runRules} from '../lib/pulse/rules.ts';
+const slot={id:'slot',class_id:'class',subject_id:'math',class_name:'Grade 4',subject:'Mathematics',start_time:'00:00',end_time:'23:59',lesson_plan_id:'plan',attendance_status:'completed',task_status:'none',submission_count:0,marking_status:'none',teaching_workspace:{primaryAction:'start_lesson',lifecycle:'ready',key:{occurrenceDate:'2026-10-09'},canStart:true,canAssignHomework:false,occurrenceId:'occurrence'}};
+const snapshot={todaySlots:[slot],tomorrowSlots:[],recentActivity:[],currStats:[],homeworkUngraded:[],attPending:[],missedLessonPlans:[],consecutiveAbsences:[],atRisk:[],streak:0};
+let result=runRules(snapshot);assert.equal(result.tasks[0].label,'Start teaching');let query=new URL(result.tasks[0].href,'https://fixture.invalid').searchParams;assert.equal(query.get('date'),'2026-10-09');assert.equal(query.get('timetableSlotId'),'slot');assert.equal(query.get('classId'),'class');assert.equal(query.get('subjectId'),'math');
+slot.teaching_workspace.primaryAction='continue_lesson';assert.equal(runRules(snapshot).tasks[0].label,'Continue teaching');
+slot.teaching_workspace.primaryAction='none';assert.equal(runRules(snapshot).tasks.length,0,'an inactive occurrence must not invent homework tasks');
+slot.teaching_workspace=null;assert.equal(runRules(snapshot).tasks[0].label,'Open lesson','legacy attendance completion is not delivery completion');
+snapshot.todaySlots=[];snapshot.tomorrowSlots=[{...slot,id:'tomorrow',teaching_workspace:{key:{occurrenceDate:'2026-10-12'}}}];result=runRules(snapshot);query=new URL(result.tasks.find(t=>t.id==='prepare-tomorrow').href,'https://fixture.invalid').searchParams;assert.equal(query.get('date'),'2026-10-12');assert.equal(query.get('timetableSlotId'),'tomorrow');
+console.log('Teacher priorities: authoritative start/continue/inactive states, safe legacy fallback and exact tomorrow occurrence passed.');

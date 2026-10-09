@@ -222,7 +222,7 @@ export default function LessonTeachMode({
 
   if (!step) {
     return (
-      <div style={{ position:'fixed', inset:0, zIndex:1200, background:'#f8fafc', padding:18 }}>
+      <div style={{ position:'fixed', inset:0, zIndex:1200, background:"var(--teacher-canvas, #f5f6f2)", padding:18 }}>
         <button onClick={onClose}>Close</button>
         <h2>Missing classroom content</h2>
         <p>This lesson has no canonical sections to teach from. Return to the lesson plan and prepare it first.</p>
@@ -246,12 +246,12 @@ export default function LessonTeachMode({
   const actionStyle = { border:'1px solid #cbd5e1', background:'#fff', borderRadius:10, padding:'10px 11px', fontSize:11, fontWeight:800 } as const
 
   return (
-    <div style={{ position:'fixed', inset:0, zIndex:1200, background:'#f8fafc', overflowY:'auto', padding:'12px 12px 96px', fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
+    <div style={{ position:'fixed', inset:0, zIndex:1200, background:"var(--teacher-canvas, #f5f6f2)", overflowY:'auto', padding:'12px 12px 96px', fontFamily:"inherit" }}>
       <div style={{ maxWidth:720, margin:'0 auto' }}>
-        <header style={{ position:'sticky', top:0, zIndex:2, background:'#f8fafc', padding:'4px 0 10px' }}>
+        <header style={{ position:'sticky', top:0, zIndex:2, background:"var(--teacher-canvas, #f5f6f2)", padding:'4px 0 10px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', gap:10 }}>
             <div>
-              <div style={{ fontSize:10, fontWeight:900, color: online ? '#047857' : '#b45309', textTransform:'uppercase' }}>
+              <div style={{ fontSize:11, fontWeight:750, color: online ? '#047857' : '#b45309', textTransform:'uppercase' }}>
                 {online ? 'Teach Now · Prepared Teaching Pack' : 'Offline · cached Prepared Teaching Pack'}
               </div>
               <h1 style={{ fontSize:19, margin:'4px 0' }}>{topic || subject}</h1>
@@ -266,14 +266,14 @@ export default function LessonTeachMode({
             This saved plan has no authoritative timing metadata. The timer is disabled rather than assuming a 40-minute period.
           </div>
         ) : (
-          <div style={{ background:'#1e1b4b', color:'#fff', borderRadius:14, padding:12, marginBottom:12 }}>
-            <div style={{ fontSize:10, opacity:.75, textTransform:'uppercase', fontWeight:800 }}>Lesson remaining · Total lesson time: {total} min</div>
-            <div style={{ fontSize:24, fontWeight:900, marginTop:3 }}>{remainingMinutes}:{remainingRemainder}</div>
+          <div style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:14, padding:12, marginBottom:12 }}>
+            <div style={{ fontSize:11, opacity:.75, textTransform:'uppercase', fontWeight:800 }}>Lesson remaining · Total lesson time: {total} min</div>
+            <div style={{ fontSize:24, fontWeight:750, marginTop:3 }}>{remainingMinutes}:{remainingRemainder}</div>
           </div>
         )}
 
         <section aria-label="Prepared lesson materials" style={{ background:'#fff', border:'1px solid #c7d2fe', borderRadius:16, padding:13, marginBottom:12 }}>
-          <div style={{ fontSize:11, fontWeight:900, color:'#3730a3', textTransform:'uppercase' }}>Ready beside you</div>
+          <div style={{ fontSize:11, fontWeight:750, color:'#3730a3', textTransform:'uppercase' }}>Ready beside you</div>
           <div style={{ fontSize:12, color:'#64748b', margin:'3px 0 9px' }}>Resources ready · Differentiation ready · Prepared Teaching Pack</div>
           <div style={{ display:'flex', gap:7, overflowX:'auto', marginBottom:9 }}>
             {([
@@ -282,16 +282,16 @@ export default function LessonTeachMode({
               <button key={value} type="button" onClick={()=>setPackView(value)} style={{...actionStyle,whiteSpace:'nowrap',borderColor:packView===value?'#4338ca':'#cbd5e1',background:packView===value?'#eef2ff':'#fff'}}>{label}</button>
             ))}
           </div>
-          <div style={{ whiteSpace:'pre-wrap', lineHeight:1.65, fontSize:13, background:'#f8fafc', borderRadius:10, padding:10 }}>
+          <div style={{ whiteSpace:'pre-wrap', lineHeight:1.65, fontSize:13, background:"var(--teacher-canvas, #f5f6f2)", borderRadius:10, padding:10 }}>
             {packView === 'notes' && [sections.introduction, sections.development, sections.consolidation].filter(Boolean).join('\n\n')}
             {packView === 'resources' && sections.resources}
             {packView === 'assessment' && sections.assessmentHook}
-            {packView === 'homework' && <><div>{sections.homework}</div><div style={{ marginTop:8, fontSize:11, fontWeight:900, color:'#4338ca' }}>View · Edit · Assign · Share</div></>}
+            {packView === 'homework' && <><div>{sections.homework}</div><div style={{ marginTop:8, fontSize:11, fontWeight:750, color:'#4338ca' }}>View · Edit · Assign · Share</div></>}
           </div>
         </section>
 
-        <section style={{ background:'#111827', color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
-          <div style={{ fontSize:10, fontWeight:900, color:'#86efac', textTransform:'uppercase' }}>
+        <section style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
+          <div style={{ fontSize:11, fontWeight:750, color:'#86efac', textTransform:'uppercase' }}>
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
@@ -299,14 +299,14 @@ export default function LessonTeachMode({
 
         {step.key === 'development' && sections.differentiation.trim() && (
           <section style={{ background:'#f5f3ff', border:'1px solid #ddd6fe', borderRadius:14, padding:13, marginBottom:12 }}>
-            <div style={{ fontSize:10, fontWeight:900, color:'#5b21b6', textTransform:'uppercase', marginBottom:6 }}>Support · Core · Extension</div>
+            <div style={{ fontSize:11, fontWeight:750, color:'#5b21b6', textTransform:'uppercase', marginBottom:6 }}>Support · Core · Extension</div>
             <div style={{ whiteSpace:'pre-wrap', lineHeight:1.6, fontSize:13 }}>{sections.differentiation}</div>
           </section>
         )}
 
         {step.key === 'development' && (
           <section style={{ display:'grid', gap:8, marginBottom:12 }}>
-            <div style={{ fontSize:10, fontWeight:900, color:'#475569', textTransform:'uppercase' }}>Teaching companion · canonical lesson content</div>
+            <div style={{ fontSize:11, fontWeight:750, color:'#475569', textTransform:'uppercase' }}>Teaching companion · canonical lesson content</div>
             {teachingPoints && <article style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:13 }}><strong>Board / explanation / examples</strong><div style={{ whiteSpace:'pre-wrap', marginTop:6, lineHeight:1.6, fontSize:13 }}>{teachingPoints}</div></article>}
             {learnerActivities && <article style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:14, padding:13 }}><strong>Teacher prompts & learner activity</strong><div style={{ whiteSpace:'pre-wrap', marginTop:6, lineHeight:1.6, fontSize:13 }}>{learnerActivities}</div></article>}
             {questionsAndAnswers && <article style={{ background:'#ecfeff', border:'1px solid #a5f3fc', borderRadius:14, padding:13 }}><strong>Questions · expected answers / evidence</strong><div style={{ whiteSpace:'pre-wrap', marginTop:6, lineHeight:1.6, fontSize:13 }}>{questionsAndAnswers}</div></article>}
@@ -322,7 +322,7 @@ export default function LessonTeachMode({
 
         {context ? (
           <section style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:13, marginBottom:12 }}>
-            <div style={{ fontSize:10, fontWeight:900, color:'#475569', textTransform:'uppercase', marginBottom:8 }}>Classroom actions · same occurrence</div>
+            <div style={{ fontSize:11, fontWeight:750, color:'#475569', textTransform:'uppercase', marginBottom:8 }}>Classroom actions · same occurrence</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(2,minmax(0,1fr))', gap:8 }}>
               <button style={actionStyle} onClick={() => {
                 const q = new URLSearchParams({
@@ -348,22 +348,22 @@ export default function LessonTeachMode({
         )}
 
         <section style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:13, marginBottom:12 }}>
-          <div style={{ fontSize:11, fontWeight:900 }}>Private scratchpad</div>
-          <div style={{ fontSize:10, color:'#64748b', margin:'4px 0 8px' }}>Private and noncanonical. It becomes an official reflection only after you explicitly review and save it.</div>
+          <div style={{ fontSize:11, fontWeight:750 }}>Private scratchpad</div>
+          <div style={{ fontSize:11, color:'#64748b', margin:'4px 0 8px' }}>Private and noncanonical. It becomes an official reflection only after you explicitly review and save it.</div>
           <textarea value={scratchpad} onChange={e=>changeScratchpad(e.target.value)} rows={4} style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, font:'inherit' }} />
           <button type="button" disabled={!scratchpad.trim() || !onUseInReflection} onClick={()=>onUseInReflection?.(scratchpad)} style={{...actionStyle,marginTop:8,opacity: !scratchpad.trim() || !onUseInReflection ? 0.5 : 1}}>Use in reflection →</button>
         </section>
 
         {finishError && <div role="alert" style={{ color:'#b91c1c', fontSize:12, marginBottom:8 }}>{finishError}</div>}
         {context?.lifecycle === 'completed' ? (
-          <div style={{ padding:13, borderRadius:12, background:'#d1fae5', color:'#065f46', fontWeight:800 }}>Lesson already completed</div>
+          <div style={{ padding:13, borderRadius:12, background:"var(--teacher-green-soft, #e9f4ed)", color:'#065f46', fontWeight:800 }}>Lesson already completed</div>
         ) : onFinishLesson ? (
           <>
             {!finishOpen ? (
-              <button type="button" disabled={finishing} onClick={()=>setFinishOpen(true)} style={{ width:'100%', border:0, borderRadius:12, padding:13, background:'#059669', color:'#fff', fontWeight:900 }}>Finish lesson</button>
+              <button type="button" disabled={finishing} onClick={()=>setFinishOpen(true)} style={{ width:'100%', border:0, borderRadius:12, padding:13, background:"var(--teacher-green, #087451)", color:'#fff', fontWeight:750 }}>Finish lesson</button>
             ) : (
               <section style={{ background:'#fff', border:'1px solid #bbf7d0', borderRadius:16, padding:13 }}>
-                <div style={{ fontSize:12, fontWeight:900 }}>How did coverage end?</div>
+                <div style={{ fontSize:12, fontWeight:750 }}>How did coverage end?</div>
                 <div style={{ fontSize:11, color:'#64748b', margin:'4px 0 10px' }}>This records teaching coverage only. It never marks learner mastery.</div>
                 <div style={{ display:'grid', gap:7 }}>
                   {([
@@ -378,7 +378,7 @@ export default function LessonTeachMode({
                 <textarea value={whatWasTaught} onChange={e=>setWhatWasTaught(e.target.value)} rows={3} placeholder="Briefly record the content actually covered in this occurrence." style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5, font:'inherit' }} />
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:8, marginTop:9 }}>
                   <button type="button" disabled={finishing} onClick={()=>setFinishOpen(false)} style={actionStyle}>Cancel</button>
-                  <button type="button" disabled={finishing || !online || !whatWasTaught.trim()} onClick={finish} style={{...actionStyle,background:'#059669',color:'#fff',opacity:finishing || !online || !whatWasTaught.trim()?0.55:1}}>{finishing?'Finishing lesson…':online?'Confirm finish':'Reconnect to finish safely'}</button>
+                  <button type="button" disabled={finishing || !online || !whatWasTaught.trim()} onClick={finish} style={{...actionStyle,background:"var(--teacher-green, #087451)",color:'#fff',opacity:finishing || !online || !whatWasTaught.trim()?0.55:1}}>{finishing?'Finishing lesson…':online?'Confirm finish':'Reconnect to finish safely'}</button>
                 </div>
               </section>
             )}

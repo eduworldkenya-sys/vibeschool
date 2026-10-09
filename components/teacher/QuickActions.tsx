@@ -45,7 +45,7 @@ function Tile({ label, icon, onClick }: { label: string; icon: React.ReactNode; 
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          color: "#059669",
+          color: "var(--teacher-green, #087451)",
         }}
       >
         {icon}
@@ -166,9 +166,9 @@ export default function QuickActions({
       <div
         id="teacher-quick-tools-title"
         style={{
-          fontSize: 10,
-          fontWeight: 900,
-          color: "#6b7280",
+          fontSize: 11,
+          fontWeight: 750,
+          color: "var(--teacher-muted, #627168)",
           letterSpacing: 1,
           textTransform: "uppercase",
           margin: "2px 2px 10px",

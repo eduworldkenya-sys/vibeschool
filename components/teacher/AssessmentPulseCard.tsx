@@ -31,7 +31,7 @@ export default function AssessmentPulseCard({ schoolId }: { schoolId?: string })
         <div style={headerRow}>
           <div>
             <div style={eyebrow}>Assessment</div>
-            <h2 style={{ margin: '5px 0 3px', fontSize: 16, color: '#111827' }}>Nothing awaiting review</h2>
+            <h2 style={{ margin: '5px 0 3px', fontSize: 16, color: "var(--teacher-ink, #1c2923)" }}>Nothing awaiting review</h2>
             <div style={muted}>No submitted work is waiting for you.</div>
           </div>
           <div aria-hidden="true" style={clearBadge}>✓</div>
@@ -46,7 +46,7 @@ export default function AssessmentPulseCard({ schoolId }: { schoolId?: string })
       <div style={headerRow}>
         <div>
           <div style={eyebrow}>Assessment workload</div>
-          <h2 style={{ margin: '5px 0 0', fontSize: 17, color: '#111827' }}>Needs your attention</h2>
+          <h2 style={{ margin: '5px 0 0', fontSize: 17, color: "var(--teacher-ink, #1c2923)" }}>Needs your attention</h2>
         </div>
         <strong style={{ fontSize: 22, color: total > 0 ? '#b45309' : '#065f46' }}>{summary ? total : '—'}</strong>
       </div>

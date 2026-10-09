@@ -148,7 +148,7 @@ export default function TwinPill({ onOpen, unread }: TwinPillProps) {
           alignItems:     'center',
           justifyContent: 'center',
           fontSize:       18,
-          color:          '#10b981',
+          color:          "var(--teacher-green, #087451)",
           pointerEvents:  'none',
         }}>
           ✦
@@ -166,7 +166,7 @@ export default function TwinPill({ onOpen, unread }: TwinPillProps) {
                   width:        5,
                   height:       5,
                   borderRadius: '50%',
-                  background:   '#10b981',
+                  background:   "var(--teacher-green, #087451)",
                   animation:    `twinDotPulse 1.4s ease-in-out ${delay}s infinite`,
                 }} />
               ))}
@@ -185,7 +185,7 @@ export default function TwinPill({ onOpen, unread }: TwinPillProps) {
             background:     '#ef4444',
             border:         '2px solid #0f172a',
             color:          '#fff',
-            fontSize:       9,
+            fontSize:       11,
             fontWeight:     800,
             display:        'flex',
             alignItems:     'center',

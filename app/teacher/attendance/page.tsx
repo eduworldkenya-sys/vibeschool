@@ -440,7 +440,7 @@ function AttendancePageInner() {
   }
 
   if (loading) {
-    return <div style={{ padding: 18 }} aria-label="Loading attendance"><div style={{ height: 120, borderRadius: 18, background: "#e5e7eb" }} /></div>;
+    return <div style={{ padding: 18 }} aria-label="Loading attendance"><div style={{ height: 120, borderRadius: 18, background: "var(--teacher-border, #dfe5de)" }} /></div>;
   }
 
   const counts = STATUSES.reduce<Record<AttendanceStatus, number>>((acc, value) => {
@@ -450,27 +450,27 @@ function AttendancePageInner() {
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
-      <section style={{ background: "linear-gradient(135deg,#065f46,#10b981)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
-        <div style={{ fontSize: 11, fontWeight: 900, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>Attendance</div>
+      <section style={{ background: "var(--teacher-green, #087451)", color: "#fff", borderRadius: 20, padding: 18, marginBottom: 12 }}>
+        <div style={{ fontSize: 11, fontWeight: 750, textTransform: "uppercase", opacity: .72, letterSpacing: 1 }}>Attendance</div>
         <h1 style={{ margin: "4px 0", fontSize: 23 }}>Mark register</h1>
         <div style={{ fontSize: 12, opacity: .8 }}>{selectedDate}{context?.schools.find((school) => school.id === context.school_id)?.name ? ` · ${context.schools.find((school) => school.id === context.school_id)?.name}` : ""}</div>
 
         {context && context.schools.length > 1 && (
-          <select aria-label="Active school" value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={{ marginTop: 12, width: "100%", minHeight: 44, border: 0, borderRadius: 12, padding: "0 12px", background: "#fff", color: "#111827", fontWeight: 800 }}>
+          <select aria-label="Active school" value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={{ marginTop: 12, width: "100%", minHeight: 44, border: 0, borderRadius: 12, padding: "0 12px", background: "#fff", color: "var(--teacher-ink, #1c2923)", fontWeight: 800 }}>
             {context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}
           </select>
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
-          <button type="button" onClick={() => { setMode("class"); setActiveSlot(null); }} style={{ minHeight: 44, border: 0, borderRadius: 12, fontWeight: 900, background: mode === "class" ? "#fff" : "rgba(255,255,255,.16)", color: mode === "class" ? "#065f46" : "#fff" }}>Class register</button>
-          <button type="button" onClick={() => { setMode("lesson"); setActiveSlot(lessonSlots.find((slot) => !slot.marked) ?? lessonSlots[0] ?? null); }} style={{ minHeight: 44, border: 0, borderRadius: 12, fontWeight: 900, background: mode === "lesson" ? "#fff" : "rgba(255,255,255,.16)", color: mode === "lesson" ? "#065f46" : "#fff" }}>Lesson register</button>
+          <button type="button" onClick={() => { setMode("class"); setActiveSlot(null); }} style={{ minHeight: 44, border: 0, borderRadius: 12, fontWeight: 750, background: mode === "class" ? "#fff" : "rgba(255,255,255,.16)", color: mode === "class" ? "#065f46" : "#fff" }}>Class register</button>
+          <button type="button" onClick={() => { setMode("lesson"); setActiveSlot(lessonSlots.find((slot) => !slot.marked) ?? lessonSlots[0] ?? null); }} style={{ minHeight: 44, border: 0, borderRadius: 12, fontWeight: 750, background: mode === "lesson" ? "#fff" : "rgba(255,255,255,.16)", color: mode === "lesson" ? "#065f46" : "#fff" }}>Lesson register</button>
         </div>
 
         {!exactLessonRequested && (
           <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 7, marginTop: 9 }}>
-            <button type="button" aria-label="Previous day" onClick={() => setSelectedDate((date) => nairobiDateAdd(date, -1))} style={{ minWidth: 44, minHeight: 44, border: 0, borderRadius: 11, background: "rgba(255,255,255,.16)", color: "#fff", fontWeight: 900 }}>‹</button>
-            <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} style={{ minHeight: 44, border: 0, borderRadius: 11, padding: "0 10px", fontWeight: 800 }} />
-            <button type="button" aria-label="Next day" onClick={() => setSelectedDate((date) => nairobiDateAdd(date, 1))} style={{ minWidth: 44, minHeight: 44, border: 0, borderRadius: 11, background: "rgba(255,255,255,.16)", color: "#fff", fontWeight: 900 }}>›</button>
+            <button type="button" aria-label="Previous day" onClick={() => setSelectedDate((date) => nairobiDateAdd(date, -1))} style={{ minWidth: 44, minHeight: 44, border: 0, borderRadius: 11, background: "rgba(255,255,255,.16)", color: "#fff", fontWeight: 750 }}>‹</button>
+            <input type="date" aria-label="Register date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} style={{ minHeight: 44, border: 0, borderRadius: 11, padding: "0 10px", fontWeight: 800 }} />
+            <button type="button" aria-label="Next day" onClick={() => setSelectedDate((date) => nairobiDateAdd(date, 1))} style={{ minWidth: 44, minHeight: 44, border: 0, borderRadius: 11, background: "rgba(255,255,255,.16)", color: "#fff", fontWeight: 750 }}>›</button>
           </div>
         )}
       </section>
@@ -479,16 +479,16 @@ function AttendancePageInner() {
       {saved && <div role="status" style={{ borderRadius: 14, background: "#ecfdf5", color: "#065f46", padding: 13, marginBottom: 12, fontSize: 13, fontWeight: 800 }}>Attendance saved.</div>}
 
       {context?.state === "needs_school" ? (
-        <section style={{ background: "#fff", borderRadius: 18, padding: 24, textAlign: "center" }}><strong>School connection needed</strong><p style={{ color: "#6b7280", fontSize: 13 }}>Connect your school before taking attendance.</p><button type="button" onClick={() => router.push("/teacher/onboarding/school")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Connect school</button></section>
+        <section style={{ background: "#fff", borderRadius: 18, padding: 24, textAlign: "center" }}><strong>School connection needed</strong><p style={{ color: "var(--teacher-muted, #627168)", fontSize: 13 }}>Connect your school before taking attendance.</p><button type="button" onClick={() => router.push("/teacher/onboarding/school")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "var(--teacher-ink, #1c2923)", color: "#fff", padding: "0 16px", fontWeight: 750 }}>Connect school</button></section>
       ) : context?.state === "needs_class" ? (
-        <section style={{ background: "#fff", borderRadius: 18, padding: 24, textAlign: "center" }}><strong>No class assignment yet</strong><p style={{ color: "#6b7280", fontSize: 13 }}>Add or request a class assignment to open a register.</p><button type="button" onClick={() => router.push("/teacher/onboarding/class")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "#111827", color: "#fff", padding: "0 16px", fontWeight: 900 }}>Set up class</button></section>
+        <section style={{ background: "#fff", borderRadius: 18, padding: 24, textAlign: "center" }}><strong>No class assignment yet</strong><p style={{ color: "var(--teacher-muted, #627168)", fontSize: 13 }}>Add or request a class assignment to open a register.</p><button type="button" onClick={() => router.push("/teacher/onboarding/class")} style={{ minHeight: 44, border: 0, borderRadius: 12, background: "var(--teacher-ink, #1c2923)", color: "#fff", padding: "0 16px", fontWeight: 750 }}>Set up class</button></section>
       ) : (
         <>
           <section style={{ background: "#fff", borderRadius: 18, padding: 14, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
             {mode === "class" ? (
               <>
-                <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 8 }}>CLASS</div>
-                {classOptions.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>No assigned classes in this school.</div> : (
+                <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 8 }}>CLASS</div>
+                {classOptions.length === 0 ? <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 13 }}>No assigned classes in this school.</div> : (
                   <select value={activeClassId ?? ""} onChange={(event) => setActiveClassId(event.target.value)} style={{ width: "100%", minHeight: 46, border: "1px solid #d1d5db", borderRadius: 12, padding: "0 12px", background: "#fff", fontWeight: 800 }}>
                     {classOptions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
                   </select>
@@ -496,11 +496,11 @@ function AttendancePageInner() {
               </>
             ) : (
               <>
-                <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 8 }}>LESSON</div>
-                {lessonSlots.length === 0 ? <div style={{ color: "#6b7280", fontSize: 13 }}>No timetable lessons for this day. Use the class register or open your timetable.</div> : lessonSlots.map((slot) => (
+                <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 8 }}>LESSON</div>
+                {lessonSlots.length === 0 ? <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 13 }}>No timetable lessons for this day. Use the class register or open your timetable.</div> : lessonSlots.map((slot) => (
                   <button key={slot.id} type="button" onClick={() => setActiveSlot(slot)} style={{ width: "100%", minHeight: 58, marginBottom: 7, border: activeSlot?.id === slot.id ? "2px solid #10b981" : "1px solid #e5e7eb", borderRadius: 13, background: activeSlot?.id === slot.id ? "#ecfdf5" : "#fff", textAlign: "left", padding: "9px 12px" }}>
-                    <div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{slot.subject} · {slot.className}</div>
-                    <div style={{ marginTop: 3, fontSize: 11, color: "#6b7280" }}>{formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ` · ${slot.room}` : ""}{slot.marked ? " · Attendance saved" : ""}</div>
+                    <div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{slot.subject} · {slot.className}</div>
+                    <div style={{ marginTop: 3, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ` · ${slot.room}` : ""}{slot.marked ? " · Attendance saved" : ""}</div>
                   </button>
                 ))}
               </>
@@ -509,26 +509,26 @@ function AttendancePageInner() {
 
           <section style={{ background: "#fff", borderRadius: 18, padding: 14, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>REGISTER</div><div style={{ marginTop: 3, fontSize: 13, color: "#374151" }}>{students.length} learners</div></div>
-              {students.length > 0 && <button type="button" onClick={() => markAll("present")} style={{ minHeight: 40, border: "1px solid #a7f3d0", borderRadius: 11, background: "#ecfdf5", color: "#065f46", padding: "0 12px", fontWeight: 900 }}>All present</button>}
+              <div><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)" }}>REGISTER</div><div style={{ marginTop: 3, fontSize: 13, color: "#374151" }}>{students.length} learners</div></div>
+              {students.length > 0 && <button type="button" onClick={() => markAll("present")} style={{ minHeight: 40, border: "1px solid #a7f3d0", borderRadius: 11, background: "#ecfdf5", color: "#065f46", padding: "0 12px", fontWeight: 750 }}>All present</button>}
             </div>
 
-            {registerLoading ? <div style={{ height: 100, borderRadius: 14, background: "#e5e7eb" }} /> : students.length === 0 ? (
-              <div style={{ padding: "24px 8px", textAlign: "center", color: "#6b7280", fontSize: 13 }}>{mode === "lesson" && !occurrenceId ? "Start the lesson first, then return here to take attendance." : "No current learners were found for this class."}</div>
+            {registerLoading ? <div style={{ height: 100, borderRadius: 14, background: "var(--teacher-border, #dfe5de)" }} /> : students.length === 0 ? (
+              <div style={{ padding: "24px 8px", textAlign: "center", color: "var(--teacher-muted, #627168)", fontSize: 13 }}>{mode === "lesson" && !occurrenceId ? "Start the lesson first, then return here to take attendance." : "No current learners were found for this class."}</div>
             ) : (
               <>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 12 }}>
-                  {STATUSES.map((value) => <div key={value} style={{ borderRadius: 10, background: "#f8fafc", padding: "7px 4px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 900 }}>{counts[value]}</div><div style={{ fontSize: 9, color: "#6b7280", textTransform: "capitalize" }}>{value}</div></div>)}
+                  {STATUSES.map((value) => <div key={value} style={{ borderRadius: 10, background: "var(--teacher-canvas, #f5f6f2)", padding: "7px 4px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 750 }}>{counts[value]}</div><div style={{ fontSize: 11, color: "#627168", textTransform: "capitalize" }}>{value}</div></div>)}
                 </div>
                 <div style={{ display: "grid", gap: 8 }}>
                   {students.map((student) => (
                     <div key={student.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 11 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 9 }}><div><div style={{ fontSize: 13, fontWeight: 900, color: "#111827" }}>{student.name}</div>{student.admissionNumber && <div style={{ marginTop: 2, fontSize: 10, color: "#9ca3af" }}>{student.admissionNumber}</div>}</div><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280", textTransform: "capitalize" }}>{statuses[student.id] ?? "present"}</div></div>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 9 }}><div><div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{student.name}</div>{student.admissionNumber && <div style={{ marginTop: 2, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{student.admissionNumber}</div>}</div><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", textTransform: "capitalize" }}>{statuses[student.id] ?? "present"}</div></div>
                       <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>{STATUSES.map((value) => <StatusButton key={value} value={value} active={(statuses[student.id] ?? "present") === value} onClick={() => updateStatus(student.id, value)} />)}</div>
                     </div>
                   ))}
                 </div>
-                <button type="button" onClick={() => void saveRegister()} disabled={saving} style={{ width: "100%", minHeight: 50, marginTop: 14, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 900, fontSize: 14 }}>{saving ? "Saving…" : "Save attendance"}</button>
+                <button type="button" onClick={() => void saveRegister()} disabled={saving} style={{ width: "100%", minHeight: 50, marginTop: 14, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750, fontSize: 14 }}>{saving ? "Saving…" : "Save attendance"}</button>
               </>
             )}
           </section>

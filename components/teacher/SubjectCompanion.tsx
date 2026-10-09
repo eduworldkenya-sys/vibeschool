@@ -190,11 +190,11 @@ export default function SubjectCompanion({
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1.2, textTransform: "uppercase", color: "#075985" }}>
+          <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: 1.2, textTransform: "uppercase", color: "#075985" }}>
             {subject.name} workspace
           </div>
-          <h2 style={{ margin: "4px 0 0", fontSize: 18, color: "#111827" }}>Everything for teaching this subject</h2>
-          <p style={{ margin: "4px 0 0", fontSize: 12, lineHeight: 1.5, color: "#6b7280" }}>
+          <h2 style={{ margin: "4px 0 0", fontSize: 18, color: "var(--teacher-ink, #1c2923)" }}>Everything for teaching this subject</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 12, lineHeight: 1.5, color: "var(--teacher-muted, #627168)" }}>
             Keep one class and subject context while you prepare, teach, assess and follow up.
           </p>
         </div>
@@ -213,9 +213,9 @@ export default function SubjectCompanion({
               minHeight: 44,
               borderRadius: 12,
               border: "1px solid #dbe3ea",
-              background: "#f8fafc",
+              background: "var(--teacher-canvas, #f5f6f2)",
               padding: "0 12px",
-              color: "#111827",
+              color: "var(--teacher-ink, #1c2923)",
               fontWeight: 800,
               fontFamily: "inherit",
             }}
@@ -255,8 +255,8 @@ export default function SubjectCompanion({
       {(["prepare", "teach", "evidence"] as const).map((group) => (
         <div key={group} style={{ marginTop: 16 }}>
           <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 900, color: "#111827" }}>{groupCopy[group].title}</div>
-            <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>{groupCopy[group].help}</div>
+            <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{groupCopy[group].title}</div>
+            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{groupCopy[group].help}</div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}>
             {tools.filter((tool) => tool.group === group).map((tool) => (
@@ -275,8 +275,8 @@ export default function SubjectCompanion({
                   fontFamily: "inherit",
                 }}
               >
-                <div style={{ fontSize: 12, fontWeight: 900, color: "#111827" }}>{tool.label}</div>
-                <div style={{ marginTop: 4, fontSize: 10, lineHeight: 1.45, color: "#6b7280" }}>{tool.help}</div>
+                <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{tool.label}</div>
+                <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.45, color: "var(--teacher-muted, #627168)" }}>{tool.help}</div>
               </button>
             ))}
           </div>

@@ -8,6 +8,12 @@ import { supabase }                               from '@/lib/supabase'
 import { ensureMyActiveSchoolTerm } from '@/lib/academicTerm'
 import { resolveGlobalSubjectId } from '@/lib/curriculum/globalSubjects'
 import { Card, C }                                from '@/components/teacher/ui'
+import {
+  ArrowLeft, BarChart3, BookOpen, Check, ChevronDown, ClipboardCheck,
+  FileQuestion, FileText, Layers3, MoreHorizontal,
+  Search, Sparkles, Users, X,
+} from 'lucide-react'
+import styles from './assessment.module.css'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +21,7 @@ interface ClassOption   { id: string; name: string; stream: string }
 interface SubjectOption { id: string; name: string }
 interface StrandOption  { id: string; name: string }
 interface Student       { id: string; name: string }
+interface TeachingContext { class_id: string; class_name: string; stream?: string | null; subject_id: string; subject_name: string }
 
 type PerformanceLevel =
   | 'exceeds_expectation'
@@ -51,9 +58,6 @@ const PERFORMANCE_OPTIONS: ReadonlyArray<{
 ]
 
 const ASSESSMENT_TYPES = ['formative', 'summative', 'project']
-const AMBER_DARK  = '#92400e'
-const AMBER_MID   = '#f59e0b'
-const AMBER_LIGHT = '#fef3c7'
 
 function perfMeta(value: string) {
   return PERFORMANCE_OPTIONS.find(p => p.value === value) ?? PERFORMANCE_OPTIONS[1]
@@ -111,6 +115,7 @@ function AssessmentInner() {
   const [schoolId,         setSchoolId]         = useState<string | null>(null)
   const [classes,          setClasses]          = useState<ClassOption[]>([])
   const [subjects,         setSubjects]         = useState<SubjectOption[]>([])
+  const [teachingContexts, setTeachingContexts] = useState<TeachingContext[]>([])
   const [strands,          setStrands]          = useState<StrandOption[]>([])
   const [students,         setStudents]         = useState<Student[]>([])
   const [assessments,      setAssessments]      = useState<Assessment[]>([])
@@ -119,6 +124,8 @@ function AssessmentInner() {
   const [selectedTerm,     setSelectedTerm]     = useState(1)
   const [loading,          setLoading]          = useState(true)
   const [dataLoading,      setDataLoading]      = useState(false)
+  const [learnerQuery, setLearnerQuery] = useState('')
+  const [performanceFilter, setPerformanceFilter] = useState<PerformanceLevel | 'all' | 'none'>('all')
   const [error,            setError]            = useState<string | null>(null)
 
   // Record/edit modal
@@ -145,6 +152,7 @@ function AssessmentInner() {
   const [bulkSaving,    setBulkSaving]    = useState(false)
   const [bulkError,     setBulkError]     = useState<string | null>(null)
   const [bulkDone,      setBulkDone]      = useState(false)
+  const [bulkEditorOpen,setBulkEditorOpen]= useState(false)
 
   // Report/export modal
   const [reportStudent, setReportStudent] = useState<Student | null>(null)
@@ -179,24 +187,22 @@ function AssessmentInner() {
     setSchoolId(sid)
     if (!sid) { setLoading(false); return }
 
-    const assignments = context?.classes ?? []
+    const assignments = (context?.classes ?? []) as TeachingContext[]
     if (assignments.length === 0) { setLoading(false); return }
 
     const loadedClasses = Array.from(new Map(assignments.map(a => [
       a.class_id,
       { id: a.class_id, name: a.class_name, stream: a.stream ?? '' },
     ])).values()) as ClassOption[]
-    const loadedSubjects = Array.from(new Map(assignments.map(a => [
-      a.subject_id,
-      { id: a.subject_id, name: a.subject_name },
-    ])).values()) as SubjectOption[]
-
     const urlClassId   = searchParams.get('classId')
     const urlSubjectId = searchParams.get('subjectId')
-    let ci = 0, si = 0
+    let ci = 0
     if (urlClassId)   { const i = loadedClasses.findIndex(c => c.id === urlClassId);    if (i !== -1) ci = i }
+    const loadedSubjects = subjectsForClass(assignments, loadedClasses[ci]?.id)
+    let si = 0
     if (urlSubjectId) { const i = loadedSubjects.findIndex(s => s.id === urlSubjectId); if (i !== -1) si = i }
 
+    setTeachingContexts(assignments)
     setClasses(loadedClasses)
     setSubjects(loadedSubjects)
     setActiveClassIdx(ci)
@@ -207,7 +213,16 @@ function AssessmentInner() {
   const activeClassId   = classes[activeClassIdx]?.id   ?? null
   const activeSubjectId = subjects[activeSubjectIdx]?.id ?? null
 
-  useEffect(() => { setActiveSubjectIdx(0) }, [activeClassIdx])
+  function subjectsForClass(contexts: TeachingContext[], classId?: string): SubjectOption[] {
+    return Array.from(new Map(contexts.filter(a => a.class_id === classId).map(a => [a.subject_id, { id: a.subject_id, name: a.subject_name }])).values())
+  }
+
+  function selectClass(index: number) {
+    const nextClassId = classes[index]?.id
+    setActiveClassIdx(index)
+    setSubjects(subjectsForClass(teachingContexts, nextClassId))
+    setActiveSubjectIdx(0)
+  }
 
   useEffect(() => {
     if (!activeClassId || !activeSubjectId) return
@@ -427,13 +442,13 @@ function AssessmentInner() {
 
   // ── Bulk save ──────────────────────────────────────────────────────────────
 
-  async function saveBulk() {
-    if (bulkSaving) return
-    if (!bulkStrand)             { setBulkError('Select a strand'); return }
-    if (!bulkPerf)               { setBulkError('Select a performance level'); return }
-    if (bulkSelected.size === 0) { setBulkError('Select at least one student'); return }
-    if (!schoolId)               { setBulkError("Profile isn't linked to a school yet."); return }
-    if (!teacherId || !activeClassId || !activeSubjectId) return
+  async function saveBulk(): Promise<boolean> {
+    if (bulkSaving) return false
+    if (!bulkStrand)             { setBulkError('Select a strand'); return false }
+    if (!bulkPerf)               { setBulkError('Select a performance level'); return false }
+    if (bulkSelected.size === 0) { setBulkError('Select at least one learner'); return false }
+    if (!schoolId)               { setBulkError("Profile isn't linked to a school yet."); return false }
+    if (!teacherId || !activeClassId || !activeSubjectId) return false
 
     setBulkSaving(true); setBulkError(null)
     const currentYear = new Date().getFullYear()
@@ -451,17 +466,18 @@ function AssessmentInner() {
         school_id: schoolId, notes: bulkNotes.trim() || null,
       }))
 
-    if (rows.length === 0) { setBulkError('All selected students already have this assessment. No duplicates allowed.'); setBulkSaving(false); return }
+    if (rows.length === 0) { setBulkError('These learners already have this assessment.'); setBulkSaving(false); return false }
 
     const { data, error: bulkErr } = await supabase
       .from('cbc_assessments')
       .insert(rows)
       .select('id, student_id, strand_id, sub_strand, assessment_type, performance, term, academic_year, notes, created_at')
 
-    if (bulkErr || !data) { setBulkError(bulkErr?.message ?? 'Failed to save'); setBulkSaving(false); return }
+    if (bulkErr || !data) { setBulkError(bulkErr?.message ?? 'Failed to save'); setBulkSaving(false); return false }
     setAssessments(prev => [...(data as Assessment[]), ...prev])
     setBulkSelected(new Set()); setBulkDone(true); setBulkSaving(false)
     setBulkStrand(''); setBulkPerf(''); setBulkNotes(''); setBulkSubStrand('')
+    return true
   }
 
   // ── Derived helpers ────────────────────────────────────────────────────────
@@ -508,17 +524,26 @@ function AssessmentInner() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   if (loading) return (
-    <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <Skeleton h={40} /><Skeleton h={40} /><Skeleton h={56} /><Skeleton h={56} /><Skeleton h={56} />
+    <div className={styles.page} aria-label="Loading assessment workspace" aria-busy="true">
+      <div style={{ paddingTop: 20, display: 'grid', gap: 12 }}>
+        <Skeleton h={34} /><Skeleton h={58} /><Skeleton h={72} /><Skeleton h={82} /><Skeleton h={64} /><Skeleton h={64} />
+      </div>
     </div>
   )
 
   if (error) return (
-    <div style={{ padding: 24, color: '#991b1b', fontSize: 14 }}>⚠️ {error}</div>
+    <div className={styles.error} role="alert">
+      <strong>Assessment could not load</strong>
+      <span>{error}</span>
+      <button type="button" className={styles.primaryButton} onClick={() => void boot()}>Try again</button>
+    </div>
   )
 
   if (classes.length === 0) return (
-    <EmptyState icon="🏫" message="No classes assigned yet. Contact your admin." />
+    <div className={styles.page}>
+      <div className={styles.top}><div><p className={styles.eyebrow}>Teacher workspace</p><h1 className={styles.title}>Assessment</h1></div></div>
+      <div className={styles.empty}><Users size={30} /><strong>No classes yet</strong><span>Connect a class before recording results.</span><button type="button" className={styles.primaryButton} style={{ marginTop: 16 }} onClick={() => router.push('/teacher/onboarding/class')}>Connect class</button></div>
+    </div>
   )
 
   const activeClass   = classes[activeClassIdx]
@@ -531,312 +556,70 @@ function AssessmentInner() {
     return { ...s, history, badge, count: history.length }
   })
 
-  // Bulk: selected student ids that already have this assessment
-  const bulkDupIds = new Set(
-    Array.from(bulkSelected).filter(sid =>
-      assessments.find(a =>
-        a.student_id === sid && a.strand_id === bulkStrand &&
-        a.assessment_type === bulkType && a.term === selectedTerm &&
-        a.academic_year === new Date().getFullYear()
-      )
-    )
-  )
+  const recordedCount = studentRows.filter(s => s.count > 0).length
+  const filteredRows = studentRows.filter(s => {
+    if (!s.name.toLocaleLowerCase().includes(learnerQuery.trim().toLocaleLowerCase())) return false
+    if (performanceFilter === 'all') return true
+    if (performanceFilter === 'none') return s.count === 0
+    return s.badge?.value === performanceFilter
+  })
 
   return (
-    <div style={{ padding: '0 0 80px', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
+    <section className={styles.page}>
+      <header className={styles.top}>
+        <div><p className={styles.eyebrow}>{activeClass.name}{activeClass.stream ? ` ${activeClass.stream}` : ''} · {activeSubject?.name}</p><h1 className={styles.title}>Assessment</h1></div>
+        <button type="button" className={styles.iconButton} aria-label="Open class" onClick={() => router.push('/teacher/classhub/' + activeClassId)}><ArrowLeft size={19} /></button>
+      </header>
 
-      {/* Hybrid curriculum sync prompt — appears after saving an assessment */}
-      {syncPromptStrand && (
-        <div style={{ margin: '12px 16px 0', padding: '12px 14px', borderRadius: 12, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#5b21b6' }}>Update curriculum progress for this strand?</span>
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button
-              disabled={syncing}
-              onClick={() => syncStrandProgress(syncPromptStrand)}
-              style={{ padding: '5px 12px', borderRadius: 8, border: 'none', background: '#5b21b6', color: '#fff', fontWeight: 700, fontSize: 11, cursor: syncing ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}
-            >
-              {syncing ? '...' : 'Yes'}
-            </button>
-            <button
-              disabled={syncing}
-              onClick={() => setSyncPromptStrand(null)}
-              style={{ padding: '5px 12px', borderRadius: 8, border: 'none', background: 'transparent', color: '#5b21b6', fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              No
-            </button>
-          </div>
-        </div>
-      )}
+      <section className={styles.context} aria-label="Assessment context">
+        <label><span>Class</span><select aria-label="Select class" value={activeClassIdx} onChange={e => selectClass(Number(e.target.value))}>{classes.map((c,i)=><option key={c.id} value={i}>{c.name}{c.stream ? ` ${c.stream}` : ''}</option>)}</select><ChevronDown size={15}/></label>
+        <label><span>Subject</span><select aria-label="Select subject" value={activeSubjectIdx < subjects.length ? activeSubjectIdx : 0} onChange={e => setActiveSubjectIdx(Number(e.target.value))} disabled={subjects.length<=1}>{subjects.map((s,i)=><option key={s.id} value={i}>{s.name}</option>)}</select><ChevronDown size={15}/></label>
+        <label><span>Term</span><select aria-label="Select term" value={selectedTerm} onChange={e => setSelectedTerm(Number(e.target.value))}>{[1,2,3].map(t=><option key={t} value={t}>Term {t}</option>)}</select><ChevronDown size={15}/></label>
+      </section>
 
-      {/* ── Header ── */}
-      <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #f0f0f0' }}>
-        {activeClassId && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => router.push('/teacher/classhub/' + activeClassId)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: '#f3f4f6', border: 'none', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              ← View Class
-            </button>
-            {activeSubject && (
-              <button
-                onClick={() => {
-                  const desc = `Assessed ${activeSubject.name}${activeClass ? ' for ' + activeClass.name + (activeClass.stream ? ' ' + activeClass.stream : '') : ''} on ${new Date().toLocaleDateString('en-KE')}`
-                  router.push('/teacher/tpad/evidence?desc=' + encodeURIComponent(desc) + '&source=assessment')
-                }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: '#ede9fe', border: 'none', color: '#5b21b6', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                🏅 Add TPAD Evidence
-              </button>
-            )}
-          </div>
-        )}
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#0a0a0a' }}>Assess learners</h1>
-        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>
-          {activeClass ? `${activeClass.name}${activeClass.stream ? ' ' + activeClass.stream : ''}` : '—'}
-          {activeSubject ? ` · ${activeSubject.name}` : ''}
-        </p>
-        <p style={{ margin: '7px 0 0', fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
-          Record day-to-day progress here, or open the right tool for an exercise, quiz, CAT, exam or reusable question.
-        </p>
+      <nav className={styles.tools} aria-label="Assessment tools">
+        <button className={styles.tool} onClick={() => router.push(`/teacher/classhub/${activeClassId}/exercises`)}><BookOpen size={21}/><span>Class exercises</span></button>
+        <button className={styles.tool} onClick={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(activeClassId ?? '')}&subjectId=${encodeURIComponent(activeSubjectId ?? '')}`)}><ClipboardCheck size={21}/><span>Lesson quiz / CAT</span></button>
+
+        <button className={styles.tool} onClick={() => router.push('/teacher/results')}><BarChart3 size={21}/><span>Exams</span></button>
+      </nav>
+      <div className={styles.secondaryTools}>
+        <button className={styles.quietButton} onClick={() => router.push('/teacher/assessment/bank')}><FileQuestion size={16}/>Question bank</button>
+        <button className={styles.quietButton} onClick={() => router.push('/teacher/progress')}><Layers3 size={16}/>Progress</button>
+        <button className={styles.quietButton} style={{marginLeft:'auto'}} onClick={() => { setBulkMode(m=>!m); setBulkDone(false); setBulkSelected(new Set()); setBulkEditorOpen(false) }}><Check size={16}/>{bulkMode?'Cancel':'Select'}</button>
       </div>
 
-      {/* One assessment system: make each teacher job explicit without duplicating its authority. */}
-      <div style={{ padding: '12px 16px 2px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9 }}>
-          {[
-            ['Exercise', 'Practice from a lesson', '/teacher/lessonplan'],
-            ['Quiz', 'Quick lesson check', '/teacher/lessonplan'],
-            ['CAT', 'Across completed lessons', '/teacher/lessonplan'],
-            ['Exams', 'Enter marks & analyse', '/teacher/results'],
-            ['Question Bank', 'Find reusable questions', '/teacher/assessment/bank'],
-            ['Progress', 'Record CBC evidence', ''],
-          ].map(([label, desc, href]) => (
-            <button key={label} type="button" onClick={() => href && router.push(href)} style={{
-              textAlign: 'left', padding: '11px 12px', borderRadius: 12, border: '1px solid #e5e7eb',
-              background: href ? '#fff' : '#f0fdf4', cursor: href ? 'pointer' : 'default', fontFamily: 'inherit',
-            }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>{label}</div>
-              <div style={{ marginTop: 3, fontSize: 11, color: '#6b7280', lineHeight: 1.35 }}>{desc}</div>
-            </button>
-          ))}
-        </div>
-        <p style={{ margin: '8px 2px 0', fontSize: 11, color: '#6b7280', lineHeight: 1.45 }}>
-          Exercises and quizzes start from a lesson so VibeSchool can carry the class, subject, topic and learning outcomes automatically. CATs use completed lessons. Exams use the shared Exam Centre.
-        </p>
+      {syncPromptStrand && <section aria-live="polite" style={{marginTop:10,padding:'10px 12px',border:'1px solid #d8e5de',borderRadius:13,display:'flex',alignItems:'center',gap:8,fontSize:12}}><Sparkles size={16} color="#087d57"/><strong style={{flex:1}}>Update scheme progress?</strong><button disabled={syncing} className={styles.quietButton} onClick={() => void syncStrandProgress(syncPromptStrand)}>{syncing?'Updating…':'Update'}</button><button aria-label="Dismiss" className={styles.iconButton} style={{width:36,height:36}} onClick={() => setSyncPromptStrand(null)}><X size={16}/></button></section>}
+
+      <section className={styles.overview} aria-label="Assessment overview">
+        <div className={styles.heroMetric}><strong>{recordedCount}/{students.length}</strong><span>recorded</span></div>
+        <button className={styles.metric} style={{textAlign:'left',background:'none',borderTop:0,borderRight:0,borderBottom:0,cursor:'pointer'}} onClick={() => setPerformanceFilter('none')}><strong>{students.length-recordedCount}</strong><span>missing</span></button>
+        <button className={styles.metric} style={{textAlign:'left',background:'none',borderTop:0,borderRight:0,borderBottom:0,cursor:'pointer'}} onClick={() => setPerformanceFilter('below_expectation')}><strong>{studentRows.filter(s=>s.badge?.value==='below_expectation').length}</strong><span>follow-up</span></button>
+      </section>
+
+      <div className={styles.find}>
+        <label className={styles.search}><Search size={18}/><input id="assessment-learner-search" type="search" value={learnerQuery} onChange={e=>setLearnerQuery(e.target.value)} placeholder="Find learner" aria-label="Find learner" /></label>
+      </div>
+      <div className={styles.filters} role="group" aria-label="Filter learners">
+        {([{value:'all',short:`All ${students.length}`},...PERFORMANCE_OPTIONS,{value:'none',short:`Missing ${students.length-recordedCount}`} ] as const).map(option=><button type="button" key={option.value} aria-pressed={performanceFilter===option.value} onClick={()=>setPerformanceFilter(option.value)} className={`${styles.filterChip} ${performanceFilter===option.value?styles.filterChipActive:''}`}>{option.short}</button>)}
       </div>
 
-      {/* ── Class tabs ── */}
-      <div style={{ overflowX: 'auto', display: 'flex', gap: 8, padding: '12px 16px 0', borderBottom: '1px solid #f0f0f0' }}>
-        {classes.map((c, i) => (
-          <button key={c.id} onClick={() => setActiveClassIdx(i)} style={{
-            flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: i === activeClassIdx ? '#0a0a0a' : '#f3f4f6',
-            color:      i === activeClassIdx ? '#fff'    : '#374151',
-          }}>
-            {c.name}{c.stream ? ' ' + c.stream : ''}
-          </button>
-        ))}
-      </div>
+      <div className={styles.listHeader}><strong>Learners</strong><span>{filteredRows.length} shown</span></div>
+      <section className={styles.list} aria-label="Learners">
+        {dataLoading ? [1,2,3,4].map(i=><div key={i} style={{padding:7}}><Skeleton h={52}/></div>) : filteredRows.length===0 ? <div className={styles.empty}><Users size={30}/><strong>{students.length===0?'No learners yet':'No matches'}</strong><span>{students.length===0?'Add learners from Class Hub.':'Try another search or filter.'}</span></div> : filteredRows.map(s=>{
+          const isSelected=bulkSelected.has(s.id); const initials=s.name.split(/\s+/).map(p=>p[0]).join('').slice(0,2).toUpperCase()
+          return <article key={s.id} className={`${styles.learner} ${isSelected?styles.learnerSelected:''}`}>
+            {bulkMode && <button type="button" className={`${styles.checkbox} ${isSelected?styles.checkboxSelected:''}`} aria-label={`${isSelected?'Deselect':'Select'} ${s.name}`} aria-pressed={isSelected} onClick={()=>{setBulkSelected(prev=>{const next=new Set(prev);next.has(s.id)?next.delete(s.id):next.add(s.id);return next});setBulkDone(false)}}>{isSelected&&<Check size={14}/>}</button>}
+            <div className={styles.avatar} style={{background:s.badge?s.badge.bg:'#eef2ef',color:s.badge?s.badge.color:'#59665e'}}>{s.badge?s.badge.short:initials}</div>
+            <div className={styles.identity}><strong>{s.name}</strong><span>{s.count===0?'No record':`${s.badge?.label??'Recorded'} · ${s.count}`}</span></div>
+            {!bulkMode && <div className={styles.rowActions}><button className={`${styles.rowAction} ${styles.recordAction}`} onClick={()=>openRecord(s)}>{s.count?'Update':'Record'}</button>{s.count>0&&<button className={`${styles.rowAction} ${styles.moreAction}`} aria-label={`More actions for ${s.name}`} onClick={()=>openHistory(s)}><MoreHorizontal size={20}/></button>}</div>}
+          </article>
+        })}
+      </section>
 
-      {/* ── Subject tabs ── */}
-      {subjects.length > 1 && (
-        <div style={{ overflowX: 'auto', display: 'flex', gap: 8, padding: '10px 16px 0' }}>
-          {subjects.map((s, i) => (
-            <button key={s.id} onClick={() => setActiveSubjectIdx(i)} style={{
-              flexShrink: 0, padding: '5px 12px', borderRadius: 16, border: '1.5px solid',
-              cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              borderColor:  i === activeSubjectIdx ? '#10b981' : '#e5e7eb',
-              background:   i === activeSubjectIdx ? '#d1fae5' : '#fff',
-              color:        i === activeSubjectIdx ? '#065f46' : '#6b7280',
-            }}>
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
+      {bulkMode && <div className={styles.bulkBar} role="region" aria-label="Bulk assessment actions"><div><strong>{bulkSelected.size} selected</strong><span> · {filteredRows.length} shown</span></div><button type="button" disabled={bulkSelected.size===0} onClick={()=>setBulkEditorOpen(true)}>Record</button></div>}
 
-      {/* ── Term selector ── */}
-      <div style={{ display: 'flex', gap: 8, padding: '10px 16px' }}>
-        {[1, 2, 3].map(t => (
-          <button key={t} onClick={() => setSelectedTerm(t)} style={{
-            padding: '5px 16px', borderRadius: 16, border: '1.5px solid',
-            cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            borderColor: t === selectedTerm ? '#10b981' : '#e5e7eb',
-            background:  t === selectedTerm ? '#10b981' : '#fff',
-            color:       t === selectedTerm ? '#fff'    : '#6b7280',
-          }}>
-            Term {t}
-          </button>
-        ))}
-        <button onClick={() => { setBulkMode(m => !m); setBulkDone(false); setBulkSelected(new Set()) }} style={{
-          marginLeft: 'auto', padding: '5px 14px', borderRadius: 16, border: '1.5px solid',
-          cursor: 'pointer', fontSize: 12, fontWeight: 600,
-          borderColor: bulkMode ? '#f59e0b' : '#e5e7eb',
-          background:  bulkMode ? '#fef3c7' : '#fff',
-          color:       bulkMode ? AMBER_DARK : '#6b7280',
-        }}>
-          {bulkMode ? '✕ Cancel Bulk' : '⚡ Bulk'}
-        </button>
-      </div>
-
-      {/* ── Bulk panel ── */}
-      {bulkMode && (
-        <div style={{ margin: '0 16px 16px', padding: 16, borderRadius: 16, background: AMBER_LIGHT, border: `1.5px solid ${AMBER_MID}` }}>
-          <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 700, color: AMBER_DARK }}>⚡ Bulk Assessment</p>
-          <p style={{ margin: '0 0 10px', fontSize: 12, color: AMBER_DARK }}>Pick strand + type + performance, then tap students below.</p>
-
-          {/* Strand */}
-          <select value={bulkStrand} onChange={e => setBulkStrand(e.target.value)} style={selectStyle}>
-            <option value="">— Select strand —</option>
-            {strands.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-
-          {/* Sub-strand */}
-          <input
-            placeholder="Sub-strand (optional)"
-            value={bulkSubStrand}
-            onChange={e => setBulkSubStrand(e.target.value)}
-            style={{ ...inputStyle, marginTop: 8 }}
-          />
-
-          {/* Type */}
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            {ASSESSMENT_TYPES.map(t => (
-              <button key={t} onClick={() => setBulkType(t)} style={{
-                flex: 1, padding: '6px 0', borderRadius: 10, border: '1.5px solid',
-                cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                borderColor: bulkType === t ? AMBER_MID : '#e5e7eb',
-                background:  bulkType === t ? '#fff'    : '#fafafa',
-                color:       bulkType === t ? AMBER_DARK : '#6b7280',
-              }}>{t.charAt(0).toUpperCase() + t.slice(1)}</button>
-            ))}
-          </div>
-
-          {/* Performance */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
-            {PERFORMANCE_OPTIONS.map(p => (
-              <button key={p.value} onClick={() => setBulkPerf(p.value)} style={{
-                padding: '8px 6px', borderRadius: 10, border: '2px solid',
-                cursor: 'pointer', fontSize: 11, fontWeight: 700, textAlign: 'center',
-                borderColor: bulkPerf === p.value ? p.color : '#e5e7eb',
-                background:  bulkPerf === p.value ? p.bg   : '#fff',
-                color:       bulkPerf === p.value ? p.color : '#6b7280',
-              }}>{p.short} — {p.label}</button>
-            ))}
-          </div>
-
-          {/* Notes */}
-          <textarea
-            placeholder="Notes (optional)"
-            value={bulkNotes}
-            onChange={e => setBulkNotes(e.target.value)}
-            rows={2}
-            style={{ ...inputStyle, marginTop: 8, resize: 'none' }}
-          />
-
-          {bulkError && <p style={{ color: '#991b1b', fontSize: 12, margin: '8px 0 0' }}>⚠️ {bulkError}</p>}
-          {bulkDone  && <p style={{ color: '#065f46', fontSize: 12, margin: '8px 0 0' }}>✅ Saved successfully!</p>}
-
-          {bulkSelected.size > 0 && (
-            <button onClick={saveBulk} disabled={bulkSaving} style={{
-              marginTop: 12, width: '100%', padding: '12px 0', borderRadius: 12, border: 'none',
-              cursor: bulkSaving ? 'not-allowed' : 'pointer', fontSize: 14, fontWeight: 700,
-              background: bulkSaving ? '#d1d5db' : AMBER_MID, color: '#fff',
-            }}>
-              {bulkSaving ? 'Saving…' : `Save for ${bulkSelected.size} student${bulkSelected.size > 1 ? 's' : ''}`}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* ── Student list ── */}
-      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {dataLoading
-          ? [1,2,3,4].map(i => <Skeleton key={i} h={64} />)
-          : studentRows.length === 0
-            ? <EmptyState icon="👥" message="No students enrolled in this class." />
-            : studentRows.map(s => {
-                const isSelected = bulkSelected.has(s.id)
-                const isDup      = bulkDupIds.has(s.id)
-                return (
-                  <div key={s.id} onClick={() => {
-                    if (!bulkMode) return
-                    setBulkSelected(prev => {
-                      const next = new Set(prev)
-                      next.has(s.id) ? next.delete(s.id) : next.add(s.id)
-                      return next
-                    })
-                    setBulkDone(false)
-                  }} style={{
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 14px', borderRadius: 14, background: '#fff',
-                    border: `1.5px solid ${isSelected ? AMBER_MID : isDup ? '#fca5a5' : '#f0f0f0'}`,
-                    cursor: bulkMode ? 'pointer' : 'default',
-                    opacity: isDup ? 0.6 : 1,
-                  }}>
-
-                    {/* Bulk checkbox */}
-                    {bulkMode && (
-                      <div style={{
-                        width: 20, height: 20, borderRadius: 6, flexShrink: 0,
-                        border: `2px solid ${isSelected ? AMBER_MID : '#d1d5db'}`,
-                        background: isSelected ? AMBER_MID : '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        {isSelected && <span style={{ color: '#fff', fontSize: 12, lineHeight: 1 }}>✓</span>}
-                      </div>
-                    )}
-
-                    {/* Badge */}
-                    <div style={{
-                      width: 40, height: 40, borderRadius: 12, flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: s.badge ? s.badge.bg    : '#f3f4f6',
-                      color:      s.badge ? s.badge.color : '#9ca3af',
-                      fontSize: 12, fontWeight: 800,
-                    }}>
-                      {s.badge ? s.badge.short : '—'}
-                    </div>
-
-                    {/* Name + count */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#0a0a0a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {s.name}
-                      </p>
-                      <p style={{ margin: '2px 0 0', fontSize: 12, color: '#9ca3af' }}>
-                        {s.count === 0 ? 'No assessments' : `${s.count} assessment${s.count > 1 ? 's' : ''} · Term ${selectedTerm}`}
-                      </p>
-                    </div>
-
-                    {/* Action buttons */}
-                    {!bulkMode && (
-                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                        {s.count > 0 && (
-                          <>
-                            <button onClick={() => setReportStudent(s)} style={iconBtn('#f3f4f6', '#374151')} title="Report">📄</button>
-                            <button onClick={() => openHistory(s)}      style={iconBtn('#dbeafe', '#1e40af')} title="History">📋</button>
-                          </>
-                        )}
-                        <button onClick={() => openRecord(s)} style={iconBtn('#d1fae5', '#065f46')} title="Add">＋</button>
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-        }
-      </div>
-
-      {/* ── Performance legend ── */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '20px 16px 0' }}>
-        {PERFORMANCE_OPTIONS.map(p => (
-          <span key={p.value} style={{
-            padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-            background: p.bg, color: p.color,
-          }}>{p.short} = {p.label}</span>
-        ))}
-      </div>
+      {bulkEditorOpen && <div style={overlayStyle} onClick={e=>{if(e.target===e.currentTarget)setBulkEditorOpen(false)}}><div style={sheetStyle} role="dialog" aria-modal="true" aria-label="Record for selected learners"><div className={styles.sheetTitle}><div><p className={styles.eyebrow}>{bulkSelected.size} learners</p><h2 style={{margin:0,fontSize:20}}>Record together</h2></div><button className={styles.iconButton} aria-label="Close" onClick={()=>setBulkEditorOpen(false)}><X size={19}/></button></div><div style={{display:'grid',gap:12,marginTop:18}}><select aria-label="Select strand" value={bulkStrand} onChange={e=>setBulkStrand(e.target.value)} style={selectStyle}><option value="">Select strand</option>{strands.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select><input placeholder="Sub-strand (optional)" value={bulkSubStrand} onChange={e=>setBulkSubStrand(e.target.value)} style={inputStyle}/><div style={{display:'flex',gap:8}}>{ASSESSMENT_TYPES.map(t=><button key={t} onClick={()=>setBulkType(t)} className={styles.filterChip} style={bulkType===t?{borderColor:'#087d57',color:'#087d57'}:undefined}>{t}</button>)}</div><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>{PERFORMANCE_OPTIONS.map(p=><button key={p.value} onClick={()=>setBulkPerf(p.value)} style={{minHeight:48,borderRadius:12,border:`2px solid ${bulkPerf===p.value?p.color:'#e5e7eb'}`,background:bulkPerf===p.value?p.bg:'#fff',color:p.color,fontWeight:800}}>{p.short} <small>{p.label}</small></button>)}</div><textarea placeholder="Note (optional)" value={bulkNotes} onChange={e=>setBulkNotes(e.target.value)} rows={2} style={{...inputStyle,resize:'none'}}/>{bulkError&&<p role="alert" style={{color:'#991b1b',fontSize:12,margin:0}}>{bulkError}</p>}{bulkDone&&<p style={{color:'#087d57',fontSize:12,margin:0}}>Saved</p>}<button className={styles.primaryButton} disabled={bulkSaving} onClick={async()=>{if(await saveBulk()){setBulkEditorOpen(false);setBulkMode(false)}}}>{bulkSaving?'Saving…':`Save ${bulkSelected.size} records`}</button></div></div></div>}
 
       {/* ════════════════════════════════════════════════════════
           RECORD / EDIT MODAL
@@ -846,17 +629,20 @@ function AssessmentInner() {
           <div style={sheetStyle}>
 
             {/* Handle */}
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--teacher-border, #dfe5de)", margin: '0 auto 16px' }} />
 
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <div>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>
-                  {viewMode ? '📋 History' : editingId ? '✏️ Edit Assessment' : '＋ New Assessment'}
+                  {viewMode ? 'History' : editingId ? 'Edit assessment' : 'New assessment'}
                 </p>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>{modalStudent.name}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: "var(--teacher-muted, #627168)" }}>{modalStudent.name}</p>
               </div>
-              <button onClick={closeModal} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', padding: 4 }}>×</button>
+              <div style={{display:'flex',gap:6}}>
+                {viewMode && <button className={styles.quietButton} onClick={()=>{setReportStudent(modalStudent);closeModal()}}><FileText size={16}/>Report</button>}
+                <button aria-label="Close" className={styles.iconButton} style={{width:40,height:40}} onClick={closeModal}><X size={18}/></button>
+              </div>
             </div>
 
             {/* ── History view ── */}
@@ -871,8 +657,8 @@ function AssessmentInner() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#0a0a0a' }}>{strandName(a.strand_id)}</p>
-                              {a.sub_strand && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#6b7280' }}>{a.sub_strand}</p>}
-                              <p style={{ margin: '4px 0 0', fontSize: 11, color: '#9ca3af' }}>{a.assessment_type} · Term {a.term}</p>
+                              {a.sub_strand && <p style={{ margin: '2px 0 0', fontSize: 12, color: "var(--teacher-muted, #627168)" }}>{a.sub_strand}</p>}
+                              <p style={{ margin: '4px 0 0', fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{a.assessment_type} · Term {a.term}</p>
                               {a.notes && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#374151', fontStyle: 'italic' }}>"{a.notes}"</p>}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0, marginLeft: 10 }}>
@@ -944,7 +730,7 @@ function AssessmentInner() {
                         borderColor: selPerf === p.value ? p.color : '#e5e7eb',
                         background:  selPerf === p.value ? p.bg   : '#fff',
                         color:       selPerf === p.value ? p.color : '#6b7280',
-                      }}>{p.short}<br /><span style={{ fontSize: 10, fontWeight: 500 }}>{p.label}</span></button>
+                      }}>{p.short}<br /><span style={{ fontSize: 11, fontWeight: 500 }}>{p.label}</span></button>
                     ))}
                   </div>
                 </div>
@@ -982,14 +768,14 @@ function AssessmentInner() {
       {reportStudent && (
         <div style={overlayStyle} onClick={e => { if (e.target === e.currentTarget) setReportStudent(null) }}>
           <div style={sheetStyle}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: '#e5e7eb', margin: '0 auto 16px' }} />
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: "var(--teacher-border, #dfe5de)", margin: '0 auto 16px' }} />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>📄 Report</p>
-                <p style={{ margin: '2px 0 0', fontSize: 13, color: '#6b7280' }}>{reportStudent.name}</p>
+                <p style={{ margin: '2px 0 0', fontSize: 13, color: "var(--teacher-muted, #627168)" }}>{reportStudent.name}</p>
               </div>
-              <button onClick={() => setReportStudent(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af', padding: 4 }}>×</button>
+              <button onClick={() => setReportStudent(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: "var(--teacher-muted, #627168)", padding: 4 }}>×</button>
             </div>
 
             {/* Aggregate badge */}
@@ -1016,7 +802,7 @@ function AssessmentInner() {
                   <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: 12, background: '#fafafa', border: '1px solid #f0f0f0' }}>
                     <div>
                       <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#0a0a0a' }}>{strandName(a.strand_id)}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 11, color: '#9ca3af' }}>{a.assessment_type}{a.sub_strand ? ' · ' + a.sub_strand : ''}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{a.assessment_type}{a.sub_strand ? ' · ' + a.sub_strand : ''}</p>
                     </div>
                     <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 800, background: pm.bg, color: pm.color }}>{pm.short}</span>
                   </div>
@@ -1038,7 +824,7 @@ function AssessmentInner() {
 
       {/* shimmer keyframe */}
       <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
-    </div>
+    </section>
   )
 }
 

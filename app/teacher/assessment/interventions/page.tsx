@@ -99,12 +99,12 @@ export default function AssessmentInterventionsPage() {
   const contextLabel = studentId ? 'Learner-scoped intervention queue' : classId ? 'Class-scoped intervention queue' : 'All assigned learner interventions'
 
   return (
-    <main style={shell}>
+    <section style={shell}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessment Intelligence</div>
           <h1 style={{ margin: '6px 0' }}>Learner Intervention Queue</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Turn mastery gaps into targeted practice, collect follow-up evidence, and close or escalate support.</p>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Turn mastery gaps into targeted practice, collect follow-up evidence, and close or escalate support.</p>
           <div style={{ ...muted, marginTop: 8 }}>{contextLabel}</div>
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}><button type="button" style={secondaryButton} onClick={()=>setIncludeClosed(value=>!value)}>{includeClosed?'Show open support':'Include completed support'}</button>{classId&&<button type="button" style={secondaryButton} onClick={()=>router.push(`/teacher/classhub/${classId}/progress${subjectId?`?subjectId=${encodeURIComponent(subjectId)}`:''}`)}>Progress Record</button>}</div>
           <p style={muted}>Opening this page reads saved support records. It does not refresh evidence, create plans or move review dates.</p>
@@ -123,7 +123,7 @@ export default function AssessmentInterventionsPage() {
         {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
 
         {loading ? <section style={card}>Loading saved support records…</section>
-          : !error && items.length === 0 ? <section style={card}><strong>No support records match</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>No evidence-backed intervention matches this context.</p></section>
+          : !error && items.length === 0 ? <section style={card}><strong>No support records match</strong><p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>No evidence-backed intervention matches this context.</p></section>
           : items.map(item => (
             <section key={item.interventionId} style={{ ...card, borderColor: priorityBorder[item.priority] }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
@@ -174,7 +174,7 @@ export default function AssessmentInterventionsPage() {
             </section>
           ))}
       </div>
-    </main>
+    </section>
   )
 }
 

@@ -57,15 +57,15 @@ export default function TeacherWeekViewPage(){
  const attention=ordered.filter(o=>{const s=lessonState(o);return ["Plan needed","Attendance unfinished","Reflection due","Needs recovery","Not prepared"].includes(s.label)});
  const completed=ordered.filter(o=>o.teaching?.lifecycle==="completed").length;
 
- if(loading)return <main style={{padding:16,color:C.textMuted}}>Building your teaching week…</main>;
- if(error)return <main style={{padding:16}}><div style={{padding:14,borderRadius:12,background:"#fef2f2",color:"#991b1b"}}>{error}</div><button onClick={()=>void load()} style={secondary}>Retry</button></main>;
- if(!week)return <main style={{padding:16}}><section style={card}><h1 style={{fontSize:20}}>Connect your school</h1><p style={muted}>Your week is generated from your active school, teaching assignments and timetable.</p><button style={primary} onClick={()=>router.push("/teacher/onboarding/school")}>Connect school</button></section></main>;
+ if(loading)return <section style={{padding:16,color:C.textMuted}}>Building your teaching week…</section>;
+ if(error)return <section style={{padding:16}}><div style={{padding:14,borderRadius:12,background:"#fef2f2",color:"#991b1b"}}>{error}</div><button onClick={()=>void load()} style={secondary}>Retry</button></section>;
+ if(!week)return <section style={{padding:16}}><section style={card}><h1 style={{fontSize:20}}>Connect your school</h1><p style={muted}>Your week is generated from your active school, teaching assignments and timetable.</p><button style={primary} onClick={()=>router.push("/teacher/onboarding/school")}>Connect school</button></section></section>;
 
- return <main style={{minHeight:"100vh",background:C.surface,paddingBottom:96}}>
+ return <section style={{minHeight:"100vh",background:C.surface,paddingBottom:96}}>
   <header style={{padding:"18px 16px",background:"#fff",borderBottom:`1px solid ${C.border}`}}>
    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
     <button aria-label="Previous week" onClick={()=>setOffset(v=>v-1)} style={nav}>‹</button>
-    <div style={{textAlign:"center"}}><div style={{fontSize:21,fontWeight:900,color:C.textPrimary}}>My Week</div><div style={muted}>{week.weekNumber?`Week ${week.weekNumber}`:"School week"} · {week.weekStart} – {week.weekEnd}</div></div>
+    <div style={{textAlign:"center"}}><div style={{fontSize:21,fontWeight:750,color:C.textPrimary}}>My Week</div><div style={muted}>{week.weekNumber?`Week ${week.weekNumber}`:"School week"} · {week.weekStart} – {week.weekEnd}</div></div>
     <button aria-label="Next week" onClick={()=>setOffset(v=>v+1)} style={nav}>›</button>
    </div>
    {offset!==0&&<button onClick={()=>setOffset(0)} style={{...secondary,display:"block",margin:"10px auto 0"}}>This week</button>}
@@ -86,12 +86,12 @@ export default function TeacherWeekViewPage(){
    <div style={label}>TEACHING PLAN</div>
    {ordered.length===0?<div style={card}><b>No scheduled lessons this week.</b><p style={muted}>Your week follows the authoritative timetable. Add or correct timetable slots instead of creating duplicate weekly tasks.</p><button style={secondary} onClick={()=>router.push("/teacher/timetable")}>Open timetable</button></div>:
    <div style={{display:"grid",gap:10}}>{ordered.map(o=>{const s=lessonState(o);const isToday=o.occurrenceDate===today;return <article key={o.timetableSlotId+o.occurrenceDate} style={{...card,border:isToday?"1.5px solid #10b981":`1px solid ${C.border}`}}>
-    <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start"}}><div><div style={{fontSize:11,fontWeight:900,color:isToday?"#047857":C.textMuted}}>{isToday?"TODAY":DAY[o.dayOfWeek].toUpperCase()} · {o.startTime.slice(0,5)}–{o.endTime.slice(0,5)}</div><h2 style={{fontSize:16,margin:"4px 0 2px",color:C.textPrimary}}>{o.assignment.subjectName}</h2><div style={muted}>{o.assignment.className}{o.assignment.stream?` ${o.assignment.stream}`:""}</div></div><span style={{fontSize:10,fontWeight:800,padding:"5px 8px",borderRadius:999,color:s.tone,background:s.bg}}>{s.label}</span></div>
+    <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start"}}><div><div style={{fontSize:11,fontWeight:750,color:isToday?"#047857":C.textMuted}}>{isToday?"TODAY":DAY[o.dayOfWeek].toUpperCase()} · {o.startTime.slice(0,5)}–{o.endTime.slice(0,5)}</div><h2 style={{fontSize:16,margin:"4px 0 2px",color:C.textPrimary}}>{o.assignment.subjectName}</h2><div style={muted}>{o.assignment.className}{o.assignment.stream?` ${o.assignment.stream}`:""}</div></div><span style={{fontSize:11,fontWeight:800,padding:"5px 8px",borderRadius:999,color:s.tone,background:s.bg}}>{s.label}</span></div>
     {o.teaching&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:10}}><span style={chip}>{o.teaching.lessonPlanId?"Plan ✓":"Plan —"}</span><span style={chip}>Attendance {o.teaching.attendance.state==="complete"?"✓":"—"}</span><span style={chip}>Evidence {o.teaching.evidence.count||"—"}</span><span style={chip}>Homework {o.teaching.homework.issued?"✓":"—"}</span><span style={chip}>Reflection {o.teaching.reflection.completed?"✓":"—"}</span></div>}
     <button onClick={()=>router.push(hrefFor(o))} style={{...primary,width:"100%",marginTop:12}}>{s.next} →</button>
    </article>})}</div>}
   </section>
- </main>
+ </section>
 }
 const card:React.CSSProperties={background:"#fff",border:"1px solid #e5e7eb",borderRadius:16,padding:14,boxShadow:"0 1px 3px rgba(15,23,42,.05)"};
 const muted:React.CSSProperties={fontSize:12,color:C.textMuted,margin:"4px 0",lineHeight:1.45};

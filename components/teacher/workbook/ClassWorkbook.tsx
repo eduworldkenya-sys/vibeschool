@@ -524,34 +524,33 @@ export default function ClassWorkbook() {
   );
   if (loading)
     return (
-      <main className={styles.workbook} onClickCapture={protectLink}>
+      <section className={styles.workbook} onClickCapture={protectLink}>
         <h1>Class workbook</h1>
         <p role="status">Opening your learners and their records…</p>
-      </main>
+      </section>
     );
   if (!data || !doc || !sheet)
     return (
-      <main className={styles.workbook} onClickCapture={protectLink}>
+      <section className={styles.workbook} onClickCapture={protectLink}>
         <h1>Class workbook</h1>
         <div className={styles.error} role="alert">
           {error || "Your workbook is unavailable."}
         </div>
         <button onClick={() => void load()}>Try again</button>{" "}
         <Link href="/teacher/classhub">My classes</Link>
-      </main>
+      </section>
     );
   const currentExam = data.exams.find((e) => e.id === filters.examId);
   const allVisibleSelected =
     rows.length > 0 && rows.every((r) => selected.includes(r.learner.id));
   return (
-    <main className={styles.workbook} onClickCapture={protectLink}>
+    <section className={styles.workbook} onClickCapture={protectLink}>
       <div className={styles.header}>
         <div>
           <Link href={`/teacher/classhub/${classId}`}>← Back to class</Link>
-          <h1>{data.className} · Class workbook</h1>
+          <h1>{data.className} · Class sheets</h1>
           <p className={styles.muted}>
-            The same learners, connected records, and space for your own
-            trackers.
+            View class records or keep a private tracker alongside them.
           </p>
         </div>
         <div className={styles.actions}>
@@ -618,6 +617,7 @@ export default function ClassWorkbook() {
         daily register records. Scores and progress show your assigned subjects
         and recorded evidence.
       </p>
+      <details className={styles.card}><summary>Subject, term, dates and group filters</summary>
       <div className={styles.toolbar}>
         <label>
           Subject{" "}
@@ -717,6 +717,7 @@ export default function ClassWorkbook() {
           Clear filters
         </button>
       </div>
+      </details>
       {sheet.kind === "exams" && (
         <section className={styles.card}>
           <div className={styles.toolbar}>
@@ -955,6 +956,7 @@ export default function ClassWorkbook() {
             setSelected([]);
           }}
         />
+        <details><summary>Filter by recorded evidence</summary><div className={styles.actions}>
         {[
           "Needs attention",
           "Missing homework",
@@ -974,6 +976,7 @@ export default function ClassWorkbook() {
             {q}
           </button>
         ))}
+        </div></details>
       </div>
       {query && !filtered.understood && (
         <p className={styles.muted}>
@@ -998,6 +1001,238 @@ export default function ClassWorkbook() {
           <strong>{focusIds.length}</strong> selected
         </span>
       </div>
+      <h2 className={styles.printTitle}>
+        {sheet.title} · {data.className}
+      </h2>
+      <div className={styles.scroll}>
+        <table className={styles.grid}>
+          <caption className={styles.muted}>
+            {sheet.title} ·{" "}
+            {filters.subjectId
+              ? data.subjects.find((s) => s.id === filters.subjectId)?.name
+              : "All assigned subjects"}{" "}
+            · {filters.start || "All dates"} to {filters.end || "today"}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">
+                <label>
+                  <input
+                    type="checkbox"
+                    aria-label="Select all visible learners"
+                    checked={allVisibleSelected}
+                    onChange={(e) =>
+                      setSelected(
+                        e.target.checked ? rows.map((r) => r.learner.id) : [],
+                      )
+                    }
+                  />
+                  <button
+                    onClick={() => {
+                      setSort("name");
+                      setDescending(sort === "name" ? !descending : false);
+                    }}
+                  >
+                    Learner {sort === "name" ? (descending ? "↓" : "↑") : ""}
+                  </button>
+                </label>
+              </th>
+              {columns
+                .filter((c) => c.id !== "name")
+                .map((c) => (
+                  <th
+                    key={c.id}
+                    scope="col"
+                    aria-sort={
+                      sort === c.id
+                        ? descending
+                          ? "descending"
+                          : "ascending"
+                        : "none"
+                    }
+                  >
+                    <button
+                      onClick={() => {
+                        setSort(c.id);
+                        setDescending(sort === c.id ? !descending : false);
+                      }}
+                    >
+                      {c.label} {sort === c.id ? (descending ? "↓" : "↑") : ""}
+                    </button>
+                  </th>
+                ))}
+              {sheet.kind === "attendance" && (
+                <th scope="col">Daily register · {dailyDate}</th>
+              )}
+              {sheet.kind === "exams" && (
+                <th scope="col">
+                  Enter mark · {currentExam?.name ?? "Choose exam"}
+                </th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.learner.id}>
+                <td>
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${r.learner.name}`}
+                    checked={selected.includes(r.learner.id)}
+                    onChange={(e) =>
+                      setSelected((s) =>
+                        e.target.checked
+                          ? [...s, r.learner.id]
+                          : s.filter((id) => id !== r.learner.id),
+                      )
+                    }
+                  />
+                  <Link
+                    href={`/teacher/classhub/${classId}/student/${r.learner.id}`}
+                  >
+                    {r.learner.name}
+                  </Link>
+                  {r.reasons.length > 0 && (
+                    <div className={styles.muted}>{r.reasons.join(" · ")}</div>
+                  )}
+                </td>
+                {columns
+                  .filter((c) => c.id !== "name")
+                  .map((c) => (
+                    <td key={c.id}>
+                      {c.id.startsWith("custom_") && c.type !== "formula" ? (
+                        <Editor
+                          disabled={busy}
+                          value={r.values[c.id] ?? null}
+                          column={{ ...c, id: c.id.slice(7) }}
+                          label={`${c.label} for ${r.learner.name}`}
+                          onCommit={(value) => {
+                            if (value !== r.values[c.id])
+                              applyChanges([
+                                {
+                                  studentId: r.learner.id,
+                                  columnId: c.id.slice(7),
+                                  value,
+                                },
+                              ]);
+                          }}
+                        />
+                      ) : (
+                        display(r.values[c.id])
+                      )}
+                    </td>
+                  ))}
+                {sheet.kind === "attendance" && (
+                  <td>
+                    <select
+                      aria-label={`Attendance for ${r.learner.name}`}
+                      disabled={busy}
+                      value={String(
+                        attendanceDraft[r.learner.id] ??
+                          (() => {
+                            const a = data.attendance.find(
+                              (a) =>
+                                a.student_id === r.learner.id &&
+                                a.date === dailyDate &&
+                                a.timetable_slot_id === null,
+                            );
+                            return a ? (a.is_late ? "late" : a.status) : "";
+                          })(),
+                      )}
+                      onChange={(e) =>
+                        setAttendanceDraft((d) => ({
+                          ...d,
+                          [r.learner.id]: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="" disabled>
+                        Not recorded
+                      </option>
+                      <option value="present">Present</option>
+                      <option value="absent">Absent</option>
+                      <option value="late">Late</option>
+                    </select>
+                  </td>
+                )}
+                {sheet.kind === "exams" && (
+                  <td>
+                    <Editor
+                      disabled={
+                        busy ||
+                        !filters.subjectId ||
+                        !currentExam ||
+                        currentExam.is_locked
+                      }
+                      column={{ id: "mark", label: "Mark", type: "text" }}
+                      value={
+                        markDraft[r.learner.id] ??
+                        (() => {
+                          const mark = data.results.find(
+                            (m) =>
+                              m.student_id === r.learner.id &&
+                              m.exam_id === filters.examId &&
+                              m.subject_id === filters.subjectId,
+                          );
+                          return mark
+                            ? mark.is_absent
+                              ? "ABS"
+                              : mark.marks
+                            : null;
+                        })()
+                      }
+                      label={`Exam mark for ${r.learner.name}`}
+                      onCommit={(value) => {
+                        try {
+                          if (value === null) return;
+                          const parsed =
+                            String(value).toUpperCase() === "ABS"
+                              ? "ABS"
+                              : parseCell(String(value), "number");
+                          if (
+                            parsed !== "ABS" &&
+                            (typeof parsed !== "number" ||
+                              parsed < 0 ||
+                              parsed > 100)
+                          )
+                            throw new Error("Use a mark from 0 to 100 or ABS.");
+                          const existing = data.results.find(
+                            (m) =>
+                              m.student_id === r.learner.id &&
+                              m.exam_id === filters.examId &&
+                              m.subject_id === filters.subjectId,
+                          );
+                          const saved = existing
+                            ? existing.is_absent
+                              ? "ABS"
+                              : existing.marks
+                            : null;
+                          if (parsed !== saved)
+                            setMarkDraft((d) => ({
+                              ...d,
+                              [r.learner.id]: parsed,
+                            }));
+                          else
+                            setMarkDraft((d) => {
+                              const next = { ...d };
+                              delete next[r.learner.id];
+                              return next;
+                            });
+                        } catch (e) {
+                          setError(
+                            e instanceof Error ? e.message : "Check this mark.",
+                          );
+                        }
+                      }}
+                    />
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <details className={styles.card}><summary>Export, print and draft history</summary>
       <div className={styles.actions}>
         <button
           disabled={busy || !undo.current.length}
@@ -1040,6 +1275,7 @@ export default function ClassWorkbook() {
         <button onClick={() => window.print()}>Print</button>
         <button onClick={exportDraft}>Back up my sheet draft</button>
       </div>
+      </details>
       <details className={styles.card}>
         <summary>Columns, saved views and my sheet settings</summary>
         <div className={styles.columns}>
@@ -1384,237 +1620,7 @@ export default function ClassWorkbook() {
           </>
         )}
       </details>
-      <h2 className={styles.printTitle}>
-        {sheet.title} · {data.className}
-      </h2>
-      <div className={styles.scroll}>
-        <table className={styles.grid}>
-          <caption className={styles.muted}>
-            {sheet.title} ·{" "}
-            {filters.subjectId
-              ? data.subjects.find((s) => s.id === filters.subjectId)?.name
-              : "All assigned subjects"}{" "}
-            · {filters.start || "All dates"} to {filters.end || "today"}
-          </caption>
-          <thead>
-            <tr>
-              <th scope="col">
-                <label>
-                  <input
-                    type="checkbox"
-                    aria-label="Select all visible learners"
-                    checked={allVisibleSelected}
-                    onChange={(e) =>
-                      setSelected(
-                        e.target.checked ? rows.map((r) => r.learner.id) : [],
-                      )
-                    }
-                  />
-                  <button
-                    onClick={() => {
-                      setSort("name");
-                      setDescending(sort === "name" ? !descending : false);
-                    }}
-                  >
-                    Learner {sort === "name" ? (descending ? "↓" : "↑") : ""}
-                  </button>
-                </label>
-              </th>
-              {columns
-                .filter((c) => c.id !== "name")
-                .map((c) => (
-                  <th
-                    key={c.id}
-                    scope="col"
-                    aria-sort={
-                      sort === c.id
-                        ? descending
-                          ? "descending"
-                          : "ascending"
-                        : "none"
-                    }
-                  >
-                    <button
-                      onClick={() => {
-                        setSort(c.id);
-                        setDescending(sort === c.id ? !descending : false);
-                      }}
-                    >
-                      {c.label} {sort === c.id ? (descending ? "↓" : "↑") : ""}
-                    </button>
-                  </th>
-                ))}
-              {sheet.kind === "attendance" && (
-                <th scope="col">Daily register · {dailyDate}</th>
-              )}
-              {sheet.kind === "exams" && (
-                <th scope="col">
-                  Enter mark · {currentExam?.name ?? "Choose exam"}
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.learner.id}>
-                <td>
-                  <input
-                    type="checkbox"
-                    aria-label={`Select ${r.learner.name}`}
-                    checked={selected.includes(r.learner.id)}
-                    onChange={(e) =>
-                      setSelected((s) =>
-                        e.target.checked
-                          ? [...s, r.learner.id]
-                          : s.filter((id) => id !== r.learner.id),
-                      )
-                    }
-                  />
-                  <Link
-                    href={`/teacher/classhub/${classId}/student/${r.learner.id}`}
-                  >
-                    {r.learner.name}
-                  </Link>
-                  {r.reasons.length > 0 && (
-                    <div className={styles.muted}>{r.reasons.join(" · ")}</div>
-                  )}
-                </td>
-                {columns
-                  .filter((c) => c.id !== "name")
-                  .map((c) => (
-                    <td key={c.id}>
-                      {c.id.startsWith("custom_") && c.type !== "formula" ? (
-                        <Editor
-                          disabled={busy}
-                          value={r.values[c.id] ?? null}
-                          column={{ ...c, id: c.id.slice(7) }}
-                          label={`${c.label} for ${r.learner.name}`}
-                          onCommit={(value) => {
-                            if (value !== r.values[c.id])
-                              applyChanges([
-                                {
-                                  studentId: r.learner.id,
-                                  columnId: c.id.slice(7),
-                                  value,
-                                },
-                              ]);
-                          }}
-                        />
-                      ) : (
-                        display(r.values[c.id])
-                      )}
-                    </td>
-                  ))}
-                {sheet.kind === "attendance" && (
-                  <td>
-                    <select
-                      aria-label={`Attendance for ${r.learner.name}`}
-                      disabled={busy}
-                      value={String(
-                        attendanceDraft[r.learner.id] ??
-                          (() => {
-                            const a = data.attendance.find(
-                              (a) =>
-                                a.student_id === r.learner.id &&
-                                a.date === dailyDate &&
-                                a.timetable_slot_id === null,
-                            );
-                            return a ? (a.is_late ? "late" : a.status) : "";
-                          })(),
-                      )}
-                      onChange={(e) =>
-                        setAttendanceDraft((d) => ({
-                          ...d,
-                          [r.learner.id]: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="" disabled>
-                        Not recorded
-                      </option>
-                      <option value="present">Present</option>
-                      <option value="absent">Absent</option>
-                      <option value="late">Late</option>
-                    </select>
-                  </td>
-                )}
-                {sheet.kind === "exams" && (
-                  <td>
-                    <Editor
-                      disabled={
-                        busy ||
-                        !filters.subjectId ||
-                        !currentExam ||
-                        currentExam.is_locked
-                      }
-                      column={{ id: "mark", label: "Mark", type: "text" }}
-                      value={
-                        markDraft[r.learner.id] ??
-                        (() => {
-                          const mark = data.results.find(
-                            (m) =>
-                              m.student_id === r.learner.id &&
-                              m.exam_id === filters.examId &&
-                              m.subject_id === filters.subjectId,
-                          );
-                          return mark
-                            ? mark.is_absent
-                              ? "ABS"
-                              : mark.marks
-                            : null;
-                        })()
-                      }
-                      label={`Exam mark for ${r.learner.name}`}
-                      onCommit={(value) => {
-                        try {
-                          if (value === null) return;
-                          const parsed =
-                            String(value).toUpperCase() === "ABS"
-                              ? "ABS"
-                              : parseCell(String(value), "number");
-                          if (
-                            parsed !== "ABS" &&
-                            (typeof parsed !== "number" ||
-                              parsed < 0 ||
-                              parsed > 100)
-                          )
-                            throw new Error("Use a mark from 0 to 100 or ABS.");
-                          const existing = data.results.find(
-                            (m) =>
-                              m.student_id === r.learner.id &&
-                              m.exam_id === filters.examId &&
-                              m.subject_id === filters.subjectId,
-                          );
-                          const saved = existing
-                            ? existing.is_absent
-                              ? "ABS"
-                              : existing.marks
-                            : null;
-                          if (parsed !== saved)
-                            setMarkDraft((d) => ({
-                              ...d,
-                              [r.learner.id]: parsed,
-                            }));
-                          else
-                            setMarkDraft((d) => {
-                              const next = { ...d };
-                              delete next[r.learner.id];
-                              return next;
-                            });
-                        } catch (e) {
-                          setError(
-                            e instanceof Error ? e.message : "Check this mark.",
-                          );
-                        }
-                      }}
-                    />
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+
       {!rows.length && (
         <p className={styles.notice}>
           {data.learners.length
@@ -1737,6 +1743,6 @@ export default function ClassWorkbook() {
           collect payments.
         </p>
       </section>
-    </main>
+    </section>
   );
 }

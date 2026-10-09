@@ -45,7 +45,7 @@ const EMPTY: FormState = {
 };
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: "grid", gap: 6 }}><span style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>{label}</span>{children}</label>;
+  return <label style={{ display: "grid", gap: 6 }}><span style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)" }}>{label}</span>{children}</label>;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -55,7 +55,7 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 12,
   padding: "10px 12px",
   background: "#fff",
-  color: "#111827",
+  color: "var(--teacher-ink, #1c2923)",
   fontSize: 14,
   boxSizing: "border-box",
 };
@@ -227,33 +227,33 @@ export default function TeacherProfilePage() {
   const classes = Array.from(new Map(assignments.map((item) => [item.class_id, `${item.class_name}${item.stream ? ` ${item.stream}` : ""}`])).values());
   const activeSchool = context?.schools.find((school) => school.id === context.school_id)?.name ?? "No active school";
 
-  if (loading) return <div style={{ padding: 18 }} aria-label="Loading teacher profile"><div style={{ height: 160, borderRadius: 18, background: "#e5e7eb" }} /></div>;
+  if (loading) return <div style={{ padding: 18 }} aria-label="Loading teacher profile"><div style={{ height: 160, borderRadius: 18, background: "var(--teacher-border, #dfe5de)" }} /></div>;
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
-      <section style={{ background: "linear-gradient(135deg,#1e1b4b,#4338ca)", borderRadius: 20, padding: 18, color: "#fff", marginBottom: 12 }}>
+      <section style={{ background: "var(--teacher-surface, #fff)", borderRadius: 20, border: "1px solid var(--teacher-border, #dfe5de)", padding: 18, color: "var(--teacher-ink, #1c2923)", marginBottom: 12 }}>
         <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
-          <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading} aria-label="Change profile photo" style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 99, border: "3px solid rgba(255,255,255,.65)", overflow: "hidden", background: "rgba(255,255,255,.15)", color: "#fff", fontSize: 25, fontWeight: 900 }}>
+          <button type="button" onClick={() => fileInput.current?.click()} disabled={uploading} aria-label="Change profile photo" style={{ width: 72, height: 72, flexShrink: 0, borderRadius: 99, border: "3px solid rgba(255,255,255,.65)", overflow: "hidden", background: "var(--teacher-green, #087451)", color: "#fff", fontSize: 25, fontWeight: 750 }}>
             {form.avatarUrl ? <img src={form.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (form.fullName.trim()[0]?.toUpperCase() ?? "T")}
           </button>
           <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAvatar(file); event.target.value = ""; }} />
-          <div style={{ minWidth: 0 }}><div style={{ fontSize: 11, fontWeight: 900, opacity: .72, textTransform: "uppercase", letterSpacing: 1 }}>Teacher profile</div><h1 style={{ margin: "4px 0", fontSize: 23 }}>{form.fullName || "Teacher"}</h1><div style={{ fontSize: 12, opacity: .78 }}>{form.designation || "Teacher"} · {activeSchool}</div><div style={{ marginTop: 4, fontSize: 11, opacity: .68 }}>{email}</div></div>
+          <div style={{ minWidth: 0 }}><div style={{ fontSize: 11, fontWeight: 750, opacity: .72, textTransform: "uppercase", letterSpacing: 1 }}>Teacher profile</div><h1 style={{ margin: "4px 0", fontSize: 23 }}>{form.fullName || "Teacher"}</h1><div style={{ fontSize: 12, opacity: .78 }}>{form.designation || "Teacher"} · {activeSchool}</div><div style={{ marginTop: 4, fontSize: 11, opacity: .68 }}>{email}</div></div>
         </div>
       </section>
 
       {notice && <div role={notice.kind === "error" ? "alert" : "status"} style={{ borderRadius: 14, padding: 13, marginBottom: 12, fontSize: 13, background: notice.kind === "error" ? "#fef2f2" : "#ecfdf5", color: notice.kind === "error" ? "#991b1b" : "#065f46" }}>{notice.text}</div>}
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 10 }}>SCHOOL & TEACHING SCOPE</div>
-        {context && context.schools.length > 1 ? <Field label="Active school"><select value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={inputStyle}>{context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></Field> : <div style={{ fontSize: 14, fontWeight: 900, color: "#111827" }}>{activeSchool}</div>}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, marginTop: 12 }}><div style={{ background: "#f8fafc", borderRadius: 12, padding: 11 }}><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280" }}>CLASSES</div><div style={{ marginTop: 5, fontSize: 12, color: "#111827", lineHeight: 1.5 }}>{classes.length ? classes.join(", ") : "No classes assigned"}</div></div><div style={{ background: "#f8fafc", borderRadius: 12, padding: 11 }}><div style={{ fontSize: 10, fontWeight: 900, color: "#6b7280" }}>SUBJECTS</div><div style={{ marginTop: 5, fontSize: 12, color: "#111827", lineHeight: 1.5 }}>{subjects.length ? subjects.join(", ") : "No subjects assigned"}</div></div></div>
-        {assignments.length>0&&<div style={{display:'grid',gap:6,marginTop:10}}><div style={{fontSize:10,fontWeight:900,color:'#6b7280'}}>MY TEACHING RESPONSIBILITIES</div>{assignments.map((assignment,index)=><div key={`${assignment.class_id}:${assignment.subject_id}:${index}`} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,padding:'8px 10px',background:'#f8fafc',borderRadius:10,fontSize:12}}><span>{assignment.class_name}{assignment.stream?` ${assignment.stream}`:''} · {assignment.subject_name}</span><strong style={{color:assignment.is_class_teacher?'#047857':'#475569'}}>{assignment.is_class_teacher?'Class teacher':'Subject teacher'}</strong></div>)}<Link href="/teacher/schoolhub" style={{fontSize:12,fontWeight:800,color:'#155e75'}}>View my school responsibilities →</Link></div>}
-        <div style={{ marginTop: 9, fontSize: 11, color: "#6b7280" }}>School membership, classes and subjects are read-only here because they are authoritative school records.</div>
-        {(context?.reconciliation_count ?? 0) > 0 && <Link href="/teacher/profile/teaching-scope" style={{ display: "block", marginTop: 12, padding: 12, borderRadius: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", textDecoration: "none", fontSize: 13, fontWeight: 900 }}>Review teaching scope · {context?.reconciliation_count} curriculum mismatch{context?.reconciliation_count === 1 ? "" : "es"} →</Link>}
+        <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>SCHOOL & TEACHING SCOPE</div>
+        {context && context.schools.length > 1 ? <Field label="Active school"><select value={context.school_id ?? ""} onChange={(event) => void changeSchool(event.target.value)} style={inputStyle}>{context.schools.map((school) => <option key={school.id} value={school.id}>{school.name}</option>)}</select></Field> : <div style={{ fontSize: 14, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{activeSchool}</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10, marginTop: 12 }}><div style={{ background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 12, padding: 11 }}><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)" }}>CLASSES</div><div style={{ marginTop: 5, fontSize: 12, color: "var(--teacher-ink, #1c2923)", lineHeight: 1.5 }}>{classes.length ? classes.join(", ") : "No classes assigned"}</div></div><div style={{ background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 12, padding: 11 }}><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)" }}>SUBJECTS</div><div style={{ marginTop: 5, fontSize: 12, color: "var(--teacher-ink, #1c2923)", lineHeight: 1.5 }}>{subjects.length ? subjects.join(", ") : "No subjects assigned"}</div></div></div>
+        {assignments.length>0&&<div style={{display:'grid',gap:6,marginTop:10}}><div style={{fontSize:11,fontWeight:750,color:"var(--teacher-muted, #627168)"}}>MY TEACHING RESPONSIBILITIES</div>{assignments.map((assignment,index)=><div key={`${assignment.class_id}:${assignment.subject_id}:${index}`} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,padding:'8px 10px',background:"var(--teacher-canvas, #f5f6f2)",borderRadius:10,fontSize:12}}><span>{assignment.class_name}{assignment.stream?` ${assignment.stream}`:''} · {assignment.subject_name}</span><strong style={{color:assignment.is_class_teacher?'#047857':'#475569'}}>{assignment.is_class_teacher?'Class teacher':'Subject teacher'}</strong></div>)}<Link href="/teacher/schoolhub" style={{fontSize:12,fontWeight:800,color:'#155e75'}}>View my school responsibilities →</Link></div>}
+        <div style={{ marginTop: 9, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>School membership, classes and subjects are read-only here because they are authoritative school records.</div>
+        {(context?.reconciliation_count ?? 0) > 0 && <Link href="/teacher/profile/teaching-scope" style={{ display: "block", marginTop: 12, padding: 12, borderRadius: 12, background: "#fff7ed", border: "1px solid #fed7aa", color: "#9a3412", textDecoration: "none", fontSize: 13, fontWeight: 750 }}>Review teaching scope · {context?.reconciliation_count} curriculum mismatch{context?.reconciliation_count === 1 ? "" : "es"} →</Link>}
       </section>
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 11 }}>PROFESSIONAL DETAILS</div>
+        <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 11 }}>PROFESSIONAL DETAILS</div>
         <div style={{ display: "grid", gap: 12 }}>
           <Field label="Professional name"><input value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} style={inputStyle} /></Field>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}><Field label="TSC number"><input value={form.tscNumber} onChange={(event) => setForm((current) => ({ ...current, tscNumber: event.target.value }))} style={inputStyle} /></Field><Field label="Designation"><input value={form.designation} placeholder="e.g. Subject Teacher" onChange={(event) => setForm((current) => ({ ...current, designation: event.target.value }))} style={inputStyle} /></Field></div>
@@ -264,17 +264,17 @@ export default function TeacherProfilePage() {
       </section>
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 15, marginBottom: 12, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280", marginBottom: 11 }}>PERSONAL & PREFERENCES</div>
+        <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 11 }}>PERSONAL & PREFERENCES</div>
         <div style={{ display: "grid", gap: 12 }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}><Field label="Gender"><select value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))} style={inputStyle}><option value="">Prefer not to say</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></Field><Field label="Date of birth"><input type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} style={inputStyle} /></Field></div>
           {[{ key: "school_announcements", label: "School announcements" }, { key: "homework_submissions", label: "Learner homework submissions" }, { key: "attendance_updates", label: "Attendance actions" }].map((pref) => <label key={pref.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, minHeight: 44, border: "1px solid #e5e7eb", borderRadius: 12, padding: "0 12px", fontSize: 13, fontWeight: 800, color: "#374151" }}><span>{pref.label}</span><input type="checkbox" checked={form.notificationPrefs[pref.key] !== false} onChange={(event) => setForm((current) => ({ ...current, notificationPrefs: { ...current.notificationPrefs, [pref.key]: event.target.checked } }))} /></label>)}
         </div>
       </section>
 
-      <button type="button" onClick={() => void save()} disabled={saving} style={{ width: "100%", minHeight: 50, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontSize: 14, fontWeight: 900 }}>{saving ? "Saving…" : "Save profile"}</button>
+      <button type="button" onClick={() => void save()} disabled={saving} style={{ width: "100%", minHeight: 50, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontSize: 14, fontWeight: 750 }}>{saving ? "Saving…" : "Save profile"}</button>
 
       <section style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid #e5e7eb" }}>
-        <button type="button" onClick={() => void signOut()} disabled={signingOut} style={{ width: "100%", minHeight: 50, border: "1px solid #fecaca", borderRadius: 13, background: "#fff", color: "#b91c1c", fontSize: 14, fontWeight: 900, cursor: signingOut ? "wait" : "pointer" }}>{signingOut ? "Signing out…" : "Sign out"}</button>
+        <button type="button" onClick={() => void signOut()} disabled={signingOut} style={{ width: "100%", minHeight: 50, border: "1px solid #fecaca", borderRadius: 13, background: "#fff", color: "#b91c1c", fontSize: 14, fontWeight: 750, cursor: signingOut ? "wait" : "pointer" }}>{signingOut ? "Signing out…" : "Sign out"}</button>
       </section>
     </div>
   );

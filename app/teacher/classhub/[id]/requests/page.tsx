@@ -252,7 +252,7 @@ export default function JoinRequestsPage() {
   }
 
   return (
-    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", background: C.surface }}>
+    <div style={{ fontFamily: "inherit", background: C.surface }}>
       <style>{`
         @keyframes shimmer  { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes slideIn  { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
@@ -269,7 +269,7 @@ export default function JoinRequestsPage() {
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 0.8 }}>
               {className}
             </div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#fff' }}>Join Requests</div>
+            <div style={{ fontSize: 18, fontWeight: 750, color: '#fff' }}>Join Requests</div>
           </div>
         </div>
 
@@ -320,7 +320,7 @@ export default function JoinRequestsPage() {
                   <div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{req.studentName}</div>
                   <div style={{ fontSize: 11, color: C.textMuted }}>Student</div>
                 </div>
-                <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: 20, background: '#fef3c7', fontSize: 10, fontWeight: 800, color: '#92400e' }}>
+                <div style={{ marginLeft: 'auto', padding: '4px 10px', borderRadius: 20, background: '#fef3c7', fontSize: 11, fontWeight: 800, color: '#92400e' }}>
                   PENDING
                 </div>
               </div>

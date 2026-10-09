@@ -36,7 +36,7 @@ interface ExistingPlan {
 }
 
 const C = {
-  bg: '#f8fafc',
+  bg: "var(--teacher-canvas, #f5f6f2)",
   surface: '#ffffff',
   border: '#e2e8f0',
   text: '#1e293b',
@@ -434,7 +434,7 @@ function SchemeLessonLauncherInner() {
   }, [resolveAndOpen])
 
   return (
-    <main style={{
+    <section style={{
       minHeight: '100vh',
       background: C.bg,
       padding: '24px 16px',
@@ -554,7 +554,7 @@ function SchemeLessonLauncherInner() {
           </>
         )}
       </section>
-    </main>
+    </section>
   )
 }
 

@@ -27,12 +27,12 @@ export default function AssessmentGradebookPage() {
   }, [])
 
   return (
-    <main style={shell}>
+    <section style={shell}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessments</div>
           <h1 style={{ margin: '6px 0' }}>Class Results</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>See assessment results that have been shared with learners, together with the scores used by progress and reports.</p>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>See assessment results that have been shared with learners, together with the scores used by progress and reports.</p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
@@ -48,7 +48,7 @@ export default function AssessmentGradebookPage() {
 
         <section style={card}>
           {loading ? 'Loading class results…' : !gradebook || gradebook.entries.length === 0 ? (
-            <div><strong>No released assessment results yet</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Results appear here after marking and release.</p></div>
+            <div><strong>No released assessment results yet</strong><p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>Results appear here after marking and release.</p></div>
           ) : (
             <div style={{ display: 'grid', gap: 10 }}>
               {gradebook.entries.map(entry => (
@@ -68,7 +68,7 @@ export default function AssessmentGradebookPage() {
           )}
         </section>
       </div>
-    </main>
+    </section>
   )
 }
 
