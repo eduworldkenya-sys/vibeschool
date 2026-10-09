@@ -1,0 +1,16 @@
+/* Shared Teacher OS primitives aligned to the Assessment workspace. */
+.vs-teacher-workspace{width:min(100%,1100px);margin:0 auto;padding:18px 14px 112px;color:#17211b;font-family:"Plus Jakarta Sans",system-ui,sans-serif}
+.vs-teacher-workspace__header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
+.vs-teacher-workspace__eyebrow{margin:0 0 4px;color:#657069;font-size:12px;font-weight:700}
+.vs-teacher-workspace__title{margin:0;font-size:clamp(23px,3vw,29px);font-weight:800;line-height:1.18;letter-spacing:-.035em}
+.vs-teacher-workspace__actions{display:flex;align-items:center;gap:8px}
+.vs-teacher-action-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-width:0;min-height:80px;padding:12px 8px;border:1px solid #e0e7e3;border-radius:15px;background:#fff;color:#17211b;text-decoration:none;text-align:center;font-size:12px}
+.vs-teacher-action-tile__icon{color:#087d57;display:grid;place-items:center}
+.vs-teacher-action-tile__description{font-size:11px;color:#657069;font-weight:500}
+.vs-teacher-action-tile:hover{border-color:#087d57;background:#f5fbf8}
+.vs-teacher-action-tile:focus-visible{outline:3px solid #087d57;outline-offset:3px}
+.vs-teacher-metric{display:flex;flex-direction:column;gap:5px;min-width:0}
+.vs-teacher-metric strong{color:#087d57;font-size:25px;line-height:1;font-weight:800}
+.vs-teacher-metric span{font-size:12px;color:#657069}
+@media(min-width:768px){.vs-teacher-workspace{padding:24px 24px 80px}}
+@media(prefers-reduced-motion:reduce){.vs-teacher-action-tile{transition:none}}
