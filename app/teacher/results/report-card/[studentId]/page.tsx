@@ -392,7 +392,7 @@ function ReportCardInner(){
                 {activeMode==="844"&&(
                   <>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 54px 44px",padding:"8px 20px",background:C.bg,borderBottom:`1px solid ${C.border}`}}>
-                      {["Subject","Marks","Grade"].map((h,i)=><span key={h} style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase" as const,textAlign:(i>0?"center":"left") as any}}>{h}</span>)}
+                      {["Subject","Marks","Grade"].map((h,i)=><span key={h} style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase" as const,textAlign:i>0?"center":"left"}}>{h}</span>)}
                     </div>
                     {results.length===0?(
                       <div style={{padding:"28px",textAlign:"center" as const,color:C.textMuted,fontSize:13}}>No results recorded yet.</div>
@@ -444,7 +444,7 @@ function ReportCardInner(){
                     ):(
                       <>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 70px 46px",padding:"8px 20px",background:C.bg,borderBottom:`1px solid ${C.border}`}}>
-                          {["Strand","Type","Level"].map((h,i)=><span key={h} style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase" as const,textAlign:(i>0?"center":"left") as any}}>{h}</span>)}
+                          {["Strand","Type","Level"].map((h,i)=><span key={h} style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase" as const,textAlign:i>0?"center":"left"}}>{h}</span>)}
                         </div>
                         {cbcData.map((a,idx)=>{const pm=perfMeta(a.performance);return(
                           <div key={a.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 46px",padding:"12px 20px",borderBottom:idx<cbcData.length-1?`1px solid ${C.border}`:"none",alignItems:"center"}}>

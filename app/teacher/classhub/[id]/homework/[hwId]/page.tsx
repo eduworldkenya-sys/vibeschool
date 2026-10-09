@@ -16,19 +16,6 @@ type SubmissionStatus =
   | "marked";
 
 type HomeworkReviewAction = "marked" | "returned" | "feedback_released";
-type HomeworkReviewRpcClient = {
-  rpc(
-    fn: "review_homework_submission",
-    args: {
-      p_submission_id: string;
-      p_action: HomeworkReviewAction;
-      p_mark?: number;
-      p_feedback?: string;
-      p_reason?: string;
-      p_release_model_answers: boolean;
-    },
-  ): Promise<{ data: unknown; error: { message: string } | null }>;
-};
 
 interface Student {
   id: string;
@@ -141,16 +128,7 @@ function HomeworkGradePageInner() {
     }
     const sid = schoolIdRef.current;
 
-    type LiveHomeworkSubmissionRow = Omit<Submission, "answers">;
-    type LiveHomeworkSubmissionQuery = {
-      data: LiveHomeworkSubmissionRow[] | null;
-      error: { message?: string } | null;
-    };
-    const submissionQuery = (supabase.from("homework_submissions") as unknown as {
-      select: (columns: string) => {
-        eq: (column: string, value: string) => PromiseLike<LiveHomeworkSubmissionQuery>;
-      };
-    })
+    const submissionQuery = supabase.from("homework_submissions")
       .select("id,student_id,status,mark,feedback,submitted_at,received_at,photo_url,returned_reason")
       .eq("homework_id", hwId);
 
@@ -166,7 +144,15 @@ function HomeworkGradePageInner() {
     if (hwRes.error) { setLoadError("Could not load homework"); setLoading(false); return; }
     if (stuRes.error || qRes.error || subRes.error) { setLoadError("Could not load homework submissions"); setLoading(false); return; }
 
-    const subs = subRes.data ?? [];
+    const supportedStatuses = new Set<string>(["draft", "pending", "submitted", "received", "under_review", "returned", "marked"]);
+    const subs = (subRes.data ?? []).filter((sub): sub is typeof sub & { student_id: string; status: SubmissionStatus } =>
+      typeof sub.student_id === "string" && supportedStatuses.has(sub.status)
+    );
+    if (subs.length !== (subRes.data ?? []).length) {
+      setLoadError("Some submissions have an unsupported learner or status. Refresh or contact support before marking.");
+      setLoading(false);
+      return;
+    }
     const subIds = subs.map(sub => sub.id);
     let answers: (Answer & { submission_id: string })[] = [];
     if (subIds.length > 0) {
@@ -200,7 +186,7 @@ function HomeworkGradePageInner() {
 
   async function reviewSubmission(action: HomeworkReviewAction, input?: { mark?: number | null; feedback?: string | null; reason?: string | null }) {
     if (!selectedSub) return { error: { message: "Submission is missing" } };
-    const rpcClient = supabase as unknown as HomeworkReviewRpcClient;
+    const rpcClient = supabase;
     return rpcClient.rpc("review_homework_submission", {
       p_submission_id: selectedSub.id,
       p_action: action,

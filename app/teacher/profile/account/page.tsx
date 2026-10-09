@@ -36,7 +36,7 @@ export default function TeacherAccountTrustPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
-  const db = supabase as any;
+  const db = supabase;
 
   useEffect(() => { void load(); }, []);
 

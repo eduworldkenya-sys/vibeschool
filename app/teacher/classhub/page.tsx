@@ -113,7 +113,7 @@ export default function ClassHubPage() {
       <div className="teacher-class-grid">{visible.map(cls=><article className="teacher-class-card" key={cls.id}>
         <div className="teacher-class-card__identity"><span className="teacher-state__icon"><SchoolIcon/></span><span className="teacher-class-card__count"><Users size={14} aria-hidden="true"/>{counts[cls.id]??0}</span></div>
         <h2>{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</h2><p>{cls.subject || 'Class workspace'}</p>
-        <div className="teacher-class-card__actions"><Link href={`/teacher/classhub/${cls.id}`} className="teacher-btn">Open class<ArrowUpRight size={16}/></Link><Link href={`/teacher/classhub/${cls.id}/progress`} className="teacher-btn teacher-btn--secondary">Progress</Link></div>
+        <div className="teacher-class-card__actions"><Link href={`/teacher/classhub/${cls.id}`} className="teacher-btn">Open class<ArrowUpRight size={16}/></Link><Link href={`/teacher/classhub/${cls.id}/progress`} className="teacher-btn teacher-btn--secondary" aria-label={`Student progress for ${cls.name}${cls.stream ? ` ${cls.stream}` : ''}`}>Progress</Link></div>
       </article>)}</div>
       {visible.length===0 && <div className="teacher-state"><h2>No matching classes</h2><p>Try a different class or subject name.</p><button type="button" className="teacher-btn teacher-btn--secondary" onClick={()=>setQuery('')}>Clear search</button></div>}
     </>}
