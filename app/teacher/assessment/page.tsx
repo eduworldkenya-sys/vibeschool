@@ -119,6 +119,8 @@ function AssessmentInner() {
   const [selectedTerm,     setSelectedTerm]     = useState(1)
   const [loading,          setLoading]          = useState(true)
   const [dataLoading,      setDataLoading]      = useState(false)
+  const [learnerQuery, setLearnerQuery] = useState('')
+  const [performanceFilter, setPerformanceFilter] = useState<PerformanceLevel | 'all' | 'none'>('all')
   const [error,            setError]            = useState<string | null>(null)
 
   // Record/edit modal
@@ -531,6 +533,14 @@ function AssessmentInner() {
     return { ...s, history, badge, count: history.length }
   })
 
+  const recordedCount = studentRows.filter(s => s.count > 0).length
+  const filteredRows = studentRows.filter(s => {
+    if (!s.name.toLocaleLowerCase().includes(learnerQuery.trim().toLocaleLowerCase())) return false
+    if (performanceFilter === 'all') return true
+    if (performanceFilter === 'none') return s.count === 0
+    return s.badge?.value === performanceFilter
+  })
+
   // Bulk: selected student ids that already have this assessment
   const bulkDupIds = new Set(
     Array.from(bulkSelected).filter(sid =>
@@ -569,9 +579,9 @@ function AssessmentInner() {
       )}
 
       {/* ── Header ── */}
-      <div style={{ padding: '20px 16px 12px', borderBottom: '1px solid #f0f0f0' }}>
+      <div style={{ padding: '12px 16px 10px', borderBottom: '1px solid #f0f0f0' }}>
         {activeClassId && (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
             <button
               onClick={() => router.push('/teacher/classhub/' + activeClassId)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: '#f3f4f6', border: 'none', color: '#374151', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -596,14 +606,12 @@ function AssessmentInner() {
           {activeClass ? `${activeClass.name}${activeClass.stream ? ' ' + activeClass.stream : ''}` : '—'}
           {activeSubject ? ` · ${activeSubject.name}` : ''}
         </p>
-        <p style={{ margin: '7px 0 0', fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
-          Record day-to-day progress here, or open the right tool for an exercise, quiz, CAT, exam or reusable question.
-        </p>
+
       </div>
 
       {/* One assessment system: make each teacher job explicit without duplicating its authority. */}
       <div style={{ padding: '12px 16px 2px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 9 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 6 }}>
           {[
             ['Exercise', 'Practice from a lesson', '/teacher/lessonplan'],
             ['Quiz', 'Quick lesson check', '/teacher/lessonplan'],
@@ -613,7 +621,7 @@ function AssessmentInner() {
             ['Progress', 'Record CBC evidence', ''],
           ].map(([label, desc, href]) => (
             <button key={label} type="button" onClick={() => href && router.push(href)} style={{
-              textAlign: 'left', padding: '11px 12px', borderRadius: 12, border: '1px solid #e5e7eb',
+              textAlign: 'left', minHeight: 52, padding: '8px 10px', borderRadius: 10, border: '1px solid #e5e7eb',
               background: href ? '#fff' : '#f0fdf4', cursor: href ? 'pointer' : 'default', fontFamily: 'inherit',
             }}>
               <div style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>{label}</div>
@@ -621,9 +629,7 @@ function AssessmentInner() {
             </button>
           ))}
         </div>
-        <p style={{ margin: '8px 2px 0', fontSize: 11, color: '#6b7280', lineHeight: 1.45 }}>
-          Exercises and quizzes start from a lesson so VibeSchool can carry the class, subject, topic and learning outcomes automatically. CATs use completed lessons. Exams use the shared Exam Centre.
-        </p>
+
       </div>
 
       {/* ── Class tabs ── */}
@@ -751,13 +757,27 @@ function AssessmentInner() {
         </div>
       )}
 
+      <section aria-label="Assessment overview" style={{ margin: '8px 16px', padding: '10px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: '#475569' }}><strong style={{ fontSize: 18, color: '#0f172a' }}>{students.length}</strong> learners</span>
+        <span style={{ fontSize: 12, color: '#475569' }}><strong style={{ fontSize: 18, color: '#047857' }}>{recordedCount}</strong> with records</span>
+        <span style={{ fontSize: 12, color: '#475569' }}><strong style={{ fontSize: 18, color: '#0f172a' }}>{students.length - recordedCount}</strong> without records</span>
+      </section>
+      <div style={{ padding: '4px 16px 10px' }}>
+        <label htmlFor="assessment-learner-search" style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: '#334155' }}>Find a learner</label>
+        <input id="assessment-learner-search" type="search" value={learnerQuery} onChange={e => setLearnerQuery(e.target.value)} placeholder="Search by learner name" style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', minHeight: 42, borderRadius: 10 }} />
+        <div role="group" aria-label="Filter by performance" style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingTop: 9 }}>
+          {([{ value: 'all', short: 'All' }, ...PERFORMANCE_OPTIONS, { value: 'none', short: 'No record' }] as const).map(option => (
+            <button type="button" key={option.value} aria-pressed={performanceFilter === option.value} onClick={() => setPerformanceFilter(option.value)} style={{ flexShrink: 0, padding: '7px 11px', borderRadius: 20, fontSize: 12, fontWeight: 700, border: '1px solid #d1d5db', background: performanceFilter === option.value ? '#047857' : '#fff', color: performanceFilter === option.value ? '#fff' : '#334155' }}>{option.short}</button>
+          ))}
+        </div>
+      </div>
       {/* ── Student list ── */}
-      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 5 }}>
         {dataLoading
           ? [1,2,3,4].map(i => <Skeleton key={i} h={64} />)
-          : studentRows.length === 0
-            ? <EmptyState icon="👥" message="No students enrolled in this class." />
-            : studentRows.map(s => {
+           : filteredRows.length === 0
+            ? <EmptyState icon="👥" message={students.length === 0 ? 'No students enrolled in this class.' : 'No learners match these filters.'} />
+            : filteredRows.map(s => {
                 const isSelected = bulkSelected.has(s.id)
                 const isDup      = bulkDupIds.has(s.id)
                 return (
@@ -771,7 +791,7 @@ function AssessmentInner() {
                     setBulkDone(false)
                   }} style={{
                     display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '12px 14px', borderRadius: 14, background: '#fff',
+                    padding: '8px 10px', minHeight: 54, borderRadius: 10, background: '#fff',
                     border: `1.5px solid ${isSelected ? AMBER_MID : isDup ? '#fca5a5' : '#f0f0f0'}`,
                     cursor: bulkMode ? 'pointer' : 'default',
                     opacity: isDup ? 0.6 : 1,
@@ -791,7 +811,7 @@ function AssessmentInner() {
 
                     {/* Badge */}
                     <div style={{
-                      width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                      width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: s.badge ? s.badge.bg    : '#f3f4f6',
                       color:      s.badge ? s.badge.color : '#9ca3af',
@@ -815,11 +835,11 @@ function AssessmentInner() {
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                         {s.count > 0 && (
                           <>
-                            <button onClick={() => setReportStudent(s)} style={iconBtn('#f3f4f6', '#374151')} title="Report">📄</button>
-                            <button onClick={() => openHistory(s)}      style={iconBtn('#dbeafe', '#1e40af')} title="History">📋</button>
+                            <button onClick={() => setReportStudent(s)} style={iconBtn('#f3f4f6', '#374151')} title="Report" aria-label={ `Report for ${s.name}` }>📄</button>
+                            <button onClick={() => openHistory(s)}      style={iconBtn('#dbeafe', '#1e40af')} title="History" aria-label={ `Assessment history for ${s.name}` }>📋</button>
                           </>
                         )}
-                        <button onClick={() => openRecord(s)} style={iconBtn('#d1fae5', '#065f46')} title="Add">＋</button>
+                        <button onClick={() => openRecord(s)} style={iconBtn('#d1fae5', '#065f46')} title="Add" aria-label={ `Record assessment for ${s.name}` }>＋</button>
                       </div>
                     )}
                   </div>
