@@ -296,3 +296,10 @@
   .search { min-width: 0; }
   .tabs button { flex-shrink: 0; }
 }
+.rosterGrid tbody th {
+  top: auto;
+}
+.rosterGrid thead th:nth-child(2) {
+  background: #f0f4ed;
+  z-index: 4;
+}
