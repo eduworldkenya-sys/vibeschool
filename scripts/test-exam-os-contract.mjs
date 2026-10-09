@@ -2,7 +2,7 @@ import fs from 'node:fs'
 
 const read = (path) => fs.readFileSync(path, 'utf8')
 
-const layout = read('app/teacher/layout.tsx')
+const layout = read('components/teacher/navigation.ts')
 const more = read('app/teacher/more/page.tsx')
 const twin = read('lib/teacher/twin.ts')
 const subject = read('components/teacher/SubjectCompanion.tsx')
@@ -12,9 +12,9 @@ const workbook = read('components/teacher/workbook/ClassWorkbook.tsx')
 const workspace = read('components/teacher/classroom/ClassWorkspace.tsx')
 
 const checks = {
-  'Teacher Assess tray exposes Exams': layout.includes('label: "Exams"') && layout.includes('href: "/teacher/results"'),
-  'Assess tray language is reconciled': layout.includes('Assessment & Exams'),
-  'All tools exposes Exams': more.includes("label: 'Exams'") && more.includes("href: '/teacher/results'"),
+  'Teacher Assess tray exposes Exams': layout.includes("label: 'Exams'") && layout.includes("href: '/teacher/results'"),
+  'Assess tray language is reconciled': layout.includes("assess: [") && layout.includes("label: 'Assessments'") && layout.includes("label: 'Exams'"),
+  'All tools exposes Exams': more.includes("teacherTools[tab.id]") && layout.includes("href: '/teacher/results'"),
   'Twin resolves Exam Centre to canonical route': twin.includes("label: 'Exam Centre', url: '/teacher/results'"),
   'Twin no longer emits dead /teacher/exams action': !twin.includes("label: 'Exam Centre', url: '/teacher/exams'"),
   'Compatibility route redirects safely': alias.includes("redirect('/teacher/results')"),

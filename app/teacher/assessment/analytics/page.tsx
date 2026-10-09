@@ -71,12 +71,12 @@ export default function AssessmentAnalyticsPage() {
   }
 
   return (
-    <main style={shell}>
+    <section style={shell}>
       <div style={{ maxWidth: 1040, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessments</div>
           <h1 style={{ margin: '6px 0' }}>Results Analysis</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>Understand how learners performed, where they struggled, and what may need reteaching or follow-up.</p>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Understand how learners performed, where they struggled, and what may need reteaching or follow-up.</p>
         </section>
 
         {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
@@ -142,7 +142,7 @@ export default function AssessmentAnalyticsPage() {
           <section style={card}>
             <h2 style={{ marginTop: 0, fontSize: 18 }}>Assessment-level analytics</h2>
             {loading ? 'Loading analytics…' : summaries.length === 0 ? (
-              <div><strong>No assessment analytics yet</strong><p style={{ color: '#6b7280', marginBottom: 0 }}>Assigned assessments will appear here.</p></div>
+              <div><strong>No assessment analytics yet</strong><p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>Assigned assessments will appear here.</p></div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {summaries.map(item => {
@@ -171,7 +171,7 @@ export default function AssessmentAnalyticsPage() {
             <section style={card}>
               <button type="button" onClick={back} style={secondaryButton}>← Back to assessments</button>
               <h2 style={{ margin: '14px 0 4px' }}>{detail.title}</h2>
-              <p style={{ margin: 0, color: '#6b7280' }}>{detail.className}{detail.classStream ? ` ${detail.classStream}` : ''}</p>
+              <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>{detail.className}{detail.classStream ? ` ${detail.classStream}` : ''}</p>
               <div style={metricGrid}>
                 <Metric label="Submission" value={`${detail.submissionRate.toFixed(1)}%`} />
                 <Metric label="Average" value={detail.averagePercentage === null ? '—' : `${detail.averagePercentage.toFixed(1)}%`} />
@@ -269,7 +269,7 @@ export default function AssessmentAnalyticsPage() {
           </>
         )}
       </div>
-    </main>
+    </section>
   )
 }
 

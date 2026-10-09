@@ -82,8 +82,8 @@ export default function ClassStudentProgressPage() {
     const rows = evidence.filter(row=>ids.has(row.studentId) && (subject==='all'||row.subjectId===subject) && evidenceInProgressPeriod(row,period,term))
     downloadProgressCsv(progressCsv(rows,visible,authority.subjects,{className:authority.className,period:period==='term'?term!.name:period==='all'?'All evidence':`Last ${period} days`,asOf:new Date().toISOString()}),'student-progress-record.csv')
   }
-  if (loading) return <main style={{padding:20}} aria-label="Loading class progress"><p>Loading your complete class progress record…</p></main>
-  return <main className="progress-print" style={{maxWidth:940,margin:'0 auto',padding:'16px 14px 112px',color:'#111827'}}>
+  if (loading) return <section style={{padding:20}} aria-label="Loading class progress"><p>Loading your complete class progress record…</p></section>
+  return <section className="progress-print" style={{maxWidth:940,margin:'0 auto',padding:'16px 14px 112px',color:"var(--teacher-ink, #1c2923)"}}>
     <section style={{padding:18,borderRadius:20,background:'#172554',color:'#fff'}}>
       <button data-progress-controls type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={heroButton}>‹ Class</button>
       <h1 style={{margin:'12px 0 5px',fontSize:24}}>Student Progress Record · {authority?.className ?? 'Class'}</h1>
@@ -117,9 +117,9 @@ export default function ClassStudentProgressPage() {
       </button>)}{!visible.length && <section style={card}>No learners match this view. Change the filters or check your class roster.</section>}</div>
       </>}
       <ProgressDataChecks rows={evidence.filter(row=>!row.subjectId||subject==='all'||row.subjectId===subject)}/>
-      <p style={{fontSize:11,lineHeight:1.7,color:'#6b7280'}}>Trend labels require four comparable observations on separate Nairobi dates. Learners are never given one overall level by averaging different subjects. This is a VibeSchool evidence projection, not a released school report.</p>
+      <p style={{fontSize:11,lineHeight:1.7,color:"var(--teacher-muted, #627168)"}}>Trend labels require four comparable observations on separate Nairobi dates. Learners are never given one overall level by averaging different subjects. This is a VibeSchool evidence projection, not a released school report.</p>
     </>}
-  </main>
+  </section>
 }
 const card: React.CSSProperties = {padding:15,marginTop:12,border:'1px solid #e5e7eb',borderRadius:15,background:'#fff',breakInside:'avoid'}
 const heroButton: React.CSSProperties = {border:0,borderRadius:10,minHeight:44,padding:'0 12px',background:'rgba(255,255,255,.14)',color:'#fff',fontWeight:800}

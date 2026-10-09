@@ -23,7 +23,7 @@
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
-  color: #10B981;
+  color: var(--teacher-green, #087451);
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 
@@ -49,7 +49,7 @@
 
 .tool:active {
   transform: scale(0.97);
-  border-color: #10B981;
+  border-color: var(--teacher-green, #087451);
 }
 
 .icon {

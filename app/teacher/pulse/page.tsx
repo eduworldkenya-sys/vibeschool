@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/app/teacher/layout";
+import { useToast } from "@/components/teacher/TeacherUiContext";
 import { fetchPulseData } from "@/lib/pulse/fetcher";
 import type { ActivityItem, PriorityTask, PulseSnapshot } from "@/lib/types";
 import { runRules } from "@/lib/pulse/rules";
@@ -135,10 +135,10 @@ function EmptyToday({ onRetry }: { onRetry: () => void }) {
           <path d="M8 9h8M8 13h5" />
         </svg>
       </div>
-      <div style={{ fontSize: 15, fontWeight: 900, color: "#111827" }}>
+      <div style={{ fontSize: 15, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>
         Today could not be loaded
       </div>
-      <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.5, marginTop: 4 }}>
+      <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", lineHeight: 1.5, marginTop: 4 }}>
         Check your connection or teaching assignment, then try again.
       </div>
       <button
@@ -150,9 +150,9 @@ function EmptyToday({ onRetry }: { onRetry: () => void }) {
           border: 0,
           borderRadius: 12,
           padding: "10px 16px",
-          background: "#10b981",
+          background: "var(--teacher-green, #087451)",
           color: "#fff",
-          fontWeight: 900,
+          fontWeight: 750,
           fontFamily: "inherit",
           cursor: "pointer",
         }}
@@ -194,8 +194,8 @@ function AttentionCard({
       <div
         id="teacher-attention-title"
         style={{
-          fontSize: 10,
-          fontWeight: 900,
+          fontSize: 11,
+          fontWeight: 750,
           color: "#92400e",
           letterSpacing: 1,
           textTransform: "uppercase",
@@ -216,7 +216,7 @@ function AttentionCard({
           }}
         >
           {guideHeadline && (
-            <div style={{ fontSize: 13, fontWeight: 900, color: "#78350f" }}>
+            <div style={{ fontSize: 13, fontWeight: 750, color: "#78350f" }}>
               {guideHeadline}
             </div>
           )}
@@ -257,14 +257,14 @@ function AttentionCard({
               }}
             >
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 13, fontWeight: 900, color: "#111827" }}>
+                <span style={{ display: "block", fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>
                   {task.label}
                 </span>
                 <span
                   style={{
                     display: "block",
                     fontSize: 11,
-                    color: "#6b7280",
+                    color: "var(--teacher-muted, #627168)",
                     lineHeight: 1.4,
                     marginTop: 3,
                   }}
@@ -463,9 +463,8 @@ export default function PulsePage() {
   // These are plain derivations, not hooks. That keeps React hook ordering stable
   // across the loading -> loaded transition while still updating synchronously.
   const contextSnap = scopeSnapshot(snap, focusClassId, focusSubjectId);
-  const contextResult = runRules(contextSnap);
+  const dayResult = runRules(snap);
   const focusSlot = contextSnap.todaySlots[0];
-  const focusRoster = contextSnap.myClasses[0];
 
   const recentItems: ActivityItem[] = (snap.recentActivity ?? []).map((activity) => ({
     id: activity.id,
@@ -480,7 +479,7 @@ export default function PulsePage() {
       ref={scrollRef}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
-      style={{ paddingTop: 4, paddingBottom: "calc(140px + env(safe-area-inset-bottom))" }}
+      className="teacher-today"
     >
       {refreshing && (
         <div
@@ -508,49 +507,40 @@ export default function PulsePage() {
         onSchoolChange={handleSchoolChange}
         offline={usingCachedSnap}
         contextRefreshing={refreshing}
-        onOpenNotifications={() => showToast("Opening notifications")}
+        onOpenNotifications={() => router.push("/teacher/notifications")}
       />
 
+      <p className="teacher-today__scope">My day across all classes · selected class shortcuts are shown in Quick tools.</p>
+      <div className="teacher-today__grid"><section className="teacher-today__primary" aria-label="Your teaching day">
       <TodayHero
-        snap={contextSnap}
-        focusSlot={focusSlot}
-        focusRoster={focusRoster}
+        snap={snap}
         onOpenTimetable={() => router.push("/teacher/timetable")}
-        onOpenStudents={() =>
-          focusClassId
-            ? router.push(`/teacher/classhub/${encodeURIComponent(focusClassId)}`)
-            : router.push("/teacher/students")
-        }
-        onOpenAttendance={() =>
-          focusSlot
-            ? router.push(
-                `/teacher/attendance?mode=lesson&classId=${encodeURIComponent(focusSlot.class_id)}&timetableSlotId=${encodeURIComponent(focusSlot.id)}&subjectId=${encodeURIComponent(focusSlot.subject_id)}`
-              )
-            : router.push("/teacher/attendance")
-        }
+        onOpenStudents={() => router.push("/teacher/students")}
+        onOpenAttendance={() => router.push("/teacher/attendance")}
       />
 
       <NextTeachingAction
-        task={contextResult.tasks[0] ?? null}
-        hasLessons={contextSnap.todaySlots.length > 0}
-        headline={contextResult.upcomingWarning}
-        snap={contextSnap}
+        task={dayResult.tasks[0] ?? null}
+        hasLessons={snap.todaySlots.length > 0}
+        headline={dayResult.upcomingWarning}
+        snap={snap}
         onNavigate={(href) => router.push(href)}
       />
 
       <LessonFlowCard
-        slots={contextSnap.todaySlots}
-        snap={contextSnap}
+        slots={snap.todaySlots}
+        snap={snap}
         teacherId={snap.userId}
         onNavigate={(href) => router.push(href)}
         onSaved={() => void boot(true)}
       />
 
+      </section><aside className="teacher-today__support" aria-label="Tasks and quick tools">
       <AttentionCard
-        tasks={contextResult.tasks}
-        guideHeadline={contextResult.upcomingWarning}
-        guideMessage={contextResult.message}
-        guidePriority={contextResult.priority}
+        tasks={dayResult.tasks}
+        guideHeadline={dayResult.upcomingWarning}
+        guideMessage={dayResult.message}
+        guidePriority={dayResult.priority}
         onNavigate={(href) => router.push(href)}
       />
 
@@ -565,12 +555,15 @@ export default function PulsePage() {
         onNavigate={(href) => router.push(href)}
       />
 
+      </aside></div>
+      <details className="teacher-today__details"><summary>This week & recent activity</summary>
       <WeekOverview overview={snap.weekOverview} />
 
-      <TodayGlance snap={contextSnap} onNavigate={(href) => router.push(href)} />
+      <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
 
       <RecentActivity items={recentItems} />
 
+      </details>
       <TwinShortcut onOpen={(mode) => router.push(`/teacher/twin?mode=${encodeURIComponent(mode)}`)} />
     </div>
   );

@@ -19,7 +19,7 @@ create table public.student_classes(student_id uuid,school_id uuid,class_id uuid
 create function public.is_operational_school_member(uuid) returns boolean language sql stable security definer set search_path=public,auth,pg_temp as $$select exists(select 1 from public.school_members sm where sm.school_id=$1 and sm.profile_id=auth.uid() and coalesce(sm.status,'active') in ('active','pending'))$$;
 create function public.is_school_admin(uuid) returns boolean language sql stable security definer set search_path=public,auth,pg_temp as $$select exists(select 1 from public.school_members sm where sm.school_id=$1 and sm.profile_id=auth.uid() and sm.role='admin' and coalesce(sm.status,'active')='active')$$;
 create function public.teacher_can_access_class(uuid,uuid,boolean) returns boolean language sql stable security definer set search_path=public,auth,pg_temp as $$select exists(select 1 from public.teacher_classes tc where tc.class_id=$1 and tc.teacher_id=auth.uid() and (not $3 or tc.is_class_teacher is true))$$;
-create function public.get_my_teacher_school_context() returns table(active_school_id uuid) language sql stable security definer set search_path=public,auth,pg_temp as $$select sm.school_id from public.school_members sm where sm.profile_id=auth.uid() and coalesce(sm.status,'active') in ('active','pending') order by sm.school_id limit 1$$;
+create function public.get_my_teacher_school_context() returns jsonb language sql stable security definer set search_path=public,auth,pg_temp as $$select jsonb_build_object('active_school_id',(select sm.school_id from public.school_members sm where sm.profile_id=auth.uid() and coalesce(sm.status,'active') in ('active','pending') order by sm.school_id limit 1),'schools','[]'::jsonb)$$;
 grant execute on function public.is_operational_school_member(uuid),public.is_school_admin(uuid),public.teacher_can_access_class(uuid,uuid,boolean),public.get_my_teacher_school_context() to authenticated;
 grant select on public.profiles,public.schools,public.classes,public.subjects,public.school_members,public.teacher_classes,public.students,public.student_classes to authenticated;
 insert into public.profiles(id,full_name,role,account_status) values
@@ -39,7 +39,16 @@ if(process.exitCode)process.exit();
 await db.query('insert into public.library_books(id,school_id,title,author,total_copies,available_copies) values($1,$2,$3,$4,2,2),($5,$6,$7,$8,1,1)',[book,school,'The River','A. Writer',id(41),otherSchool,'Outside book','B. Writer']);
 async function asUser(user){await db.exec(`reset role;set request.jwt.claim.sub='${user}';set role authenticated;`)}
 async function scalar(sql,params=[]){const result=await db.query(sql,params);return result.rows[0]?.value}
+// Reproduce the live 42703 error against the canonical JSON return shape.
 await asUser(teacher);
+for (const fn of ['teacher_get_my_school_responsibilities','teacher_get_school_responsibility_admin_context']) {
+  await assert.rejects(() => db.query(`select public.${fn}()`), error => error.code === '42703', `${fn} baseline fails with the actual school-context contract`);
+}
+await db.exec('reset role');
+await db.exec(fs.readFileSync('supabase/migrations/20261009111500_fix_school_responsibility_context_json.sql','utf8'));
+await asUser(teacher);
+assert.equal((await db.query('select public.teacher_get_my_school_responsibilities() value')).rows[0].value.school_id, school, 'corrected read uses the teacher active school from JSON');
+await assert.rejects(() => db.query('select public.teacher_get_school_responsibility_admin_context()'), /school_admin_required/, 'context repair retains the administrator guard');
 await assert.rejects(()=>scalar("select public.teacher_issue_class_library_book($1,$2,$3,current_date+7,null,$4) value",[cls,student,book,id(52)]),/book_condition_invalid/,'null issue condition is rejected before changing stock');
 assert.equal((await db.query('select available_copies from public.library_books where id=$1',[book])).rows[0].available_copies,2,'invalid issue condition leaves stock unchanged');
 const loan=await scalar("select public.teacher_issue_class_library_book($1,$2,$3,current_date+7,'good',$4) value",[cls,student,book,request]);

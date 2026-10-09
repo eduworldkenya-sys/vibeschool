@@ -1429,7 +1429,7 @@ export default function LessonPlanModal({
       {toast && (
         <div style={{
           position: 'fixed', bottom: 100, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 999, background: '#1e1b4b', color: '#fff',
+          zIndex: 999, background: "var(--teacher-ink, #1c2923)", color: '#fff',
           padding: '10px 20px', borderRadius: 20, fontSize: 13, fontWeight: 700,
           animation: 'fadeIn 0.2s ease', whiteSpace: 'nowrap',
         }}>{toast}</div>
@@ -1459,7 +1459,7 @@ export default function LessonPlanModal({
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {phase === 'view' && (
               <span style={{
-                fontSize: 10, fontWeight: 800, padding: '3px 10px',
+                fontSize: 11, fontWeight: 800, padding: '3px 10px',
                 borderRadius: 20, background: statusBadge.bg, color: statusBadge.color,
               }}>{statusBadge.label}</span>
             )}
@@ -1507,7 +1507,7 @@ export default function LessonPlanModal({
                   borderRadius: 12, padding: '12px 14px', marginBottom: 16,
                 }}>
                   <div style={{
-                    fontSize: 10, fontWeight: 800, color: suggestionLinked ? '#4338ca' : C.textMuted,
+                    fontSize: 11, fontWeight: 800, color: suggestionLinked ? '#4338ca' : C.textMuted,
                     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6,
                   }}>
                     📘 From {suggestion.schemeId ? 'Scheme of Work' : 'Curriculum'}
@@ -1518,7 +1518,7 @@ export default function LessonPlanModal({
                     {suggestion.strand}{suggestion.subStrand ? ' → ' + suggestion.subStrand : ''}
                   </div>
                   {suggestion.lessonNumber != null && (
-                    <div style={{ fontSize: 10, color: '#4338ca', marginTop: 5, fontWeight: 700 }}>
+                    <div style={{ fontSize: 11, color: '#4338ca', marginTop: 5, fontWeight: 700 }}>
                       Lesson {suggestion.lessonNumber}{suggestion.period != null ? ' · Period ' + suggestion.period : ''}
                     </div>
                   )}
@@ -1704,7 +1704,7 @@ export default function LessonPlanModal({
                 }}>
                   <div>
                     <div style={{
-                      fontSize: 10,
+                      fontSize: 11,
                       fontWeight: 800,
                       color: '#4338ca',
                       letterSpacing: 1,
@@ -1742,7 +1742,7 @@ export default function LessonPlanModal({
                           '1px solid #c7d2fe',
                         background: '#fff',
                         color: '#4338ca',
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: 700,
                         cursor:
                           lessonResourcesLoading
@@ -1776,7 +1776,7 @@ export default function LessonPlanModal({
                     border:
                       '1px solid #fecaca',
                     color: '#b91c1c',
-                    fontSize: 10,
+                    fontSize: 11,
                     fontWeight: 600,
                   }}>
                     ⚠ {resourceUsageError}
@@ -1882,7 +1882,7 @@ export default function LessonPlanModal({
                                   marginTop: 5,
                                 }}>
                                   <span style={{
-                                    fontSize: 9,
+                                    fontSize: 11,
                                     fontWeight: 700,
                                     borderRadius: 20,
                                     padding: '2px 7px',
@@ -1900,7 +1900,7 @@ export default function LessonPlanModal({
                                   </span>
 
                                   <span style={{
-                                    fontSize: 9,
+                                    fontSize: 11,
                                     fontWeight: 700,
                                     borderRadius: 20,
                                     padding: '2px 7px',
@@ -1919,7 +1919,7 @@ export default function LessonPlanModal({
 
                                   {pageLabel && (
                                     <span style={{
-                                      fontSize: 9,
+                                      fontSize: 11,
                                       fontWeight: 700,
                                       borderRadius: 20,
                                       padding:
@@ -1971,7 +1971,7 @@ export default function LessonPlanModal({
                                     background:
                                       '#4338ca',
                                     color: '#fff',
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     fontWeight: 800,
                                     cursor:
                                       'pointer',
@@ -2018,7 +2018,7 @@ export default function LessonPlanModal({
                                           : '#fff',
                                       color:
                                         '#065f46',
-                                      fontSize: 10,
+                                      fontSize: 11,
                                       fontWeight: 800,
                                       cursor:
                                         usedResourceIds.has(
@@ -2058,7 +2058,7 @@ export default function LessonPlanModal({
                   borderRadius: 12, padding: '14px 16px', border: '1px solid ' + C.border,
                 }}>
                   <div style={{
-                    fontSize: 10, fontWeight: 800, color: C.textMuted,
+                    fontSize: 11, fontWeight: 800, color: C.textMuted,
                     letterSpacing: 1, textTransform: 'uppercase',
                     marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6,
                   }}>
@@ -2101,7 +2101,7 @@ export default function LessonPlanModal({
                 background: '#f9fafb',
               }}>
                 <div style={{
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: 800,
                   color: C.textMuted,
                   letterSpacing: 1,
@@ -2183,7 +2183,7 @@ export default function LessonPlanModal({
                           : step.icon}
                       </div>
                       <div style={{
-                        fontSize: 9,
+                        fontSize: 11,
                         fontWeight: 800,
                         color: step.done
                           ? '#065f46'
@@ -2283,7 +2283,7 @@ export default function LessonPlanModal({
                 {workspace?.canComplete && (
                   <button onClick={handleCompleteLesson} disabled={completing} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: 'none',
-                    background: '#059669', color: '#fff', fontSize: 13, fontWeight: 800,
+                    background: "var(--teacher-green, #087451)", color: '#fff', fontSize: 13, fontWeight: 800,
                     cursor: completing ? 'not-allowed' : 'pointer', opacity: completing ? 0.7 : 1, fontFamily: 'inherit',
                   }}>
                     {completing ? 'Completing lesson…' : '✅ Complete Lesson'}
@@ -2291,7 +2291,7 @@ export default function LessonPlanModal({
                 )}
                 {workspace?.lifecycle === 'completed' && (
                   <div style={{
-                    padding: '12px 16px', borderRadius: 12, background: '#d1fae5',
+                    padding: '12px 16px', borderRadius: 12, background: "var(--teacher-green-soft, #e9f4ed)",
                     color: '#065f46', fontSize: 13, fontWeight: 700, textAlign: 'center',
                   }}>
                     ✓ Lesson completed
@@ -2415,7 +2415,7 @@ export default function LessonPlanModal({
               {SECTION_LABELS.map(s => (
                 <div key={s.key} style={{ marginBottom: 16 }}>
                   <label style={{
-                    fontSize: 10, fontWeight: 800, color: C.textMuted,
+                    fontSize: 11, fontWeight: 800, color: C.textMuted,
                     letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 5,
                   }}>{s.icon} {s.label}</label>
                   <textarea

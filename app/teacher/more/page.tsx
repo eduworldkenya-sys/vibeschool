@@ -1,53 +1,17 @@
 "use client"
-export const dynamic = 'force-dynamic'
-
-import { useRouter } from 'next/navigation'
-import { C } from '@/components/teacher/ui'
-
-const ITEMS = [
-  { label: 'Today',        href: '/teacher/pulse',                desc: 'Your teaching day and next action'  },
-  { label: 'Academics',    href: '/teacher/academics',            desc: 'All subjects · mastery · TPAD'     },
-  { label: 'SubjectHub',   href: '/teacher/subjecthub',           desc: 'Manage your subjects'              },
-  { label: 'Lesson Plans', href: '/teacher/lessonplan',           desc: 'Plan and generate lessons'         },
-  { label: 'Progress Record', href: '/teacher/progress',          desc: 'Record what was actually taught'   },
-  { label: 'Scheme',       href: '/teacher/scheme',               desc: 'Curriculum tracker'                },
-  { label: 'Timetable',    href: '/teacher/timetable',            desc: 'View your schedule'                },
-  { label: 'Attendance',   href: '/teacher/attendance',           desc: 'Mark and review attendance'        },
-  { label: 'Assessments',  href: '/teacher/assessment',           desc: 'Create and review learning checks'  },
-  { label: 'Mark Submitted Work', href: '/teacher/assessment/marking', desc: 'Mark learner answers and give feedback' },
-  { label: 'Class Results', href: '/teacher/assessment/gradebook', desc: 'See assessment results already shared' },
-  { label: 'Results Analysis', href: '/teacher/assessment/analytics', desc: 'See strengths, gaps and follow-up needs' },
-  { label: 'Exams',        href: '/teacher/results',              desc: 'Exam Centre · marks, analysis and reports' },
-  { label: 'Resources',    href: '/teacher/resources',            desc: 'Saved and lesson-linked materials'         },
-  { label: 'VibeLearn',    href: '/teacher/vibelearn',            desc: 'Learning library for your classes and subjects'       },
-  { label: 'SchoolHub',    href: '/teacher/schoolhub',            desc: 'School info and staff'             },
-  { label: 'TPAD',         href: '/teacher/tpad',                 desc: 'Teacher performance appraisal'     },
-  { label: 'Credits',      href: '/teacher/credits',              desc: 'Vibe Credits wallet'               },
-  { label: 'Profile',      href: '/teacher/profile',              desc: 'Your profile'                      },
-  { label: 'Settings',     href: '/teacher/settings',             desc: 'App settings'                      },
-  { label: 'Help',         href: '/teacher/help',                 desc: 'Help and support'                  },
-]
-
+import Link from 'next/link'
+import { useState } from 'react'
+import { Search } from 'lucide-react'
+import { TeacherWorkspace } from '@/components/teacher/ui'
+import { teacherTabs, teacherTools } from '@/components/teacher/navigation'
 export default function MorePage() {
-  const router = useRouter()
-  return (
-    <div style={{ paddingBottom: 32 }}>
-      <div style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #2d2a6e 100%)', borderRadius: 20, padding: '20px', marginBottom: 16, color: '#fff' }}>
-        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 700, letterSpacing: 1.4, textTransform: 'uppercase' }}>More</div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>All Tools</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>{ITEMS.length} tools in one place</div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {ITEMS.map(item => (
-          <button key={item.href} onClick={() => router.push(item.href)} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 16, background: '#fff', border: '1px solid ' + C.border, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const, width: '100%', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>{item.label}</div>
-              <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>{item.desc}</div>
-            </div>
-            <span style={{ fontSize: 18, color: C.textMuted }}>&rsaquo;</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
+ const [query,setQuery] = useState('')
+ return <TeacherWorkspace title="All tools" eyebrow="Your workspace">
+  <label className="teacher-tools-search"><Search size={19} aria-hidden="true"/><input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder="Find a tool…" aria-label="Search Teacher tools"/></label>
+  {teacherTabs.map(tab=>{
+   const tools=teacherTools[tab.id].filter(tool=>tool.label.toLowerCase().includes(query.trim().toLowerCase()))
+   return tools.length>0 ? <section className="teacher-tools-page__section" key={tab.id}><h2>{tab.id==='me'?'My workspace':tab.label}</h2><div className="teacher-tools-page__grid">{tools.map(tool=><Link key={tool.href} href={tool.href}><tool.icon size={20} aria-hidden="true"/><span>{tool.label}</span></Link>)}</div></section>:null
+  })}
+  {query && !Object.values(teacherTools).flat().some(tool=>tool.label.toLowerCase().includes(query.trim().toLowerCase())) && <div className="teacher-state"><h2>No tools found</h2><p>Try a subject, task or tool name.</p><button type="button" className="teacher-btn teacher-btn--secondary" onClick={()=>setQuery('')}>Clear search</button></div>}
+ </TeacherWorkspace>
 }

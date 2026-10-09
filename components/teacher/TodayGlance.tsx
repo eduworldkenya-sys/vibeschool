@@ -14,10 +14,12 @@ function Chip({
   onClick?: () => void;
 }) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
       style={{
         flex: 1,
+        border: 0, background: "transparent", minHeight: 64, minWidth: 0, fontFamily: "inherit",
         cursor: onClick ? "pointer" : "default",
         display: "flex",
         flexDirection: "column",
@@ -28,12 +30,12 @@ function Chip({
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         <span style={{ width: 8, height: 8, borderRadius: 999, background: color }} />
-        <span style={{ fontSize: 18, fontWeight: 900, color: "#1e1b4b" }}>{value}</span>
+        <span style={{ fontSize: 18, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{value}</span>
       </div>
-      <div style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", textAlign: "center" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--teacher-muted, #627168)", textAlign: "center" }}>
         {label}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -45,7 +47,7 @@ function ProgressRing({ pct }: { pct: number }) {
   const offset = c - (pct / 100) * c;
 
   return (
-    <div style={{ position: "relative", width: size, height: size }}>
+    <div role="img" aria-label={`${pct}% of scheduled lessons have attendance marked`} style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
         <circle cx={size / 2} cy={size / 2} r={r} stroke="#f3f4f6" strokeWidth={stroke} fill="none" />
         <circle
@@ -68,8 +70,8 @@ function ProgressRing({ pct }: { pct: number }) {
           alignItems: "center",
           justifyContent: "center",
           fontSize: 13,
-          fontWeight: 900,
-          color: "#1e1b4b",
+          fontWeight: 750,
+          color: "var(--teacher-ink, #1c2923)",
         }}
       >
         {pct}%
@@ -106,10 +108,10 @@ export default function TodayGlance({
       }}
     >
       <div style={{ display: "flex", flex: 1 }}>
-        <Chip color="#10b981" value={completed} label="Completed" onClick={() => onNavigate("/teacher/pulse")} />
-        <Chip color="#f59e0b" value={pending} label="Pending" onClick={() => onNavigate("/teacher/pulse")} />
+        <Chip color="#10b981" value={completed} label="Attendance marked" onClick={() => onNavigate("/teacher/attendance")} />
+        <Chip color="#f59e0b" value={pending} label="Attendance pending" onClick={() => onNavigate("/teacher/attendance")} />
         <Chip color="#3b82f6" value={toReview} label="To Review" onClick={() => onNavigate("/teacher/homework")} />
-        <Chip color="#8b5cf6" value={upcoming} label="Upcoming" onClick={() => onNavigate("/teacher/pulse")} />
+        <Chip color="#8b5cf6" value={upcoming} label="Not marked" onClick={() => onNavigate("/teacher/attendance")} />
       </div>
       <ProgressRing pct={dayPct} />
     </div>

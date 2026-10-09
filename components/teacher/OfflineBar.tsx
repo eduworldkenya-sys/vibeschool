@@ -40,7 +40,7 @@ export default function OfflineBar() {
       background: '#ef4444', color: '#fff',
       textAlign: 'center', padding: '8px 16px',
       fontSize: 12, fontWeight: 700,
-      fontFamily: 'Plus Jakarta Sans, sans-serif',
+      fontFamily: "inherit",
       position: 'sticky', top: 56, zIndex: 599,
     }}>
       ⚠ You are offline or connection is too slow. Data may not be current.

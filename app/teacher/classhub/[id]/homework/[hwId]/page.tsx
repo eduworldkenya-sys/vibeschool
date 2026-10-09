@@ -16,19 +16,6 @@ type SubmissionStatus =
   | "marked";
 
 type HomeworkReviewAction = "marked" | "returned" | "feedback_released";
-type HomeworkReviewRpcClient = {
-  rpc(
-    fn: "review_homework_submission",
-    args: {
-      p_submission_id: string;
-      p_action: HomeworkReviewAction;
-      p_mark?: number;
-      p_feedback?: string;
-      p_reason?: string;
-      p_release_model_answers: boolean;
-    },
-  ): Promise<{ data: unknown; error: { message: string } | null }>;
-};
 
 interface Student {
   id: string;
@@ -123,54 +110,72 @@ function HomeworkGradePageInner() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [bulkMsg, setBulkMsg] = useState<string | null>(null);
   const schoolIdRef = useRef<string | null>(null);
+  const loadGeneration = useRef(0);
+  const activeRoute = useRef(`${classId}:${hwId}`);
+  activeRoute.current = `${classId}:${hwId}`;
 
   async function load() {
+    const route = `${classId}:${hwId}`;
+    if (activeRoute.current !== route) return;
+    const generation = ++loadGeneration.current;
+    const isCurrent = () => generation === loadGeneration.current && activeRoute.current === route;
     setLoading(true);
     setLoadError(null);
+    setSelectedSub(null);
+    setSelectedStudent(null);
+    setView("list");
+    try {
     const { data: { user } } = await supabase.auth.getUser();
+    if (!isCurrent()) return;
     if (!user) { setLoadError("Not authenticated"); setLoading(false); return; }
 
-    if (!schoolIdRef.current) {
-      const { data: profile } = await supabase.from("profiles").select("school_id").eq("id", user.id).single();
-      let sid = profile?.school_id ?? null;
-      if (!sid) {
-        const { data: cls } = await supabase.from("classes").select("school_id").eq("id", classId).single();
-        sid = cls?.school_id ?? null;
-      }
-      schoolIdRef.current = sid;
+    schoolIdRef.current = null;
+    const { data: contextData, error: contextError } = await supabase.rpc("teacher_get_operating_context");
+    if (!isCurrent()) return;
+    const context = contextData as { teacher_id?: string; school_id?: string | null; classes?: { class_id: string }[] } | null;
+    if (contextError || !context?.school_id || !context.classes?.some(item => item.class_id === classId)) {
+      setLoadError("This class is unavailable in your active teaching context. Select the correct school and try again.");
+      setLoading(false);
+      return;
     }
-    const sid = schoolIdRef.current;
+    const sid = context.school_id;
+    schoolIdRef.current = sid;
+    const enrollmentResult = await supabase.from("student_classes").select("student_id").eq("school_id", sid).eq("class_id", classId).eq("is_current", true);
+    if (!isCurrent()) return;
+    if (enrollmentResult.error) { setLoadError("Could not load the current class roster"); setLoading(false); return; }
+    const learnerIds = [...new Set((enrollmentResult.data ?? []).map(row => row.student_id))];
 
-    type LiveHomeworkSubmissionRow = Omit<Submission, "answers">;
-    type LiveHomeworkSubmissionQuery = {
-      data: LiveHomeworkSubmissionRow[] | null;
-      error: { message?: string } | null;
-    };
-    const submissionQuery = (supabase.from("homework_submissions") as unknown as {
-      select: (columns: string) => {
-        eq: (column: string, value: string) => PromiseLike<LiveHomeworkSubmissionQuery>;
-      };
-    })
+    const submissionQuery = supabase.from("homework_submissions")
       .select("id,student_id,status,mark,feedback,submitted_at,received_at,photo_url,returned_reason")
       .eq("homework_id", hwId);
 
     const [hwRes, stuRes, qRes, subRes] = await Promise.all([
-      sid
-        ? supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id", hwId).eq("school_id", sid).single()
-        : supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id", hwId).single(),
-      supabase.from("students").select("id,name,admission_number,profile_id").eq("class_id", classId).order("name"),
+      supabase.from("homework").select("title,subject,instructions,due_date,type").eq("id", hwId).eq("school_id", sid).eq("class_id", classId).eq("teacher_id", user.id).single(),
+      learnerIds.length
+        ? supabase.from("students").select("id,name,admission_number,profile_id").in("id", learnerIds).is("deleted_at", null).order("name")
+        : Promise.resolve({ data: [], error: null }),
       supabase.from("homework_questions").select("id,question,order_num").eq("homework_id", hwId).order("order_num"),
       submissionQuery,
     ]);
 
+    if (!isCurrent()) return;
     if (hwRes.error) { setLoadError("Could not load homework"); setLoading(false); return; }
     if (stuRes.error || qRes.error || subRes.error) { setLoadError("Could not load homework submissions"); setLoading(false); return; }
 
-    const subs = subRes.data ?? [];
+    const supportedStatuses = new Set<string>(["draft", "pending", "submitted", "received", "under_review", "returned", "marked"]);
+    const subs = (subRes.data ?? []).filter((sub): sub is typeof sub & { student_id: string; status: SubmissionStatus } =>
+      typeof sub.student_id === "string" && supportedStatuses.has(sub.status)
+    );
+    if (subs.length !== (subRes.data ?? []).length) {
+      setLoadError("Some submissions have an unsupported learner or status. Refresh or contact support before marking.");
+      setLoading(false);
+      return;
+    }
     const subIds = subs.map(sub => sub.id);
     let answers: (Answer & { submission_id: string })[] = [];
     if (subIds.length > 0) {
       const { data, error } = await supabase.from("homework_answers").select("submission_id,question_id,answer_text").in("submission_id", subIds);
+      if (!isCurrent()) return;
       if (error) { setLoadError("Could not load submitted answers"); setLoading(false); return; }
       answers = (data ?? []) as (Answer & { submission_id: string })[];
     }
@@ -184,9 +189,14 @@ function HomeworkGradePageInner() {
     setQuestions((qRes.data ?? []) as Question[]);
     setSubMap(map);
     setLoading(false);
+    } catch (error) {
+      if (!isCurrent()) return;
+      setLoadError(error instanceof Error ? error.message : "Could not load homework. Please try again.");
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { void load(); }, [classId, hwId]);
+  useEffect(() => { void load(); return () => { loadGeneration.current++; }; }, [classId, hwId]);
 
   function openGrade(student: Student, sub: Submission) {
     setSelectedStudent(student);
@@ -200,7 +210,7 @@ function HomeworkGradePageInner() {
 
   async function reviewSubmission(action: HomeworkReviewAction, input?: { mark?: number | null; feedback?: string | null; reason?: string | null }) {
     if (!selectedSub) return { error: { message: "Submission is missing" } };
-    const rpcClient = supabase as unknown as HomeworkReviewRpcClient;
+    const rpcClient = supabase;
     return rpcClient.rpc("review_homework_submission", {
       p_submission_id: selectedSub.id,
       p_action: action,
@@ -213,6 +223,7 @@ function HomeworkGradePageInner() {
 
   async function markSubmission() {
     if (!selectedSub || !schoolIdRef.current) return;
+    if (!markInput.trim()) { setSaveError("Enter a mark. Use 0 only when you intend to record zero."); return; }
     const parsed = Number(markInput);
     if (!Number.isFinite(parsed) || parsed < 0) { setSaveError("Enter a valid mark"); return; }
     setSaving(true); setSaveError(null);
@@ -253,8 +264,8 @@ function HomeworkGradePageInner() {
     return !sub || !handedInStatuses.has(sub.status);
   });
 
-  if (loading) return <div style={{ padding: 24 }}>Loading homework…</div>;
-  if (loadError) return <div style={{ padding: 24, color: "#b91c1c" }}>{loadError}</div>;
+  if (loading) return <div role="status" style={{ padding: 24 }}>Loading homework…</div>;
+  if (loadError) return <div role="alert" style={{ padding: 24, color: "#b91c1c" }}><p>{loadError}</p><button type="button" onClick={() => void load()} style={{ minHeight: 44, padding: "10px 16px" }}>Try again</button></div>;
   if (!hw) return <div style={{ padding: 24 }}>Homework not found.</div>;
 
   if (view === "grade" && selectedStudent && selectedSub) {
@@ -270,7 +281,7 @@ function HomeworkGradePageInner() {
         <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
           {questions.map((question, index) => {
             const answer = selectedSub.answers.find(item => item.question_id === question.id)?.answer_text;
-            return <div key={question.id} style={{ padding: 12, borderRadius: 12, background: "#f8fafc" }}><strong style={{ fontSize: 12 }}>Q{index + 1}. {question.question}</strong><div style={{ marginTop: 7, fontSize: 12, whiteSpace: "pre-wrap" }}>{answer || "No answer"}</div></div>;
+            return <div key={question.id} style={{ padding: 12, borderRadius: 12, background: "var(--teacher-canvas, #f5f6f2)" }}><strong style={{ fontSize: 12 }}>Q{index + 1}. {question.question}</strong><div style={{ marginTop: 7, fontSize: 12, whiteSpace: "pre-wrap" }}>{answer || "No answer"}</div></div>;
           })}
           {selectedSub.photo_url && <a href={selectedSub.photo_url} target="_blank" rel="noreferrer" style={{ color: C.accent, fontWeight: 700, fontSize: 12 }}>Open uploaded work ↗</a>}
         </div>
@@ -281,7 +292,7 @@ function HomeworkGradePageInner() {
           <label style={{ fontSize: 12, fontWeight: 700 }}>Mark<input value={markInput} onChange={e => setMarkInput(e.target.value)} inputMode="decimal" style={{ ...inputStyle, marginTop: 5 }} /></label>
           <label style={{ fontSize: 12, fontWeight: 700 }}>Feedback<textarea value={feedbackInput} onChange={e => setFeedbackInput(e.target.value)} rows={3} style={{ ...inputStyle, marginTop: 5, resize: "vertical" }} /></label>
           <label style={{ fontSize: 12, fontWeight: 700 }}>Revision reason<textarea value={returnReasonInput} onChange={e => setReturnReasonInput(e.target.value)} rows={2} style={{ ...inputStyle, marginTop: 5, resize: "vertical" }} /></label>
-          {saveError && <div style={{ color: "#b91c1c", fontSize: 12 }}>{saveError}</div>}
+          {saveError && <div role="alert" style={{ color: "#b91c1c", fontSize: 12 }}>{saveError}</div>}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             <button type="button" disabled={saving} onClick={() => void markSubmission()} style={{ border: "none", borderRadius: 9, padding: "9px 12px", background: C.accent, color: "#fff", fontWeight: 800, cursor: "pointer" }}>{saving ? "Saving…" : "Save mark"}</button>
             <button type="button" disabled={saving} onClick={() => void returnSubmission()} style={{ border: "1px solid #fdba74", borderRadius: 9, padding: "9px 12px", background: "#fff7ed", color: "#c2410c", fontWeight: 800, cursor: "pointer" }}>Return for revision</button>
@@ -294,10 +305,10 @@ function HomeworkGradePageInner() {
 
   return <div style={{ padding: 18, maxWidth: 980, margin: "0 auto" }}>
     <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ border: "none", background: "transparent", color: C.textMuted, cursor: "pointer", marginBottom: 12 }}>← Homework</button>
-    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h1 style={{ margin: 0, fontSize: 22 }}>{hw.title}</h1><div style={{ marginTop: 4, color: C.textMuted, fontSize: 12 }}>{hw.subject} · Due {new Date(hw.due_date).toLocaleDateString()}</div></div><div style={{ display: "flex", gap: 8 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "#ecfdf5", color: "#047857", fontSize: 11, fontWeight: 800 }}>{handedIn.length} handed in</span><span style={{ padding: "7px 10px", borderRadius: 999, background: "#f3f4f6", color: "#6b7280", fontSize: 11, fontWeight: 800 }}>{pending.length} pending</span></div></div>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h1 style={{ margin: 0, fontSize: 22 }}>{hw.title}</h1><div style={{ marginTop: 4, color: C.textMuted, fontSize: 12 }}>{hw.subject} · Due {new Date(hw.due_date).toLocaleDateString()}</div></div><div style={{ display: "flex", gap: 8 }}><span style={{ padding: "7px 10px", borderRadius: 999, background: "#ecfdf5", color: "#047857", fontSize: 11, fontWeight: 800 }}>{handedIn.length} handed in</span><span style={{ padding: "7px 10px", borderRadius: 999, background: "#f3f4f6", color: "var(--teacher-muted, #627168)", fontSize: 11, fontWeight: 800 }}>{pending.length} pending</span></div></div>
     {bulkMsg && <div style={{ marginTop: 12, padding: 10, borderRadius: 10, background: "#eff6ff", color: "#1d4ed8", fontSize: 12 }}>{bulkMsg}</div>}
     <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
-      {handedIn.length === 0 ? <div style={{ padding: 20, borderRadius: 12, background: "#f8fafc", color: C.textMuted, fontSize: 13 }}>No learner submissions yet.</div> : handedIn.map(student => {
+      {handedIn.length === 0 ? <div style={{ padding: 20, borderRadius: 12, background: "var(--teacher-canvas, #f5f6f2)", color: C.textMuted, fontSize: 13 }}>No learner submissions yet.</div> : handedIn.map(student => {
         const sub = subMap.get(student.id)!;
         const badge = statusBadge(sub.status, sub.mark);
         return <button type="button" key={student.id} onClick={() => openGrade(student, sub)} style={{ padding: 13, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", textAlign: "left", cursor: "pointer" }}><div><strong>{student.name}</strong><div style={{ color: C.textMuted, fontSize: 11, marginTop: 3 }}>{student.admission_number}</div></div><span style={{ borderRadius: 999, padding: "5px 9px", background: badge.bg, color: badge.color, fontSize: 11, fontWeight: 800 }}>{badge.label}</span></button>;

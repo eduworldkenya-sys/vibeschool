@@ -127,14 +127,14 @@ function Studio() {
     } finally { setSaving(false) }
   }
 
-  if (!lessonPlanId) return <main style={page}><section style={card}><h1>Lesson Materials</h1><p>Open materials from a saved lesson plan.</p></section></main>
+  if (!lessonPlanId) return <section style={page}><section style={card}><h1>Lesson Materials</h1><p>Open materials from a saved lesson plan.</p></section></section>
   const blocked = authorityMessage || (type === 'homework' ? 'No certified homework is attached. VibeSchool will not invent one.' : type === 'test' ? 'CAT is cumulative. It is built from outcomes across completed teaching, not cloned from this one lesson.' : 'Automatic generation is blocked because authoritative lesson outcomes are unavailable.')
-  return <main style={page}><div style={{ maxWidth: 760, margin: '0 auto' }}>
+  return <section style={page}><div style={{ maxWidth: 760, margin: '0 auto' }}>
     <button type="button" onClick={() => router.back()} style={secondary}>← Back to lesson</button>
     <section style={card}>
       <div style={eyebrow}>{lesson ? 'Prepared assessment pack · No AI' : 'Assessment setup required'}</div>
       <h1>{lesson ? 'Ready from authoritative lesson outcomes' : 'Assessment not ready yet'}</h1>
-      <p style={{ color: '#6b7280' }}>
+      <p style={{ color: "var(--teacher-muted, #627168)" }}>
         {lesson
           ? 'Curriculum outcomes—not activity labels—drive generated work. Advanced authoring is optional.'
           : 'This lesson must have verified Scheme → curriculum → learning outcome authority before VibeSchool can generate assessed work.'}
@@ -144,7 +144,7 @@ function Studio() {
     <section style={card}><div style={eyebrow}>{LABEL[type]}</div><h2>{SPEC[type].purpose}</h2>{loading ? <p>Loading authoritative lesson…</p> : questions.length === 0 ? <div style={notice}>{blocked}</div> : <><div>{questions.length} questions · {totalMarks} marks · about {SPEC[type].minutes} minutes</div><ol>{questions.map((item, index) => <li key={`${item.prompt}-${index}`} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong></li>)}</ol></>}</section>
     {error && <div style={errorBox}>{error}</div>}
     {type === 'test' ? <button type="button" onClick={() => router.push(`/teacher/assessment/cat/new?lessonPlanId=${encodeURIComponent(lessonPlanId)}`)} style={{ ...primary, width: '100%' }}>Open cumulative CAT workspace</button> : questions.length > 0 ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}><button type="button" disabled={saving} onClick={() => void prepare(false)} style={primary}>{saving ? 'Preparing…' : 'Review & assign'}</button><button type="button" disabled={saving} onClick={() => void prepare(true)} style={secondary}>Advanced Edit</button></div> : null}
-  </div></main>
+  </div></section>
 }
 
 const page: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
@@ -154,4 +154,4 @@ const primary: React.CSSProperties = { border: 'none', borderRadius: 12, padding
 const secondary: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, cursor: 'pointer' }
 const notice: React.CSSProperties = { padding: 12, borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', lineHeight: 1.5 }
 const errorBox: React.CSSProperties = { padding: 12, borderRadius: 10, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', marginBottom: 12 }
-export default function NewAssessmentPage() { return <Suspense fallback={<main style={{ padding: 20 }}>Loading lesson materials…</main>}><Studio /></Suspense> }
+export default function NewAssessmentPage() { return <Suspense fallback={<section style={{ padding: 20 }}>Loading lesson materials…</section>}><Studio /></Suspense> }

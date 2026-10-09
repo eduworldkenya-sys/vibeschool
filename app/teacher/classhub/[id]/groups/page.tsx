@@ -453,7 +453,7 @@ function GroupsInner() {
       {message && <div style={{ background: "#ecfdf5", color: "#065f46", padding: 12, borderRadius: 12, marginBottom: 10 }}>{message}</div>}
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 14, marginBottom: 12, boxShadow: "0 2px 12px rgba(0,0,0,.05)" }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: C.textMuted, marginBottom: 10 }}>CREATE A GROUP OR LIST</div>
+        <div style={{ fontSize: 11, fontWeight: 750, color: C.textMuted, marginBottom: 10 }}>CREATE A GROUP OR LIST</div>
         <div style={{ display: "grid", gap: 9 }}>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Name, e.g. Graph support" style={{ minHeight: 44, border: "1px solid #d1d5db", borderRadius: 12, padding: "0 12px" }} />
           <input value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="Purpose (optional)" style={{ minHeight: 44, border: "1px solid #d1d5db", borderRadius: 12, padding: "0 12px" }} />
@@ -473,44 +473,44 @@ function GroupsInner() {
             </select>
             <input type="number" min={1} max={100} value={smartValue} onChange={e => setSmartValue(Number(e.target.value) || 1)} style={{ minHeight: 44, border: "1px solid #d1d5db", borderRadius: 12, padding: "0 10px" }} />
           </div>}
-          <button onClick={createGroup} disabled={saving} style={{ minHeight: 46, border: 0, borderRadius: 12, background: C.accent, color: "#fff", fontWeight: 900 }}>{saving ? "Saving…" : mode === "smart" ? "Create smart list" : "Create from selected learners"}</button>
+          <button onClick={createGroup} disabled={saving} style={{ minHeight: 46, border: 0, borderRadius: 12, background: C.accent, color: "#fff", fontWeight: 750 }}>{saving ? "Saving…" : mode === "smart" ? "Create smart list" : "Create from selected learners"}</button>
         </div>
       </section>
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 14, marginBottom: 12, boxShadow: "0 2px 12px rgba(0,0,0,.05)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", marginBottom: 10 }}>
-          <div><div style={{ fontSize: 11, fontWeight: 900, color: C.textMuted }}>STUDENTS</div><div style={{ fontSize: 12, marginTop: 2 }}>{students.length} enrolled · {selected.size} selected</div></div>
+          <div><div style={{ fontSize: 11, fontWeight: 750, color: C.textMuted }}>STUDENTS</div><div style={{ fontSize: 12, marginTop: 2 }}>{students.length} enrolled · {selected.size} selected</div></div>
           <button onClick={() => setSelected(selected.size === students.length ? new Set() : new Set(students.map(s => s.id)))} style={{ minHeight: 38, border: "1px solid #d1d5db", borderRadius: 10, background: "#fff", padding: "0 10px", fontWeight: 800 }}>{selected.size === students.length && students.length ? "Clear" : "Select all"}</button>
         </div>
         <div style={{ display: "grid", gap: 4 }}>
           {students.map(student => <label key={student.id} style={{ display: "flex", alignItems: "center", gap: 10, minHeight: 46, borderBottom: "1px solid #f3f4f6", cursor: "pointer" }}>
             <input type="checkbox" checked={selected.has(student.id)} onChange={() => toggleStudent(student.id)} />
-            <div style={{ flex: 1 }}><strong style={{ fontSize: 13 }}>{student.name}</strong>{student.admission_number && <div style={{ fontSize: 10, color: C.textMuted }}>{student.admission_number}</div>}</div>
+            <div style={{ flex: 1 }}><strong style={{ fontSize: 13 }}>{student.name}</strong>{student.admission_number && <div style={{ fontSize: 11, color: C.textMuted }}>{student.admission_number}</div>}</div>
           </label>)}
           {students.length === 0 && <div style={{ color: C.textMuted, padding: 16 }}>No current learners are visible in this class.</div>}
         </div>
       </section>
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 14, marginBottom: 12, boxShadow: "0 2px 12px rgba(0,0,0,.05)" }}>
-        <div style={{ fontSize: 11, fontWeight: 900, color: C.textMuted, marginBottom: 10 }}>QUICK CLASSROOM TOOLS</div>
+        <div style={{ fontSize: 11, fontWeight: 750, color: C.textMuted, marginBottom: 10 }}>QUICK CLASSROOM TOOLS</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, gridColumn: "1 / -1" }}>
             <button onClick={() => setGroupCount(v => Math.max(2, v - 1))} style={{ width: 38, height: 38, border: "1px solid #d1d5db", borderRadius: 10, background: "#fff" }}>−</button>
-            <div style={{ flex: 1, textAlign: "center", fontWeight: 900 }}>{groupCount} random teams</div>
+            <div style={{ flex: 1, textAlign: "center", fontWeight: 750 }}>{groupCount} random teams</div>
             <button onClick={() => setGroupCount(v => Math.min(8, v + 1))} style={{ width: 38, height: 38, border: "1px solid #d1d5db", borderRadius: 10, background: "#fff" }}>+</button>
           </div>
-          <button onClick={createRandomTeams} disabled={saving || students.length < 2} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#312e81", color: "#fff", fontWeight: 900, gridColumn: "1 / -1" }}>Create random teams</button>
-          <button onClick={() => router.push(`/teacher/classhub/${classId}/games${subjectId ? `?subjectId=${encodeURIComponent(subjectId)}` : ""}`)} disabled={groups.filter(group => group.type === "game" && group.mode !== "smart").length < 2} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#7c3aed", color: "#fff", fontWeight: 900, gridColumn: "1 / -1" }}>Open quiz scoreboard</button>
-          <button onClick={() => void createAbilityGroups("mixed")} disabled={saving || students.length < 2} style={{ minHeight: 44, border: "1px solid #c7d2fe", borderRadius: 11, background: "#eef2ff", color: "#3730a3", fontWeight: 900 }}>Mixed ability</button>
-          <button onClick={() => void createAbilityGroups("similar")} disabled={saving || students.length < 2} style={{ minHeight: 44, border: "1px solid #c7d2fe", borderRadius: 11, background: "#eef2ff", color: "#3730a3", fontWeight: 900 }}>Similar ability</button>
-          <button onClick={() => void assignSelectedHomework()} disabled={saving || !selected.size} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#0f766e", color: "#fff", fontWeight: 900, gridColumn: "1 / -1" }}>Assign homework to selected</button>
-          <button onClick={() => recordEvent("participation")} disabled={saving || !selected.size} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#0369a1", color: "#fff", fontWeight: 900 }}>Participated</button>
-          <button onClick={() => recordEvent("recognition")} disabled={saving || !selected.size} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#065f46", color: "#fff", fontWeight: 900 }}>Recognise effort</button>
+          <button onClick={createRandomTeams} disabled={saving || students.length < 2} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#312e81", color: "#fff", fontWeight: 750, gridColumn: "1 / -1" }}>Create random teams</button>
+          <button onClick={() => router.push(`/teacher/classhub/${classId}/games${subjectId ? `?subjectId=${encodeURIComponent(subjectId)}` : ""}`)} disabled={groups.filter(group => group.type === "game" && group.mode !== "smart").length < 2} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#7c3aed", color: "#fff", fontWeight: 750, gridColumn: "1 / -1" }}>Open quiz scoreboard</button>
+          <button onClick={() => void createAbilityGroups("mixed")} disabled={saving || students.length < 2} style={{ minHeight: 44, border: "1px solid #c7d2fe", borderRadius: 11, background: "#eef2ff", color: "#3730a3", fontWeight: 750 }}>Mixed ability</button>
+          <button onClick={() => void createAbilityGroups("similar")} disabled={saving || students.length < 2} style={{ minHeight: 44, border: "1px solid #c7d2fe", borderRadius: 11, background: "#eef2ff", color: "#3730a3", fontWeight: 750 }}>Similar ability</button>
+          <button onClick={() => void assignSelectedHomework()} disabled={saving || !selected.size} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#0f766e", color: "#fff", fontWeight: 750, gridColumn: "1 / -1" }}>Assign homework to selected</button>
+          <button onClick={() => recordEvent("participation")} disabled={saving || !selected.size} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#0369a1", color: "#fff", fontWeight: 750 }}>Participated</button>
+          <button onClick={() => recordEvent("recognition")} disabled={saving || !selected.size} style={{ minHeight: 44, border: 0, borderRadius: 11, background: "#065f46", color: "#fff", fontWeight: 750 }}>Recognise effort</button>
         </div>
         <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Factual note, e.g. Needed prompting during graph interpretation." rows={3} style={{ marginTop: 8, width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 10, fontFamily: "inherit" }} />
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8, marginTop: 8 }}>
-          <button onClick={() => recordEvent("observation")} disabled={saving || !selected.size} style={{ minHeight: 44, border: "1px solid #d1d5db", borderRadius: 11, background: "#fff", fontWeight: 900 }}>Add note</button>
-          <button onClick={() => recordEvent("followup")} disabled={saving || !selected.size} style={{ minHeight: 44, border: "1px solid #d1d5db", borderRadius: 11, background: "#fff", fontWeight: 900 }}>Follow up</button>
+          <button onClick={() => recordEvent("observation")} disabled={saving || !selected.size} style={{ minHeight: 44, border: "1px solid #d1d5db", borderRadius: 11, background: "#fff", fontWeight: 750 }}>Add note</button>
+          <button onClick={() => recordEvent("followup")} disabled={saving || !selected.size} style={{ minHeight: 44, border: "1px solid #d1d5db", borderRadius: 11, background: "#fff", fontWeight: 750 }}>Follow up</button>
         </div>
       </section>
 
@@ -521,17 +521,17 @@ function GroupsInner() {
           return <article key={group.id} style={{ background: "#fff", borderRadius: 16, padding: 14, boxShadow: "0 2px 12px rgba(0,0,0,.05)", borderLeft: `5px solid ${group.color}` }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 900, color: C.dark }}>{group.name}</div>
-                <div style={{ fontSize: 10, color: C.textMuted, marginTop: 3 }}>{group.mode ?? "static"} · {group.type}{group.purpose ? ` · ${group.purpose}` : ""}</div>
+                <div style={{ fontSize: 14, fontWeight: 750, color: C.dark }}>{group.name}</div>
+                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 3 }}>{group.mode ?? "static"} · {group.type}{group.purpose ? ` · ${group.purpose}` : ""}</div>
               </div>
               <button onClick={() => archiveGroup(group.id)} style={{ border: 0, background: "#f3f4f6", borderRadius: 9, minHeight: 36, padding: "0 10px", fontWeight: 800 }}>Archive</button>
             </div>
-            {group.mode === "smart" && <button onClick={() => resolveSmart(group)} style={{ marginTop: 10, minHeight: 40, border: "1px solid #c7d2fe", background: "#eef2ff", color: "#3730a3", borderRadius: 10, padding: "0 12px", fontWeight: 900 }}>Refresh smart list</button>}
-            <button onClick={() => void assignGroupHomework(group)} disabled={saving} style={{ marginTop: 10, marginLeft: 6, minHeight: 40, border: 0, background: "#0f766e", color: "#fff", borderRadius: 10, padding: "0 12px", fontWeight: 900 }}>Assign homework</button>
+            {group.mode === "smart" && <button onClick={() => resolveSmart(group)} style={{ marginTop: 10, minHeight: 40, border: "1px solid #c7d2fe", background: "#eef2ff", color: "#3730a3", borderRadius: 10, padding: "0 12px", fontWeight: 750 }}>Refresh smart list</button>}
+            <button onClick={() => void assignGroupHomework(group)} disabled={saving} style={{ marginTop: 10, marginLeft: 6, minHeight: 40, border: 0, background: "#0f766e", color: "#fff", borderRadius: 10, padding: "0 12px", fontWeight: 750 }}>Assign homework</button>
             <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
-              {(live ?? []).map(item => <div key={item.student_id} style={{ background: "#f8fafc", borderRadius: 10, padding: 9 }}>
+              {(live ?? []).map(item => <div key={item.student_id} style={{ background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 10, padding: 9 }}>
                 <div style={{ fontSize: 12, fontWeight: 800 }}>{studentById.get(item.student_id)?.name ?? "Learner"}</div>
-                {item.reason && <div style={{ fontSize: 10, color: C.textMuted, marginTop: 2 }}>{item.reason}</div>}
+                {item.reason && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{item.reason}</div>}
               </div>)}
               {group.mode === "smart" && !resolved[group.id] && <div style={{ fontSize: 11, color: C.textMuted }}>Refresh to see current rule-based members.</div>}
               {live && live.length === 0 && <div style={{ fontSize: 11, color: C.textMuted }}>No current members.</div>}

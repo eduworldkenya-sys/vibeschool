@@ -38,12 +38,12 @@ function Dashboard() {
   }, [assignmentId])
 
   return (
-    <main style={shell}>
+    <section style={shell}>
       <div style={{ maxWidth: 920, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessment Engine</div>
           <h1 style={{ margin: '6px 0' }}>Curriculum Intelligence</h1>
-          <p style={{ margin: 0, color: '#6b7280' }}>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>
             Outcome mastery, competency evidence, and targeted learner interventions.
           </p>
         </section>
@@ -61,7 +61,7 @@ function Dashboard() {
             <section style={card}>
               <h2 style={{ marginTop: 0, fontSize: 18 }}>Outcome mastery</h2>
               {data.outcomes.length === 0 ? (
-                <p style={{ color: '#6b7280', marginBottom: 0 }}>
+                <p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>
                   No learning outcomes are linked to this assessment yet.
                 </p>
               ) : (
@@ -129,7 +129,7 @@ function Dashboard() {
           </>
         ) : null}
       </div>
-    </main>
+    </section>
   )
 }
 
@@ -159,7 +159,7 @@ const row: React.CSSProperties = {
 
 export default function CurriculumIntelligencePage() {
   return (
-    <Suspense fallback={<main style={shell}>Loading curriculum intelligence…</main>}>
+    <Suspense fallback={<section style={shell}>Loading curriculum intelligence…</section>}>
       <Dashboard />
     </Suspense>
   )

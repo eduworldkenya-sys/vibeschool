@@ -4,6 +4,8 @@ import type { AttendanceRecord, AttendanceRangeSummary } from '@/lib/types'
 interface GetAttendanceRecordsParams {
   classId?: string
   studentId?: string
+  schoolId?: string
+  throwOnError?: boolean
   startDate: string
   endDate: string
 }
@@ -11,7 +13,7 @@ interface GetAttendanceRecordsParams {
 export async function getAttendanceRecords(
   params: GetAttendanceRecordsParams
 ): Promise<AttendanceRecord[]> {
-  const { classId, studentId, startDate, endDate } = params
+  const { classId, studentId, schoolId, throwOnError, startDate, endDate } = params
   if (!classId && !studentId) return []
 
   let query = supabase
@@ -21,11 +23,13 @@ export async function getAttendanceRecords(
     .lte('date', endDate)
     .order('date', { ascending: false })
 
+  if (schoolId) query = query.eq('school_id', schoolId)
   if (classId)   query = query.eq('class_id', classId)
   if (studentId) query = query.eq('student_id', studentId)
 
   const { data, error } = await query
   if (error) {
+    if (throwOnError) throw error
     console.error('getAttendanceRecords error:', error)
     return []
   }

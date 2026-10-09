@@ -168,7 +168,7 @@ export default function IndexerPage() {
 
         {/* Header */}
         <div style={{ background: `linear-gradient(135deg,${C.dark} 0%,#312e81 100%)`, borderRadius: 20, padding: "20px", marginBottom: 14, color: "#fff" }}>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>VibeLearn</div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>VibeLearn</div>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Publishing Health</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)" }}>A practical check of publishing completeness and reach. This is not a learning-quality score.</div>
         </div>
@@ -193,7 +193,7 @@ export default function IndexerPage() {
 
         {/* Signal bars */}
         <div style={card}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Publishing Signals</div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Publishing Signals</div>
           {[
             { label: "Live Content",    value: live,        max: Math.max(items.length, 1), suffix: ` / ${items.length}`, color: C.accent   },
             { label: "Live Views",      value: totalViews,  max: 50,                         suffix: " views",             color: "#0284c7"  },
@@ -214,7 +214,7 @@ export default function IndexerPage() {
 
         {/* Tips */}
         <div style={card}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Improve Publishing Health</div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Improve Publishing Health</div>
           {tips.map((tip, i) => (
             <div key={tip.title} style={{ display: "flex", gap: 12, alignItems: "flex-start", paddingBottom: 14, marginBottom: i < tips.length - 1 ? 14 : 0, borderBottom: i < tips.length - 1 ? `1px solid ${C.border}` : "none" }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, background: tip.done ? "#d1fae5" : "#f3f4f6", transition: "background 0.3s ease" }}>
@@ -231,15 +231,15 @@ export default function IndexerPage() {
         {/* Content performance table */}
         {items.length > 0 && (
           <div style={card}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Publishing Reach</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1.4, marginBottom: 14 }}>Publishing Reach</div>
             {[...items].sort((a, b) => b.view_count - a.view_count).map((item, i) => (
               <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: i < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
                 <div style={{ fontSize: 14, flexShrink: 0, width: 24, textAlign: "center", color: C.textMuted, fontWeight: 800 }}>{i + 1}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: C.textPrimary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.title}</div>
                   <div style={{ display: "flex", gap: 6, marginTop: 3 }}>
-                    <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: item.status === "live" ? "#d1fae5" : "#f3f4f6", color: item.status === "live" ? "#065f46" : C.textMuted, fontWeight: 700 }}>{item.status}</span>
-                    {item.tags?.slice(0, 2).map(t => <span key={t} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted }}>{t}</span>)}
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: item.status === "live" ? "#d1fae5" : "#f3f4f6", color: item.status === "live" ? "#065f46" : C.textMuted, fontWeight: 700 }}>{item.status}</span>
+                    {item.tags?.slice(0, 2).map(t => <span key={t} style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "#f3f4f6", color: C.textMuted }}>{t}</span>)}
                   </div>
                 </div>
                 <div style={{ textAlign: "right", flexShrink: 0 }}>

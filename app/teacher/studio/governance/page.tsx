@@ -56,17 +56,17 @@ export default function TeacherStudioGovernancePage() {
   const selected = publications.find(item => item.id === publicationId) ?? null
 
   return (
-    <main style={{ minHeight: '100dvh', background: '#090D16', color: '#fff', padding: '22px 16px 80px', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
+    <section style={{ minHeight: '100dvh', background: '#090D16', color: '#fff', padding: '22px 16px 80px', fontFamily: 'system-ui,-apple-system,sans-serif' }}>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
         <button type="button" onClick={() => router.push('/teacher/studio')} style={{ border: 0, background: 'transparent', color: 'rgba(255,255,255,.55)', cursor: 'pointer', padding: '0 0 18px' }}>← Content Studio</button>
-        <div style={{ color: '#CCFF00', fontSize: 10, fontWeight: 900, letterSpacing: '.12em' }}>CREATOR GOVERNANCE</div>
+        <div style={{ color: '#CCFF00', fontSize: 11, fontWeight: 750, letterSpacing: '.12em' }}>CREATOR GOVERNANCE</div>
         <h1 style={{ margin: '6px 0 8px', fontSize: 27 }}>Sources & publication history</h1>
         <p style={{ color: 'rgba(255,255,255,.5)', lineHeight: 1.65, fontSize: 13, margin: '0 0 20px' }}>Register the authoritative curriculum source behind a publication and inspect the immutable snapshots created by published revisions.</p>
 
         {error && <div style={{ border: '1px solid rgba(248,113,113,.35)', color: '#fca5a5', borderRadius: 12, padding: 12, marginBottom: 14 }}>{error}</div>}
         {loading ? <div style={{ color: 'rgba(255,255,255,.5)' }}>Loading your publications…</div> : publications.length === 0 ? <div style={{ border: '1px solid rgba(255,255,255,.08)', borderRadius: 14, padding: 18, color: 'rgba(255,255,255,.5)' }}>Create a textbook or eBook first.</div> : <>
           <label style={{ display: 'grid', gap: 7, fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,.65)' }}>Publication
-            <select value={publicationId} onChange={event => setPublicationId(event.target.value)} style={{ width: '100%', background: '#111827', color: '#fff', border: '1px solid rgba(255,255,255,.1)', borderRadius: 11, padding: '11px 12px' }}>
+            <select value={publicationId} onChange={event => setPublicationId(event.target.value)} style={{ width: '100%', background: "var(--teacher-ink, #1c2923)", color: '#fff', border: '1px solid rgba(255,255,255,.1)', borderRadius: 11, padding: '11px 12px' }}>
               {publications.map(item => <option key={item.id} value={item.id}>{item.title || 'Untitled'} · {item.status}</option>)}
             </select>
           </label>
@@ -80,9 +80,9 @@ export default function TeacherStudioGovernancePage() {
 
       {selected && authorId && <CurriculumImportDrawer authorId={authorId} initialGrade={selected.cbc_grade} initialSubject={selected.cbc_subject} isOpen={sourceOpen} onClose={() => setSourceOpen(false)} />}
       {selected && <PublicationHistoryDrawer publicationId={selected.id} isOpen={historyOpen} onClose={() => setHistoryOpen(false)} />}
-    </main>
+    </section>
   )
 }
 
-const actionStyle: React.CSSProperties = { textAlign: 'left', display: 'grid', gap: 7, background: '#111827', color: '#fff', border: '1px solid rgba(255,255,255,.09)', borderRadius: 14, padding: 16, cursor: 'pointer' }
+const actionStyle: React.CSSProperties = { textAlign: 'left', display: 'grid', gap: 7, background: "var(--teacher-ink, #1c2923)", color: '#fff', border: '1px solid rgba(255,255,255,.09)', borderRadius: 14, padding: 16, cursor: 'pointer' }
 const actionText: React.CSSProperties = { color: 'rgba(255,255,255,.5)', fontSize: 11, lineHeight: 1.55 }

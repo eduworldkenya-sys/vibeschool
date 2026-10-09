@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { C } from '@/components/teacher/ui'
+import { C, Modal } from '@/components/teacher/ui'
 
 type ResourceType = 'notes' | 'assessment' | 'exercise' | 'quiz' | 'video' | 'other'
 
@@ -336,23 +336,23 @@ export default function TeacherResourcesPage() {
   if (loading) return <div style={{ padding: 24, color: C.textMuted }}>Preparing your teaching resources…</div>
 
   return (
-    <main style={{ minHeight: '100vh', background: '#f7f9fc', color: C.textPrimary, paddingBottom: 80 }}>
-      <header style={{ background: 'linear-gradient(135deg,#0f4c75,#1b6ca8)', color: '#fff', padding: '22px 16px 28px' }}>
+    <section className="vs-teacher-workspace teacher-resources">
+      <header className="teacher-homework__summary">
         <div style={{ maxWidth: 980, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '.08em', textTransform: 'uppercase', opacity: .72 }}>Teaching resource operating system</div>
-              <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 900 }}>Resources that are already connected to the lesson</h1>
-              <p style={{ margin: 0, fontSize: 13, maxWidth: 680, opacity: .82 }}>VibeSchool follows the instructional calendar and your Scheme so the right lesson materials are ready before you teach. Your own notes remain available as supplements, not another preparation burden.</p>
+              <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: '.08em', textTransform: 'uppercase', opacity: .72 }}>Teaching materials</div>
+              <h1 style={{ fontSize: 23, margin: '5px 0 4px', fontWeight: 750 }}>Resources</h1>
+              <p style={{ margin: 0, fontSize: 13, maxWidth: 680, opacity: .82 }}>Lesson materials for this week, plus your saved resources.</p>
             </div>
-            <button type="button" onClick={openAdd} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: '#0f4c75', fontWeight: 900, whiteSpace: 'nowrap' }}>+ Add mine</button>
+            <button type="button" onClick={openAdd} style={{ border: 0, borderRadius: 11, padding: '10px 13px', background: '#fff', color: 'var(--teacher-green)', minHeight: 44, fontWeight: 650, whiteSpace: 'nowrap' }}>+ Add resource</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,minmax(0,1fr))', gap: 8, marginTop: 18 }}>
             {[
               ['Current week', week ?? '—'],
               ['Ready resources', readyCount],
               ['My saved resources', library.length],
-            ].map(([label, value]) => <div key={label} style={{ background: 'rgba(255,255,255,.12)', borderRadius: 12, padding: 10, textAlign: 'center' }}><div style={{ fontSize: 19, fontWeight: 900 }}>{value}</div><div style={{ fontSize: 10, opacity: .72 }}>{label}</div></div>)}
+            ].map(([label, value]) => <div key={label} style={{ background: 'var(--teacher-canvas)', borderRadius: 12, padding: 10, textAlign: 'center' }}><div style={{ fontSize: 19, fontWeight: 750 }}>{value}</div><div style={{ fontSize: 11, opacity: .72 }}>{label}</div></div>)}
           </div>
         </div>
       </header>
@@ -372,16 +372,16 @@ export default function TeacherResourcesPage() {
           ) : visiblePacks.map(pack => (
             <article key={pack.scheme.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 14, marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
-                <div><div style={{ fontSize: 11, fontWeight: 900, color: '#0f4c75' }}>{pack.classLabel} · {pack.subjectLabel} · Lesson {pack.scheme.lesson_number ?? '—'}</div><h3 style={{ margin: '4px 0 3px', fontSize: 15 }}>{pack.scheme.topic || pack.scheme.sub_strand || pack.scheme.strand || 'Scheme lesson'}</h3></div>
-                <span style={{ background: pack.resources.length ? '#ecfdf5' : '#fff7ed', color: pack.resources.length ? '#065f46' : '#9a3412', borderRadius: 999, padding: '5px 8px', fontSize: 10, fontWeight: 900 }}>{pack.resources.length} ready</span>
+                <div><div style={{ fontSize: 11, fontWeight: 750, color: '#0f4c75' }}>{pack.classLabel} · {pack.subjectLabel} · Lesson {pack.scheme.lesson_number ?? '—'}</div><h3 style={{ margin: '4px 0 3px', fontSize: 15 }}>{pack.scheme.topic || pack.scheme.sub_strand || pack.scheme.strand || 'Scheme lesson'}</h3></div>
+                <span style={{ background: pack.resources.length ? '#ecfdf5' : '#fff7ed', color: pack.resources.length ? '#065f46' : '#9a3412', borderRadius: 999, padding: '5px 8px', fontSize: 11, fontWeight: 750 }}>{pack.resources.length} ready</span>
               </div>
               {pack.resources.length === 0 ? <p style={{ margin: '9px 0 0', color: C.textMuted, fontSize: 12 }}>No canonical resource link is attached to this exact Scheme lesson yet.</p> : (
                 <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
                   {pack.resources.map(item => {
                     const href = readerHref(item)
                     return <div key={item.id} style={{ border: '1px solid #eef2f7', background: '#fafcff', borderRadius: 12, padding: 11, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
-                      <div><div style={{ fontSize: 10, color: '#6366f1', fontWeight: 900, textTransform: 'uppercase' }}>{item.resource_role || item.resource?.purpose || item.resource?.asset_kind || 'Lesson resource'}</div><div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>{item.resource?.title ?? 'Canonical resource'}</div>{item.resource?.description && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{item.resource.description}</div>}</div>
-                      {href ? <Link href={href} style={{ textDecoration: 'none', borderRadius: 9, background: '#0f4c75', color: '#fff', padding: '8px 10px', fontSize: 11, fontWeight: 900 }}>Open</Link> : <span style={{ fontSize: 10, color: C.textMuted }}>Linked</span>}
+                      <div><div style={{ fontSize: 11, color: '#6366f1', fontWeight: 750, textTransform: 'uppercase' }}>{item.resource_role || item.resource?.purpose || item.resource?.asset_kind || 'Lesson resource'}</div><div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>{item.resource?.title ?? 'Canonical resource'}</div>{item.resource?.description && <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{item.resource.description}</div>}</div>
+                      {href ? <Link href={href} style={{ textDecoration: 'none', borderRadius: 9, background: '#0f4c75', color: '#fff', padding: '8px 10px', fontSize: 11, fontWeight: 750 }}>Open</Link> : <span style={{ fontSize: 11, color: C.textMuted }}>Linked</span>}
                     </div>
                   })}
                 </div>
@@ -406,26 +406,25 @@ export default function TeacherResourcesPage() {
               <button type="button" onClick={() => setExpanded(isExpanded ? null : resource.id)} aria-expanded={isExpanded} style={{ border: 0, width: '100%', background: '#fff', textAlign: 'left', padding: 13, display: 'flex', gap: 10, alignItems: 'center' }}>
                 <span style={{ fontSize: 19 }}>{meta.icon}</span><span style={{ flex: 1 }}><strong style={{ display: 'block', color: C.textPrimary }}>{resource.title}</strong><span style={{ fontSize: 11, color: C.textMuted }}>{resource.subject} · {classLabel} · {timeAgo(resource.created_at)}</span></span><span>{isExpanded ? '⌃' : '⌄'}</span>
               </button>
-              {isExpanded && <div style={{ padding: '0 13px 13px' }}>{resource.description && <p style={{ lineHeight: 1.6 }}>{resource.description}</p>}{resource.content && <div style={{ whiteSpace: 'pre-wrap', background: '#f8fafc', borderRadius: 10, padding: 11, lineHeight: 1.65 }}>{resource.content}</div>}{resource.external_url && <a href={resource.external_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 9 }}>Open external resource ↗</a>}<button type="button" disabled={deleting === resource.id} onClick={() => void deleteResource(resource)} style={{ display: 'block', marginTop: 10, border: '1px solid #fecaca', background: '#fff', color: '#991b1b', borderRadius: 9, padding: '7px 9px', fontWeight: 800 }}>{deleting === resource.id ? 'Deleting…' : 'Delete'}</button></div>}
+              {isExpanded && <div style={{ padding: '0 13px 13px' }}>{resource.description && <p style={{ lineHeight: 1.6 }}>{resource.description}</p>}{resource.content && <div style={{ whiteSpace: 'pre-wrap', background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 10, padding: 11, lineHeight: 1.65 }}>{resource.content}</div>}{resource.external_url && <a href={resource.external_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 9 }}>Open external resource ↗</a>}<button type="button" disabled={deleting === resource.id} onClick={() => void deleteResource(resource)} style={{ display: 'block', marginTop: 10, border: '1px solid #fecaca', background: '#fff', color: '#991b1b', borderRadius: 9, padding: '7px 9px', fontWeight: 800 }}>{deleting === resource.id ? 'Deleting…' : 'Delete'}</button></div>}
             </article>
           })}
         </section>
       </div>
 
-      {showAdd && <div role="dialog" aria-modal="true" aria-label="Add teaching resource" style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(15,23,42,.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}><div style={{ width: '100%', maxWidth: 620, background: '#fff', borderRadius: '20px 20px 0 0', padding: 18, maxHeight: '88vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'start' }}><div><h2 style={{ margin: 0, fontSize: 18 }}>Add my resource</h2><p style={{ margin: '4px 0 0', color: C.textMuted, fontSize: 12 }}>Class and subject are constrained to your actual teaching assignments.</p></div><button type="button" onClick={() => setShowAdd(false)} aria-label="Close" style={{ border: 0, background: '#f1f5f9', borderRadius: 999, width: 32, height: 32 }}>×</button></div>
+      <Modal open={showAdd} onClose={() => setShowAdd(false)} title="Add my resource">
         <div style={{ display: 'grid', gap: 13, marginTop: 16 }}>
-          <div><label style={labelStyle}>Type</label><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{TYPES.map(item => <button type="button" key={item.value} onClick={() => setForm(current => ({ ...current, type: item.value }))} style={{ border: form.type === item.value ? '1px solid #0f4c75' : '1px solid #dbe3ea', background: form.type === item.value ? '#e0f2fe' : '#fff', borderRadius: 999, padding: '7px 9px', fontWeight: 800 }}>{item.icon} {item.label}</button>)}</div></div>
-          <div><label style={labelStyle}>Class</label><select style={inputStyle} value={form.class_id} onChange={event => setForm(current => ({ ...current, class_id: event.target.value }))}><option value="">Choose class</option>{classes.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}</select></div>
-          <div><label style={labelStyle}>Subject</label><select style={inputStyle} value={form.subject_id} onChange={event => setForm(current => ({ ...current, subject_id: event.target.value }))}><option value="">Choose subject</option>{allowedSubjects.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></div>
-          <div><label style={labelStyle}>Title</label><input style={inputStyle} value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} placeholder="Short useful title" /></div>
-          <div><label style={labelStyle}>Description</label><textarea style={{ ...inputStyle, minHeight: 64 }} value={form.description} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} /></div>
-          <div><label style={labelStyle}>Paste link</label><input style={inputStyle} value={form.external_url} onChange={event => setForm(current => ({ ...current, external_url: event.target.value }))} placeholder="https://…" /></div>
-          <div><label style={labelStyle}>Or add content</label><textarea style={{ ...inputStyle, minHeight: 110 }} value={form.content} onChange={event => setForm(current => ({ ...current, content: event.target.value }))} placeholder="Notes, questions, instructions…" /></div>
+          <div><label style={labelStyle}>Type</label><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{TYPES.map(item => <button type="button" key={item.value} onClick={() => setForm(current => ({ ...current, type: item.value }))} aria-pressed={form.type === item.value} style={{ border: form.type === item.value ? '1px solid #0f4c75' : '1px solid #dbe3ea', background: form.type === item.value ? '#e0f2fe' : '#fff', minHeight: 44, borderRadius: 999, padding: '7px 9px', fontWeight: 800 }}>{item.icon} {item.label}</button>)}</div></div>
+          <div><label htmlFor="resource-class" style={labelStyle}>Class</label><select id="resource-class" style={inputStyle} value={form.class_id} onChange={event => setForm(current => ({ ...current, class_id: event.target.value }))}><option value="">Choose class</option>{classes.map(row => <option key={row.id} value={row.id}>{row.label}</option>)}</select></div>
+          <div><label htmlFor="resource-subject" style={labelStyle}>Subject</label><select id="resource-subject" style={inputStyle} value={form.subject_id} onChange={event => setForm(current => ({ ...current, subject_id: event.target.value }))}><option value="">Choose subject</option>{allowedSubjects.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></div>
+          <div><label htmlFor="resource-title" style={labelStyle}>Title</label><input id="resource-title" style={inputStyle} value={form.title} onChange={event => setForm(current => ({ ...current, title: event.target.value }))} placeholder="Short useful title" /></div>
+          <div><label htmlFor="resource-description" style={labelStyle}>Description</label><textarea id="resource-description" style={{ ...inputStyle, minHeight: 64 }} value={form.description} onChange={event => setForm(current => ({ ...current, description: event.target.value }))} /></div>
+          <div><label htmlFor="resource-link" style={labelStyle}>Paste link</label><input id="resource-link" style={inputStyle} value={form.external_url} onChange={event => setForm(current => ({ ...current, external_url: event.target.value }))} placeholder="https://…" /></div>
+          <div><label htmlFor="resource-content" style={labelStyle}>Or add content</label><textarea id="resource-content" style={{ ...inputStyle, minHeight: 110 }} value={form.content} onChange={event => setForm(current => ({ ...current, content: event.target.value }))} placeholder="Notes, questions, instructions…" /></div>
         </div>
         {formError && <div role="alert" style={{ marginTop: 10, color: '#991b1b', fontSize: 12 }}>{formError}</div>}
-        <button type="button" onClick={() => void saveResource()} disabled={saving} style={{ width: '100%', marginTop: 14, border: 0, borderRadius: 11, padding: 12, background: '#0f4c75', color: '#fff', fontWeight: 900 }}>{saving ? 'Saving…' : 'Save to my class library'}</button>
-      </div></div>}
-    </main>
+        <button type="button" onClick={() => void saveResource()} disabled={saving} style={{ width: '100%', marginTop: 14, border: 0, borderRadius: 11, padding: 12, background: '#0f4c75', color: '#fff', fontWeight: 750 }}>{saving ? 'Saving…' : 'Save to my class library'}</button>
+      </Modal>
+    </section>
   )
 }

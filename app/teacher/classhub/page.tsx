@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { C } from '@/components/teacher/ui'
+import { TeacherWorkspace } from '@/components/teacher/ui'
+import { Search, Plus, Users, ArrowUpRight, BookOpen } from 'lucide-react'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +19,8 @@ export default function ClassHubPage() {
   const [counts, setCounts] = useState<Record<string, number>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [query, setQuery] = useState('')
+  const [retry, setRetry] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -98,54 +102,21 @@ export default function ClassHubPage() {
 
     void load()
     return () => { cancelled = true }
-  }, [router])
+  }, [router, retry])
 
-  return (
-    <div style={{ padding: '20px 16px 32px', color: C.textPrimary }}>
-      <div style={{ marginBottom: 20 }}>
-        <p style={{ margin: 0, color: C.textMuted, fontSize: 12, fontWeight: 800, letterSpacing: 1.2, textTransform: 'uppercase' }}>Classes</p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 6 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900 }}>My Classes</h1>
-          <button type="button" onClick={() => router.push('/teacher/classhub/add')} style={{ minHeight: 42, border: 0, borderRadius: 12, padding: '0 14px', background: C.accent, color: '#fff', fontWeight: 900, cursor: 'pointer' }}>+ Add class</button>
-        </div>
-        <p style={{ margin: '6px 0 0', color: C.textMuted, fontSize: 14 }}>Open a class to manage teaching work, or go directly to evidence-backed Student progress.</p>
-      </div>
-
-      {loading && (
-        <div aria-live="polite" style={{ display: 'grid', gap: 12 }}>
-          {[1, 2, 3].map(i => <div key={i} style={{ height: 108, borderRadius: 18, background: '#f3f4f6' }} />)}
-        </div>
-      )}
-
-      {!loading && error && (
-        <div role="alert" style={{ padding: 16, border: `1px solid ${C.border}`, borderRadius: 16, background: C.bg }}>
-          <strong>Classes unavailable</strong>
-          <p style={{ margin: '6px 0 0', color: C.textMuted }}>{error}</p>
-        </div>
-      )}
-
-      {!loading && !error && classes.length === 0 && (
-        <div style={{ padding: '32px 20px', border: `1px solid ${C.border}`, borderRadius: 18, background: C.bg, textAlign: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>No classes assigned yet</h2>
-          <p style={{ margin: '8px 0 14px', color: C.textMuted, lineHeight: 1.5 }}>Add the class and subject you teach. If the class already exists at your verified school, VibeSchool reuses it.</p>
-          <button type="button" onClick={() => router.push('/teacher/classhub/add')} style={{ minHeight: 44, border: 0, borderRadius: 12, padding: '0 16px', background: C.dark, color: '#fff', fontWeight: 900, cursor: 'pointer' }}>Add or join class</button>
-        </div>
-      )}
-
-      {!loading && !error && classes.length > 0 && (
-        <div style={{ display: 'grid', gap: 12 }}>
-          {classes.map(cls => (
-            <section key={cls.id} style={{ width: '100%', padding: 16, border: `1px solid ${C.border}`, borderRadius: 18, background: C.bg, color: C.textPrimary }}>
-              <div style={{ fontSize: 17, fontWeight: 900 }}>{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</div>
-              <div style={{ marginTop: 5, color: C.textMuted, fontSize: 13 }}>{cls.subject || 'Class workspace'} · {counts[cls.id] ?? 0} current students</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 12 }}>
-                <button type="button" onClick={() => router.push(`/teacher/classhub/${cls.id}`)} style={{ minHeight: 44, border: `1px solid ${C.border}`, borderRadius: 12, background: '#fff', color: C.textPrimary, fontWeight: 900, cursor: 'pointer', font: 'inherit' }}>Open class</button>
-                <button type="button" onClick={() => router.push(`/teacher/classhub/${cls.id}/progress`)} style={{ minHeight: 44, border: 0, borderRadius: 12, background: '#111827', color: '#fff', fontWeight: 900, cursor: 'pointer', font: 'inherit' }}>Student progress</button>
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-    </div>
-  )
+  const visible = classes.filter(cls => `${cls.name} ${cls.stream ?? ''} ${cls.subject ?? ''}`.toLowerCase().includes(query.trim().toLowerCase()))
+  const total = Object.values(counts).reduce((sum,count)=>sum+count,0)
+  return <TeacherWorkspace title="My classes" eyebrow="Classes" actions={<Link href="/teacher/classhub/add" className="teacher-btn"><Plus size={18} aria-hidden="true"/>Add class</Link>}>
+    {loading ? <div role="status" aria-label="Loading your classes" className="teacher-class-grid">{[1,2,3].map(i=><div key={i} className="teacher-skeleton" style={{height:160}}/>)}</div> : error ? <div role="alert" className="teacher-panel teacher-state"><div className="teacher-state__icon"><BookOpen size={24}/></div><h2>Classes unavailable</h2><p>{error}</p><button type="button" className="teacher-btn" onClick={()=>setRetry(value=>value+1)}>Try again</button><Link href="/teacher/profile" className="teacher-btn teacher-btn--secondary">Check school context</Link></div> : classes.length===0 ? <div className="teacher-panel teacher-state"><div className="teacher-state__icon"><Users size={24}/></div><h2>Your classroom starts here</h2><p>Add or join the class and subject you teach.</p><Link href="/teacher/classhub/add" className="teacher-btn"><Plus size={18}/>Add or join class</Link></div> : <>
+      <div className="teacher-class-summary"><span><strong>{classes.length}</strong> classes</span><span><strong>{total}</strong> learners</span></div>
+      <label className="teacher-tools-search"><Search size={19} aria-hidden="true"/><input type="search" aria-label="Search classes and subjects" placeholder="Find a class or subject…" value={query} onChange={event=>setQuery(event.target.value)}/></label>
+      <div className="teacher-class-grid">{visible.map(cls=><article className="teacher-class-card" key={cls.id}>
+        <div className="teacher-class-card__identity"><span className="teacher-state__icon"><SchoolIcon/></span><span className="teacher-class-card__count"><Users size={14} aria-hidden="true"/>{counts[cls.id]??0}</span></div>
+        <h2>{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</h2><p>{cls.subject || 'Class workspace'}</p>
+        <div className="teacher-class-card__actions"><Link href={`/teacher/classhub/${cls.id}`} className="teacher-btn">Open class<ArrowUpRight size={16}/></Link><Link href={`/teacher/classhub/${cls.id}/progress`} className="teacher-btn teacher-btn--secondary" aria-label={`Student progress for ${cls.name}${cls.stream ? ` ${cls.stream}` : ''}`}>Progress</Link></div>
+      </article>)}</div>
+      {visible.length===0 && <div className="teacher-state"><h2>No matching classes</h2><p>Try a different class or subject name.</p><button type="button" className="teacher-btn teacher-btn--secondary" onClick={()=>setQuery('')}>Clear search</button></div>}
+    </>}
+  </TeacherWorkspace>
 }
+function SchoolIcon(){return <BookOpen size={24} aria-hidden="true"/>}

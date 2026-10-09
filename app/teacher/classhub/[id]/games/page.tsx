@@ -187,7 +187,7 @@ function GamePageInner() {
 
   return <div style={{ maxWidth: 760, margin: "0 auto", padding: "14px 14px 110px" }}>
     <section style={{ borderRadius: 20, padding: 18, background: "linear-gradient(135deg,#312e81,#7c3aed)", color: "#fff", marginBottom: 12 }}>
-      <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/groups${backQuery}`)} style={{ minHeight: 38, border: 0, borderRadius: 10, background: "rgba(255,255,255,.15)", color: "#fff", padding: "0 11px", fontWeight: 900 }}>‹ Groups & Lists</button>
+      <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/groups${backQuery}`)} style={{ minHeight: 38, border: 0, borderRadius: 10, background: "rgba(255,255,255,.15)", color: "#fff", padding: "0 11px", fontWeight: 750 }}>‹ Groups & Lists</button>
       <h1 style={{ margin: "12px 0 3px", fontSize: 23 }}>Class Quiz Scoreboard</h1>
       <div style={{ fontSize: 12, opacity: .8 }}>{classLabel}</div>
     </section>
@@ -196,7 +196,7 @@ function GamePageInner() {
     {message && <div role="status" style={{ background: "#ecfdf5", color: "#065f46", borderRadius: 13, padding: 12, marginBottom: 10 }}>{message}</div>}
 
     {!game ? <section style={{ background: "#fff", borderRadius: 18, padding: 15, boxShadow: "0 2px 12px rgba(0,0,0,.05)" }}>
-      <div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>START A CLASSROOM GAME</div>
+      <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)" }}>START A CLASSROOM GAME</div>
       <p style={{ fontSize: 12, color: "#4b5563", lineHeight: 1.5 }}>Use existing game teams from Groups & Lists. Scores stay inside this classroom activity and are never converted into mastery, marks or permanent learner labels.</p>
       <input value={title} onChange={event => setTitle(event.target.value)} placeholder="e.g. Revision league" style={{ width: "100%", boxSizing: "border-box", minHeight: 44, border: "1px solid #d1d5db", borderRadius: 11, padding: "0 11px", fontSize: 16 }} />
       <div style={{ marginTop: 10, display: "grid", gap: 7 }}>
@@ -204,22 +204,22 @@ function GamePageInner() {
           <input type="checkbox" checked={selectedGroups.has(group.id)} onChange={() => toggleGroup(group.id)} />
           <strong style={{ fontSize: 12 }}>{group.name}</strong>
         </label>)}
-        {groups.length === 0 && <div style={{ padding: 16, color: "#6b7280", textAlign: "center" }}>No game teams yet. Return to Groups & Lists and create random teams first.</div>}
+        {groups.length === 0 && <div style={{ padding: 16, color: "var(--teacher-muted, #627168)", textAlign: "center" }}>No game teams yet. Return to Groups & Lists and create random teams first.</div>}
       </div>
-      <button type="button" onClick={() => void startGame()} disabled={saving || selectedGroups.size < 2} style={{ width: "100%", minHeight: 46, marginTop: 12, border: 0, borderRadius: 11, background: selectedGroups.size >= 2 ? "#312e81" : "#e5e7eb", color: selectedGroups.size >= 2 ? "#fff" : "#9ca3af", fontWeight: 900 }}>{saving ? "Starting…" : "Start scoreboard"}</button>
+      <button type="button" onClick={() => void startGame()} disabled={saving || selectedGroups.size < 2} style={{ width: "100%", minHeight: 46, marginTop: 12, border: 0, borderRadius: 11, background: selectedGroups.size >= 2 ? "#312e81" : "#e5e7eb", color: selectedGroups.size >= 2 ? "#fff" : "#9ca3af", fontWeight: 750 }}>{saving ? "Starting…" : "Start scoreboard"}</button>
     </section> : <section style={{ background: "#fff", borderRadius: 18, padding: 15, boxShadow: "0 2px 12px rgba(0,0,0,.05)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 12 }}>
-        <div><div style={{ fontSize: 11, fontWeight: 900, color: "#6b7280" }}>LIVE SCOREBOARD</div><div style={{ fontSize: 16, fontWeight: 900, marginTop: 2 }}>{game.title}</div></div>
+        <div><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)" }}>LIVE SCOREBOARD</div><div style={{ fontSize: 16, fontWeight: 750, marginTop: 2 }}>{game.title}</div></div>
         <button type="button" onClick={() => void resetScores()} disabled={saving} style={{ minHeight: 36, border: "1px solid #d1d5db", borderRadius: 9, background: "#fff", padding: "0 10px", fontWeight: 800 }}>Reset</button>
       </div>
-      <div style={{ display: "grid", gap: 8 }}>{teams.map((team,index) => <div key={team.id} style={{ display: "grid", gridTemplateColumns: "26px 1fr 40px 46px 40px", gap: 7, alignItems: "center", background: "#f8fafc", borderRadius: 12, padding: 9 }}>
+      <div style={{ display: "grid", gap: 8 }}>{teams.map((team,index) => <div key={team.id} style={{ display: "grid", gridTemplateColumns: "26px 1fr 40px 46px 40px", gap: 7, alignItems: "center", background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 12, padding: 9 }}>
         <strong style={{ textAlign: "center" }}>{index + 1}</strong>
         <strong style={{ fontSize: 12 }}>{team.label}</strong>
-        <button type="button" onClick={() => void adjustScore(team,-1)} disabled={saving} style={{ height: 38, border: "1px solid #d1d5db", borderRadius: 9, background: "#fff", fontWeight: 900 }}>−</button>
-        <span style={{ textAlign: "center", fontSize: 20, fontWeight: 900 }}>{team.score}</span>
-        <button type="button" onClick={() => void adjustScore(team,1)} disabled={saving} style={{ height: 38, border: 0, borderRadius: 9, background: "#312e81", color: "#fff", fontWeight: 900 }}>+</button>
+        <button type="button" onClick={() => void adjustScore(team,-1)} disabled={saving} style={{ height: 38, border: "1px solid #d1d5db", borderRadius: 9, background: "#fff", fontWeight: 750 }}>−</button>
+        <span style={{ textAlign: "center", fontSize: 20, fontWeight: 750 }}>{team.score}</span>
+        <button type="button" onClick={() => void adjustScore(team,1)} disabled={saving} style={{ height: 38, border: 0, borderRadius: 9, background: "#312e81", color: "#fff", fontWeight: 750 }}>+</button>
       </div>)}</div>
-      <button type="button" onClick={() => void finishGame()} disabled={saving} style={{ width: "100%", minHeight: 46, marginTop: 12, border: 0, borderRadius: 11, background: "#111827", color: "#fff", fontWeight: 900 }}>{saving ? "Finishing…" : "Finish scoreboard"}</button>
+      <button type="button" onClick={() => void finishGame()} disabled={saving} style={{ width: "100%", minHeight: 46, marginTop: 12, border: 0, borderRadius: 11, background: "var(--teacher-ink, #1c2923)", color: "#fff", fontWeight: 750 }}>{saving ? "Finishing…" : "Finish scoreboard"}</button>
     </section>}
   </div>;
 }

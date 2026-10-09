@@ -96,23 +96,23 @@ export default function AssessmentReviewPage() {
   }
 
   return (
-    <main style={page}>
+    <section style={page}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <button type="button" onClick={() => router.back()} style={secondary}>← Back</button>
         <section style={card}>
           <div style={eyebrow}>{assignment ? 'Assigned' : 'Ready to assign'}</div>
           <h1 style={{ margin: '6px 0' }}>{assessment?.title ?? 'Assessment'}</h1>
-          <p style={{ margin: 0, color: '#6b7280', lineHeight: 1.5 }}>VibeSchool prepared this from authoritative curriculum outcomes. Check the questions, then assign in one tap. Full Builder controls are optional before release.</p>
+          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)", lineHeight: 1.5 }}>VibeSchool prepared this from authoritative curriculum outcomes. Check the questions, then assign in one tap. Full Builder controls are optional before release.</p>
         </section>
         {error && <section style={errorBox}>{error}</section>}
         {loading ? <section style={card}>Loading assessment…</section> : !assessment || !context ? null : <>
           <section style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <strong>{items.length} questions · {items.reduce((sum, item) => sum + item.marks, 0)} marks</strong>
-              <span style={{ color: '#6b7280' }}>{context.estimatedMinutes ? `about ${context.estimatedMinutes} minutes` : 'Teacher-paced'}</span>
+              <span style={{ color: "var(--teacher-muted, #627168)" }}>{context.estimatedMinutes ? `about ${context.estimatedMinutes} minutes` : 'Teacher-paced'}</span>
             </div>
             <ol style={{ paddingLeft: 22, lineHeight: 1.55, marginBottom: 0 }}>
-              {items.map(item => <li key={item.id} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong><div style={{ fontSize: 11, color: '#6b7280', marginTop: 3 }}>{item.bloomLevel ?? 'outcome check'}{item.difficulty ? ` · ${item.difficulty}` : ''}</div></li>)}
+              {items.map(item => <li key={item.id} style={{ marginBottom: 10 }}>{item.prompt} <strong>({item.marks})</strong><div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 3 }}>{item.bloomLevel ?? 'outcome check'}{item.difficulty ? ` · ${item.difficulty}` : ''}</div></li>)}
             </ol>
           </section>
           {assignment ? <>
@@ -124,7 +124,7 @@ export default function AssessmentReviewPage() {
           </>}
         </>}
       </div>
-    </main>
+    </section>
   )
 }
 

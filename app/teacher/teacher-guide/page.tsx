@@ -79,7 +79,7 @@ function TeacherGuideInner() {
   if(!occurrenceDate || !classId || !subjectId) return (
     <div style={{maxWidth:760,margin:"0 auto",padding:18,display:"grid",gap:12}}>
       <div style={{...card,borderColor:"#c7d2fe"}}>
-        <div style={{fontSize:11,fontWeight:900,color:"#4f46e5",textTransform:"uppercase"}}>Teacher Guide</div>
+        <div style={{fontSize:11,fontWeight:750,color:"#4f46e5",textTransform:"uppercase"}}>Teacher Guide</div>
         <h1 style={{fontSize:24,margin:"6px 0"}}>{classId && subjectId ? "Choose the lesson you are teaching" : "Open a guide from your teaching context"}</h1>
         <p style={{fontSize:13,lineHeight:1.6,color:"#64748b"}}>
           {classId && subjectId
@@ -103,12 +103,12 @@ function TeacherGuideInner() {
 
   return (
     <div style={{maxWidth:760,margin:"0 auto",padding:"16px 14px 100px",display:"grid",gap:12}}>
-      <header style={{...card,background:"#1e1b4b",color:"#fff",border:0}}>
-        <div style={{fontSize:10,fontWeight:900,textTransform:"uppercase",opacity:.7}}>Canonical Teacher Guide · no AI required</div>
+      <header style={{...card,background:"var(--teacher-ink, #1c2923)",color:"#fff",border:0}}>
+        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",opacity:.7}}>Canonical Teacher Guide · no AI required</div>
         <h1 style={{fontSize:24,margin:"6px 0"}}>{source?.topic || source?.subStrand || subjectName || "Lesson guide"}</h1>
         <div style={{fontSize:12,opacity:.78}}>{subjectName || "Subject"} · {context?.grade || workspace.context.grade || "Class"} · {context?.schoolName || "Active school"}</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:14}}>
-          <button style={{...action,background:"#10b981"}} onClick={()=>router.push(`/teacher/lessonplan?${query}`)}>{workspace.existingPlan?"Open Lesson Plan":"Prepare Lesson Plan"}</button>
+          <button style={{...action,background:"var(--teacher-green, #087451)"}} onClick={()=>router.push(`/teacher/lessonplan?${query}`)}>{workspace.existingPlan?"Open Lesson Plan":"Prepare Lesson Plan"}</button>
           {workspace.existingPlan && <button style={{...secondary,border:0}} onClick={()=>router.push(`/teacher/lesson-notes?lessonPlanId=${workspace.existingPlan?.id}&${query}`)}>Lesson Notes / Teach</button>}
         </div>
       </header>

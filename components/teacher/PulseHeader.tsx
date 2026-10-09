@@ -176,11 +176,11 @@ function ChoiceSheet({
             <div style={{ minWidth: 0 }}>
               <div
                 id="teacher-context-sheet-title"
-                style={{ fontSize: 17, fontWeight: 900, color: "#111827" }}
+                style={{ fontSize: 17, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}
               >
                 {title}
               </div>
-              <div style={{ marginTop: 3, fontSize: 12, color: "#6b7280", lineHeight: 1.4 }}>
+              <div style={{ marginTop: 3, fontSize: 12, color: "var(--teacher-muted, #627168)", lineHeight: 1.4 }}>
                 {description}
               </div>
             </div>
@@ -193,7 +193,7 @@ function ChoiceSheet({
                 height: 36,
                 borderRadius: 12,
                 border: "1px solid #e5e7eb",
-                background: "#f8fafc",
+                background: "var(--teacher-canvas, #f5f6f2)",
                 color: "#475569",
                 fontSize: 20,
                 lineHeight: 1,
@@ -230,18 +230,18 @@ function ChoiceSheet({
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 12,
-                color: "#111827",
+                color: "var(--teacher-ink, #1c2923)",
                 textAlign: "left",
                 fontFamily: "inherit",
                 cursor: "pointer",
               }}
             >
               <span style={{ minWidth: 0 }}>
-                <span style={{ display: "block", fontSize: 14, fontWeight: 900, lineHeight: 1.25 }}>
+                <span style={{ display: "block", fontSize: 14, fontWeight: 750, lineHeight: 1.25 }}>
                   {option.label}
                 </span>
                 {option.detail && (
-                  <span style={{ display: "block", marginTop: 4, fontSize: 11, color: "#6b7280" }}>
+                  <span style={{ display: "block", marginTop: 4, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>
                     {option.detail}
                   </span>
                 )}
@@ -306,9 +306,9 @@ function ContextRow({
       <div style={{ minWidth: 0, flex: 1 }}>
         <div
           style={{
-            fontSize: 10,
-            color: "#6b7280",
-            fontWeight: 900,
+            fontSize: 11,
+            color: "var(--teacher-muted, #627168)",
+            fontWeight: 750,
             textTransform: "uppercase",
             letterSpacing: 0.8,
           }}
@@ -330,7 +330,7 @@ function ContextRow({
             alignItems: "center",
             justifyContent: "space-between",
             gap: 10,
-            color: "#111827",
+            color: "var(--teacher-ink, #1c2923)",
             fontFamily: "inherit",
             cursor: disabled ? "wait" : "pointer",
             opacity: disabled ? 0.65 : 1,
@@ -344,12 +344,12 @@ function ContextRow({
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
               fontSize: 14,
-              fontWeight: 900,
+              fontWeight: 750,
             }}
           >
             {value}
           </span>
-          <span style={{ color: "#6b7280", flexShrink: 0 }} aria-hidden="true">
+          <span style={{ color: "var(--teacher-muted, #627168)", flexShrink: 0 }} aria-hidden="true">
             <IconChevron />
           </span>
         </button>
@@ -487,8 +487,8 @@ export default function PulseHeader({
             style={{
               margin: 0,
               fontSize: 20,
-              fontWeight: 900,
-              color: "#111827",
+              fontWeight: 750,
+              color: "var(--teacher-ink, #1c2923)",
               letterSpacing: -0.35,
               lineHeight: 1.2,
             }}
@@ -503,7 +503,7 @@ export default function PulseHeader({
               gap: 7,
               marginTop: 4,
               fontSize: 12,
-              color: "#6b7280",
+              color: "var(--teacher-muted, #627168)",
               flexWrap: "wrap",
             }}
           >
@@ -558,8 +558,8 @@ export default function PulseHeader({
                 borderRadius: 999,
                 background: "#dc2626",
                 color: "#fff",
-                fontSize: 9,
-                fontWeight: 900,
+                fontSize: 11,
+                fontWeight: 750,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -611,7 +611,7 @@ export default function PulseHeader({
                   Refreshing this class…
                 </div>
               ) : selectedSlot ? (
-                <div style={{ fontSize: 11, color: "#6b7280" }}>
+                <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)" }}>
                   Today · {selectedSlot.start_time}–{selectedSlot.end_time}
                 </div>
               ) : selectedRoster ? (
@@ -649,7 +649,7 @@ export default function PulseHeader({
               cursor: "pointer",
             }}
           >
-            <strong style={{ display: "block", color: "#111827" }}>No classes assigned</strong>
+            <strong style={{ display: "block", color: "var(--teacher-ink, #1c2923)" }}>No classes assigned</strong>
             <span style={{ display: "block", fontSize: 11, color: "#047857", marginTop: 3 }}>
               Add your class
             </span>

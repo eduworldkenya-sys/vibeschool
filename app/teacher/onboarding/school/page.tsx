@@ -167,7 +167,7 @@ export default function SchoolDiscovery() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", background: "#f3f4f6", padding: 16, fontFamily: "system-ui" }}>
+    <section style={{ minHeight: "100vh", background: "#f3f4f6", padding: 16, fontFamily: "system-ui" }}>
       <section style={{ maxWidth: 560, margin: "40px auto", background: "#fff", borderRadius: 20, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,.08)" }}>
         <h1 style={{ marginTop: 0, marginBottom: 8 }}>Find your school</h1>
         <p style={{ color: "#667085", marginTop: 0 }}>
@@ -238,7 +238,7 @@ export default function SchoolDiscovery() {
         ))}
 
         {q.trim().length >= 2 && !searching && rows.length === 0 && !missingMode && (
-          <div style={{ marginTop: 14, padding: 14, background: "#f8fafc", borderRadius: 12 }}>
+          <div style={{ marginTop: 14, padding: 14, background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 12 }}>
             <b>We can't see your school yet.</b>
             <p style={{ fontSize: 13, color: "#667085", marginBottom: 10 }}>
               Try a shorter name, an abbreviation, or a school code. If it is genuinely new or missing, send us the details below — you won't need to create a duplicate school yourself.
@@ -264,7 +264,7 @@ export default function SchoolDiscovery() {
         )}
 
         {missingMode && (
-          <div style={{ marginTop: 14, padding: 14, background: "#f8fafc", borderRadius: 12 }}>
+          <div style={{ marginTop: 14, padding: 14, background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 12 }}>
             {sent ? (
               <>
                 <b>School details received.</b>
@@ -282,7 +282,7 @@ export default function SchoolDiscovery() {
                 <input value={schoolCode} onChange={(e) => setSchoolCode(e.target.value)} placeholder="KNEC/NEMIS code (optional)" style={{ width: "100%", boxSizing: "border-box", marginBottom: 8, padding: 12, borderRadius: 10, border: "1px solid #ccc" }} />
                 <input value={alternativeName} onChange={(e) => setAlternativeName(e.target.value)} placeholder="Another name people use (optional)" style={{ width: "100%", boxSizing: "border-box", marginBottom: 8, padding: 12, borderRadius: 10, border: "1px solid #ccc" }} />
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Anything that will help us identify it (optional)" rows={3} style={{ width: "100%", boxSizing: "border-box", marginBottom: 8, padding: 12, borderRadius: 10, border: "1px solid #ccc", resize: "vertical" }} />
-                <button disabled={busy} onClick={requestMissingSchool} style={{ width: "100%", padding: 13, border: 0, borderRadius: 10, background: "#111827", color: "#fff", fontWeight: 700 }}>
+                <button disabled={busy} onClick={requestMissingSchool} style={{ width: "100%", padding: 13, border: 0, borderRadius: 10, background: "var(--teacher-ink, #1c2923)", color: "#fff", fontWeight: 700 }}>
                   {busy ? "Sending…" : "Send school details"}
                 </button>
               </>
@@ -290,6 +290,6 @@ export default function SchoolDiscovery() {
           </div>
         )}
       </section>
-    </main>
+    </section>
   )
 }
