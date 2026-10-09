@@ -5,6 +5,7 @@ import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
+import { loadProgressAuthority, loadProgressRoster } from "@/lib/learner-intelligence/progress-data";
 
 interface Student { id: string; name: string; admission_number: string; }
 interface Submission { id: string; student_id: string; status: "pending"|"submitted"|"marked"; mark: number|null; feedback: string|null; notes: string|null; submitted_at: string|null; photo_url: string|null; }
@@ -43,27 +44,26 @@ function GradingInner() {
   async function load() {
     setLoading(true);
     setLoadError(null);
+    setView("list");
+    setActive(null);
+    try {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoadError("Not authenticated"); setLoading(false); return; }
 
-    if (!schoolIdRef.current) {
-      const { data: profile } = await supabase.from("profiles").select("school_id").eq("id", user.id).single();
-      let sid = profile?.school_id ?? null;
-      if (!sid) {
-        const { data: cls } = await supabase.from("classes").select("school_id").eq("id", classId).single();
-        sid = cls?.school_id ?? null;
-      }
-      schoolIdRef.current = sid;
-    }
-    const sid = schoolIdRef.current;
+    schoolIdRef.current = null;
+    const authority = await loadProgressAuthority(classId);
+    const roster = await loadProgressRoster(authority, false);
+    const sid = authority.schoolId;
+    schoolIdRef.current = sid;
 
     const [exRes, stuRes, subRes] = await Promise.all([
-      supabase.from("exercises").select("title,instructions").eq("id", exId).single(),
-      supabase.from("students").select("id,name,admission_number").eq("class_id",classId).order("name"),
+      supabase.from("exercises").select("title,instructions").eq("id", exId).eq("school_id",sid).eq("class_id",classId).single(),
+      Promise.resolve({data:roster,error:null}),
       supabase.from("exercise_submissions").select("id,student_id,status,mark,feedback,notes,submitted_at,photo_url").eq("exercise_id",exId),
     ]);
 
+    if (stuRes.error || subRes.error) { setLoadError("Could not load the current learners and submissions"); setLoading(false); return; }
     if (exRes.error) { setLoadError("Could not load exercise"); setLoading(false); return; }
 
     setEx(exRes.data as ExInfo);
@@ -74,6 +74,10 @@ function GradingInner() {
     for (const s of subs) map.set(s.student_id, s);
     setSubMap(map);
     setLoading(false);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "This class record could not be loaded. Try again.");
+      setLoading(false);
+    }
   }
 
   const loadRef = useRef(load);
@@ -151,7 +155,7 @@ function GradingInner() {
   }
 
   if (loading) return <div style={{padding:20,color:C.textMuted,fontFamily:"inherit"}}>Loading…</div>;
-  if (loadError) return <div style={{padding:20,color:"#ef4444",fontFamily:"inherit"}}>{loadError}</div>;
+  if (loadError) return <div role="alert" style={{padding:20,color:"#ef4444",fontFamily:"inherit"}}><p>{loadError}</p><button type="button" onClick={() => void load()} style={{minHeight:44,padding:"10px 16px"}}>Try again</button></div>;
 
   if (view==="grade" && active) {
     const sub = subMap.get(active.id);

@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { C } from "@/components/teacher/ui";
+import { loadProgressAuthority, loadProgressRoster } from "@/lib/learner-intelligence/progress-data";
 import { useEffect, useState, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter, useParams } from "next/navigation";
@@ -30,6 +31,7 @@ function ProjectsInner() {
   const [showForm,  setShowForm]  = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [error,     setError]     = useState("");
+  const [loadError, setLoadError] = useState("");
   const [classInfo, setClassInfo] = useState<{ name: string; stream: string | null; school_id: string | null } | null>(null);
   const [deleting,  setDeleting]  = useState<string | null>(null);
 
@@ -38,28 +40,26 @@ function ProjectsInner() {
   });
 
   async function load() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
-
-    const [projRes, clsRes, subjRes] = await Promise.all([
-      supabase.from("projects").select("*, project_submissions(id)").eq("class_id", classId).order("created_at", { ascending: false }),
-      supabase.from("classes").select("name, stream, school_id").eq("id", classId).single(),
-      supabase.from("subjects").select("id, name").order("name"),
-    ]);
-
-    const { data: stuRows } = await supabase.from("students").select("id").eq("class_id", classId);
-    const studentCount = (stuRows ?? []).length;
-
-    const projList: Project[] = ((projRes.data ?? []) as (Omit<Project, "sub_count" | "student_count"> & { project_submissions: { id: string }[] })[]).map(p => ({
-      ...p,
-      sub_count:     (p.project_submissions ?? []).length,
-      student_count: studentCount,
-    }));
-
-    setList(projList);
-    setClassInfo(clsRes.data);
-    setSubjects(subjRes.data ?? []);
-    setLoading(false);
+    setLoading(true);
+    setLoadError("");
+    try {
+      const authority = await loadProgressAuthority(classId);
+      const [projRes, clsRes, roster] = await Promise.all([
+        supabase.from("projects").select("*, project_submissions(id)").eq("class_id", classId).eq("school_id", authority.schoolId).order("created_at", { ascending: false }),
+        supabase.from("classes").select("name, stream, school_id").eq("id", classId).eq("school_id", authority.schoolId).single(),
+        loadProgressRoster(authority, false),
+      ]);
+      if (projRes.error) throw projRes.error;
+      if (clsRes.error) throw clsRes.error;
+      const projList: Project[] = ((projRes.data ?? []) as (Omit<Project, "sub_count" | "student_count"> & { project_submissions: { id: string }[] })[]).map(p => ({ ...p, sub_count: (p.project_submissions ?? []).length, student_count: roster.length }));
+      setList(projList);
+      setClassInfo(clsRes.data);
+      setSubjects(authority.subjects);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Projects could not be loaded. Try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => { load(); }, [classId]);
@@ -111,6 +111,8 @@ function ProjectsInner() {
 
   const inp: React.CSSProperties = { width: "100%", padding: "11px 14px", borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 14, color: C.textPrimary, outline: "none", fontFamily: "inherit", background: "#f9fafb", boxSizing: "border-box" };
   const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6, display: "block" };
+
+  if (loadError) return <div role="alert" style={{padding:24}}><h1>Projects unavailable</h1><p>{loadError}</p><button type="button" onClick={() => void load()} style={{minHeight:44,padding:"10px 16px"}}>Try again</button></div>;
 
   return (
     <div style={{ fontFamily: "inherit", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: "100%" }}>

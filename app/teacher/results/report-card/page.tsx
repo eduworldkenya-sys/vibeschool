@@ -1,10 +1,10 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { C } from "@/components/teacher/ui";
+import { loadProgressAuthority, loadProgressRoster } from "@/lib/learner-intelligence/progress-data";
 
 interface ClassOption { id: string; name: string; stream: string | null; }
 interface Student { id: string; name: string; admission_number: string | null; }
@@ -45,61 +45,65 @@ function PickerInner() {
   const [loading,     setLoading]     = useState(true);
   const [search,      setSearch]      = useState("");
 
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+  const [error, setError] = useState("");
+  const request = useRef(0);
+
+  async function loadClasses() {
+    const current = ++request.current;
+    setLoading(true); setError("");
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
       if (!user) { router.push("/"); return; }
-      const { data: tc } = await supabase.from("teacher_classes").select("class_id, classes(id, name, stream)").eq("teacher_id", user.id);
-      const cls: ClassOption[] = (tc ?? []).map((r: any) => r.classes).filter(Boolean).map((c: any) => ({ id: c.id, name: c.name, stream: c.stream }));
-      setClasses(cls);
-      setLoading(false);
-    })();
-  }, []);
+      const response = await supabase.rpc("teacher_get_operating_context");
+      if (response.error) throw response.error;
+      const context = response.data;
+      if (!context || typeof context !== "object" || Array.isArray(context) || context.teacher_id !== user.id || typeof context.school_id !== "string") throw new Error("Your active teacher school could not be confirmed.");
+      const options = new Map<string, ClassOption>();
+      for (const assignment of Array.isArray(context.classes) ? context.classes : []) {
+        if (!assignment || typeof assignment !== "object" || Array.isArray(assignment) || typeof assignment.class_id !== "string") throw new Error("Your class assignments could not be read.");
+        options.set(assignment.class_id, { id: assignment.class_id, name: typeof assignment.class_name === "string" ? assignment.class_name : "Class", stream: typeof assignment.stream === "string" ? assignment.stream : null });
+      }
+      if (current === request.current) setClasses(Array.from(options.values()));
+    } catch (failure) {
+      if (current === request.current) setError(failure instanceof Error ? failure.message : "Classes could not be loaded. Try again.");
+    } finally { if (current === request.current) setLoading(false); }
+  }
+
+  useEffect(() => { void loadClasses(); return () => { ++request.current; }; }, []);
 
   async function loadExams(cls: ClassOption) {
-    setSelectedCls(cls);
-    setLoading(true);
-    setStep("exam");
-
-    const { data: examRows } = await supabase
-      .from("exam_results")
-      .select("exam_id")
-      .eq("class_id", cls.id);
-
-    const examIds = Array.from(
-      new Set(
-        (examRows ?? [])
-          .map(row => row.exam_id)
-          .filter(
-            (id): id is string =>
-              typeof id === "string" && id.length > 0
-          )
-      )
-    );
-
-    const { data } = examIds.length
-      ? await supabase
-          .from("exams")
-          .select("id, name, term, academic_year, exam_type")
-          .in("id", examIds)
-          .order("academic_year", { ascending: false })
-          .order("term", { ascending: false })
-      : { data: [] };
-
-    setExams((data ?? []) as Exam[]);
-    setLoading(false);
+    const current = ++request.current;
+    setSelectedCls(cls); setSelectedExam(null); setExams([]); setSummaries([]);
+    setLoading(true); setError(""); setStep("exam");
+    try {
+      const authority = await loadProgressAuthority(cls.id);
+      const { data: examRows, error: resultError } = await supabase.from("exam_results").select("exam_id").eq("class_id", cls.id).eq("school_id", authority.schoolId);
+      if (resultError) throw resultError;
+      const examIds = Array.from(new Set((examRows ?? []).map(row => row.exam_id).filter((id): id is string => typeof id === "string" && id.length > 0)));
+      const response = examIds.length ? await supabase.from("exams").select("id, name, term, academic_year, exam_type").in("id", examIds).order("academic_year", { ascending: false }).order("term", { ascending: false }) : { data: [], error: null };
+      if (response.error) throw response.error;
+      if (current === request.current) setExams(response.data ?? []);
+    } catch (failure) {
+      if (current === request.current) setError(failure instanceof Error ? failure.message : "Exams could not be loaded. Try again.");
+    } finally { if (current === request.current) setLoading(false); }
   }
 
   async function loadStudents(exam: Exam) {
-    setSelectedExam(exam); setLoading(true); setStep("students");
     if (!selectedCls) return;
-    const [{ data: results }, { data: sc }, { data: remarkRows }] = await Promise.all([
-      supabase.from("exam_results").select("student_id, marks, is_absent").eq("exam_id", exam.id),
-      supabase.from("student_classes").select("student_id, students(id, name, admission_number)").eq("class_id", selectedCls.id).eq("is_current", true),
-      supabase.from("report_card_remarks").select("student_id").eq("exam_id", exam.id),
+    const current = ++request.current;
+    setSelectedExam(exam); setLoading(true); setError(""); setSearch(""); setSummaries([]); setStep("students");
+    try {
+    const authority = await loadProgressAuthority(selectedCls.id);
+    const [resultResponse, students, remarkResponse] = await Promise.all([
+      supabase.from("exam_results").select("student_id, marks, is_absent").eq("exam_id", exam.id).eq("class_id", authority.classId).eq("school_id", authority.schoolId),
+      loadProgressRoster(authority, false),
+      supabase.from("report_card_remarks").select("student_id").eq("exam_id", exam.id).eq("class_id", authority.classId).eq("school_id", authority.schoolId),
     ]);
-    const students: Student[] = (sc ?? []).map((r: any) => r.students).filter(Boolean);
-    const remarkedSet = new Set((remarkRows ?? []).map((r: any) => r.student_id));
+    if (resultResponse.error) throw resultResponse.error;
+    if (remarkResponse.error) throw remarkResponse.error;
+    const results = resultResponse.data, remarkRows = remarkResponse.data;
+    const remarkedSet = new Set((remarkRows ?? []).map(r => r.student_id));
     const resultMap: Record<string, { total: number; count: number }> = {};
     for (const r of (results ?? []) as { student_id: string; marks: number; is_absent: boolean }[]) {
       if (!r.is_absent) { if (!resultMap[r.student_id]) resultMap[r.student_id] = { total: 0, count: 0 }; resultMap[r.student_id].total += r.marks; resultMap[r.student_id].count += 1; }
@@ -113,7 +117,10 @@ function PickerInner() {
       return { student: s, totalMarks: total, subjectCount: count, meanGrade: grade, hasRemarks: remarkedSet.has(s.id), position: pos };
     });
     built.sort((a, b) => { if (a.position === null && b.position === null) return a.student.name.localeCompare(b.student.name); if (a.position === null) return 1; if (b.position === null) return -1; return a.position - b.position; });
-    setSummaries(built); setLoading(false);
+    if (current === request.current) setSummaries(built);
+    } catch (failure) {
+      if (current === request.current) setError(failure instanceof Error ? failure.message : "Report cards could not be loaded. Try again.");
+    } finally { if (current === request.current) setLoading(false); }
   }
 
   const filteredSummaries = summaries.filter(s => s.student.name.toLowerCase().includes(search.toLowerCase()) || (s.student.admission_number ?? "").toLowerCase().includes(search.toLowerCase()));
@@ -125,24 +132,28 @@ function PickerInner() {
       <style>{`@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}} @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       {/* Header */}
-      <div style={{ background: "linear-gradient(135deg,#1e1b4b 0%,#2d2a6e 100%)", borderRadius: 20, padding: "20px", marginBottom: 16, color: "#fff" }}>
+      <div style={{ background: "#fff", border: "1px solid var(--teacher-border)", borderRadius: 20, padding: "20px", marginBottom: 16, color: "var(--teacher-ink)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, flexWrap: "wrap" as const }}>
-          <span style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", cursor: "pointer", fontWeight: 600 }} onClick={() => { setStep("class"); setSelectedCls(null); setSelectedExam(null); setSummaries([]); }}>Classes</span>
-          {selectedCls && (<><span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>›</span><span style={{ fontSize: 11, color: step === "exam" ? "#fff" : "rgba(255,255,255,0.5)", cursor: step === "students" ? "pointer" : "default", fontWeight: 600 }} onClick={() => { if (step === "students") { setStep("exam"); setSummaries([]); setSelectedExam(null); } }}>{selectedCls.name}{selectedCls.stream ? ` ${selectedCls.stream}` : ""}</span></>)}
-          {selectedExam && (<><span style={{ fontSize: 11, color: "rgba(255,255,255,0.3)" }}>›</span><span style={{ fontSize: 11, color: "#fff", fontWeight: 600 }}>{selectedExam.name}</span></>)}
+          <button type="button" style={{ minHeight: 44, background: "transparent", border: 0, font: "inherit", color: "var(--teacher-muted)", cursor: "pointer", fontWeight: 600 }} onClick={() => { ++request.current; setError(""); setLoading(false); setStep("class"); setSelectedCls(null); setSelectedExam(null); setSummaries([]); }}>Classes</button>
+          {selectedCls && (<><span style={{ fontSize: 11, color: "var(--teacher-muted)" }}>›</span><button type="button" style={{ minHeight: 44, background: "transparent", border: 0, font: "inherit", color: step === "exam" ? "var(--teacher-ink)" : "var(--teacher-muted)", cursor: step === "students" ? "pointer" : "default", fontWeight: 600 }} onClick={() => { if (step === "students") { ++request.current; setError(""); setLoading(false); setStep("exam"); setSummaries([]); setSelectedExam(null); } }}>{selectedCls.name}{selectedCls.stream ? ` ${selectedCls.stream}` : ""}</button></>)}
+          {selectedExam && (<><span style={{ fontSize: 11, color: "var(--teacher-muted)" }}>›</span><span style={{ fontSize: 11, color: "var(--teacher-ink)", fontWeight: 600 }}>{selectedExam.name}</span></>)}
         </div>
-        <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase" as const }}>Report Cards</div>
-        <div style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>
+        <div style={{ fontSize: 11, color: "var(--teacher-muted)", fontWeight: 700, letterSpacing: 1.4, textTransform: "uppercase" as const }}>Report Cards</div>
+        <h1 style={{ fontSize: 24, fontWeight: 800, margin: "4px 0 0" }}>
           {step === "class" ? "Select Class" : step === "exam" ? `${selectedCls?.name} — Select Exam` : `${selectedExam?.name} · Term ${selectedExam?.term}`}
-        </div>
+        </h1>
         {step === "students" && totalStudentCnt > 0 && (
           <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)" }}><span style={{ fontWeight: 800, color: "var(--teacher-green, #087451)", fontSize: 14 }}>{remarkedCount}</span>/{totalStudentCnt} remarked</div>
-            <div style={{ flex: 1, alignSelf: "center" }}><div style={{ height: 4, borderRadius: 4, background: "rgba(255,255,255,0.15)" }}><div style={{ height: 4, borderRadius: 4, background: "var(--teacher-green, #087451)", width: `${totalStudentCnt > 0 ? (remarkedCount / totalStudentCnt) * 100 : 0}%`, transition: "width 0.5s ease" }} /></div></div>
+            <div style={{ fontSize: 12, color: "var(--teacher-muted)" }}><span style={{ fontWeight: 800, color: "var(--teacher-green, #087451)", fontSize: 14 }}>{remarkedCount}</span>/{totalStudentCnt} remarked</div>
+            <div style={{ flex: 1, alignSelf: "center" }}><div style={{ height: 4, borderRadius: 4, background: "var(--teacher-border)" }}><div style={{ height: 4, borderRadius: 4, background: "var(--teacher-green, #087451)", width: `${totalStudentCnt > 0 ? (remarkedCount / totalStudentCnt) * 100 : 0}%`, transition: "width 0.5s ease" }} /></div></div>
           </div>
         )}
       </div>
 
+      {error && <div role="alert" style={{ padding: 16, marginBottom: 16, border: "1px solid var(--teacher-border)", borderRadius: 14, background: "#fff", color: "var(--teacher-ink)" }}>
+        <p>{error}</p><button type="button" style={{ minHeight: 44, padding: "8px 16px" }} onClick={() => { if (step === "students" && selectedExam) void loadStudents(selectedExam); else if (step === "exam" && selectedCls) void loadExams(selectedCls); else void loadClasses(); }}>Try again</button>
+      </div>}
+      {!error && <>
       {/* Step 1: Class */}
       {step === "class" && (
         <div style={{ display: "flex", flexDirection: "column" as const, gap: 10, animation: "fadeUp 0.25s ease" }}>
@@ -181,7 +192,7 @@ function PickerInner() {
       {step === "students" && (
         <div style={{ animation: "fadeUp 0.25s ease" }}>
           <div style={{ marginBottom: 14 }}>
-            <input placeholder="Search student or admission no…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 14, border: "1.5px solid #e5e7eb", fontSize: 13, fontFamily: "inherit", outline: "none", color: "var(--teacher-ink, #1c2923)", boxSizing: "border-box" as const, background: "#fff" }} />
+            <input aria-label="Search students" placeholder="Search student or admission no…" value={search} onChange={e => setSearch(e.target.value)} style={{ width: "100%", padding: "12px 16px", borderRadius: 14, border: "1.5px solid #e5e7eb", fontSize: 13, fontFamily: "inherit", outline: "none", color: "var(--teacher-ink, #1c2923)", boxSizing: "border-box" as const, background: "#fff" }} />
           </div>
           {loading ? <div style={{ display: "flex", flexDirection: "column" as const, gap: 10 }}>{[1,2,3,4,5].map(i => <Skel key={i} h={76} />)}</div>
           : filteredSummaries.length === 0 ? <div style={{ textAlign: "center" as const, padding: 40, color: "var(--teacher-muted, #627168)", fontSize: 13 }}>{search ? "No students match your search." : "No students enrolled in this class."}</div>
@@ -217,6 +228,7 @@ function PickerInner() {
           )}
         </div>
       )}
+      </>}
     </div>
   );
 }

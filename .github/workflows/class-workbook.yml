@@ -22,6 +22,11 @@ on:
       - "supabase/migrations/*class_workbook*"
       - "scripts/test-class-workbook*"
       - "scripts/test-homework-grading-ui.mjs"
+      - "scripts/test-attendance-history-ui.mjs"
+      - "scripts/test-class-task-rosters-ui.mjs"
+      - "scripts/test-report-card-picker-ui.mjs"
+      - "app/teacher/results/report-card/**"
+      - "lib/attendance/**"
       - "scripts/test-classroom-workspace*"
       - "lib/classroom/**"
       - "components/teacher/classroom/**"
@@ -71,3 +76,9 @@ jobs:
         run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-classroom-workspace-ui.mjs
       - name: Exercise canonical homework roster and marking recovery
         run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-homework-grading-ui.mjs
+      - name: Exercise attendance history authority and read failure recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-attendance-history-ui.mjs
+      - name: Exercise project and exercise canonical roster recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-class-task-rosters-ui.mjs
+      - name: Exercise report picker authority and read recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-report-card-picker-ui.mjs

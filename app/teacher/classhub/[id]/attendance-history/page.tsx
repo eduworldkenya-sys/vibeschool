@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 import { C } from "@/components/teacher/ui";
 import { useEffect, useState, Suspense } from "react";
-import { supabase } from "@/lib/supabase";
+import { loadProgressAuthority, loadProgressRoster } from "@/lib/learner-intelligence/progress-data";
 import { useRouter, useParams } from "next/navigation";
 import { getAttendanceRecords, summarizeAttendance, summarizeByStudent } from "@/lib/attendance/summary";
 import { getRangeDates } from "@/lib/attendance/ranges";
@@ -30,48 +30,35 @@ function AttendanceHistoryInner() {
   const [overall,    setOverall]    = useState<AttendanceRangeSummary>({ total: 0, present: 0, absent: 0, late: 0, rate: 0 })
   const [loading,    setLoading]    = useState(true)
   const [rangeLabel, setRangeLabel] = useState("")
+  const [loadError, setLoadError] = useState("")
+  const [retry, setRetry] = useState(0)
 
   useEffect(() => {
-    async function init() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/"); return }
-
-      const { data: owned } = await supabase
-        .from("teacher_classes")
-        .select("class_id")
-        .eq("teacher_id", user.id)
-        .eq("class_id", classId)
-        .maybeSingle()
-      if (!owned) { setLoading(false); router.replace("/teacher/classhub"); return }
-
-      const [clsRes, stuRes] = await Promise.all([
-        supabase.from("classes").select("name, stream").eq("id", classId).single(),
-        supabase.from("student_classes").select("student_id, students(id, name, admission_number)").eq("class_id", classId).eq("is_current", true),
-      ])
-
-      setClassInfo(clsRes.data ? { name: clsRes.data.name, stream: clsRes.data.stream } : null)
-      setStudents(
-        (stuRes.data ?? [])
-          .map((r: any) => r.students)
-          .filter(Boolean)
-          .map((s: any) => ({ id: s.id, name: s.name, admNo: s.admission_number ?? "" }))
-      )
-    }
-    init()
-  }, [classId])
-
-  useEffect(() => {
+    let cancelled = false
     async function load() {
       setLoading(true)
-      const { startDate, endDate } = await getRangeDates(range)
-      setRangeLabel(startDate === endDate ? startDate : `${startDate} \u2192 ${endDate}`)
-      const records = await getAttendanceRecords({ classId, startDate, endDate })
-      setSummaries(summarizeByStudent(records))
-      setOverall(summarizeAttendance(records))
-      setLoading(false)
+      setLoadError("")
+      try {
+        const authority = await loadProgressAuthority(classId)
+        const [roster, dates] = await Promise.all([loadProgressRoster(authority, false), getRangeDates(range)])
+        const records = await getAttendanceRecords({ classId, schoolId: authority.schoolId, ...dates, throwOnError: true })
+        if (cancelled) return
+        setClassInfo({ name: authority.className, stream: null })
+        setStudents(roster.map(student => ({ id: student.id, name: student.name, admNo: student.admission_number ?? "" })))
+        setRangeLabel(dates.startDate === dates.endDate ? dates.startDate : `${dates.startDate} → ${dates.endDate}`)
+        setSummaries(summarizeByStudent(records))
+        setOverall(summarizeAttendance(records))
+      } catch (error) {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : "Attendance history could not be loaded. Try again.")
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
     }
-    if (classId) load()
-  }, [classId, range])
+    void load()
+    return () => { cancelled = true }
+  }, [classId, range, retry])
+
+  if (loadError) return <div role="alert" style={{ padding: 24 }}><h1>Attendance history unavailable</h1><p>{loadError}</p><button type="button" onClick={() => setRetry(value => value + 1)} style={{ minHeight: 44, padding: "10px 16px" }}>Try again</button></div>
 
   return (
     <div style={{ fontFamily: "inherit", fontSize: 13, color: C.textMuted, paddingBottom: 80, background: C.surface, minHeight: "100%" }}>
