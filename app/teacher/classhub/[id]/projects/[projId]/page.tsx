@@ -48,6 +48,7 @@ function GradingInner() {
   const [mark,      setMark]      = useState("");
   const [feedback,  setFeedback]  = useState("");
   const [saving,    setSaving]    = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [saveOk,    setSaveOk]    = useState(false);
   const [bulkBusy,  setBulkBusy]  = useState(false);
   const [bulkMsg,   setBulkMsg]   = useState<string|null>(null);
@@ -103,45 +104,38 @@ function GradingInner() {
     setMark(sub?.mark!=null ? String(sub.mark) : "");
     setFeedback(sub?.feedback??"");
     setSaveOk(false);
+    setSaveError("");
     setView("grade");
   }
 
   async function saveGrade() {
     if (!active) return;
+    setSaveOk(false); setSaveError("");
+    const markVal = mark.trim() !== "" ? Number(mark) : null;
+    if (markVal !== null && (!Number.isFinite(markVal) || markVal < 0)) { setSaveError("Enter a valid non-negative mark."); return; }
     setSaving(true);
-    const sub = subMap.get(active.id);
-    const markVal = mark!==""?Number(mark):null;
-    if (markVal !== null && isNaN(markVal)) { setSaving(false); return; }
-
-    if (!sub) {
-      const { data: newSub, error: insErr } = await supabase.from("project_submissions").insert({
-        project_id:   projId,
-        student_id:   active.id,
-        status:       "marked",
-        submitted_at: new Date().toISOString(),
-        mark:         markVal,
-        feedback:     feedback.trim()||null,
-      }).select().single();
-      if (!insErr && newSub) {
-        const updated = new Map(subMap);
-        updated.set(active.id, newSub as Submission);
-        setSubMap(updated);
-        setSaveOk(true);
+    try {
+      const sub = subMap.get(active.id);
+      const changes = { mark: markVal, feedback: feedback.trim() || null, status: "marked" };
+      let saved: Submission;
+      if (!sub) {
+        const response = await supabase.from("project_submissions").insert({
+          project_id: projId, student_id: active.id, submitted_at: new Date().toISOString(), ...changes,
+        }).select().single();
+        if (response.error) throw response.error;
+        if (!response.data) throw new Error("The saved record could not be confirmed. Retry before leaving this page.");
+        saved = response.data as Submission;
+      } else {
+        const response = await supabase.from("project_submissions").update(changes).eq("id", sub.id).select().single();
+        if (response.error) throw response.error;
+        if (!response.data) throw new Error("The saved record could not be confirmed. Retry before leaving this page.");
+        saved = response.data as Submission;
       }
-      setSaving(false);
-      return;
-    }
-
-    const {error} = await supabase.from("project_submissions")
-      .update({ mark:markVal, feedback:feedback.trim()||null, status:"marked" })
-      .eq("id",sub.id);
-    if (!error) {
-      const updated = new Map(subMap);
-      updated.set(active.id,{...sub,mark:markVal,feedback:feedback.trim()||null,status:"marked"});
-      setSubMap(updated);
+      setSubMap(previous => new Map(previous).set(active.id, saved));
       setSaveOk(true);
-    }
-    setSaving(false);
+    } catch (failure) {
+      setSaveError(failure instanceof Error ? failure.message : "Your changes could not be saved. Your input is kept; try again.");
+    } finally { setSaving(false); }
   }
 
   const markNum   = mark!==""?Number(mark):null;
@@ -248,7 +242,7 @@ function GradingInner() {
             <div style={{fontSize:11,fontWeight:800,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>Grade</div>
             <div style={{marginBottom:12}}>
               <label style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block"}}>Mark</label>
-              <input type="number" value={mark} onChange={e=>setMark(e.target.value)} placeholder="e.g. 18" style={inp} />
+              <input aria-label="Mark" type="number" min="0" value={mark} onChange={e=>{setMark(e.target.value);setSaveOk(false);}} placeholder="e.g. 18" style={inp} />
               {liveBand && (
                 <div style={{marginTop:8,display:"inline-flex",alignItems:"center",gap:6,padding:"5px 12px",borderRadius:20,background:liveBand.bg,color:liveBand.color,fontSize:11,fontWeight:800}}>
                   {liveBand.label}
@@ -257,9 +251,10 @@ function GradingInner() {
             </div>
             <div style={{marginBottom:14}}>
               <label style={{fontSize:11,fontWeight:700,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:6,display:"block"}}>Feedback</label>
-              <textarea value={feedback} onChange={e=>setFeedback(e.target.value)} placeholder="Well done! / Add more detail on…" rows={3} style={{...inp,resize:"vertical"}} />
+              <textarea aria-label="Feedback" value={feedback} onChange={e=>{setFeedback(e.target.value);setSaveOk(false);}} placeholder="Well done! / Add more detail on…" rows={3} style={{...inp,resize:"vertical"}} />
             </div>
-            {saveOk && <div style={{fontSize:12,color:"#065f46",background:"var(--teacher-green-soft, #e9f4ed)",borderRadius:10,padding:"8px 12px",marginBottom:10}}>✓ Grade saved — student will see it now</div>}
+            {saveError && <p role="alert" style={{color:"#991b1b"}}>{saveError}</p>}
+            {saveOk && <div style={{fontSize:12,color:"#065f46",background:"var(--teacher-green-soft, #e9f4ed)",borderRadius:10,padding:"8px 12px",marginBottom:10}}>✓ Grade saved</div>}
             <button onClick={saveGrade} disabled={saving} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:saving?"#fde68a":"#92400e",color:"#fff",fontWeight:800,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
               {saving?"Saving…":saveOk?"Update Grade":"Save Grade"}
             </button>

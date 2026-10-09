@@ -1,6 +1,6 @@
 # Teacher OS redesign ledger
 
-Baseline: `df3a4405a9a801c2dd7f6783740e0f8c4effd4b8`; candidate is an uncommitted working tree. Shared-shell or token adoption does not certify a route. “Fixture” means actual components with isolated data; “Live read” means the test account with mutations blocked. Saving and end-to-end teaching journeys remain pending. See `teacher-os-direction.md` for evidence and limitations.
+Baseline: `df3a4405a9a801c2dd7f6783740e0f8c4effd4b8`; candidate is tracked on `redesign/teacher-os` in PR #754; verification applies only to the exact commit recorded by its run. Shared-shell or token adoption does not certify a route. “Fixture” means actual components with isolated data; “Live read” means the test account with mutations blocked. Saving and end-to-end teaching journeys remain pending. See `teacher-os-direction.md` for evidence and limitations.
 
 | Route | Mobile | Desktop | Loading | Empty | Error | Functional | Tested | Status |
 |---|---|---|---|---|---|---|---|---|
@@ -19,8 +19,8 @@ Baseline: `df3a4405a9a801c2dd7f6783740e0f8c4effd4b8`; candidate is an uncommitte
 | /teacher/assessment | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/assessment/review/[assessmentId] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/attendance | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
-| /teacher/classhub/[id]/attendance-history | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
-| /teacher/classhub/[id]/exercises/[exId] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
+| /teacher/classhub/[id]/attendance-history | Pending | Pending | Fixture | Pending | Fixture | Fixture; live pending | Current roster, scoped attendance service and denied-read retry | Connected journey and review pending |
+| /teacher/classhub/[id]/exercises/[exId] | Pending | Pending | Fixture | Pending | Fixture | Fixture; live pending | Current roster, read/save retry, bulk denial and retry | Connected journey and review pending |
 | /teacher/classhub/[id]/exercises | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/games | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/groups | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
@@ -29,8 +29,8 @@ Baseline: `df3a4405a9a801c2dd7f6783740e0f8c4effd4b8`; candidate is an uncommitte
 | /teacher/classhub/[id]/operations | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/progress | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
-| /teacher/classhub/[id]/projects/[projId] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
-| /teacher/classhub/[id]/projects | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
+| /teacher/classhub/[id]/projects/[projId] | Pending | Pending | Fixture | Pending | Fixture | Fixture; live pending | Current roster, read/save retry, zero mark and truthful reminder target count | Connected journey and review pending |
+| /teacher/classhub/[id]/projects | Pending | Pending | Fixture | Pending | Fixture | Fixture; live pending | Current roster, read retry, create input retention and delete denial | Connected journey and review pending |
 | /teacher/classhub/[id]/requests | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/student/[studentId] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/student/[studentId]/progress | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
@@ -65,7 +65,7 @@ Baseline: `df3a4405a9a801c2dd7f6783740e0f8c4effd4b8`; candidate is an uncommitte
 | /teacher/resources | Fixture | Fixture | Pending | Fixture | Pending | Dialog only | Browser + contracts | Structure implemented; live loading capture only |
 | /teacher/results | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/results/report-card/[studentId] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
-| /teacher/results/report-card | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
+| /teacher/results/report-card | Pending | Pending | Fixture | Pending | Fixture | Fixture; live pending | Deduplicated class authority, current roster, read retry, search and report navigation | Connected journey and review pending |
 | /teacher/scheme/generate | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/scheme | Pending | Pending | Pending | Pending | Pending | Pending | Pending | Shared shell only; review pending |
 | /teacher/schoolhub | Fixture + live read | Pending | Pending | Pending | Fixture | Live backend errors | Browser + isolated DB regression | UI repaired; database correction not applied |

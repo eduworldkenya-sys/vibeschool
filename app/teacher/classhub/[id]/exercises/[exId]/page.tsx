@@ -36,6 +36,7 @@ function GradingInner() {
   const [active,    setActive]    = useState<Student|null>(null);
   const [feedback,  setFeedback]  = useState("");
   const [saving,    setSaving]    = useState(false);
+  const [saveError, setSaveError] = useState("");
   const [saveOk,    setSaveOk]    = useState(false);
   const [bulkBusy,  setBulkBusy]  = useState(false);
   const [bulkMsg,   setBulkMsg]   = useState<string|null>(null);
@@ -89,42 +90,36 @@ function GradingInner() {
     setActive(student);
     setFeedback(sub?.feedback??"");
     setSaveOk(false);
+    setSaveError("");
     setView("grade");
   }
 
   async function markDone() {
     if (!active) return;
+    setSaveOk(false); setSaveError("");
     setSaving(true);
-    const sub = subMap.get(active.id);
-
-    if (!sub) {
-      const { data: newSub, error: insErr } = await supabase.from("exercise_submissions").insert({
-        exercise_id:  exId,
-        student_id:   active.id,
-        status:       "marked",
-        submitted_at: new Date().toISOString(),
-        feedback:     feedback.trim()||null,
-      }).select().single();
-      if (!insErr && newSub) {
-        const updated = new Map(subMap);
-        updated.set(active.id, newSub as Submission);
-        setSubMap(updated);
-        setSaveOk(true);
+    try {
+      const sub = subMap.get(active.id);
+      const changes = { feedback: feedback.trim() || null, status: "marked" };
+      let saved: Submission;
+      if (!sub) {
+        const response = await supabase.from("exercise_submissions").insert({
+          exercise_id: exId, student_id: active.id, submitted_at: new Date().toISOString(), ...changes,
+        }).select().single();
+        if (response.error) throw response.error;
+        if (!response.data) throw new Error("The saved record could not be confirmed. Retry before leaving this page.");
+        saved = response.data as Submission;
+      } else {
+        const response = await supabase.from("exercise_submissions").update(changes).eq("id", sub.id).select().single();
+        if (response.error) throw response.error;
+        if (!response.data) throw new Error("The saved record could not be confirmed. Retry before leaving this page.");
+        saved = response.data as Submission;
       }
-      setSaving(false);
-      return;
-    }
-
-    const {error} = await supabase.from("exercise_submissions")
-      .update({ feedback:feedback.trim()||null, status:"marked" })
-      .eq("id",sub.id);
-    if (!error) {
-      const updated = new Map(subMap);
-      updated.set(active.id,{...sub,feedback:feedback.trim()||null,status:"marked"});
-      setSubMap(updated);
+      setSubMap(previous => new Map(previous).set(active.id, saved));
       setSaveOk(true);
-    }
-    setSaving(false);
+    } catch (failure) {
+      setSaveError(failure instanceof Error ? failure.message : "Your changes could not be saved. Your input is kept; try again.");
+    } finally { setSaving(false); }
   }
 
   const done  = students.filter(s=>subMap.get(s.id)?.status==="marked");
@@ -139,19 +134,28 @@ function GradingInner() {
     const existing = notYet.filter(s => subMap.has(s.id));
     const missing   = notYet.filter(s => !subMap.has(s.id));
 
-    if (existing.length > 0) {
-      await supabase.from("exercise_submissions")
-        .update({ status: "marked", submitted_at: new Date().toISOString() })
-        .in("id", existing.map(s => subMap.get(s.id)!.id));
+    try {
+      if (existing.length > 0) {
+        const response = await supabase.from("exercise_submissions")
+          .update({ status: "marked", submitted_at: new Date().toISOString() })
+          .in("id", existing.map(s => subMap.get(s.id)!.id)).select("id");
+        if (response.error) throw response.error;
+        if (response.data?.length !== existing.length) throw new Error("Some existing submissions could not be confirmed.");
+      }
+      if (missing.length > 0) {
+        const response = await supabase.from("exercise_submissions").insert(
+          missing.map(s => ({ exercise_id: exId, student_id: s.id, status: "marked", submitted_at: new Date().toISOString() }))
+        ).select("id");
+        if (response.error) throw response.error;
+        if (response.data?.length !== missing.length) throw new Error("Some new submissions could not be confirmed.");
+      }
+      setBulkMsg(`Marked ${toMark.length} student(s) as done.`);
+    } catch {
+      setBulkMsg("Bulk marking could not be completed. The roster has been reloaded; review remaining learners before retrying.");
+    } finally {
+      await load();
+      setBulkBusy(false);
     }
-    if (missing.length > 0) {
-      await supabase.from("exercise_submissions").insert(
-        missing.map(s => ({ exercise_id: exId, student_id: s.id, status: "marked", submitted_at: new Date().toISOString() }))
-      );
-    }
-    setBulkMsg(`Marked ${toMark.length} student(s) as done.`);
-    await load();
-    setBulkBusy(false);
   }
 
   if (loading) return <div style={{padding:20,color:C.textMuted,fontFamily:"inherit"}}>Loading…</div>;
@@ -179,8 +183,9 @@ function GradingInner() {
           )}
           <div style={{background:"#fff",borderRadius:16,padding:"16px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)"}}>
             <div style={{fontSize:11,fontWeight:800,color:C.textMuted,textTransform:"uppercase",letterSpacing:0.8,marginBottom:14}}>Feedback</div>
-            <textarea value={feedback} onChange={e=>setFeedback(e.target.value)} placeholder="Well done! / Try question 4 again…" rows={3} style={{...inp,resize:"vertical",marginBottom:14}} />
-            {saveOk && <div style={{fontSize:12,color:"#075985",background:"#e0f2fe",borderRadius:10,padding:"8px 12px",marginBottom:10}}>✓ Marked done — student will see it now</div>}
+            <textarea aria-label="Feedback" value={feedback} onChange={e=>{setFeedback(e.target.value);setSaveOk(false);}} placeholder="Well done! / Try question 4 again…" rows={3} style={{...inp,resize:"vertical",marginBottom:14}} />
+            {saveError && <p role="alert" style={{color:"#991b1b"}}>{saveError}</p>}
+            {saveOk && <div style={{fontSize:12,color:"#075985",background:"#e0f2fe",borderRadius:10,padding:"8px 12px",marginBottom:10}}>✓ Marked done</div>}
             <button onClick={markDone} disabled={saving} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:saving?"#bae6fd":"#075985",color:"#fff",fontWeight:800,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
               {saving?"Saving…":saveOk?"Update":"Mark Done"}
             </button>

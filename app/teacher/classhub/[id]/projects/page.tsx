@@ -68,34 +68,38 @@ function ProjectsInner() {
     setError("");
     if (!form.title.trim()) { setError("Title is required"); return; }
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error: err } = await supabase.from("projects").insert({
-      class_id:    classId,
-      teacher_id:  user.id,
-      school_id:   classInfo?.school_id ?? null,
-      subject_id:  form.subject_id || null,
-      title:       form.title.trim(),
-      description: form.description.trim(),
-      start_date:  form.start_date || null,
-      due_date:    form.due_date || null,
-      status:      "active",
-    });
-    setSaving(false);
-    if (err) { setError(err.message); return; }
-
-    setForm({ title: "", subject_id: "", description: "", start_date: "", due_date: "" });
-    setShowForm(false);
-    load();
+    try {
+      const authority = await loadProgressAuthority(classId);
+      const response = await supabase.from("projects").insert({
+        class_id: classId, teacher_id: authority.teacherId, school_id: authority.schoolId,
+        subject_id: form.subject_id || null, title: form.title.trim(), description: form.description.trim(),
+        start_date: form.start_date || null, due_date: form.due_date || null, status: "active",
+      }).select("id").single();
+      if (response.error) throw response.error;
+      if (!response.data) throw new Error("The project could not be confirmed. Your input is kept; try again.");
+      setForm({ title: "", subject_id: "", description: "", start_date: "", due_date: "" });
+      setShowForm(false);
+      await load();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "The project could not be saved. Your input is kept; try again.");
+    } finally { setSaving(false); }
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this project? This cannot be undone.")) return;
-    setDeleting(id);
-    await supabase.from("project_submissions").delete().eq("project_id", id);
-    await supabase.from("projects").delete().eq("id", id);
-    setList(l => l.filter(p => p.id !== id));
-    setDeleting(null);
+    setDeleting(id); setError("");
+    try {
+      const authority = await loadProgressAuthority(classId);
+      const submissions = await supabase.from("project_submissions").delete().eq("project_id", id);
+      if (submissions.error) throw submissions.error;
+      const project = await supabase.from("projects").delete().eq("id", id).eq("class_id", classId).eq("school_id", authority.schoolId).select("id").single();
+      if (project.error) throw project.error;
+      if (!project.data) throw new Error("Project deletion could not be confirmed.");
+      setList(previous => previous.filter(item => item.id !== id));
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "The project could not be deleted. Try again.");
+    } finally { setDeleting(null); }
+
   }
 
   function formatDate(iso: string | null) {
@@ -147,11 +151,12 @@ function ProjectsInner() {
       </div>
 
       <div style={{ padding: "16px" }}>
+        {!showForm && error && <p role="alert" style={{color:C.error}}>{error}</p>}
         {showForm && (
           <div style={{ background: "#fff", borderRadius: 20, padding: "20px", marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
             <p style={{ fontSize: 12, fontWeight: 800, color: C.textMuted, textTransform: "uppercase", letterSpacing: 1, margin: "0 0 16px" }}>New Project</p>
             <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div><label style={lbl}>Title *</label><input style={inp} placeholder="e.g. Model a Kenyan ecosystem" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
+              <div><label style={lbl}>Title *</label><input aria-label="Project title" style={inp} placeholder="e.g. Model a Kenyan ecosystem" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
               <div><label style={lbl}>Subject</label>
                 <select style={inp} value={form.subject_id} onChange={e => setForm(f => ({ ...f, subject_id: e.target.value }))}>
                   <option value="">-- Select subject --</option>
@@ -164,7 +169,7 @@ function ProjectsInner() {
                 <div style={{ flex: 1 }}><label style={lbl}>Due Date</label><input style={inp} type="date" value={form.due_date} onChange={e => setForm(f => ({ ...f, due_date: e.target.value }))} /></div>
               </div>
             </div>
-            {error && <p style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
+            {error && <p role="alert" style={{ color: C.error, fontSize: 12, marginTop: 10 }}>{error}</p>}
             <button onClick={handleSubmit} disabled={saving} style={{ marginTop: 16, width: "100%", padding: "12px", borderRadius: 12, border: "none", background: saving ? "#fde68a" : "#92400e", color: "#fff", fontWeight: 700, fontSize: 14, cursor: saving ? "not-allowed" : "pointer", fontFamily: "inherit" }}>
               {saving ? "Saving…" : "Create Project"}
             </button>
