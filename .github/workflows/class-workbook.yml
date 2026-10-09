@@ -21,6 +21,7 @@ on:
       - "scripts/test-class-school-responsibility-db.mjs"
       - "supabase/migrations/*class_workbook*"
       - "scripts/test-class-workbook*"
+      - "scripts/test-homework-grading-ui.mjs"
       - "scripts/test-classroom-workspace*"
       - "lib/classroom/**"
       - "components/teacher/classroom/**"
@@ -68,3 +69,5 @@ jobs:
         run: PROGRESS_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-progress-support-ui.mjs
       - name: Exercise classroom workspace interactions and recovery
         run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-classroom-workspace-ui.mjs
+      - name: Exercise canonical homework roster and marking recovery
+        run: WORKBOOK_UI_MODULES="$RUNNER_TEMP/workbook-ui/node_modules" node scripts/test-homework-grading-ui.mjs

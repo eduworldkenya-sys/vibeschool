@@ -24,7 +24,7 @@ Baseline: `df3a4405a9a801c2dd7f6783740e0f8c4effd4b8`; candidate is an uncommitte
 | /teacher/classhub/[id]/exercises | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/games | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/groups | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
-| /teacher/classhub/[id]/homework/[hwId] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
+| /teacher/classhub/[id]/homework/[hwId] | Fixture DOM | Pending | Fixture empty/read failure | Fixture | Fixture | Fixture save/retry/stale scope | Actual component + prior-defect negative control | Canonical roster/mark validation repaired; live writes pending |
 | /teacher/classhub/[id]/homework | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/operations | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
