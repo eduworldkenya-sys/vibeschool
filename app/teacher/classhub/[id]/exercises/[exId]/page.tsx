@@ -165,12 +165,12 @@ function GradingInner() {
     const sub = subMap.get(active.id);
     return (
       <div style={{fontFamily:"inherit",paddingBottom:100,background:C.surface,minHeight:"100vh"}}>
-        <div style={{background:"linear-gradient(135deg,#075985,#0369a1)",padding:"20px 16px 24px"}}>
+        <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:16,padding:"20px 16px 24px"}}>
           <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <button onClick={()=>setView("list")} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:10,width:36,height:36,color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
+            <button aria-label="Back to exercise roster" onClick={()=>setView("list")} style={{background:C.surface,border:"none",borderRadius:10,width:44,height:44,color:C.textPrimary,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
             <div>
-              <div style={{fontSize:18,fontWeight:750,color:"#fff"}}>{active.name}</div>
-              <div style={{fontSize:12,color:"rgba(255,255,255,0.65)"}}>{active.admission_number} · {ex?.title}</div>
+              <h1 style={{fontSize:22,fontWeight:750,color:C.textPrimary,margin:0}}>{active.name}</h1>
+              <div style={{fontSize:12,color:C.textMuted}}>{active.admission_number} · {ex?.title}</div>
             </div>
           </div>
         </div>
@@ -186,7 +186,7 @@ function GradingInner() {
             <textarea aria-label="Feedback" value={feedback} onChange={e=>{setFeedback(e.target.value);setSaveOk(false);}} placeholder="Well done! / Try question 4 again…" rows={3} style={{...inp,resize:"vertical",marginBottom:14}} />
             {saveError && <p role="alert" style={{color:"#991b1b"}}>{saveError}</p>}
             {saveOk && <div style={{fontSize:12,color:"#075985",background:"#e0f2fe",borderRadius:10,padding:"8px 12px",marginBottom:10}}>✓ Marked done</div>}
-            <button onClick={markDone} disabled={saving} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:saving?"#bae6fd":"#075985",color:"#fff",fontWeight:800,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
+            <button onClick={markDone} disabled={saving} style={{width:"100%",padding:"13px",borderRadius:12,border:"none",background:saving?C.accentLight:C.accent,color:"#fff",fontWeight:800,fontSize:14,cursor:saving?"not-allowed":"pointer",fontFamily:"inherit"}}>
               {saving?"Saving…":saveOk?"Update":"Mark Done"}
             </button>
           </div>
@@ -197,12 +197,12 @@ function GradingInner() {
 
   return (
     <div style={{fontFamily:"inherit",paddingBottom:100,background:C.surface,minHeight:"100vh"}}>
-      <div style={{background:"linear-gradient(135deg,#075985,#0369a1)",padding:"20px 16px 28px"}}>
+      <div style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:16,padding:"20px 16px 28px"}}>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
-          <button onClick={()=>router.back()} style={{background:"rgba(255,255,255,0.15)",border:"none",borderRadius:10,width:36,height:36,color:"#fff",fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
+          <button aria-label="Back to exercises" onClick={()=>router.back()} style={{background:C.surface,border:"none",borderRadius:10,width:44,height:44,color:C.textPrimary,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>←</button>
           <div>
-            <div style={{fontSize:18,fontWeight:750,color:"#fff"}}>{ex?.title}</div>
-            <div style={{fontSize:12,color:"rgba(255,255,255,0.65)"}}>In-class exercise</div>
+            <h1 style={{fontSize:22,fontWeight:750,color:C.textPrimary,margin:0}}>{ex?.title}</h1>
+            <div style={{fontSize:12,color:C.textMuted}}>In-class exercise</div>
           </div>
         </div>
         <div style={{display:"flex",gap:8}}>
@@ -211,19 +211,23 @@ function GradingInner() {
             {label:"Done",     value:done.length},
             {label:"Pending",  value:notYet.length},
           ].map(s=>(
-            <div key={s.label} style={{flex:1,background:"rgba(255,255,255,0.15)",borderRadius:10,padding:"8px 4px",textAlign:"center"}}>
-              <div style={{fontSize:16,fontWeight:800,color:"#fff"}}>{s.value}</div>
-              <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:600}}>{s.label}</div>
+            <div key={s.label} style={{flex:1,background:C.surface,borderRadius:10,padding:"8px 4px",textAlign:"center"}}>
+              <div style={{fontSize:16,fontWeight:800,color:C.textPrimary}}>{s.value}</div>
+              <div style={{fontSize:11,color:C.textMuted,fontWeight:600}}>{s.label}</div>
             </div>
           ))}
         </div>
       </div>
       <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
+        {ex?.instructions && <details style={{background:C.bg,border:`1px solid ${C.border}`,borderRadius:14,padding:"0 16px"}}>
+          <summary style={{minHeight:44,padding:"12px 0",cursor:"pointer",fontWeight:700,color:C.textPrimary}}>Exercise instructions</summary>
+          <p style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",lineHeight:1.6,color:C.textPrimary}}>{ex.instructions}</p>
+        </details>}
         {students.length > 0 && (
           <button
             onClick={markAllDone}
             disabled={bulkBusy}
-            style={{padding:"10px",borderRadius:12,border:"none",background:"#e0f2fe",color:"#075985",fontWeight:700,fontSize:12,cursor:bulkBusy?"wait":"pointer",fontFamily:"inherit",marginBottom:4}}
+            style={{minHeight:44,padding:"10px",borderRadius:12,border:"none",background:"#e0f2fe",color:"#075985",fontWeight:700,fontSize:12,cursor:bulkBusy?"wait":"pointer",fontFamily:"inherit",marginBottom:4}}
           >
             {bulkBusy ? "Working…" : "✓ Mark All Done"}
           </button>

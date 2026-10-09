@@ -20,8 +20,8 @@ Baseline: `df3a4405a9a801c2dd7f6783740e0f8c4effd4b8`; candidate is tracked on `r
 | /teacher/assessment/review/[assessmentId] | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/attendance | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/attendance-history | Pending | Pending | Fixture | Pending | Fixture | Fixture; live pending | Current roster, scoped attendance service and denied-read retry | Connected journey and review pending |
-| /teacher/classhub/[id]/exercises/[exId] | Pending | Pending | Fixture | Pending | Fixture | Fixture; live pending | Current roster, read/save retry, bulk denial and retry | Connected journey and review pending |
-| /teacher/classhub/[id]/exercises | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
+| /teacher/classhub/[id]/exercises/[exId] | Fixture browser | Fixture browser | Fixture | Pending | Fixture | Fixture; live pending | Current roster, read/save retry, bulk denial and retry | Connected journey and review pending |
+| /teacher/classhub/[id]/exercises | Fixture browser | Fixture browser | Fixture | Pending | Fixture | Fixture; live pending | Canonical context, unique current marked counts, instruction retention, read/create/delete recovery and semantic cards | Connected journey and review pending |
 | /teacher/classhub/[id]/games | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/groups | Pending | Pending | Pending | Pending | Pending | Pending | Static preservation only | Tokens adopted; review pending |
 | /teacher/classhub/[id]/homework/[hwId] | Fixture DOM | Pending | Fixture empty/read failure | Fixture | Fixture | Fixture save/retry/stale scope | Actual component + prior-defect negative control | Canonical roster/mark validation repaired; live writes pending |

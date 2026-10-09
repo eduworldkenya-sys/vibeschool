@@ -1,0 +1,25 @@
+name: Teacher OS encrypted backup rehearsal
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scripts/teacher-os-backup-readonly.py"
+      - "scripts/test-teacher-os-backup-readonly.py"
+      - "docs/security/TEACHER_OS_MANUAL_BACKUP.md"
+      - ".github/workflows/teacher-os-backup.yml"
+permissions:
+  contents: read
+jobs:
+  backup-rehearsal:
+    name: Encrypted capture and isolated recovery
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rehearse capture, recovery and failure handling without production access
+        run: python3 scripts/test-teacher-os-backup-readonly.py
