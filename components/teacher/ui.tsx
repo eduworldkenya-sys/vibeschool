@@ -196,3 +196,79 @@ export function TwinDot({ delay = 0 }: { delay?: number }) {
     }} />
   );
 }
+
+
+/**
+ * Shared compact Teacher OS primitives.
+ * Mirrors the Assessment workspace visual hierarchy without coupling pages
+ * to its CSS module. New screens can adopt these incrementally.
+ */
+export const TEACHER_UI = {
+  green: "#087d57",
+  greenSoft: "#e4f8ef",
+  ink: "#17211b",
+  muted: "#657069",
+  border: "#e0e7e3",
+  canvas: "#f7f9f8",
+  radius: 16,
+} as const;
+
+export function TeacherWorkspace({
+  children,
+  title,
+  eyebrow,
+  actions,
+}: {
+  children: React.ReactNode;
+  title: string;
+  eyebrow?: string;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <main className="vs-teacher-workspace">
+      <header className="vs-teacher-workspace__header">
+        <div>
+          {eyebrow && <p className="vs-teacher-workspace__eyebrow">{eyebrow}</p>}
+          <h1 className="vs-teacher-workspace__title">{title}</h1>
+        </div>
+        {actions && <div className="vs-teacher-workspace__actions">{actions}</div>}
+      </header>
+      {children}
+    </main>
+  );
+}
+
+export function TeacherActionTile({
+  href,
+  icon,
+  label,
+  description,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  description?: string;
+}) {
+  return (
+    <a className="vs-teacher-action-tile" href={href}>
+      <span className="vs-teacher-action-tile__icon" aria-hidden="true">{icon}</span>
+      <strong>{label}</strong>
+      {description && <span className="vs-teacher-action-tile__description">{description}</span>}
+    </a>
+  );
+}
+
+export function TeacherMetric({
+  value,
+  label,
+}: {
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <div className="vs-teacher-metric">
+      <strong>{value}</strong>
+      <span>{label}</span>
+    </div>
+  );
+}

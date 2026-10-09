@@ -7,6 +7,7 @@ import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
 
 import OfflineBar from "@/components/teacher/OfflineBar";
+import "@/components/teacher/teacher-workspace.css";
 
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
@@ -471,29 +472,29 @@ function TopBar({ school, initials, unreadConnect, creditBalance }: { school: st
 
   return (
     <div style={{
-      background: C.dark, color: "#fff", padding: "0 20px", height: 56,
+      background: "#ffffff", color: "#17211b", padding: "0 16px", height: 56,
       display: "flex", alignItems: "center", justifyContent: "space-between",
-      position: "sticky", top: 0, zIndex: 600, boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
+      position: "sticky", top: 0, zIndex: 600, borderBottom: "1px solid #e0e7e3",
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {!isRoot && (
-          <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 22, color: "#fff", lineHeight: 1, marginRight: 4, fontWeight: 400, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</div>
+          <div onClick={() => router.back()} style={{ cursor: "pointer", fontSize: 22, color: "#17211b", lineHeight: 1, marginRight: 4, fontWeight: 400, minWidth: 44, minHeight: 44, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</div>
         )}
         <div onClick={() => router.push("/teacher/pulse")} style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}>
-          <div style={{ width: 30, height: 30, borderRadius: 9, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
+          <div style={{ width: 30, height: 30, borderRadius: 9, background: "#087d57", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 900, color: "#fff" }}>V</div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: -0.3 }}>VibeSchool</div>
-            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginTop: -1 }}>{school || "Independent"}</div>
+            <div style={{ fontSize: 10, color: "#657069", marginTop: -1 }}>{school || "Independent"}</div>
           </div>
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ position: "relative", cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => router.push("/teacher/vibeconnect")}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#435047" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           {unreadConnect > 0 && <span style={{ position: "absolute", top: -4, right: -4, width: 16, height: 16, borderRadius: "50%", background: C.error, color: "#fff", fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", border: `2px solid ${C.dark}` }}>{unreadConnect}</span>}
         </div>
-        <div onClick={() => router.push("/teacher/credits")} style={{ display: "flex", alignItems: "center", gap: 4, background: "rgba(16,185,129,0.15)", borderRadius: 20, padding: "4px 10px", cursor: "pointer" }}>
-          <span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 800, color: "#10b981" }}>{creditBalance ?? "…"}</span>
+        <div onClick={() => router.push("/teacher/credits")} style={{ display: "flex", alignItems: "center", gap: 4, background: "#e4f8ef", borderRadius: 20, padding: "4px 10px", cursor: "pointer" }}>
+          <span style={{ fontSize: 13 }}>🪙</span><span style={{ fontSize: 13, fontWeight: 800, color: "#087d57" }}>{creditBalance ?? "…"}</span>
         </div>
         <Avatar initials={initials || "…"} size={34} onClick={() => router.push("/teacher/profile")} style={{ cursor: "pointer" }} />
       </div>
@@ -599,7 +600,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <OfflineBar />
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} />
-          <main className="teacher-light-surface" style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84, background: "#f8fafc", color: "#111827" }}>{children}</main>
+          <main className="teacher-light-surface" style={{ minHeight: "calc(100vh - 120px)", paddingBottom: 84, background: "#f7f9f8", color: "#17211b" }}>{children}</main>
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
           <BottomNav activeId={activeId} />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />
