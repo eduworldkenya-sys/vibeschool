@@ -632,39 +632,24 @@ function AssessmentInner() {
 
       </div>
 
-      {/* ── Class tabs ── */}
-      <div style={{ overflowX: 'auto', display: 'flex', gap: 8, padding: '12px 16px 0', borderBottom: '1px solid #f0f0f0' }}>
-        {classes.map((c, i) => (
-          <button key={c.id} onClick={() => setActiveClassIdx(i)} style={{
-            flexShrink: 0, padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-            background: i === activeClassIdx ? '#0a0a0a' : '#f3f4f6',
-            color:      i === activeClassIdx ? '#fff'    : '#374151',
-          }}>
-            {c.name}{c.stream ? ' ' + c.stream : ''}
-          </button>
-        ))}
+      {/* Compact teaching context selectors: retain existing class/subject authority. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: 10, padding: '12px 16px 0' }}>
+        <label style={{ display: 'grid', gap: 5, fontSize: 12, fontWeight: 700, color: '#334155' }}>
+          Class
+          <select aria-label="Select class" value={activeClassIdx} onChange={e => setActiveClassIdx(Number(e.target.value))} style={{ ...selectStyle, width: '100%', minWidth: 0 }}>
+            {classes.map((c, i) => <option key={c.id} value={i}>{c.name}{c.stream ? ' ' + c.stream : ''}</option>)}
+          </select>
+        </label>
+        <label style={{ display: 'grid', gap: 5, fontSize: 12, fontWeight: 700, color: '#334155' }}>
+          Subject
+          <select aria-label="Select subject" value={activeSubjectIdx < subjects.length ? activeSubjectIdx : 0} onChange={e => setActiveSubjectIdx(Number(e.target.value))} disabled={subjects.length <= 1} style={{ ...selectStyle, width: '100%', minWidth: 0 }}>
+            {subjects.map((subject, i) => <option key={subject.id} value={i}>{subject.name}</option>)}
+          </select>
+        </label>
       </div>
 
-      {/* ── Subject tabs ── */}
-      {subjects.length > 1 && (
-        <div style={{ overflowX: 'auto', display: 'flex', gap: 8, padding: '10px 16px 0' }}>
-          {subjects.map((s, i) => (
-            <button key={s.id} onClick={() => setActiveSubjectIdx(i)} style={{
-              flexShrink: 0, padding: '5px 12px', borderRadius: 16, border: '1.5px solid',
-              cursor: 'pointer', fontSize: 12, fontWeight: 600,
-              borderColor:  i === activeSubjectIdx ? '#10b981' : '#e5e7eb',
-              background:   i === activeSubjectIdx ? '#d1fae5' : '#fff',
-              color:        i === activeSubjectIdx ? '#065f46' : '#6b7280',
-            }}>
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* ── Term selector ── */}
-      <div style={{ display: 'flex', gap: 8, padding: '10px 16px' }}>
+      <div style={{ display: 'flex', gap: 8, padding: '10px 16px', flexWrap: 'wrap' }}>
         {[1, 2, 3].map(t => (
           <button key={t} onClick={() => setSelectedTerm(t)} style={{
             padding: '5px 16px', borderRadius: 16, border: '1.5px solid',
@@ -775,7 +760,7 @@ function AssessmentInner() {
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 5 }}>
         {dataLoading
           ? [1,2,3,4].map(i => <Skeleton key={i} h={64} />)
-           : filteredRows.length === 0
+          : filteredRows.length === 0
             ? <EmptyState icon="👥" message={students.length === 0 ? 'No students enrolled in this class.' : 'No learners match these filters.'} />
             : filteredRows.map(s => {
                 const isSelected = bulkSelected.has(s.id)
