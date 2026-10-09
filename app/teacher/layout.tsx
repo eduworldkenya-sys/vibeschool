@@ -7,6 +7,7 @@ import { C, Avatar } from "@/components/teacher/ui";
 import TwinDrawer from "@/components/teacher/TwinDrawer";
 
 import OfflineBar from "@/components/teacher/OfflineBar";
+import "@/components/teacher/teacher-workspace.css";
 
 interface ToastCtx { showToast: (msg: string) => void }
 const ToastContext = createContext<ToastCtx>({ showToast: () => {} });
