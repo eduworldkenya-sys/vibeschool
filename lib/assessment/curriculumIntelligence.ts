@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
 
 export interface OutcomeIntelligence {
   outcomeId: string
@@ -20,7 +19,7 @@ export interface InterventionSignal {
   outcomeId: string
   outcomeCode: string | null
   outcomeText: string
-  masteryScore: number
+  masteryScore: number | null
   masteryLevel: string
   recommendedAction: string
 }
@@ -31,9 +30,10 @@ export interface CurriculumIntelligence {
   interventions: InterventionSignal[]
 }
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
+async function rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { message?: string } | null }> {
+  const { data, error } = await supabase.rpc(name, args)
+  return { data, error }
+}
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -47,7 +47,7 @@ function text(value: unknown): string | null {
 }
 
 function numberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined) return null
+  if (value === null || value === undefined || value === '') return null
   const result = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(result) ? result : null
 }
@@ -57,7 +57,7 @@ export async function linkAssessmentItemOutcome(input: {
   outcomeId: string
   weight?: number
 }): Promise<void> {
-  const { error } = await rpc<Json>('exq_link_item_outcome', {
+  const { error } = await rpc('exq_link_item_outcome', {
     p_assessment_item_id: input.assessmentItemId,
     p_outcome_id: input.outcomeId,
     p_weight: input.weight ?? 1,
@@ -66,7 +66,7 @@ export async function linkAssessmentItemOutcome(input: {
 }
 
 export async function syncAttemptOutcomeEvidence(attemptId: string): Promise<void> {
-  const { error } = await rpc<Json>('exq_sync_attempt_outcome_evidence', {
+  const { error } = await rpc('exq_sync_attempt_outcome_evidence', {
     p_attempt_id: attemptId,
   })
   if (error) throw new Error(error.message || 'Outcome evidence could not be synchronized.')
@@ -75,18 +75,26 @@ export async function syncAttemptOutcomeEvidence(attemptId: string): Promise<voi
 export async function getCurriculumIntelligence(
   assignmentId: string,
 ): Promise<CurriculumIntelligence> {
-  const { data, error } = await rpc<Json>('exq_get_curriculum_intelligence', {
+  const { data, error } = await rpc('exq_get_curriculum_intelligence', {
     p_assignment_id: assignmentId,
   })
   if (error) throw new Error(error.message || 'Could not load curriculum intelligence.')
 
   const payload = record(data)
+  if (
+    text(payload.assignment_id) !== assignmentId ||
+    !Array.isArray(payload.outcomes) ||
+    !Array.isArray(payload.interventions)
+  )
+    throw new Error(
+      'Learning outcome evidence returned an incomplete payload. Retry before drawing conclusions.',
+    )
   const outcomes = Array.isArray(payload.outcomes) ? payload.outcomes : []
   const interventions = Array.isArray(payload.interventions) ? payload.interventions : []
 
   return {
     assignmentId: text(payload.assignment_id) ?? assignmentId,
-    outcomes: outcomes.map(value => {
+    outcomes: outcomes.map((value) => {
       const item = record(value)
       return {
         outcomeId: text(item.outcome_id) ?? '',
@@ -103,7 +111,7 @@ export async function getCurriculumIntelligence(
         masteryBand: text(item.mastery_band) ?? 'not_assessed',
       }
     }),
-    interventions: interventions.map(value => {
+    interventions: interventions.map((value) => {
       const item = record(value)
       return {
         studentId: text(item.student_id) ?? '',
@@ -111,8 +119,8 @@ export async function getCurriculumIntelligence(
         outcomeId: text(item.outcome_id) ?? '',
         outcomeCode: text(item.outcome_code),
         outcomeText: text(item.outcome_text) ?? 'Learning outcome',
-        masteryScore: numberOrNull(item.mastery_score) ?? 0,
-        masteryLevel: text(item.mastery_level) ?? 'beginning',
+        masteryScore: numberOrNull(item.mastery_score),
+        masteryLevel: text(item.mastery_level) ?? 'not_assessed',
         recommendedAction: text(item.recommended_action) ?? 'guided_practice',
       }
     }),

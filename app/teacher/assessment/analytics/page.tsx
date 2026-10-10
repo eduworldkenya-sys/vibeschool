@@ -1,301 +1,455 @@
 'use client'
-
 export const dynamic = 'force-dynamic'
-
-import { studio } from '@/components/teacher/studio-tokens'
-import { useEffect, useState } from 'react'
-import {
-  getAssignmentAnalytics,
-  listTeacherAssessmentAnalytics,
-  type AssessmentAnalyticsDetail,
-  type AssessmentAnalyticsSummary,
-} from '@/lib/assessment/analytics'
+import { Suspense, useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
+import { getAssignmentAnalytics, type AssessmentAnalyticsDetail } from '@/lib/assessment/analytics'
 import {
   getAssignmentIntelligence,
   type AssignmentIntelligence,
 } from '@/lib/assessment/intelligence'
+import { safeCsvCell, compareReleasedResults } from '@/lib/assessment/workspace'
 import {
-  getTeacherAssessmentIntelligence,
-  type TeacherAssessmentIntelligence,
-} from '@/lib/assessment/centre'
-
-export default function AssessmentAnalyticsPage() {
-  const [summaries, setSummaries] = useState<AssessmentAnalyticsSummary[]>([])
-  const [overview, setOverview] = useState<TeacherAssessmentIntelligence | null>(null)
-  const [detail, setDetail] = useState<AssessmentAnalyticsDetail | null>(null)
-  const [intelligence, setIntelligence] = useState<AssignmentIntelligence | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
+  AssessmentContextControls,
+  AssessmentHeading,
+  ContextState,
+  useAssessmentContext,
+  workspaceHref,
+} from '@/components/teacher/assessment/AssessmentContext'
+import styles from '@/components/teacher/assessment/AssessmentWorkspace.module.css'
+function Workspace() {
+  const scope = useAssessmentContext(),
+    id = scope.selection.assignmentId
+  const [comparisonId, setComparisonId] = useState(''),
+    [comparison, setComparison] = useState<ReturnType<typeof compareReleasedResults>>(null),
+    [comparisonLoading, setComparisonLoading] = useState(false),
+    [comparisonError, setComparisonError] = useState('')
+  const current = scope.context?.assignments.find((a) => a.id === id),
+    comparable = scope.assignments.filter(
+      (a) =>
+        a.id !== id &&
+        a.assessmentId === current?.assessmentId &&
+        a.classId === current.classId &&
+        a.subjectId === current.subjectId &&
+        a.assignedAt &&
+        current.assignedAt &&
+        Date.parse(a.assignedAt) < Date.parse(current.assignedAt),
+    )
+  const [detail, setDetail] = useState<AssessmentAnalyticsDetail | null>(null),
+    [insight, setInsight] = useState<AssignmentIntelligence | null>(null),
+    [loading, setLoading] = useState(false),
+    [error, setError] = useState(''),
+    [revision, setRevision] = useState(0),
+    [search, setSearch] = useState(''),
+    [status, setStatus] = useState('all'),
+    [resultScope, setResultScope] = useState('released')
+  const comparableIds = comparable.map((a) => a.id).join(',')
   useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const [data, consolidated] = await Promise.all([
-          listTeacherAssessmentAnalytics(),
-          getTeacherAssessmentIntelligence(),
-        ])
-        if (!cancelled) {
-          setSummaries(data)
-          setOverview(consolidated)
-        }
-      } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load analytics.')
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+    setComparisonId('')
+  }, [id])
+  useEffect(() => {
+    let active = true
+    setComparison(null)
+    setComparisonError('')
+    setComparisonLoading(Boolean(comparisonId && detail))
+    if (comparisonId && detail && comparableIds.split(',').includes(comparisonId))
+      void getAssignmentAnalytics(comparisonId)
+        .then((previous) => {
+          if (active) setComparison(compareReleasedResults(previous.learners, detail.learners))
+        })
+        .catch((cause) => {
+          if (active)
+            setComparisonError(
+              cause instanceof Error ? cause.message : 'Comparison could not be loaded.',
+            )
+        })
+        .finally(() => {
+          if (active) setComparisonLoading(false)
+        })
+    return () => {
+      active = false
     }
-    void load()
-    return () => { cancelled = true }
-  }, [])
-
-  async function openDetail(assignmentId: string) {
-    setLoading(true)
-    setError('')
-    try {
-      const [analytics, insight] = await Promise.all([
-        getAssignmentAnalytics(assignmentId),
-        getAssignmentIntelligence(assignmentId),
-      ])
-      setDetail(analytics)
-      setIntelligence(insight)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load assignment analytics.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function back() {
+  }, [comparisonId, detail, comparableIds])
+  useEffect(() => {
+    let active = true
     setDetail(null)
-    setIntelligence(null)
+    setInsight(null)
+    setError('')
+    setLoading(Boolean(id && scope.context))
+    setSearch('')
+    setStatus('all')
+    if (id && scope.context)
+      void Promise.all([getAssignmentAnalytics(id), getAssignmentIntelligence(id)])
+        .then(([data, intelligence]) => {
+          if (intelligence.assignmentId !== id)
+            throw new Error('The requested question evidence could not be confirmed.')
+          if (active) {
+            setDetail(data)
+            setInsight(intelligence)
+          }
+        })
+        .catch((cause) => {
+          if (active)
+            setError(cause instanceof Error ? cause.message : 'Results could not be loaded.')
+        })
+        .finally(() => {
+          if (active) setLoading(false)
+        })
+    return () => {
+      active = false
+    }
+  }, [id, scope.context, revision])
+  const scored = useMemo(
+    () =>
+      detail?.learners.filter(
+        (l) =>
+          ((l.attemptStatus === 'released' && l.resultStatus === 'released') ||
+            (resultScope === 'teacher' &&
+              l.attemptStatus === 'marked' &&
+              l.resultStatus === 'marked')) &&
+          l.score !== null &&
+          l.maxScore !== null &&
+          l.maxScore > 0,
+      ) ?? [],
+    [detail, resultScope],
+  )
+  const percentages = scored.map((l) => (100 * l.score!) / l.maxScore!),
+    average = percentages.length
+      ? percentages.reduce((a, b) => a + b, 0) / percentages.length
+      : null
+  const learners =
+    detail?.learners.filter(
+      (l) =>
+        (status === 'all' ||
+          (status === 'missing' ? !l.submittedAt : l.attemptStatus === status && (status!=='released'||l.resultStatus==='released'))) &&
+        [l.studentName, l.admissionNumber].join(' ').toLowerCase().includes(search.toLowerCase()),
+    ) ?? []
+  function exportResults() {
+    if (!detail) return
+    const rows = [
+      ['Learner', 'Admission number', 'Status', 'Score', 'Maximum', 'Percentage'],
+      ...detail.learners.map((l) => {
+        const allowed =
+          (l.attemptStatus === 'released' && l.resultStatus === 'released') ||
+          (resultScope === 'teacher' && l.attemptStatus === 'marked' && l.resultStatus === 'marked')
+        return [
+          l.studentName,
+          l.admissionNumber,
+          l.attemptStatus ?? 'Not submitted',
+          allowed ? l.score : null,
+          allowed ? l.maxScore : null,
+          allowed && l.score !== null && l.maxScore !== null && l.maxScore > 0
+            ? ((100 * l.score) / l.maxScore).toFixed(1)
+            : null,
+        ]
+      }),
+    ]
+    const url = URL.createObjectURL(
+      new Blob([rows.map((row) => row.map(safeCsvCell).join(',')).join('\r\n')], {
+        type: 'text/csv;charset=utf-8',
+      }),
+    )
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'assessment-results.csv'
+    anchor.click()
+    URL.revokeObjectURL(url)
   }
-
   return (
-    <section style={shell}>
-      <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-        <section style={card}>
-          <div style={eyebrow}>Assessments</div>
-          <h1 style={{ margin: '6px 0' }}>Results Analysis</h1>
-          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Understand how learners performed, where they struggled, and what may need reteaching or follow-up.</p>
+    <section className={styles.page}>
+      <AssessmentHeading
+        title="Results"
+        description="Review one assessment at a time, then follow the evidence to your next lesson."
+      >
+        <Link href={workspaceHref('marking', scope.selection)}>Mark work</Link>
+        <Link href={workspaceHref('curriculum', scope.selection)}>Learning outcomes</Link>
+        <Link href={workspaceHref('interventions', scope.selection)}>Learner support</Link>
+      </AssessmentHeading>
+      <ContextState scope={scope} />
+      <AssessmentContextControls scope={scope} />
+      {scope.context && !id && (
+        <section className={styles.panel}>
+          <h2>Assessment results</h2>
+          {scope.assignments.length === 0 ? (
+            <p>No assessments match your selections. Try another class or term.</p>
+          ) : (
+            <ul className={styles.rows}>
+              {scope.assignments.map((a) => (
+                <li className={styles.row} key={a.id}>
+                  <div>
+                    <strong>{a.title}</strong>
+                    <p className={styles.muted}>
+                      {scope.context?.classes.find((c) => c.id === a.classId)?.name} ·{' '}
+                      {scope.context?.subjects.find((s) => s.id === a.subjectId)?.name} ·{' '}
+                      {a.type.replaceAll('_', ' ')}
+                    </p>
+                  </div>
+                  <button onClick={() => scope.choose({ assignmentId: a.id })}>
+                    Review results
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
-
-        {error && <section style={{ ...card, color: '#b91c1c' }}>{error}</section>}
-
-        {!detail && overview && <>
-          <section style={card}>
-            <div style={metricGrid}>
-              <Metric label="Assessments" value={String(overview.summary.assessmentCount)} />
-              <Metric label="Released attempts" value={String(overview.summary.releasedAttemptCount)} />
-              <Metric label="Average" value={overview.summary.averagePercentage === null ? '—' : `${overview.summary.averagePercentage.toFixed(1)}%`} />
-              <Metric label="Active interventions" value={String(overview.summary.activeInterventions)} />
-              <Metric label="High priority" value={String(overview.summary.highPriorityInterventions)} />
-              <Metric label="Mastery change" value={overview.summary.averageMasteryChange === null ? '—' : `${overview.summary.averageMasteryChange.toFixed(1)} pts`} />
+      )}
+      {loading && <p role="status">Loading assessment results…</p>}
+      {error && (
+        <div role="alert" className={styles.error}>
+          {error} <button onClick={() => setRevision((n) => n + 1)}>Retry</button>
+        </div>
+      )}
+      {detail && detail.assignmentId === id && !loading && (
+        <>
+          <h2>{detail.title}</h2>
+          <label className={styles.label} htmlFor="result-scope">
+            Results included
+          </label>
+          <select
+            id="result-scope"
+            value={resultScope}
+            onChange={(e) => setResultScope(e.target.value)}
+          >
+            <option value="released">Shared results only</option>
+            <option value="teacher">Shared and marked results — teacher view</option>
+          </select>
+          <p className={styles.muted}>
+            {resultScope === 'teacher'
+              ? 'Unshared marks are private to this teacher view. Exported records can contain private marks.'
+              : 'Only shared, scored results contribute to performance figures.'}{' '}
+            Latest attempt per eligible learner; pending and missing work stay outside the score
+            denominator.
+          </p>
+          <div className={styles.stats}>
+            <div>
+              <strong>{detail.eligibleLearners}</strong>Eligible learners
             </div>
-          </section>
-
-          {overview.weakQuestions.length > 0 && <section style={{ ...card, borderColor: '#fecaca' }}>
-            <h2 style={{ marginTop: 0, fontSize: 18, color: '#991b1b' }}>Cross-assessment weak questions</h2>
-            <div style={{ display: 'grid', gap: 10 }}>
-              {overview.weakQuestions.slice(0, 6).map(item => <div key={item.assessmentItemId} style={{ ...questionBox, background: '#fef2f2', borderColor: '#fecaca' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <strong>{item.questionType.replaceAll('_', ' ')}</strong>
-                  <strong style={{ color: '#b91c1c' }}>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</strong>
-                </div>
-                <p style={{ margin: '8px 0', lineHeight: 1.5 }}>{item.prompt}</p>
-                <div style={muted}>{item.difficulty} · {item.bloomLevel} · {item.responseCount} responses</div>
-                <div style={muted}>{item.below50Count} below 50% · {item.zeroScoreCount} zero scores</div>
-              </div>)}
+            <div>
+              <strong>{detail.learners.filter((l) => l.submittedAt).length}</strong>
+              Submitted in the current roster
             </div>
-          </section>}
-
-          {overview.outcomes.length > 0 && <section style={card}>
-            <h2 style={{ marginTop: 0, fontSize: 18 }}>Outcome intelligence</h2>
-            <div style={{ display: 'grid', gap: 10 }}>
-              {overview.outcomes.slice(0, 8).map(item => <div key={item.outcomeId} style={dataRow}>
-                <div>
-                  <strong>{item.outcomeCode ? `${item.outcomeCode} · ` : ''}{item.outcomeText}</strong>
-                  {item.averagePercentage !== null && <div className="studio-outcome-meter"><progress max={100} value={item.averagePercentage} aria-label={`${item.outcomeText}: average recorded score`} /></div>}
-                  <div style={muted}>{item.responseCount} responses · {item.learnersBelow50} below 50%</div>
-                </div>
-                <strong style={{ color: item.averagePercentage !== null && item.averagePercentage < 50 ? '#b91c1c' : '#065f46' }}>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</strong>
-              </div>)}
+            <div>
+              <strong>{scored.length}</strong>Scored learners included
             </div>
-          </section>}
-
-          {overview.assessmentTrends.length > 0 && <section style={card}>
-            <h2 style={{ marginTop: 0, fontSize: 18 }}>Assessment trends</h2>
-            <div style={{ display: 'grid', gap: 10 }}>
-              {overview.assessmentTrends.map(item => <div key={item.assignmentId} style={dataRow}>
-                <div>
-                  <strong>{item.title}</strong>
-                  <div style={muted}>{item.assessmentType.replaceAll('_', ' ')} · {item.releasedCount} released</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <strong>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</strong>
-                  <div style={muted}>{item.lowestPercentage === null ? '—' : item.lowestPercentage.toFixed(1)}–{item.highestPercentage === null ? '—' : item.highestPercentage.toFixed(1)}%</div>
-                </div>
-              </div>)}
+            <div>
+              <strong>{average === null ? '—' : average.toFixed(1) + '%'}</strong>
+              Average of learner percentages
             </div>
-          </section>}
-        </>}
-
-        {!detail ? (
-          <section style={card}>
-            <h2 style={{ marginTop: 0, fontSize: 18 }}>Assessment-level analytics</h2>
-            {loading ? 'Loading analytics…' : summaries.length === 0 ? (
-              <div><strong>No assessment analytics yet</strong><p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>Assigned assessments will appear here.</p></div>
+          </div>
+          <section className={styles.panel}>
+            <h2>Score distribution</h2>
+            {scored.length === 0 ? (
+              <p>
+                No scored results are available in this scope. Missing marks have not been counted
+                as zero.
+              </p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {summaries.map(item => {
-                  const submissionRate = item.eligibleLearners > 0
-                    ? Math.round((item.submittedCount / item.eligibleLearners) * 100)
-                    : 0
-                  return (
-                    <button key={item.assignmentId} type="button" onClick={() => void openDetail(item.assignmentId)} style={rowButton}>
-                      <div style={{ textAlign: 'left' }}>
-                        <div style={eyebrow}>{item.assessmentType.replaceAll('_', ' ')}</div>
-                        <strong>{item.title}</strong>
-                        <div style={muted}>{item.className}{item.classStream ? ` ${item.classStream}` : ''}</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <strong>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</strong>
-                        <div style={muted}>{submissionRate}% submitted</div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
+              <ul className={styles.rows}>
+                {[
+                  [0, 25],
+                  [25, 50],
+                  [50, 75],
+                  [75, 101],
+                ].map(([low, high]) => (
+                  <li className={styles.row} key={low}>
+                    <span>
+                      {low}–{high === 101 ? '100' : '<' + high}%
+                    </span>
+                    <span>
+                      {percentages.filter((p) => p >= low && p < high).length} of {scored.length}{' '}
+                      learners
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className={styles.muted}>
+              These score ranges are descriptive, not curriculum performance levels. Trends require
+              comparable assessments and are not inferred across different papers.
+            </p>
+          </section>
+          {comparable.length > 0 && (
+            <section className={styles.panel}>
+              <h2>Compare the same paper</h2>
+              <label className={styles.label}>
+                Earlier assignment
+                <select value={comparisonId} onChange={(e) => setComparisonId(e.target.value)}>
+                  <option value="">Choose an assignment</option>
+                  {comparable.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.title}
+                      {a.assignedAt
+                        ? ' · ' +
+                          new Date(a.assignedAt).toLocaleDateString('en-KE', {
+                            timeZone: 'Africa/Nairobi',
+                          })
+                        : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className={styles.muted}>
+                Same paper, class and subject. Only learners with shared results and matching
+                maximum marks in both assignments are compared.
+              </p>
+              {comparisonLoading && <p role="status">Loading comparison…</p>}
+              {comparisonError && (
+                <p role="alert" className={styles.error}>
+                  {comparisonError}
+                </p>
+              )}
+              {comparison && (
+                <p>
+                  {comparison.learnerCount} matched learners: {comparison.averageBefore.toFixed(1)}%
+                  → {comparison.averageAfter.toFixed(1)}% ({comparison.change >= 0 ? '+' : ''}
+                  {comparison.change.toFixed(1)} percentage points). This does not establish the
+                  cause of a change.
+                </p>
+              )}
+              {comparisonId && !comparisonLoading && !comparison && !comparisonError && (
+                <p>No comparable shared learner results are available.</p>
+              )}
+            </section>
+          )}
+          <section className={styles.panel}>
+            <h2>Learner results</h2>
+            <div className={styles.fields}>
+              <label>
+                Work status
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <option value="all">All learners</option>
+                  <option value="missing">Not submitted</option>
+                  <option value="teacher_review">Needs marking</option>
+                  <option value="marked">Ready to share</option>
+                  <option value="released">Shared</option>
+                </select>
+              </label>
+              <label>
+                Find a learner
+                <input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Name or admission number"
+                />
+              </label>
+            </div>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <caption>{learners.length} matching learners</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Learner</th>
+                    <th scope="col">Work status</th>
+                    <th scope="col">Result</th>
+                    <th scope="col">Next action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {learners.map((l) => {
+                    const allowed =
+                      (l.attemptStatus === 'released' && l.resultStatus === 'released') ||
+                      (resultScope === 'teacher' &&
+                        l.attemptStatus === 'marked' &&
+                        l.resultStatus === 'marked')
+                    return (
+                      <tr key={l.studentId}>
+                        <th scope="row">
+                          {l.studentName}
+                          <div className={styles.muted}>{l.admissionNumber}</div>
+                        </th>
+                        <td>
+                          {!l.submittedAt
+                            ? 'Not submitted'
+                            : l.attemptStatus === 'released' && l.resultStatus === 'released'
+                              ? 'Shared'
+                              : l.attemptStatus==='released'?'Release not confirmed': l.attemptStatus === 'marked'
+                                ? 'Ready to share'
+                                : 'Needs marking'}
+                        </td>
+                        <td>
+                          {allowed && l.score !== null && l.maxScore !== null
+                            ? `${l.score} / ${l.maxScore}`
+                            : '—'}
+                        </td>
+                        <td>
+                          <Link
+                            href={
+                              workspaceHref(
+                                l.attemptStatus === 'released' && l.resultStatus === 'released'
+                                  ? 'interventions'
+                                  : 'marking',
+                                scope.selection,
+                              ) +
+                              (workspaceHref('marking', scope.selection).includes('?')
+                                ? '&'
+                                : '?') +
+                              (l.attemptStatus === 'released' && l.resultStatus === 'released'
+                                ? 'studentId=' + l.studentId
+                                : 'attemptId=' + (l.attemptId ?? ''))
+                            }
+                          >
+                            {l.attemptStatus === 'released' && l.resultStatus === 'released'
+                              ? 'Review support'
+                              : l.attemptId
+                                ? 'Review work'
+                                : 'Open marking queue'}
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {learners.length === 0 && <p>No learners match these filters.</p>}
+            <div className={styles.actions}>
+              <button onClick={exportResults}>Export CSV</button>
+              <button onClick={() => window.print()}>Print results</button>
+            </div>
+          </section>
+          <section className={styles.panel}>
+            <h2>Question evidence</h2>
+            <p className={styles.muted}>
+              Question analysis uses shared responses only, including when the teacher view is
+              selected.
+            </p>
+            {!insight?.questions.length ? (
+              <p>No question evidence was returned.</p>
+            ) : (
+              insight.questions.map((q) => (
+                <details key={q.assessmentItemId}>
+                  <summary>
+                    Question {q.orderNum} ·{' '}
+                    {q.averagePercentage === null
+                      ? 'Not assessed'
+                      : q.averagePercentage.toFixed(1) + '% average'}
+                  </summary>
+                  <p>{q.prompt}</p>
+                  <p className={styles.muted}>
+                    {q.responseCount} scored responses · {q.zeroScoreCount} zero marks ·{' '}
+                    {q.fullScoreCount} full marks
+                  </p>
+                  <p>
+                    {insight.misconceptions
+                      .find((m) => m.assessmentItemId === q.assessmentItemId)
+                      ?.recommendedAction.replaceAll('_', ' ') ??
+                      'Review responses before deciding on follow-up.'}
+                  </p>
+                  <Link href={workspaceHref('curriculum', scope.selection)}>
+                    Review linked outcomes
+                  </Link>
+                </details>
+              ))
             )}
           </section>
-        ) : (
-          <>
-            <section style={card}>
-              <button type="button" onClick={back} style={secondaryButton}>← Back to assessments</button>
-              <h2 style={{ margin: '14px 0 4px' }}>{detail.title}</h2>
-              <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>{detail.className}{detail.classStream ? ` ${detail.classStream}` : ''}</p>
-              <div style={metricGrid}>
-                <Metric label="Submission" value={`${detail.submissionRate.toFixed(1)}%`} />
-                <Metric label="Average" value={detail.averagePercentage === null ? '—' : `${detail.averagePercentage.toFixed(1)}%`} />
-                <Metric label="Highest" value={detail.highestPercentage === null ? '—' : `${detail.highestPercentage.toFixed(1)}%`} />
-                <Metric label="Lowest" value={detail.lowestPercentage === null ? '—' : `${detail.lowestPercentage.toFixed(1)}%`} />
-              </div>
-            </section>
-
-            {intelligence && intelligence.misconceptions.length > 0 && (
-              <section style={{ ...card, borderColor: '#fecaca' }}>
-                <h3 style={{ marginTop: 0, color: '#991b1b' }}>Misconception signals</h3>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {intelligence.misconceptions.map(item => (
-                    <div key={item.assessmentItemId} style={{ ...questionBox, background: '#fef2f2', borderColor: '#fecaca' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                        <strong>Question {item.orderNum}</strong>
-                        <strong style={{ color: '#b91c1c' }}>{item.averagePercentage?.toFixed(1) ?? '—'}%</strong>
-                      </div>
-                      <p style={{ margin: '8px 0', lineHeight: 1.5 }}>{item.prompt}</p>
-                      <div style={muted}>{item.affectedLearners} learners below 50% · {item.zeroScoreCount} scored zero</div>
-                      <div style={{ marginTop: 8, fontWeight: 700, color: '#7f1d1d' }}>{item.recommendedAction.replaceAll('_', ' ')}</div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {intelligence && intelligence.outcomes.length > 0 && (
-              <section style={card}>
-                <h3 style={{ marginTop: 0 }}>Outcome mastery</h3>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {intelligence.outcomes.map(outcome => (
-                    <div key={outcome.outcomeId} style={dataRow}>
-                      <div>
-                        <strong>{outcome.outcomeCode ? `${outcome.outcomeCode} · ` : ''}{outcome.outcomeText}</strong>
-                        <div style={muted}>{outcome.learnersBelow50} learners below 50% · {outcome.responseCount} responses</div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <strong style={{ color: outcome.averagePercentage !== null && outcome.averagePercentage < 50 ? '#b91c1c' : '#065f46' }}>
-                          {outcome.averagePercentage === null ? '—' : `${outcome.averagePercentage.toFixed(1)}%`}
-                        </strong>
-                        <div style={muted}>{outcome.masteryBand}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {intelligence && (
-              <section style={card}>
-                <h3 style={{ marginTop: 0 }}>Cognitive and difficulty profile</h3>
-                <h4>Bloom levels</h4>
-                <div style={bandGrid}>{intelligence.bloom.map(item => <Band key={item.label} item={item} />)}</div>
-                <h4 style={{ marginTop: 18 }}>Difficulty levels</h4>
-                <div style={bandGrid}>{intelligence.difficulty.map(item => <Band key={item.label} item={item} />)}</div>
-              </section>
-            )}
-
-            <section style={card}>
-              <h3 style={{ marginTop: 0 }}>Learner performance</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {detail.learners.map(learner => (
-                  <div key={learner.studentId} style={dataRow}>
-                    <div>
-                      <strong>{learner.studentName}</strong>
-                      <div style={muted}>{learner.attemptStatus ? learner.attemptStatus.replaceAll('_', ' ') : 'Not submitted'}</div>
-                    </div>
-                    <strong style={{ color: learner.percentage !== null && learner.percentage < 50 ? '#b91c1c' : '#065f46' }}>
-                      {learner.percentage === null ? '—' : `${learner.percentage.toFixed(1)}%`}
-                    </strong>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section style={card}>
-              <h3 style={{ marginTop: 0 }}>Question performance</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {(intelligence?.questions ?? detail.questions).map(question => (
-                  <div key={question.assessmentItemId} style={questionBox}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                      <strong>Question {question.orderNum}</strong>
-                      <strong style={{ color: question.averagePercentage !== null && question.averagePercentage < 50 ? '#b91c1c' : '#065f46' }}>
-                        {question.averagePercentage === null ? 'No released data' : `${question.averagePercentage.toFixed(1)}% avg`}
-                      </strong>
-                    </div>
-                    <p style={{ margin: '8px 0', lineHeight: 1.5 }}>{question.prompt}</p>
-                    {'difficulty' in question && <div style={muted}>{question.difficulty} · {question.bloomLevel} · {question.performanceBand.replaceAll('_', ' ')}</div>}
-                    <div style={muted}>{question.responseCount} released responses · {question.zeroScoreCount} scored zero</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </>
-        )}
-      </div>
+        </>
+      )}
     </section>
   )
 }
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return <div style={metric}><div style={muted}>{label}</div><strong style={{ fontSize: 20 }}>{value}</strong></div>
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<p role="status">Loading results…</p>}>
+      <Workspace />
+    </Suspense>
+  )
 }
-
-function Band({ item }: { item: { label: string; responseCount: number; averagePercentage: number | null; learnersBelow50: number } }) {
-  return <div style={metric}>
-    <strong style={{ textTransform: 'capitalize' }}>{item.label.replaceAll('_', ' ')}</strong>
-    <div style={{ fontSize: 20, fontWeight: 800, marginTop: 5 }}>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</div>
-    {item.averagePercentage !== null && <div className="studio-outcome-meter"><progress max={100} value={item.averagePercentage} aria-label={`${item.label}: average recorded score`} /></div>}
-    <div style={muted}>{item.responseCount} responses · {item.learnersBelow50} learners below 50%</div>
-  </div>
-}
-
-const shell: React.CSSProperties = { minHeight: '100vh', background: studio.canvas, padding: '18px 14px 80px', fontFamily: studio.font, color: studio.ink }
-const card: React.CSSProperties = { background: '#fff', border: `1px solid ${studio.border}`, borderRadius: 20, padding: 16, marginBottom: 12 }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
-const muted: React.CSSProperties = { fontSize: 12, color: studio.muted, marginTop: 3 }
-const rowButton: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }
-const metricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginTop: 16 }
-const bandGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }
-const metric: React.CSSProperties = { background: studio.canvas, borderRadius: 12, padding: 12 }
-const dataRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 12, border: '1px solid #e5e7eb', borderRadius: 10 }
-const questionBox: React.CSSProperties = { padding: 12, border: '1px solid #e5e7eb', borderRadius: 10, background: studio.canvas }
-const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
