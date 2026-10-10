@@ -1,5 +1,6 @@
 'use client'
 
+import { studio } from '@/components/teacher/studio-tokens'
 import ProgressDataChecks from '@/components/teacher/progress/ProgressDataChecks'
 import { downloadProgressCsv, progressCsv } from '@/lib/learner-intelligence/progress-review'
 
@@ -84,7 +85,7 @@ export default function ClassStudentProgressPage() {
   }
   if (loading) return <section style={{padding:20}} aria-label="Loading class progress"><p>Loading your complete class progress record…</p></section>
   return <section className="progress-print" style={{maxWidth:940,margin:'0 auto',padding:'16px 14px 112px',color:"var(--teacher-ink, #1c2923)"}}>
-    <section style={{padding:18,borderRadius:20,background:'#172554',color:'#fff'}}>
+    <section style={{padding:18,borderRadius:20,background:'#2c2944',color:'#fff'}}>
       <button data-progress-controls type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={heroButton}>‹ Class</button>
       <h1 style={{margin:'12px 0 5px',fontSize:24}}>Student Progress Record · {authority?.className ?? 'Class'}</h1>
       <p style={{margin:0,fontSize:13,lineHeight:1.6}}>Review each learner's outcome evidence and choose the next useful action. A recorded score and a recorded performance level remain separate.</p>
@@ -111,9 +112,9 @@ export default function ClassStudentProgressPage() {
       {(period!=='term'||term)&&<>
       <section style={card} aria-label="Class evidence overview"><strong>{visible.length} shown · {cards.length} {view === 'current' ? 'current' : 'archived'} learners</strong><p style={{fontSize:13,lineHeight:1.6,marginBottom:0}}>{cards.filter(item => item.summary.needsSupport + item.supportObservations > 0).length} have recorded evidence indicating support · {cards.filter(item => item.count === 0).length} have no evidence in this period. This view shows your readable evidence in assigned subjects.</p></section>
       {gaps.length > 0 && <section style={card}><h2 style={{fontSize:17,marginTop:0}}>Outcomes to review</h2>{gaps.map((gap,index) => <p key={index} style={{fontSize:13,lineHeight:1.6}}><strong>{gap.support} of {gap.assessed} learners with recorded levels need support</strong> · {cards.length - gap.assessed} have no recorded level · {authority?.subjects.find(item => item.id === gap.subjectId)?.name ?? 'Subject'} · {gap.label}</p>)}</section>}
-      <div style={{display:'grid',gap:9}}>{visible.map(learner => <button type="button" key={learner.id} onClick={() => router.push(`/teacher/classhub/${classId}/student/${learner.id}/progress${contextQuery}`)} style={{...card,margin:0,textAlign:'left',font:'inherit',cursor:'pointer'}}>
-        <strong>{learner.name}</strong><div style={{marginTop:6,fontSize:12,color:'#4b5563',lineHeight:1.7}}>{learner.admission_number ? `Adm ${learner.admission_number} · ` : ''}{learner.count} evidence items · {learner.summary.secure} meeting / exceeding outcomes · {learner.summary.needsSupport} support outcomes</div>
-        <div style={{marginTop:4,fontSize:12,color:'#4b5563'}}>{learner.declining ? `${learner.declining} declining outcome(s) · ` : ''}{learner.improving ? `${learner.improving} improving outcome(s) · ` : ''}{learner.supportObservations ? `${learner.supportObservations} CBC support observation(s) awaiting outcome links · ` : ''}{learner.unlinked ? `${learner.unlinked} evidence item(s) without an outcome link` : learner.count ? 'Open evidence and history' : 'No evidence in the selected period'}</div>
+      <div className="studio-lesson-grid studio-learner-grid">{visible.map(learner => <button type="button" key={learner.id} onClick={() => router.push(`/teacher/classhub/${classId}/student/${learner.id}/progress${contextQuery}`)} className="studio-lesson-card" style={{margin:0,textAlign:'left',font:'inherit',cursor:'pointer'}}>
+        <strong>{learner.name}</strong><div style={{marginTop:6,fontSize:12,color:studio.muted,lineHeight:1.7}}>{learner.admission_number ? `Adm ${learner.admission_number} · ` : ''}{learner.count} evidence items · {learner.summary.secure} meeting / exceeding outcomes · {learner.summary.needsSupport} support outcomes</div>
+        <div style={{marginTop:4,fontSize:12,color:studio.muted}}>{learner.declining ? `${learner.declining} declining outcome(s) · ` : ''}{learner.improving ? `${learner.improving} improving outcome(s) · ` : ''}{learner.supportObservations ? `${learner.supportObservations} CBC support observation(s) awaiting outcome links · ` : ''}{learner.unlinked ? `${learner.unlinked} evidence item(s) without an outcome link` : learner.count ? 'Open evidence and history' : 'No evidence in the selected period'}</div>
       </button>)}{!visible.length && <section style={card}>No learners match this view. Change the filters or check your class roster.</section>}</div>
       </>}
       <ProgressDataChecks rows={evidence.filter(row=>!row.subjectId||subject==='all'||row.subjectId===subject)}/>
@@ -121,7 +122,7 @@ export default function ClassStudentProgressPage() {
     </>}
   </section>
 }
-const card: React.CSSProperties = {padding:15,marginTop:12,border:'1px solid #e5e7eb',borderRadius:15,background:'#fff',breakInside:'avoid'}
+const card: React.CSSProperties = {padding:15,marginTop:12,border:`1px solid ${studio.border}`,borderRadius:15,background:'#fff',breakInside:'avoid'}
 const heroButton: React.CSSProperties = {border:0,borderRadius:10,minHeight:44,padding:'0 12px',background:'rgba(255,255,255,.14)',color:'#fff',fontWeight:800}
 const pill: React.CSSProperties = {minHeight:44,border:'1px solid #d1d5db',borderRadius:12,padding:'0 14px',background:'#fff',fontWeight:800,cursor:'pointer'}
-const control: React.CSSProperties = {width:'100%',boxSizing:'border-box',minHeight:46,border:'1px solid #d1d5db',borderRadius:12,padding:'0 12px',background:'#fff',color:'#374151'}
+const control: React.CSSProperties = {width:'100%',boxSizing:'border-box',minHeight:46,border:'1px solid #d1d5db',borderRadius:12,padding:'0 12px',background:'#fff',color:studio.ink}

@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { studio } from '@/components/teacher/studio-tokens'
 import { useEffect, useState } from 'react'
 import {
   getAssignmentAnalytics,
@@ -114,6 +115,7 @@ export default function AssessmentAnalyticsPage() {
               {overview.outcomes.slice(0, 8).map(item => <div key={item.outcomeId} style={dataRow}>
                 <div>
                   <strong>{item.outcomeCode ? `${item.outcomeCode} · ` : ''}{item.outcomeText}</strong>
+                  {item.averagePercentage !== null && <div className="studio-outcome-meter"><progress max={100} value={item.averagePercentage} aria-label={`${item.outcomeText}: average recorded score`} /></div>}
                   <div style={muted}>{item.responseCount} responses · {item.learnersBelow50} below 50%</div>
                 </div>
                 <strong style={{ color: item.averagePercentage !== null && item.averagePercentage < 50 ? '#b91c1c' : '#065f46' }}>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</strong>
@@ -281,18 +283,19 @@ function Band({ item }: { item: { label: string; responseCount: number; averageP
   return <div style={metric}>
     <strong style={{ textTransform: 'capitalize' }}>{item.label.replaceAll('_', ' ')}</strong>
     <div style={{ fontSize: 20, fontWeight: 800, marginTop: 5 }}>{item.averagePercentage === null ? '—' : `${item.averagePercentage.toFixed(1)}%`}</div>
+    {item.averagePercentage !== null && <div className="studio-outcome-meter"><progress max={100} value={item.averagePercentage} aria-label={`${item.label}: average recorded score`} /></div>}
     <div style={muted}>{item.responseCount} responses · {item.learnersBelow50} learners below 50%</div>
   </div>
 }
 
-const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, marginBottom: 12 }
+const shell: React.CSSProperties = { minHeight: '100vh', background: studio.canvas, padding: '18px 14px 80px', fontFamily: studio.font, color: studio.ink }
+const card: React.CSSProperties = { background: '#fff', border: `1px solid ${studio.border}`, borderRadius: 20, padding: 16, marginBottom: 12 }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
-const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
+const muted: React.CSSProperties = { fontSize: 12, color: studio.muted, marginTop: 3 }
 const rowButton: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }
 const metricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, marginTop: 16 }
 const bandGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10 }
-const metric: React.CSSProperties = { background: '#f8fafc', borderRadius: 12, padding: 12 }
+const metric: React.CSSProperties = { background: studio.canvas, borderRadius: 12, padding: 12 }
 const dataRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 12, border: '1px solid #e5e7eb', borderRadius: 10 }
-const questionBox: React.CSSProperties = { padding: 12, border: '1px solid #e5e7eb', borderRadius: 10, background: '#f8fafc' }
+const questionBox: React.CSSProperties = { padding: 12, border: '1px solid #e5e7eb', borderRadius: 10, background: studio.canvas }
 const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }

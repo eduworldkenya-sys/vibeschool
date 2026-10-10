@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { studio } from '@/components/teacher/studio-tokens'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -103,7 +104,7 @@ export default function AssessmentInterventionsPage() {
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
         <section style={card}>
           <div style={eyebrow}>Assessment Intelligence</div>
-          <h1 style={{ margin: '6px 0' }}>Learner Intervention Queue</h1>
+          <h1 style={{ margin: '6px 0' }}>Learner support</h1>
           <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Turn mastery gaps into targeted practice, collect follow-up evidence, and close or escalate support.</p>
           <div style={{ ...muted, marginTop: 8 }}>{contextLabel}</div>
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}><button type="button" style={secondaryButton} onClick={()=>setIncludeClosed(value=>!value)}>{includeClosed?'Show open support':'Include completed support'}</button>{classId&&<button type="button" style={secondaryButton} onClick={()=>router.push(`/teacher/classhub/${classId}/progress${subjectId?`?subjectId=${encodeURIComponent(subjectId)}`:''}`)}>Progress Record</button>}</div>
@@ -124,7 +125,7 @@ export default function AssessmentInterventionsPage() {
 
         {loading ? <section style={card}>Loading saved support records…</section>
           : !error && items.length === 0 ? <section style={card}><strong>No support records match</strong><p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>No evidence-backed intervention matches this context.</p></section>
-          : items.map(item => (
+          : <div className="studio-intervention-grid">{items.map(item => (
             <section key={item.interventionId} style={{ ...card, borderColor: priorityBorder[item.priority] }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                 <div>
@@ -172,7 +173,7 @@ export default function AssessmentInterventionsPage() {
                 <button disabled={busyId === item.interventionId} onClick={() => void changeStatus(item, 'dismissed')} style={secondaryButton}>Dismiss</button>
               </div>}
             </section>
-          ))}
+          ))}</div>}
       </div>
     </section>
   )
@@ -183,14 +184,14 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 
 const priorityBorder: Record<InterventionQueueItem['priority'], string> = { urgent: '#fecaca', high: '#fed7aa', medium: '#fde68a', extension: '#a7f3d0' }
-const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, marginBottom: 12 }
+const shell: React.CSSProperties = { minHeight: '100vh', background: studio.canvas, padding: '18px 14px 80px', fontFamily: studio.font, color: studio.ink }
+const card: React.CSSProperties = { background: '#fff', border: `1px solid ${studio.border}`, borderRadius: 20, padding: 16, marginBottom: 12 }
 const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
-const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
-const metric: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: 12, borderRadius: 12, background: '#f8fafc' }
-const outcomeBox: React.CSSProperties = { marginTop: 14, padding: 12, borderRadius: 10, background: '#f8fafc', lineHeight: 1.5 }
-const recommendationBox: React.CSSProperties = { marginTop: 10, padding: 12, borderRadius: 10, background: '#eef2ff', color: '#3730a3', lineHeight: 1.5, fontWeight: 700 }
+const muted: React.CSSProperties = { fontSize: 12, color: studio.muted, marginTop: 3 }
+const metric: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: 12, borderRadius: 12, background: studio.canvas }
+const outcomeBox: React.CSSProperties = { marginTop: 14, padding: 12, borderRadius: 10, background: studio.canvas, lineHeight: 1.5 }
+const recommendationBox: React.CSSProperties = { marginTop: 10, padding: 12, borderRadius: 10, background: studio.soft, color: studio.ink, lineHeight: 1.5, fontWeight: 700 }
 const progressBox: React.CSSProperties = { marginTop: 10, padding: 12, borderRadius: 10, background: '#ecfdf5', color: '#065f46' }
 const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 12px', font: 'inherit' }
-const primaryButton: React.CSSProperties = { minHeight:44, border: 'none', borderRadius: 10, padding: '10px 14px', background: '#4338ca', color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
+const primaryButton: React.CSSProperties = { minHeight:44, border: 'none', borderRadius: 10, padding: '10px 14px', background: studio.accent, color: '#fff', fontWeight: 800, fontFamily: 'inherit', cursor: 'pointer' }
 const secondaryButton: React.CSSProperties = { minHeight:44, border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }

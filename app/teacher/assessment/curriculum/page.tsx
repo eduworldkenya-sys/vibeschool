@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
+import { studio } from '@/components/teacher/studio-tokens'
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
@@ -65,9 +66,9 @@ function Dashboard() {
                   No learning outcomes are linked to this assessment yet.
                 </p>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="studio-lesson-grid">
                   {data.outcomes.map(outcome => (
-                    <div key={outcome.outcomeId} style={row}>
+                    <div key={outcome.outcomeId} className="studio-lesson-card">
                       <div style={{ minWidth: 0 }}>
                         <strong>
                           {outcome.outcomeCode ? `${outcome.outcomeCode} · ` : ''}
@@ -89,6 +90,11 @@ function Dashboard() {
                             : `${outcome.averagePercentage.toFixed(1)}%`}
                         </strong>
                         <div style={muted}>{outcome.masteryBand.replaceAll('_', ' ')}</div>
+                        {outcome.averagePercentage !== null && (
+                          <div className="studio-outcome-meter">
+                            <progress max={100} value={outcome.averagePercentage} aria-label={`${outcome.outcomeText}: average score`} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -141,17 +147,17 @@ function masteryColor(value: number | null): string {
 }
 
 const shell: React.CSSProperties = {
-  minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px',
-  fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827',
+  minHeight: '100vh', background: studio.canvas, padding: '18px 14px 80px',
+  fontFamily: studio.font, color: studio.ink,
 }
 const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16,
+  background: '#fff', border: `1px solid ${studio.border}`, borderRadius: 20,
   padding: 16, marginBottom: 12,
 }
 const eyebrow: React.CSSProperties = {
   fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1,
 }
-const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
+const muted: React.CSSProperties = { fontSize: 12, color: studio.muted, marginTop: 3 }
 const row: React.CSSProperties = {
   display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center',
   border: '1px solid #e5e7eb', borderRadius: 12, padding: 13,

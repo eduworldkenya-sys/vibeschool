@@ -1,19 +1,20 @@
 'use client'
 
 import { CSSProperties, useEffect, useRef } from "react";
+import { studio } from "./studio-tokens";
 import { X } from "lucide-react";
 
 export const C = {
   bg:          "#ffffff",
-  surface:     "#f5f6f2",
-  accent:      "#087451",
-  accentLight: "#e9f4ed",
-  textPrimary: "#1c2923",
-  textMuted:   "#627168",
+  surface:     studio.canvas,
+  accent:      studio.accent,
+  accentLight: studio.soft,
+  textPrimary: studio.ink,
+  textMuted:   studio.muted,
   error:       "#b42318",
   warning:     "#946200",
-  dark:        "#1c2923",
-  border:      "#dfe5de",
+  dark:        studio.ink,
+  border:      studio.border,
   shadow:      "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
 };
 
@@ -30,7 +31,7 @@ export function Card({ children, style = {}, onClick }: CardProps) {
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={event => { if (onClick && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onClick(); } }}
       style={{
-        background: C.bg, borderRadius: 16, boxShadow: C.shadow,
+        background: C.bg, borderRadius: 20, boxShadow: C.shadow,
         border: `1px solid ${C.border}`, padding: "18px 18px", marginBottom: 14,
         cursor: onClick ? "pointer" : "default", transition: "box-shadow 0.18s", ...style,
       }}
@@ -129,10 +130,10 @@ export function Avatar({ initials, size = 36, bg = C.accent, color = "#fff", sty
 
 export function ReadinessChip({ status }: { status: string }) {
   const map: Record<string, { bg: string; color: string; label: string }> = {
-    green: { bg: "#e9f4ed", color: "#065f46", label: "Ready"     },
+    green: { bg: studio.soft, color: "#065f46", label: "Ready"     },
     amber: { bg: "#fef3c7", color: "#92400e", label: "Resource"  },
     red:   { bg: "#fee2e2", color: "#991b1b", label: "No Plan"   },
-    grey:  { bg: "#f3f4f6", color: "#627168", label: "Cancelled" },
+    grey:  { bg: "#f3f4f6", color: studio.muted, label: "Cancelled" },
   };
   const s = map[status] || map.grey;
   return (
@@ -147,7 +148,7 @@ export function SeverityBadge({ sev }: { sev: string }) {
     critical: { bg: "#fee2e2", color: "#991b1b" },
     high:     { bg: "#fef3c7", color: "#92400e" },
     medium:   { bg: "#e0f2fe", color: "#075985" },
-    low:      { bg: "#f3f4f6", color: "#627168" },
+    low:      { bg: "#f3f4f6", color: studio.muted },
   };
   const s = map[sev] || map.low;
   return (
@@ -214,12 +215,12 @@ export function TwinDot({ delay = 0 }: { delay?: number }) {
  * to its CSS module. New screens can adopt these incrementally.
  */
 export const TEACHER_UI = {
-  green: "#087d57",
-  greenSoft: "#e4f8ef",
-  ink: "#17211b",
-  muted: "#657069",
-  border: "#e0e7e3",
-  canvas: "#f7f9f8",
+  green: studio.accent,
+  greenSoft: studio.soft,
+  ink: studio.ink,
+  muted: studio.muted,
+  border: studio.border,
+  canvas: studio.canvas,
   radius: 16,
 } as const;
 

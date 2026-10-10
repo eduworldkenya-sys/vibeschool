@@ -1437,7 +1437,7 @@ export default function LessonPlanModal({
 
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 900, background: 'rgba(0,0,0,0.45)' }} />
 
-      <div style={{
+      <div className="studio-lesson-modal" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 910,
         background: '#fff', borderRadius: '20px 20px 0 0', maxHeight: '90vh',
         display: 'flex', flexDirection: 'column',
@@ -1463,7 +1463,7 @@ export default function LessonPlanModal({
                 borderRadius: 20, background: statusBadge.bg, color: statusBadge.color,
               }}>{statusBadge.label}</span>
             )}
-            <button onClick={onClose} style={{
+            <button type="button" aria-label="Close lesson workspace" onClick={onClose} style={{
               background: 'none', border: 'none', fontSize: 20,
               color: C.textMuted, cursor: 'pointer', padding: '4px 8px',
             }}>✕</button>

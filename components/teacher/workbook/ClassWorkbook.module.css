@@ -2,8 +2,9 @@
   max-width: 1250px;
   margin: auto;
   padding: 20px 14px 100px;
-  color: #20251f;
+  color: var(--teacher-ink, #29273c);
   font-size: 14px;
+  font-family: var(--teacher-font, "DM Sans", sans-serif);
 }
 .header {
   display: flex;
@@ -18,7 +19,7 @@
   margin: 8px 0;
 }
 .muted {
-  color: #617064;
+  color: var(--teacher-muted, #746f83);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -40,10 +41,10 @@
 .workbook input,
 .workbook textarea {
   font: inherit;
-  border: 1px solid #c9d3c9;
+  border: 1px solid var(--teacher-border, #e7e3ee);
   border-radius: 8px;
   background: white;
-  color: #20251f;
+  color: var(--teacher-ink, #29273c);
   padding: 10px;
   min-height: 44px;
   box-sizing: border-box;
@@ -61,14 +62,14 @@
 .workbook input:focus-visible,
 .workbook select:focus-visible,
 .workbook a:focus-visible {
-  outline: 3px solid #dcad39;
+  outline: 3px solid var(--teacher-accent, #6352bd);
   outline-offset: 2px;
 }
 .workbook .active,
 .workbook .primary {
-  background: #244c37;
+  background: var(--teacher-accent, #6352bd);
   color: white;
-  border-color: #244c37;
+  border-color: var(--teacher-accent, #6352bd);
 }
 .workbook label {
   display: flex;
@@ -83,8 +84,8 @@
 .card {
   background: white;
   padding: 16px;
-  border: 1px solid #dbe3da;
-  border-radius: 14px;
+  border: 1px solid var(--teacher-border, #e7e3ee);
+  border-radius: 20px;
   margin: 12px 0;
 }
 .error {
@@ -97,14 +98,14 @@
 .notice {
   padding: 12px;
   border-radius: 10px;
-  background: #edf5eb;
+  background: var(--teacher-accent-soft, #eeeafa);
   margin: 12px 0;
   line-height: 1.6;
 }
 .scroll {
   overflow: auto;
   max-height: 65vh;
-  border: 1px solid #dbe3da;
+  border: 1px solid var(--teacher-border, #e7e3ee);
   border-radius: 12px;
   background: white;
 }
@@ -117,7 +118,7 @@
 .grid th,
 .grid td {
   padding: 10px;
-  border-bottom: 1px solid #e6ece4;
+  border-bottom: 1px solid var(--teacher-border, #e7e3ee);
   min-width: 140px;
   text-align: left;
   vertical-align: top;
@@ -125,7 +126,7 @@
 .grid th {
   position: sticky;
   top: 0;
-  background: #f0f4ed;
+  background: var(--teacher-accent-soft, #eeeafa);
   z-index: 2;
 }
 .grid th:first-child,
@@ -136,11 +137,11 @@
   max-width: 280px;
   background: white;
   z-index: 1;
-  border-right: 1px solid #dbe3da;
+  border-right: 1px solid var(--teacher-border, #e7e3ee);
 }
 .grid th:first-child {
   z-index: 3;
-  background: #f0f4ed;
+  background: var(--teacher-accent-soft, #eeeafa);
 }
 .grid td input,
 .grid td select {
@@ -148,7 +149,7 @@
 }
 .grid a {
   font-weight: 650;
-  color: #244c37;
+  color: var(--teacher-accent, #6352bd);
 }
 .grid input[type="checkbox"] {
   width: 20px;
@@ -157,7 +158,7 @@
   margin-right: 8px;
 }
 .grid tr:hover td {
-  background: #fafbf7;
+  background: var(--teacher-canvas, #f5f3f0);
 }
 .summary {
   display: flex;
@@ -203,7 +204,7 @@
   font-weight: 600;
 }
 .workbook a {
-  color: #244c37;
+  color: var(--teacher-accent, #6352bd);
 }
 .printTitle {
   display: none;
@@ -287,7 +288,7 @@
   max-width: 210px;
   background: white;
   z-index: 2;
-  border-right: 1px solid #dbe3da;
+  border-right: 1px solid var(--teacher-border, #e7e3ee);
 }
 .classWorkspace > .card input:not([type="checkbox"]),
 .classWorkspace > .card select { max-width: 100%; }
@@ -300,6 +301,10 @@
   top: auto;
 }
 .rosterGrid thead th:nth-child(2) {
-  background: #f0f4ed;
+  background: var(--teacher-accent-soft, #eeeafa);
   z-index: 4;
 }
+
+.summary > div {background:var(--teacher-accent-soft);padding:16px;border-radius:16px;min-width:110px}
+.choices button {border-radius:16px;min-height:100px}
+.choices button:nth-child(2n){background:#e8edf4}

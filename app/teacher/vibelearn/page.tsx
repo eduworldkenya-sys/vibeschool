@@ -767,7 +767,7 @@ export default function VibeLearnPage() {
     <>
       <style>{SHIMMER_CSS}</style>
       <div style={{ animation: "fadeIn 0.2s ease" }}>
-        <div style={{ background: "linear-gradient(135deg,#065f46 0%,#1e1b4b 100%)", borderRadius: 20, padding: 20, marginBottom: 14 }}>
+        <div style={{ background: "#2c2944", borderRadius: 20, padding: 20, marginBottom: 14 }}>
           <Shimmer w={80} h={10} />
           <div style={{ marginTop: 8 }}><Shimmer w={160} h={22} /></div>
           <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
@@ -814,8 +814,8 @@ export default function VibeLearnPage() {
       <div style={{ animation: "slideIn 0.22s ease" }}>
 
         {/* ── Hero ── */}
-        <div style={{ background: "linear-gradient(135deg,#065f46 0%,#1e1b4b 100%)", borderRadius: 20, padding: "18px 20px", marginBottom: 14, color: "#fff", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle,rgba(16,185,129,0.25),transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ background: "#2c2944", borderRadius: 20, padding: "18px 20px", marginBottom: 14, color: "#fff", position: "relative", overflow: "hidden" }}>
+          <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle,rgba(173,147,237,0.25),transparent 70%)", pointerEvents: "none" }} />
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn · Learning Library</div>
           <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Find. Use. Follow learning.</div>
           <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginBottom: 16 }}>Curriculum-aware learning material for your subjects, classes and learners.</div>

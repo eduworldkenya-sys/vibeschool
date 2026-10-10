@@ -1,6 +1,8 @@
 "use client";
 export const dynamic = "force-dynamic";
 
+import StudioTools from '@/components/teacher/StudioTools'
+import { Users, CalendarDays, Building2 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
@@ -66,8 +68,13 @@ export default function SchoolHubPage(){
    <div style={{fontSize:11,fontWeight:750,letterSpacing:1,textTransform:'uppercase',color:C.textMuted}}>My school</div>
    <h1 style={{fontSize:21,margin:'5px 0'}}>{school?.name??'School'}</h1>
    <div style={{fontSize:11,color:C.textMuted}}>{[school?.school_type,school?.county].filter(Boolean).join(' · ')}</div>
-   <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}><Btn small onClick={()=>router.push('/teacher/classhub')}>My classes</Btn><Btn small variant="ghost" onClick={()=>router.push('/teacher/timetable')}>Timetable</Btn><Btn small variant="ghost" onClick={()=>router.push('/teacher/onboarding/school')}>Change school</Btn></div>
+
   </section>
+  <StudioTools title="Your school tools" tools={[
+    {label:'My classes',href:'/teacher/classhub',icon:Users},
+    {label:'Timetable',href:'/teacher/timetable',icon:CalendarDays},
+    {label:'Change school',href:'/teacher/onboarding/school',icon:Building2},
+  ]} />
   {error&&<div role="alert" style={{padding:11,border:'1px solid #fecaca',background:'#fef2f2',borderRadius:12,color:'#b91c1c',fontSize:12}}>{error}<button type="button" className="teacher-btn teacher-btn--secondary" onClick={()=>void load()} style={{marginLeft:8}}>Retry</button></div>}
   {informationError&&<div role="alert" className="teacher-panel"><p>{informationError}</p><Btn small variant="ghost" onClick={()=>void load()}>Retry updates</Btn></div>}
   {!informationError&&<>

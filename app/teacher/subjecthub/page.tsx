@@ -1134,27 +1134,19 @@ export default function SubjectHubPage() {
       {!loading && activeSubject && outcomesByStrand.length > 0 && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: "var(--teacher-muted, #627168)", letterSpacing: 1.4, textTransform: 'uppercase' }}>Curriculum Outcomes</span>
+            <span style={{ fontSize: 11, fontWeight: 800, color: "var(--teacher-muted, #627168)", letterSpacing: 1.4, textTransform: 'uppercase' }}>Curriculum map</span>
             <span style={{ fontSize: 11, fontWeight: 700, background: "var(--teacher-green-soft, #e9f4ed)", color: '#065f46', borderRadius: 20, padding: '3px 9px' }}>
               {outcomesByStrand.reduce((s, o) => s + o.count, 0)} total
             </span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {outcomesByStrand.map(o => {
-              const total = outcomesByStrand.reduce((s, x) => s + x.count, 0)
-              const pct = Math.round((o.count / total) * 100)
-              return (
-                <div key={o.strand}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: "var(--teacher-ink, #1c2923)" }}>{o.strand}</span>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#065f46' }}>{o.count} outcome{o.count !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div style={{ width: '100%', height: 5, borderRadius: 5, background: '#f3f4f6', overflow: 'hidden' }}>
-                    <div style={{ width: `${pct}%`, height: '100%', borderRadius: 5, background: 'linear-gradient(90deg, #065f46 0%, #10b981 100%)', transition: 'width 0.4s ease' }} />
-                  </div>
-                </div>
-              )
-            })}
+          <div className="studio-curriculum-grid">
+            {outcomesByStrand.map(o => (
+              <div key={o.strand} className="studio-strand">
+                <strong>{o.count}</strong>
+                <span>{o.strand}</span>
+                <small>registered outcome{o.count !== 1 ? 's' : ''}</small>
+              </div>
+            ))}
           </div>
           <div style={{ marginTop: 10, fontSize: 11, color: "var(--teacher-muted, #627168)", lineHeight: 1.5 }}>
             Curriculum outcomes linked to this subject. Open a class below to inspect learner evidence and follow-up.
@@ -1168,7 +1160,7 @@ export default function SubjectHubPage() {
 
       {/* ── GROWTH ENGINE ── */}
       {!loading && activeSubject && (
-        <div style={{ margin: '14px 16px 0' }}>
+        <details className="teacher-today__details" style={{ margin: "14px 16px 0" }}><summary>Teaching activity &amp; coverage</summary>
           {/* Activity continuity is descriptive only; it is not a quality or performance score. */}
           {streak > 0 && (
             <div style={{ background: '#fff', borderRadius: 16, padding: '12px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: 10 }}>
@@ -1305,7 +1297,7 @@ export default function SubjectHubPage() {
             </div>
           )}
 
-        </div>
+        </details>
       )}
 
       {/* ── SUBJECT CONTENT LIBRARY ── */}
