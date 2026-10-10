@@ -548,7 +548,7 @@ export default function ClassWorkbook() {
       <div className={styles.header}>
         <div>
           <Link href={`/teacher/classhub/${classId}`}>← Back to class</Link>
-          <h1>{data.className} · Class sheets</h1>
+          <h1>{data.className} · Workbook</h1>
           <p className={styles.muted}>
             View class records or keep a private tracker alongside them.
           </p>
@@ -565,6 +565,11 @@ export default function ClassWorkbook() {
             {busy ? "Working…" : dirty ? "Save my sheets" : "Sheets saved"}
           </button>
         </div>
+      </div>
+      <div className={styles.snapshot} aria-label="Workbook overview">
+        <section><small>OPEN SHEET</small><h2>{sheet.title}</h2><span>{rows.length} learners in this view</span></section>
+        <div><strong>{doc.sheets.length}</strong><span>Class sheets</span></div>
+        <div><strong>{focusIds.length}</strong><span>Selected learners</span></div>
       </div>
       {filters.start && filters.end && filters.start > filters.end && (
         <div className={styles.error} role="alert">
@@ -612,11 +617,11 @@ export default function ClassWorkbook() {
           </div>
         </section>
       )}
-      <p className={styles.muted}>
+      <details className={styles.sheetGuide}><summary>About this sheet</summary><p className={styles.muted}>
         {templates.find((t) => t.kind === sheet.kind)?.why} Attendance shows
         daily register records. Scores and progress show your assigned subjects
         and recorded evidence.
-      </p>
+      </p></details>
       <details className={styles.card}><summary>Subject, term, dates and group filters</summary>
       <div className={styles.toolbar}>
         <label>

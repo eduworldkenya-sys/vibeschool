@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CalendarDays, ClipboardCheck, FileText, GraduationCap, Layers, Library, NotebookPen, TrendingUp, Users, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import TeachingWorkspaceNav from "@/components/teacher/TeachingWorkspaceNav";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 
 type Subject = { id: string; name: string };
@@ -163,6 +164,11 @@ export default function SubjectCompanion({
   const router = useRouter();
   const [selectedClassId, setSelectedClassId] = useState(classes[0]?.id ?? "");
 
+  useEffect(() => {
+    const requestedClass = new URLSearchParams(window.location.search).get('classId')
+    if (requestedClass && classes.some(row => row.id === requestedClass)) setSelectedClassId(requestedClass)
+  }, [classes, subject.id])
+
   const selectedClass = useMemo(
     () => classes.find((row) => row.id === selectedClassId) ?? classes[0] ?? null,
     [classes, selectedClassId],
@@ -227,6 +233,7 @@ export default function SubjectCompanion({
         Current context: <strong style={{ color: "#334155" }}>{classLabel}</strong>
       </div>
 
+      {selectedClass && <TeachingWorkspaceNav classId={selectedClass.id} subjectId={subject.id} current="Subject" />}
       {selectedClass && (
         <div style={{ marginTop: 12 }}>
           <SubjectLessonHandoff

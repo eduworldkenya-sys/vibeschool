@@ -308,3 +308,5 @@
 .summary > div {background:var(--teacher-accent-soft);padding:16px;border-radius:16px;min-width:110px}
 .choices button {border-radius:16px;min-height:100px}
 .choices button:nth-child(2n){background:#e8edf4}
+
+.snapshot{display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));gap:12px;margin:24px 0}.snapshot>section,.snapshot>div{background:#eeeafa;border-radius:18px;padding:24px;display:flex;flex-direction:column;justify-content:center;gap:9px}.snapshot>section{background:#fff;border:1px solid var(--teacher-border,#e7e3ee)}.snapshot small{font-size:10px;letter-spacing:1.2px;color:var(--teacher-muted)}.snapshot h2{font:700 22px Manrope,sans-serif;margin:0}.snapshot strong{font:800 30px Manrope,sans-serif}.snapshot span{font-size:12px;color:var(--teacher-muted)}.snapshot>div:last-child{background:#ece9e1}.sheetGuide{margin:15px 0}.sheetGuide summary{font-size:12px;color:var(--teacher-muted);cursor:pointer;min-height:44px;display:flex;align-items:center}@media(max-width:650px){.snapshot{grid-template-columns:1fr 1fr}.snapshot>section{grid-column:1/-1}.snapshot>div{padding:18px}}

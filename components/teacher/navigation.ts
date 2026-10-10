@@ -14,6 +14,7 @@ export const teacherTools = {
     { label: 'Teach today', href: '/teacher/teach-today', icon: BookOpen },
     { label: 'Timetable', href: '/teacher/timetable', icon: CalendarDays },
     { label: 'Subjects', href: '/teacher/subjecthub', icon: GraduationCap },
+    { label: 'Curriculum map', href: '/teacher/curriculum', icon: Library },
     { label: 'Scheme of work', href: '/teacher/scheme', icon: ClipboardList },
     { label: 'Lesson plans', href: '/teacher/lessonplan', icon: NotebookPen },
     { label: 'Lesson notes', href: '/teacher/lesson-notes', icon: FileText },

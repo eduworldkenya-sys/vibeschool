@@ -172,7 +172,11 @@ export default function SubjectHubPage() {
       }
       const subjectIds = Array.from(subjectMap.keys())
       setAllClasses(Array.from(classMap.values()))
-      setSubjects(Array.from(subjectMap, ([id, name]) => ({ id, name })).sort((x, y) => x.name.localeCompare(y.name)))
+      const sortedSubjects = Array.from(subjectMap, ([id, name]) => ({ id, name })).sort((x, y) => x.name.localeCompare(y.name))
+      setSubjects(sortedSubjects)
+      const requestedSubject = new URLSearchParams(window.location.search).get('subjectId')
+      const requestedIndex = sortedSubjects.findIndex(item => item.id === requestedSubject)
+      if (requestedIndex >= 0) setActiveIdx(requestedIndex)
 
       if (subjectIds.length === 0) { setLoading(false); return }
 

@@ -255,8 +255,9 @@ function Workspace() {
                   </p>
                 </>
               ) : (
+                <div className="studio-support-board">{[{title:'Plan',statuses:['open']},{title:'In progress',statuses:['in_progress']},{title:'Review',statuses:['escalated','completed','dismissed']}].map(lane => <section key={lane.title}><div className="studio-matrix-heading"><h3>{lane.title}</h3><span>{visible.filter(item => lane.statuses.includes(item.status)).length}</span></div>
                 <ul className={styles.rows}>
-                  {visible.map((item) => (
+                  {visible.filter(item => lane.statuses.includes(item.status)).map((item) => (
                     <li key={item.interventionId} className={styles.row}>
                       <div>
                         <strong>{item.studentName}</strong>
@@ -283,7 +284,8 @@ function Workspace() {
                       </button>
                     </li>
                   ))}
-                </ul>
+                </ul>                {visible.every(item => !lane.statuses.includes(item.status)) && <p className={styles.muted}>No records in this stage.</p>}</section>)}</div>
+
               )}
             </section>
           ) : (

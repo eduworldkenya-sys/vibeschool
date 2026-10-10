@@ -14,6 +14,7 @@ import type {
   VibeLearnClassUsageRole,
 } from "@/lib/content-engine/vibelearnClassAdoption";
 import { C } from "@/components/teacher/ui";
+import { BookOpen, Library, NotebookPen, Search, ArrowUpRight } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Content {
@@ -813,35 +814,9 @@ export default function VibeLearnPage() {
 
       <div style={{ animation: "slideIn 0.22s ease" }}>
 
-        {/* ── Hero ── */}
-        <div style={{ background: "#2c2944", borderRadius: 20, padding: "18px 20px", marginBottom: 14, color: "#fff", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", top: -40, right: -40, width: 140, height: 140, borderRadius: "50%", background: "radial-gradient(circle,rgba(173,147,237,0.25),transparent 70%)", pointerEvents: "none" }} />
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 2 }}>VibeLearn · Learning Library</div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Find. Use. Follow learning.</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.62)", marginBottom: 16 }}>Curriculum-aware learning material for your subjects, classes and learners.</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 8 }}>
-            {[
-              { label: "Find learning", detail: "For a class or subject", action: () => setTab("discover") },
-              { label: "Class reading", detail: "Follow assigned learning", action: () => setTab("assignments") },
-              { label: "Create", detail: "Add or publish material", action: () => setTab("create") },
-            ].map(item => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={item.action}
-                style={{ background: "rgba(255,255,255,0.09)", border: "1px solid rgba(255,255,255,0.14)", borderRadius: 12, padding: "11px 9px", color: "#fff", textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 800 }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.52)", marginTop: 3, lineHeight: 1.35 }}>{item.detail}</div>
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => router.push("/teacher/vibelearn/indexer")}
-            style={{ marginTop: 12, background: "transparent", border: "none", padding: "4px 0", color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
-          >
-            Publishing health →
-          </button>
+        <div className="studio-library-focus">
+          <section className="studio-library-hero"><small>VibeLearn · Learning Library</small><h1>Find. Use. Follow learning.</h1><p>Find material for your class and subject.</p><button onClick={() => setTab("discover")}><Search size={18}/>Find learning <ArrowUpRight size={18}/></button><BookOpen size={100} className="studio-library-mark" aria-hidden="true"/></section>
+          <div className="studio-library-actions"><button onClick={() => setTab("assignments")}><Library size={24}/><strong>Class reading</strong><span>Assignments & learner activity</span></button><button onClick={() => setTab("create")}><NotebookPen size={24}/><strong>Create a resource</strong><span>Pages, books & teaching material</span></button><button onClick={() => router.push("/teacher/vibelearn/indexer")}>Publishing health →</button></div>
         </div>
 
         {/* ── Tabs ── */}
@@ -849,11 +824,11 @@ export default function VibeLearnPage() {
           {(["content","create","assignments","stats","discover"] as Tab[]).map(t => (
             <button key={t} onClick={() => setTab(t)} style={S.pill(tab === t)}>
               {{
-                content: `📄 My content${liveCount > 0 ? ` (${liveCount})` : ""}`,
-                create: "✦ Create",
-                assignments: "📚 Class reading",
-                stats: "📊 Publishing",
-                discover: "🔍 Find learning",
+                content: `My content${liveCount > 0 ? ` (${liveCount})` : ""}`,
+                create: "Create",
+                assignments: "Class reading",
+                stats: "Publishing",
+                discover: "Find learning",
               }[t]}
             </button>
           ))}
@@ -2924,9 +2899,9 @@ function DiscoverTab({ userId }: { userId: string | null }) {
           {query ? `No results for "${query}"` : "No content from other teachers yet."}
         </div>
       ) : items.map(item => (
-        <div key={item.id} style={discoverCard}>
+        <div key={item.id} className="studio-library-resource" style={discoverCard}>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-            <div style={{ fontSize: 22, flexShrink: 0 }}>{contentIcon(item.type)}</div>
+            <div className={`studio-library-cover studio-library-cover--${item.type}`}><BookOpen size={30} aria-hidden="true"/><span>{item.type === "epage" ? "PAGE" : item.type === "ebook" ? "EBOOK" : "TEXTBOOK"}</span></div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--teacher-ink, #1c2923)", lineHeight: 1.3 }}>{item.title}</div>
               <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 2 }}>{item.source}</div>

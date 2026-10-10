@@ -3,8 +3,9 @@
 import { useState } from "react";
 import type { PulseSnapshot, Slot, WorkflowState } from "@/lib/types";
 import type { TeachingWorkspaceStage, WorkspaceStageState } from "@/lib/teaching/workspace";
-import EvidenceCaptureSheet from "./EvidenceCaptureSheet";
-import ReflectionSheet from "./ReflectionSheet";
+import dynamic from "next/dynamic";
+const EvidenceCaptureSheet = dynamic(() => import("./EvidenceCaptureSheet"), { loading: () => <p role="status">Opening evidence…</p> });
+const ReflectionSheet = dynamic(() => import("./ReflectionSheet"), { loading: () => <p role="status">Opening reflection…</p> });
 import { nairobiDateAdd, nairobiDateStr } from "@/lib/time";
 
 interface LessonFlowCardProps {
