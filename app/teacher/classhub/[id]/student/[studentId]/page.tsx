@@ -5,46 +5,198 @@ export const dynamic = "force-dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { UsersRound, Award, NotebookPen, Library, UserRound } from "lucide-react";
+import {
+  ArrowLeft,
+  Award,
+  BookOpenCheck,
+  CalendarCheck,
+  Ellipsis,
+  Library,
+  NotebookPen,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
+import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
-import { listInterventionQueue, type InterventionQueueItem } from "@/lib/assessment/interventions";
+import {
+  listInterventionQueue,
+  type InterventionQueueItem,
+} from "@/lib/assessment/interventions";
 
-type ClassContext = { class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string; is_class_teacher?: boolean };
-type Context = { teacher_id: string; school_id: string | null; classes: ClassContext[] };
-type Student = { id: string; name: string; admission_number: string | null; profile_id: string | null; deleted_at?: string | null };
+type ClassContext = {
+  class_id: string;
+  class_name: string;
+  stream: string | null;
+  subject_id: string;
+  subject_name: string;
+  is_class_teacher?: boolean;
+};
+type Context = {
+  teacher_id: string;
+  school_id: string | null;
+  classes: ClassContext[];
+};
+type Student = {
+  id: string;
+  name: string;
+  admission_number: string | null;
+  profile_id: string | null;
+  deleted_at?: string | null;
+};
 type AttendanceRow = { date: string; status: string; is_late: boolean | null };
-type HomeworkRow = { id: string; title: string; subject: string | null; due_date: string | null; type: string | null };
-type SubmissionRow = { homework_id: string | null; status: string; mark: number | null; feedback: string | null; submitted_at: string | null };
-type GradebookRow = { assessment_id: string; subject_id: string | null; score: number | null; max_score: number | null; percentage: number | null; assessment_type: string; assessment_title: string; released_at: string | null };
-type CbcRow = { id: string; subject_id: string; strand_id: string | null; sub_strand: string | null; assessment_type: string; performance: string; notes: string | null; created_at: string };
-type ExamRow = { id: string; exam_id: string; subject_id: string; marks: number; is_absent: boolean; created_at: string };
-type LibraryLoan = { id: string; book_id: string; issued_at: string; due_date: string; returned_at: string | null };
+type HomeworkRow = {
+  id: string;
+  title: string;
+  subject: string | null;
+  due_date: string | null;
+  type: string | null;
+};
+type SubmissionRow = {
+  homework_id: string | null;
+  status: string;
+  mark: number | null;
+  feedback: string | null;
+  submitted_at: string | null;
+};
+type GradebookRow = {
+  assessment_id: string;
+  subject_id: string | null;
+  score: number | null;
+  max_score: number | null;
+  percentage: number | null;
+  assessment_type: string;
+  assessment_title: string;
+  released_at: string | null;
+};
+type CbcRow = {
+  id: string;
+  subject_id: string;
+  strand_id: string | null;
+  sub_strand: string | null;
+  assessment_type: string;
+  performance: string;
+  notes: string | null;
+  created_at: string;
+};
+type ExamRow = {
+  id: string;
+  exam_id: string;
+  subject_id: string;
+  marks: number;
+  is_absent: boolean;
+  created_at: string;
+};
+type LibraryLoan = {
+  id: string;
+  book_id: string;
+  issued_at: string;
+  due_date: string;
+  returned_at: string | null;
+};
 type LibraryBook = { id: string; title: string };
 type SubjectRow = { id: string; name: string };
-type TeacherEvent = { id: string; subject_id: string | null; event_kind: string; event_code: string | null; note: string | null; visibility: string; metadata: unknown; due_at: string | null; resolved_at: string | null; created_at: string; created_by: string };
-type LearnerContextKey = "strengths" | "interests" | "learning_preferences" | "helpful_strategies" | "support_needs" | "accommodations" | "communication_preferences" | "responsibilities";
+type TeacherEvent = {
+  id: string;
+  subject_id: string | null;
+  event_kind: string;
+  event_code: string | null;
+  note: string | null;
+  visibility: string;
+  metadata: unknown;
+  due_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  created_by: string;
+};
+type LearnerContextKey =
+  | "strengths"
+  | "interests"
+  | "learning_preferences"
+  | "helpful_strategies"
+  | "support_needs"
+  | "accommodations"
+  | "communication_preferences"
+  | "responsibilities";
 type Tab = "now" | "about" | "work" | "assessment" | "attendance" | "timeline";
 
-const tabs: Tab[] = ["now", "about", "work", "assessment", "attendance", "timeline"];
-const learnerContextFields: Array<{ key: LearnerContextKey; label: string; help: string; placeholder: string }> = [
-  { key: "strengths", label: "Strengths noticed", help: "Specific strengths you have observed in learning or participation.", placeholder: "e.g. Explains ideas clearly during group work" },
-  { key: "interests", label: "Interests", help: "Topics or activities that help this learner engage.", placeholder: "e.g. Football, nature, drawing" },
-  { key: "learning_preferences", label: "How this learner learns well", help: "Teacher-tested preferences, not fixed labels.", placeholder: "e.g. Understands faster after seeing one worked example" },
-  { key: "helpful_strategies", label: "Strategies that help", help: "Classroom approaches that have worked in practice.", placeholder: "e.g. Short instructions followed by a check-in" },
-  { key: "support_needs", label: "Current learning support", help: "Describe the learning need and evidence without labelling the learner.", placeholder: "e.g. Needs extra practice interpreting scale on graphs" },
-  { key: "accommodations", label: "Classroom adjustments", help: "Practical adjustments currently used by the school or teacher.", placeholder: "e.g. Seat near the board; allow extra reading time" },
-  { key: "communication_preferences", label: "Communication notes", help: "Useful language or communication preferences for teaching.", placeholder: "e.g. Responds well to questions given one at a time" },
-  { key: "responsibilities", label: "Roles and responsibilities", help: "Class roles, clubs, games or responsibilities that matter in school.", placeholder: "e.g. Group leader; football team; library monitor" },
+const tabs: Tab[] = [
+  "now",
+  "about",
+  "work",
+  "assessment",
+  "attendance",
+  "timeline",
+];
+const learnerContextFields: Array<{
+  key: LearnerContextKey;
+  label: string;
+  help: string;
+  placeholder: string;
+}> = [
+  {
+    key: "strengths",
+    label: "Strengths noticed",
+    help: "Specific strengths you have observed in learning or participation.",
+    placeholder: "e.g. Explains ideas clearly during group work",
+  },
+  {
+    key: "interests",
+    label: "Interests",
+    help: "Topics or activities that help this learner engage.",
+    placeholder: "e.g. Football, nature, drawing",
+  },
+  {
+    key: "learning_preferences",
+    label: "How this learner learns well",
+    help: "Teacher-tested preferences, not fixed labels.",
+    placeholder: "e.g. Understands faster after seeing one worked example",
+  },
+  {
+    key: "helpful_strategies",
+    label: "Strategies that help",
+    help: "Classroom approaches that have worked in practice.",
+    placeholder: "e.g. Short instructions followed by a check-in",
+  },
+  {
+    key: "support_needs",
+    label: "Current learning support",
+    help: "Describe the learning need and evidence without labelling the learner.",
+    placeholder: "e.g. Needs extra practice interpreting scale on graphs",
+  },
+  {
+    key: "accommodations",
+    label: "Classroom adjustments",
+    help: "Practical adjustments currently used by the school or teacher.",
+    placeholder: "e.g. Seat near the board; allow extra reading time",
+  },
+  {
+    key: "communication_preferences",
+    label: "Communication notes",
+    help: "Useful language or communication preferences for teaching.",
+    placeholder: "e.g. Responds well to questions given one at a time",
+  },
+  {
+    key: "responsibilities",
+    label: "Roles and responsibilities",
+    help: "Class roles, clubs, games or responsibilities that matter in school.",
+    placeholder: "e.g. Group leader; football team; library monitor",
+  },
 ];
 
 function isLearnerContextEvent(event: TeacherEvent) {
-  return event.event_kind === "management" && Boolean(event.event_code?.startsWith("learner_context_"));
+  return (
+    event.event_kind === "management" &&
+    Boolean(event.event_code?.startsWith("learner_context_"))
+  );
 }
 
 function learnerContextKey(event: TeacherEvent): LearnerContextKey | null {
   if (!isLearnerContextEvent(event)) return null;
-  const key = event.event_code?.replace("learner_context_", "") as LearnerContextKey;
+  const key = event.event_code?.replace(
+    "learner_context_",
+    "",
+  ) as LearnerContextKey;
   return learnerContextFields.some((field) => field.key === key) ? key : null;
 }
 
@@ -57,30 +209,91 @@ function stringOrNull(value: unknown) {
 }
 
 function parseContext(value: unknown): Context {
-  if (!isRecord(value)) throw new Error("Teacher operating context is invalid.");
+  if (!isRecord(value))
+    throw new Error("Teacher operating context is invalid.");
   const classes: ClassContext[] = [];
   if (Array.isArray(value.classes)) {
     for (const entry of value.classes) {
       if (!isRecord(entry)) continue;
-      if (typeof entry.class_id !== "string" || typeof entry.class_name !== "string" || typeof entry.subject_id !== "string" || typeof entry.subject_name !== "string") continue;
-      classes.push({ class_id: entry.class_id, class_name: entry.class_name, stream: stringOrNull(entry.stream), subject_id: entry.subject_id, subject_name: entry.subject_name, is_class_teacher: entry.is_class_teacher === true });
+      if (
+        typeof entry.class_id !== "string" ||
+        typeof entry.class_name !== "string" ||
+        typeof entry.subject_id !== "string" ||
+        typeof entry.subject_name !== "string"
+      )
+        continue;
+      classes.push({
+        class_id: entry.class_id,
+        class_name: entry.class_name,
+        stream: stringOrNull(entry.stream),
+        subject_id: entry.subject_id,
+        subject_name: entry.subject_name,
+        is_class_teacher: entry.is_class_teacher === true,
+      });
     }
   }
-  return { teacher_id: typeof value.teacher_id === "string" ? value.teacher_id : "", school_id: stringOrNull(value.school_id), classes };
+  return {
+    teacher_id: typeof value.teacher_id === "string" ? value.teacher_id : "",
+    school_id: stringOrNull(value.school_id),
+    classes,
+  };
 }
 
 function formatDate(value: string) {
-  const parsed = new Date(value.length === 10 ? `${value}T12:00:00+03:00` : value);
-  return Number.isFinite(parsed.getTime()) ? parsed.toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" }) : value;
+  const parsed = new Date(
+    value.length === 10 ? `${value}T12:00:00+03:00` : value,
+  );
+  return Number.isFinite(parsed.getTime())
+    ? parsed.toLocaleDateString("en-KE", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : value;
 }
 
-function Badge({ text, tone = "neutral" }: { text: string; tone?: "good" | "warn" | "bad" | "neutral" }) {
-  const palette = { good: { background: "#ecfdf5", color: "#065f46" }, warn: { background: "#fffbeb", color: "#92400e" }, bad: { background: "#fef2f2", color: "#991b1b" }, neutral: { background: "#f3f4f6", color: "#4b5563" } }[tone];
-  return <span style={{ ...palette, display: "inline-block", borderRadius: 99, padding: "4px 8px", fontSize: 11, fontWeight: 750 }}>{text}</span>;
+function Badge({
+  text,
+  tone = "neutral",
+}: {
+  text: string;
+  tone?: "good" | "warn" | "bad" | "neutral";
+}) {
+  const palette = {
+    good: { background: "#ecfdf5", color: "#065f46" },
+    warn: { background: "#fffbeb", color: "#92400e" },
+    bad: { background: "#fef2f2", color: "#991b1b" },
+    neutral: { background: "#f3f4f6", color: "#4b5563" },
+  }[tone];
+  return (
+    <span
+      style={{
+        ...palette,
+        display: "inline-block",
+        borderRadius: 99,
+        padding: "4px 8px",
+        fontSize: 11,
+        fontWeight: 750,
+      }}
+    >
+      {text}
+    </span>
+  );
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return <section style={{ background: "#fff", borderRadius: 18, padding: 15, boxShadow: "0 2px 14px rgba(0,0,0,.05)" }}>{children}</section>;
+  return (
+    <section
+      style={{
+        background: "#fff",
+        borderRadius: 18,
+        padding: 15,
+        boxShadow: "0 2px 14px rgba(0,0,0,.05)",
+      }}
+    >
+      {children}
+    </section>
+  );
 }
 
 export default function TeacherStudentProgressPage() {
@@ -101,18 +314,44 @@ export default function TeacherStudentProgressPage() {
   const [libraryLoans, setLibraryLoans] = useState<LibraryLoan[]>([]);
   const [libraryBooks, setLibraryBooks] = useState<LibraryBook[]>([]);
   const [subjects, setSubjects] = useState<SubjectRow[]>([]);
-  const [interventions, setInterventions] = useState<InterventionQueueItem[]>([]);
+  const [interventions, setInterventions] = useState<InterventionQueueItem[]>(
+    [],
+  );
   const [teacherEvents, setTeacherEvents] = useState<TeacherEvent[]>([]);
   const [eventNote, setEventNote] = useState("");
   const [eventSaving, setEventSaving] = useState(false);
   const [eventMessage, setEventMessage] = useState("");
-  const [tab, setTab] = useState<Tab>(!requestedSubjectId && searchParams.get("tab") === "about" ? "about" : "now");
+  const [tab, setTab] = useState<Tab>(
+    !requestedSubjectId && searchParams.get("tab") === "about"
+      ? "about"
+      : "now",
+  );
   const [schoolLifeTarget, setSchoolLifeTarget] = useState<string | null>(null);
-  useEffect(() => { if (schoolLifeTarget) { document.getElementById(schoolLifeTarget)?.scrollIntoView({block:"start"}); setSchoolLifeTarget(null) } }, [schoolLifeTarget, tab]);
-  const [contextDrafts, setContextDrafts] = useState<Record<LearnerContextKey, string>>(() => Object.fromEntries(learnerContextFields.map((field) => [field.key, ""])) as Record<LearnerContextKey, string>);
-  const [contextSaving, setContextSaving] = useState<LearnerContextKey | null>(null);
+  useEffect(() => {
+    if (schoolLifeTarget) {
+      document
+        .getElementById(schoolLifeTarget)
+        ?.scrollIntoView({ block: "start" });
+      setSchoolLifeTarget(null);
+    }
+  }, [schoolLifeTarget, tab]);
+  const [contextDrafts, setContextDrafts] = useState<
+    Record<LearnerContextKey, string>
+  >(
+    () =>
+      Object.fromEntries(
+        learnerContextFields.map((field) => [field.key, ""]),
+      ) as Record<LearnerContextKey, string>,
+  );
+  const [contextSaving, setContextSaving] = useState<LearnerContextKey | null>(
+    null,
+  );
   const [contextMessage, setContextMessage] = useState("");
-  const contextRequestIds = useRef<Record<LearnerContextKey, string>>(Object.fromEntries(learnerContextFields.map((field) => [field.key, crypto.randomUUID()])) as Record<LearnerContextKey, string>);
+  const contextRequestIds = useRef<Record<LearnerContextKey, string>>(
+    Object.fromEntries(
+      learnerContextFields.map((field) => [field.key, crypto.randomUUID()]),
+    ) as Record<LearnerContextKey, string>,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,48 +360,193 @@ export default function TeacherStudentProgressPage() {
     setError(null);
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
-      if (authError || !auth.user) { router.replace("/login"); return; }
+      if (authError || !auth.user) {
+        router.replace("/login");
+        return;
+      }
 
-      const { data: contextData, error: contextError } = await supabase.rpc("teacher_get_operating_context");
+      const { data: contextData, error: contextError } = await supabase.rpc(
+        "teacher_get_operating_context",
+      );
       if (contextError) throw contextError;
       const ctx = parseContext(contextData);
       if (!ctx.school_id) throw new Error("School context is missing.");
-      const classAssignments = ctx.classes.filter((item) => item.class_id === classId);
+      const classAssignments = ctx.classes.filter(
+        (item) => item.class_id === classId,
+      );
       const authorizedAssignment = requestedSubjectId
-        ? classAssignments.find((item) => item.subject_id === requestedSubjectId)
+        ? classAssignments.find(
+            (item) => item.subject_id === requestedSubjectId,
+          )
         : classAssignments.find((item) => item.is_class_teacher);
-      if (!authorizedAssignment) throw new Error(requestedSubjectId ? "This subject is not assigned to you in the active school." : "Class-wide learner history is available to the class teacher. Use the subject view for subject-scoped learner evidence.");
+      if (!authorizedAssignment)
+        throw new Error(
+          requestedSubjectId
+            ? "This subject is not assigned to you in the active school."
+            : "Class-wide learner history is available to the class teacher. Use the subject view for subject-scoped learner evidence.",
+        );
       setContext(ctx);
 
-      const enrollmentRes = await supabase.from("student_classes").select("student_id").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("is_current", true).maybeSingle();
+      const enrollmentRes = await supabase
+        .from("student_classes")
+        .select("student_id")
+        .eq("school_id", ctx.school_id)
+        .eq("class_id", classId)
+        .eq("student_id", studentId)
+        .eq("is_current", true)
+        .maybeSingle();
       if (enrollmentRes.error) throw enrollmentRes.error;
-      if (!enrollmentRes.data) throw new Error("This learner is not currently enrolled in this class.");
+      if (!enrollmentRes.data)
+        throw new Error(
+          "This learner is not currently enrolled in this class.",
+        );
 
-      const learnerRes = await supabase.from("students").select("id,name,admission_number,profile_id,deleted_at").eq("id", studentId).is("deleted_at", null).maybeSingle();
+      const learnerRes = await supabase
+        .from("students")
+        .select("id,name,admission_number,profile_id,deleted_at")
+        .eq("id", studentId)
+        .is("deleted_at", null)
+        .maybeSingle();
       if (learnerRes.error) throw learnerRes.error;
       const learner = learnerRes.data as Student | null;
-      if (!learner) throw new Error("This learner identity could not be loaded. Retry instead of treating the enrolment as missing.");
+      if (!learner)
+        throw new Error(
+          "This learner identity could not be loaded. Retry instead of treating the enrolment as missing.",
+        );
       setStudent(learner);
 
       const subjectIds = requestedSubjectId
         ? [requestedSubjectId]
-        : Array.from(new Set(ctx.classes.filter((item) => item.class_id === classId).map((item) => item.subject_id)));
-      const [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, eventsRes, libraryLoansRes, libraryBooksRes, interventionRows] = await Promise.all([
-        supabase.from("attendance").select("date,status,is_late").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).order("date", { ascending: false }).limit(120),
-        supabase.from("homework").select("id,title,subject,due_date,type").eq("school_id", ctx.school_id).eq("class_id", classId).eq("teacher_id", auth.user.id).order("due_date", { ascending: false }).limit(80),
-        subjectIds.length ? supabase.from("assessment_gradebook_entries").select("assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("released_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
-        subjectIds.length ? supabase.from("cbc_assessments").select("id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
-        subjectIds.length ? supabase.from("exam_results").select("id,exam_id,subject_id,marks,is_absent,created_at").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).eq("teacher_id", auth.user.id).in("subject_id", subjectIds).order("created_at", { ascending: false }).limit(80) : Promise.resolve({ data: [], error: null }),
-        subjectIds.length ? supabase.from("subjects").select("id,name").in("id", subjectIds) : Promise.resolve({ data: [], error: null }),
-        supabase.from("teacher_learner_events").select("id,subject_id,event_kind,event_code,note,visibility,metadata,due_at,resolved_at,created_at,created_by").eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId).is("archived_at", null).order("created_at", { ascending: false }).limit(120),
-        supabase.from("library_borrowings").select("id,book_id,issued_at,due_date,returned_at").eq("school_id", ctx.school_id).eq("student_id", studentId).eq("borrower_type", "student").is("deleted_at", null).or(`issued_for_class_id.eq.${classId},issued_for_class_id.is.null`).order("issued_at", { ascending: false }).limit(80),
-        supabase.from("library_books").select("id,title").eq("school_id", ctx.school_id).is("deleted_at", null),
+        : Array.from(
+            new Set(
+              ctx.classes
+                .filter((item) => item.class_id === classId)
+                .map((item) => item.subject_id),
+            ),
+          );
+      const [
+        attendanceRes,
+        homeworkRes,
+        gradebookRes,
+        cbcRes,
+        examRes,
+        subjectRes,
+        eventsRes,
+        libraryLoansRes,
+        libraryBooksRes,
+        interventionRows,
+      ] = await Promise.all([
+        supabase
+          .from("attendance")
+          .select("date,status,is_late")
+          .eq("school_id", ctx.school_id)
+          .eq("class_id", classId)
+          .eq("student_id", studentId)
+          .order("date", { ascending: false })
+          .limit(120),
+        supabase
+          .from("homework")
+          .select("id,title,subject,due_date,type")
+          .eq("school_id", ctx.school_id)
+          .eq("class_id", classId)
+          .eq("teacher_id", auth.user.id)
+          .order("due_date", { ascending: false })
+          .limit(80),
+        subjectIds.length
+          ? supabase
+              .from("assessment_gradebook_entries")
+              .select(
+                "assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at",
+              )
+              .eq("school_id", ctx.school_id)
+              .eq("class_id", classId)
+              .eq("student_id", studentId)
+              .eq("teacher_id", auth.user.id)
+              .in("subject_id", subjectIds)
+              .order("released_at", { ascending: false })
+              .limit(80)
+          : Promise.resolve({ data: [], error: null }),
+        subjectIds.length
+          ? supabase
+              .from("cbc_assessments")
+              .select(
+                "id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at",
+              )
+              .eq("school_id", ctx.school_id)
+              .eq("class_id", classId)
+              .eq("student_id", studentId)
+              .eq("teacher_id", auth.user.id)
+              .in("subject_id", subjectIds)
+              .order("created_at", { ascending: false })
+              .limit(80)
+          : Promise.resolve({ data: [], error: null }),
+        subjectIds.length
+          ? supabase
+              .from("exam_results")
+              .select("id,exam_id,subject_id,marks,is_absent,created_at")
+              .eq("school_id", ctx.school_id)
+              .eq("class_id", classId)
+              .eq("student_id", studentId)
+              .eq("teacher_id", auth.user.id)
+              .in("subject_id", subjectIds)
+              .order("created_at", { ascending: false })
+              .limit(80)
+          : Promise.resolve({ data: [], error: null }),
+        subjectIds.length
+          ? supabase.from("subjects").select("id,name").in("id", subjectIds)
+          : Promise.resolve({ data: [], error: null }),
+        supabase
+          .from("teacher_learner_events")
+          .select(
+            "id,subject_id,event_kind,event_code,note,visibility,metadata,due_at,resolved_at,created_at,created_by",
+          )
+          .eq("school_id", ctx.school_id)
+          .eq("class_id", classId)
+          .eq("student_id", studentId)
+          .is("archived_at", null)
+          .order("created_at", { ascending: false })
+          .limit(120),
+        supabase
+          .from("library_borrowings")
+          .select("id,book_id,issued_at,due_date,returned_at")
+          .eq("school_id", ctx.school_id)
+          .eq("student_id", studentId)
+          .eq("borrower_type", "student")
+          .is("deleted_at", null)
+          .or(`issued_for_class_id.eq.${classId},issued_for_class_id.is.null`)
+          .order("issued_at", { ascending: false })
+          .limit(80),
+        supabase
+          .from("library_books")
+          .select("id,title")
+          .eq("school_id", ctx.school_id)
+          .is("deleted_at", null),
         listInterventionQueue(classId),
       ]);
-      for (const result of [attendanceRes, homeworkRes, gradebookRes, cbcRes, examRes, subjectRes, eventsRes, libraryLoansRes, libraryBooksRes]) if (result.error) throw result.error;
+      for (const result of [
+        attendanceRes,
+        homeworkRes,
+        gradebookRes,
+        cbcRes,
+        examRes,
+        subjectRes,
+        eventsRes,
+        libraryLoansRes,
+        libraryBooksRes,
+      ])
+        if (result.error) throw result.error;
 
       const homeworkRows: HomeworkRow[] = homeworkRes.data ?? [];
-      const submissionRes = homeworkRows.length ? await supabase.from("homework_submissions").select("homework_id,status,mark,feedback,submitted_at").eq("student_id", studentId).in("homework_id", homeworkRows.map((item) => item.id)) : { data: [], error: null };
+      const submissionRes = homeworkRows.length
+        ? await supabase
+            .from("homework_submissions")
+            .select("homework_id,status,mark,feedback,submitted_at")
+            .eq("student_id", studentId)
+            .in(
+              "homework_id",
+              homeworkRows.map((item) => item.id),
+            )
+        : { data: [], error: null };
       if (submissionRes.error) throw submissionRes.error;
 
       setAttendance(attendanceRes.data ?? []);
@@ -176,7 +560,9 @@ export default function TeacherStudentProgressPage() {
       setSubjects(subjectRes.data ?? []);
       const loadedEvents = (eventsRes.data ?? []) as TeacherEvent[];
       setTeacherEvents(loadedEvents);
-      const nextDrafts = Object.fromEntries(learnerContextFields.map((field) => [field.key, ""])) as Record<LearnerContextKey, string>;
+      const nextDrafts = Object.fromEntries(
+        learnerContextFields.map((field) => [field.key, ""]),
+      ) as Record<LearnerContextKey, string>;
       const seen = new Set<LearnerContextKey>();
       for (const event of loadedEvents) {
         const key = learnerContextKey(event);
@@ -185,228 +571,1880 @@ export default function TeacherStudentProgressPage() {
         seen.add(key);
       }
       setContextDrafts(nextDrafts);
-      setInterventions(interventionRows.filter((item) => item.studentId === studentId));
+      setInterventions(
+        interventionRows.filter((item) => item.studentId === studentId),
+      );
     } catch (loadError) {
       console.error("[LearnerWorkspace] load", loadError);
-      setError(loadError instanceof Error ? loadError.message : "Learner workspace could not be loaded.");
-    } finally { setLoading(false); }
+      setError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Learner workspace could not be loaded.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [classId, requestedSubjectId, router, studentId]);
 
-  const saveTeacherEvent = useCallback(async (eventKind: "observation" | "participation" | "recognition" | "followup") => {
-    if (!context?.school_id || !context.teacher_id || !student) return;
-    if ((eventKind === "observation" || eventKind === "followup") && !eventNote.trim()) {
-      setEventMessage("Add a short factual note first.");
-      return;
-    }
-    setEventSaving(true);
-    setEventMessage("");
-    const defaults = { observation: "teacher_note", participation: "participated", recognition: "strong_effort", followup: "follow_up" } as const;
-    const { error: insertError } = await supabase.from("teacher_learner_events").insert({
-      school_id: context.school_id,
-      class_id: classId,
-      student_id: student.id,
-      subject_id: requestedSubjectId,
-      event_kind: eventKind,
-      event_code: defaults[eventKind],
-      note: eventNote.trim() || (eventKind === "participation" ? "Participated in class." : "Strong effort shown."),
-      visibility: eventKind === "observation" ? "author" : "subject_team",
-      due_at: eventKind === "followup" ? new Date(Date.now() + 7 * 86400000).toISOString() : null,
-      created_by: context.teacher_id,
-    });
-    if (insertError) {
-      setEventMessage(insertError.message);
-    } else {
-      setEventNote("");
-      setEventMessage("Saved to this learner's story.");
-      await load();
-    }
-    setEventSaving(false);
-  }, [classId, context, eventNote, load, requestedSubjectId, student]);
-
-  const saveLearnerContext = useCallback(async (key: LearnerContextKey) => {
-    if (!context?.school_id || !context.teacher_id || !student || requestedSubjectId) return;
-    const value = contextDrafts[key].trim();
-    if (value.length > 1200) {
-      setContextMessage("Keep each section below 1,200 characters.");
-      return;
-    }
-    setContextSaving(key);
-    setContextMessage("");
-    const previous = teacherEvents.find((event) => learnerContextKey(event) === key);
-    const requestId = contextRequestIds.current[key];
-    const { error: insertError } = await supabase.from("teacher_learner_events").insert({
-      school_id: context.school_id,
-      class_id: classId,
-      student_id: student.id,
-      subject_id: null,
-      event_kind: "management",
-      event_code: `learner_context_${key}`,
-      note: value || null,
-      visibility: "class_teacher",
-      metadata: { context_key: key, provenance: "teacher-entered", supersedes_event_id: previous?.id ?? null, request_id: requestId },
-      created_by: context.teacher_id,
-    });
-    if (insertError) {
-      const { data: existing } = insertError.code === "23505"
-        ? await supabase.from("teacher_learner_events").select("id,event_code,note").eq("created_by", context.teacher_id).eq("student_id", student.id).contains("metadata", { request_id: requestId }).maybeSingle()
-        : { data: null };
-      if (existing?.event_code === `learner_context_${key}` && (existing.note ?? "") === value) {
-        contextRequestIds.current[key] = crypto.randomUUID();
-        setContextMessage("Saved. The earlier version remains in the learner history.");
-        await load();
-      } else {
-        setContextMessage(insertError.message);
+  const saveTeacherEvent = useCallback(
+    async (
+      eventKind: "observation" | "participation" | "recognition" | "followup",
+    ) => {
+      if (!context?.school_id || !context.teacher_id || !student) return;
+      if (
+        (eventKind === "observation" || eventKind === "followup") &&
+        !eventNote.trim()
+      ) {
+        setEventMessage("Add a short factual note first.");
+        return;
       }
-    } else {
-      contextRequestIds.current[key] = crypto.randomUUID();
-      setContextMessage("Saved. The earlier version remains in the learner history.");
-      await load();
-    }
-    setContextSaving(null);
-  }, [classId, context, contextDrafts, load, requestedSubjectId, student, teacherEvents]);
+      setEventSaving(true);
+      setEventMessage("");
+      const defaults = {
+        observation: "teacher_note",
+        participation: "participated",
+        recognition: "strong_effort",
+        followup: "follow_up",
+      } as const;
+      const { error: insertError } = await supabase
+        .from("teacher_learner_events")
+        .insert({
+          school_id: context.school_id,
+          class_id: classId,
+          student_id: student.id,
+          subject_id: requestedSubjectId,
+          event_kind: eventKind,
+          event_code: defaults[eventKind],
+          note:
+            eventNote.trim() ||
+            (eventKind === "participation"
+              ? "Participated in class."
+              : "Strong effort shown."),
+          visibility: eventKind === "observation" ? "author" : "subject_team",
+          due_at:
+            eventKind === "followup"
+              ? new Date(Date.now() + 7 * 86400000).toISOString()
+              : null,
+          created_by: context.teacher_id,
+        });
+      if (insertError) {
+        setEventMessage(insertError.message);
+      } else {
+        setEventNote("");
+        setEventMessage("Saved to this learner's story.");
+        await load();
+      }
+      setEventSaving(false);
+    },
+    [classId, context, eventNote, load, requestedSubjectId, student],
+  );
 
-  useEffect(() => { void load(); }, [load]);
+  const saveLearnerContext = useCallback(
+    async (key: LearnerContextKey) => {
+      if (
+        !context?.school_id ||
+        !context.teacher_id ||
+        !student ||
+        requestedSubjectId
+      )
+        return;
+      const value = contextDrafts[key].trim();
+      if (value.length > 1200) {
+        setContextMessage("Keep each section below 1,200 characters.");
+        return;
+      }
+      setContextSaving(key);
+      setContextMessage("");
+      const previous = teacherEvents.find(
+        (event) => learnerContextKey(event) === key,
+      );
+      const requestId = contextRequestIds.current[key];
+      const { error: insertError } = await supabase
+        .from("teacher_learner_events")
+        .insert({
+          school_id: context.school_id,
+          class_id: classId,
+          student_id: student.id,
+          subject_id: null,
+          event_kind: "management",
+          event_code: `learner_context_${key}`,
+          note: value || null,
+          visibility: "class_teacher",
+          metadata: {
+            context_key: key,
+            provenance: "teacher-entered",
+            supersedes_event_id: previous?.id ?? null,
+            request_id: requestId,
+          },
+          created_by: context.teacher_id,
+        });
+      if (insertError) {
+        const { data: existing } =
+          insertError.code === "23505"
+            ? await supabase
+                .from("teacher_learner_events")
+                .select("id,event_code,note")
+                .eq("created_by", context.teacher_id)
+                .eq("student_id", student.id)
+                .contains("metadata", { request_id: requestId })
+                .maybeSingle()
+            : { data: null };
+        if (
+          existing?.event_code === `learner_context_${key}` &&
+          (existing.note ?? "") === value
+        ) {
+          contextRequestIds.current[key] = crypto.randomUUID();
+          setContextMessage(
+            "Saved. The earlier version remains in the learner history.",
+          );
+          await load();
+        } else {
+          setContextMessage(insertError.message);
+        }
+      } else {
+        contextRequestIds.current[key] = crypto.randomUUID();
+        setContextMessage(
+          "Saved. The earlier version remains in the learner history.",
+        );
+        await load();
+      }
+      setContextSaving(null);
+    },
+    [
+      classId,
+      context,
+      contextDrafts,
+      load,
+      requestedSubjectId,
+      student,
+      teacherEvents,
+    ],
+  );
 
-  const subjectNames = useMemo(() => new Map(subjects.map((item) => [item.id, item.name])), [subjects]);
-  const submissionMap = useMemo(() => new Map(submissions.map((item) => [item.homework_id, item])), [submissions]);
-  const truth = useMemo(() => buildLearnerTruthSummary({ attendance, homework, submissions, assessments: gradebook, cbc, examCount: exams.length }), [attendance, homework, submissions, gradebook, cbc, exams.length]);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
-  if (loading) return <div style={{ padding: 18 }} aria-label="Loading learner workspace"><div style={{ height: 180, borderRadius: 20, background: "var(--teacher-border, #dfe5de)" }} /></div>;
-  if (!student || error) return <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px" }}><div role="alert" style={{ background: "#fef2f2", color: "#991b1b", borderRadius: 16, padding: 18 }}>{error ?? "Learner not found."}</div><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={{ marginTop: 12, minHeight: 44, border: 0, borderRadius: 12, background: "var(--teacher-ink, #1c2923)", color: "#fff", padding: "0 16px", fontWeight: 750 }}>Back to class</button></div>;
+  const subjectNames = useMemo(
+    () => new Map(subjects.map((item) => [item.id, item.name])),
+    [subjects],
+  );
+  const submissionMap = useMemo(
+    () => new Map(submissions.map((item) => [item.homework_id, item])),
+    [submissions],
+  );
+  const truth = useMemo(
+    () =>
+      buildLearnerTruthSummary({
+        attendance,
+        homework,
+        submissions,
+        assessments: gradebook,
+        cbc,
+        examCount: exams.length,
+      }),
+    [attendance, homework, submissions, gradebook, cbc, exams.length],
+  );
 
-  const classAssignment = context?.classes.find((item) => item.class_id === classId);
-  const assessmentEvidence = truth.assessment.released + truth.assessment.cbc + truth.assessment.exams;
-  const activeIntervention = interventions.find((item) => item.status !== "completed" && item.status !== "dismissed") ?? interventions[0] ?? null;
+  if (loading)
+    return (
+      <div
+        className={experience.profileLoading}
+        aria-label="Loading learner profile"
+      >
+        <div />
+        <div />
+        <div />
+      </div>
+    );
+  if (!student || error)
+    return (
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "24px 16px" }}>
+        <div
+          role="alert"
+          style={{
+            background: "#fef2f2",
+            color: "#991b1b",
+            borderRadius: 16,
+            padding: 18,
+          }}
+        >
+          {error ?? "Learner not found."}
+        </div>
+        <button
+          type="button"
+          onClick={() => router.push(`/teacher/classhub/${classId}`)}
+          style={{
+            marginTop: 12,
+            minHeight: 44,
+            border: 0,
+            borderRadius: 12,
+            background: "var(--teacher-ink, #1c2923)",
+            color: "#fff",
+            padding: "0 16px",
+            fontWeight: 750,
+          }}
+        >
+          Back to class
+        </button>
+      </div>
+    );
+
+  const classAssignment = context?.classes.find(
+    (item) => item.class_id === classId,
+  );
+  const assessmentEvidence =
+    truth.assessment.released + truth.assessment.cbc + truth.assessment.exams;
+  const activeIntervention =
+    interventions.find(
+      (item) => item.status !== "completed" && item.status !== "dismissed",
+    ) ??
+    interventions[0] ??
+    null;
   const strengths = [
-    truth.attendance.rate != null && truth.attendance.rate >= 90 ? `Attendance is strong at ${truth.attendance.rate}%.` : null,
-    truth.work.assigned >= 2 && truth.work.submitted / Math.max(truth.work.assigned, 1) >= .8 ? `${truth.work.submitted} of ${truth.work.assigned} assigned items have a submission record.` : null,
-    truth.assessment.averageReleasedScore != null && truth.assessment.averageReleasedScore >= 70 ? `Released assessment average is ${truth.assessment.averageReleasedScore}%.` : null,
-    activeIntervention?.priority === "extension" ? `${activeIntervention.subjectName} evidence supports extension work.` : null,
+    truth.attendance.rate != null && truth.attendance.rate >= 90
+      ? `Attendance is strong at ${truth.attendance.rate}%.`
+      : null,
+    truth.work.assigned >= 2 &&
+    truth.work.submitted / Math.max(truth.work.assigned, 1) >= 0.8
+      ? `${truth.work.submitted} of ${truth.work.assigned} assigned items have a submission record.`
+      : null,
+    truth.assessment.averageReleasedScore != null &&
+    truth.assessment.averageReleasedScore >= 70
+      ? `Released assessment average is ${truth.assessment.averageReleasedScore}%.`
+      : null,
+    activeIntervention?.priority === "extension"
+      ? `${activeIntervention.subjectName} evidence supports extension work.`
+      : null,
   ].filter((item): item is string => Boolean(item));
 
   const todayInsights = [
-    truth.work.missing > 0 ? `${truth.work.missing} overdue ${truth.work.missing === 1 ? "task needs" : "tasks need"} follow-up.` : null,
-    activeIntervention ? `${activeIntervention.subjectName}: ${activeIntervention.masteryScore < 40 ? "needs focused support" : activeIntervention.priority === "extension" ? "ready for a challenge" : "needs more practice"} (${Math.round(activeIntervention.masteryScore)}% mastery).` : null,
-    truth.trend ? `${subjectNames.get(truth.trend.subjectId) ?? "A subject"} changed ${truth.trend.delta > 0 ? "+" : ""}${truth.trend.delta} points across comparable assessments.` : null,
-    truth.attendance.rate != null ? `Attendance is ${truth.attendance.rate}% across ${truth.attendance.records} recorded sessions.` : null,
+    truth.work.missing > 0
+      ? `${truth.work.missing} overdue ${truth.work.missing === 1 ? "task needs" : "tasks need"} follow-up.`
+      : null,
+    activeIntervention
+      ? `${activeIntervention.subjectName}: ${activeIntervention.masteryScore < 40 ? "needs focused support" : activeIntervention.priority === "extension" ? "ready for a challenge" : "needs more practice"} (${Math.round(activeIntervention.masteryScore)}% mastery).`
+      : null,
+    truth.trend
+      ? `${subjectNames.get(truth.trend.subjectId) ?? "A subject"} changed ${truth.trend.delta > 0 ? "+" : ""}${truth.trend.delta} points across comparable assessments.`
+      : null,
+    truth.attendance.rate != null
+      ? `Attendance is ${truth.attendance.rate}% across ${truth.attendance.records} recorded sessions.`
+      : null,
   ].filter((item): item is string => Boolean(item));
 
   const nextAction = activeIntervention
     ? activeIntervention.remedialAssessmentId
-      ? { title: "Check whether support worked", detail: `A follow-up assessment exists for ${activeIntervention.subjectName}. Review the released evidence when it is available.`, kind: "assessment" as const }
-      : { title: activeIntervention.priority === "extension" ? "Give the learner a stretch task" : "Close the support loop", detail: activeIntervention.recommendation, kind: "intervention" as const }
+      ? {
+          title: "Check whether support worked",
+          detail: `A follow-up assessment exists for ${activeIntervention.subjectName}. Review the released evidence when it is available.`,
+          kind: "assessment" as const,
+        }
+      : {
+          title:
+            activeIntervention.priority === "extension"
+              ? "Give the learner a stretch task"
+              : "Close the support loop",
+          detail: activeIntervention.recommendation,
+          kind: "intervention" as const,
+        }
     : truth.work.missing > 0
-      ? { title: "Follow up missing work", detail: `${truth.work.missing} overdue item${truth.work.missing === 1 ? "" : "s"} currently have no submission record.`, kind: "work" as const }
-      : { title: "Keep building the learning picture", detail: "Record assessment, work and attendance evidence so VibeSchool can surface reliable changes and next steps.", kind: "assessment" as const };
+      ? {
+          title: "Follow up missing work",
+          detail: `${truth.work.missing} overdue item${truth.work.missing === 1 ? "" : "s"} currently have no submission record.`,
+          kind: "work" as const,
+        }
+      : {
+          title: "Keep building the learning picture",
+          detail:
+            "Record assessment, work and attendance evidence so VibeSchool can surface reliable changes and next steps.",
+          kind: "assessment" as const,
+        };
 
   const timeline = [
-    ...attendance.map((item, index) => ({ id: `attendance-${item.date}-${index}`, at: item.date, type: "Attendance", title: item.is_late ? "Arrived late" : item.status, detail: "Attendance record" })),
+    ...attendance.map((item, index) => ({
+      id: `attendance-${item.date}-${index}`,
+      at: item.date,
+      type: "Attendance",
+      title: item.is_late ? "Arrived late" : item.status,
+      detail: "Attendance record",
+    })),
     ...homework.flatMap((item) => {
       const submission = submissionMap.get(item.id);
-      return submission?.submitted_at ? [{ id: `work-${item.id}`, at: submission.submitted_at, type: "Work", title: item.title, detail: submission.status === "marked" && submission.mark != null ? `Marked · ${submission.mark}` : submission.status.replaceAll("_", " ") }] : [];
+      return submission?.submitted_at
+        ? [
+            {
+              id: `work-${item.id}`,
+              at: submission.submitted_at,
+              type: "Work",
+              title: item.title,
+              detail:
+                submission.status === "marked" && submission.mark != null
+                  ? `Marked · ${submission.mark}`
+                  : submission.status.replaceAll("_", " "),
+            },
+          ]
+        : [];
     }),
-    ...gradebook.filter((item) => item.released_at).map((item, index) => ({ id: `assessment-${item.assessment_id}-${index}`, at: item.released_at as string, type: "Assessment", title: item.assessment_title, detail: item.percentage == null ? item.assessment_type : `${Math.round(item.percentage)}% · ${item.assessment_type}` })),
-    ...cbc.map((item) => ({ id: `cbc-${item.id}`, at: item.created_at, type: "Learning evidence", title: `${subjectNames.get(item.subject_id) ?? "Subject"}${item.sub_strand ? ` · ${item.sub_strand}` : ""}`, detail: `${item.assessment_type} · ${item.performance}` })),
-    ...interventions.filter((item) => item.updatedAt).map((item) => ({ id: `support-${item.interventionId}`, at: item.updatedAt, type: "Support", title: `${item.subjectName} · ${item.priority === "extension" ? "Challenge" : "Learning support"}`, detail: item.status.replaceAll("_", " ") })),
+    ...gradebook
+      .filter((item) => item.released_at)
+      .map((item, index) => ({
+        id: `assessment-${item.assessment_id}-${index}`,
+        at: item.released_at as string,
+        type: "Assessment",
+        title: item.assessment_title,
+        detail:
+          item.percentage == null
+            ? item.assessment_type
+            : `${Math.round(item.percentage)}% · ${item.assessment_type}`,
+      })),
+    ...cbc.map((item) => ({
+      id: `cbc-${item.id}`,
+      at: item.created_at,
+      type: "Learning evidence",
+      title: `${subjectNames.get(item.subject_id) ?? "Subject"}${item.sub_strand ? ` · ${item.sub_strand}` : ""}`,
+      detail: `${item.assessment_type} · ${item.performance}`,
+    })),
+    ...interventions
+      .filter((item) => item.updatedAt)
+      .map((item) => ({
+        id: `support-${item.interventionId}`,
+        at: item.updatedAt,
+        type: "Support",
+        title: `${item.subjectName} · ${item.priority === "extension" ? "Challenge" : "Learning support"}`,
+        detail: item.status.replaceAll("_", " "),
+      })),
     ...libraryLoans.flatMap((item) => [
-      { id: `book-issued-${item.id}`, at: item.issued_at, type: "Class operations", title: `Borrowed · ${libraryBooks.find((book) => book.id === item.book_id)?.title ?? "School library book"}`, detail: `Return by ${formatDate(item.due_date)}` },
-      ...(item.returned_at ? [{ id: `book-returned-${item.id}`, at: item.returned_at, type: "Class operations", title: `Returned · ${libraryBooks.find((book) => book.id === item.book_id)?.title ?? "School library book"}`, detail: "School library record updated" }] : []),
+      {
+        id: `book-issued-${item.id}`,
+        at: item.issued_at,
+        type: "Class operations",
+        title: `Borrowed · ${libraryBooks.find((book) => book.id === item.book_id)?.title ?? "School library book"}`,
+        detail: `Return by ${formatDate(item.due_date)}`,
+      },
+      ...(item.returned_at
+        ? [
+            {
+              id: `book-returned-${item.id}`,
+              at: item.returned_at,
+              type: "Class operations",
+              title: `Returned · ${libraryBooks.find((book) => book.id === item.book_id)?.title ?? "School library book"}`,
+              detail: "School library record updated",
+            },
+          ]
+        : []),
     ]),
-    ...teacherEvents.filter((item) => !isLearnerContextEvent(item)).map((item) => ({ id: `teacher-event-${item.id}`, at: item.created_at, type: item.event_kind === "parent_contact" ? "Parent follow-up" : item.event_kind.charAt(0).toUpperCase() + item.event_kind.slice(1), title: item.event_code?.replaceAll("_", " ") ?? item.event_kind, detail: item.note ?? (item.due_at ? `Follow-up due ${formatDate(item.due_at)}` : "Teacher-recorded event") })),
-  ].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 40);
-  const availableTabs = requestedSubjectId ? tabs.filter((item) => item !== "about") : tabs;
+    ...teacherEvents
+      .filter((item) => !isLearnerContextEvent(item))
+      .map((item) => ({
+        id: `teacher-event-${item.id}`,
+        at: item.created_at,
+        type:
+          item.event_kind === "parent_contact"
+            ? "Parent follow-up"
+            : item.event_kind.charAt(0).toUpperCase() +
+              item.event_kind.slice(1),
+        title: item.event_code?.replaceAll("_", " ") ?? item.event_kind,
+        detail:
+          item.note ??
+          (item.due_at
+            ? `Follow-up due ${formatDate(item.due_at)}`
+            : "Teacher-recorded event"),
+      })),
+  ]
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, 40);
+  const availableTabs = requestedSubjectId
+    ? tabs.filter((item) => item !== "about")
+    : tabs;
 
-
-  return <div className="studio-learner-profile" style={{ maxWidth: 1100, margin: "0 auto", padding: "16px 14px 112px" }}>
-    <header className="studio-profile-heading"><div className="studio-profile-portrait" aria-hidden="true">{student.name.charAt(0).toUpperCase()}</div><div><small>LEARNER PROFILE</small><h1>{student.name}</h1><span>{classAssignment?.class_name ?? "Class"}{classAssignment?.stream ? ` ${classAssignment.stream}` : ""}{student.admission_number ? ` · Adm ${student.admission_number}` : ""}</span></div><button onClick={() => router.push(`/teacher/classhub/${classId}`)}>← Class</button></header>
-    <LearnerSnapshot scores={gradebook} subjects={subjects} attendance={truth.attendance} work={truth.work} followUps={interventions.filter(item => item.status !== "completed" && item.status !== "dismissed").length} onProgress={() => router.push(`/teacher/classhub/${classId}/student/${studentId}/progress${requestedSubjectId ? `?subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`)} onAttendance={() => setTab("attendance")} onWork={() => setTab("work")} onSupport={() => router.push(`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`)} />
-
-    <section className="studio-school-life" aria-label="Learner school life"><h2>School life</h2><div>
-      <button onClick={() => router.push(`/teacher/classhub/${classId}/groups`)}><UsersRound size={22}/><strong>Class groups</strong><span>Membership & learning teams</span></button>
-      {!requestedSubjectId && <button onClick={() => { setTab("about"); setSchoolLifeTarget("learner-context-responsibilities") }}><UserRound size={22}/><strong>Roles & interests</strong><span>Teacher-recorded learner context</span></button>}
-      <button onClick={() => { setTab("now"); setSchoolLifeTarget("studio-learner-notes") }}><Award size={22}/><strong>Recognition</strong><span>Record effort & participation</span></button>
-      <button onClick={() => { setTab("now"); setSchoolLifeTarget("studio-learner-notes") }}><NotebookPen size={22}/><strong>Teacher notes</strong><span>Observations & follow-up</span></button>
-      {!requestedSubjectId && <button onClick={() => router.push(`/teacher/classhub/${classId}/operations`)}><Library size={22}/><strong>Duties & book loans</strong><span>Open class operations</span></button>}
-    </div></section>
-
-    <section style={{ marginBottom: 12, borderRadius: 16, padding: 13, background: truth.evidenceState === "sufficient" ? "#ecfdf5" : "#fffbeb", color: truth.evidenceState === "sufficient" ? "#065f46" : "#92400e", border: `1px solid ${truth.evidenceState === "sufficient" ? "#a7f3d0" : "#fde68a"}` }}><div style={{ fontWeight: 750, fontSize: 12 }}>{truth.evidenceState === "sufficient" ? "Learning picture available" : "Still building this learner picture"}</div><div style={{ marginTop: 3, fontSize: 11 }}>{truth.evidenceState === "sufficient" ? "There is enough recorded evidence to explore patterns, concerns and next actions." : "Keep recording real learning evidence. VibeSchool will not invent a mastery or trend conclusion before the evidence is strong enough."}</div></section>
-
-    <div style={{ display: "flex", gap: 7, overflowX: "auto", marginBottom: 12 }}>{availableTabs.map((item) => <button key={item} type="button" aria-pressed={tab === item} onClick={() => setTab(item)} style={{ minHeight: 40, border: tab === item ? "1px solid #312e81" : "1px solid #e5e7eb", borderRadius: 99, background: tab === item ? "#312e81" : "#fff", color: tab === item ? "#fff" : "#374151", padding: "0 14px", fontWeight: 750, textTransform: "capitalize" }}>{item}</button>)}</div>
-
-    {tab === "now" && <div style={{ display: "grid", gap: 10 }}>
-      <Card>
-        <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 8 }}>WHAT YOU SHOULD KNOW TODAY</div>
-        <div style={{ fontSize: 18, lineHeight: 1.25, fontWeight: 750, marginBottom: 10 }}>{todayInsights.length ? `${student.name.split(" ")[0]}'s learning picture` : "Start building this learner's story"}</div>
-        {todayInsights.length ? <div style={{ display: "grid", gap: 7 }}>{todayInsights.map((item) => <div key={item} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 12, lineHeight: 1.45 }}><span aria-hidden style={{ color: "#4f46e5", fontWeight: 750 }}>•</span><span>{item}</span></div>)}</div> : <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 12 }}>Attendance, work and assessment evidence will appear here as a simple teacher-readable story.</div>}
-      </Card>
-
-      <Card>
-        <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 8 }}>RECOMMENDED NEXT STEP</div>
-        <div style={{ fontSize: 16, fontWeight: 750 }}>{nextAction.title}</div>
-        <div style={{ marginTop: 5, color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>{nextAction.detail}</div>
-        <button type="button" onClick={() => nextAction.kind === "intervention" ? router.push(`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`) : nextAction.kind === "work" ? setTab("work") : setTab("assessment")} style={{ marginTop: 11, minHeight: 42, border: 0, borderRadius: 12, background: "#312e81", color: "#fff", padding: "0 14px", fontWeight: 750 }}>{nextAction.kind === "intervention" ? "Open support" : nextAction.kind === "work" ? "Review work" : "Inspect evidence"}</button>
-      </Card>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
-        <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 8 }}>DOING WELL</div>{strengths.length ? <div style={{ display: "grid", gap: 7 }}>{strengths.slice(0,3).map((item) => <div key={item} style={{ fontSize: 11, lineHeight: 1.4, color: "#065f46" }}>{item}</div>)}</div> : <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 11 }}>No strong pattern is proven yet. Keep collecting evidence.</div>}</Card>
-        <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 8 }}>NEEDS ATTENTION</div><div style={{ fontSize: 24, fontWeight: 750 }}>{truth.signals.length + (activeIntervention ? 1 : 0)}</div><div style={{ marginTop: 3, color: "var(--teacher-muted, #627168)", fontSize: 11 }}>evidence-backed signal{truth.signals.length + (activeIntervention ? 1 : 0) === 1 ? "" : "s"}</div></Card>
-      </div>
-
-      <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>WHAT NEEDS ATTENTION</div>{truth.signals.length === 0 ? <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 12 }}>{truth.evidenceState === "sufficient" ? "No current concern is supported by the recorded evidence." : "VibeSchool will wait for more evidence before labelling a learner concern."}</div> : <div style={{ display: "grid", gap: 8 }}>{truth.signals.map((signal) => <div key={signal.id} style={{ background: signal.id === "missing_work" ? "#fffbeb" : "#fef2f2", color: signal.id === "missing_work" ? "#92400e" : "#991b1b", borderRadius: 12, padding: 11, fontSize: 12 }}><strong>{signal.id === "missing_work" ? "Missing required work" : signal.id === "repeated_low_assessment" ? "Repeated low assessment results" : "Repeated support-level CBC evidence"}</strong><div style={{ marginTop: 3 }}>{signal.reason}</div><div style={{ marginTop: 6, fontSize: 11, opacity: .75 }}>{signal.evidenceCount} evidence record{signal.evidenceCount === 1 ? "" : "s"} · {signal.confidence} confidence</div></div>)}</div>}</Card>
-
-      <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>WHAT CHANGED</div>{!truth.trend ? <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 12 }}><strong style={{ color: "#374151" }}>No reliable trend yet.</strong><div style={{ marginTop: 4 }}>VibeSchool waits for at least 4 comparable released assessments before saying performance is improving or declining.</div></div> : <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}><div><strong>{subjectNames.get(truth.trend.subjectId) ?? "Subject"}</strong><div style={{ marginTop: 3, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{truth.trend.assessmentType} · {truth.trend.evidenceCount} comparable assessments</div></div><Badge text={`${truth.trend.delta > 0 ? "+" : ""}${truth.trend.delta} pts`} tone={truth.trend.delta >= 5 ? "good" : truth.trend.delta <= -5 ? "bad" : "neutral"} /></div>}</Card>
-
-      <div id="studio-learner-notes"><Card>
-        <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 8 }}>TEACHER NOTES & ACTIONS</div>
-        <textarea value={eventNote} onChange={(event) => setEventNote(event.target.value)} rows={3} placeholder="Factual note, e.g. Needed prompting during graph interpretation." style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d1d5db", borderRadius: 12, padding: 10, fontFamily: "inherit", resize: "vertical" }} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 7, marginTop: 8 }}>
-          <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("observation")} style={{ minHeight: 42, border: "1px solid #d1d5db", borderRadius: 11, background: "#fff", fontWeight: 750 }}>Add note</button>
-          <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("followup")} style={{ minHeight: 42, border: "1px solid #d1d5db", borderRadius: 11, background: "#fff", fontWeight: 750 }}>Follow up</button>
-          <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("participation")} style={{ minHeight: 42, border: 0, borderRadius: 11, background: "#0369a1", color: "#fff", fontWeight: 750 }}>Participated</button>
-          <button type="button" disabled={eventSaving} onClick={() => void saveTeacherEvent("recognition")} style={{ minHeight: 42, border: 0, borderRadius: 11, background: "#065f46", color: "#fff", fontWeight: 750 }}>Recognise effort</button>
+  return (
+    <div className={`studio-learner-profile ${experience.profilePage}`}>
+      <header className={experience.profileHeader}>
+        <button
+          className={experience.iconButton}
+          onClick={() => router.push(`/teacher/classhub/${classId}`)}
+          aria-label="Back to class"
+        >
+          <ArrowLeft size={19} />
+        </button>
+        <div className={experience.profileAvatar} aria-hidden="true">
+          {student.name
+            .split(/\s+/)
+            .slice(0, 2)
+            .map((part) => part[0]?.toUpperCase())
+            .join("")}
         </div>
-        {eventMessage && <div style={{ marginTop: 8, fontSize: 11, color: eventMessage.startsWith("Saved") ? "#065f46" : "#92400e" }}>{eventMessage}</div>}
-        {teacherEvents.some((item) => !isLearnerContextEvent(item)) && <div style={{ marginTop: 12, display: "grid", gap: 7 }}>{teacherEvents.filter((item) => !isLearnerContextEvent(item)).slice(0,5).map((item) => <div key={item.id} style={{ background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 11, padding: 9 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><strong style={{ fontSize: 11, textTransform: "capitalize" }}>{item.event_kind.replaceAll("_", " ")}</strong><span style={{ fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{formatDate(item.created_at)}</span></div>{item.note && <div style={{ marginTop: 3, fontSize: 11, color: "#4b5563" }}>{item.note}</div>}</div>)}</div>}
-      </Card></div>
+        <div className={experience.profileIdentity}>
+          <h1>{student.name}</h1>
+          <span>
+            {classAssignment?.class_name ?? "Class"}
+            {classAssignment?.stream ? ` ${classAssignment.stream}` : ""}
+            {student.admission_number ? ` · ${student.admission_number}` : ""}
+          </span>
+        </div>
+        <button
+          className={experience.iconButton}
+          onClick={() => setTab("about")}
+          aria-label="More learner details"
+        >
+          <Ellipsis size={20} />
+        </button>
+      </header>
+      <div
+        className={experience.quickActions}
+        aria-label="Quick learner actions"
+      >
+        <button onClick={() => setTab("attendance")}>
+          <CalendarCheck size={18} />
+          <span>Attendance</span>
+        </button>
+        <button
+          onClick={() => router.push(`/teacher/assessment?classId=${classId}`)}
+        >
+          <BookOpenCheck size={18} />
+          <span>Assess</span>
+        </button>
+        <button
+          onClick={() => {
+            setTab("now");
+            setSchoolLifeTarget("studio-learner-notes");
+          }}
+        >
+          <NotebookPen size={18} />
+          <span>Note</span>
+        </button>
+      </div>
+      <LearnerSnapshot
+        scores={gradebook}
+        subjects={subjects}
+        attendance={truth.attendance}
+        work={truth.work}
+        followUps={
+          interventions.filter(
+            (item) =>
+              item.status !== "completed" && item.status !== "dismissed",
+          ).length
+        }
+        onProgress={() =>
+          router.push(
+            `/teacher/classhub/${classId}/student/${studentId}/progress${requestedSubjectId ? `?subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`,
+          )
+        }
+        onAttendance={() => setTab("attendance")}
+        onWork={() => setTab("work")}
+        onSupport={() =>
+          router.push(
+            `/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`,
+          )
+        }
+      />
 
-      <Card>
-        <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>LEARNING SUPPORT</div>
-        {interventions.length === 0 ? <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 12 }}>{truth.evidenceState === "sufficient" ? "No active outcome support is currently required." : "Outcome-level support will appear only when the evidence supports it."}</div> : <div style={{ display: "grid", gap: 10 }}>{interventions.map((item) => <div key={item.interventionId} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 12 }}><div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start" }}><div><div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", fontWeight: 800 }}>{item.subjectName}</div><strong style={{ display: "block", marginTop: 2 }}>{item.priority === "extension" ? "Ready for a challenge" : item.masteryScore < 40 ? "Needs focused support" : "Needs more practice"}</strong></div><Badge text={item.status.replaceAll("_", " ")} tone={item.status === "completed" ? "good" : item.status === "escalated" ? "bad" : "warn"} /></div><div style={{ marginTop: 7, fontSize: 12, lineHeight: 1.45 }}>{item.recommendation}</div><div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}><Badge text={`${Math.round(item.masteryScore)}% mastery`} tone={item.masteryScore >= 70 ? "good" : item.masteryScore < 40 ? "bad" : "warn"} /><Badge text={`${item.evidenceCount} evidence`} /><Badge text={`${Math.round(item.confidenceScore)}% confidence`} /></div>{item.evaluatedAt ? <div style={{ marginTop: 8, fontSize: 11 }}><strong>After support:</strong> {item.masteryChange != null && item.masteryChange > 0 ? "+" : ""}{item.masteryChange ?? 0} mastery points</div> : item.remedialAssessmentId ? <div style={{ marginTop: 8, fontSize: 11, color: "#4b5563" }}>Follow-up assessment created. Review the result when released.</div> : <div style={{ marginTop: 8, fontSize: 11, color: "#92400e" }}>Next step: give a short reassessment so you can see whether the support worked.</div>}<details style={{ marginTop: 8 }}><summary style={{ cursor: "pointer", fontSize: 11, color: "var(--teacher-muted, #627168)" }}>Technical evidence details</summary><div style={{ marginTop: 5, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.outcomeCode ?? "Outcome"} · {item.outcomeText || "Outcome evidence"} · {item.priority} priority</div></details></div>)}</div>}
-        <button type="button" onClick={() => router.push(`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`)} style={{ marginTop: 12, minHeight: 44, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", fontWeight: 750, padding: "0 14px" }}>Open support workspace</button>
-      </Card>
+      <section className={experience.schoolLife} aria-label="School life">
+        <div className={experience.sectionTitle}>
+          <h2>School life</h2>
+          <span>View all</span>
+        </div>
+        <div>
+          <button
+            onClick={() => router.push(`/teacher/classhub/${classId}/groups`)}
+          >
+            <UsersRound />
+            <span>Groups</span>
+          </button>
+          {!requestedSubjectId && (
+            <button
+              onClick={() => {
+                setTab("about");
+                setSchoolLifeTarget("learner-context-responsibilities");
+              }}
+            >
+              <UserRound />
+              <span>Roles</span>
+            </button>
+          )}
+          <button
+            onClick={() => {
+              setTab("now");
+              setSchoolLifeTarget("studio-learner-notes");
+            }}
+          >
+            <Award />
+            <span>Recognition</span>
+          </button>
+          <button
+            onClick={() => {
+              setTab("now");
+              setSchoolLifeTarget("studio-learner-notes");
+            }}
+          >
+            <NotebookPen />
+            <span>Notes</span>
+          </button>
+          {!requestedSubjectId && (
+            <button
+              onClick={() =>
+                router.push(`/teacher/classhub/${classId}/operations`)
+              }
+            >
+              <Library />
+              <span>Resources</span>
+            </button>
+          )}
+        </div>
+      </section>
 
-      <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>MORE ACTIONS</div><div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/homework`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#0f766e", color: "#fff", fontWeight: 750 }}>Assign / review work</button><button type="button" onClick={() => router.push(`/teacher/assessment?classId=${classId}`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#92400e", color: "#fff", fontWeight: 750 }}>Assess learner</button><button type="button" onClick={() => router.push(`/teacher/attendance?classId=${classId}`)} style={{ minHeight: 46, border: 0, borderRadius: 12, background: "#065f46", color: "#fff", fontWeight: 750 }}>Attendance</button><button type="button" onClick={() => setTab("assessment")} style={{ minHeight: 46, border: "1px solid #d1d5db", borderRadius: 12, background: "#fff", fontWeight: 750 }}>Inspect evidence</button></div></Card>
-    </div>}
+      <section
+        className={`${experience.evidenceState} ${truth.evidenceState === "sufficient" ? experience.evidenceReady : ""}`}
+      >
+        <span />
+        <div>
+          <strong>
+            {truth.evidenceState === "sufficient"
+              ? "Learning picture ready"
+              : "Building learning picture"}
+          </strong>
+          <small>
+            {truth.evidenceState === "sufficient"
+              ? `${assessmentEvidence} assessment records`
+              : "More evidence needed"}
+          </small>
+        </div>
+      </section>
 
-    {tab === "about" && <div style={{ display: "grid", gap: 10 }}>
-      {searchParams.get("setup") === "1" && <section style={{ borderRadius: 16, padding: 14, background: "#ecfdf5", border: "1px solid #a7f3d0", color: "#065f46" }}><strong style={{ fontSize: 13 }}>Learner added successfully</strong><div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.45 }}>You can add useful information now or return later. These sections are optional and should only contain information that helps teaching and support.</div></section>}
-      <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)" }}>ABOUT THIS LEARNER</div><h2 style={{ margin: "5px 0", fontSize: 18 }}>Build the learner picture gradually</h2><div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records and appear automatically elsewhere. These notes are visible only to the class teacher.</div></Card>
-      {learnerContextFields.map((field) => <Card key={field.key}>
-        <label htmlFor={`learner-context-${field.key}`} style={{ display: "block", fontSize: 13, fontWeight: 750 }}>{field.label}</label>
-        <div style={{ marginTop: 3, color: "var(--teacher-muted, #627168)", fontSize: 11, lineHeight: 1.4 }}>{field.help}</div>
-        <textarea id={`learner-context-${field.key}`} value={contextDrafts[field.key]} onChange={(event) => setContextDrafts((current) => ({ ...current, [field.key]: event.target.value }))} rows={3} maxLength={1200} placeholder={field.placeholder} style={{ width: "100%", boxSizing: "border-box", marginTop: 9, border: "1px solid #d1d5db", borderRadius: 12, padding: 10, fontFamily: "inherit", resize: "vertical" }} />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginTop: 8 }}><span style={{ color: "var(--teacher-muted, #627168)", fontSize: 11 }}>{contextDrafts[field.key].length}/1200</span><button type="button" disabled={contextSaving !== null} onClick={() => void saveLearnerContext(field.key)} style={{ minHeight: 40, border: 0, borderRadius: 11, background: "#312e81", color: "#fff", padding: "0 14px", fontWeight: 750 }}>{contextSaving === field.key ? "Saving…" : "Save section"}</button></div>
-      </Card>)}
-      {contextMessage && <div role="status" style={{ borderRadius: 13, padding: 11, background: contextMessage.startsWith("Saved") ? "#ecfdf5" : "#fffbeb", color: contextMessage.startsWith("Saved") ? "#065f46" : "#92400e", fontSize: 11 }}>{contextMessage}</div>}
-      <button type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={{ minHeight: 46, border: "1px solid #d1d5db", borderRadius: 13, background: "#fff", fontWeight: 750 }}>Done — return to class</button>
-    </div>}
+      <nav
+        className={experience.profileTabs}
+        aria-label="Learner profile sections"
+      >
+        {availableTabs.map((item) => (
+          <button
+            key={item}
+            type="button"
+            aria-current={tab === item ? "page" : undefined}
+            onClick={() => setTab(item)}
+          >
+            {item === "now" ? "Overview" : item}
+          </button>
+        ))}
+      </nav>
 
-    {tab === "work" && <Card>{homework.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "var(--teacher-muted, #627168)" }}>No homework assigned by you for this class yet.</div> : <div style={{ display: "grid", gap: 9 }}>{homework.map((item) => { const submission = submissionMap.get(item.id); const overdue = Boolean(item.due_date) && !submission && new Date(item.due_date ?? "").getTime() < Date.now(); return <button type="button" key={item.id} onClick={() => router.push(`/teacher/classhub/${classId}/homework/${item.id}`)} style={{ width: "100%", textAlign: "left", border: "1px solid #e5e7eb", borderRadius: 13, padding: 11, background: "#fff" }}><div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}><div><div style={{ fontSize: 13, fontWeight: 750 }}>{item.title}</div><div style={{ marginTop: 3, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.subject || "Subject"} · {item.due_date ? `Due ${formatDate(item.due_date)}` : "No due date"}</div></div>{submission ? <Badge text={submission.status} tone={submission.status === "marked" ? "good" : "neutral"} /> : <Badge text={overdue ? "Missing" : "Not submitted"} tone={overdue ? "bad" : "warn"} />}</div>{submission?.mark != null && <div style={{ marginTop: 7, fontSize: 12, fontWeight: 750, color: "#065f46" }}>Mark: {submission.mark}</div>}{submission?.feedback && <div style={{ marginTop: 5, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{submission.feedback}</div>}</button>; })}</div>}</Card>}
+      {tab === "now" && (
+        <div style={{ display: "grid", gap: 10 }}>
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 8,
+              }}
+            >
+              WHAT YOU SHOULD KNOW TODAY
+            </div>
+            <div
+              style={{
+                fontSize: 18,
+                lineHeight: 1.25,
+                fontWeight: 750,
+                marginBottom: 10,
+              }}
+            >
+              {todayInsights.length
+                ? `${student.name.split(" ")[0]}'s learning picture`
+                : "Start building this learner's story"}
+            </div>
+            {todayInsights.length ? (
+              <div style={{ display: "grid", gap: 7 }}>
+                {todayInsights.map((item) => (
+                  <div
+                    key={item}
+                    style={{
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "flex-start",
+                      fontSize: 12,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      style={{ color: "#4f46e5", fontWeight: 750 }}
+                    >
+                      •
+                    </span>
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                style={{ color: "var(--teacher-muted, #627168)", fontSize: 12 }}
+              >
+                Attendance, work and assessment evidence will appear here as a
+                simple teacher-readable story.
+              </div>
+            )}
+          </Card>
 
-    {tab === "assessment" && <div style={{ display: "grid", gap: 10 }}>
-      <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>RELEASED ASSESSMENTS</div>{gradebook.length === 0 ? <div style={{ color: "var(--teacher-muted, #627168)" }}>No released canonical assessment scores yet.</div> : gradebook.map((item, index) => { const percentage = item.percentage; return <div key={`${item.assessment_id}-${index}`} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f3f4f6", padding: "8px 0" }}><div><strong>{item.assessment_title}</strong><div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.subject_id ? subjectNames.get(item.subject_id) ?? "Subject" : "Unscoped subject"} · {item.assessment_type}</div></div>{percentage === null ? <Badge text="No score" /> : <Badge text={`${Math.round(percentage)}%`} tone={percentage >= 70 ? "good" : percentage < 50 ? "bad" : "warn"} />}</div>; })}</Card>
-      <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>CBC COMPETENCY EVIDENCE</div>{cbc.length === 0 ? <div style={{ color: "var(--teacher-muted, #627168)" }}>No CBC competency observations recorded yet.</div> : cbc.map((item) => <div key={item.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f3f4f6", padding: "8px 0" }}><div><strong>{subjectNames.get(item.subject_id) ?? "Subject"}{item.sub_strand ? ` · ${item.sub_strand}` : ""}</strong><div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.assessment_type} · {formatDate(item.created_at)}</div></div><Badge text={item.performance} tone={item.performance === "EE" || item.performance === "ME" ? "good" : item.performance === "BE" ? "bad" : "warn"} /></div>)}</Card>
-      <Card><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 10 }}>EXAM RESULTS</div>{exams.length === 0 ? <div style={{ color: "var(--teacher-muted, #627168)" }}>No exam results recorded by you for this learner.</div> : exams.map((item) => <div key={item.id} style={{ display: "flex", justifyContent: "space-between", borderBottom: "1px solid #f3f4f6", padding: "8px 0" }}><span>{subjectNames.get(item.subject_id) ?? "Subject"} · {formatDate(item.created_at)}</span><Badge text={item.is_absent ? "Absent" : `${item.marks}`} tone={item.is_absent ? "warn" : "neutral"} /></div>)}</Card>
-    </div>}
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 8,
+              }}
+            >
+              RECOMMENDED NEXT STEP
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 750 }}>
+              {nextAction.title}
+            </div>
+            <div
+              style={{
+                marginTop: 5,
+                color: "#4b5563",
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              {nextAction.detail}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                nextAction.kind === "intervention"
+                  ? router.push(
+                      `/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`,
+                    )
+                  : nextAction.kind === "work"
+                    ? setTab("work")
+                    : setTab("assessment")
+              }
+              style={{
+                marginTop: 11,
+                minHeight: 42,
+                border: 0,
+                borderRadius: 12,
+                background: "#312e81",
+                color: "#fff",
+                padding: "0 14px",
+                fontWeight: 750,
+              }}
+            >
+              {nextAction.kind === "intervention"
+                ? "Open support"
+                : nextAction.kind === "work"
+                  ? "Review work"
+                  : "Inspect evidence"}
+            </button>
+          </Card>
 
-    {tab === "attendance" && <Card><div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 12 }}>{[{ label: "Records", value: truth.attendance.records }, { label: "Present", value: truth.attendance.present }, { label: "Absent", value: truth.attendance.absent }, { label: "Late", value: truth.attendance.late }].map((item) => <div key={item.label} style={{ background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 11, padding: 8, textAlign: "center" }}><strong>{item.value}</strong><div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.label}</div></div>)}</div>{attendance.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "var(--teacher-muted, #627168)" }}>No attendance evidence recorded yet.</div> : attendance.map((item, index) => <div key={`${item.date}-${index}`} style={{ minHeight: 44, display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #f3f4f6" }}><span>{formatDate(item.date)}</span><Badge text={item.is_late ? "Late" : item.status} tone={item.status === "present" && !item.is_late ? "good" : item.status === "absent" ? "bad" : "warn"} /></div>)}</Card>}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+              gap: 10,
+            }}
+          >
+            <Card>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 750,
+                  color: "var(--teacher-muted, #627168)",
+                  marginBottom: 8,
+                }}
+              >
+                DOING WELL
+              </div>
+              {strengths.length ? (
+                <div style={{ display: "grid", gap: 7 }}>
+                  {strengths.slice(0, 3).map((item) => (
+                    <div
+                      key={item}
+                      style={{
+                        fontSize: 11,
+                        lineHeight: 1.4,
+                        color: "#065f46",
+                      }}
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  style={{
+                    color: "var(--teacher-muted, #627168)",
+                    fontSize: 11,
+                  }}
+                >
+                  No strong pattern is proven yet. Keep collecting evidence.
+                </div>
+              )}
+            </Card>
+            <Card>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 750,
+                  color: "var(--teacher-muted, #627168)",
+                  marginBottom: 8,
+                }}
+              >
+                NEEDS ATTENTION
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 750 }}>
+                {truth.signals.length + (activeIntervention ? 1 : 0)}
+              </div>
+              <div
+                style={{
+                  marginTop: 3,
+                  color: "var(--teacher-muted, #627168)",
+                  fontSize: 11,
+                }}
+              >
+                evidence-backed signal
+                {truth.signals.length + (activeIntervention ? 1 : 0) === 1
+                  ? ""
+                  : "s"}
+              </div>
+            </Card>
+          </div>
 
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 10,
+              }}
+            >
+              WHAT NEEDS ATTENTION
+            </div>
+            {truth.signals.length === 0 ? (
+              <div
+                style={{ color: "var(--teacher-muted, #627168)", fontSize: 12 }}
+              >
+                {truth.evidenceState === "sufficient"
+                  ? "No current concern is supported by the recorded evidence."
+                  : "VibeSchool will wait for more evidence before labelling a learner concern."}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {truth.signals.map((signal) => (
+                  <div
+                    key={signal.id}
+                    style={{
+                      background:
+                        signal.id === "missing_work" ? "#fffbeb" : "#fef2f2",
+                      color:
+                        signal.id === "missing_work" ? "#92400e" : "#991b1b",
+                      borderRadius: 12,
+                      padding: 11,
+                      fontSize: 12,
+                    }}
+                  >
+                    <strong>
+                      {signal.id === "missing_work"
+                        ? "Missing required work"
+                        : signal.id === "repeated_low_assessment"
+                          ? "Repeated low assessment results"
+                          : "Repeated support-level CBC evidence"}
+                    </strong>
+                    <div style={{ marginTop: 3 }}>{signal.reason}</div>
+                    <div style={{ marginTop: 6, fontSize: 11, opacity: 0.75 }}>
+                      {signal.evidenceCount} evidence record
+                      {signal.evidenceCount === 1 ? "" : "s"} ·{" "}
+                      {signal.confidence} confidence
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
 
-    {tab === "timeline" && <Card>
-      <div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 4 }}>STUDENT STORY</div>
-      <div style={{ fontSize: 12, color: "#4b5563", lineHeight: 1.45, marginBottom: 14 }}>One timeline of attendance, work, assessments, teacher observations, recognition, participation and support. Use it to see what happened before and after you acted.</div>
-      {timeline.length === 0 ? <div style={{ padding: 22, textAlign: "center", color: "var(--teacher-muted, #627168)" }}>No dated learner events are recorded yet.</div> : <div style={{ display: "grid" }}>{timeline.map((item, index) => <div key={item.id} style={{ display: "grid", gridTemplateColumns: "76px 12px 1fr", gap: 8, minHeight: 64 }}><div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", paddingTop: 2 }}>{formatDate(item.at)}</div><div style={{ position: "relative" }}><div style={{ width: 9, height: 9, borderRadius: 99, background: "#4f46e5", marginTop: 2 }} />{index < timeline.length - 1 && <div style={{ position: "absolute", left: 4, top: 12, bottom: -2, width: 1, background: "var(--teacher-border, #dfe5de)" }} />}</div><div style={{ paddingBottom: 14 }}><div style={{ fontSize: 11, fontWeight: 750, color: "#6366f1", textTransform: "uppercase", letterSpacing: .4 }}>{item.type}</div><div style={{ marginTop: 2, fontSize: 12, fontWeight: 750 }}>{item.title}</div><div style={{ marginTop: 2, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{item.detail}</div></div></div>)}</div>}
-    </Card>}
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 10,
+              }}
+            >
+              WHAT CHANGED
+            </div>
+            {!truth.trend ? (
+              <div
+                style={{ color: "var(--teacher-muted, #627168)", fontSize: 12 }}
+              >
+                <strong style={{ color: "#374151" }}>
+                  No reliable trend yet.
+                </strong>
+                <div style={{ marginTop: 4 }}>
+                  VibeSchool waits for at least 4 comparable released
+                  assessments before saying performance is improving or
+                  declining.
+                </div>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  <strong>
+                    {subjectNames.get(truth.trend.subjectId) ?? "Subject"}
+                  </strong>
+                  <div
+                    style={{
+                      marginTop: 3,
+                      fontSize: 11,
+                      color: "var(--teacher-muted, #627168)",
+                    }}
+                  >
+                    {truth.trend.assessmentType} · {truth.trend.evidenceCount}{" "}
+                    comparable assessments
+                  </div>
+                </div>
+                <Badge
+                  text={`${truth.trend.delta > 0 ? "+" : ""}${truth.trend.delta} pts`}
+                  tone={
+                    truth.trend.delta >= 5
+                      ? "good"
+                      : truth.trend.delta <= -5
+                        ? "bad"
+                        : "neutral"
+                  }
+                />
+              </div>
+            )}
+          </Card>
 
- </div>;
+          <div id="studio-learner-notes">
+            <Card>
+              <div
+                style={{
+                  fontSize: 11,
+                  fontWeight: 750,
+                  color: "var(--teacher-muted, #627168)",
+                  marginBottom: 8,
+                }}
+              >
+                TEACHER NOTES & ACTIONS
+              </div>
+              <textarea
+                value={eventNote}
+                onChange={(event) => setEventNote(event.target.value)}
+                rows={3}
+                placeholder="Factual note, e.g. Needed prompting during graph interpretation."
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  border: "1px solid #d1d5db",
+                  borderRadius: 12,
+                  padding: 10,
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                }}
+              />
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+                  gap: 7,
+                  marginTop: 8,
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={eventSaving}
+                  onClick={() => void saveTeacherEvent("observation")}
+                  style={{
+                    minHeight: 42,
+                    border: "1px solid #d1d5db",
+                    borderRadius: 11,
+                    background: "#fff",
+                    fontWeight: 750,
+                  }}
+                >
+                  Add note
+                </button>
+                <button
+                  type="button"
+                  disabled={eventSaving}
+                  onClick={() => void saveTeacherEvent("followup")}
+                  style={{
+                    minHeight: 42,
+                    border: "1px solid #d1d5db",
+                    borderRadius: 11,
+                    background: "#fff",
+                    fontWeight: 750,
+                  }}
+                >
+                  Follow up
+                </button>
+                <button
+                  type="button"
+                  disabled={eventSaving}
+                  onClick={() => void saveTeacherEvent("participation")}
+                  style={{
+                    minHeight: 42,
+                    border: 0,
+                    borderRadius: 11,
+                    background: "#0369a1",
+                    color: "#fff",
+                    fontWeight: 750,
+                  }}
+                >
+                  Participated
+                </button>
+                <button
+                  type="button"
+                  disabled={eventSaving}
+                  onClick={() => void saveTeacherEvent("recognition")}
+                  style={{
+                    minHeight: 42,
+                    border: 0,
+                    borderRadius: 11,
+                    background: "#065f46",
+                    color: "#fff",
+                    fontWeight: 750,
+                  }}
+                >
+                  Recognise effort
+                </button>
+              </div>
+              {eventMessage && (
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 11,
+                    color: eventMessage.startsWith("Saved")
+                      ? "#065f46"
+                      : "#92400e",
+                  }}
+                >
+                  {eventMessage}
+                </div>
+              )}
+              {teacherEvents.some((item) => !isLearnerContextEvent(item)) && (
+                <div style={{ marginTop: 12, display: "grid", gap: 7 }}>
+                  {teacherEvents
+                    .filter((item) => !isLearnerContextEvent(item))
+                    .slice(0, 5)
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: "var(--teacher-canvas, #f5f6f2)",
+                          borderRadius: 11,
+                          padding: 9,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            gap: 8,
+                          }}
+                        >
+                          <strong
+                            style={{
+                              fontSize: 11,
+                              textTransform: "capitalize",
+                            }}
+                          >
+                            {item.event_kind.replaceAll("_", " ")}
+                          </strong>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              color: "var(--teacher-muted, #627168)",
+                            }}
+                          >
+                            {formatDate(item.created_at)}
+                          </span>
+                        </div>
+                        {item.note && (
+                          <div
+                            style={{
+                              marginTop: 3,
+                              fontSize: 11,
+                              color: "#4b5563",
+                            }}
+                          >
+                            {item.note}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 10,
+              }}
+            >
+              LEARNING SUPPORT
+            </div>
+            {interventions.length === 0 ? (
+              <div
+                style={{ color: "var(--teacher-muted, #627168)", fontSize: 12 }}
+              >
+                {truth.evidenceState === "sufficient"
+                  ? "No active outcome support is currently required."
+                  : "Outcome-level support will appear only when the evidence supports it."}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                {interventions.map((item) => (
+                  <div
+                    key={item.interventionId}
+                    style={{
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 14,
+                      padding: 12,
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 8,
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <div>
+                        <div
+                          style={{
+                            fontSize: 11,
+                            color: "var(--teacher-muted, #627168)",
+                            fontWeight: 800,
+                          }}
+                        >
+                          {item.subjectName}
+                        </div>
+                        <strong style={{ display: "block", marginTop: 2 }}>
+                          {item.priority === "extension"
+                            ? "Ready for a challenge"
+                            : item.masteryScore < 40
+                              ? "Needs focused support"
+                              : "Needs more practice"}
+                        </strong>
+                      </div>
+                      <Badge
+                        text={item.status.replaceAll("_", " ")}
+                        tone={
+                          item.status === "completed"
+                            ? "good"
+                            : item.status === "escalated"
+                              ? "bad"
+                              : "warn"
+                        }
+                      />
+                    </div>
+                    <div
+                      style={{ marginTop: 7, fontSize: 12, lineHeight: 1.45 }}
+                    >
+                      {item.recommendation}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 8,
+                        display: "flex",
+                        gap: 6,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <Badge
+                        text={`${Math.round(item.masteryScore)}% mastery`}
+                        tone={
+                          item.masteryScore >= 70
+                            ? "good"
+                            : item.masteryScore < 40
+                              ? "bad"
+                              : "warn"
+                        }
+                      />
+                      <Badge text={`${item.evidenceCount} evidence`} />
+                      <Badge
+                        text={`${Math.round(item.confidenceScore)}% confidence`}
+                      />
+                    </div>
+                    {item.evaluatedAt ? (
+                      <div style={{ marginTop: 8, fontSize: 11 }}>
+                        <strong>After support:</strong>{" "}
+                        {item.masteryChange != null && item.masteryChange > 0
+                          ? "+"
+                          : ""}
+                        {item.masteryChange ?? 0} mastery points
+                      </div>
+                    ) : item.remedialAssessmentId ? (
+                      <div
+                        style={{ marginTop: 8, fontSize: 11, color: "#4b5563" }}
+                      >
+                        Follow-up assessment created. Review the result when
+                        released.
+                      </div>
+                    ) : (
+                      <div
+                        style={{ marginTop: 8, fontSize: 11, color: "#92400e" }}
+                      >
+                        Next step: give a short reassessment so you can see
+                        whether the support worked.
+                      </div>
+                    )}
+                    <details style={{ marginTop: 8 }}>
+                      <summary
+                        style={{
+                          cursor: "pointer",
+                          fontSize: 11,
+                          color: "var(--teacher-muted, #627168)",
+                        }}
+                      >
+                        Technical evidence details
+                      </summary>
+                      <div
+                        style={{
+                          marginTop: 5,
+                          fontSize: 11,
+                          color: "var(--teacher-muted, #627168)",
+                        }}
+                      >
+                        {item.outcomeCode ?? "Outcome"} ·{" "}
+                        {item.outcomeText || "Outcome evidence"} ·{" "}
+                        {item.priority} priority
+                      </div>
+                    </details>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() =>
+                router.push(
+                  `/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`,
+                )
+              }
+              style={{
+                marginTop: 12,
+                minHeight: 44,
+                border: "1px solid #d1d5db",
+                borderRadius: 12,
+                background: "#fff",
+                fontWeight: 750,
+                padding: "0 14px",
+              }}
+            >
+              Open support workspace
+            </button>
+          </Card>
+
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 10,
+              }}
+            >
+              MORE ACTIONS
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+                gap: 8,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/teacher/classhub/${classId}/homework`)
+                }
+                style={{
+                  minHeight: 46,
+                  border: 0,
+                  borderRadius: 12,
+                  background: "#0f766e",
+                  color: "#fff",
+                  fontWeight: 750,
+                }}
+              >
+                Assign / review work
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/teacher/assessment?classId=${classId}`)
+                }
+                style={{
+                  minHeight: 46,
+                  border: 0,
+                  borderRadius: 12,
+                  background: "#92400e",
+                  color: "#fff",
+                  fontWeight: 750,
+                }}
+              >
+                Assess learner
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(`/teacher/attendance?classId=${classId}`)
+                }
+                style={{
+                  minHeight: 46,
+                  border: 0,
+                  borderRadius: 12,
+                  background: "#065f46",
+                  color: "#fff",
+                  fontWeight: 750,
+                }}
+              >
+                Attendance
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab("assessment")}
+                style={{
+                  minHeight: 46,
+                  border: "1px solid #d1d5db",
+                  borderRadius: 12,
+                  background: "#fff",
+                  fontWeight: 750,
+                }}
+              >
+                Inspect evidence
+              </button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {tab === "about" && (
+        <div style={{ display: "grid", gap: 10 }}>
+          {searchParams.get("setup") === "1" && (
+            <section
+              style={{
+                borderRadius: 16,
+                padding: 14,
+                background: "#ecfdf5",
+                border: "1px solid #a7f3d0",
+                color: "#065f46",
+              }}
+            >
+              <strong style={{ fontSize: 13 }}>
+                Learner added successfully
+              </strong>
+              <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.45 }}>
+                You can add useful information now or return later. These
+                sections are optional and should only contain information that
+                helps teaching and support.
+              </div>
+            </section>
+          )}
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+              }}
+            >
+              ABOUT THIS LEARNER
+            </div>
+            <h2 style={{ margin: "5px 0", fontSize: 18 }}>
+              Build the learner picture gradually
+            </h2>
+            <div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>
+              Record what you have actually observed. Attendance, marks,
+              homework and progress stay in their existing VibeSchool records
+              and appear automatically elsewhere. These notes are visible only
+              to the class teacher.
+            </div>
+          </Card>
+          {learnerContextFields.map((field) => (
+            <Card key={field.key}>
+              <label
+                htmlFor={`learner-context-${field.key}`}
+                style={{ display: "block", fontSize: 13, fontWeight: 750 }}
+              >
+                {field.label}
+              </label>
+              <div
+                style={{
+                  marginTop: 3,
+                  color: "var(--teacher-muted, #627168)",
+                  fontSize: 11,
+                  lineHeight: 1.4,
+                }}
+              >
+                {field.help}
+              </div>
+              <textarea
+                id={`learner-context-${field.key}`}
+                value={contextDrafts[field.key]}
+                onChange={(event) =>
+                  setContextDrafts((current) => ({
+                    ...current,
+                    [field.key]: event.target.value,
+                  }))
+                }
+                rows={3}
+                maxLength={1200}
+                placeholder={field.placeholder}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  marginTop: 9,
+                  border: "1px solid #d1d5db",
+                  borderRadius: 12,
+                  padding: 10,
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                }}
+              />
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 10,
+                  marginTop: 8,
+                }}
+              >
+                <span
+                  style={{
+                    color: "var(--teacher-muted, #627168)",
+                    fontSize: 11,
+                  }}
+                >
+                  {contextDrafts[field.key].length}/1200
+                </span>
+                <button
+                  type="button"
+                  disabled={contextSaving !== null}
+                  onClick={() => void saveLearnerContext(field.key)}
+                  style={{
+                    minHeight: 40,
+                    border: 0,
+                    borderRadius: 11,
+                    background: "#312e81",
+                    color: "#fff",
+                    padding: "0 14px",
+                    fontWeight: 750,
+                  }}
+                >
+                  {contextSaving === field.key ? "Saving…" : "Save section"}
+                </button>
+              </div>
+            </Card>
+          ))}
+          {contextMessage && (
+            <div
+              role="status"
+              style={{
+                borderRadius: 13,
+                padding: 11,
+                background: contextMessage.startsWith("Saved")
+                  ? "#ecfdf5"
+                  : "#fffbeb",
+                color: contextMessage.startsWith("Saved")
+                  ? "#065f46"
+                  : "#92400e",
+                fontSize: 11,
+              }}
+            >
+              {contextMessage}
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => router.push(`/teacher/classhub/${classId}`)}
+            style={{
+              minHeight: 46,
+              border: "1px solid #d1d5db",
+              borderRadius: 13,
+              background: "#fff",
+              fontWeight: 750,
+            }}
+          >
+            Done — return to class
+          </button>
+        </div>
+      )}
+
+      {tab === "work" && (
+        <Card>
+          {homework.length === 0 ? (
+            <div
+              style={{
+                padding: 22,
+                textAlign: "center",
+                color: "var(--teacher-muted, #627168)",
+              }}
+            >
+              No homework assigned by you for this class yet.
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 9 }}>
+              {homework.map((item) => {
+                const submission = submissionMap.get(item.id);
+                const overdue =
+                  Boolean(item.due_date) &&
+                  !submission &&
+                  new Date(item.due_date ?? "").getTime() < Date.now();
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
+                    onClick={() =>
+                      router.push(
+                        `/teacher/classhub/${classId}/homework/${item.id}`,
+                      )
+                    }
+                    style={{
+                      width: "100%",
+                      textAlign: "left",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 13,
+                      padding: 11,
+                      background: "#fff",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 10,
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 750 }}>
+                          {item.title}
+                        </div>
+                        <div
+                          style={{
+                            marginTop: 3,
+                            fontSize: 11,
+                            color: "var(--teacher-muted, #627168)",
+                          }}
+                        >
+                          {item.subject || "Subject"} ·{" "}
+                          {item.due_date
+                            ? `Due ${formatDate(item.due_date)}`
+                            : "No due date"}
+                        </div>
+                      </div>
+                      {submission ? (
+                        <Badge
+                          text={submission.status}
+                          tone={
+                            submission.status === "marked" ? "good" : "neutral"
+                          }
+                        />
+                      ) : (
+                        <Badge
+                          text={overdue ? "Missing" : "Not submitted"}
+                          tone={overdue ? "bad" : "warn"}
+                        />
+                      )}
+                    </div>
+                    {submission?.mark != null && (
+                      <div
+                        style={{
+                          marginTop: 7,
+                          fontSize: 12,
+                          fontWeight: 750,
+                          color: "#065f46",
+                        }}
+                      >
+                        Mark: {submission.mark}
+                      </div>
+                    )}
+                    {submission?.feedback && (
+                      <div
+                        style={{
+                          marginTop: 5,
+                          fontSize: 11,
+                          color: "var(--teacher-muted, #627168)",
+                        }}
+                      >
+                        {submission.feedback}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      )}
+
+      {tab === "assessment" && (
+        <div style={{ display: "grid", gap: 10 }}>
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 10,
+              }}
+            >
+              RELEASED ASSESSMENTS
+            </div>
+            {gradebook.length === 0 ? (
+              <div style={{ color: "var(--teacher-muted, #627168)" }}>
+                No released canonical assessment scores yet.
+              </div>
+            ) : (
+              gradebook.map((item, index) => {
+                const percentage = item.percentage;
+                return (
+                  <div
+                    key={`${item.assessment_id}-${index}`}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      borderBottom: "1px solid #f3f4f6",
+                      padding: "8px 0",
+                    }}
+                  >
+                    <div>
+                      <strong>{item.assessment_title}</strong>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "var(--teacher-muted, #627168)",
+                        }}
+                      >
+                        {item.subject_id
+                          ? (subjectNames.get(item.subject_id) ?? "Subject")
+                          : "Unscoped subject"}{" "}
+                        · {item.assessment_type}
+                      </div>
+                    </div>
+                    {percentage === null ? (
+                      <Badge text="No score" />
+                    ) : (
+                      <Badge
+                        text={`${Math.round(percentage)}%`}
+                        tone={
+                          percentage >= 70
+                            ? "good"
+                            : percentage < 50
+                              ? "bad"
+                              : "warn"
+                        }
+                      />
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </Card>
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 10,
+              }}
+            >
+              CBC COMPETENCY EVIDENCE
+            </div>
+            {cbc.length === 0 ? (
+              <div style={{ color: "var(--teacher-muted, #627168)" }}>
+                No CBC competency observations recorded yet.
+              </div>
+            ) : (
+              cbc.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    borderBottom: "1px solid #f3f4f6",
+                    padding: "8px 0",
+                  }}
+                >
+                  <div>
+                    <strong>
+                      {subjectNames.get(item.subject_id) ?? "Subject"}
+                      {item.sub_strand ? ` · ${item.sub_strand}` : ""}
+                    </strong>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: "var(--teacher-muted, #627168)",
+                      }}
+                    >
+                      {item.assessment_type} · {formatDate(item.created_at)}
+                    </div>
+                  </div>
+                  <Badge
+                    text={item.performance}
+                    tone={
+                      item.performance === "EE" || item.performance === "ME"
+                        ? "good"
+                        : item.performance === "BE"
+                          ? "bad"
+                          : "warn"
+                    }
+                  />
+                </div>
+              ))
+            )}
+          </Card>
+          <Card>
+            <div
+              style={{
+                fontSize: 11,
+                fontWeight: 750,
+                color: "var(--teacher-muted, #627168)",
+                marginBottom: 10,
+              }}
+            >
+              EXAM RESULTS
+            </div>
+            {exams.length === 0 ? (
+              <div style={{ color: "var(--teacher-muted, #627168)" }}>
+                No exam results recorded by you for this learner.
+              </div>
+            ) : (
+              exams.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    borderBottom: "1px solid #f3f4f6",
+                    padding: "8px 0",
+                  }}
+                >
+                  <span>
+                    {subjectNames.get(item.subject_id) ?? "Subject"} ·{" "}
+                    {formatDate(item.created_at)}
+                  </span>
+                  <Badge
+                    text={item.is_absent ? "Absent" : `${item.marks}`}
+                    tone={item.is_absent ? "warn" : "neutral"}
+                  />
+                </div>
+              ))
+            )}
+          </Card>
+        </div>
+      )}
+
+      {tab === "attendance" && (
+        <Card>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4,1fr)",
+              gap: 6,
+              marginBottom: 12,
+            }}
+          >
+            {[
+              { label: "Records", value: truth.attendance.records },
+              { label: "Present", value: truth.attendance.present },
+              { label: "Absent", value: truth.attendance.absent },
+              { label: "Late", value: truth.attendance.late },
+            ].map((item) => (
+              <div
+                key={item.label}
+                style={{
+                  background: "var(--teacher-canvas, #f5f6f2)",
+                  borderRadius: 11,
+                  padding: 8,
+                  textAlign: "center",
+                }}
+              >
+                <strong>{item.value}</strong>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--teacher-muted, #627168)",
+                  }}
+                >
+                  {item.label}
+                </div>
+              </div>
+            ))}
+          </div>
+          {attendance.length === 0 ? (
+            <div
+              style={{
+                padding: 22,
+                textAlign: "center",
+                color: "var(--teacher-muted, #627168)",
+              }}
+            >
+              No attendance evidence recorded yet.
+            </div>
+          ) : (
+            attendance.map((item, index) => (
+              <div
+                key={`${item.date}-${index}`}
+                style={{
+                  minHeight: 44,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  borderBottom: "1px solid #f3f4f6",
+                }}
+              >
+                <span>{formatDate(item.date)}</span>
+                <Badge
+                  text={item.is_late ? "Late" : item.status}
+                  tone={
+                    item.status === "present" && !item.is_late
+                      ? "good"
+                      : item.status === "absent"
+                        ? "bad"
+                        : "warn"
+                  }
+                />
+              </div>
+            ))
+          )}
+        </Card>
+      )}
+
+      {tab === "timeline" && (
+        <Card>
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 750,
+              color: "var(--teacher-muted, #627168)",
+              marginBottom: 4,
+            }}
+          >
+            STUDENT STORY
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: "#4b5563",
+              lineHeight: 1.45,
+              marginBottom: 14,
+            }}
+          >
+            One timeline of attendance, work, assessments, teacher observations,
+            recognition, participation and support. Use it to see what happened
+            before and after you acted.
+          </div>
+          {timeline.length === 0 ? (
+            <div
+              style={{
+                padding: 22,
+                textAlign: "center",
+                color: "var(--teacher-muted, #627168)",
+              }}
+            >
+              No dated learner events are recorded yet.
+            </div>
+          ) : (
+            <div style={{ display: "grid" }}>
+              {timeline.map((item, index) => (
+                <div
+                  key={item.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "76px 12px 1fr",
+                    gap: 8,
+                    minHeight: 64,
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--teacher-muted, #627168)",
+                      paddingTop: 2,
+                    }}
+                  >
+                    {formatDate(item.at)}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <div
+                      style={{
+                        width: 9,
+                        height: 9,
+                        borderRadius: 99,
+                        background: "#4f46e5",
+                        marginTop: 2,
+                      }}
+                    />
+                    {index < timeline.length - 1 && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: 4,
+                          top: 12,
+                          bottom: -2,
+                          width: 1,
+                          background: "var(--teacher-border, #dfe5de)",
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div style={{ paddingBottom: 14 }}>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 750,
+                        color: "#6366f1",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.4,
+                      }}
+                    >
+                      {item.type}
+                    </div>
+                    <div
+                      style={{ marginTop: 2, fontSize: 12, fontWeight: 750 }}
+                    >
+                      {item.title}
+                    </div>
+                    <div
+                      style={{
+                        marginTop: 2,
+                        fontSize: 11,
+                        color: "var(--teacher-muted, #627168)",
+                      }}
+                    >
+                      {item.detail}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
+    </div>
+  );
 }
