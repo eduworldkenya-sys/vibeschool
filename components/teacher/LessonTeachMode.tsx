@@ -279,19 +279,25 @@ export default function LessonTeachMode({
             {([
               ['notes','Notes'],['resources','Resources'],['assessment','Check learning'],['homework','Homework'],
             ] as Array<[PackView,string]>).map(([value,label]) => (
-              <button key={value} type="button" onClick={()=>setPackView(value)} style={{...actionStyle,whiteSpace:'nowrap',borderColor:packView===value?'#4338ca':'#cbd5e1',background:packView===value?'#eef2ff':'#fff'}}>{label}</button>
+              <button key={value} type="button" onClick={()=>setPackView(value)} style={{...actionStyle,whiteSpace:'nowrap',borderColor:packView===value?'var(--teacher-accent, #6352bd)':'#cbd5e1',background:packView===value?'var(--teacher-accent-soft, #eeeafa)':'#fff'}}>{label}</button>
             ))}
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.65, fontSize:13, background:"var(--teacher-canvas, #f5f6f2)", borderRadius:10, padding:10 }}>
             {packView === 'notes' && [sections.introduction, sections.development, sections.consolidation].filter(Boolean).join('\n\n')}
             {packView === 'resources' && sections.resources}
             {packView === 'assessment' && sections.assessmentHook}
-            {packView === 'homework' && <><div>{sections.homework}</div><div style={{ marginTop:8, fontSize:11, fontWeight:750, color:'#4338ca' }}>View · Edit · Assign · Share</div></>}
+            {packView === 'homework' && <><div>{sections.homework}</div><div style={{ marginTop:8, fontSize:11, fontWeight:750, color:'var(--teacher-accent, #6352bd)' }}>View · Edit · Assign · Share</div></>}
           </div>
         </section>
 
+        <nav aria-label="Lesson phases" style={{ display:'flex', gap:8, overflowX:'auto', padding:'4px 0 12px' }}>
+          {available.map((phase, index) => (
+            <button key={phase.key} type="button" aria-pressed={safeIndex === index} onClick={() => changeStep(index)} style={{...actionStyle, flexShrink:0, minHeight:44, background:safeIndex === index ? 'var(--teacher-accent, #6352bd)' : '#fff', color:safeIndex === index ? '#fff' : 'var(--teacher-ink, #29273c)'}}>{phase.label}</button>
+          ))}
+        </nav>
+
         <section style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
-          <div style={{ fontSize:11, fontWeight:750, color:'#86efac', textTransform:'uppercase' }}>
+          <div style={{ fontSize:11, fontWeight:750, color:'#d0c5e8', textTransform:'uppercase' }}>
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
@@ -317,7 +323,7 @@ export default function LessonTeachMode({
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
           <button type="button" disabled={safeIndex===0} onClick={()=>changeStep(Math.max(0,safeIndex-1))} style={{...actionStyle,opacity: safeIndex === 0 ? 0.45 : 1}}>← Previous</button>
-          <button type="button" disabled={safeIndex>=available.length-1} onClick={()=>changeStep(Math.min(available.length-1,safeIndex+1))} style={{...actionStyle,background:'#4338ca',color:'#fff',opacity: safeIndex >= available.length - 1 ? 0.45 : 1}}>Next →</button>
+          <button type="button" disabled={safeIndex>=available.length-1} onClick={()=>changeStep(Math.min(available.length-1,safeIndex+1))} style={{...actionStyle,background:'var(--teacher-accent, #6352bd)',color:'#fff',opacity: safeIndex >= available.length - 1 ? 0.45 : 1}}>Next →</button>
         </div>
 
         {context ? (

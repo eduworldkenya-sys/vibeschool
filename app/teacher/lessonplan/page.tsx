@@ -440,12 +440,12 @@ function LessonPlanInner() {
         ) : visibleItems.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No lessons match this readiness filter</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className="studio-lesson-grid">
             {visibleItems.map(({ slot, plan }) => {
               const state = readinessState(plan)
               const badge = READINESS_BADGE[state]
               return (
-                <div key={slot.id} style={{ padding: '14px 0', borderBottom: '1px solid ' + C.border }}>
+                <div key={slot.id} className="studio-lesson-card">
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary }}>
@@ -463,8 +463,8 @@ function LessonPlanInner() {
                     <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0 }}>{badge.label}</span>
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                    <Btn small variant="ghost" onClick={() => setActiveSlot(slot)}>
-                      {state === 'no_plan' ? '✦ Create Plan' : state === 'needs_review' ? '📝 Review Plan' : '📝 Open Teaching Workspace'}
+                    <Btn small variant="ghost" ariaLabel={state === 'no_plan' ? 'Create plan' : state === 'needs_review' ? 'Review plan' : 'Open Teaching Workspace'} onClick={() => setActiveSlot(slot)}>
+                      {state === 'no_plan' ? 'Create plan' : state === 'needs_review' ? 'Review plan' : 'Open lesson'}
                     </Btn>
                   </div>
                 </div>

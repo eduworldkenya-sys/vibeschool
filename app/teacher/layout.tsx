@@ -8,6 +8,7 @@ import TwinDrawer from "@/components/teacher/TwinDrawer";
 
 import OfflineBar from "@/components/teacher/OfflineBar";
 import "@/components/teacher/teacher-workspace.css";
+import "@/components/teacher/studio.css";
 import TeacherNavigation from "@/components/teacher/TeacherNavigation";
 import { ArrowLeft, ChevronDown, MessageSquare, Wallet, Sparkles } from "lucide-react";
 import Link from "next/link";
@@ -171,7 +172,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
           <OfflineBar />
           <Suspense fallback={null}><SearchParamWatcher onTwin={() => setTwinOpen(true)} /></Suspense>
           <TopBar school={school} initials={initials} unreadConnect={unreadConnect} creditBalance={creditBalance} creditsLoading={creditsLoading} />
-          <main id="teacher-main" tabIndex={-1} className="teacher-content teacher-light-surface">{children}</main>
+          <main id="teacher-main" data-studio-view={/^\/teacher\/classhub\/[^/]+\/student\/[^/]+\/?$/.test(pathname ?? "") ? "learner" : pathname === "/teacher/assessment" ? "assessment" : undefined} tabIndex={-1} className="teacher-content teacher-light-surface">{children}</main>
           <TwinPill onOpen={() => setTwinOpen(true)} unread={twinUnread} />
           <TeacherNavigation />
           <TwinDrawer open={twinOpen} onClose={() => setTwinOpen(false)} />

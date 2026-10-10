@@ -150,7 +150,7 @@ export default function TeacherHomeworkPage() {
   const classes = Array.from(new Map((context?.classes ?? []).map(c => [c.class_id, c])).values());
   const control = { minHeight: 44, border: '1px solid #cbd5cf', borderRadius: 6, padding: '8px 12px', background: '#fff', color: '#24352b', font: 'inherit' };
   return (
-    <main className="vs-teacher-workspace" style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px 80px' }}>
+    <section className="vs-teacher-workspace" style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 16px 80px' }}>
       <header style={{ borderBottom: '1px solid #dfe5de', paddingBottom: 18, marginBottom: 20 }}>
         <h1 style={{ margin: '0 0 6px', fontSize: 28 }}>Homework</h1>
         <p style={{ margin: 0, color: '#627168', lineHeight: 1.5 }}>Set take-home assignments and review submissions. For classwork, exercises and CATs, open <a href="/teacher/assessment">Assessments</a>.</p>
@@ -174,6 +174,6 @@ export default function TeacherHomeworkPage() {
           </li>)}</ul>}
         </>
       )}
-    </main>
+    </section>
   );
 }

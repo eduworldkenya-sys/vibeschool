@@ -306,7 +306,7 @@ function LessonNotesInner() {
       <section style={{ padding: 20, maxWidth: 760, margin: "0 auto", display: "grid", gap: 12 }}>
         <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: 0, marginBottom: 6 }}>← Back</button>
         <section style={{ background: "var(--teacher-ink, #1c2923)", color: "#fff", borderRadius: 18, padding: 18 }}>
-          <div style={{ fontSize: 11, fontWeight: 750, color: "#86efac", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes / Teach</div>
+          <div style={{ fontSize: 11, fontWeight: 750, color: "#d0c5e8", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes / Teach</div>
           <h1 style={{ fontSize: 22, margin: "7px 0 5px" }}>Choose the prepared lesson</h1>
           <div style={{ fontSize: 12, color: "#d1d5db", lineHeight: 1.5 }}>Your class and subject are preserved. VibeSchool will only open notes from the exact authorised lesson plan.</div>
         </section>
@@ -347,8 +347,8 @@ function LessonNotesInner() {
     <section style={{ padding: "12px 14px 32px", maxWidth: 760, margin: "0 auto" }}>
       <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: "8px 0", color: "#374151" }}>← Back to lesson</button>
 
-      <section style={{ background: "linear-gradient(135deg,#111827,#1f2937)", color: "#fff", borderRadius: 22, padding: 18, marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 750, color: "#86efac", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes</div>
+      <section style={{ background: "#2c2944", color: "#fff", borderRadius: 22, padding: 18, marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 750, color: "#d0c5e8", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes</div>
         <h1 style={{ fontSize: 22, lineHeight: 1.2, margin: "7px 0 5px" }}>{plan.topic || plan.title || "Today’s lesson"}</h1>
         <div style={{ fontSize: 13, color: "#d1d5db", lineHeight: 1.45 }}>Everything here belongs to this lesson. Teach from it, then return to the lesson flow.</div>
       </section>

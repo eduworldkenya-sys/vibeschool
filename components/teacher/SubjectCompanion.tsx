@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BookOpen, CalendarDays, ClipboardCheck, FileText, GraduationCap, Layers, Library, NotebookPen, TrendingUp, Users, ArrowUpRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 
@@ -135,6 +136,8 @@ const tools: Tool[] = [
   },
 ];
 
+const toolIcons = { scheme: Layers, content: Library, resources: Library, lessonplan: NotebookPen, "lesson-notes": BookOpen, "teacher-guide": GraduationCap, timetable: CalendarDays, attendance: ClipboardCheck, homework: FileText, assessment: ClipboardCheck, exams: FileText, students: Users, workbook: NotebookPen, progress: TrendingUp };
+
 const groupCopy = {
   prepare: {
     title: "Prepare",
@@ -178,26 +181,9 @@ export default function SubjectCompanion({
   }
 
   return (
-    <section
-      aria-label="Subject companion"
-      style={{
-        margin: "14px 16px 0",
-        background: "#fff",
-        borderRadius: 20,
-        padding: 16,
-        boxShadow: "0 1px 4px rgba(0,0,0,.06)",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: 1.2, textTransform: "uppercase", color: "#075985" }}>
-            {subject.name} workspace
-          </div>
-          <h2 style={{ margin: "4px 0 0", fontSize: 18, color: "var(--teacher-ink, #1c2923)" }}>Everything for teaching this subject</h2>
-          <p style={{ margin: "4px 0 0", fontSize: 12, lineHeight: 1.5, color: "var(--teacher-muted, #627168)" }}>
-            Keep one class and subject context while you prepare, teach, assess and follow up.
-          </p>
-        </div>
+    <section aria-label="Subject companion" className="studio-subject">
+      <div className="studio-subject__heading">
+        <h2>{subject.name} workspace</h2>
       </div>
 
       {classes.length > 0 ? (
@@ -253,33 +239,24 @@ export default function SubjectCompanion({
       )}
 
       {(["prepare", "teach", "evidence"] as const).map((group) => (
-        <div key={group} style={{ marginTop: 16 }}>
-          <div style={{ marginBottom: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{groupCopy[group].title}</div>
-            <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{groupCopy[group].help}</div>
+        <div key={group} className="studio-tools">
+          <h2>{groupCopy[group].title}</h2>
+          <div className="studio-tools__grid">
+            {tools.filter((tool) => tool.group === group).map((tool) => {
+              const Icon = toolIcons[tool.id as keyof typeof toolIcons];
+              return (
+                <button key={tool.id} type="button" onClick={() => open(tool)} className="studio-tools__tile" title={tool.help}>
+                  <Icon size={25} aria-hidden="true" />
+                  <strong>{tool.label}</strong>
+                  <ArrowUpRight className="studio-arrow" aria-hidden="true" />
+                </button>
+              );
+            })}
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}>
-            {tools.filter((tool) => tool.group === group).map((tool) => (
-              <button
-                key={tool.id}
-                type="button"
-                onClick={() => open(tool)}
-                style={{
-                  minHeight: 82,
-                  border: "1px solid #e5e7eb",
-                  borderRadius: 14,
-                  background: "#fff",
-                  textAlign: "left",
-                  padding: 12,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{tool.label}</div>
-                <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.45, color: "var(--teacher-muted, #627168)" }}>{tool.help}</div>
-              </button>
-            ))}
-          </div>
+          <details>
+            <summary>About these tools</summary>
+            {tools.filter((tool) => tool.group === group).map((tool) => <p key={tool.id}><strong>{tool.label}</strong> — {tool.help}</p>)}
+          </details>
         </div>
       ))}
     </section>

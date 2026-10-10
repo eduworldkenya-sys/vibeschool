@@ -15,46 +15,10 @@ interface TeachingContext {
 }
 
 function Tile({ label, icon, onClick }: { label: string; icon: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        minWidth: 0,
-        minHeight: 76,
-        cursor: "pointer",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 7,
-        border: "1px solid #e5e7eb",
-        borderRadius: 14,
-        background: "#fff",
-        color: "#374151",
-        fontFamily: "inherit",
-        padding: "9px 6px",
-      }}
-    >
-      <span
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          background: "#ecfdf5",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--teacher-green, #087451)",
-        }}
-      >
-        {icon}
-      </span>
-      <span style={{ fontSize: 11, fontWeight: 800, textAlign: "center", lineHeight: 1.2 }}>
-        {label}
-      </span>
-    </button>
-  );
+  return <button type="button" onClick={onClick} className="studio-tools__tile">
+    <span className="vs-teacher-action-tile__icon" aria-hidden="true">{icon}</span>
+    <strong>{label}</strong><span className="studio-arrow" aria-hidden="true">↗</span>
+  </button>;
 }
 
 const iconProps = {
@@ -151,41 +115,8 @@ export default function QuickActions({
 }) {
   const actions = actionsFor(slot, context);
 
-  return (
-    <section
-      style={{
-        background: "#fff",
-        borderRadius: 18,
-        padding: 12,
-        marginBottom: 12,
-        border: "1px solid #e5e7eb",
-        boxShadow: "0 1px 3px rgba(15,23,42,0.04)",
-      }}
-      aria-labelledby="teacher-quick-tools-title"
-    >
-      <div
-        id="teacher-quick-tools-title"
-        style={{
-          fontSize: 11,
-          fontWeight: 750,
-          color: "var(--teacher-muted, #627168)",
-          letterSpacing: 1,
-          textTransform: "uppercase",
-          margin: "2px 2px 10px",
-        }}
-      >
-        Quick tools
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 8 }}>
-        {actions.map((action) => (
-          <Tile
-            key={action.label}
-            label={action.label}
-            icon={action.icon}
-            onClick={() => onNavigate(action.href)}
-          />
-        ))}
-      </div>
-    </section>
-  );
+  return <section className="studio-tools" aria-labelledby="teacher-quick-tools-title">
+    <h2 id="teacher-quick-tools-title">Quick tools</h2>
+    <div className="studio-tools__grid">{actions.map(action => <Tile key={action.label} label={action.label} icon={action.icon} onClick={() => onNavigate(action.href)}/>)}</div>
+  </section>;
 }

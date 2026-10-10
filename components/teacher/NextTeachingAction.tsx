@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { nairobiDateStr } from "@/lib/time";
 import type { PriorityTask, PulseSnapshot, Slot } from "@/lib/types";
 
@@ -79,40 +80,31 @@ export default function NextTeachingAction({
   return (
     <section
       aria-labelledby="teacher-next-action-title"
-      style={{
-        background: "#ecfdf5",
-        border: "1px solid #a7f3d0",
-        borderRadius: 20,
-        padding: 16,
-        marginBottom: 14,
-        color: "var(--teacher-ink, #1c2923)",
-        boxShadow: "0 2px 12px rgba(15,23,42,0.04)",
-      }}
+      className="studio-next"
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 7 }}>
-        <div style={{ fontSize: 11, fontWeight: 750, letterSpacing: 1, textTransform: "uppercase", color: "#047857" }}>
+      <div className="studio-next__top">
+        <span>
           Next step
-        </div>
+        </span>
         {countdown && (
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#047857", background: "#fff", border: "1px solid #d1fae5", borderRadius: 999, padding: "4px 9px", whiteSpace: "nowrap" }}>
+          <span>
             In {countdown}
-          </div>
+          </span>
         )}
       </div>
 
-      <h2 id="teacher-next-action-title" style={{ margin: "0 0 5px", fontSize: 19, fontWeight: 750, lineHeight: 1.2 }}>
+      <h2 id="teacher-next-action-title">
         {title}
       </h2>
-      <div style={{ fontSize: 13, color: "#4b5563", lineHeight: 1.45, marginBottom: 13 }}>
-        {detail}
-      </div>
+      <details><summary>Lesson details</summary>{detail}</details>
 
       <button
         type="button"
         onClick={() => onNavigate(href)}
-        style={{ width: "100%", minHeight: 46, border: "none", borderRadius: 13, padding: "12px 14px", background: "var(--teacher-green, #087451)", color: "#fff", fontSize: 14, fontWeight: 750, cursor: "pointer", fontFamily: "inherit" }}
+        className="studio-next__button"
+        aria-label={`Open: ${title}`}
       >
-        {task?.label ? `${task.label} →` : "Continue →"}
+        Open next step <ArrowUpRight size={18} aria-hidden="true"/>
       </button>
     </section>
   );
