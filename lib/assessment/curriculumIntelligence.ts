@@ -20,7 +20,7 @@ export interface InterventionSignal {
   outcomeId: string
   outcomeCode: string | null
   outcomeText: string
-  masteryScore: number
+  masteryScore: number | null
   masteryLevel: string
   recommendedAction: string
 }
@@ -47,7 +47,7 @@ function text(value: unknown): string | null {
 }
 
 function numberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined) return null
+  if (value === null || value === undefined || value === '') return null
   const result = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(result) ? result : null
 }
@@ -81,12 +81,20 @@ export async function getCurriculumIntelligence(
   if (error) throw new Error(error.message || 'Could not load curriculum intelligence.')
 
   const payload = record(data)
+  if (
+    text(payload.assignment_id) !== assignmentId ||
+    !Array.isArray(payload.outcomes) ||
+    !Array.isArray(payload.interventions)
+  )
+    throw new Error(
+      'Learning outcome evidence returned an incomplete payload. Retry before drawing conclusions.',
+    )
   const outcomes = Array.isArray(payload.outcomes) ? payload.outcomes : []
   const interventions = Array.isArray(payload.interventions) ? payload.interventions : []
 
   return {
     assignmentId: text(payload.assignment_id) ?? assignmentId,
-    outcomes: outcomes.map(value => {
+    outcomes: outcomes.map((value) => {
       const item = record(value)
       return {
         outcomeId: text(item.outcome_id) ?? '',
@@ -103,7 +111,7 @@ export async function getCurriculumIntelligence(
         masteryBand: text(item.mastery_band) ?? 'not_assessed',
       }
     }),
-    interventions: interventions.map(value => {
+    interventions: interventions.map((value) => {
       const item = record(value)
       return {
         studentId: text(item.student_id) ?? '',
@@ -111,8 +119,8 @@ export async function getCurriculumIntelligence(
         outcomeId: text(item.outcome_id) ?? '',
         outcomeCode: text(item.outcome_code),
         outcomeText: text(item.outcome_text) ?? 'Learning outcome',
-        masteryScore: numberOrNull(item.mastery_score) ?? 0,
-        masteryLevel: text(item.mastery_level) ?? 'beginning',
+        masteryScore: numberOrNull(item.mastery_score),
+        masteryLevel: text(item.mastery_level) ?? 'not_assessed',
         recommendedAction: text(item.recommended_action) ?? 'guided_practice',
       }
     }),

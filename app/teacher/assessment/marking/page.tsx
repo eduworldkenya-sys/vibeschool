@@ -1,8 +1,8 @@
 'use client'
-
 export const dynamic = 'force-dynamic'
-
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   finalizeAttempt,
   getMarkingAttempt,
@@ -10,254 +10,675 @@ import {
   markResponse,
   type MarkingAttempt,
   type MarkingQueueItem,
+  type MarkingResponse,
 } from '@/lib/assessment/marking'
+import { getScoreAudit, requestModeration, type ScoreAuditEvent } from '@/lib/assessment/moderation'
+import { MarkingGuide } from '@/components/teacher/assessment/MarkingGuide'
 import {
-  getScoreAudit,
-  requestModeration,
-  type ScoreAuditEvent,
-} from '@/lib/assessment/moderation'
+  listTeacherAssessmentAnalytics,
+  type AssessmentAnalyticsSummary,
+} from '@/lib/assessment/analytics'
+import { parseMark } from '@/lib/assessment/workspace'
 import {
-  getMarkingCentreSummary,
-  type MarkingCentreSummary,
-} from '@/lib/assessment/centre'
-
-type DraftMarks = Record<string, { score: string; feedback: string; overrideReason: string; moderationReason: string }>
-
-export default function AssessmentMarkingPage() {
-  const [queue, setQueue] = useState<MarkingQueueItem[]>([])
-  const [centre, setCentre] = useState<MarkingCentreSummary | null>(null)
-  const [selected, setSelected] = useState<MarkingAttempt | null>(null)
-  const [drafts, setDrafts] = useState<DraftMarks>({})
-  const [audit, setAudit] = useState<Record<string, ScoreAuditEvent[]>>({})
-  const [attemptFeedback, setAttemptFeedback] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [message, setMessage] = useState('')
-
-  async function loadQueue() {
-    setLoading(true)
-    setError('')
-    try {
-      const [items, summary] = await Promise.all([listMarkingQueue(), getMarkingCentreSummary()])
-      setQueue(items)
-      setCentre(summary)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load marking centre.')
-    } finally { setLoading(false) }
+  AssessmentContextControls,
+  AssessmentHeading,
+  ContextState,
+  useAssessmentContext,
+  workspaceHref,
+} from '@/components/teacher/assessment/AssessmentContext'
+import styles from '@/components/teacher/assessment/AssessmentWorkspace.module.css'
+type Draft = {
+  score: string
+  feedback: string
+  overrideReason: string
+  moderationReason: string
+}
+const blank: Draft = {
+  score: '',
+  feedback: '',
+  overrideReason: '',
+  moderationReason: '',
+}
+function draftFor(r: MarkingResponse): Draft {
+  return {
+    ...blank,
+    score: r.finalScore === null ? '' : String(r.finalScore),
+    feedback: r.teacherFeedback ?? '',
   }
-
-  useEffect(() => { void loadQueue() }, [])
-
-  async function openAttempt(attemptId: string) {
+}
+function stage(item: MarkingQueueItem) {
+  return item.attemptStatus === 'released'
+    ? 'Shared'
+    : item.attemptStatus === 'marked'
+      ? 'Ready to share'
+      : item.markedItems > 0
+        ? 'In progress'
+        : 'To mark'
+}
+function Workspace() {
+  const scope = useAssessmentContext(),
+    params = useSearchParams(),
+    ticket = useRef(0),
+    operation = useRef(false)
+  const [summaries, setSummaries] = useState<AssessmentAnalyticsSummary[]>([])
+  const [queue, setQueue] = useState<MarkingQueueItem[]>([]),
+    [selectedState, setSelected] = useState<MarkingAttempt | null>(null),
+    [drafts, setDrafts] = useState<Record<string, Draft>>({}),
+    [feedback, setFeedback] = useState(''),
+    [audit, setAudit] = useState<Record<string, ScoreAuditEvent[]>>({}),
+    [tab, setTab] = useState('To mark'),
+    [loading, setLoading] = useState(false),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState(''),
+    [message, setMessage] = useState(''),
+    [revision, setRevision] = useState(0),
+    [answerView, setAnswerView] = useState('one'),
+    [questionIndex, setQuestionIndex] = useState(0)
+  const scopeKey = JSON.stringify([scope.context?.schoolId, scope.selection]),
+    scopeRef = useRef(scopeKey)
+  scopeRef.current = scopeKey
+  const allowed = new Set(
+      scope.assignments
+        .filter((a) => !scope.selection.assignmentId || a.id === scope.selection.assignmentId)
+        .map((a) => a.id),
+    ),
+    visible = queue.filter((q) => allowed.has(q.assignmentId)),
+    selected =
+      selectedState && visible.some((q) => q.attemptId === selectedState.attemptId)
+        ? selectedState
+        : null,
+    responses = selected?.responses.filter((r) => r.status !== 'void') ?? [],
+    locked = selected?.attemptStatus === 'released'
+  const dirty = Boolean(
+    selected &&
+    !locked &&
+    (feedback !== (selected.feedback ?? '') ||
+      responses.some((r) => {
+        const d = drafts[r.responseId]
+        return d && (d.score !== draftFor(r).score || d.feedback !== draftFor(r).feedback)
+      })),
+  )
+  function canLeave() {
+    return (
+      !operation.current && (!dirty || window.confirm('Discard the unsaved marks and feedback?'))
+    )
+  }
+  useEffect(() => {
+    function warn(event: BeforeUnloadEvent) {
+      if (dirty) {
+        event.preventDefault()
+        event.returnValue = ''
+      }
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [dirty])
+  useEffect(() => {
+    const current = ++ticket.current
+    setQueue([])
+    setSelected(null)
+    setError('')
+    setLoading(Boolean(scope.context))
+    if (scope.context)
+      void Promise.all([listMarkingQueue(), listTeacherAssessmentAnalytics()])
+        .then(([rows, summaries]) => {
+          if (current === ticket.current) {
+            setQueue(rows)
+            setSummaries(summaries)
+          }
+        })
+        .catch((cause) => {
+          if (current === ticket.current)
+            setError(cause instanceof Error ? cause.message : 'Submitted work could not be loaded.')
+        })
+        .finally(() => {
+          if (current === ticket.current) setLoading(false)
+        })
+    return () => {
+      ticket.current = current + 1
+    }
+  }, [scope.context, revision])
+  useEffect(() => {
+    setSelected(null)
+    setDrafts({})
+    setAudit({})
+    setMessage('')
+  }, [
+    scope.selection.classId,
+    scope.selection.subjectId,
+    scope.selection.termId,
+    scope.selection.assignmentId,
+  ])
+  function initialize(attempt: MarkingAttempt) {
+    setSelected(attempt)
+    setQuestionIndex(0)
+    setFeedback(attempt.feedback ?? '')
+    setDrafts(Object.fromEntries(attempt.responses.map((r) => [r.responseId, draftFor(r)])))
+    setAudit({})
+  }
+  async function open(id: string) {
+    if (!visible.some((q) => q.attemptId === id) || !canLeave()) return
+    operation.current = true
     setBusy(true)
     setError('')
     setMessage('')
+    const current = ticket.current
     try {
-      const attempt = await getMarkingAttempt(attemptId)
-      setSelected(attempt)
-      setAttemptFeedback(attempt.feedback ?? '')
-      setDrafts(Object.fromEntries(attempt.responses.map(response => [response.responseId, {
-        score: response.finalScore === null ? '' : String(response.finalScore),
-        feedback: response.teacherFeedback ?? '',
-        overrideReason: '',
-        moderationReason: '',
-      }])))
+      const result = await getMarkingAttempt(id)
+      if (current === ticket.current && scopeRef.current === scopeKey) initialize(result)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not open submission.')
-    } finally { setBusy(false) }
-  }
-
-  function validateResponse(responseId: string, maxScore: number, autoScore: number | null) {
-    const draft = drafts[responseId]
-    const score = Number(draft?.score)
-    if (!Number.isFinite(score) || score < 0 || score > maxScore) throw new Error(`Enter a score from 0 to ${maxScore}.`)
-    if (autoScore !== null && score !== autoScore && !draft?.overrideReason.trim()) throw new Error('Explain why the automatic score is being changed.')
-    return { score, feedback: draft?.feedback ?? '', overrideReason: draft?.overrideReason ?? '' }
-  }
-
-  async function saveResponseMark(responseId: string, maxScore: number, autoScore: number | null) {
-    setBusy(true)
-    setError('')
-    setMessage('')
-    try {
-      const draft = validateResponse(responseId, maxScore, autoScore)
-      await markResponse({ responseId, ...draft })
-      if (selected) await openAttempt(selected.attemptId)
-      setMessage('Mark saved and added to the score audit trail.')
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Response could not be marked.')
+      if (current === ticket.current)
+        setError(cause instanceof Error ? cause.message : 'This submission could not be opened.')
+    } finally {
+      operation.current = false
       setBusy(false)
     }
   }
-
-  async function toggleAudit(responseId: string) {
-    if (audit[responseId]) {
-      setAudit(current => { const next = { ...current }; delete next[responseId]; return next })
-      return
+  const deepLink = useRef('')
+  const openRef = useRef(open)
+  openRef.current = open
+  const visibleAttemptIds = visible.map((q) => q.attemptId).join(',')
+  useEffect(() => {
+    const id = params.get('attemptId')
+    if (
+      id &&
+      !loading &&
+      scope.context &&
+      visibleAttemptIds.split(',').includes(id) &&
+      deepLink.current !== id
+    ) {
+      deepLink.current = id
+      void openRef.current(id)
     }
-    setBusy(true)
-    setError('')
-    try {
-      const events = await getScoreAudit(responseId)
-      setAudit(current => ({ ...current, [responseId]: events }))
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Mark history could not be loaded.')
-    } finally { setBusy(false) }
+  }, [loading, visibleAttemptIds, scope.context, params]) // permission-checked deep link; queue owns valid attempt IDs
+  function validated(r: MarkingResponse) {
+    const d = drafts[r.responseId] ?? blank,
+      score = parseMark(d.score, r.maxScore)
+    if (
+      r.autoScore !== null &&
+      score !== r.autoScore &&
+      (score !== r.finalScore || d.feedback.trim() !== (r.teacherFeedback ?? '')) &&
+      !d.overrideReason.trim()
+    )
+      throw new Error(`Question ${r.orderNum}: explain the automatic mark change.`)
+    return {
+      responseId: r.responseId,
+      score,
+      feedback: d.feedback.trim(),
+      overrideReason: d.overrideReason,
+    }
   }
-
-  async function submitModeration(responseId: string, maxScore: number) {
-    const draft = drafts[responseId]
-    const requestedScore = Number(draft?.score)
-    const reason = draft?.moderationReason.trim() ?? ''
-    if (!Number.isFinite(requestedScore) || requestedScore < 0 || requestedScore > maxScore) {
-      setError(`Enter a requested score from 0 to ${maxScore}.`)
-      return
-    }
-    if (reason.length < 5) {
-      setError('Enter a moderation reason of at least 5 characters.')
-      return
-    }
+  async function run(action: () => Promise<void>) {
+    if (operation.current) return
+    operation.current = true
     setBusy(true)
     setError('')
     setMessage('')
     try {
-      await requestModeration({ responseId, requestedScore, reason })
-      setMessage('Mark review request sent to a school administrator.')
-      setDrafts(current => ({ ...current, [responseId]: { ...current[responseId], moderationReason: '' } }))
-      const events = await getScoreAudit(responseId)
-      setAudit(current => ({ ...current, [responseId]: events }))
-      await loadQueue()
+      await action()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Moderation request could not be sent.')
-    } finally { setBusy(false) }
+      if (scopeRef.current !== scopeKey) return
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : 'The change could not be confirmed. Retry before continuing.',
+      )
+    } finally {
+      operation.current = false
+      setBusy(false)
+    }
   }
-
-  async function finishAttempt(release: boolean) {
-    if (!selected) return
-    setBusy(true)
-    setError('')
-    setMessage('')
-    try {
-      for (const response of selected.responses) {
-        const draft = validateResponse(response.responseId, response.maxScore, response.autoScore)
-        const changed = response.finalScore === null || Number(draft.score) !== response.finalScore || draft.feedback !== (response.teacherFeedback ?? '')
-        if (changed) await markResponse({ responseId: response.responseId, ...draft })
+  async function save(r: MarkingResponse) {
+    if (!selected || locked) return
+    const attemptId = selected.attemptId
+    await run(async () => {
+      const input = validated(r)
+      await markResponse(input)
+      const saved = await getMarkingAttempt(attemptId)
+      if (scopeRef.current !== scopeKey) return
+      setSelected(saved)
+      const read = saved.responses.find((item) => item.responseId === r.responseId)
+      if (!read || read.finalScore !== input.score)
+        throw new Error('The saved mark could not be confirmed. Reload this submission.')
+      setDrafts((current) => ({ ...current, [r.responseId]: draftFor(read) }))
+      setAudit((current) => {
+        const next = { ...current }
+        delete next[r.responseId]
+        return next
+      })
+      setMessage('Mark saved. Your other unsaved answers and overall feedback are still here.')
+    })
+  }
+  async function finish(release: boolean) {
+    if (!selected || locked) return
+    if (release && !window.confirm('Share this result with the learner? Shared marks are locked.'))
+      return
+    await run(async () => {
+      if (release && selected.pendingResponseIds.length)
+        throw new Error('Resolve the pending mark review before sharing this result.')
+      const inputs = responses.map(validated)
+      if (!inputs.length) throw new Error('There are no answers to finalize.')
+      for (const input of inputs) {
+        if (scopeRef.current !== scopeKey)
+          throw new Error(
+            'Context changed. Reopen the submission to continue from its saved marks.',
+          )
+        const r = responses.find((r) => r.responseId === input.responseId)!
+        if (r.finalScore !== input.score || (r.teacherFeedback ?? '') !== input.feedback) {
+          await markResponse(input)
+          setSelected((current) =>
+            current
+              ? {
+                  ...current,
+                  responses: current.responses.map((r) =>
+                    r.responseId === input.responseId
+                      ? {
+                          ...r,
+                          finalScore: input.score,
+                          teacherFeedback: input.feedback,
+                        }
+                      : r,
+                  ),
+                }
+              : null,
+          )
+        }
       }
-      await finalizeAttempt({ attemptId: selected.attemptId, feedback: attemptFeedback, release })
-      setSelected(null)
-      setDrafts({})
-      await loadQueue()
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Attempt could not be finalized.')
-    } finally { setBusy(false) }
+      if (scopeRef.current !== scopeKey)
+        throw new Error('Context changed. Reopen the submission before finishing.')
+      try {
+        await finalizeAttempt({
+          attemptId: selected.attemptId,
+          feedback,
+          release,
+        })
+      } catch (cause) {
+        const actual = await getMarkingAttempt(selected.attemptId)
+        setSelected(actual)
+        if (actual.attemptStatus === 'released')
+          throw new Error(
+            'The result was shared, but progress synchronization could not be confirmed. Do not release it again; contact school support.',
+          )
+        throw cause
+      }
+      initialize(await getMarkingAttempt(selected.attemptId))
+      setQueue(await listMarkingQueue())
+      setMessage(
+        release
+          ? 'Result shared and locked.'
+          : 'Marking finished. The result stays private until you share it.',
+      )
+    })
   }
-
-  const queueStats = useMemo(() => ({
-    waiting: queue.filter(item => item.unresolvedItems > 0).length,
-    marked: queue.filter(item => item.attemptStatus === 'marked').length,
-    released: queue.filter(item => item.attemptStatus === 'released').length,
-  }), [queue])
-
+  function update(id: string, key: keyof Draft, value: string) {
+    setDrafts((current) => ({
+      ...current,
+      [id]: { ...(current[id] ?? blank), [key]: value },
+    }))
+  }
   return (
-    <section style={shell}>
-      <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-        <section style={card}>
-          <div style={eyebrow}>Assessments</div>
-          <h1 style={{ margin: '6px 0' }}>Mark Submitted Work</h1>
-          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>Open learners’ submitted work, mark each answer, add feedback, finish marking, and share results when ready.</p>
-        </section>
-
-        {!selected && <section style={card}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', gap: 8 }}>
-            <div style={stat}><strong>{centre?.counts.submittedAttempts ?? queueStats.waiting}</strong><span>Submitted</span></div>
-            <div style={stat}><strong>{centre?.counts.partiallyMarkedAttempts ?? 0}</strong><span>Started marking</span></div>
-            <div style={stat}><strong>{centre?.counts.markedAttempts ?? queueStats.marked}</strong><span>Ready to share</span></div>
-            <div style={stat}><strong>{centre?.counts.releasedAttempts ?? queueStats.released}</strong><span>Results shared</span></div>
-            <div style={{ ...stat, background: (centre?.counts.pendingModerations ?? 0) > 0 ? '#fff7ed' : '#f8fafc' }}><strong>{centre?.counts.pendingModerations ?? 0}</strong><span>Marks to review</span></div>
+    <section className={styles.page}>
+      <AssessmentHeading
+        title="Mark work"
+        description="Mark submitted answers, save your progress and share results when ready."
+      >
+        {!dirty && <Link href={workspaceHref('analytics', scope.selection)}>Results</Link>}
+      </AssessmentHeading>
+      <ContextState scope={scope} />
+      <AssessmentContextControls scope={scope} disabled={busy} canChange={canLeave} />
+      {error && (
+        <div role="alert" className={styles.error}>
+          {error}
+          {!selected && <button onClick={() => setRevision((n) => n + 1)}>Retry</button>}
+        </div>
+      )}
+      {message && (
+        <p role="status" className={styles.notice}>
+          {message}
+        </p>
+      )}
+      {loading && <p role="status">Loading submitted work…</p>}
+      {!selected && !loading && scope.context && (
+        <>
+          <div className={styles.tabs} role="group" aria-label="Marking stages">
+            {['To mark', 'In progress', 'Ready to share', 'Shared'].map((name) => (
+              <button key={name} aria-pressed={tab === name} onClick={() => setTab(name)}>
+                {name} ({visible.filter((q) => stage(q) === name).length})
+              </button>
+            ))}
           </div>
-        </section>}
-
-        {!selected && (centre?.workload.length ?? 0) > 0 && <section style={card}>
-          <h2 style={{ marginTop: 0, fontSize: 18 }}>Work waiting to be marked</h2>
-          <div style={{ display: 'grid', gap: 10 }}>
-            {centre?.workload.map(item => <div key={item.assignmentId} style={workloadRow}>
-              <div>
-                <strong>{item.assessmentTitle}</strong>
-                <div style={muted}>{item.className}{item.classStream ? ` ${item.classStream}` : ''} · {item.assessmentType.replaceAll('_', ' ')}</div>
-                {item.oldestUnmarkedAt && <div style={muted}>Oldest waiting since {new Date(item.oldestUnmarkedAt).toLocaleString('en-KE')}</div>}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <strong style={{ color: item.unresolvedAttempts > 0 ? '#b45309' : '#065f46' }}>{item.unresolvedAttempts} unresolved</strong>
-                <div style={muted}>{item.markedCount} marked · {item.releasedCount} released</div>
-                <div style={muted}>{item.averageTurnaroundHours === null ? 'No turnaround data' : `${item.averageTurnaroundHours.toFixed(1)}h average turnaround`}</div>
-              </div>
-            </div>)}
-          </div>
-        </section>}
-
-        {error && <section style={{ ...card, color: '#b91c1c', borderColor: '#fecaca' }}>{error}</section>}
-        {message && <section style={{ ...card, color: '#065f46', borderColor: '#a7f3d0' }}>{message}</section>}
-
-        {!selected ? (
-          <section style={card}>
-            {loading ? 'Loading submissions…' : queue.length === 0 ? <div><strong>No submitted work waiting</strong><p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>Submitted assessments will appear here.</p></div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {queue.map(item => <button key={item.attemptId} type="button" disabled={busy} onClick={() => void openAttempt(item.attemptId)} style={queueButton}>
-                <div style={{ textAlign: 'left' }}><strong>{item.studentName}</strong><div style={muted}>{item.assessmentTitle} · {item.className}{item.classStream ? ` ${item.classStream}` : ''}</div>{item.submittedAt && <div style={muted}>Submitted {new Date(item.submittedAt).toLocaleString('en-KE')}</div>}</div>
-                <div style={{ textAlign: 'right' }}><strong style={{ color: item.unresolvedItems > 0 ? '#b45309' : item.attemptStatus === 'released' ? '#065f46' : '#4338ca' }}>{item.unresolvedItems > 0 ? `${item.unresolvedItems} to mark` : item.attemptStatus.replaceAll('_', ' ')}</strong><div style={muted}>{item.markedItems}/{item.totalItems} scored</div>{item.percentage !== null && <div style={muted}>{item.percentage.toFixed(1)}%</div>}</div>
-              </button>)}
-            </div>}
+          <section className={styles.panel}>
+            <h2>{tab}</h2>
+            {!error && visible.filter((q) => stage(q) === tab).length === 0 && (
+              <p>
+                No submitted work in this stage matches your selections. Missing submissions are
+                listed in Results.
+              </p>
+            )}
+            {scope.assignments
+              .filter((a) => visible.some((q) => q.assignmentId === a.id && stage(q) === tab))
+              .map((a) => (
+                <div key={a.id}>
+                  <h3>{a.title}</h3>
+                  <p className={styles.muted}>
+                    {visible.filter((q) => q.assignmentId === a.id && stage(q) === tab).length}{' '}
+                    submissions in this stage
+                    {summaries.find((s) => s.assignmentId === a.id)
+                      ? ' · ' +
+                        summaries.find((s) => s.assignmentId === a.id)!.eligibleLearners +
+                        ' expected learners'
+                      : ''}
+                  </p>
+                  <p className={styles.muted}>
+                    {scope.context?.classes.find((c) => c.id === a.classId)?.name} ·{' '}
+                    {a.type.replaceAll('_', ' ')}
+                  </p>
+                  <ul className={styles.rows}>
+                    {visible
+                      .filter((q) => q.assignmentId === a.id && stage(q) === tab)
+                      .map((q) => (
+                        <li key={q.attemptId} className={styles.row}>
+                          <div>
+                            <strong>{q.studentName}</strong>
+                            <p className={styles.muted}>
+                              {q.markedItems} / {q.totalItems} answers scored
+                              {q.submittedAt
+                                ? ' · ' + new Date(q.submittedAt).toLocaleDateString('en-KE')
+                                : ''}
+                              {q.submittedAt &&
+                              a.closesAt &&
+                              Date.parse(q.submittedAt) > Date.parse(a.closesAt)
+                                ? ' · Late submission'
+                                : ''}
+                            </p>
+                          </div>
+                          <button disabled={busy} onClick={() => void open(q.attemptId)}>
+                            {tab === 'Shared' ? 'View work' : 'Open work'}
+                          </button>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ))}
           </section>
-        ) : <>
-          <section style={card}><button type="button" onClick={() => setSelected(null)} style={secondaryButton}>← Back to submitted work</button><h2 style={{ margin: '14px 0 4px' }}>{selected.studentName}</h2><p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>{selected.assessmentTitle}</p><div style={{ marginTop: 10, fontSize: 12, fontWeight: 700 }}>{selected.responses.filter(response => response.finalScore !== null).length}/{selected.responses.length} responses scored</div></section>
-
-          {selected.responses.map(response => {
-            const draft = drafts[response.responseId] ?? { score: '', feedback: '', overrideReason: '', moderationReason: '' }
-            const overridesAuto = response.autoScore !== null && Number(draft.score) !== response.autoScore
-            return <section key={response.responseId} style={card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}><strong>Question {response.orderNum}</strong><span style={{ color: "var(--teacher-muted, #627168)" }}>/{response.maxScore}</span></div>
-              <p style={{ lineHeight: 1.6 }}>{response.prompt}</p>
-              <div style={answerBox}>{response.responseText || JSON.stringify(response.responseValue)}</div>
-              {response.autoScore !== null && <div style={autoBox}>Automatic score: {response.autoScore}/{response.maxScore}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: 10, marginTop: 12 }}>
-                <input type="number" min={0} max={response.maxScore} step="0.5" value={draft.score} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, score: event.target.value } }))} placeholder="Score" style={input} />
-                <input value={draft.feedback} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, feedback: event.target.value } }))} placeholder="Feedback for learner" style={input} />
-              </div>
-              {overridesAuto && <textarea value={draft.overrideReason} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, overrideReason: event.target.value } }))} rows={2} placeholder="Required: explain the automatic-score override" style={{ ...input, marginTop: 10, resize: 'vertical' }} />}
-              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                <button type="button" disabled={busy || selected.attemptStatus === 'released'} onClick={() => void saveResponseMark(response.responseId, response.maxScore, response.autoScore)} style={secondaryButton}>Save mark</button>
-                <button type="button" disabled={busy} onClick={() => void toggleAudit(response.responseId)} style={secondaryButton}>{audit[response.responseId] ? 'Hide history' : 'Score history'}</button>
-              </div>
-              {audit[response.responseId] && <div style={{ marginTop: 10, display: 'grid', gap: 7 }}>{audit[response.responseId].length === 0 ? <div style={muted}>No score events yet.</div> : audit[response.responseId].map(event => <div key={event.eventId} style={auditRow}><strong>{event.eventType.replaceAll('_', ' ')}</strong><div style={muted}>{event.previousScore ?? '—'} → {event.newScore ?? '—'} · {new Date(event.createdAt).toLocaleString('en-KE')}</div>{event.reason && <div style={{ marginTop: 4 }}>{event.reason}</div>}</div>)}</div>}
-              {selected.attemptStatus !== 'released' && <div style={moderationBox}>
-                <strong>Ask for mark review</strong>
-                <p style={{ margin: '5px 0 8px', fontSize: 12 }}>Ask a school administrator to approve or reject the score currently entered above.</p>
-                <textarea value={draft.moderationReason} onChange={event => setDrafts(current => ({ ...current, [response.responseId]: { ...draft, moderationReason: event.target.value } }))} rows={2} placeholder="Why should this score be moderated?" style={{ ...input, resize: 'vertical' }} />
-                <button type="button" disabled={busy} onClick={() => void submitModeration(response.responseId, response.maxScore)} style={{ ...secondaryButton, marginTop: 8 }}>Send moderation request</button>
-              </div>}
-            </section>
+        </>
+      )}
+      {selected && (
+        <>
+          <section className={styles.panel}>
+            <div className={styles.actions}>
+              <button
+                disabled={busy}
+                onClick={() => {
+                  if (canLeave()) {
+                    setSelected(null)
+                    setDrafts({})
+                    setMessage('')
+                  }
+                }}
+              >
+                Back to queue
+              </button>
+              {visible.some(
+                (q) => q.attemptId !== selected.attemptId && q.attemptStatus !== 'released',
+              ) && (
+                <button
+                  disabled={busy}
+                  onClick={() => {
+                    const index = visible.findIndex((q) => q.attemptId === selected.attemptId),
+                      next = [...visible.slice(index + 1), ...visible.slice(0, index)].find(
+                        (q) => q.attemptStatus !== 'released',
+                      )
+                    if (next) void open(next.attemptId)
+                  }}
+                >
+                  Next learner
+                </button>
+              )}
+            </div>
+            <h2>{selected.studentName}</h2>
+            <p>{selected.assessmentTitle}</p>
+            <p className={styles.muted}>
+              {responses.filter((r) => r.finalScore !== null).length} / {responses.length} answers
+              saved ·{' '}
+              {locked
+                ? 'Shared and locked'
+                : selected.attemptStatus === 'marked'
+                  ? 'Ready to share'
+                  : 'Marking in progress'}
+            </p>
+            {dirty && <p role="status">Unsaved changes</p>}
+          </section>
+          <section className={styles.panel}>
+            <div className={styles.fields}>
+              <label>
+                Answer view
+                <select
+                  value={answerView}
+                  disabled={busy}
+                  onChange={(e) => setAnswerView(e.target.value)}
+                >
+                  <option value="one">One question at a time</option>
+                  <option value="all">All answers</option>
+                </select>
+              </label>
+              {answerView === 'one' && (
+                <label>
+                  Question
+                  <select
+                    value={questionIndex}
+                    disabled={busy}
+                    onChange={(e) => setQuestionIndex(Number(e.target.value))}
+                  >
+                    {responses.map((r, index) => (
+                      <option value={index} key={r.responseId}>
+                        Question {r.orderNum} ·{' '}
+                        {r.finalScore === null ? 'Not saved' : r.finalScore + ' / ' + r.maxScore}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          </section>
+          {(answerView === 'all'
+            ? responses
+            : responses.slice(questionIndex, questionIndex + 1)
+          ).map((r) => {
+            const d = drafts[r.responseId] ?? blank,
+              reviewPending = selected.pendingResponseIds.includes(r.responseId),
+              responseLocked = locked || reviewPending
+            return (
+              <section id={'question-' + r.orderNum} key={r.responseId} className={styles.panel}>
+                <h2>
+                  Question {r.orderNum} <span className={styles.muted}>/ {r.maxScore} marks</span>
+                </h2>
+                <p>{r.prompt}</p>
+                {reviewPending && (
+                  <p role="status" className={styles.notice}>
+                    A school administrator is reviewing this mark. This answer is locked until the
+                    review is resolved.
+                  </p>
+                )}
+                <h3>Learner’s answer</h3>
+                <div className={styles.answer}>
+                  {r.responseText || <MarkingGuide value={r.responseValue} />}
+                </div>
+                <details>
+                  <summary>Marking guide and expected answer</summary>
+                  <MarkingGuide value={r.markingGuide} />
+                  {r.correctAnswer !== null && <MarkingGuide value={r.correctAnswer} />}
+                </details>
+                {r.autoScore !== null && (
+                  <p className={styles.muted}>
+                    Automatic mark: {r.autoScore} / {r.maxScore}
+                  </p>
+                )}
+                <div className={styles.fields}>
+                  <label>
+                    Mark for question {r.orderNum}
+                    <input
+                      disabled={busy || responseLocked}
+                      type="number"
+                      min="0"
+                      max={r.maxScore}
+                      step="any"
+                      value={d.score}
+                      onChange={(e) => update(r.responseId, 'score', e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Feedback for question {r.orderNum}
+                    <textarea
+                      disabled={busy || responseLocked}
+                      value={d.feedback}
+                      onChange={(e) => update(r.responseId, 'feedback', e.target.value)}
+                    />
+                  </label>
+                </div>
+                {r.autoScore !== null && d.score !== '' && Number(d.score) !== r.autoScore && (
+                  <label className={styles.label}>
+                    Reason for changing the automatic mark
+                    <textarea
+                      disabled={busy || responseLocked}
+                      value={d.overrideReason}
+                      onChange={(e) => update(r.responseId, 'overrideReason', e.target.value)}
+                    />
+                  </label>
+                )}
+                <div className={styles.actions}>
+                  {!responseLocked && (
+                    <button disabled={busy} onClick={() => void save(r)}>
+                      Save question {r.orderNum}
+                    </button>
+                  )}
+                  <button
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        const events = await getScoreAudit(r.responseId)
+                        setAudit((current) => ({
+                          ...current,
+                          [r.responseId]: events,
+                        }))
+                      })
+                    }
+                  >
+                    Score history for question {r.orderNum}
+                  </button>
+                  {responses.find((next) => next.orderNum > r.orderNum) &&
+                    (answerView === 'one' ? (
+                      <button
+                        disabled={busy}
+                        onClick={() =>
+                          setQuestionIndex((index) => Math.min(index + 1, responses.length - 1))
+                        }
+                      >
+                        Next question
+                      </button>
+                    ) : (
+                      <a
+                        href={
+                          '#question-' +
+                          responses.find((next) => next.orderNum > r.orderNum)!.orderNum
+                        }
+                      >
+                        Next question
+                      </a>
+                    ))}
+                </div>
+                {audit[r.responseId] && (
+                  <ul>
+                    {audit[r.responseId].length === 0 ? (
+                      <li>No score events yet.</li>
+                    ) : (
+                      audit[r.responseId].map((event) => (
+                        <li key={event.eventId}>
+                          {event.eventType.replaceAll('_', ' ')}: {event.previousScore ?? '—'} →{' '}
+                          {event.newScore ?? '—'} ·{' '}
+                          {new Date(event.createdAt).toLocaleString('en-KE')}
+                          {event.reason ? ' · ' + event.reason : ''}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                )}
+                {!responseLocked && (
+                  <details>
+                    <summary>Request a mark review</summary>
+                    <label className={styles.label}>
+                      Review reason for question {r.orderNum}
+                      <textarea
+                        disabled={busy}
+                        value={d.moderationReason}
+                        onChange={(e) => update(r.responseId, 'moderationReason', e.target.value)}
+                      />
+                    </label>
+                    <button
+                      disabled={busy}
+                      onClick={() =>
+                        void run(async () => {
+                          const score = parseMark(d.score, r.maxScore)
+                          if (d.moderationReason.trim().length < 5)
+                            throw new Error(
+                              'Explain the review request in at least five characters.',
+                            )
+                          await requestModeration({
+                            responseId: r.responseId,
+                            requestedScore: score,
+                            reason: d.moderationReason.trim(),
+                          })
+                          update(r.responseId, 'moderationReason', '')
+                          setSelected(await getMarkingAttempt(selected.attemptId))
+                          setMessage(
+                            'Mark review requested. A school administrator must make the decision.',
+                          )
+                        })
+                      }
+                    >
+                      Request review for question {r.orderNum}
+                    </button>
+                  </details>
+                )}
+              </section>
+            )
           })}
-
-          <section style={card}><label style={label}>Overall feedback</label><textarea value={attemptFeedback} onChange={event => setAttemptFeedback(event.target.value)} rows={4} style={{ ...input, resize: 'vertical' }} />{selected.attemptStatus === 'released' ? <div style={releasedBox}>This result has been released and is locked.</div> : <div style={{ display: 'flex', gap: 10, marginTop: 12 }}><button type="button" disabled={busy} onClick={() => void finishAttempt(false)} style={{ ...secondaryButton, flex: 1 }}>Finish marking</button><button type="button" disabled={busy} onClick={() => void finishAttempt(true)} style={{ ...primaryButton, flex: 1 }}>{busy ? 'Saving…' : 'Finish & share result'}</button></div>}</section>
-        </>}
-      </div>
+          <section className={styles.panel}>
+            <label className={styles.label}>
+              Overall feedback
+              <textarea
+                disabled={busy || locked}
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                rows={3}
+              />
+            </label>
+            {locked ? (
+              <p>This result is shared and locked.</p>
+            ) : (
+              <div className={styles.actions}>
+                <button disabled={busy} onClick={() => void finish(false)}>
+                  Finish marking
+                </button>
+                <button
+                  className={styles.primary}
+                  disabled={busy}
+                  onClick={() => void finish(true)}
+                >
+                  Share result
+                </button>
+              </div>
+            )}
+          </section>
+        </>
+      )}
     </section>
   )
 }
-
-const shell: React.CSSProperties = { minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px', fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827' }
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 16, marginBottom: 12 }
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1 }
-const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
-const stat: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 4, padding: 12, borderRadius: 12, background: '#f8fafc', textAlign: 'center', fontSize: 12 }
-const workloadRow: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 12, padding: 13, background: '#f8fafc' }
-const queueButton: React.CSSProperties = { width: '100%', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fff', cursor: 'pointer', fontFamily: 'inherit' }
-const answerBox: React.CSSProperties = { background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, whiteSpace: 'pre-wrap', lineHeight: 1.5 }
-const autoBox: React.CSSProperties = { marginTop: 10, padding: 10, borderRadius: 10, background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700 }
-const moderationBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#fffbeb', color: '#78350f' }
-const auditRow: React.CSSProperties = { padding: 10, borderRadius: 10, border: '1px solid #e5e7eb', background: '#f8fafc' }
-const releasedBox: React.CSSProperties = { marginTop: 12, padding: 12, borderRadius: 10, background: '#ecfdf5', color: '#065f46', fontWeight: 700 }
-const label: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 800, marginBottom: 6 }
-const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 11px', fontFamily: 'inherit' }
-const primaryButton: React.CSSProperties = { border: 'none', borderRadius: 10, padding: '11px 14px', background: '#4338ca', color: '#fff', fontFamily: 'inherit', fontWeight: 800, cursor: 'pointer' }
-const secondaryButton: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 10, padding: '10px 14px', background: '#fff', color: '#374151', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer' }
+export default function MarkingPage() {
+  return (
+    <Suspense fallback={<p role="status">Loading marking workspace…</p>}>
+      <Workspace />
+    </Suspense>
+  )
+}

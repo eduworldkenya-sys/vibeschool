@@ -1,9 +1,12 @@
+import { readProgressPages } from '@/lib/learner-intelligence/progress-data'
 import { supabase } from '@/lib/supabase'
 import type { Json } from '@/lib/database.types'
 import { propagateReleasedAttempt } from '@/lib/assessment/integration'
 
 export interface MarkingQueueItem {
   attemptId: string
+  assignmentId: string
+  studentId: string
   assessmentTitle: string
   assessmentType: string
   className: string
@@ -50,6 +53,7 @@ export interface MarkingAttempt {
   maxScore: number | null
   percentage: number | null
   feedback: string | null
+  pendingResponseIds: string[]
   responses: MarkingResponse[]
 }
 
@@ -63,9 +67,11 @@ function rec(value: unknown): Record<string, unknown> {
   }
   return value as Record<string, unknown>
 }
-function str(value: unknown): string | null { return typeof value === 'string' ? value : null }
+function str(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
 function num(value: unknown): number | null {
-  if (value === null || value === undefined) return null
+  if (value === null || value === undefined || value === '') return null
   const resolved = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(resolved) ? resolved : null
 }
@@ -74,17 +80,28 @@ export async function listMarkingQueue(): Promise<MarkingQueueItem[]> {
   const { data, error } = await rpc<Json>('exq_list_marking_queue')
   if (error) throw new Error(error.message || 'Could not load marking queue.')
   const payload = rec(data)
+  if (!Array.isArray(payload.attempts))
+    throw new Error('The marking queue returned an incomplete payload.')
   const attempts = Array.isArray(payload.attempts) ? payload.attempts : []
 
-  return attempts.map(value => {
+  return attempts.map((value) => {
     const item = rec(value)
     const attemptId = str(item.attempt_id)
     const assessmentTitle = str(item.assessment_title)
     const studentName = str(item.student_name)
-    if (!attemptId || !assessmentTitle || !studentName) throw new Error('Marking queue returned incomplete data.')
+    if (
+      !attemptId ||
+      !str(item.assignment_id) ||
+      !str(item.student_id) ||
+      !assessmentTitle ||
+      !studentName
+    )
+      throw new Error('Marking queue returned incomplete data.')
 
     return {
       attemptId,
+      assignmentId: str(item.assignment_id) ?? '',
+      studentId: str(item.student_id) ?? '',
       assessmentTitle,
       assessmentType: str(item.assessment_type) ?? 'assessment',
       className: str(item.class_name) ?? 'Class',
@@ -106,12 +123,32 @@ export async function listMarkingQueue(): Promise<MarkingQueueItem[]> {
 }
 
 export async function getMarkingAttempt(attemptId: string): Promise<MarkingAttempt> {
-  const { data, error } = await rpc<Json>('exq_get_marking_attempt', { p_attempt_id: attemptId })
+  const { data, error } = await rpc<Json>('exq_get_marking_attempt', {
+    p_attempt_id: attemptId,
+  })
   if (error) throw new Error(error.message || 'Could not load learner responses.')
   const payload = rec(data)
+  if (str(payload.attempt_id) !== attemptId)
+    throw new Error('The requested submission could not be confirmed.')
+  if (!Array.isArray(payload.responses))
+    throw new Error('Submission answers could not be confirmed.')
   const responses = Array.isArray(payload.responses) ? payload.responses : []
 
+  const pending = await readProgressPages((from, to) =>
+    supabase
+      .from('assessment_moderation_requests')
+      .select('response_id')
+      .eq('attempt_id', attemptId)
+      .eq('status', 'pending')
+      .order('id')
+      .range(from, to),
+  )
   return {
+    pendingResponseIds: pending.map((value) => {
+      const id = str(rec(value).response_id)
+      if (!id) throw new Error('Pending mark reviews could not be confirmed.')
+      return id
+    }),
     attemptId: str(payload.attempt_id) ?? attemptId,
     assessmentTitle: str(payload.assessment_title) ?? 'Assessment',
     studentName: str(payload.student_name) ?? 'Learner',
@@ -121,11 +158,12 @@ export async function getMarkingAttempt(attemptId: string): Promise<MarkingAttem
     maxScore: num(payload.max_score),
     percentage: num(payload.percentage),
     feedback: str(payload.feedback),
-    responses: responses.map(value => {
+    responses: responses.map((value) => {
       const item = rec(value)
       const responseId = str(item.response_id)
       const assessmentItemId = str(item.assessment_item_id)
-      if (!responseId || !assessmentItemId) throw new Error('Marking attempt returned incomplete response data.')
+      if (!responseId || !assessmentItemId || num(item.max_score) === null)
+        throw new Error('Marking attempt returned incomplete response data.')
       return {
         responseId,
         assessmentItemId,
