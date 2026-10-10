@@ -120,7 +120,7 @@ export default function SubjectHubPage() {
   const [curriculumPct,    setCurriculumPct]    = useState<number | null>(null)
   // Task 2A — attendance rate per class for this subject this term
   const [attRateByClass,   setAttRateByClass]   = useState<Record<string, number>>({})
-  const [outcomesByStrand, setOutcomesByStrand] = useState<{strand: string; count: number}[]>([])
+  const [outcomesByStrand, setOutcomesByStrand] = useState<{strand: string; count: number; outcomes: string[]}[]>([])
   const [coveragePct,    setCoveragePct]    = useState<number | null>(null)
   const [assessedPct,    setAssessedPct]    = useState<number | null>(null)
   const [masteredPct,    setMasteredPct]    = useState<number | null>(null)
@@ -800,7 +800,7 @@ export default function SubjectHubPage() {
     // Priority 3 — load learner_outcomes for this subject
     const { data: outcomeRows } = await supabase
       .from('learner_outcomes')
-      .select('strand')
+      .select('strand,outcome_text')
       .eq('subject_id', subjectId)
     if (outcomeRows && outcomeRows.length > 0) {
       const strandMap: Record<string, number> = {}
@@ -809,7 +809,7 @@ export default function SubjectHubPage() {
         strandMap[row.strand] = (strandMap[row.strand] ?? 0) + 1
       }
       const sorted = Object.entries(strandMap)
-        .map(([strand, count]) => ({ strand, count }))
+        .map(([strand, count]) => ({ strand, count, outcomes: Array.from(new Set(outcomeRows.filter(row => row.strand === strand).map(row => row.outcome_text?.trim()).filter((text): text is string => Boolean(text)))) }))
         .sort((a, b) => b.count - a.count)
       setOutcomesByStrand(sorted)
     } else {
@@ -1141,11 +1141,14 @@ export default function SubjectHubPage() {
           </div>
           <div className="studio-curriculum-grid">
             {outcomesByStrand.map(o => (
-              <div key={o.strand} className="studio-strand">
+              <details key={o.strand} className="studio-strand">
+                <summary style={{cursor:'pointer', minHeight:44}}>
                 <strong>{o.count}</strong>
                 <span>{o.strand}</span>
                 <small>registered outcome{o.count !== 1 ? 's' : ''}</small>
-              </div>
+                </summary>
+                {o.outcomes.length > 0 ? <ul>{o.outcomes.map(text => <li key={text}>{text}</li>)}</ul> : <p>No outcome descriptions recorded.</p>}
+              </details>
             ))}
           </div>
           <div style={{ marginTop: 10, fontSize: 11, color: "var(--teacher-muted, #627168)", lineHeight: 1.5 }}>

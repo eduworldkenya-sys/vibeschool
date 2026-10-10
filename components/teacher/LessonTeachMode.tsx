@@ -290,6 +290,12 @@ export default function LessonTeachMode({
           </div>
         </section>
 
+        <nav aria-label="Lesson phases" style={{ display:'flex', gap:8, overflowX:'auto', padding:'4px 0 12px' }}>
+          {available.map((phase, index) => (
+            <button key={phase.key} type="button" aria-pressed={safeIndex === index} onClick={() => changeStep(index)} style={{...actionStyle, flexShrink:0, minHeight:44, background:safeIndex === index ? 'var(--teacher-accent, #6352bd)' : '#fff', color:safeIndex === index ? '#fff' : 'var(--teacher-ink, #29273c)'}}>{phase.label}</button>
+          ))}
+        </nav>
+
         <section style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
           <div style={{ fontSize:11, fontWeight:750, color:'#d0c5e8', textTransform:'uppercase' }}>
             Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
