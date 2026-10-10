@@ -28,6 +28,8 @@ type Props = {
   onScratchpadChange?: (value: string) => void
   onUseInReflection?: (value: string) => void
   onCaptureEvidence?: () => void
+  linkedResources?: Array<{ id: string; title: string; available: boolean }>
+  onOpenResource?: (id: string) => void
   onFinishLesson?: (outcome: LessonCoverageOutcome, whatWasTaught: string) => Promise<void> | void
   onClose: () => void
 }
@@ -75,7 +77,7 @@ function cacheKey(context: ClassroomContext) {
 
 export default function LessonTeachMode({
   subject, className, topic, sections, context, initialScratchpad = '',
-  onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson, onClose,
+  onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson, onClose, linkedResources = [], onOpenResource,
 }: Props) {
   const router = useRouter()
   const total = useMemo(() => totalMinutes(sections), [sections])
@@ -303,7 +305,7 @@ export default function LessonTeachMode({
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.65, fontSize:13, background:"var(--teacher-canvas, #f5f6f2)", borderRadius:10, padding:10 }}>
             {packView === 'notes' && [sections.introduction, sections.development, sections.consolidation].filter(Boolean).join('\n\n')}
-            {packView === 'resources' && sections.resources}
+            {packView === 'resources' && <>{sections.resources}{linkedResources.length > 0 && <div className="studio-teach-resource-links">{linkedResources.map(resource => <button key={resource.id} type="button" disabled={!resource.available || !onOpenResource} onClick={() => onOpenResource?.(resource.id)}>{resource.title} {resource.available ? '↗' : '· Reader unavailable'}</button>)}</div>}</>}
             {packView === 'assessment' && sections.assessmentHook}
             {packView === 'homework' && <><div>{sections.homework}</div><div style={{ marginTop:8, fontSize:11, fontWeight:750, color:'var(--teacher-accent, #6352bd)' }}>View · Edit · Assign · Share</div></>}
           </div>

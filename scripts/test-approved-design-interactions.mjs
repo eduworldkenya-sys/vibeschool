@@ -15,7 +15,7 @@ const React=await import('react'),{createRoot}=await import('react-dom/client')
 const {act}=React,require=createRequire(import.meta.url)
 async function load(entry){
  const outfile=path.resolve(`.next/approved-design-tests/${path.basename(entry)}-approved-test.cjs`)
- await build({entryPoints:[entry],outfile,bundle:true,platform:'node',format:'cjs',jsx:'automatic',external:['react','react-dom','react/jsx-runtime'],loader:{'.css':'empty'},plugins:[{name:'repo-alias',setup(b){b.onResolve({filter:/^@\//},args=>{const file=path.resolve(args.path.slice(2));return {path:file+(fs.existsSync(file+'.ts')?'.ts':'.tsx')}})}}]})
+ await build({entryPoints:[entry],outfile,bundle:true,platform:'node',format:'cjs',jsx:'automatic',external:['react','react-dom','react/jsx-runtime'],loader:{'.css':'empty'},plugins:[{name:'next-fixture',setup(b){b.onResolve({filter:/^next\/navigation$/},()=>({path:'navigation',namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:'export const useRouter=()=>({push:()=>{}})',loader:'js'}))}},{name:'repo-alias',setup(b){b.onResolve({filter:/^@\//},args=>{const file=path.resolve(args.path.slice(2));return {path:file+(fs.existsSync(file+'.ts')?'.ts':'.tsx')}})}}]})
  return require(outfile).default
 }
 let root
@@ -54,5 +54,13 @@ await act(async()=>fireEvent.click(role('Amina')))
 assert.equal(learner,'a')
 await render(Matrix,{learners:[{id:'d',name:'Diana',outcomes:[outcome('d','AE')]}],onOpenLearner:()=>{}})
 assert(!document.body.textContent.includes('Recorded classroom evidence'),'Changing the learner scope clears old selected evidence')
+const TeachMode=await load('components/teacher/LessonTeachMode.tsx')
+let openedResource=''
+await render(TeachMode,{subject:'Science',className:'Grade 4',topic:'Materials',sections,linkedResources:[{id:'book',title:'Prepared reader',available:true},{id:'missing',title:'Unavailable reader',available:false}],onOpenResource:id=>openedResource=id,onClose:()=>{}})
+await act(async()=>fireEvent.click(document.querySelector('details summary')))
+await act(async()=>fireEvent.click(role('Resources')))
+assert.equal(role('Unavailable reader · Reader unavailable').disabled,true,'Unavailable readers remain disabled')
+await act(async()=>fireEvent.click(role('Prepared reader ↗')))
+assert.equal(openedResource,'book','The selected linked resource reaches its real caller')
 await act(async()=>root.unmount())
 console.log('Approved design interactions: PASS (phase selection, missing content, edit/teach, shared matrix, evidence, unrecorded, learner navigation)')

@@ -463,6 +463,8 @@ function LessonNotesInner() {
             occurrenceDate: occurrence.occurrence_date,
           } : null}
           initialScratchpad={liveNote}
+          linkedResources={resources.map(resource => ({ id: resource.linkId, title: resource.title, available: Boolean(resource.publicationId) }))}
+          onOpenResource={id => { const resource = resources.find(item => item.linkId === id); if (resource) openResource(resource) }}
           onScratchpadChange={saveLiveNote}
           onCaptureEvidence={() => setEvidenceOpen(true)}
           onUseInReflection={(value) => {
