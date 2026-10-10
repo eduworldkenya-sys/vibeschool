@@ -1,166 +1,263 @@
 'use client'
-
 export const dynamic = 'force-dynamic'
-
 import { Suspense, useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { getAssignmentIntelligence } from '@/lib/assessment/intelligence'
+import { loadAssessmentOutcomeQuestions, type OutcomeQuestion } from '@/lib/assessment/workspace'
 import {
   getCurriculumIntelligence,
   type CurriculumIntelligence,
 } from '@/lib/assessment/curriculumIntelligence'
-
-function Dashboard() {
-  const params = useSearchParams()
-  const assignmentId = params.get('assignmentId') ?? ''
-  const [data, setData] = useState<CurriculumIntelligence | null>(null)
-  const [loading, setLoading] = useState(Boolean(assignmentId))
-  const [error, setError] = useState('')
-
+import {
+  AssessmentContextControls,
+  AssessmentHeading,
+  ContextState,
+  useAssessmentContext,
+  workspaceHref,
+} from '@/components/teacher/assessment/AssessmentContext'
+import styles from '@/components/teacher/assessment/AssessmentWorkspace.module.css'
+function Workspace() {
+  const scope = useAssessmentContext(),
+    id = scope.selection.assignmentId
+  const [questions, setQuestions] = useState<OutcomeQuestion[]>([])
+  const [data, setData] = useState<CurriculumIntelligence | null>(null),
+    [loading, setLoading] = useState(false),
+    [error, setError] = useState(''),
+    [revision, setRevision] = useState(0)
   useEffect(() => {
-    if (!assignmentId) return
-    let cancelled = false
-
-    async function load() {
-      try {
-        const result = await getCurriculumIntelligence(assignmentId)
-        if (!cancelled) setData(result)
-      } catch (cause) {
-        if (!cancelled) {
-          setError(cause instanceof Error ? cause.message : 'Could not load curriculum intelligence.')
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+    let active = true
+    setData(null)
+    setQuestions([])
+    setError('')
+    setLoading(Boolean(id && scope.context))
+    if (id && scope.context)
+      void Promise.all([
+        getCurriculumIntelligence(id),
+        getAssignmentIntelligence(id),
+        loadAssessmentOutcomeQuestions(
+          scope.context.assignments.find((a) => a.id === id)!.assessmentId,
+        ),
+      ])
+        .then(([result, released, questions]) => {
+          if (result.assignmentId !== id || released.assignmentId !== id)
+            throw new Error('The requested outcome evidence could not be confirmed.')
+          if (active) {
+            setQuestions(questions)
+            setData({
+              ...result,
+              outcomes: result.outcomes.map((outcome) => {
+                const evidence = released.outcomes.find((o) => o.outcomeId === outcome.outcomeId)
+                return {
+                  ...outcome,
+                  responseCount: evidence?.responseCount ?? 0,
+                  averagePercentage: evidence?.averagePercentage ?? null,
+                  learnersBelow50: evidence?.learnersBelow50 ?? 0,
+                  masteryBand: evidence?.masteryBand ?? 'not_assessed',
+                }
+              }),
+            })
+          }
+        })
+        .catch((cause) => {
+          if (active)
+            setError(
+              cause instanceof Error ? cause.message : 'Learning outcomes could not be loaded.',
+            )
+        })
+        .finally(() => {
+          if (active) setLoading(false)
+        })
+    return () => {
+      active = false
     }
-
-    void load()
-    return () => { cancelled = true }
-  }, [assignmentId])
-
+  }, [id, scope.context, revision])
+  const assessed = data?.outcomes.filter((o) => o.responseCount > 0).length ?? 0
   return (
-    <section style={shell}>
-      <div style={{ maxWidth: 920, margin: '0 auto' }}>
-        <section style={card}>
-          <div style={eyebrow}>Assessment Engine</div>
-          <h1 style={{ margin: '6px 0' }}>Curriculum Intelligence</h1>
-          <p style={{ margin: 0, color: "var(--teacher-muted, #627168)" }}>
-            Outcome mastery, competency evidence, and targeted learner interventions.
-          </p>
+    <section className={styles.page}>
+      <AssessmentHeading
+        title="Learning outcomes"
+        description="See the evidence behind each outcome and decide what to teach next."
+      >
+        <Link href={workspaceHref('analytics', scope.selection)}>Results</Link>
+        <Link href={workspaceHref('interventions', scope.selection)}>Learner support</Link>
+      </AssessmentHeading>
+      <ContextState scope={scope} />
+      <AssessmentContextControls scope={scope} />
+      {scope.context && !id && (
+        <section className={styles.panel}>
+          <h2>Choose an assessment</h2>
+          <p>Choose a class, subject and assessment above to review its linked outcomes.</p>
+          {scope.assignments.length === 0 && (
+            <p>No assessments match these selections. Try another class or term.</p>
+          )}
         </section>
-
-        {!assignmentId ? (
-          <section style={card}>
-            Open Curriculum Intelligence from an assessment analytics record.
+      )}
+      {loading && <p role="status">Loading learning evidence…</p>}
+      {error && (
+        <div role="alert" className={styles.error}>
+          {error} <button onClick={() => setRevision((n) => n + 1)}>Retry</button>
+        </div>
+      )}
+      {data && data.assignmentId === id && !loading && (
+        <>
+          <div className={styles.stats}>
+            <div>
+              <strong>{data.outcomes.length}</strong>Linked outcomes
+            </div>
+            <div>
+              <strong>{assessed}</strong>With response evidence
+            </div>
+            <div>
+              <strong>{data.outcomes.length - assessed}</strong>Without response evidence
+            </div>
+          </div>
+          <section className={styles.panel}>
+            <h2>Outcome evidence</h2>
+            <p className={styles.muted}>
+              Only shared response evidence describes this assessment. It does not establish which
+              outcomes have been taught or complete curriculum coverage.
+            </p>
+            {data.outcomes.length === 0 ? (
+              <p>
+                No outcomes are linked to this assessment. Link questions to outcomes in the
+                assessment builder.
+              </p>
+            ) : (
+              data.outcomes.map((outcome) => (
+                <details key={outcome.outcomeId}>
+                  <summary>
+                    {outcome.outcomeCode ? outcome.outcomeCode + ' · ' : ''}
+                    {outcome.outcomeText}
+                  </summary>
+                  <div className={styles.row}>
+                    <div>
+                      <strong>
+                        {outcome.responseCount === 0
+                          ? 'Not assessed'
+                          : outcome.masteryBand.replaceAll('_', ' ')}
+                      </strong>
+                      <p className={styles.muted}>
+                        {outcome.responseCount} scored responses ·{' '}
+                        {outcome.responseCount
+                          ? `${outcome.learnersBelow50} learners below 50%`
+                          : 'No demonstrated mastery yet'}
+                      </p>
+                      <p className={styles.muted}>
+                        Teaching coverage: not available from assessment evidence.
+                      </p>
+                    </div>
+                    <strong>
+                      {outcome.averagePercentage === null
+                        ? 'No score evidence'
+                        : outcome.averagePercentage.toFixed(1) + '%'}
+                    </strong>
+                  </div>
+                  <h3>Questions assessing this outcome</h3>
+                  {questions.some((q) => q.outcomeIds.includes(outcome.outcomeId)) ? (
+                    <ul>
+                      {questions
+                        .filter((q) => q.outcomeIds.includes(outcome.outcomeId))
+                        .map((q) => (
+                          <li key={q.id}>
+                            Question {q.order}: {q.prompt}
+                          </li>
+                        ))}
+                    </ul>
+                  ) : (
+                    <p>
+                      Question links are not available in this record. Open the assessment to check
+                      its outcome links.
+                    </p>
+                  )}
+                  {outcome.competencyTags.length > 0 && (
+                    <p className={styles.muted}>
+                      Competencies: {outcome.competencyTags.join(', ')}
+                    </p>
+                  )}
+                  <div className={styles.actions}>
+                    <Link href={workspaceHref('analytics', scope.selection)}>
+                      Review questions and learner results
+                    </Link>
+                    <Link href={workspaceHref('interventions', scope.selection)}>
+                      Plan learner support
+                    </Link>
+                  </div>
+                </details>
+              ))
+            )}
+            <div className={styles.actions}>
+              <Link
+                href={
+                  '/teacher/lessonplan?classId=' +
+                  scope.assignments.find((a) => a.id === id)?.classId +
+                  '&subjectId=' +
+                  scope.assignments.find((a) => a.id === id)?.subjectId
+                }
+              >
+                Plan reteaching
+              </Link>
+              <Link href="/teacher/assessment/bank">Find reusable questions</Link>
+            </div>
+            {scope.assignments.find((a) => a.id === id) && (
+              <p>
+                <Link
+                  href={
+                    '/teacher/assessment/builder/' +
+                    scope.assignments.find((a) => a.id === id)!.assessmentId
+                  }
+                >
+                  Open assessment and outcome links
+                </Link>
+              </p>
+            )}
           </section>
-        ) : loading ? (
-          <section style={card}>Loading curriculum intelligence…</section>
-        ) : error ? (
-          <section style={{ ...card, color: '#b91c1c' }}>{error}</section>
-        ) : data ? (
-          <>
-            <section style={card}>
-              <h2 style={{ marginTop: 0, fontSize: 18 }}>Outcome mastery</h2>
-              {data.outcomes.length === 0 ? (
-                <p style={{ color: "var(--teacher-muted, #627168)", marginBottom: 0 }}>
-                  No learning outcomes are linked to this assessment yet.
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {data.outcomes.map(outcome => (
-                    <div key={outcome.outcomeId} style={row}>
-                      <div style={{ minWidth: 0 }}>
-                        <strong>
-                          {outcome.outcomeCode ? `${outcome.outcomeCode} · ` : ''}
-                          {outcome.outcomeText}
-                        </strong>
-                        <div style={muted}>
-                          {outcome.responseCount} responses · {outcome.learnersBelow50} learners below 50%
-                        </div>
-                        {outcome.competencyTags.length > 0 && (
-                          <div style={{ ...muted, marginTop: 5 }}>
-                            {outcome.competencyTags.join(' · ')}
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <strong style={{ color: masteryColor(outcome.averagePercentage) }}>
-                          {outcome.averagePercentage === null
-                            ? 'No data'
-                            : `${outcome.averagePercentage.toFixed(1)}%`}
-                        </strong>
-                        <div style={muted}>{outcome.masteryBand.replaceAll('_', ' ')}</div>
-                      </div>
+          <section className={styles.panel}>
+            <h2>Learners to follow up</h2>
+            <p className={styles.muted}>
+              These signals use cumulative recorded mastery for outcomes linked to this assessment,
+              not only this paper’s scores.
+            </p>
+            {data.interventions.length === 0 ? (
+              <p>
+                {assessed === 0
+                  ? 'No scored outcome evidence is available yet. Mark and share results before drawing conclusions.'
+                  : 'No follow-up signals were returned for this assessment. Review the evidence before deciding whether support is needed.'}
+              </p>
+            ) : (
+              <ul className={styles.rows}>
+                {data.interventions.map((signal, index) => (
+                  <li key={signal.studentId + signal.outcomeId + index} className={styles.row}>
+                    <div>
+                      <strong>{signal.studentName}</strong>
+                      <p className={styles.muted}>{signal.outcomeText}</p>
+                      <p>{signal.recommendedAction.replaceAll('_', ' ')}</p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </section>
-
-            <section style={card}>
-              <h2 style={{ marginTop: 0, fontSize: 18 }}>Intervention list</h2>
-              {data.interventions.length === 0 ? (
-                <p style={{ color: '#065f46', marginBottom: 0 }}>
-                  No learner is currently below the intervention threshold.
-                </p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {data.interventions.map((signal, index) => (
-                    <div key={`${signal.studentId}-${signal.outcomeId}-${index}`} style={row}>
-                      <div>
-                        <strong>{signal.studentName}</strong>
-                        <div style={muted}>
-                          {signal.outcomeCode ? `${signal.outcomeCode} · ` : ''}
-                          {signal.outcomeText}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <strong style={{ color: '#b91c1c' }}>
-                          {signal.masteryScore.toFixed(1)}%
-                        </strong>
-                        <div style={muted}>
-                          {signal.recommendedAction.replaceAll('_', ' ')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </section>
-          </>
-        ) : null}
-      </div>
+                    <Link
+                      href={
+                        workspaceHref('interventions', scope.selection) +
+                        (workspaceHref('interventions', scope.selection).includes('?')
+                          ? '&'
+                          : '?') +
+                        'studentId=' +
+                        signal.studentId
+                      }
+                    >
+                      Review support
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
     </section>
   )
 }
-
-function masteryColor(value: number | null): string {
-  if (value === null) return '#6b7280'
-  if (value < 40) return '#b91c1c'
-  if (value < 60) return '#b45309'
-  return '#065f46'
-}
-
-const shell: React.CSSProperties = {
-  minHeight: '100vh', background: '#f8fafc', padding: '18px 14px 80px',
-  fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#111827',
-}
-const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16,
-  padding: 16, marginBottom: 12,
-}
-const eyebrow: React.CSSProperties = {
-  fontSize: 10, fontWeight: 800, color: '#4338ca', textTransform: 'uppercase', letterSpacing: 1,
-}
-const muted: React.CSSProperties = { fontSize: 12, color: '#6b7280', marginTop: 3 }
-const row: React.CSSProperties = {
-  display: 'flex', justifyContent: 'space-between', gap: 14, alignItems: 'center',
-  border: '1px solid #e5e7eb', borderRadius: 12, padding: 13,
-}
-
-export default function CurriculumIntelligencePage() {
+export default function CurriculumPage() {
   return (
-    <Suspense fallback={<section style={shell}>Loading curriculum intelligence…</section>}>
-      <Dashboard />
+    <Suspense fallback={<p role="status">Loading learning outcomes…</p>}>
+      <Workspace />
     </Suspense>
   )
 }

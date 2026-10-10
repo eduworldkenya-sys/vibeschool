@@ -1,17 +1,20 @@
 import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
+async function rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { message?: string } | null }> {
+  const { data, error } = await supabase.rpc(name, args)
+  return { data, error }
+}
 
 function record(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Assessment Intelligence returned an invalid payload.')
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('Assessment Intelligence returned an invalid payload.')
   return value as Record<string, unknown>
 }
-function text(value: unknown): string | null { return typeof value === 'string' ? value : null }
+function text(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
 function numberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined) return null
+  if (value === null || value === undefined || value === '') return null
   const result = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(result) ? result : null
 }
@@ -63,11 +66,24 @@ export interface AssignmentIntelligence {
   misconceptions: MisconceptionSignal[]
 }
 
-export async function getAssignmentIntelligence(assignmentId: string): Promise<AssignmentIntelligence> {
-  const { data, error } = await rpc<Json>('exq_get_assignment_intelligence', { p_assignment_id: assignmentId })
+export async function getAssignmentIntelligence(
+  assignmentId: string,
+): Promise<AssignmentIntelligence> {
+  const { data, error } = await rpc('exq_get_assignment_intelligence', {
+    p_assignment_id: assignmentId,
+  })
   if (error) throw new Error(error.message || 'Could not load assessment intelligence.')
   const payload = record(data)
-  const list = (value: unknown) => Array.isArray(value) ? value : []
+  if (
+    text(payload.assignment_id) !== assignmentId ||
+    ['questions', 'difficulty', 'bloom', 'outcomes', 'misconceptions'].some(
+      (key) => !Array.isArray(payload[key]),
+    )
+  )
+    throw new Error(
+      'Question evidence returned an incomplete payload. Retry before drawing conclusions.',
+    )
+  const list = (value: unknown) => (Array.isArray(value) ? value : [])
   const band = (value: unknown, key: string): IntelligenceBand => {
     const item = record(value)
     return {
@@ -79,7 +95,7 @@ export async function getAssignmentIntelligence(assignmentId: string): Promise<A
   }
   return {
     assignmentId: text(payload.assignment_id) ?? assignmentId,
-    questions: list(payload.questions).map(value => {
+    questions: list(payload.questions).map((value) => {
       const item = record(value)
       return {
         assessmentItemId: text(item.assessment_item_id) ?? '',
@@ -95,9 +111,9 @@ export async function getAssignmentIntelligence(assignmentId: string): Promise<A
         performanceBand: text(item.performance_band) ?? 'not_assessed',
       }
     }),
-    difficulty: list(payload.difficulty).map(value => band(value, 'difficulty')),
-    bloom: list(payload.bloom).map(value => band(value, 'bloom_level')),
-    outcomes: list(payload.outcomes).map(value => {
+    difficulty: list(payload.difficulty).map((value) => band(value, 'difficulty')),
+    bloom: list(payload.bloom).map((value) => band(value, 'bloom_level')),
+    outcomes: list(payload.outcomes).map((value) => {
       const item = record(value)
       return {
         outcomeId: text(item.outcome_id) ?? '',
@@ -109,7 +125,7 @@ export async function getAssignmentIntelligence(assignmentId: string): Promise<A
         masteryBand: text(item.mastery_band) ?? 'not_assessed',
       }
     }),
-    misconceptions: list(payload.misconceptions).map(value => {
+    misconceptions: list(payload.misconceptions).map((value) => {
       const item = record(value)
       return {
         assessmentItemId: text(item.assessment_item_id) ?? '',

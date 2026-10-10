@@ -1,5 +1,5 @@
+import { readProgressPages } from '@/lib/learner-intelligence/progress-data'
 import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
 
 export interface AssessmentAnalyticsSummary {
   assignmentId: string
@@ -26,6 +26,7 @@ export interface AssessmentLearnerAnalytics {
   admissionNumber: string | null
   attemptId: string | null
   attemptStatus: string | null
+  resultStatus: string | null
   score: number | null
   maxScore: number | null
   percentage: number | null
@@ -61,9 +62,10 @@ export interface AssessmentAnalyticsDetail {
   questions: AssessmentQuestionAnalytics[]
 }
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
+async function rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { message?: string } | null }> {
+  const { data, error } = await supabase.rpc(name, args)
+  return { data, error }
+}
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -77,19 +79,19 @@ function text(value: unknown): string | null {
 }
 
 function numberOrNull(value: unknown): number | null {
-  if (value === null || value === undefined) return null
+  if (value === null || value === undefined || value === '') return null
   const result = typeof value === 'number' ? value : Number(value)
   return Number.isFinite(result) ? result : null
 }
 
 export async function listTeacherAssessmentAnalytics(): Promise<AssessmentAnalyticsSummary[]> {
-  const { data, error } = await rpc<Json>('exq_list_teacher_assessment_analytics')
+  const { data, error } = await rpc('exq_list_teacher_assessment_analytics')
   if (error) throw new Error(error.message || 'Could not load assessment analytics.')
 
   const payload = record(data)
   const assessments = Array.isArray(payload.assessments) ? payload.assessments : []
 
-  return assessments.map(value => {
+  return assessments.map((value) => {
     const item = record(value)
     const assignmentId = text(item.assignment_id)
     const assessmentId = text(item.assessment_id)
@@ -123,15 +125,44 @@ export async function listTeacherAssessmentAnalytics(): Promise<AssessmentAnalyt
 export async function getAssignmentAnalytics(
   assignmentId: string,
 ): Promise<AssessmentAnalyticsDetail> {
-  const { data, error } = await rpc<Json>('exq_get_assignment_analytics', {
+  const { data, error } = await rpc('exq_get_assignment_analytics', {
     p_assignment_id: assignmentId,
   })
   if (error) throw new Error(error.message || 'Could not load assignment analytics.')
 
   const payload = record(data)
+  if (text(payload.assignment_id) !== assignmentId)
+    throw new Error('The requested assessment results could not be confirmed.')
+  if (!Array.isArray(payload.learners) || !Array.isArray(payload.questions))
+    throw new Error('Assessment results returned an incomplete payload.')
   const learners = Array.isArray(payload.learners) ? payload.learners : []
   const questions = Array.isArray(payload.questions) ? payload.questions : []
 
+  const learnerIds = learners.map((value) => text(record(value).student_id))
+  if (learnerIds.some((id) => !id) || new Set(learnerIds).size !== learnerIds.length)
+    throw new Error(
+      'The learner roster needs identity reconciliation. No partial results are shown.',
+    )
+  const attemptIds = learners
+    .map((value) => text(record(value).attempt_id))
+    .filter((id): id is string => Boolean(id))
+  const attempts = attemptIds.length
+    ? await readProgressPages((from, to) =>
+        supabase
+          .from('assessment_attempts')
+          .select('id,student_id,status,result_status,score,max_score,submitted_at')
+          .eq('assignment_id', assignmentId)
+          .in('id', attemptIds)
+          .order('id')
+          .range(from, to),
+      )
+    : []
+  const verified = new Map(
+    attempts.map((value) => {
+      const row = record(value)
+      return [text(row.id), row]
+    }),
+  )
   return {
     assignmentId: text(payload.assignment_id) ?? assignmentId,
     assessmentId: text(payload.assessment_id) ?? '',
@@ -145,21 +176,32 @@ export async function getAssignmentAnalytics(
     averagePercentage: numberOrNull(payload.average_percentage),
     highestPercentage: numberOrNull(payload.highest_percentage),
     lowestPercentage: numberOrNull(payload.lowest_percentage),
-    learners: learners.map(value => {
-      const item = record(value)
+    learners: learners.map((value) => {
+      const item = record(value),
+        attemptId = text(item.attempt_id),
+        current = attemptId ? verified.get(attemptId) : null
+      if (attemptId && (!current || current.student_id !== item.student_id))
+        throw new Error('A learner result could not be confirmed. No partial results are shown.')
+      const score = numberOrNull(current?.score),
+        max = numberOrNull(current?.max_score)
+      if (score !== null && (max === null || max < 0 || score < 0 || score > max))
+        throw new Error(
+          'A learner result needs score reconciliation. No partial results are shown.',
+        )
       return {
         studentId: text(item.student_id) ?? '',
         studentName: text(item.student_name) ?? 'Learner',
         admissionNumber: text(item.admission_number),
         attemptId: text(item.attempt_id),
-        attemptStatus: text(item.attempt_status),
-        score: numberOrNull(item.score),
-        maxScore: numberOrNull(item.max_score),
-        percentage: numberOrNull(item.percentage),
-        submittedAt: text(item.submitted_at),
+        attemptStatus: text(current?.status),
+        resultStatus: text(current?.result_status),
+        score,
+        maxScore: max,
+        percentage: score !== null && max !== null && max > 0 ? (100 * score) / max : null,
+        submittedAt: text(current?.submitted_at),
       }
     }),
-    questions: questions.map(value => {
+    questions: questions.map((value) => {
       const item = record(value)
       return {
         assessmentItemId: text(item.assessment_item_id) ?? '',
