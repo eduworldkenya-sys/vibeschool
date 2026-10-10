@@ -1,0 +1,639 @@
+.listPage {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 22px 18px 118px;
+  color: var(--teacher-ink, #18231e);
+}
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.eyebrow {
+  display: block;
+  max-width: 52ch;
+  color: var(--teacher-muted, #69756e);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.listHeader h1 {
+  font:
+    800 clamp(27px, 4vw, 38px) / 1.05 Manrope,
+    sans-serif;
+  letter-spacing: -1.2px;
+  margin: 5px 0 0;
+}
+.listHeader h1 b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  margin-left: 7px;
+  border-radius: 10px;
+  background: #e9f7ef;
+  color: #147443;
+  font-size: 13px;
+  vertical-align: 5px;
+}
+.addButton {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 14px;
+  background: #173f2a;
+  color: #fff;
+  padding: 0 15px;
+  font:
+    700 13px Manrope,
+    sans-serif;
+  cursor: pointer;
+  box-shadow: 0 7px 18px rgba(23, 63, 42, 0.16);
+}
+.insightStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid #e0e7e2;
+  border-radius: 18px;
+  background: #fff;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.insightStrip > div {
+  min-width: 0;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  align-content: center;
+  align-items: center;
+  gap: 3px 7px;
+  border-right: 1px solid #edf1ee;
+  color: #506058;
+  padding: 12px 15px;
+}
+.insightStrip > *:last-child {
+  border-right: 0;
+}
+.insightStrip svg {
+  grid-row: 1/3;
+  color: #789086;
+}
+.insightStrip strong {
+  font:
+    800 19px Manrope,
+    sans-serif;
+  color: #18231e;
+}
+.insightStrip span:last-child {
+  grid-column: 2/4;
+  font-size: 10px;
+}
+.attentionDot,
+.goodDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 99px;
+  grid-row: 1/3 !important;
+  grid-column: auto !important;
+  background: #e89a37;
+}
+.goodDot {
+  background: #39a46a;
+}
+.searchBar {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #dfe6e1;
+  border-radius: 15px;
+  background: #fff;
+  padding: 0 15px;
+  color: #718078;
+  box-shadow: 0 2px 8px rgba(25, 42, 33, 0.035);
+}
+.searchBar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font:
+    500 14px Manrope,
+    sans-serif;
+  color: #18231e;
+}
+.classChips {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  padding: 11px 0 4px;
+  scrollbar-width: none;
+}
+.classChips::-webkit-scrollbar {
+  display: none;
+}
+.classChips button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  border: 1px solid #dfe6e1;
+  border-radius: 99px;
+  background: #fff;
+  color: #596861;
+  padding: 0 13px;
+  font:
+    700 11px Manrope,
+    sans-serif;
+}
+.classChips button[aria-pressed="true"] {
+  border-color: #173f2a;
+  background: #173f2a;
+  color: #fff;
+}
+.schoolPicker {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 11px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64736b;
+}
+.schoolPicker select {
+  min-height: 36px;
+  border: 1px solid #dfe6e1;
+  border-radius: 11px;
+  background: #fff;
+  padding: 0 10px;
+  color: #24332b;
+  font-weight: 700;
+}
+.roster {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+.classSection {
+  overflow: hidden;
+  border: 1px solid #e1e7e3;
+  border-radius: 19px;
+  background: #fff;
+}
+.classHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 11px;
+  background: #f8faf8;
+}
+.classHeading h2 {
+  margin: 0;
+  font:
+    750 14px Manrope,
+    sans-serif;
+}
+.classHeading span {
+  display: block;
+  margin-top: 3px;
+  color: #7a8780;
+  font-size: 10px;
+}
+.classHeading b {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 28px;
+  border-radius: 9px;
+  background: #eef2ef;
+  color: #435149;
+  font-size: 11px;
+}
+.learnerRows {
+  padding: 0 8px;
+}
+.learnerRow {
+  width: 100%;
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid #edf1ee;
+  background: #fff;
+  padding: 8px;
+  text-align: left;
+  color: #18231e;
+  cursor: pointer;
+}
+.learnerRow:last-child {
+  border-bottom: 0;
+}
+.learnerRow:hover {
+  background: #f8fbf9;
+}
+.avatar {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 14px;
+  background: #e6f2eb;
+  color: #185d38;
+  font:
+    800 12px Manrope,
+    sans-serif;
+}
+.learnerIdentity {
+  min-width: 0;
+  flex: 1;
+}
+.learnerIdentity strong,
+.learnerIdentity small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.learnerIdentity strong {
+  font:
+    700 13px Manrope,
+    sans-serif;
+}
+.learnerIdentity small {
+  margin-top: 4px;
+  color: #7b8881;
+  font-size: 10px;
+}
+.linkBadge {
+  border-radius: 99px;
+  background: #fff4dc;
+  color: #8b5a0b;
+  padding: 5px 8px;
+  font-size: 9px;
+  font-weight: 800;
+}
+.learnerRow > svg {
+  color: #9aa59f;
+}
+.errorState {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  border-radius: 14px;
+  background: #fff0ef;
+  color: #a13a30;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+.errorState button,
+.emptyState button {
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: #173f2a;
+  color: #fff;
+  padding: 0 13px;
+  font-weight: 700;
+}
+.skeletonList {
+  display: grid;
+  gap: 9px;
+  margin-top: 15px;
+}
+.skeletonList div {
+  height: 68px;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #edf1ee 25%, #f7f9f7 50%, #edf1ee 75%);
+  background-size: 200% 100%;
+  animation: learner-shimmer 1.3s infinite;
+}
+.emptyState {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 48px 20px;
+  border: 1px dashed #d9e2dc;
+  border-radius: 20px;
+  background: #fff;
+  color: #708078;
+  text-align: center;
+}
+.emptyState svg {
+  width: 30px;
+  height: 30px;
+}
+.emptyState h2 {
+  margin: 0;
+  color: #24332b;
+  font:
+    750 15px Manrope,
+    sans-serif;
+}
+@keyframes learner-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (max-width: 620px) {
+  .listPage {
+    padding: 16px 12px 104px;
+  }
+  .listHeader {
+    margin-bottom: 14px;
+  }
+  .addButton span {
+    display: none;
+  }
+  .addButton {
+    width: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+  .insightStrip > div {
+    min-height: 66px;
+    padding: 9px;
+    grid-template-columns: auto 1fr;
+  }
+  .insightStrip svg {
+    display: none;
+  }
+  .insightStrip strong {
+    font-size: 17px;
+  }
+  .insightStrip span:last-child {
+    grid-column: 1/3;
+  }
+  .classHeading {
+    padding-inline: 13px;
+  }
+  .learnerRows {
+    padding-inline: 6px;
+  }
+  .learnerRow {
+    min-height: 64px;
+    padding-inline: 6px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeletonList div {
+    animation: none;
+  }
+}
+.profilePage {
+  max-width: 1100px !important;
+  margin: 0 auto !important;
+  padding: 16px 14px 112px !important;
+}
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 14px;
+}
+.iconButton {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid #e0e6e2;
+  border-radius: 14px;
+  background: #fff;
+  color: #425148;
+  cursor: pointer;
+}
+.profileAvatar {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 18px;
+  background: #dfeee6;
+  color: #185c38;
+  font:
+    800 14px Manrope,
+    sans-serif;
+}
+.profileIdentity {
+  min-width: 0;
+  flex: 1;
+}
+.profileIdentity h1 {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font:
+    800 clamp(21px, 3vw, 29px) / 1.1 Manrope,
+    sans-serif;
+  letter-spacing: -0.7px;
+}
+.profileIdentity span {
+  display: block;
+  margin-top: 5px;
+  color: #748078;
+  font-size: 11px;
+}
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 16px;
+}
+.quickActions button {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid #dfe6e1;
+  border-radius: 13px;
+  background: #fff;
+  color: #314139;
+  font:
+    700 11px Manrope,
+    sans-serif;
+}
+.quickActions button:first-child {
+  border-color: #173f2a;
+  background: #173f2a;
+  color: #fff;
+}
+.schoolLife {
+  margin: 20px 0;
+}
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.sectionTitle h2 {
+  margin: 0;
+  font:
+    750 16px Manrope,
+    sans-serif;
+}
+.sectionTitle span {
+  color: #708078;
+  font-size: 10px;
+}
+.schoolLife > div:last-child {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.schoolLife button {
+  min-height: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid #e1e7e3;
+  border-radius: 16px;
+  background: #fff;
+  color: #25342c;
+  padding: 13px;
+  font:
+    700 10px Manrope,
+    sans-serif;
+  text-align: left;
+}
+.schoolLife svg {
+  width: 19px;
+  height: 19px;
+  color: #2d7650;
+}
+.evidenceState {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: #fff8e9;
+  color: #7c5514;
+  padding: 11px 13px;
+}
+.evidenceState > span {
+  width: 9px;
+  height: 9px;
+  border-radius: 99px;
+  background: #e8a23e;
+}
+.evidenceState div {
+  display: grid;
+  gap: 2px;
+}
+.evidenceState strong {
+  font-size: 11px;
+}
+.evidenceState small {
+  font-size: 9px;
+  opacity: 0.76;
+}
+.evidenceReady {
+  background: #ebf7f0;
+  color: #17613b;
+}
+.evidenceReady > span {
+  background: #37a267;
+}
+.profileTabs {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  margin: 0 -14px 14px;
+  padding: 7px 14px;
+  border-bottom: 1px solid #e3e9e5;
+  background: rgba(247, 249, 247, 0.94);
+  backdrop-filter: blur(12px);
+  scrollbar-width: none;
+}
+.profileTabs::-webkit-scrollbar {
+  display: none;
+}
+.profileTabs button {
+  flex: 0 0 auto;
+  min-height: 35px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #6d7a73;
+  padding: 0 11px;
+  font:
+    700 10px Manrope,
+    sans-serif;
+  text-transform: capitalize;
+}
+.profileTabs button[aria-current="page"] {
+  background: #fff;
+  color: #173f2a;
+  box-shadow: 0 2px 8px rgba(24, 45, 34, 0.08);
+}
+.profileLoading {
+  max-width: 980px;
+  margin: auto;
+  padding: 20px 14px;
+  display: grid;
+  gap: 10px;
+}
+.profileLoading div {
+  height: 90px;
+  border-radius: 18px;
+  background: linear-gradient(90deg, #edf1ee 25%, #f7f9f7 50%, #edf1ee 75%);
+  background-size: 200% 100%;
+  animation: learner-shimmer 1.3s infinite;
+}
+.profileLoading div:first-child {
+  height: 64px;
+}
+.profileLoading div:last-child {
+  height: 180px;
+}
+@media (max-width: 620px) {
+  .profilePage {
+    padding-inline: 12px !important;
+  }
+  .profileHeader {
+    gap: 10px;
+  }
+  .iconButton {
+    width: 39px;
+    height: 39px;
+    border-radius: 13px;
+  }
+  .profileAvatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+  }
+  .schoolLife > div:last-child {
+    grid-template-columns: repeat(5, 74px);
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scrollbar-width: none;
+  }
+  .schoolLife button {
+    min-height: 72px;
+  }
+  .profileTabs {
+    margin-inline: -12px;
+    padding-inline: 12px;
+  }
+}
