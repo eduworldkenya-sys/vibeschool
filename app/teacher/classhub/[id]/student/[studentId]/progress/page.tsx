@@ -1,5 +1,6 @@
 'use client'
 
+import LearnerEvidenceChart from '@/components/teacher/progress/LearnerEvidenceChart'
 import { studio } from '@/components/teacher/studio-tokens'
 import ProgressDataChecks from '@/components/teacher/progress/ProgressDataChecks'
 import { downloadProgressCsv, progressCsv } from '@/lib/learner-intelligence/progress-review'
@@ -94,6 +95,7 @@ export default function StudentProgressRecordPage(){
     <details aria-label="Class register context" style={{marginTop:12,padding:14,border:`1px solid ${studio.border}`,borderRadius:14,background:'#fff'}}><summary style={{minHeight:28,fontWeight:800}}>Class register context</summary>{attendanceError?<p role="status">{attendanceError} Learning evidence remains available; register coverage is unverified.</p>:<><p style={{fontSize:12,lineHeight:1.7}}>{attendance.filter(row=>inProgressPeriod(row.date,period,term)).length} entries from your registers in this period. Daily and lesson entries can cover the same date; they are not added into an attendance percentage. Attendance can inform a conversation but does not explain a learning gap by itself.</p><ul style={{paddingLeft:20,fontSize:12,lineHeight:1.9}}>{attendance.filter(row=>inProgressPeriod(row.date,period,term)).slice(0,10).map(row=><li key={row.id}>{dateLabel(row.date)} · {row.slotId?'Lesson register':'Daily register'} · {row.status}{row.isLate?' · late':''}</li>)}</ul></>}</details>
     {filtered.some(row=>!row.outcomeId)&&<section role="status" style={emptyStyle}>{filtered.filter(row=>!row.outcomeId).length} evidence item(s) have no outcome link. They remain in History and do not establish outcome mastery.</section>}
 
+    {view==='record' && <LearnerEvidenceChart outcomes={outcomes} />}
     {view==='record'&&(outcomes.length===0?<section style={emptyStyle}><h2 style={{margin:0,fontSize:17}}>No matching progress evidence</h2><p style={{margin:'7px 0 0',color:"var(--teacher-muted, #627168)",fontSize:13}}>The record fills automatically as outcome-linked learner evidence is captured. Change the filters to inspect another period or activity.</p></section>:
     <div className="studio-lesson-grid">{outcomes.map(o=><article key={o.key} style={{background:'#fff',border:`1px solid ${studio.border}`,borderRadius:17,padding:14,breakInside:'avoid'}}>
       <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'flex-start'}}><div><div style={{fontSize:11,fontWeight:750,color:"var(--teacher-muted, #627168)"}}>{o.subjectId?`${subjectNames.get(o.subjectId)??'Subject'} · `:''}{o.outcomeCode||'CURRICULUM OUTCOME'}</div><h2 style={{margin:'4px 0',fontSize:15,lineHeight:1.35}}>{o.outcomeText}</h2></div><span title={progressBandLabel(o.band)} style={{...tone[o.band],borderRadius:99,padding:'6px 9px',fontSize:11,fontWeight:750,whiteSpace:'nowrap'}}>{o.band}</span></div>

@@ -2,6 +2,7 @@
 import { rosterRows } from '@/lib/classroom/model'
 import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
+import { Users, ClipboardCheck, Table2, School, TrendingUp, NotebookPen, CalendarDays, UsersRound, ClipboardList, Folder, Ruler, Bell, BookOpen, ArrowUpRight } from 'lucide-react'
 import { C } from '@/components/teacher/ui'
 import React, { useEffect, useState, Suspense, CSSProperties } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -96,6 +97,8 @@ const SUBJECT_ACTIONS = [
   { id: 'projects',   label: 'Projects',     icon: '🛠️', bg: '#92400e', route: '' },
   { id: 'exercises',  label: 'Exercises',    icon: '📐', bg: '#0369a1', route: '' },
 ]
+
+const actionIcons = { workspace: School, workbook: Table2, students: Users, attendance: ClipboardCheck, history: TrendingUp, lessonplan: NotebookPen, assessment: ClipboardList, timetable: CalendarDays, groups: UsersRound, homework: NotebookPen, projects: Folder, exercises: Ruler, scheme: BookOpen }
 
 function ClassPageInner() {
   const router       = useRouter()
@@ -463,7 +466,6 @@ function ClassPageInner() {
   const actions      = isSubject ? SUBJECT_ACTIONS : CLASS_ACTIONS
   const heroGradient = '#fff'
   const backRoute    = isSubject ? '/teacher/subjecthub' : '/teacher/classhub'
-  const gridCols = 'repeat(auto-fit, minmax(135px, 1fr))'
 
   const inputStyle: CSSProperties = {
     width: '100%', padding: '11px 14px', borderRadius: 10,
@@ -494,7 +496,7 @@ function ClassPageInner() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!isSubject && joinRequests > 0 && (
               <button type="button" aria-label="Open learner join requests" onClick={() => router.push('/teacher/classhub/' + classId + '/requests')} style={{ position: 'relative', background: C.surface, border: 'none', borderRadius: 10, width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>
-                🔔
+                <Bell size={19} aria-hidden="true"/>
                 <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: C.error, color: C.textPrimary, fontSize: 11, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{joinRequests}</span>
               </button>
             )}
@@ -506,13 +508,13 @@ function ClassPageInner() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><Skeleton h={28} w="60%" /><Skeleton h={14} w="40%" /><div style={{ display: 'flex', gap: 8, marginTop: 8 }}><Skeleton h={36} w="30%" /><Skeleton h={36} w="30%" /><Skeleton h={36} w="30%" /></div></div>
         ) : (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}><div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{isSubject ? '📚' : '🏫'}</div><div><h1 style={{ fontSize: 22, fontWeight: 750, color: C.textPrimary, margin: 0, lineHeight: 1.2 }}>{isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}</h1><p style={{ fontSize: 13, color: C.textMuted, margin: '3px 0 0' }}>{isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}</p></div></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}><div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{isSubject ? <BookOpen size={25}/> : <School size={25}/>}</div><div><h1 style={{ fontSize: 22, fontWeight: 750, color: C.textPrimary, margin: 0, lineHeight: 1.2 }}>{isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}</h1><p style={{ fontSize: 13, color: C.textMuted, margin: '3px 0 0' }}>{isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}</p></div></div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>{[{ label: 'Students', value: students.length },{ label: 'Claimed', value: students.filter(s => s.profile_id).length },{ label: 'Avg Score', value: avgScore }].map(s => <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}</div>
           </>
         )}
       </div>
 
-      <div style={{ margin: '16px 16px 0', background: '#fff', borderRadius: 20, padding: '16px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}><p style={{ fontSize: 11, fontWeight: 800, color: C.textMuted, letterSpacing: 1.4, textTransform: 'uppercase', margin: '0 0 12px' }}>{isSubject ? 'Subject Tools' : 'Class Tools'}</p><div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 10 }}>{actions.map(a => <button key={a.id} onClick={() => handleAction(a)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px 4px', borderRadius: 14, cursor: 'pointer', minHeight: 72, background: C.surface, color: C.textPrimary, border: '1px solid #e5e7eb', fontFamily: 'inherit' }}><span style={{ fontSize: 22 }}>{a.icon}</span><span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, textAlign: 'center', lineHeight: 1.3 }}>{a.label}</span></button>)}</div></div>
+      <section className="studio-class-tools studio-tools"><h2>{isSubject ? 'Subject tools' : 'Class tools'}</h2><div className="studio-class-tool-grid">{actions.map(a => {const Icon=actionIcons[a.id as keyof typeof actionIcons];return <button key={a.id} type="button" onClick={() => handleAction(a)} className="studio-tools__tile"><Icon size={25} aria-hidden="true"/><strong>{a.label}</strong><ArrowUpRight className="studio-arrow" aria-hidden="true"/></button>})}</div></section>
 
       {(isSubject || showRoster) && (
         <div style={{ margin: '14px 16px 0', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', animation: 'slideDown 0.2s ease' }}>

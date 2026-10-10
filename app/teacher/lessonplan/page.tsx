@@ -9,7 +9,8 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Card, SectionLabel, Btn, C } from '@/components/teacher/ui'
-import LessonPlanModal from '@/components/teacher/LessonPlanModal'
+import nextDynamic from 'next/dynamic'
+const LessonPlanModal = nextDynamic(() => import('@/components/teacher/LessonPlanModal'), { loading: () => <p role="status">Opening lesson workspace…</p> })
 import { isLessonPlanReadyToTeach } from '@/lib/teaching/lessonReadiness'
 import type { TimetableSlot, PlanRow, HistoryRow } from '@/lib/types'
 

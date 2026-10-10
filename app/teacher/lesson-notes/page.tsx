@@ -10,6 +10,8 @@ import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
 import LessonTeachMode, { type LessonCoverageOutcome } from "@/components/teacher/LessonTeachMode";
 import ReflectionSheet from "@/components/teacher/ReflectionSheet";
 import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
+import LessonPreparationStudio from "@/components/teacher/LessonPreparationStudio";
+import TeachingWorkspaceNav from "@/components/teacher/TeachingWorkspaceNav";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 
 
@@ -92,7 +94,7 @@ function LessonNotesInner() {
   const [teacherNotes, setTeacherNotes] = useState<TeacherNoteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [teachMode, setTeachMode] = useState(false);
+  const [teachMode, setTeachMode] = useState(params.get("teach") === "1");
   const [liveNote, setLiveNote] = useState("");
   const [occurrence, setOccurrence] = useState<OccurrenceRow | null>(null);
   const [reflectionOpen, setReflectionOpen] = useState(false);
@@ -303,7 +305,7 @@ function LessonNotesInner() {
 
   if (!lessonPlanId && contextClassId && contextSubjectId) {
     return (
-      <section style={{ padding: 20, maxWidth: 760, margin: "0 auto", display: "grid", gap: 12 }}>
+      <section style={{ padding: 20, maxWidth: 1100, margin: "0 auto", display: "grid", gap: 12 }}>
         <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: 0, marginBottom: 6 }}>← Back</button>
         <section style={{ background: "var(--teacher-ink, #1c2923)", color: "#fff", borderRadius: 18, padding: 18 }}>
           <div style={{ fontSize: 11, fontWeight: 750, color: "#d0c5e8", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes / Teach</div>
@@ -317,7 +319,7 @@ function LessonNotesInner() {
 
   if (!lessonPlanId && !contextClassId && !contextSubjectId) {
     return (
-      <section style={{ padding: 20, maxWidth: 760, margin: "0 auto" }}>
+      <section style={{ padding: 20, maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 18, padding: 18 }}>
           <div style={{ fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>Open Lesson Notes from Subjects or a lesson</div>
           <div style={{ color: "var(--teacher-muted, #627168)", fontSize: 13, marginTop: 6, lineHeight: 1.5 }}>VibeSchool needs a valid class, subject and prepared lesson before Teach mode can start.</div>
@@ -344,9 +346,12 @@ function LessonNotesInner() {
     : [];
 
   return (
-    <section style={{ padding: "12px 14px 32px", maxWidth: 760, margin: "0 auto" }}>
+    <section style={{ padding: "12px 14px 32px", maxWidth: 1100, margin: "0 auto" }}>
       <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: "8px 0", color: "#374151" }}>← Back to lesson</button>
 
+      {plan.class_id && plan.subject_id && <TeachingWorkspaceNav classId={plan.class_id} subjectId={plan.subject_id} lessonPlanId={plan.id} current="Lesson" />}
+      {sections && <LessonPreparationStudio sections={sections} topic={plan.topic || plan.title || "Lesson notes"} resourceCount={resources.length} onTeach={() => setTeachMode(true)} onEdit={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(plan.class_id || contextClassId)}&subjectId=${encodeURIComponent(plan.subject_id || contextSubjectId)}&timetableSlotId=${encodeURIComponent(plan.timetable_slot_id || "")}&date=${encodeURIComponent(plan.taught_date || "")}`)} />}
+      <details className="studio-lesson-details"><summary>Teaching pack & private notes</summary>
       <section style={{ background: "#2c2944", color: "#fff", borderRadius: 22, padding: 18, marginBottom: 14 }}>
         <div style={{ fontSize: 11, fontWeight: 750, color: "#d0c5e8", textTransform: "uppercase", letterSpacing: 1 }}>Lesson notes</div>
         <h1 style={{ fontSize: 22, lineHeight: 1.2, margin: "7px 0 5px" }}>{plan.topic || plan.title || "Today’s lesson"}</h1>
@@ -365,71 +370,6 @@ function LessonNotesInner() {
         </div>
         {plan.duration_minutes && <div style={{ fontSize: 11, color: "var(--teacher-muted, #627168)", marginTop: 8 }}>Planned duration: {plan.duration_minutes} minutes</div>}
       </section>
-
-      {teachMode && sections && (
-        <LessonTeachMode
-          subject="Lesson"
-          className={occurrence ? "Current class" : "Lesson workspace"}
-          topic={plan.topic || plan.title || "Today’s lesson"}
-          sections={sections}
-          context={occurrence ? {
-            lessonPlanId: plan.id,
-            occurrenceId: occurrence.id,
-            teacherId: occurrence.teacher_id,
-            schoolId: occurrence.school_id,
-            classId: occurrence.class_id,
-            subjectId: occurrence.subject_id,
-            lifecycle: occurrence.lifecycle,
-            timetableSlotId: occurrence.timetable_slot_id,
-            occurrenceDate: occurrence.occurrence_date,
-          } : null}
-          initialScratchpad={liveNote}
-          onScratchpadChange={saveLiveNote}
-          onCaptureEvidence={() => setEvidenceOpen(true)}
-          onUseInReflection={(value) => {
-            setReflectionSeed(value);
-            setReflectionOpen(true);
-          }}
-          onFinishLesson={occurrence && plan.timetable_slot_id && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
-            const nextSteps = outcome === "partial"
-              ? "Continue the uncovered part of this lesson before advancing Scheme coverage."
-              : outcome === "reteach"
-                ? "Reteach this lesson content using the teacher reflection and new evidence before advancing Scheme coverage."
-                : "Teaching occurrence completed and the linked Scheme item was explicitly marked covered. Learner mastery remains evidence-based and separate.";
-
-            // One RPC = one database transaction. Completion, progress and (for
-            // covered lessons) Scheme coverage either all persist or all roll back.
-            const { data: finalized, error: finalizeError } = await supabase.rpc("finalize_teaching_occurrence", {
-              p_timetable_slot_id: plan.timetable_slot_id as string,
-              p_occurrence_date: occurrence.occurrence_date,
-              p_outcome: outcome,
-              p_what_was_taught: whatWasTaught,
-              p_challenges: outcome === "reteach" ? "Teacher marked this occurrence as reteach required." : null,
-              p_teacher_remarks: `Coverage outcome: ${outcome}. This is a teaching-coverage statement, not learner mastery.`,
-              p_next_steps: nextSteps,
-            });
-            if (finalizeError) {
-              throw new Error(`Lesson was not finalized; no partial completion was accepted: ${finalizeError.message}`);
-            }
-            const finalizedRow = Array.isArray(finalized) ? finalized[0] : finalized;
-            if (!finalizedRow?.occurrence_id || !finalizedRow?.progress_record_id) {
-              throw new Error("Lesson finalization returned no authoritative completion record.");
-            }
-            setOccurrence(current => current ? { ...current, id: finalizedRow.occurrence_id, lifecycle: "completed" } : current);
-
-            const reflectionContext = [
-              liveNote.trim(),
-              `Coverage outcome: ${outcome}.`,
-              `What was taught: ${whatWasTaught}`,
-              `Next step: ${nextSteps}`,
-            ].filter(Boolean).join("\\n\\n");
-            setReflectionSeed(reflectionContext);
-            setReflectionOpen(true);
-          } : undefined}
-          onClose={() => setTeachMode(false)}
-        />
-      )}
-
 
       <section style={{ background: "#fff", borderRadius: 18, padding: 16, marginBottom: 14, border: "1px solid #e5e7eb" }}>
         <div style={{ fontSize: 12, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>Live teacher note</div>
@@ -504,6 +444,74 @@ function LessonNotesInner() {
           <div style={{ fontSize: 12, color: "var(--teacher-muted, #627168)", marginTop: 5 }}>Return to the lesson plan and prepare the lesson. VibeSchool uses the canonical lesson plan as the baseline teaching notes; approved source-grounded teacher notes can enrich it when available.</div>
         </section>
       )}
+      </details>
+      {teachMode && sections && (
+        <LessonTeachMode
+          subject="Lesson"
+          className={occurrence ? "Current class" : "Lesson workspace"}
+          topic={plan.topic || plan.title || "Today’s lesson"}
+          sections={sections}
+          context={occurrence ? {
+            lessonPlanId: plan.id,
+            occurrenceId: occurrence.id,
+            teacherId: occurrence.teacher_id,
+            schoolId: occurrence.school_id,
+            classId: occurrence.class_id,
+            subjectId: occurrence.subject_id,
+            lifecycle: occurrence.lifecycle,
+            timetableSlotId: occurrence.timetable_slot_id,
+            occurrenceDate: occurrence.occurrence_date,
+          } : null}
+          initialScratchpad={liveNote}
+          linkedResources={resources.map(resource => ({ id: resource.linkId, title: resource.title, available: Boolean(resource.publicationId) }))}
+          onOpenResource={id => { const resource = resources.find(item => item.linkId === id); if (resource) openResource(resource) }}
+          onScratchpadChange={saveLiveNote}
+          onCaptureEvidence={() => setEvidenceOpen(true)}
+          onUseInReflection={(value) => {
+            setReflectionSeed(value);
+            setReflectionOpen(true);
+          }}
+          onFinishLesson={occurrence && plan.timetable_slot_id && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
+            const nextSteps = outcome === "partial"
+              ? "Continue the uncovered part of this lesson before advancing Scheme coverage."
+              : outcome === "reteach"
+                ? "Reteach this lesson content using the teacher reflection and new evidence before advancing Scheme coverage."
+                : "Teaching occurrence completed and the linked Scheme item was explicitly marked covered. Learner mastery remains evidence-based and separate.";
+
+            // One RPC = one database transaction. Completion, progress and (for
+            // covered lessons) Scheme coverage either all persist or all roll back.
+            const { data: finalized, error: finalizeError } = await supabase.rpc("finalize_teaching_occurrence", {
+              p_timetable_slot_id: plan.timetable_slot_id as string,
+              p_occurrence_date: occurrence.occurrence_date,
+              p_outcome: outcome,
+              p_what_was_taught: whatWasTaught,
+              p_challenges: outcome === "reteach" ? "Teacher marked this occurrence as reteach required." : null,
+              p_teacher_remarks: `Coverage outcome: ${outcome}. This is a teaching-coverage statement, not learner mastery.`,
+              p_next_steps: nextSteps,
+            });
+            if (finalizeError) {
+              throw new Error(`Lesson was not finalized; no partial completion was accepted: ${finalizeError.message}`);
+            }
+            const finalizedRow = Array.isArray(finalized) ? finalized[0] : finalized;
+            if (!finalizedRow?.occurrence_id || !finalizedRow?.progress_record_id) {
+              throw new Error("Lesson finalization returned no authoritative completion record.");
+            }
+            setOccurrence(current => current ? { ...current, id: finalizedRow.occurrence_id, lifecycle: "completed" } : current);
+
+            const reflectionContext = [
+              liveNote.trim(),
+              `Coverage outcome: ${outcome}.`,
+              `What was taught: ${whatWasTaught}`,
+              `Next step: ${nextSteps}`,
+            ].filter(Boolean).join("\\n\\n");
+            setReflectionSeed(reflectionContext);
+            setReflectionOpen(true);
+          } : undefined}
+          onClose={() => setTeachMode(false)}
+        />
+      )}
+
+
       {evidenceOpen && occurrence && (
         <EvidenceCaptureSheet
           lessonId={plan.id}

@@ -65,7 +65,8 @@ import ReflectionSheet from '@/components/teacher/ReflectionSheet'
 import CoverageSheet from '@/components/teacher/CoverageSheet'
 import LessonPlanHistorySheet from '@/components/teacher/LessonPlanHistorySheet'
 import EvidenceCaptureSheet from '@/components/teacher/EvidenceCaptureSheet'
-import LessonTeachMode from '@/components/teacher/LessonTeachMode'
+import LessonPreparationStudio from '@/components/teacher/LessonPreparationStudio'
+import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
 import VibeLearnLessonSequence from '@/components/teacher/VibeLearnLessonSequence'
 import {
   listOccurrenceResourceUsage,
@@ -279,7 +280,6 @@ export default function LessonPlanModal({
   const [showReflection, setShowReflection] = useState(false)
   const [showEvidence,   setShowEvidence]   = useState(false)
   const [showHistory,    setShowHistory]    = useState(false)
-  const [teachMode,      setTeachMode]      = useState(false)
   // Fix 18E-D: set from the RPC-returned completed occurrence's own id —
   // never a slot id or plan id — so the coverage prompt always targets the
   // exact occurrence that was just completed, not a stale/derived key.
@@ -1417,6 +1417,13 @@ export default function LessonPlanModal({
   const deliveryReady = deliveryReadiness?.ready === true
   const statusBadge = STATUS_BADGE[status]
 
+  function openPreparedTeachMode() {
+    if (!planId) return
+    const query = new URLSearchParams({ lessonPlanId: planId, classId: slot.class_id, subjectId: slot.subject_id, teach: '1' })
+    if (teachingOccurrence?.occurrenceId) query.set('occurrenceId', teachingOccurrence.occurrenceId)
+    router.push(`/teacher/lesson-notes?${query}`)
+  }
+
   return (
     <>
       <style>{`
@@ -1470,7 +1477,8 @@ export default function LessonPlanModal({
           </div>
         </div>
 
-        <div style={{ overflowY: 'auto', flex: 1, padding: '20px' }}>
+        <div style={{ overflowY: 'auto', flex: 1, padding: '20px', background: 'var(--teacher-canvas, #f5f3f0)' }}>
+          <TeachingWorkspaceNav classId={slot.class_id} subjectId={slot.subject_id} lessonPlanId={planId} occurrenceId={teachingOccurrence?.occurrenceId} current="Lesson" />
 
           {phase === 'loading' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1660,6 +1668,8 @@ export default function LessonPlanModal({
 
           {phase === 'view' && (
             <div>
+              <LessonPreparationStudio sections={sections} topic={topic} resourceCount={lessonResources.length} onTeach={openPreparedTeachMode} onEdit={() => { setDraft({ ...sections }); setPhase('edit') }} />
+              <details className="studio-lesson-details"><summary>Resources, readiness & delivery</summary>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: suggestionLinked && suggestion ? 8 : 16, fontSize: 12, color: C.textMuted }}>
                 <span style={{ color: C.accent }}>✦</span>
                 <span>{canonicalIdentity ? 'Built from Scheme + VibeSchool Content · KICD aligned · No AI' : 'Built from authoritative Scheme data · No AI'}</span>
@@ -2052,24 +2062,6 @@ export default function LessonPlanModal({
                 )}
               </div>
 
-              {SECTION_LABELS.map(s => sections[s.key] ? (
-                <div key={s.key} style={{
-                  marginBottom: 20, background: '#fafafa',
-                  borderRadius: 12, padding: '14px 16px', border: '1px solid ' + C.border,
-                }}>
-                  <div style={{
-                    fontSize: 11, fontWeight: 800, color: C.textMuted,
-                    letterSpacing: 1, textTransform: 'uppercase',
-                    marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6,
-                  }}>
-                    <span>{s.icon}</span>{s.label}
-                  </div>
-                  <div style={{ fontSize: 13, color: C.textPrimary, lineHeight: 1.75, whiteSpace: 'pre-wrap' }}>
-                    {sections[s.key]}
-                  </div>
-                </div>
-              ) : null)}
-
               {error !== '' && <p style={{ fontSize: 12, color: C.error, marginBottom: 12 }}>{error}</p>}
 
               {deliveryReadiness && !deliveryReadiness.ready && (
@@ -2274,7 +2266,7 @@ export default function LessonPlanModal({
                   </button>
                 )}
                 {workspace?.lifecycle === 'in_progress' && (
-                  <button type="button" onClick={() => setTeachMode(true)} style={{
+                  <button type="button" onClick={openPreparedTeachMode} style={{
                     width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #4338ca',
                     background: '#eef2ff', color: '#4338ca', fontSize: 13, fontWeight: 800,
                     cursor: 'pointer', fontFamily: 'inherit',
@@ -2406,6 +2398,7 @@ export default function LessonPlanModal({
                   }}>Done</button>
                 </div>
               </div>
+              </details>
             </div>
           )}
 
@@ -2450,16 +2443,6 @@ export default function LessonPlanModal({
 
         </div>
       </div>
-
-      {teachMode && (
-        <LessonTeachMode
-          subject={slot.subject}
-          className={slot.class}
-          topic={topic}
-          sections={sections}
-          onClose={() => setTeachMode(false)}
-        />
-      )}
 
       {showEvidence &&
         teacherId &&

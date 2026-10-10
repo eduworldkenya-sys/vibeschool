@@ -17,7 +17,7 @@ import PulseHeader from "@/components/teacher/PulseHeader";
 import QuickActions from "@/components/teacher/QuickActions";
 import RecentActivity from "@/components/teacher/RecentActivity";
 import TodayGlance from "@/components/teacher/TodayGlance";
-import TodayHero from "@/components/teacher/TodayHero";
+
 import TwinShortcut from "@/components/teacher/TwinShortcut";
 import WeekOverview from "@/components/teacher/WeekOverview";
 import { subscribePulse } from "@/lib/pulse/refresh";
@@ -401,11 +401,11 @@ export default function PulsePage() {
   const handleContextChange = useCallback(
     (key: string) => {
       setSelectedKey(key);
-      // Update the view immediately from the current snapshot, then reconcile
-      // attendance/plans/homework with a fresh server read.
-      void boot(true);
+      // The snapshot already contains every authorised class. Switching this
+      // local view needs no duplicate server bootstrap; saves refresh Pulse.
+
     },
-    [boot]
+    []
   );
 
   useEffect(() => {
@@ -511,14 +511,7 @@ export default function PulsePage() {
       />
 
       <p className="teacher-today__scope">My day across all classes · selected class shortcuts are shown in Quick tools.</p>
-      <div className="teacher-today__grid"><section className="teacher-today__primary" aria-label="Your teaching day">
-      <TodayHero
-        snap={snap}
-        onOpenTimetable={() => router.push("/teacher/timetable")}
-        onOpenStudents={() => router.push("/teacher/students")}
-        onOpenAttendance={() => router.push("/teacher/attendance")}
-      />
-
+      <div className="studio-pulse-focus">
       <NextTeachingAction
         task={dayResult.tasks[0] ?? null}
         hasLessons={snap.todaySlots.length > 0}
@@ -527,6 +520,10 @@ export default function PulsePage() {
         onNavigate={(href) => router.push(href)}
       />
 
+      <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
+      </div>
+      <QuickActions slot={focusSlot} context={{ classId: focusClassId, subjectId: focusSubjectId }} onNavigate={(href) => router.push(href)} />
+      <div className="teacher-today__grid"><section className="teacher-today__primary" aria-label="Your teaching day">
       <LessonFlowCard
         slots={snap.todaySlots}
         snap={snap}
@@ -549,17 +546,9 @@ export default function PulsePage() {
         schoolId={activeSchoolId ?? snap.schoolId}
       />
 
-      <QuickActions
-        slot={focusSlot}
-        context={{ classId: focusClassId, subjectId: focusSubjectId }}
-        onNavigate={(href) => router.push(href)}
-      />
-
       </aside></div>
       <details className="teacher-today__details"><summary>This week & recent activity</summary>
       <WeekOverview overview={snap.weekOverview} />
-
-      <TodayGlance snap={snap} onNavigate={(href) => router.push(href)} />
 
       <RecentActivity items={recentItems} />
 

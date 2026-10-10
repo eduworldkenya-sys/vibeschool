@@ -742,14 +742,9 @@ export async function fetchPulseData(
     teacherClasses.map(async (teacherClass) => {
       const subjectName = one(teacherClass.subjects)?.name ?? "Subject";
 
-      const classRes = await supabase
-        .from("classes")
-        .select("name")
-        .eq("school_id", schoolId)
-        .eq("id", teacherClass.class_id)
-        .maybeSingle();
-
-      const gradeName = classRes.data?.name ?? "";
+      // The authorised teacher assignment already joins this class name.
+      // Avoid one additional database request per class on every Pulse load.
+      const gradeName = one(teacherClass.classes)?.name ?? "";
       if (!gradeName) return;
 
       const [totalRes, coveredRes, lessonRes] = await Promise.allSettled([

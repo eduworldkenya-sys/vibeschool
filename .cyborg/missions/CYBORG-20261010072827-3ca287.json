@@ -2,12 +2,12 @@
   "schemaVersion": 1,
   "kernelVersion": 2,
   "registryVersion": 5,
-  "missionId": "CYBORG-20261006135234-259bea",
-  "runId": "a215d9e3-f215-48dd-ba3b-fc6cb697aeee",
+  "missionId": "CYBORG-20261010072827-3ca287",
+  "runId": "66e6d5c0-a5b8-4acd-8a01-8620ca8901bb",
   "missionType": "IMPLEMENTATION",
-  "intent": "Implement canonical learner information using existing students, student_classes and teacher_learner_events: repair onboarding to use optional admission numbers and idempotent learner creation; add progressive teacher-maintained learner context to the canonical learner workspace; preserve Class Hub, Attendance, Assessments, Exams, Progress, Homework, Intervention, Student OS and Parent OS authorities; verify tenant isolation, mobile UX, exact-head CI, independent assurance, merge and post-merge verification",
-  "baseSha": "b3d14fd67cd7dac962ca9dc97055737c1174fa9f",
-  "headSha": "b3d14fd67cd7dac962ca9dc97055737c1174fa9f",
+  "intent": "Implement all approved teacher visual demos from Pulse Today through learner progress and teaching workspace with full layouts working interactions and measured speed",
+  "baseSha": "4a9310ba4761f2b879deb26b7030a6f770b29b3b",
+  "headSha": "4a9310ba4761f2b879deb26b7030a6f770b29b3b",
   "riskLevel": "R2",
   "capabilities": [
     "READ_REPO",
@@ -22,9 +22,42 @@
   ],
   "scope": {
     "mission": [
-      "app/teacher/onboarding/students/page.tsx",
+      "components/teacher/studio.css",
+      "components/teacher/LessonPlanModal.tsx",
+      "components/teacher/LessonTeachMode.tsx",
+      "app/teacher/pulse/page.tsx",
+      "components/teacher/TodayGlance.tsx",
+      "components/teacher/QuickActions.tsx",
+      "components/teacher/NextTeachingAction.tsx",
+      "app/teacher/subjecthub/page.tsx",
+      "components/teacher/SubjectCompanion.tsx",
+      "app/teacher/lesson-notes/page.tsx",
+      "app/teacher/scheme",
+      "app/teacher/classhub/[id]/page.tsx",
+      "app/teacher/classhub/[id]/progress/page.tsx",
+      "app/teacher/classhub/[id]/student/[studentId]/progress/page.tsx",
+      "app/teacher/progress/page.tsx",
+      "components/teacher/TeachingWorkspaceNav.tsx",
+      "components/teacher/ApprovedWorkspace.module.css",
+      "docs/engineering/approved-demo-implementation.md",
+      "components/teacher/LessonPreparationStudio.tsx",
+      "components/teacher/progress/OutcomeMatrix.tsx",
       "app/teacher/classhub/[id]/student/[studentId]/page.tsx",
-      "scripts/test-canonical-learner-record.mjs"
+      "components/teacher/LearnerSnapshot.tsx",
+      "scripts/test-approved-design-interactions.mjs",
+      "components/teacher/progress/LearnerEvidenceChart.tsx",
+      "app/teacher/curriculum",
+      "components/teacher/navigation.ts",
+      "app/teacher/schoolhub/page.tsx",
+      "app/teacher/assessment/interventions/page.tsx",
+      "lib/pulse/fetcher.ts",
+      "components/teacher/LessonFlowCard.tsx",
+      "app/teacher/lessonplan/page.tsx",
+      "app/teacher/vibelearn/page.tsx",
+      "components/teacher/workbook/ClassWorkbook.tsx",
+      "components/teacher/workbook/ClassWorkbook.module.css",
+      "scripts/teacher-resource-os-contract.test.mjs",
+      ".github/workflows/approved-teacher-design.yml"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -34,9 +67,11 @@
       "id": "R01-repository_truth",
       "description": "repository truth",
       "mandatory": true,
-      "state": "UNKNOWN",
+      "state": "PASS",
       "minimumEvidenceGrade": "E1",
-      "evidenceIds": [],
+      "evidenceIds": [
+        "f3d98429-ba95-4c14-ac32-fb49d8b81ef1"
+      ],
       "dependencies": [],
       "negativePaths": []
     },
@@ -341,20 +376,6 @@
       "reason": null
     },
     {
-      "id": "supabase-rls-security",
-      "activation": "domain-match",
-      "required": true,
-      "result": "PENDING",
-      "reason": "domain match"
-    },
-    {
-      "id": "hq-ux-operational-truth",
-      "activation": "domain-match",
-      "required": true,
-      "result": "PENDING",
-      "reason": "domain match"
-    },
-    {
       "id": "journey-integrity",
       "activation": "domain-match",
       "required": true,
@@ -362,7 +383,22 @@
       "reason": "domain match"
     }
   ],
-  "evidence": [],
+  "evidence": [
+    {
+      "id": "f3d98429-ba95-4c14-ac32-fb49d8b81ef1",
+      "headSha": "4a9310ba4761f2b879deb26b7030a6f770b29b3b",
+      "createdAt": "2026-10-10T07:41:32.799Z",
+      "fresh": true,
+      "producer": "cyborg",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R01-repository_truth",
+      "kind": "CURRENT_MAIN_AND_REFERENCES",
+      "result": "PASS",
+      "grade": "E1",
+      "source": "origin/main 4a9310ba; five approved demo HTML references; canonical current Teacher OS source; GitHub PR747 verified merged"
+    }
+  ],
   "contradictions": [],
   "findings": [],
   "decisions": [],
@@ -370,9 +406,9 @@
   "attempts": {},
   "state": "MISSION",
   "learningClosure": false,
-  "createdAt": "2026-10-06T13:52:34.575Z",
-  "updatedAt": "2026-10-10T07:34:47.607Z",
-  "journalPath": ".cyborg/journal/CYBORG-20261006135234-259bea.ndjson",
+  "createdAt": "2026-10-10T07:28:27.725Z",
+  "updatedAt": "2026-10-10T12:06:14.093Z",
+  "journalPath": ".cyborg/journal/CYBORG-20261010072827-3ca287.ndjson",
   "activation": {
     "runtime": false,
     "schedulers": false,
@@ -380,5 +416,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "09f074816aa8ea15f70a8af82794254ea9884a938e3e8cc0c49bc584915673a3"
+  "lastJournalHash": "04d3945465b554328a650c8f2f9b0691e5c391a82bdf356f699bcf855c8ee22a"
 }

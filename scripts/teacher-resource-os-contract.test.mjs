@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 const resourcePage = fs.readFileSync('app/teacher/resources/page.tsx', 'utf8')
 const lessonModal = fs.readFileSync('components/teacher/LessonPlanModal.tsx', 'utf8')
 const teachMode = fs.readFileSync('components/teacher/LessonTeachMode.tsx', 'utf8')
+const lessonNotes = fs.readFileSync('app/teacher/lesson-notes/page.tsx', 'utf8')
 
 const mustContain = [
   "resolve_instructional_week_for_date",
@@ -49,10 +50,18 @@ for (const needle of [
   "markOccurrenceResourceUsed",
   "lessonResources.map",
   "Used ✓",
-  "<LessonTeachMode",
+  "onTeach={openPreparedTeachMode}",
 ]) {
   assert.ok(lessonModal.includes(needle), `Lesson workspace resource continuity missing: ${needle}`)
 }
+
+for (const needle of ["lessonPlanId: planId", "classId: slot.class_id", "subjectId: slot.subject_id", "teach: '1'", "query.set('occurrenceId', teachingOccurrence.occurrenceId)", "router.push(`/teacher/lesson-notes?${query}`)"]) {
+  assert.ok(lessonModal.includes(needle), `Unified Teach Mode must retain exact lesson context: ${needle}`)
+}
+for (const needle of ['<LessonTeachMode', 'lessonPlanId: plan.id', 'occurrenceId: occurrence.id', 'linkedResources={resources.map', 'available: Boolean(resource.publicationId)', 'if (resource) openResource(resource)']) {
+  assert.ok(lessonNotes.includes(needle), `Unified Teach Mode resource/occurrence continuity missing: ${needle}`)
+}
+assert.ok(teachMode.includes('disabled={!resource.available || !onOpenResource}'), 'Unavailable resource readers must not become active controls')
 
 for (const needle of [
   'Now teaching',
@@ -100,7 +109,7 @@ for (const needle of [
   assert.ok(atomicFinishMigration.includes(needle), `Atomic lesson finalization contract missing: ${needle}`)
 }
 
-const lessonNotes = fs.readFileSync('app/teacher/lesson-notes/page.tsx', 'utf8')
+
 for (const needle of [
   'finalize_teaching_occurrence',
   'p_outcome: outcome',

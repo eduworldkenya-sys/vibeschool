@@ -28,6 +28,8 @@ type Props = {
   onScratchpadChange?: (value: string) => void
   onUseInReflection?: (value: string) => void
   onCaptureEvidence?: () => void
+  linkedResources?: Array<{ id: string; title: string; available: boolean }>
+  onOpenResource?: (id: string) => void
   onFinishLesson?: (outcome: LessonCoverageOutcome, whatWasTaught: string) => Promise<void> | void
   onClose: () => void
 }
@@ -75,7 +77,7 @@ function cacheKey(context: ClassroomContext) {
 
 export default function LessonTeachMode({
   subject, className, topic, sections, context, initialScratchpad = '',
-  onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson, onClose,
+  onScratchpadChange, onUseInReflection, onCaptureEvidence, onFinishLesson, onClose, linkedResources = [], onOpenResource,
 }: Props) {
   const router = useRouter()
   const total = useMemo(() => totalMinutes(sections), [sections])
@@ -236,7 +238,7 @@ export default function LessonTeachMode({
     const bodyStart = start + heading.length
     const ends = nextHeadings.map(next => source.indexOf(next, bodyStart)).filter(index => index >= 0)
     const end = ends.length > 0 ? Math.min(...ends) : source.length
-    return source.slice(bodyStart, end).replace(/^[:\\s]+/, '').trim()
+    return source.slice(bodyStart, end).replace(/^[:\s]+/, '').trim()
   }
 
   const teachingPoints = blockBetween(sections.development, 'Teaching points / teacher notes', ['Learner activities', 'Check-for-understanding questions and expected answers', 'Misconceptions to watch'])
@@ -247,7 +249,7 @@ export default function LessonTeachMode({
 
   return (
     <div style={{ position:'fixed', inset:0, zIndex:1200, background:"var(--teacher-canvas, #f5f6f2)", overflowY:'auto', padding:'12px 12px 96px', fontFamily:"inherit" }}>
-      <div style={{ maxWidth:720, margin:'0 auto' }}>
+      <div className="studio-teach-shell">
         <header style={{ position:'sticky', top:0, zIndex:2, background:"var(--teacher-canvas, #f5f6f2)", padding:'4px 0 10px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', gap:10 }}>
             <div>
@@ -272,9 +274,28 @@ export default function LessonTeachMode({
           </div>
         )}
 
+        <nav aria-label="Lesson phases" style={{ display:'flex', gap:8, overflowX:'auto', padding:'4px 0 12px' }}>
+          {available.map((phase, index) => (
+            <button key={phase.key} type="button" aria-pressed={safeIndex === index} onClick={() => changeStep(index)} style={{...actionStyle, flexShrink:0, minHeight:44, background:safeIndex === index ? 'var(--teacher-accent, #6352bd)' : '#fff', color:safeIndex === index ? '#fff' : 'var(--teacher-ink, #29273c)'}}>{phase.label}</button>
+          ))}
+        </nav>
+
+        <section className="studio-teach-board" style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
+          <div style={{ fontSize:11, fontWeight:750, color:'#d0c5e8', textTransform:'uppercase' }}>
+            Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
+          </div>
+          <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
+        </section>
+
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
+          <button type="button" disabled={safeIndex===0} onClick={()=>changeStep(Math.max(0,safeIndex-1))} style={{...actionStyle,opacity: safeIndex === 0 ? 0.45 : 1}}>← Previous</button>
+          <button type="button" disabled={safeIndex>=available.length-1} onClick={()=>changeStep(Math.min(available.length-1,safeIndex+1))} style={{...actionStyle,background:'var(--teacher-accent, #6352bd)',color:'#fff',opacity: safeIndex >= available.length - 1 ? 0.45 : 1}}>Next →</button>
+        </div>
+
+        <details className="studio-teach-support"><summary>Teaching notes, resources & differentiation</summary>
         <section aria-label="Prepared lesson materials" style={{ background:'#fff', border:'1px solid #c7d2fe', borderRadius:16, padding:13, marginBottom:12 }}>
           <div style={{ fontSize:11, fontWeight:750, color:'#3730a3', textTransform:'uppercase' }}>Ready beside you</div>
-          <div style={{ fontSize:12, color:'#64748b', margin:'3px 0 9px' }}>Resources ready · Differentiation ready · Prepared Teaching Pack</div>
+          <div style={{ fontSize:12, color:'#64748b', margin:'3px 0 9px' }}>{sections.resources.trim() ? 'Resources ready' : 'Resources missing'} · {sections.differentiation.trim() ? 'Differentiation ready' : 'Differentiation missing'} · Prepared Teaching Pack</div>
           <div style={{ display:'flex', gap:7, overflowX:'auto', marginBottom:9 }}>
             {([
               ['notes','Notes'],['resources','Resources'],['assessment','Check learning'],['homework','Homework'],
@@ -284,23 +305,10 @@ export default function LessonTeachMode({
           </div>
           <div style={{ whiteSpace:'pre-wrap', lineHeight:1.65, fontSize:13, background:"var(--teacher-canvas, #f5f6f2)", borderRadius:10, padding:10 }}>
             {packView === 'notes' && [sections.introduction, sections.development, sections.consolidation].filter(Boolean).join('\n\n')}
-            {packView === 'resources' && sections.resources}
+            {packView === 'resources' && <>{sections.resources}{linkedResources.length > 0 && <div className="studio-teach-resource-links">{linkedResources.map(resource => <button key={resource.id} type="button" disabled={!resource.available || !onOpenResource} onClick={() => onOpenResource?.(resource.id)}>{resource.title} {resource.available ? '↗' : '· Reader unavailable'}</button>)}</div>}</>}
             {packView === 'assessment' && sections.assessmentHook}
             {packView === 'homework' && <><div>{sections.homework}</div><div style={{ marginTop:8, fontSize:11, fontWeight:750, color:'var(--teacher-accent, #6352bd)' }}>View · Edit · Assign · Share</div></>}
           </div>
-        </section>
-
-        <nav aria-label="Lesson phases" style={{ display:'flex', gap:8, overflowX:'auto', padding:'4px 0 12px' }}>
-          {available.map((phase, index) => (
-            <button key={phase.key} type="button" aria-pressed={safeIndex === index} onClick={() => changeStep(index)} style={{...actionStyle, flexShrink:0, minHeight:44, background:safeIndex === index ? 'var(--teacher-accent, #6352bd)' : '#fff', color:safeIndex === index ? '#fff' : 'var(--teacher-ink, #29273c)'}}>{phase.label}</button>
-          ))}
-        </nav>
-
-        <section style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:18, padding:16, marginBottom:12 }}>
-          <div style={{ fontSize:11, fontWeight:750, color:'#d0c5e8', textTransform:'uppercase' }}>
-            Now teaching · {step.label} · Step {safeIndex + 1} of {available.length}
-          </div>
-          <div style={{ whiteSpace:'pre-wrap', lineHeight:1.72, fontSize:16, marginTop:10 }}>{sections[step.key]}</div>
         </section>
 
         {step.key === 'development' && sections.differentiation.trim() && (
@@ -321,11 +329,7 @@ export default function LessonTeachMode({
           </section>
         )}
 
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:12 }}>
-          <button type="button" disabled={safeIndex===0} onClick={()=>changeStep(Math.max(0,safeIndex-1))} style={{...actionStyle,opacity: safeIndex === 0 ? 0.45 : 1}}>← Previous</button>
-          <button type="button" disabled={safeIndex>=available.length-1} onClick={()=>changeStep(Math.min(available.length-1,safeIndex+1))} style={{...actionStyle,background:'var(--teacher-accent, #6352bd)',color:'#fff',opacity: safeIndex >= available.length - 1 ? 0.45 : 1}}>Next →</button>
-        </div>
-
+        </details>
         {context ? (
           <section style={{ background:'#fff', border:'1px solid #e2e8f0', borderRadius:16, padding:13, marginBottom:12 }}>
             <div style={{ fontSize:11, fontWeight:750, color:'#475569', textTransform:'uppercase', marginBottom:8 }}>Classroom actions · same occurrence</div>
