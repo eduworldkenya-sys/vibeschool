@@ -934,9 +934,7 @@ export default function TeacherStudentProgressPage() {
           ]
         : []),
     ]),
-    ...teacherEvents
-      .filter((item) => !isLearnerContextEvent(item))
-      .map((item) => ({
+    ...teacherEvents.filter((item) => !isLearnerContextEvent(item)).map((item) => ({
         id: `teacher-event-${item.id}`,
         at: item.created_at,
         type:
@@ -1107,7 +1105,7 @@ export default function TeacherStudentProgressPage() {
           <small>
             {truth.evidenceState === "sufficient"
               ? `${assessmentEvidence} assessment records`
-              : "More evidence needed"}
+              : "More evidence needed — VibeSchool will not invent conclusions"}
           </small>
         </div>
       </section>
