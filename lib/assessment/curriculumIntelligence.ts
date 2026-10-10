@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
 
 export interface OutcomeIntelligence {
   outcomeId: string
@@ -31,9 +30,10 @@ export interface CurriculumIntelligence {
   interventions: InterventionSignal[]
 }
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
+async function rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { message?: string } | null }> {
+  const { data, error } = await supabase.rpc(name, args)
+  return { data, error }
+}
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -57,7 +57,7 @@ export async function linkAssessmentItemOutcome(input: {
   outcomeId: string
   weight?: number
 }): Promise<void> {
-  const { error } = await rpc<Json>('exq_link_item_outcome', {
+  const { error } = await rpc('exq_link_item_outcome', {
     p_assessment_item_id: input.assessmentItemId,
     p_outcome_id: input.outcomeId,
     p_weight: input.weight ?? 1,
@@ -66,7 +66,7 @@ export async function linkAssessmentItemOutcome(input: {
 }
 
 export async function syncAttemptOutcomeEvidence(attemptId: string): Promise<void> {
-  const { error } = await rpc<Json>('exq_sync_attempt_outcome_evidence', {
+  const { error } = await rpc('exq_sync_attempt_outcome_evidence', {
     p_attempt_id: attemptId,
   })
   if (error) throw new Error(error.message || 'Outcome evidence could not be synchronized.')
@@ -75,7 +75,7 @@ export async function syncAttemptOutcomeEvidence(attemptId: string): Promise<voi
 export async function getCurriculumIntelligence(
   assignmentId: string,
 ): Promise<CurriculumIntelligence> {
-  const { data, error } = await rpc<Json>('exq_get_curriculum_intelligence', {
+  const { data, error } = await rpc('exq_get_curriculum_intelligence', {
     p_assignment_id: assignmentId,
   })
   if (error) throw new Error(error.message || 'Could not load curriculum intelligence.')

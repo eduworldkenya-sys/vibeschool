@@ -1,6 +1,6 @@
+import type { Json } from '@/lib/database.types'
 import { readProgressPages } from '@/lib/learner-intelligence/progress-data'
 import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
 import { propagateReleasedAttempt } from '@/lib/assessment/integration'
 
 export interface MarkingQueueItem {
@@ -57,9 +57,10 @@ export interface MarkingAttempt {
   responses: MarkingResponse[]
 }
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
+async function rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { message?: string } | null }> {
+  const { data, error } = await supabase.rpc(name, args)
+  return { data, error }
+}
 
 function rec(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -77,7 +78,7 @@ function num(value: unknown): number | null {
 }
 
 export async function listMarkingQueue(): Promise<MarkingQueueItem[]> {
-  const { data, error } = await rpc<Json>('exq_list_marking_queue')
+  const { data, error } = await rpc('exq_list_marking_queue')
   if (error) throw new Error(error.message || 'Could not load marking queue.')
   const payload = rec(data)
   if (!Array.isArray(payload.attempts))
@@ -123,7 +124,7 @@ export async function listMarkingQueue(): Promise<MarkingQueueItem[]> {
 }
 
 export async function getMarkingAttempt(attemptId: string): Promise<MarkingAttempt> {
-  const { data, error } = await rpc<Json>('exq_get_marking_attempt', {
+  const { data, error } = await rpc('exq_get_marking_attempt', {
     p_attempt_id: attemptId,
   })
   if (error) throw new Error(error.message || 'Could not load learner responses.')
@@ -191,7 +192,7 @@ export async function markResponse(input: {
   feedback?: string | null
   overrideReason?: string | null
 }): Promise<void> {
-  const { error } = await rpc<Json>('exq_mark_response', {
+  const { error } = await rpc('exq_mark_response', {
     p_response_id: input.responseId,
     p_teacher_score: input.score,
     p_teacher_feedback: input.feedback ?? null,
@@ -205,7 +206,7 @@ export async function finalizeAttempt(input: {
   feedback?: string | null
   release?: boolean
 }): Promise<void> {
-  const { error } = await rpc<Json>('exq_finalize_attempt', {
+  const { error } = await rpc('exq_finalize_attempt', {
     p_attempt_id: input.attemptId,
     p_feedback: input.feedback ?? null,
     p_release: input.release ?? false,

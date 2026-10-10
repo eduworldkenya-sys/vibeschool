@@ -1,6 +1,5 @@
 import { readProgressPages } from '@/lib/learner-intelligence/progress-data'
 import { supabase } from '@/lib/supabase'
-import type { Json } from '@/lib/database.types'
 
 export interface AssessmentAnalyticsSummary {
   assignmentId: string
@@ -63,9 +62,10 @@ export interface AssessmentAnalyticsDetail {
   questions: AssessmentQuestionAnalytics[]
 }
 
-type RpcResult<T> = { data: T | null; error: { message?: string } | null }
-type Rpc = <T>(name: string, args?: Record<string, unknown>) => PromiseLike<RpcResult<T>>
-const rpc = supabase.rpc.bind(supabase) as unknown as Rpc
+async function rpc(name: string, args?: Record<string, unknown>): Promise<{ data: unknown; error: { message?: string } | null }> {
+  const { data, error } = await supabase.rpc(name, args)
+  return { data, error }
+}
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -85,7 +85,7 @@ function numberOrNull(value: unknown): number | null {
 }
 
 export async function listTeacherAssessmentAnalytics(): Promise<AssessmentAnalyticsSummary[]> {
-  const { data, error } = await rpc<Json>('exq_list_teacher_assessment_analytics')
+  const { data, error } = await rpc('exq_list_teacher_assessment_analytics')
   if (error) throw new Error(error.message || 'Could not load assessment analytics.')
 
   const payload = record(data)
@@ -125,7 +125,7 @@ export async function listTeacherAssessmentAnalytics(): Promise<AssessmentAnalyt
 export async function getAssignmentAnalytics(
   assignmentId: string,
 ): Promise<AssessmentAnalyticsDetail> {
-  const { data, error } = await rpc<Json>('exq_get_assignment_analytics', {
+  const { data, error } = await rpc('exq_get_assignment_analytics', {
     p_assignment_id: assignmentId,
   })
   if (error) throw new Error(error.message || 'Could not load assignment analytics.')
