@@ -463,7 +463,7 @@ function LessonPlanInner() {
                     <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap', flexShrink: 0 }}>{badge.label}</span>
                   </div>
                   <div style={{ marginTop: 10, display: 'flex', gap: 8 }}>
-                    <Btn small variant="ghost" onClick={() => setActiveSlot(slot)}>
+                    <Btn small variant="ghost" ariaLabel={state === 'no_plan' ? 'Create plan' : state === 'needs_review' ? 'Review plan' : 'Open Teaching Workspace'} onClick={() => setActiveSlot(slot)}>
                       {state === 'no_plan' ? 'Create plan' : state === 'needs_review' ? 'Review plan' : 'Open lesson'}
                     </Btn>
                   </div>
