@@ -54,6 +54,11 @@ await act(async()=>fireEvent.click(role('Amina')))
 assert.equal(learner,'a')
 await render(Matrix,{learners:[{id:'d',name:'Diana',outcomes:[outcome('d','AE')]}],onOpenLearner:()=>{}})
 assert(!document.body.textContent.includes('Recorded classroom evidence'),'Changing the learner scope clears old selected evidence')
+const EvidenceChart=await load('components/teacher/progress/LearnerEvidenceChart.tsx')
+const chartOutcome={...outcome('a','ME'),trend:'improving',trendSource:'released_assessment',trendDelta:10,trendEvidenceCount:4,evidence:[{id:'other',source:'exercise',observedAt:'2026-10-10',score:99,maxScore:100},{id:'comparable',source:'released_assessment',observedAt:'2026-10-09',score:40,maxScore:100}]}
+await render(EvidenceChart,{outcomes:[chartOutcome]})
+assert(document.body.textContent.includes('40 / 100'),'The trend chart shows the comparable source')
+assert(!document.body.textContent.includes('99 / 100'),'An unrelated source cannot supply bars for the trend')
 const TeachMode=await load('components/teacher/LessonTeachMode.tsx')
 let openedResource=''
 await render(TeachMode,{subject:'Science',className:'Grade 4',topic:'Materials',sections,linkedResources:[{id:'book',title:'Prepared reader',available:true},{id:'missing',title:'Unavailable reader',available:false}],onOpenResource:id=>openedResource=id,onClose:()=>{}})
@@ -63,4 +68,4 @@ assert.equal(role('Unavailable reader · Reader unavailable').disabled,true,'Una
 await act(async()=>fireEvent.click(role('Prepared reader ↗')))
 assert.equal(openedResource,'book','The selected linked resource reaches its real caller')
 await act(async()=>root.unmount())
-console.log('Approved design interactions: PASS (phase selection, missing content, edit/teach, shared matrix, evidence, unrecorded, learner navigation)')
+console.log('Approved design interactions: PASS (phases, full-content disclosure, edit/teach, shared matrix, scope reset, evidence, comparable chart source, linked readers)')

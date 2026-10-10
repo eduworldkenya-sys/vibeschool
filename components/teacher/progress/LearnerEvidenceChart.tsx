@@ -7,7 +7,7 @@ export default function LearnerEvidenceChart({ outcomes }: { outcomes: OutcomePr
   const [selected, setSelected] = useState('')
   const outcome = outcomes.find(row => row.key === selected) ?? outcomes[0]
   if (!outcome) return null
-  const source = outcome.evidence[0]?.source
+  const source = outcome.trendSource ?? [...outcome.evidence].sort((a,b) => b.observedAt.localeCompare(a.observedAt))[0]?.source
   const observations = outcome.evidence.filter(row => row.source === source && evidencePercentage(row) !== null).sort((a,b) => a.observedAt.localeCompare(b.observedAt)).slice(-6)
   return <section className="studio-evidence-chart" aria-label="Recorded outcome observations">
     <div className="studio-matrix-heading"><h2>Evidence over time</h2><select aria-label="Chart outcome" value={outcome.key} onChange={event => setSelected(event.target.value)}>{outcomes.map(row => <option key={row.key} value={row.key}>{row.outcomeText}</option>)}</select></div>

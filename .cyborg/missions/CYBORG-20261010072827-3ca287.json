@@ -56,7 +56,8 @@
       "app/teacher/vibelearn/page.tsx",
       "components/teacher/workbook/ClassWorkbook.tsx",
       "components/teacher/workbook/ClassWorkbook.module.css",
-      "scripts/teacher-resource-os-contract.test.mjs"
+      "scripts/teacher-resource-os-contract.test.mjs",
+      ".github/workflows/approved-teacher-design.yml"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -406,7 +407,7 @@
   "state": "MISSION",
   "learningClosure": false,
   "createdAt": "2026-10-10T07:28:27.725Z",
-  "updatedAt": "2026-10-10T12:01:04.114Z",
+  "updatedAt": "2026-10-10T12:06:14.093Z",
   "journalPath": ".cyborg/journal/CYBORG-20261010072827-3ca287.ndjson",
   "activation": {
     "runtime": false,
@@ -415,5 +416,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "616c835e0da6c966ab2ffaacd5c72008d283a1f416d76587b9d37653f32cea87"
+  "lastJournalHash": "04d3945465b554328a650c8f2f9b0691e5c391a82bdf356f699bcf855c8ee22a"
 }

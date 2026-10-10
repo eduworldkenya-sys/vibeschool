@@ -64,7 +64,8 @@
       "app/teacher/vibelearn/page.tsx",
       "components/teacher/workbook/ClassWorkbook.tsx",
       "components/teacher/workbook/ClassWorkbook.module.css",
-      "scripts/teacher-resource-os-contract.test.mjs"
+      "scripts/teacher-resource-os-contract.test.mjs",
+      ".github/workflows/approved-teacher-design.yml"
     ],
     "acquiredAt": "2026-10-10T07:28:36.780Z",
     "releasedAt": null
