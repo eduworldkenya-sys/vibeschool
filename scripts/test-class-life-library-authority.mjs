@@ -141,6 +141,9 @@ await assert.rejects(()=>db.query("update library_book_copies set state='availab
 await assert.rejects(()=>db.query("insert into library_inventory_events(school_id,book_id,actor_id,request_id,action,quantity) values($1,$2,$3,$4,'restock',1)",[school,book,outsider,id(69)]),/permission denied/);
 await assert.rejects(()=>scalar('select public.school_library_borrower_options($1) value',[school]),/school_admin_required/);
 await assert.rejects(()=>scalar(issue,[book,learner,id(34)]),/school_admin_required/);
+await as(admin);
+await scalar('select public.school_archive_library_book($1) value',[book]);
+assert.equal((await db.query('select state from library_book_copies where id=$1',[lostCopy])).rows[0].state,'lost','archive preserves lost-copy physical evidence');
 await as(teacher);
 const appoint="select public.school_appoint_class_learner($1,$2,$3,current_date,current_date+7,$4,$5) value";
 const rep=await scalar(appoint,[cls,learner,'representative',null,id(40)]);
