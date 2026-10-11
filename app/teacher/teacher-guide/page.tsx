@@ -6,6 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadLessonWorkspace, type LessonWorkspaceBootResult } from "@/lib/teaching/lessonWorkspace";
 import { parseLessonPlanBody, type LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
+import { evaluateLessonReadiness } from "@/lib/teaching/lessonReadiness";
 import SubjectLessonHandoff from "@/components/teacher/SubjectLessonHandoff";
 
 const card: React.CSSProperties = { background:"#fff", border:"1px solid #e2e8f0", borderRadius:16, padding:16 };
@@ -31,6 +32,8 @@ function TeacherGuideInner() {
   const subjectId=params.get("subjectId") || "";
   const subjectName=params.get("subject") || params.get("subjectName") || "";
   const schemeId=params.get("schemeId");
+  const lessonPlanId=params.get("lessonPlanId");
+  const occurrenceId=params.get("occurrenceId");
   const [workspace,setWorkspace]=useState<LessonWorkspaceBootResult|null>(null);
   const [loading,setLoading]=useState(Boolean(occurrenceDate && classId && subjectId));
   const [error,setError]=useState<string|null>(null);
@@ -44,7 +47,7 @@ function TeacherGuideInner() {
       }
       setLoading(true); setError(null);
       try {
-        const result=await loadLessonWorkspace({timetableSlotId,occurrenceDate,classId,subjectId,subjectName,requestedSchemeId:schemeId});
+        const result=await loadLessonWorkspace({timetableSlotId,occurrenceDate,classId,subjectId,subjectName,requestedSchemeId:schemeId,expectedLessonPlanId:lessonPlanId,expectedOccurrenceId:occurrenceId});
         if(!cancelled) setWorkspace(result);
       } catch(e) {
         if(!cancelled) setError(e instanceof Error?e.message:"Teacher Guide could not load this lesson.");
@@ -52,7 +55,7 @@ function TeacherGuideInner() {
     }
     void run();
     return ()=>{cancelled=true};
-  },[timetableSlotId,occurrenceDate,classId,subjectId,subjectName,schemeId]);
+  },[timetableSlotId,occurrenceDate,classId,subjectId,subjectName,schemeId,lessonPlanId,occurrenceId]);
 
   const sections=useMemo<LessonPlanSections|null>(()=>{
     const body=workspace?.existingPlan?.body;
@@ -63,6 +66,14 @@ function TeacherGuideInner() {
   const certified=workspace?.sourceBundle?.certifiedContent ?? [];
   const context=workspace?.sourceBundle?.classContext;
   const canonical=workspace?.canonicalIdentity;
+  const readiness=useMemo(()=>workspace?.existingPlan?.body?evaluateLessonReadiness(workspace.existingPlan.body):null,[workspace?.existingPlan?.body]);
+  const guideGaps=[
+    !workspace?.existingPlan?"Prepare the Lesson Plan.":null,
+    !canonical?"Attach an authoritative curriculum outcome and certified source.":null,
+    certified.length===0?"Attach at least one usable certified resource.":null,
+    ...(readiness?.reasons??[]),
+  ].filter((item): item is string=>Boolean(item));
+  const guideReady=guideGaps.length===0;
 
   const query=useMemo(()=>{
     const q=new URLSearchParams();
@@ -71,8 +82,10 @@ function TeacherGuideInner() {
     if(timetableSlotId) q.set("timetableSlotId",timetableSlotId);
     if(occurrenceDate) q.set("date",occurrenceDate);
     if(schemeId) q.set("schemeId",schemeId);
+    if(lessonPlanId) q.set("lessonPlanId",lessonPlanId);
+    if(occurrenceId) q.set("occurrenceId",occurrenceId);
     return q.toString();
-  },[classId,subjectId,timetableSlotId,occurrenceDate,schemeId]);
+  },[classId,subjectId,timetableSlotId,occurrenceDate,schemeId,lessonPlanId,occurrenceId]);
 
   if(loading) return <div role="status" style={{padding:24,color:"#475569",fontWeight:700}}>Opening the canonical Teacher Guide…</div>;
 
@@ -104,7 +117,7 @@ function TeacherGuideInner() {
   return (
     <div style={{maxWidth:760,margin:"0 auto",padding:"16px 14px 100px",display:"grid",gap:12}}>
       <header style={{...card,background:"var(--teacher-ink, #1c2923)",color:"#fff",border:0}}>
-        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",opacity:.7}}>Canonical Teacher Guide · no AI required</div>
+        <div style={{fontSize:11,fontWeight:750,textTransform:"uppercase",opacity:.7}}>{guideReady?"Teacher Guide · ready for delivery":"Incomplete Teacher Guide"}</div>
         <h1 style={{fontSize:24,margin:"6px 0"}}>{source?.topic || source?.subStrand || subjectName || "Lesson guide"}</h1>
         <div style={{fontSize:12,opacity:.78}}>{subjectName || "Subject"} · {context?.grade || workspace.context.grade || "Class"} · {context?.schoolName || "Active school"}</div>
         <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:14}}>
@@ -112,6 +125,8 @@ function TeacherGuideInner() {
           {workspace.existingPlan && <button style={{...secondary,border:0}} onClick={()=>router.push(`/teacher/lesson-notes?lessonPlanId=${workspace.existingPlan?.id}&${query}`)}>Lesson Notes / Teach</button>}
         </div>
       </header>
+
+      {!guideReady && <section role="status" style={{...card,background:"#fff7ed",borderColor:"#fdba74",color:"#9a3412"}}><strong>Complete this guide before teaching</strong><ul style={{margin:"8px 0 0",paddingLeft:20,fontSize:12,lineHeight:1.6}}>{guideGaps.map(gap=><li key={gap}>{gap}</li>)}</ul></section>}
 
       {(workspace.sourceError || workspace.sourceBundleError || workspace.occurrenceError) && <div style={{...card,background:"#fff7ed",borderColor:"#fdba74",fontSize:12,color:"#9a3412"}}>{workspace.sourceError || workspace.sourceBundleError || workspace.occurrenceError}</div>}
 

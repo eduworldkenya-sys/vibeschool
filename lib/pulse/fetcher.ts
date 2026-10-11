@@ -564,6 +564,26 @@ export async function fetchPulseData(
   // timetable/term/class workload above is allowed to load in parallel.
   await occurrenceGuard;
 
+  // Pulse, Teach Today and Timetable share this server projection. Do not
+  // recalculate attendance, evidence or task workload from unrelated tables.
+  const { data: teacherDayData, error: teacherDayError } = await supabase.rpc(
+    "get_teacher_day",
+    { p_date: today },
+  );
+  if (teacherDayError) {
+    throw new Error(`Teacher day could not be loaded — ${teacherDayError.message}`);
+  }
+  const teacherDayBySlot = new Map(
+    ((teacherDayData ?? []) as Array<{
+      timetable_slot_id: string;
+      lesson_plan_id: string | null;
+      attendance_state: "not_started" | "incomplete" | "complete";
+      evidence_count: number;
+      awaiting_submission: number;
+      awaiting_marking: number;
+    }>).map(row => [row.timetable_slot_id, row] as const),
+  );
+
   const workspaceEntries = await Promise.all(
     todayBaseSlots.map(async (slot): Promise<
       readonly [string, TeachingWorkspace | null]
@@ -597,8 +617,9 @@ export async function fetchPulseData(
   >(workspaceEntries);
 
   const todaySlots = todayBaseSlots.map((slot): Slot => {
+    const day = teacherDayBySlot.get(slot.id);
     const lessonPlanId =
-      lessonPlanBySlot.get(slot.id) ??
+      day?.lesson_plan_id ?? lessonPlanBySlot.get(slot.id) ??
       lessonPlanByClassSubject.get(slotKey(slot.class_id, slot.subject_id)) ??
       null;
 
@@ -616,14 +637,14 @@ export async function fetchPulseData(
     return {
       ...slot,
       lesson_plan_id: lessonPlanId,
-      attendance_status: markedSlotIds.has(slot.id) ? "completed" : "pending",
+      attendance_status: day?.attendance_state === "complete" ? "completed" : "pending",
       task_status: classHomework.length > 0 ? "assigned" : "none",
-      submission_count: submittedCount,
-      marking_status: pendingMarkingCount > 0 ? "pending" : submittedCount > 0 ? "completed" : "none",
+      submission_count: day ? Number(day.awaiting_submission) + Number(day.awaiting_marking) : submittedCount,
+      marking_status: day && Number(day.awaiting_marking) > 0 ? "pending" : pendingMarkingCount > 0 ? "pending" : submittedCount > 0 ? "completed" : "none",
 
       curriculum_id: null,
       scheme_id: null,
-      evidence_count: lessonPlanId ? (evidenceCountByLesson.get(lessonPlanId) ?? 0) : 0,
+      evidence_count: day ? Number(day.evidence_count) : lessonPlanId ? (evidenceCountByLesson.get(lessonPlanId) ?? 0) : 0,
       progress_record_status: lessonPlanId && progressDoneLessonIds.has(lessonPlanId) ? "completed" : "none",
       reflection_status: lessonPlanId && reflectionDoneLessonIds.has(lessonPlanId) ? "completed" : "none",
       next_lesson_status: "none",

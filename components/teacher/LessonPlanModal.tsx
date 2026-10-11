@@ -52,7 +52,6 @@ import {
   MarkSchemeCoveredError,
 } from '@/lib/teaching/occurrence'
 import {
-  buildLessonAttendanceUrl,
   completeLessonOccurrence,
   loadLessonOccurrence,
   markLessonSchemeCovered,
@@ -1298,7 +1297,7 @@ export default function LessonPlanModal({
     setStartLessonError(null)
 
     try {
-      await startLessonOccurrence({
+      const occurrence = await startLessonOccurrence({
         timetableSlotId: slot.id,
         occurrenceDate: taughtDate,
       })
@@ -1306,18 +1305,18 @@ export default function LessonPlanModal({
       showToast('Lesson started ✓')
       refreshPulse('lesson')
 
-      // TOS-003: attendance belongs to this exact teaching occurrence. The
-      // attendance page already validates and saves by timetable slot + date,
-      // so carry those identities immediately after the lifecycle transition.
-      const attendanceUrl = buildLessonAttendanceUrl({
+      // Start/continue always enters the occurrence-bound classroom workflow.
+      // Attendance remains available inside Teach Mode and on the full register.
+      const q = new URLSearchParams({
+        lessonPlanId: planIdRef.current,
+        occurrenceId: occurrence.id,
         classId: slot.class_id,
-        timetableSlotId: slot.id,
-        occurrenceDate: taughtDate,
         subjectId: slot.subject_id,
-        subjectName: slot.subject,
+        timetableSlotId: slot.id,
+        date: taughtDate,
+        teach: '1',
       })
-
-      router.push(attendanceUrl)
+      router.push(`/teacher/lesson-notes?${q.toString()}`)
     } catch (err) {
       const code = err instanceof StartOccurrenceError ? err.code : 'unknown'
       console.error('[LessonPlanModal] startLesson', err)

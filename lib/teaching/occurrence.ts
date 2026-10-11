@@ -83,13 +83,13 @@ function isTeachingOccurrenceRow(value: unknown): value is TeachingOccurrenceRow
 }
 
 export async function startTeachingOccurrence(key: OccurrenceKey): Promise<TeachingOccurrenceRow> {
-  const { data, error } = await supabase.rpc('start_teaching_occurrence', {
+  const { data, error } = await supabase.rpc('start_teaching_occurrence_v2', {
     p_timetable_slot_id: key.timetableSlotId,
     p_occurrence_date: key.occurrenceDate,
   })
   if (error) throw normalizeStartError(error)
   if (!isTeachingOccurrenceRow(data)) {
-    throw new StartOccurrenceError('unknown', 'start_teaching_occurrence returned an invalid row.')
+    throw new StartOccurrenceError('unknown', 'start_teaching_occurrence_v2 returned an invalid row.')
   }
   return data
 }

@@ -5,12 +5,14 @@ import { useState } from 'react'
 import { BookOpen, Grid2X2, Map, NotebookPen, Route } from 'lucide-react'
 import styles from './ApprovedWorkspace.module.css'
 
-export default function TeachingWorkspaceNav({ classId, subjectId, current, lessonPlanId, occurrenceId, termId }: { classId: string; subjectId: string; current: 'Lesson' | 'Curriculum' | 'Subject' | 'Scheme'; lessonPlanId?: string | null; occurrenceId?: string | null; termId?: string | null }) {
+export default function TeachingWorkspaceNav({ classId, subjectId, current, lessonPlanId, occurrenceId, termId, timetableSlotId, occurrenceDate }: { classId: string; subjectId: string; current: 'Lesson' | 'Curriculum' | 'Subject' | 'Scheme'; lessonPlanId?: string | null; occurrenceId?: string | null; termId?: string | null; timetableSlotId?: string | null; occurrenceDate?: string | null }) {
   const [more, setMore] = useState(false)
   const context = new URLSearchParams({ classId, subjectId })
   if (lessonPlanId) context.set('lessonPlanId', lessonPlanId)
   if (occurrenceId) context.set('occurrenceId', occurrenceId)
   if (termId) context.set('termId', termId)
+  if (timetableSlotId) context.set('timetableSlotId', timetableSlotId)
+  if (occurrenceDate) context.set('date', occurrenceDate)
   const query = context.toString()
   const links = [
     ['Lesson', '/teacher/lessonplan', NotebookPen], ['Curriculum', '/teacher/curriculum', Map],
