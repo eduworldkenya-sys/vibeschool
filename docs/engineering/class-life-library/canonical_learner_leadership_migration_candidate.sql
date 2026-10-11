@@ -247,7 +247,7 @@ revoke all on function public.end_group_leadership_on_archive() from public,anon
 -- same appointment ledger rather than duplicating appointments in profiles.
 create or replace function public.school_get_class_leadership(p_class_id uuid)
 returns jsonb language plpgsql stable security definer
-set search_path=public,auth,pg_temp as $
+set search_path=public,auth,pg_temp as $$
 declare v_school uuid; v_result jsonb;
 begin
   if auth.uid() is null then raise exception 'not_authenticated' using errcode='42501'; end if;
@@ -285,12 +285,12 @@ begin
     ),'[]'::jsonb)
   ) into v_result;
   return v_result;
-end $;
+end $$;
 
 create or replace function public.school_get_learner_leadership(
   p_class_id uuid,p_student_id uuid
 ) returns jsonb language plpgsql stable security definer
-set search_path=public,auth,pg_temp as $
+set search_path=public,auth,pg_temp as $$
 declare v_school uuid; v_result jsonb;
 begin
   if auth.uid() is null then raise exception 'not_authenticated' using errcode='42501'; end if;
@@ -315,7 +315,7 @@ begin
   left join public.class_groups g on g.id=a.group_id
   where a.class_id=p_class_id and a.school_id=v_school and a.student_id=p_student_id;
   return v_result;
-end $;
+end $$;
 
 revoke all on function public.school_get_class_leadership(uuid) from public,anon;
 revoke all on function public.school_get_learner_leadership(uuid,uuid) from public,anon;
