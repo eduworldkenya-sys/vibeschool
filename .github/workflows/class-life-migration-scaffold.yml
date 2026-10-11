@@ -1,0 +1,37 @@
+# One-shot, read-only migration-scaffolding evidence: creates files in CI workspace
+# via the official Supabase CLI without connecting to or mutating production.
+name: Class Life SQL Migration Scaffolding
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/class-life-migration-scaffold.yml"
+permissions:
+  contents: read
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.113.0
+      - name: Generate three official migration filenames without applying SQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase --version
+          supabase migration new class_life_library_borrower_authority
+          sleep 2
+          supabase migration new class_life_leadership_authority
+          sleep 2
+          supabase migration new class_life_physical_library_copies
+          printf '\nOfficial Supabase CLI-generated migration filenames:\n'
+          find supabase/migrations -maxdepth 1 -type f \
+            \( -name '*_class_life_library_borrower_authority.sql' \
+            -o -name '*_class_life_leadership_authority.sql' \
+            -o -name '*_class_life_physical_library_copies.sql' \) \
+            -printf '%f\n' | sort
