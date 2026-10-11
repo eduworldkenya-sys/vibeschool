@@ -62,8 +62,12 @@ grant execute on function public.teacher_can_view_class_exam(uuid,uuid) to authe
 revoke all on function public.teacher_is_current_class_teacher(uuid,uuid) from public, anon;
 grant execute on function public.teacher_is_current_class_teacher(uuid,uuid) to authenticated;
 
--- Readers for a class may view all its subject marks; this does NOT grant
--- INSERT/UPDATE/DELETE on a single result in an unassigned subject.
+-- Replace, rather than OR together with, the legacy subject-only teacher
+-- SELECT rule: the old rule lacks an account-status check. If it remained,
+-- suspended teachers could still read marks in their former teaching subject.
+-- Admin, learner and parent read policies are not changed by this migration.
+-- This does NOT grant teacher INSERT/UPDATE/DELETE across subjects.
+drop policy if exists "Teachers view exam results for their classes" on public.exam_results;
 drop policy if exists "Teacher class-wide examination review" on public.exam_results;
 create policy "Teacher class-wide examination review" on public.exam_results
 for select to authenticated
