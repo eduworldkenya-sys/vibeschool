@@ -166,6 +166,11 @@ begin
     raise exception 'school_admin_required' using errcode='42501';
   end if;
   if v_loan.returned_at is not null then raise exception 'borrowing_already_returned'; end if;
+  -- Lock catalogue before the physical-copy trigger changes copy state.
+  -- Issue, return, repair and archival must all serialize on this row.
+  perform 1 from public.library_books where id=v_loan.book_id
+    and school_id=v_loan.school_id and deleted_at is null for update;
+  if not found then raise exception 'school_book_not_found'; end if;
   update public.library_borrowings set returned_at=now(),condition_in=p_condition_in,
     fine_amount=p_fine_amount,fine_paid=(p_fine_paid and p_fine_amount>0)
   where id=p_borrowing_id;
