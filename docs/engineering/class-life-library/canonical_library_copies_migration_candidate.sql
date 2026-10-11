@@ -161,6 +161,151 @@ begin
   return p_borrowing_id;
 end $$;
 
--- Repair/restock ledger operations intentionally require a separate authorized
--- reconciliation RPC; do not expose arbitrary browser updates to book_copies.
+-- Minimal school-authorized inventory maintenance. Ledger is not a second
+-- circulation authority: it audits only physical-copy stock adjustments.
+create table public.library_inventory_events (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id),
+  book_id uuid not null references public.library_books(id),
+  copy_id uuid references public.library_book_copies(id),
+  actor_id uuid not null references public.profiles(id),
+  request_id uuid not null,
+  action text not null check(action in ('repair_complete','restock')),
+  quantity integer not null check(quantity between 1 and 5000),
+  created_at timestamptz not null default now(),
+  unique(actor_id,request_id),
+  constraint inventory_event_scope_ck check (
+    (action='repair_complete' and copy_id is not null and quantity=1)
+    or (action='restock' and copy_id is null)
+  )
+);
+create index library_inventory_events_book_idx
+  on public.library_inventory_events(school_id,book_id,created_at);
+alter table public.library_inventory_events enable row level security;
+create policy library_inventory_events_school_admin_read
+  on public.library_inventory_events for select to authenticated
+  using (public.is_school_admin(school_id));
+revoke all on public.library_inventory_events from public,anon,authenticated;
+grant select on public.library_inventory_events to authenticated;
+grant all on public.library_inventory_events to service_role;
+
+-- Display only the physical copies of one school-authorized title.
+create or replace function public.school_list_library_copies(p_book_id uuid)
+returns jsonb language plpgsql stable security definer
+set search_path=public,auth,pg_temp as $copylist$
+declare v_school uuid; v_copies jsonb;
+begin
+  if auth.uid() is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  select school_id into v_school from public.library_books
+    where id=p_book_id and deleted_at is null;
+  if not found then raise exception 'school_book_not_found'; end if;
+  if not public.is_school_admin(v_school) then
+    raise exception 'school_admin_required' using errcode='42501';
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+      'id',id,'accession_code',accession_code,'copy_number',copy_number,
+      'state',state,'last_condition',last_condition) order by copy_number),'[]'::jsonb)
+    into v_copies from public.library_book_copies
+    where book_id=p_book_id and school_id=v_school;
+  return v_copies;
+end $copylist$;
+
+-- A returned damaged book is quarantined until a school administrator
+-- explicitly certifies that the same physical copy can circulate again.
+create or replace function public.school_repair_library_copy(
+  p_copy_id uuid,p_request_id uuid
+) returns uuid language plpgsql security definer
+set search_path=public,auth,pg_temp as $repair$
+declare v_uid uuid:=auth.uid(); v_book uuid; v_school uuid;
+  v_copy public.library_book_copies%rowtype;
+  v_event public.library_inventory_events%rowtype;
+begin
+  if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  if p_request_id is null then raise exception 'inventory_request_id_required'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_uid::text||':'||p_request_id::text,0));
+  select * into v_event from public.library_inventory_events
+    where actor_id=v_uid and request_id=p_request_id;
+  if found then
+    if v_event.action<>'repair_complete' or v_event.copy_id is distinct from p_copy_id then
+      raise exception 'inventory_request_payload_conflict';
+    end if;
+    if not public.is_school_admin(v_event.school_id) then
+      raise exception 'school_admin_required' using errcode='42501'; end if;
+    return p_copy_id;
+  end if;
+  select book_id,school_id into v_book,v_school from public.library_book_copies
+    where id=p_copy_id;
+  if not found then raise exception 'copy_not_found'; end if;
+  -- Always lock book before copy, matching the issue/return transaction order.
+  perform 1 from public.library_books
+    where id=v_book and school_id=v_school and deleted_at is null for update;
+  if not found then raise exception 'school_book_not_found'; end if;
+  if not public.is_school_admin(v_school) then
+    raise exception 'school_admin_required' using errcode='42501'; end if;
+  select * into v_copy from public.library_book_copies where id=p_copy_id for update;
+  if v_copy.book_id<>v_book or v_copy.school_id<>v_school or v_copy.state<>'repair' then
+    raise exception 'copy_not_awaiting_repair';
+  end if;
+  update public.library_book_copies
+    set state='available',last_condition='good',updated_at=now()
+    where id=p_copy_id;
+  update public.library_books set available_copies=available_copies+1
+    where id=v_book and school_id=v_school;
+  insert into public.library_inventory_events(
+    school_id,book_id,copy_id,actor_id,request_id,action,quantity
+  ) values(v_school,v_book,p_copy_id,v_uid,p_request_id,'repair_complete',1);
+  return p_copy_id;
+end $repair$;
+
+-- Register newly purchased/donated copies to an existing title. Deterministic
+-- numbering + a request ledger prevent both duplicate accession and double
+-- stock adjustment on client retries.
+create or replace function public.school_restock_library_book(
+  p_book_id uuid,p_count integer,p_request_id uuid
+) returns uuid language plpgsql security definer
+set search_path=public,auth,pg_temp as $restock$
+declare v_uid uuid:=auth.uid(); v_school uuid; v_total integer; v_next integer;
+  v_event public.library_inventory_events%rowtype;
+begin
+  if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  if p_request_id is null then raise exception 'inventory_request_id_required'; end if;
+  if p_count is null or p_count<1 or p_count>5000 then raise exception 'invalid_restock_quantity'; end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_uid::text||':'||p_request_id::text,0));
+  select * into v_event from public.library_inventory_events
+    where actor_id=v_uid and request_id=p_request_id;
+  if found then
+    if v_event.action<>'restock' or v_event.book_id is distinct from p_book_id
+       or v_event.quantity is distinct from p_count then
+      raise exception 'inventory_request_payload_conflict';
+    end if;
+    if not public.is_school_admin(v_event.school_id) then
+      raise exception 'school_admin_required' using errcode='42501'; end if;
+    return p_book_id;
+  end if;
+  select school_id,total_copies into v_school,v_total
+  from public.library_books where id=p_book_id and deleted_at is null for update;
+  if not found then raise exception 'school_book_not_found'; end if;
+  if not public.is_school_admin(v_school) then
+    raise exception 'school_admin_required' using errcode='42501'; end if;
+  if v_total+p_count>5000 then raise exception 'school_book_stock_limit'; end if;
+  select coalesce(max(copy_number),0) into v_next
+  from public.library_book_copies where book_id=p_book_id;
+  insert into public.library_book_copies(school_id,book_id,copy_number,accession_code)
+  select v_school,p_book_id,v_next+n,
+    'BK-'||replace(p_book_id::text,'-','')||'-'||lpad((v_next+n)::text,4,'0')
+  from generate_series(1,p_count) n;
+  update public.library_books set total_copies=total_copies+p_count,
+    available_copies=available_copies+p_count where id=p_book_id;
+  insert into public.library_inventory_events(
+    school_id,book_id,actor_id,request_id,action,quantity
+  ) values(v_school,p_book_id,v_uid,p_request_id,'restock',p_count);
+  return p_book_id;
+end $restock$;
+
+revoke all on function public.school_list_library_copies(uuid) from public,anon;
+revoke all on function public.school_repair_library_copy(uuid,uuid) from public,anon;
+revoke all on function public.school_restock_library_book(uuid,integer,uuid) from public,anon;
+grant execute on function public.school_list_library_copies(uuid) to authenticated;
+grant execute on function public.school_repair_library_copy(uuid,uuid) to authenticated;
+grant execute on function public.school_restock_library_book(uuid,integer,uuid) to authenticated;
 commit;
