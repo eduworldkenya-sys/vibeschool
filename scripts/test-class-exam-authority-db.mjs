@@ -55,8 +55,8 @@ create function public.teacher_get_operating_context(p_requested_school_id uuid 
  $$ select jsonb_build_object('school_id', nullif(current_setting('request.active_school', true),'')) $$;
 create function public.is_school_admin(p_school_id uuid) returns boolean
 language sql stable security definer set search_path='' as
-$ select auth.uid() is not null and exists(select 1 from public.school_members sm
-  where sm.profile_id=auth.uid() and sm.school_id=p_school_id and sm.role='admin') $;
+$$ select auth.uid() is not null and exists(select 1 from public.school_members sm
+  where sm.profile_id=auth.uid() and sm.school_id=p_school_id and sm.role='admin') $$;
 create function public.is_live_teacher_subject(
  p_school_id uuid, p_class_id uuid, p_subject_id uuid
 ) returns boolean language sql stable security definer set search_path = '' as
