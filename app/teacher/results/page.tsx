@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { saveCanonicalExamResult } from '@/lib/teacher/examResultAuthority'
 import ProfessionalMarkbook from '@/components/teacher/ProfessionalMarkbook'
+import ClassExamSheet from '@/components/teacher/assessment/ClassExamSheet'
 import AssessmentIntelligenceConsole from '@/components/teacher/AssessmentIntelligenceConsole'
 import type { Database } from '@/lib/database.types'
 
@@ -69,7 +70,7 @@ function ResultsInner() {
   const [savedId,setSavedId]=useState<string|null>(null)
   const [savingAll,setSavingAll]=useState(false)
   const [errorByStudent,setErrorByStudent]=useState<Record<string,string>>({})
-  const [activeTab,setActiveTab]=useState<'entry'|'analysis'>('entry')
+  const [activeTab,setActiveTab]=useState<'entry'|'class'|'analysis'>('entry')
   const [booting,setBooting]=useState(true)
   const [loading,setLoading]=useState(false)
   const [error,setError]=useState<string|null>(null)
@@ -279,7 +280,7 @@ function ResultsInner() {
 
     {activeExam && tier===1 && <div style={{margin:'12px 16px 0',padding:'12px 14px',borderRadius:14,border:`1px solid ${activeExam.is_locked?'#d6d3d1':'#d1fae5'}`,background:activeExam.is_locked?'#fafaf9':'#ecfdf5',fontSize:12,color:W.textSoft}}><strong style={{color:W.text}}>{activeExam.name}</strong> · {results.length}/{students.length} learner marks recorded{students.length>0?` · ${Math.round((results.length/students.length)*100)}% complete`:''}. {activeExam.is_locked?'This exam is locked; marks are read-only.':results.length<students.length?'Continue the mark sheet below.':'This subject mark sheet is complete.'}</div>}
 
-    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':'Explore'}</button>)}</div>}
+    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','class','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':tab==='class'?'Class results':'Explore'}</button>)}</div>}
 
     {activeTab==='entry' && <div style={{padding:'14px 16px 0'}}>
       {!activeExam?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Create or select an exam to open the markbook.</div>
@@ -287,6 +288,11 @@ function ResultsInner() {
       : loading?<Skeleton h={220}/>
       : students.length===0?<div style={{padding:32,textAlign:'center',color:W.textMuted}}>No students enrolled in this class.</div>
       : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} locked={activeExam.is_locked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} onSaveAll={saveAllMarks} savingAll={savingAll} />}
+    </div>}
+
+    {activeTab==='class' && <div style={{padding:'14px 16px 0'}}>
+      {!activeExam || !activeClass || !schoolId ? <div style={{padding:35,color:W.textMuted}}>Choose an exam and assigned class to view the register.</div> :
+        <ClassExamSheet examId={activeExam.id} schoolId={schoolId} classId={activeClass.id} className={`${activeClass.name}${activeClass.stream?' '+activeClass.stream:''}`} />}
     </div>}
 
     {activeTab==='analysis' && <div style={{padding:'14px 16px 0'}}>

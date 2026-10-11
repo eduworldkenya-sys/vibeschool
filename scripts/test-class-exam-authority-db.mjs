@@ -20,7 +20,7 @@ create table classes(id uuid primary key, school_id uuid references schools(id))
 create table subjects(id uuid primary key, name text);
 create table school_members(profile_id uuid, school_id uuid, role text not null);
 create table teacher_classes(teacher_id uuid, school_id uuid, class_id uuid, subject_id uuid, is_class_teacher boolean not null default false);
-create table students(id uuid primary key, name text, deleted_at timestamptz);
+create table students(id uuid primary key, name text, admission_number text, deleted_at timestamptz);
 create table student_classes(school_id uuid, class_id uuid, student_id uuid, is_current boolean);
 create table exams(id uuid primary key, school_id uuid, name text, is_locked boolean not null default false, pass_mark int not null default 50);
 create table exam_subject_config(exam_id uuid, subject_id uuid, max_marks numeric not null, pass_mark numeric not null, primary key(exam_id, subject_id));
@@ -102,6 +102,7 @@ insert into exam_results(id,exam_id,school_id,class_id,subject_id,student_id,tea
 `);
 
 await db.exec(readFileSync('supabase/migrations/20261011093500_class_exam_review_authority.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261011120000_class_exam_sheet_read_authority.sql','utf8'));
 async function asUser(user,school=10) {
   await db.exec(`reset role; set request.jwt.claim.sub='${id(user)}';
     set request.active_school='${id(school)}'; set role authenticated;`);
@@ -115,6 +116,15 @@ async function correction({user=2,school=10,cls=20,subject=91,student=30,exam=60
 }
 await asUser(1);
 assert.equal((await readResults()).rows.length,2,'subject teacher reviews all East subjects, no West');
+let r=await db.query('select public.teacher_get_class_exam_sheet($1,$2,$3) sheet',[id(60),id(10),id(20)]);
+assert.equal(r.rows[0].sheet.learners.length,2,'all currently enrolled students included');
+assert.equal(r.rows[0].sheet.subjects.length,2,'entire class learning area roster projected');
+assert.equal(r.rows[0].sheet.results.length,2,'results derive from canonical mark store');
+assert.equal(r.rows[0].sheet.is_class_teacher,false);
+assert.equal(r.rows[0].sheet.subjects.find(s=>s.id===id(90)).can_enter,true);
+assert.equal(r.rows[0].sheet.subjects.find(s=>s.id===id(91)).can_enter,false);
+await assert.rejects(()=>db.query('select public.teacher_get_class_exam_sheet($1,$2,$3)',[id(61),id(11),id(22)]),/active_school_changed|exam_class_not_authorized/);
+
 assert.equal((await db.query('select public.teacher_is_current_class_teacher($1,$2) authorized',[id(10),id(20)])).rows[0].authorized,false);
 await assert.rejects(()=>correction({user:1}),/class_teacher_not_authorized/);
 await asUser(3);
@@ -125,6 +135,10 @@ result=await db.query('update public.exam_results set marks=77 where id=$1 retur
 assert.equal(result.rows.length,0,'English teacher cannot edit the current class Mathematics marks');
 await asUser(2);
 assert.equal((await readResults()).rows.length,2,'class teacher sees East');
+r=await db.query('select public.teacher_get_class_exam_sheet($1,$2,$3) sheet',[id(60),id(10),id(20)]);
+assert.equal(r.rows[0].sheet.is_class_teacher,true);
+assert.equal(r.rows[0].sheet.subjects.every(s=>s.can_correct),true);
+
 let before=await db.query('select updated_at from public.exam_results where id=$1',[id(70)]);
 let expected=before.rows[0].updated_at;
 const changed=await correction({expected});
@@ -141,6 +155,8 @@ await assert.rejects(()=>correction({expected:fresh,cls:21,student:32}),/class_t
 await assert.rejects(()=>correction({expected:fresh,school:11,cls:22,exam:61,student:33}),/class_teacher_not_authorized/);
 await asUser(6);
 assert.equal((await readResults()).rows.length,0,'parent role without appointment cannot read');
+await assert.rejects(()=>db.query('select public.teacher_get_class_exam_sheet($1,$2,$3)',[id(60),id(10),id(20)]),/exam_class_not_authorized/);
+
 await assert.rejects(()=>correction({user:6}),/class_teacher_not_authorized/);
 await db.exec('reset role;set role anon');
 await assert.rejects(
