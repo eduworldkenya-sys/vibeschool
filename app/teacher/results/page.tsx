@@ -283,7 +283,7 @@ function ResultsInner() {
     }
     const safeCsvCell=(value:string) => {
       const first=value.charAt(0)
-      const guarded=['=','+','-','@'].includes(first) || first==='\\t' || first==='\\r'
+      const guarded=['=','+','-','@'].includes(first) || first.charCodeAt(0)===9 || first.charCodeAt(0)===13
         ? "'"+value : value
       return `"${guarded.replace(/"/g,'""')}"`
     }
