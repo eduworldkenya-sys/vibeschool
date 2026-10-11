@@ -63,7 +63,7 @@ grant usage on schema public, auth to authenticated, anon;
 grant execute on function auth.uid() to authenticated, anon;
 grant select, update on exam_results to authenticated;
 alter table exam_results enable row level security;
-create policy old_subject_read on exam_results for select to authenticated
+create policy "Teachers view exam results for their classes" on exam_results for select to authenticated
  using (public.is_live_teacher_subject(school_id,class_id,subject_id));
 create policy old_subject_edit on exam_results for update to authenticated
  using (teacher_id=auth.uid() and public.is_live_teacher_subject(school_id,class_id,subject_id))
@@ -97,7 +97,8 @@ insert into exam_subject_config values ('${id(60)}','${id(91)}',50,20);
 insert into exam_results(id,exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks)
  values ('${id(70)}','${id(60)}','${id(10)}','${id(20)}','${id(91)}','${id(30)}','${id(3)}',35),
  ('${id(71)}','${id(60)}','${id(10)}','${id(21)}','${id(90)}','${id(32)}','${id(4)}',55),
- ('${id(72)}','${id(61)}','${id(11)}','${id(22)}','${id(91)}','${id(33)}','${id(5)}',48);
+ ('${id(72)}','${id(61)}','${id(11)}','${id(22)}','${id(91)}','${id(33)}','${id(5)}',48),
+ ('${id(73)}','${id(60)}','${id(10)}','${id(20)}','${id(90)}','${id(31)}','${id(1)}',60);
 `);
 
 await db.exec(readFileSync('supabase/migrations/20261011093500_class_exam_review_authority.sql','utf8'));
@@ -113,15 +114,17 @@ async function correction({user=2,school=10,cls=20,subject=91,student=30,exam=60
     [id(exam),id(school),id(cls),id(subject),id(student),marks,state,expected,reason]);
 }
 await asUser(1);
-assert.equal((await readResults()).rows.length,1,'subject teacher reviews all East subjects, no West');
+assert.equal((await readResults()).rows.length,2,'subject teacher reviews all East subjects, no West');
 assert.equal((await db.query('select public.teacher_is_current_class_teacher($1,$2) authorized',[id(10),id(20)])).rows[0].authorized,false);
 await assert.rejects(()=>correction({user:1}),/class_teacher_not_authorized/);
 await asUser(3);
-assert.equal((await readResults()).rows.length,1,'English teacher sees class wide');
+assert.equal((await readResults()).rows.length,2,'English teacher sees class wide');
 let result=await db.query('update public.exam_results set marks=77 where id=$1 returning id',[id(71)]);
 assert.equal(result.rows.length,0,'English teacher cannot edit West Mathematics');
+result=await db.query('update public.exam_results set marks=77 where id=$1 returning id',[id(73)]);
+assert.equal(result.rows.length,0,'English teacher cannot edit the current class Mathematics marks');
 await asUser(2);
-assert.equal((await readResults()).rows.length,1,'class teacher sees East');
+assert.equal((await readResults()).rows.length,2,'class teacher sees East');
 let before=await db.query('select updated_at from public.exam_results where id=$1',[id(70)]);
 let expected=before.rows[0].updated_at;
 const changed=await correction({expected});
@@ -155,6 +158,9 @@ await root(`update public.profiles set account_status='suspended' where id='${id
 await asUser(2);
 assert.equal((await readResults()).rows.length,0,'inactive class teacher loses read');
 await assert.rejects(()=>correction({expected:absence.rows[0].result.updated_at}),/class_teacher_not_authorized/);
+await root(`update public.profiles set account_status='suspended' where id='${id(1)}'`);
+await asUser(1);
+assert.equal((await readResults()).rows.length,0,'suspended subject teacher cannot fall through old subject policy');
 await root(`select 1`);
 const audits=await db.query(`select actor_id,metadata from public.platform_events where event_type='authority.exam_result_class_correction' order by id`);
 assert.equal(audits.rows.length,2,'each successful correction writes one reason-bearing audit');
