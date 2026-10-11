@@ -25,7 +25,7 @@ projection; do not duplicate those results.
 - `teacher_is_current_class_teacher(school,class)`: requires actual
   `is_class_teacher` appointment, not merely `teacher` role.
 - `teacher_correct_class_exam_result`: explicit and audited class-teacher
-  correction with a mandatory reason; validates active operating school,
+  correction with a mandatory reason for existing entries only; validates active operating school,
   class-subject assignments, active learner enrolment, the subject's maximum,
   explicit result state, lock, and expected revision. Original `teacher_id`
   remains unchanged on corrections.
@@ -35,12 +35,13 @@ projection; do not duplicate those results.
 ## Important boundaries
 1. Do **not** call correction RPC from subject-teacher marks entry. Subject teachers
    continue using `teacher_save_exam_result_state` for their own entries.
-2. If a class teacher **first** enters an unrecorded subject mark, `teacher_id`
-   initially denotes that class teacher. Current subject-RPC ownership checks
-   prevent a different teacher from editing it later. This is a known pending
-   *subject-owner handoff* and must be closed before activating cross-subject entry
-   in the UI. Until then, the UI should enable class-teacher corrections of existing
-   marks only, and keep empty cells read-only.
+2. **Initial entry belongs to the assigned subject teacher.** The class-teacher
+   correction RPC explicitly rejects a missing subject result with
+   `result_not_entered_by_subject_teacher`. This avoids taking ownership of
+   a score before the subject teacher enters it. The class teacher sees missing
+   cells but cannot fill them on another subject's behalf in phase 1.
+   Reassigned-subject-teacher editing of historical records remains a separate
+   authority/ownership issue to resolve before pilot.
 3. Submitted/approved/published per-subject lifecycle is not yet implemented.
    The existing `is_locked` is the only verified lock boundary; do not claim
    that it represents moderation or publication.
