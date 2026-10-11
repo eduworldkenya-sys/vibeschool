@@ -42,14 +42,15 @@ begin
     'staff',coalesce((
       select jsonb_agg(jsonb_build_object('id',p.id,'name',p.full_name) order by p.full_name,p.id)
       from public.profiles p
-      where exists(
+      where p.account_status::text='active' and not coalesce(p.is_anonymized,false)
+        and (exists(
         select 1 from public.school_members sm where sm.profile_id=p.id
           and sm.school_id=p_school_id and sm.role::text in ('admin','teacher','owner')
       ) or exists(
         select 1 from public.staff st where st.profile_id=p.id
           and st.school_id=p_school_id and st.deleted_at is null
           and lower(coalesce(st.status,'active'))='active'
-      )
+      ))
     ),'[]'::jsonb)
   ) into v_result;
   return v_result;
@@ -121,6 +122,12 @@ begin
     end if;
   else
     v_kind:='staff';
+    if not exists (
+      select 1 from public.profiles p where p.id=p_staff_id
+        and p.account_status::text='active' and not coalesce(p.is_anonymized,false)
+    ) then
+      raise exception 'staff_profile_not_active' using errcode='42501';
+    end if;
     if not exists(
       select 1 from public.school_members sm
       where sm.profile_id=p_staff_id and sm.school_id=v_school_id
