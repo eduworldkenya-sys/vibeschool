@@ -240,6 +240,12 @@ await asUser(1);
 sub=await db.query('select public.teacher_submit_class_exam_subject($1,$2,$3,$4) res',
   [id(60),id(10),id(20),id(90)]);
 assert.equal(sub.rows[0].res.status,'submitted');
+await root(`select 1`);
+await assert.rejects(
+  ()=>db.query('update public.exam_subject_config set max_marks=100 where exam_id=$1 and subject_id=$2',
+    [id(60),id(91)]),
+  /subject_results_submitted_reopen_required/,
+  'submitted scoring denominator may not be silently changed');
 await asUser(6);
 await assert.rejects(
   ()=>db.query('select public.school_review_class_exam_subject($1,$2,$3,$4,$5,$6)',
