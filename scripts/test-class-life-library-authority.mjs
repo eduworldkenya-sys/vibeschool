@@ -115,7 +115,8 @@ assert.equal((await db.query('select available_copies from library_books where i
 await scalar('select public.school_repair_library_copy($1,$2) value',[damagedCopy,id(62)]);
 assert.equal((await db.query('select available_copies from library_books where id=$1',[newBook])).rows[0].available_copies,5,'repair retry cannot duplicate stock');
 await assert.rejects(()=>scalar('select public.school_repair_library_copy($1,$2) value',[damagedCopy,id(64)]),/copy_not_awaiting_repair/);
-await assert.rejects(()=>scalar('select public.school_repair_library_copy($1,$2) value',[(await db.query("select id from library_book_copies where book_id=$1 and state='lost'",[book])).rows[0].id,id(65)]),/copy_not_awaiting_repair/);
+const lostCopy=(await db.query("select id from library_book_copies where book_id=$1 and state='lost'",[book])).rows[0].id;
+await assert.rejects(()=>scalar('select public.school_repair_library_copy($1,$2) value',[lostCopy,id(65)]),/copy_not_awaiting_repair/);
 await as(outsider);
 await assert.rejects(()=>scalar('select public.school_list_library_copies($1) value',[book]),/school_admin_required/);
 await assert.rejects(()=>scalar('select public.school_restock_library_book($1,1,$2) value',[book,id(67)]),/school_admin_required/);
