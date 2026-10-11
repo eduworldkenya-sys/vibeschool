@@ -27,6 +27,8 @@ export type LearnerLeadershipHistory = {
   ends_on: string;
   ended_at: string | null;
   ended_reason: "replaced" | "resigned" | "removed" | "completed" | null;
+  handover_request_id: string | null;
+  handover_scheduled_at: string | null;
 };
 
 const ROLE_CODES: ReadonlySet<string> = new Set([
@@ -90,6 +92,8 @@ export async function getLearnerLeadershipHistory(
       group_id: typeof row.group_id === "string" ? row.group_id : null,
       starts_on: row.starts_on, ends_on: row.ends_on,
       ended_at: typeof row.ended_at === "string" ? row.ended_at : null,
+      handover_request_id: typeof row.handover_request_id === "string" ? row.handover_request_id : null,
+      handover_scheduled_at: typeof row.handover_scheduled_at === "string" ? row.handover_scheduled_at : null,
       ended_reason:
         row.ended_reason === "replaced" || row.ended_reason === "resigned" ||
         row.ended_reason === "removed" || row.ended_reason === "completed"
