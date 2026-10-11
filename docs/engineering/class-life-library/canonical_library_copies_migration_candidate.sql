@@ -1,0 +1,166 @@
+-- CANDIDATE (not deployed): canonical physical copy inventory.
+-- Apply ONLY after canonical_library_migration_candidate.sql.
+-- All circulation remains on library_borrowings; never make a second loan ledger.
+begin;
+
+create table public.library_book_copies (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references public.schools(id),
+  book_id uuid not null references public.library_books(id),
+  copy_number integer not null check(copy_number>=1),
+  accession_code text not null,
+  state text not null default 'available'
+    check(state in ('available','on_loan','repair','lost','retired')),
+  last_condition text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(book_id,copy_number),
+  unique(school_id,accession_code)
+);
+create index library_book_copies_available_idx on public.library_book_copies(book_id,copy_number)
+  where state='available';
+alter table public.library_book_copies enable row level security;
+create policy library_copies_school_read
+  on public.library_book_copies for select to authenticated
+  using (
+    public.is_operational_school_member(school_id)
+    and (public.is_school_admin(school_id) or exists (
+      select 1 from public.teacher_classes tc
+      where tc.school_id=library_book_copies.school_id
+        and tc.teacher_id=auth.uid()
+        and public.teacher_can_access_class(tc.class_id,tc.subject_id,false)
+    ))
+  );
+revoke all on public.library_book_copies from public,anon,authenticated;
+grant select on public.library_book_copies to authenticated;
+grant all on public.library_book_copies to service_role;
+
+alter table public.library_borrowings
+  add column copy_id uuid references public.library_book_copies(id);
+create unique index library_active_copy_loan_idx
+  on public.library_borrowings(copy_id)
+  where returned_at is null and deleted_at is null and copy_id is not null;
+
+-- Existing loans must be resolved into physical copies before activation.
+do $guard$
+begin
+  if exists (
+    select 1 from public.library_borrowings where deleted_at is null
+  ) then
+    raise exception 'physical_copy_backfill_requires_existing_loan_reconciliation';
+  end if;
+end $guard$;
+
+-- Existing catalogue titles may be registered but not on loan.
+insert into public.library_book_copies(school_id,book_id,copy_number,accession_code)
+select b.school_id,b.id,n,
+  'BK-'||replace(b.id::text,'-','')||'-'||lpad(n::text,4,'0')
+from public.library_books b
+cross join lateral generate_series(1,b.total_copies) n
+where b.deleted_at is null and b.school_id is not null;
+
+create or replace function public.library_seed_book_copies()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+begin
+  if new.school_id is null or new.total_copies is null or new.total_copies<1
+      or new.available_copies is distinct from new.total_copies then
+    raise exception 'library_new_book_stock_invalid';
+  end if;
+  insert into public.library_book_copies(school_id,book_id,copy_number,accession_code)
+  select new.school_id,new.id,n,
+    'BK-'||replace(new.id::text,'-','')||'-'||lpad(n::text,4,'0')
+  from generate_series(1,new.total_copies) n;
+  return new;
+end $$;
+create trigger library_book_auto_copies
+after insert on public.library_books
+for each row execute function public.library_seed_book_copies();
+
+-- Atomic allocation is triggered only by the EXISTING ledger insertion.
+-- The teacher/admin issue RPC owns the book counter decrement and the
+-- resulting loan row insert in the same database transaction.
+create or replace function public.library_assign_physical_copy()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_copy_id uuid;
+begin
+  if new.copy_id is not null then
+    raise exception 'copy_selection_must_be_server_authoritative';
+  end if;
+  select c.id into v_copy_id from public.library_book_copies c
+  where c.book_id=new.book_id and c.school_id=new.school_id and c.state='available'
+  order by c.copy_number for update skip locked limit 1;
+  if v_copy_id is null then raise exception 'no_available_physical_copy'; end if;
+  update public.library_book_copies
+    set state='on_loan',last_condition=new.condition_out,updated_at=now()
+  where id=v_copy_id;
+  new.copy_id:=v_copy_id;
+  return new;
+end $$;
+create trigger library_borrowing_allocate_copy
+before insert on public.library_borrowings
+for each row execute function public.library_assign_physical_copy();
+
+create or replace function public.library_return_physical_copy()
+returns trigger language plpgsql security definer set search_path=public,pg_temp as $$
+declare v_state text;
+begin
+  if old.returned_at is null and new.returned_at is not null then
+    if old.copy_id is null then raise exception 'borrowing_copy_missing'; end if;
+    v_state:=case when new.condition_in in ('good','fair') then 'available'
+                  when new.condition_in='damaged' then 'repair'
+                  when new.condition_in='lost' then 'lost'
+                  else null end;
+    if v_state is null then raise exception 'book_return_condition_required'; end if;
+    update public.library_book_copies
+      set state=v_state,last_condition=new.condition_in,updated_at=now()
+    where id=old.copy_id and state='on_loan';
+    if not found then raise exception 'copy_not_on_loan'; end if;
+  end if;
+  return new;
+end $$;
+create trigger library_borrowing_return_copy
+after update of returned_at on public.library_borrowings
+for each row execute function public.library_return_physical_copy();
+
+-- Staff repairs/returns, and re-stocking, must be privileged inventory actions
+-- in a later slice. Direct copy edits are not granted to any browser client.
+revoke all on function public.library_seed_book_copies() from public,anon,authenticated;
+revoke all on function public.library_assign_physical_copy() from public,anon,authenticated;
+revoke all on function public.library_return_physical_copy() from public,anon,authenticated;
+
+-- Preserve existing teacher issue RPC, which already serializes a book row,
+-- enforces class authority, and inserts into library_borrowings: copy assigned
+-- by trigger. Strengthen returned-condition stock handling for damaged items.
+create or replace function public.teacher_return_class_library_book(
+  p_borrowing_id uuid,p_condition_in text default 'good'
+) returns uuid language plpgsql security definer
+set search_path=public,auth,pg_temp as $$
+declare v_uid uuid:=auth.uid(); v_loan public.library_borrowings%rowtype;
+begin
+  if v_uid is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  if p_condition_in is null or p_condition_in not in ('good','fair','damaged','lost') then
+    raise exception 'book_condition_invalid'; end if;
+  select * into v_loan from public.library_borrowings
+    where id=p_borrowing_id and borrower_type='student' and deleted_at is null for update;
+  if not found then raise exception 'borrowing_not_found'; end if;
+  if v_loan.issued_for_class_id is not null then
+    if not public.teacher_can_access_class(v_loan.issued_for_class_id,null,false) then
+      raise exception 'teacher_class_not_authorized' using errcode='42501'; end if;
+  elsif not exists(
+    select 1 from public.student_classes sc
+    where sc.student_id=v_loan.student_id and sc.school_id=v_loan.school_id and sc.is_current
+      and public.teacher_can_access_class(sc.class_id,null,false)
+  ) then raise exception 'teacher_class_not_authorized' using errcode='42501'; end if;
+  if v_loan.returned_at is not null then raise exception 'borrowing_already_returned'; end if;
+  update public.library_borrowings set returned_at=now(),condition_in=p_condition_in
+    where id=p_borrowing_id and returned_at is null;
+  if p_condition_in in ('good','fair') then
+    update public.library_books set available_copies=least(coalesce(total_copies,0),coalesce(available_copies,0)+1)
+    where id=v_loan.book_id and school_id=v_loan.school_id and deleted_at is null;
+  end if;
+  return p_borrowing_id;
+end $$;
+
+-- Repair/restock ledger operations intentionally require a separate authorized
+-- reconciliation RPC; do not expose arbitrary browser updates to book_copies.
+commit;
