@@ -78,6 +78,12 @@ export default function ClassLeadershipPanel({
     requestRef.current = null;
   }, [scope, group?.id]);
 
+  // Default to the actual school term, not an invented academic window.
+  // Never overwrite a teacher's manually chosen valid ending date.
+  useEffect(() => {
+    if (termEndOn && termEndOn >= startOn && !endOn) setEndOn(termEndOn);
+  }, [termEndOn, startOn, endOn]);
+
   const rows = useMemo(() => {
     const allowed = (row: { group_id: string | null }) =>
       scope === "class" ? row.group_id === null : row.group_id === group?.id;
@@ -89,8 +95,8 @@ export default function ClassLeadershipPanel({
 
   async function appoint() {
     if (busy || !canManage) return;
-    if (!studentId || !startOn || !endOn || endOn < startOn) {
-      setError("Choose a learner and a valid start and end date.");
+    if (!studentId || !startOn || !endOn || endOn < startOn || Boolean(termEndOn && endOn > termEndOn)) {
+      setError("Choose a learner and dates within the current school term.");
       return;
     }
     if (scope === "group" && !group?.id) {
