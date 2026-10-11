@@ -355,6 +355,33 @@ begin
     if v_verified<>v_expected then
       raise exception 'exam_subjects_not_fully_verified % of %',v_verified,v_expected;
     end if;
+    -- Submission completeness can become stale when an enrolled learner joins,
+    -- transfers or a new learning area is assigned after teacher submission.
+    -- Recheck the current roster at the moment of school publication.
+    if exists (
+      select 1
+      from (
+        select distinct tc.subject_id
+        from public.teacher_classes tc
+        join public.school_members sm on sm.profile_id=tc.teacher_id
+          and sm.school_id=tc.school_id and sm.role='teacher'
+        where tc.school_id=p_school_id and tc.class_id=p_class_id
+      ) active_subject
+      cross join (
+        select distinct sc.student_id
+        from public.student_classes sc
+        join public.students s on s.id=sc.student_id and s.deleted_at is null
+        where sc.school_id=p_school_id and sc.class_id=p_class_id
+          and sc.is_current=true
+      ) active_learner
+      left join public.exam_results er
+        on er.exam_id=p_exam_id and er.school_id=p_school_id
+          and er.class_id=p_class_id
+          and er.subject_id=active_subject.subject_id
+          and er.student_id=active_learner.student_id
+      where er.id is null
+        or er.result_state not in ('entered','absent','exempt','not_assessed','transferred')
+    ) then raise exception 'exam_results_incomplete_before_publication'; end if;
   elsif char_length(trim(coalesce(p_reason,''))) not between 10 and 500 then
     raise exception 'unpublish_reason_required';
   end if;
