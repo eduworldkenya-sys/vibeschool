@@ -65,7 +65,7 @@ export default function ClassExamSheet({ examId, schoolId, classId, className }:
   }, [examId,schoolId,classId,version])
 
   const saved = useMemo(
-    () => new Map(sheet?.results.map(r => [r.student_id+':'+r.subject_id,r]) ?? []),
+    () => new Map(sheet?.results.map(r => [r.student_id+':'+r.subject_id,r] as const) ?? []),
     [sheet],
   )
   const visible = useMemo(() => (
