@@ -13,7 +13,7 @@ alter table public.library_borrowings
   ) not valid;
 alter table public.library_books
   add constraint library_book_stock_ck check (
-    total_copies is not null and total_copies>=1
+    total_copies is not null and total_copies between 1 and 5000
     and available_copies is not null and available_copies>=0
     and available_copies<=total_copies
   ) not valid;
@@ -41,9 +41,15 @@ begin
     ),'[]'::jsonb),
     'staff',coalesce((
       select jsonb_agg(jsonb_build_object('id',p.id,'name',p.full_name) order by p.full_name,p.id)
-      from public.school_members sm
-      join public.profiles p on p.id=sm.profile_id
-      where sm.school_id=p_school_id and sm.role::text in ('admin','teacher','owner')
+      from public.profiles p
+      where exists(
+        select 1 from public.school_members sm where sm.profile_id=p.id
+          and sm.school_id=p_school_id and sm.role::text in ('admin','teacher','owner')
+      ) or exists(
+        select 1 from public.staff st where st.profile_id=p.id
+          and st.school_id=p_school_id and st.deleted_at is null
+          and lower(coalesce(st.status,'active'))='active'
+      )
     ),'[]'::jsonb)
   ) into v_result;
   return v_result;
@@ -119,6 +125,11 @@ begin
       select 1 from public.school_members sm
       where sm.profile_id=p_staff_id and sm.school_id=v_school_id
         and sm.role::text in ('admin','owner','teacher')
+    ) and not exists(
+      select 1 from public.staff st
+      where st.profile_id=p_staff_id and st.school_id=v_school_id
+        and st.deleted_at is null
+        and lower(coalesce(st.status,'active'))='active'
     ) then
       raise exception 'staff_not_school_member' using errcode='42501';
     end if;
