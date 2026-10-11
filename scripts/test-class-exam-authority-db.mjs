@@ -113,8 +113,8 @@ insert into exam_results(id,exam_id,school_id,class_id,subject_id,student_id,tea
  ('${id(73)}','${id(60)}','${id(10)}','${id(20)}','${id(90)}','${id(31)}','${id(2)}',60);
 `);
 
-await db.exec(readFileSync('supabase/migrations/20261011093500_class_exam_review_authority.sql','utf8'));
-await db.exec(readFileSync('supabase/migrations/20261011120000_class_exam_sheet_read_authority.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261011145829_class_exam_review_authority.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261011145857_class_exam_sheet_read_authority.sql','utf8'));
 async function asUser(user,school=10) {
   await db.exec(`reset role; set request.jwt.claim.sub='${id(user)}';
     set request.active_school='${id(school)}'; set role authenticated;`);
@@ -221,7 +221,7 @@ await root(`update public.exam_results set result_state='entered',is_absent=fals
 await root(`insert into public.exam_results(exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,max_marks)
  values ('${id(60)}','${id(10)}','${id(20)}','${id(90)}','${id(30)}','${id(1)}',78,100),
         ('${id(60)}','${id(10)}','${id(20)}','${id(91)}','${id(31)}','${id(3)}',42,50)`);
-await db.exec(readFileSync('supabase/migrations/20261011122000_exam_submission_publication_authority.sql','utf8'));
+await db.exec(readFileSync('supabase/migrations/20261011145911_exam_submission_publication_authority.sql','utf8'));
 await root(`insert into public.report_card_remarks(exam_id,school_id,class_id,student_id,class_teacher_id,remarks)
   values ('${id(60)}','${id(10)}','${id(20)}','${id(30)}','${id(2)}','Class feedback')`);
 await asUser(6);
