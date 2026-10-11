@@ -62,6 +62,7 @@ create function public.is_live_teacher_subject(
 grant usage on schema public, auth to authenticated, anon;
 grant execute on function auth.uid() to authenticated, anon;
 grant select, update on exam_results to authenticated;
+grant select on student_classes to authenticated;
 alter table exam_results enable row level security;
 create policy "Teachers view exam results for their classes" on exam_results for select to authenticated
  using (public.is_live_teacher_subject(school_id,class_id,subject_id));
