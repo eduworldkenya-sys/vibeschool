@@ -1,7 +1,7 @@
 "use client"
 export const dynamic = "force-dynamic"
 
-import {useEffect,useState} from "react"
+import {useCallback,useEffect,useState} from "react"
 import Link from "next/link"
 import {supabase} from "@/lib/supabase"
 import {getAdminSchoolAuthority} from "@/lib/admin/authority"
@@ -47,7 +47,7 @@ export default function ExaminationOfficePage(){
  .finally(()=>{if(active)setLoading(false)})
  return()=>{active=false}
  },[])
- async function reload(){
+ const reload=useCallback(async()=>{
   if(!schoolId||!examId||!classId)return
   const [review,alloc]=await Promise.all([
    getExamLifecycle({examId,schoolId,classId},'admin'),
@@ -64,15 +64,14 @@ export default function ExaminationOfficePage(){
     ss=(r.data??[]) as Subject[]
   }
   setLifecycle(review);setSubjects(ss)
- }
+ },[schoolId,examId,classId])
  useEffect(()=>{
   let active=true
   setLifecycle(null);setSubjects([]);setError("");setNote("")
   if(!schoolId||!examId||!classId)return
   void reload().catch(e=>{if(active)setError(e instanceof Error?e.message:'Unable to read examination status.')})
   return()=>{active=false}
- // eslint-disable-next-line react-hooks/exhaustive-deps
- },[schoolId,examId,classId])
+ },[schoolId,examId,classId,reload])
  async function act(action:'verify'|'reopen'|'publish'|'unpublish',subjectId?:string){
   if(!schoolId||!examId||!classId||busy)return
   if((action==='reopen'||action==='unpublish')&&(reason.trim().length<10||reason.trim().length>500)){
