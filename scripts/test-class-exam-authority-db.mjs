@@ -17,7 +17,7 @@ create function auth.uid() returns uuid language sql stable as
 create table profiles(id uuid primary key, account_status text not null, is_anonymized boolean not null default false);
 create table schools(id uuid primary key);
 create table classes(id uuid primary key, school_id uuid references schools(id));
-create table subjects(id uuid primary key, name text);
+create table subjects(id uuid primary key, name text, school_id uuid);
 create table school_members(profile_id uuid, school_id uuid, role text not null);
 create table teacher_classes(teacher_id uuid, school_id uuid, class_id uuid, subject_id uuid, is_class_teacher boolean not null default false);
 create table students(id uuid primary key, name text, admission_number text, deleted_at timestamptz);
@@ -74,7 +74,7 @@ async function root(q) { await db.exec('reset role'); return db.exec(q); }
 await root(`
 insert into schools values ('${id(10)}'),('${id(11)}');
 insert into classes values ('${id(20)}','${id(10)}'),('${id(21)}','${id(10)}'),('${id(22)}','${id(11)}');
-insert into subjects values ('${id(90)}','Maths'),('${id(91)}','English'),('${id(92)}','Science');
+insert into subjects values ('${id(90)}','Maths','${id(10)}'),('${id(91)}','English','${id(10)}'),('${id(92)}','Science','${id(10)}');
 insert into profiles values ('${id(1)}','active',false),('${id(2)}','active',false),('${id(3)}','active',false),
  ('${id(4)}','active',false),('${id(5)}','active',false),('${id(6)}','active',false);
 insert into school_members values ('${id(1)}','${id(10)}','teacher'),('${id(2)}','${id(10)}','teacher'),
