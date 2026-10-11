@@ -83,7 +83,9 @@ type ExamRow = {
   id: string;
   exam_id: string;
   subject_id: string;
-  marks: number;
+  marks: number | null;
+  max_marks: number;
+  result_state: string;
   is_absent: boolean;
   created_at: string;
 };
@@ -483,7 +485,7 @@ export default function TeacherStudentProgressPage() {
         subjectIds.length
           ? supabase
               .from("exam_results")
-              .select("id,exam_id,subject_id,marks,is_absent,created_at")
+              .select("id,exam_id,subject_id,marks,max_marks,result_state,is_absent,created_at")
               .eq("school_id", ctx.school_id)
               .eq("class_id", classId)
               .eq("student_id", studentId)
@@ -2246,7 +2248,9 @@ export default function TeacherStudentProgressPage() {
                     {formatDate(item.created_at)}
                   </span>
                   <Badge
-                    text={item.is_absent ? "Absent" : `${item.marks}`}
+                    text={item.result_state === "entered" && item.marks !== null
+                      ? `${item.marks}/${item.max_marks}`
+                      : item.result_state === "absent" ? "Absent" : item.result_state}
                     tone={item.is_absent ? "warn" : "neutral"}
                   />
                 </div>
