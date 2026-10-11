@@ -302,9 +302,39 @@ begin
   return p_book_id;
 end $restock$;
 
+-- Removing a catalogue title must not orphan an active school loan.
+-- Keep archived loan history and copy accession records; retire unloaned copies
+-- atomically and deny client-side catalogue edits.
+create or replace function public.school_archive_library_book(p_book_id uuid)
+returns uuid language plpgsql security definer
+set search_path=public,auth,pg_temp as $archive$
+declare v_school uuid; v_archived timestamptz;
+begin
+  if auth.uid() is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  select school_id,deleted_at into v_school,v_archived
+    from public.library_books where id=p_book_id for update;
+  if not found then raise exception 'school_book_not_found'; end if;
+  if not public.is_school_admin(v_school) then
+    raise exception 'school_admin_required' using errcode='42501'; end if;
+  if v_archived is not null then return p_book_id; end if;
+  if exists(select 1 from public.library_borrowings
+    where book_id=p_book_id and school_id=v_school
+      and returned_at is null and deleted_at is null) then
+    raise exception 'book_has_active_borrowings';
+  end if;
+  update public.library_book_copies
+    set state='retired',updated_at=now()
+    where book_id=p_book_id and school_id=v_school;
+  update public.library_books set deleted_at=now(),available_copies=0
+    where id=p_book_id and school_id=v_school;
+  return p_book_id;
+end $archive$;
+
 revoke all on function public.school_list_library_copies(uuid) from public,anon;
 revoke all on function public.school_repair_library_copy(uuid,uuid) from public,anon;
 revoke all on function public.school_restock_library_book(uuid,integer,uuid) from public,anon;
+revoke all on function public.school_archive_library_book(uuid) from public,anon;
+grant execute on function public.school_archive_library_book(uuid) to authenticated;
 grant execute on function public.school_list_library_copies(uuid) to authenticated;
 grant execute on function public.school_repair_library_copy(uuid,uuid) to authenticated;
 grant execute on function public.school_restock_library_book(uuid,integer,uuid) to authenticated;
