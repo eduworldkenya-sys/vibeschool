@@ -69,7 +69,7 @@ create policy "Teacher class-wide examination review" on public.exam_results
 for select to authenticated
 using (public.teacher_can_view_class_exam(school_id, class_id));
 
--- Class teachers can correct subject marks with explicit reasons. Existing
+-- Class teachers can correct existing subject marks with explicit reasons. Existing
 -- records retain teacher_id (original recorder); the actor is captured by the
 -- platform_events audit stream. Per-subject writers keep their existing RPC.
 create or replace function public.teacher_correct_class_exam_result(
@@ -185,17 +185,9 @@ begin
     returning * into v_saved;
     v_action := 'corrected';
   else
-    if p_expected_updated_at is not null then
-      raise exception 'result_changed_review_again';
-    end if;
-    insert into public.exam_results (
-      exam_id, school_id, class_id, subject_id, student_id, teacher_id,
-      marks, is_absent, result_state, max_marks
-    ) values (
-      p_exam_id, p_school_id, p_class_id, p_subject_id, p_student_id,
-      (select auth.uid()), v_score, (v_state = 'absent'), v_state, v_max
-    ) returning * into v_saved;
-    v_action := 'entered_by_class_teacher';
+    -- Subject teacher is the entry authority. Class teacher may review
+    -- missing marks but cannot silently originate another subject's score.
+    raise exception 'result_not_entered_by_subject_teacher';
   end if;
 
   -- Existing pilot audit trigger logs the value change. This companion
