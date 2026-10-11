@@ -117,7 +117,18 @@ assert.equal((await db.query('select available_copies from library_books where i
 await assert.rejects(()=>scalar('select public.school_repair_library_copy($1,$2) value',[damagedCopy,id(64)]),/copy_not_awaiting_repair/);
 const lostCopy=(await db.query("select id from library_book_copies where book_id=$1 and state='lost'",[book])).rows[0].id;
 await assert.rejects(()=>scalar('select public.school_repair_library_copy($1,$2) value',[lostCopy,id(65)]),/copy_not_awaiting_repair/);
+const activeBeforeArchive=await scalar(issue,[newBook,learner,id(70)]);
+await assert.rejects(()=>scalar('select public.school_archive_library_book($1) value',[newBook]),/book_has_active_borrowings/);
+assert.equal((await db.query('select deleted_at from library_books where id=$1',[newBook])).rows[0].deleted_at,null);
+await scalar("select public.school_return_library_book($1,'good',0,false) value",[activeBeforeArchive]);
+await scalar('select public.school_archive_library_book($1) value',[newBook]);
+await scalar('select public.school_archive_library_book($1) value',[newBook]);
+assert.equal((await db.query("select count(*)::int n from library_book_copies where book_id=$1 and state='retired'",[newBook])).rows[0].n,5,'retired catalogue retains individual accessions');
+assert.equal((await db.query('select available_copies from library_books where id=$1',[newBook])).rows[0].available_copies,0);
+await assert.rejects(()=>scalar(issue,[newBook,learner,id(71)]),/school_book_not_found/);
+await assert.rejects(()=>db.query("update library_books set deleted_at=now() where id=$1",[book]),/permission denied/);
 await as(outsider);
+await assert.rejects(()=>scalar('select public.school_archive_library_book($1) value',[book]),/school_admin_required/);
 await assert.rejects(()=>scalar('select public.school_list_library_copies($1) value',[book]),/school_admin_required/);
 await assert.rejects(()=>scalar('select public.school_restock_library_book($1,1,$2) value',[book,id(67)]),/school_admin_required/);
 await assert.rejects(()=>scalar('select public.school_repair_library_copy($1,$2) value',[damagedCopy,id(68)]),/school_admin_required/);
