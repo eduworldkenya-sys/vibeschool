@@ -96,5 +96,11 @@ await assert.rejects(()=>scalar(appoint,[cls,learner,'prefect',null,id(44)]),/le
 await as(teacher);
 await scalar("select public.school_end_class_learner_appointment($1,'completed') value",[rep]);
 assert.equal((await db.query('select ended_reason from class_learner_appointments where id=$1',[rep])).rows[0].ended_reason,'completed');
+const secondRep=await scalar(appoint,[cls,learner,'representative',null,id(50)]);
+await db.exec('reset role');
+await db.query('delete from public.class_group_members where group_id=$1 and student_id=$2',[grp,learner]);
+assert.equal((await db.query('select ended_reason from class_learner_appointments where id=$1',[groupLeader])).rows[0].ended_reason,'completed','group membership removal ends group leader appointment');
+await db.query('update public.student_classes set is_current=false where student_id=$1 and class_id=$2',[learner,cls]);
+assert.equal((await db.query('select ended_reason from class_learner_appointments where id=$1',[secondRep])).rows[0].ended_reason,'completed','leaving class closes formal office');
 await db.close();
 console.log('Isolated library circulation and class leadership authorization checks PASS');
