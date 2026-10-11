@@ -67,20 +67,20 @@ export default function StudentsReportPage() {
     const { data, error } = await supabase
       .from('students')
       .select(`
-        id, full_name, admission_number, gender, status,
+        id, name, admission_number, gender,
         student_classes(classes(name))
       `)
-      .order('full_name')
+      .order('name')
       .limit(500)
     if (error) { console.error(error); return }
 
     const rows: StudentRow[] = (data || []).map((r: any) => ({
       id: r.id,
-      full_name: r.full_name ?? '—',
+      full_name: r.name ?? '—',
       admission_number: r.admission_number ?? '—',
       class_name: r.student_classes?.[0]?.classes?.name ?? '—',
       gender: r.gender ?? '—',
-      status: r.status ?? 'active',
+      status: 'enrolled',
     }))
 
     setStudents(rows)
@@ -109,22 +109,28 @@ export default function StudentsReportPage() {
   }
 
   async function fetchLibrary() {
-    const { data, error } = await supabase
+    const {data,error} = await supabase
       .from('library_borrowings')
-      .select('*, library_books(title), students(name)')
-      .order('borrowed_date', { ascending: false })
+      .select('issued_at,due_date,returned_at,book:book_id(title),student:student_id(name)')
+      .eq('borrower_type','student')
+      .is('deleted_at',null)
+      .order('issued_at',{ascending:false})
       .limit(200)
-    if (error) { console.error(error); return }
-    const rows: LibraryRow[] = (data || []).map((r: any) => ({
-      student_name: r.students?.name ?? '—',
-      book_title: r.library_books?.title ?? '—',
-      borrowed_date: r.borrowed_date ?? '—',
-      return_date: r.return_date ?? '—',
-      status: r.status ?? '—',
-    }))
+    if (error) { console.error('Library report failed',error);setInsight('Unable to load the library report.');return }
+    const today = new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'})
+    const rows:LibraryRow[] = (data??[]).map((loan:any)=>{
+      const student = Array.isArray(loan.student)?loan.student[0]:loan.student
+      const book = Array.isArray(loan.book)?loan.book[0]:loan.book
+      return {
+        student_name:student?.name??'Unknown borrower',
+        book_title:book?.title??'Unknown book',
+        borrowed_date:loan.issued_at?.slice(0,10)??'—',
+        return_date:loan.due_date??'—',
+        status:loan.returned_at?'returned':loan.due_date<today?'overdue':'issued',
+      }
+    })
     setLibraryRows(rows)
-    const overdue = rows.filter(r => r.status?.toLowerCase() === 'overdue').length
-    setInsight(`📚 ${rows.length} borrowing records. ${overdue} book(s) currently overdue.`)
+    setInsight(`Library: ${rows.length} borrowing records; ${rows.filter(r=>r.status==='overdue').length} overdue.`)
   }
 
   async function fetchBadges() {
