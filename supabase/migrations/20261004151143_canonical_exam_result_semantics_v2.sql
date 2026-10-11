@@ -22,7 +22,7 @@ revoke all on table public.exam_subject_config from anon;
 revoke all on table public.exam_subject_config from authenticated;
 grant select, insert, update, delete on table public.exam_subject_config to authenticated;
 
-do $
+do $$
 begin
   if not exists (
     select 1 from pg_policies
@@ -66,7 +66,7 @@ begin
       );
   end if;
 end
-$;
+$$;
 
 alter table public.exam_results
   add column if not exists result_state text,
