@@ -56,8 +56,9 @@ export default function SchoolLifeParticipation({ classId, studentId, preselecte
       "teacher_school_life_snapshot" as never, { p_class_id: classId } as never,
     );
     if (readError) throw new Error(readError.message);
-    if (!isSchoolLifeSnapshot(data)) throw new Error("School-life information could not be read.");
-    setSnapshot(data);
+    const payload: unknown = data;
+    if (!isSchoolLifeSnapshot(payload)) throw new Error("School-life information could not be read.");
+    setSnapshot(payload);
   }, [classId]);
 
   useEffect(() => {
