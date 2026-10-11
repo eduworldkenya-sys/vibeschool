@@ -29,8 +29,9 @@ const checks = [
   [/grant execute on function public\.teacher_correct_class_exam_result/, 'explicit RPC grant'],
   [/revoke all on function public\.teacher_correct_class_exam_result/, 'no anonymous RPC access'],
 ];
-assert.doesNotMatch(
-  sql, /insert into public\\.exam_results\\s*\\(/i,
+assert.equal(
+  sql.includes('insert into public.exam_results('),
+  false,
   'class-teacher corrections must never create a mark in another subject'
 );
 for (const [pattern,label] of checks) {
