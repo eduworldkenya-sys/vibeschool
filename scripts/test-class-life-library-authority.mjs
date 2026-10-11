@@ -120,7 +120,7 @@ await assert.rejects(()=>scalar('select public.school_get_learner_leadership($1,
 await as(teacher);
 await scalar("select public.school_end_class_learner_appointment($1,'completed') value",[rep]);
 assert.equal((await db.query('select ended_reason from class_learner_appointments where id=$1',[rep])).rows[0].ended_reason,'completed');
-const secondRep=await scalar(appoint,[cls,learner,'representative',null,id(50)]);
+const secondRep=await scalar("select public.school_appoint_class_learner($1,$2,'representative',current_date,current_date+2,null,$3) value",[cls,learner,id(50)]);
 await db.exec('reset role');
 await db.query('delete from public.class_group_members where group_id=$1 and student_id=$2',[grp,learner]);
 assert.equal((await db.query('select ended_reason from class_learner_appointments where id=$1',[groupLeader])).rows[0].ended_reason,'completed','group membership removal ends group leader appointment');
