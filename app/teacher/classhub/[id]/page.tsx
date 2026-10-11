@@ -2,7 +2,7 @@
 import { rosterRows } from '@/lib/classroom/model'
 import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
-import { Users, ClipboardCheck, Table2, School, TrendingUp, NotebookPen, CalendarDays, UsersRound, ClipboardList, Folder, Ruler, Bell, BookOpen, ArrowUpRight } from 'lucide-react'
+import { Users, ClipboardCheck, Table2, School, TrendingUp, NotebookPen, CalendarDays, UsersRound, ClipboardList, Folder, Ruler, Bell, BookOpen, ArrowUpRight, Award } from 'lucide-react'
 import { C } from '@/components/teacher/ui'
 import React, { useEffect, useState, Suspense, CSSProperties } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -79,6 +79,7 @@ const CLASS_ACTIONS = [
   { id: 'assessment', label: 'Assessment',   icon: '📊', bg: '#92400e', route: '/teacher/assessment' },
   { id: 'timetable',  label: 'Timetable',    icon: '🗓️', bg: '#075985', route: '/teacher/timetable' },
   { id: 'groups',     label: 'Groups',       icon: '🫂', bg: '#b45309', route: '' },
+  { id: 'activities', label: 'Activities', icon: '', bg: C.accent, route: '' },
   { id: 'homework',   label: 'Homework',     icon: '📝', bg: '#0f766e', route: '' },
   { id: 'projects',   label: 'Projects',     icon: '🛠️', bg: '#92400e', route: '' },
   { id: 'exercises',  label: 'Exercises',    icon: '📐', bg: '#0369a1', route: '' },
@@ -98,7 +99,7 @@ const SUBJECT_ACTIONS = [
   { id: 'exercises',  label: 'Exercises',    icon: '📐', bg: '#0369a1', route: '' },
 ]
 
-const actionIcons = { workspace: School, workbook: Table2, students: Users, attendance: ClipboardCheck, history: TrendingUp, lessonplan: NotebookPen, assessment: ClipboardList, timetable: CalendarDays, groups: UsersRound, homework: NotebookPen, projects: Folder, exercises: Ruler, scheme: BookOpen }
+const actionIcons = { workspace: School, workbook: Table2, students: Users, attendance: ClipboardCheck, history: TrendingUp, lessonplan: NotebookPen, assessment: ClipboardList, timetable: CalendarDays, groups: UsersRound, activities: Award, homework: NotebookPen, projects: Folder, exercises: Ruler, scheme: BookOpen }
 
 function ClassPageInner() {
   const router       = useRouter()
@@ -438,6 +439,7 @@ function ClassPageInner() {
     if (a.id === 'workbook') route = `/teacher/classhub/${classId}/workbook`
     if (a.id === 'workspace') route = `/teacher/classhub/${classId}/workspace`
     if (a.id === 'groups')   route = `/teacher/classhub/${classId}/groups`
+    if (a.id === 'activities') route = `/teacher/classhub/${classId}/activities`
     if (a.id === 'homework') route = `/teacher/classhub/${classId}/homework`
     if (a.id === 'projects') route = `/teacher/classhub/${classId}/projects`
     if (a.id === 'exercises') route = `/teacher/classhub/${classId}/exercises`
@@ -461,6 +463,12 @@ function ClassPageInner() {
     if (selectedIds.size) query.set('selected', [...selectedIds].join(','))
     const suffix = query.toString()
     router.push(`/teacher/classhub/${classId}/groups${suffix ? '?' + suffix : ''}`)
+  }
+
+  function openActivitiesForSelection() {
+    const params = new URLSearchParams()
+    params.set('selected', [...selectedIds].join(','))
+    router.push(`/teacher/classhub/${classId}/activities?${params.toString()}`)
   }
 
   const actions      = isSubject ? SUBJECT_ACTIONS : CLASS_ACTIONS
@@ -551,6 +559,7 @@ function ClassPageInner() {
           {!loading && students.length > 0 && <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, borderBottom: '1px solid #f3f4f6', background: selectedIds.size ? '#eef2ff' : '#fafafa' }}>
             <button onClick={() => setSelectedIds(selectedIds.size === students.length ? new Set() : new Set(students.map(student => student.id)))} style={{ minHeight: 44, border: '1px solid #d1d5db', borderRadius: 9, background: '#fff', padding: '0 10px', fontWeight: 800, fontSize: 11 }}>{selectedIds.size === students.length ? 'Clear selection' : 'Select all'}</button>
             <div style={{ fontSize: 11, fontWeight: 800 }}>{selectedIds.size ? `${selectedIds.size} selected` : 'Select learners for an action'}</div>
+            {!isSubject && <button onClick={openActivitiesForSelection} disabled={!selectedIds.size} style={{ minHeight: 44, border: 0, borderRadius: 9, background: selectedIds.size ? '#087455' : '#e5e7eb', color: selectedIds.size ? '#fff' : '#9ca3af', padding: '0 10px', fontWeight: 750, fontSize: 11 }}>Activities</button>}
             <button onClick={openGroupsForSelection} disabled={!selectedIds.size} style={{ minHeight: 44, border: 0, borderRadius: 9, background: selectedIds.size ? '#312e81' : '#e5e7eb', color: selectedIds.size ? '#fff' : '#9ca3af', padding: '0 10px', fontWeight: 750, fontSize: 11 }}>Group · Note · More</button>
           </div>}
 

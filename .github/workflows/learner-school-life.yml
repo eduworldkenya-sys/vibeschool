@@ -1,0 +1,33 @@
+name: Learner School Life
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/migrations/20261011110000_canonical_learner_school_life.sql"
+      - "components/teacher/SchoolLifeParticipation*"
+      - "components/teacher/LearnerSchoolLifeStrip.tsx"
+      - "app/teacher/classhub/**"
+      - "scripts/test-school-life-participation-contract.mjs"
+      - ".github/workflows/learner-school-life.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  school-life-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify school-life permissions and editing contract
+        run: node scripts/test-school-life-participation-contract.mjs
+      - name: Validate SQL in isolated PostgreSQL with permission and lifecycle scenarios
+        run: |
+          npm install --prefix "$RUNNER_TEMP/school-life-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8
+          SCHOOL_LIFE_PGLITE_MODULE="$RUNNER_TEMP/school-life-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-school-life-database.mjs
+      - name: Verify TypeScript
+        run: npm run typecheck
