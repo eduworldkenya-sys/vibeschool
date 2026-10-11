@@ -222,7 +222,11 @@ await root(`insert into public.exam_results(exam_id,school_id,class_id,subject_i
  values ('${id(60)}','${id(10)}','${id(20)}','${id(90)}','${id(30)}','${id(1)}',78,100),
         ('${id(60)}','${id(10)}','${id(20)}','${id(91)}','${id(31)}','${id(3)}',42,50)`);
 await db.exec(readFileSync('supabase/migrations/20261011122000_exam_submission_publication_authority.sql','utf8'));
+await root(`insert into public.report_card_remarks(exam_id,school_id,class_id,student_id,class_teacher_id,remarks)
+  values ('${id(60)}','${id(10)}','${id(20)}','${id(30)}','${id(2)}','Class feedback')`);
 await asUser(6);
+assert.equal((await db.query('select remarks from public.report_card_remarks')).rows.length,0,
+  'unpublished report remarks must be private from parents');
 assert.equal((await readResults()).rows.length,0,'unpublished marks hidden from linked parent');
 await asUser(8);
 assert.equal((await readResults()).rows.length,0,'unpublished marks hidden from learner');
@@ -266,6 +270,8 @@ const release=await db.query('select public.school_set_class_exam_publication($1
 assert.equal(release.rows[0].res.status,'published');
 await asUser(6);
 assert.equal((await readResults()).rows.length,2,'parent sees own published scores only');
+assert.equal((await db.query('select remarks from public.report_card_remarks')).rows.length,1,
+  'linked parent sees approved report remark after publication');
 await asUser(8);
 assert.equal((await readResults()).rows.length,2,'learner sees own published scores only');
 await asUser(3);
@@ -282,6 +288,8 @@ const revoke=await db.query('select public.school_set_class_exam_publication($1,
 assert.equal(revoke.rows[0].res.status,'draft');
 await asUser(6);
 assert.equal((await readResults()).rows.length,0,'unpublishing revokes parent read');
+assert.equal((await db.query('select remarks from public.report_card_remarks')).rows.length,0,
+  'withdrawal also hides prior report comments');
 await asUser(7);
 const reopened=await db.query('select public.school_review_class_exam_subject($1,$2,$3,$4,$5,$6) res',
  [id(60),id(10),id(20),id(91),'reopen','English results need correction after review']);
