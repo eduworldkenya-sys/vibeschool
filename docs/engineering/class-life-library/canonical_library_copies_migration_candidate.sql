@@ -152,6 +152,9 @@ begin
       and public.teacher_can_access_class(sc.class_id,null,false)
   ) then raise exception 'teacher_class_not_authorized' using errcode='42501'; end if;
   if v_loan.returned_at is not null then raise exception 'borrowing_already_returned'; end if;
+  perform 1 from public.library_books where id=v_loan.book_id
+    and school_id=v_loan.school_id and deleted_at is null for update;
+  if not found then raise exception 'school_book_not_found'; end if;
   update public.library_borrowings set returned_at=now(),condition_in=p_condition_in
     where id=p_borrowing_id and returned_at is null;
   if p_condition_in in ('good','fair') then
