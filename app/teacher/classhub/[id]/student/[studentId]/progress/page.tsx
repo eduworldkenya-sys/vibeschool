@@ -70,7 +70,7 @@ export default function StudentProgressRecordPage(){
   }
   const archived=enrollment&&!enrollment.isCurrent
   return <section className="progress-print" style={{maxWidth:920,margin:'0 auto',padding:'16px 14px 112px',color:"var(--teacher-ink, #1c2923)"}}>
-    <section style={{borderRadius:22,padding:18,background:'#2c2944',color:'#fff'}}>
+    <section style={{borderRadius:22,padding:18,background:'#173f32',color:'#fff'}}>
       <div data-progress-controls style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center'}}><button onClick={()=>router.push(`/teacher/classhub/${classId}/student/${studentId}`)} style={heroButton}>‹ Learner</button><button onClick={()=>window.print()} style={{border:0,borderRadius:10,minHeight:44,padding:'0 12px',background:'#fff',color:"var(--teacher-ink, #1c2923)",fontWeight:750}}>Print record</button></div>
       <div style={{display:'flex',alignItems:'center',gap:8,marginTop:14}}><div style={{fontSize:11,fontWeight:750,letterSpacing:1.2,opacity:.7}}>STUDENT PROGRESS RECORD</div>{archived&&<span style={{padding:'4px 7px',borderRadius:99,background:'rgba(255,255,255,.16)',fontSize:11,fontWeight:750}}>ARCHIVED CLASS RECORD</span>}</div>
       <h1 style={{margin:'4px 0 2px',fontSize:24}}>{student.name}</h1><div style={{fontSize:12,opacity:.75}}>{student.admission_number?`Admission ${student.admission_number} · `:''}{archived?'Historical evidence retained':'Evidence-backed curriculum progress'}{archived&&enrollment?.leftAt?` · left ${dateLabel(enrollment.leftAt)}`:''}</div>

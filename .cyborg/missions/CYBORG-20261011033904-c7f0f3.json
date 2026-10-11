@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 1,
+  "kernelVersion": 2,
+  "registryVersion": 5,
+  "missionId": "CYBORG-20261011033904-c7f0f3",
+  "runId": "4209a580-faab-4a02-a380-e714d4f03390",
+  "missionType": "IMPLEMENTATION",
+  "intent": "Implement and certify VibeSchool pilot blocker closure from the 2026-10-10 production audit: repair P0 Scheme schema/RPC drift, reconcile assessment/support database release, prove two-school tenant and relationship isolation, repair P1/P2 teacher journeys, performance and mobile behavior, obtain independent assurance, merge exact verified head, apply authorized production migrations, deploy exact revision once, verify production, and prepare bounded pilot rollout evidence.",
+  "baseSha": "3b682fa363fbb1b45d5ddaf64c5220f69e966c95",
+  "headSha": "889c37b43e025a45c7c39a3db88567f8db8d669e",
+  "riskLevel": "R2",
+  "capabilities": [
+    "READ_REPO",
+    "READ_CI",
+    "READ_DB",
+    "READ_RUNTIME",
+    "RUN_TESTS",
+    "EDIT_CODE",
+    "CREATE_BRANCH",
+    "CREATE_PR",
+    "MERGE_PR"
+  ],
+  "scope": {
+    "mission": [
+      "supabase/migrations",
+      "supabase/tests",
+      "app/teacher/homework",
+      "app/teacher/attendance",
+      "app/teacher/lesson-plans",
+      "app/teacher/layout.tsx",
+      "scripts/test-pilot-blocker-closure.mjs",
+      "docs/engineering/pilot-blocker-closure",
+      ".github/workflows/pilot-blocker-closure.yml",
+      "app/teacher/classhub",
+      "app/teacher/scheme",
+      "app/teacher/schoolhub",
+      "components/teacher/studio-tokens.ts",
+      "components/teacher/studio.css",
+      "components/teacher/ui.tsx",
+      "components/teacher/ApprovedWorkspace.module.css",
+      "app/teacher/pulse",
+      "app/teacher/curriculum",
+      "app/teacher/lessonplan",
+      "app/teacher/teach-today",
+      "app/teacher/progress",
+      "app/teacher/assessment/page.tsx",
+      "app/teacher/assessment/assessment.module.css",
+      "scripts/test-assessment-workspace-redesign.mjs",
+      "app/teacher/timetable",
+      "components/teacher/AddSlotModal.tsx",
+      "components/teacher/ClassicTimetable.tsx",
+      "lib/timetable",
+      "scripts/test-timetable-guided-periods.mjs",
+      "scripts/register-typescript.mjs",
+      "docs/engineering/timetable-modernization-locked-mission.md",
+      "app/teacher/students",
+      "scripts/test-teacher-context-propagation-contract.mjs"
+    ],
+    "affectedDependencies": [],
+    "excluded": []
+  },
+  "requirements": [
+    {
+      "id": "R01-repository_truth",
+      "description": "repository truth",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R02-dependency_map",
+      "description": "dependency map",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [
+        "R01-repository_truth"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R03-contract_integrity",
+      "description": "contract integrity",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [
+        "R01-repository_truth",
+        "R02-dependency_map"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R04-implementation",
+      "description": "implementation",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [
+        "R03-contract_integrity"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R05-preflight",
+      "description": "preflight",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [
+        "R04-implementation"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R06-test_integrity",
+      "description": "test integrity",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [
+        "R05-preflight"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R07-negative_paths",
+      "description": "negative paths",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E4",
+      "evidenceIds": [],
+      "dependencies": [
+        "R06-test_integrity"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R08-security_and_data",
+      "description": "security and data",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E4",
+      "evidenceIds": [],
+      "dependencies": [
+        "R05-preflight"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R09-escape_hatch_audit",
+      "description": "escape hatch audit",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R10-exact_head_ci",
+      "description": "exact head ci",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E5",
+      "evidenceIds": [],
+      "dependencies": [
+        "R06-test_integrity",
+        "R08-security_and_data"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R11-independent_assurance_when_required",
+      "description": "independent assurance when required",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E6",
+      "evidenceIds": [],
+      "dependencies": [
+        "R10-exact_head_ci"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R12-merge_gate",
+      "description": "merge gate",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [
+        "R10-exact_head_ci",
+        "R11-independent_assurance_when_required"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R13-post_merge_verification_when_required",
+      "description": "post merge verification when required",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [
+        "R12-merge_gate"
+      ],
+      "negativePaths": []
+    },
+    {
+      "id": "R14-learning_closure",
+      "description": "learning closure",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    }
+  ],
+  "selectedSkills": [
+    {
+      "id": "repo-truth-first",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "contract-integrity",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "canonical-architecture-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "exact-head-pr-certification-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "activation-authority-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "evidence-status-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "preflight-before-ci",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "test-the-test",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile",
+      "updatedAt": null
+    },
+    {
+      "id": "ci-failure-repair-loop",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile",
+      "updatedAt": null
+    },
+    {
+      "id": "evidence-and-certification",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "dependency-integrity-loop",
+      "activation": "always-armed",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "escape-hatch-auditor",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "security-authority-gate",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile",
+      "updatedAt": null
+    },
+    {
+      "id": "merge-certification-gate",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "regression-learning",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "resource-conservation",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "mission-decomposition",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "completion-coverage-gate",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "autonomous-repair-until-terminal",
+      "activation": "always-armed",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "execution-journal-integrity",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "knowledge-reconciliation",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "tool-failure-recovery",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile",
+      "updatedAt": null
+    },
+    {
+      "id": "idempotency-and-resume",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "concurrency-and-ownership",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null,
+      "updatedAt": null
+    },
+    {
+      "id": "supabase-rls-security",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match",
+      "updatedAt": null
+    },
+    {
+      "id": "journey-integrity",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match",
+      "updatedAt": null
+    },
+    {
+      "id": "production-readiness",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match",
+      "updatedAt": null
+    }
+  ],
+  "evidence": [],
+  "contradictions": [],
+  "findings": [],
+  "decisions": [],
+  "technicalDebt": [],
+  "attempts": {},
+  "state": "MISSION",
+  "learningClosure": false,
+  "createdAt": "2026-10-11T03:39:04.786Z",
+  "updatedAt": "2026-10-11T03:41:32.448Z",
+  "journalPath": ".cyborg/journal/CYBORG-20261011033904-c7f0f3.ndjson",
+  "activation": {
+    "runtime": false,
+    "schedulers": false,
+    "publishing": false,
+    "payments": false,
+    "consequentialAuthority": false
+  },
+  "lastJournalHash": "7049ad867d05599847093e4777dec711e98bcda02128e41e8cbba53b71285fd7",
+  "replayOf": "CYBORG-20261010174629-ef0af1"
+}

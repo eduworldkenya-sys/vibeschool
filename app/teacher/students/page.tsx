@@ -207,11 +207,11 @@ export default function StudentsPage() {
       context?.schools.find((s) => s.id === context.school_id)?.name ??
       "School";
   return (
-    <main className={styles.listPage}>
+    <section className={styles.listPage} aria-labelledby="teacher-learners-title">
       <header className={styles.listHeader}>
         <div>
           <span className={styles.eyebrow}>{activeSchool}</span>
-          <h1>
+          <h1 id="teacher-learners-title">
             Learners <b>{loading ? "" : total}</b>
           </h1>
         </div>
@@ -372,7 +372,7 @@ export default function StudentsPage() {
           ))}
         </div>
       )}
-    </main>
+    </section>
   );
 }
 function initials(name: string) {

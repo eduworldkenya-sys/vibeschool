@@ -35,7 +35,9 @@ function commitError(message) {
   if (message.includes('SCHEME_CANONICAL_CONTENT_INCOMPLETE')) return 'Canonical content is incomplete. Outcomes, key inquiry, experiences, resources and assessment are all required.'
   if (message.includes('SCHEME_ASSIGNMENT_REQUIRED')) return 'This class and subject are not assigned to you.'
   if (message.includes('SCHEME_CURRICULUM_IDENTITY_MISMATCH')) return 'The curriculum item does not match the canonical class, subject and term.'
-  return message
+  if (message.includes('SCHEME_WEEK_NOT_IN_INSTRUCTIONAL_CALENDAR')) return 'Choose a week from this term’s instructional calendar.'
+  if (message.includes('generated always')) return 'This Scheme item could not be saved because the school data contract is out of date. Retry after the repair is released.'
+  return 'This Scheme item could not be saved. Your entries are still here; retry, then contact support if the problem continues.'
 }
 
 function Empty({ title, desc }) {
@@ -198,7 +200,7 @@ function Inner({ curriculumView = false }) {
   useEffect(()=>{if(!loading)void loadScheme()},[loading,loadScheme])
 
   async function commitScheme(){if(!selectedClass||!selectedSubject||!selectedTermId||!curriculumRows.length)return;setCommitting(true);setError(null);const r=await supabase.rpc('commit_curriculum_scheme',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_curriculum_ids:curriculumRows.map(x=>x.id)});if(r.error)setError(commitError(r.error.message));else await loadScheme();setCommitting(false)}
-  async function addCustom(){if(!selectedClass||!selectedSubject||!selectedTermId||!newTopic.trim())return;setAdding(true);setError(null);const r=await supabase.rpc('commit_custom_scheme_item',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_week:selectedWeek,p_topic:newTopic.trim(),p_strand:newStrand.trim()||null,p_resource_id:null,p_resource_role:null});if(r.error)setError(r.error.message);else{setNewTopic('');setNewStrand('');await loadScheme()}setAdding(false)}
+  async function addCustom(){if(!selectedClass||!selectedSubject||!selectedTermId||!newTopic.trim())return;setAdding(true);setError(null);const r=await supabase.rpc('commit_custom_scheme_item',{p_class_id:selectedClass,p_subject_id:selectedSubject,p_academic_term_id:selectedTermId,p_week:selectedWeek,p_topic:newTopic.trim(),p_strand:newStrand.trim()||null,p_resource_id:null,p_resource_role:null});if(r.error)setError(commitError(r.error.message));else{setNewTopic('');setNewStrand('');await loadScheme()}setAdding(false)}
   async function setStatus(id,status){const r=await supabase.from('scheme_of_work').update({status}).eq('id',id).eq('school_id',schoolId).eq('teacher_id',uid);if(r.error)setError(r.error.message);else setSchemeItems(xs=>xs.map(x=>x.id===id?Object.assign({},x,{status}):x))}
   async function saveReflection(id,reflection){const r=await supabase.from('scheme_of_work').update({reflection}).eq('id',id).eq('school_id',schoolId).eq('teacher_id',uid);if(r.error)setError(r.error.message)}
 
@@ -207,7 +209,7 @@ function Inner({ curriculumView = false }) {
 
   return <div style={{width:'100%'}}>
     {selectedClass && selectedSubject && <TeachingWorkspaceNav classId={selectedClass} subjectId={selectedSubject} termId={selectedTermId} current={curriculumView ? "Curriculum" : "Scheme"}/>}
-    <div style={{background:'#2c2944',color:'#fff',borderRadius:18,padding:18,marginBottom:12}}>
+    <div style={{background:'#173f32',color:'#fff',borderRadius:18,padding:18,marginBottom:12}}>
       <div style={{fontSize:11,letterSpacing:1.5,opacity:.65,fontWeight:800}}>{curriculumView ? "CURRICULUM" : "SCHEME OF WORK"}</div>
       <div style={{fontSize:20,fontWeight:800,marginTop:3}}>{curriculumView ? "Curriculum map" : "Scheme of work"}</div>
       <div style={{fontSize:12,opacity:.75,marginTop:4}}>{termObj?`${termLabel(termObj)} · ${currentWeek?`Instructional Week ${currentWeek}`:'Not current term'}`:'Select term'}</div>

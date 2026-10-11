@@ -42,7 +42,7 @@ export default function SchoolHubPage(){
    const activeSchoolId=(context as {active_school_id?:string|null}|null)?.active_school_id??null
    if(!activeSchoolId){setInfo({school_id:null,events:[],notices:[],calendar_exceptions:[]});setSchool(null);setResponsibility(null);setAdminContext(null);return}
    // Information is optional enrichment. It cannot revoke a canonical active-school membership.
-   if(e){console.error('[SchoolHub] information enrichment failed',e);setInformationError('Events, notices and calendar updates are unavailable.')}
+   if(e)setInformationError('Events, notices and calendar updates are unavailable.')
    const raw=(data??{}) as Partial<Info>
    const x:Info={school_id:activeSchoolId,events:raw.events??[],notices:raw.notices??[],calendar_exceptions:raw.calendar_exceptions??[]}; setInfo(x)
    const [schoolResult,rolesResult,adminResult]=await Promise.all([

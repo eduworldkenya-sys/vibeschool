@@ -87,6 +87,8 @@ function HomeworkInner() {
   const [rosterCount, setRosterCount] = useState(0);
   const [targetGroup, setTargetGroup] = useState<{ id: string; name: string; memberCount: number } | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [draftReady, setDraftReady] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; dueDate?: string }>({});
   const [showForm, setShowForm] = useState(lessonLinked || Boolean(sourceGroupId));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -107,6 +109,7 @@ function HomeworkInner() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setDraftReady(false);
     setError(null);
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
@@ -184,6 +187,7 @@ function HomeworkInner() {
       } else if (lessonLinked) {
         setForm({ ...EMPTY_FORM, subject: defaultSubject, title: sourceTopic ? `${sourceTopic} Homework` : "" });
       }
+      setDraftReady(true);
     } catch (loadError) {
       console.error("[ClassHomework] load", loadError);
       setError(loadError instanceof Error ? loadError.message : "Homework could not be loaded. Check your connection and retry.");
@@ -193,21 +197,27 @@ function HomeworkInner() {
   }, [classId, lessonLinked, router, sourceGroupId, sourceLessonPlanId, sourceOccurrenceId, sourceSubjectId, sourceSubjectName, sourceTopic]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { if (showForm && context?.school_id) writeDraft(storageKey, { ...form, subject: lessonLinked ? authoritativeSubject : form.subject }); }, [authoritativeSubject, context?.school_id, form, lessonLinked, showForm, storageKey]);
+  useEffect(() => { if (draftReady && showForm && context?.school_id) writeDraft(storageKey, { ...form, subject: lessonLinked ? authoritativeSubject : form.subject }); }, [authoritativeSubject, context?.school_id, draftReady, form, lessonLinked, showForm, storageKey]);
 
   async function createHomework() {
     if (submitInFlight.current || saving) return;
     setError(null);
     setSuccess(null);
+    setFieldErrors({});
     if (!context?.school_id || !assignment) {
       setError("Your active class assignment could not be verified.");
       return;
     }
     if (!form.title.trim() || !form.dueDate) {
-      setError("Title and due date are required.");
+      setFieldErrors({
+        ...(!form.title.trim() ? { title: "Add a homework title." } : {}),
+        ...(!form.dueDate ? { dueDate: "Choose when learners should submit." } : {}),
+      });
+      setError("Complete the highlighted fields before assigning this work.");
       return;
     }
     if (form.dueDate < minimumDueDate) {
+      setFieldErrors({ dueDate: `Choose ${minimumDueDate} or a later date.` });
       setError(`Due date must be ${minimumDueDate} or later.`);
       return;
     }
@@ -240,6 +250,8 @@ function HomeworkInner() {
 
       clearDraft(storageKey);
       setForm(EMPTY_FORM);
+      setDraftReady(true);
+      setFieldErrors({});
       setShowForm(false);
       setSuccess(sourceGroupId ? "Homework assigned to the selected learner group." : "Homework assigned. Current enrolled learners can now access it.");
       await load();
@@ -273,6 +285,7 @@ function HomeworkInner() {
 
   const classLabel = assignment ? `${assignment.class_name}${assignment.stream ? ` ${assignment.stream}` : ""}` : "Class";
   const lessonTime = lessonContext?.startTime && lessonContext?.endTime ? `${lessonContext.startTime.slice(0, 5)}–${lessonContext.endTime.slice(0, 5)}` : null;
+  const formValid = Boolean(context?.school_id && assignment && form.title.trim() && form.dueDate && form.dueDate >= minimumDueDate);
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px", colorScheme: "light" }}>
@@ -294,15 +307,15 @@ function HomeworkInner() {
           {sourceTopic && <span style={{ display: "block", marginTop: 2 }}>Topic: {sourceTopic}</span>}
         </div>}
         <div style={{ display: "grid", gap: 12 }}>
-          <label><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>TITLE *</span><input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} style={INPUT_STYLE} /></label>
+          <label><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>TITLE *</span><input aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "homework-title-error" : undefined} value={form.title} onChange={(event) => { setForm((current) => ({ ...current, title: event.target.value })); setFieldErrors((current) => ({ ...current, title: undefined })); }} style={{ ...INPUT_STYLE, border: fieldErrors.title ? "1px solid #dc2626" : INPUT_STYLE.border }} />{fieldErrors.title && <span id="homework-title-error" role="alert" style={{ display: "block", marginTop: 5, color: "#b91c1c", fontSize: 12 }}>{fieldErrors.title}</span>}</label>
           <label><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>SUBJECT</span><input value={lessonLinked ? authoritativeSubject : form.subject} onChange={(event) => !lessonLinked && setForm((current) => ({ ...current, subject: event.target.value }))} readOnly={lessonLinked} aria-readonly={lessonLinked} placeholder={assignment?.subject_name ?? "Subject"} style={{ ...INPUT_STYLE, background: lessonLinked ? "#f8fafc" : "#fff", color: lessonLinked ? "#475569" : "#111827" }} /></label>
           <label><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>INSTRUCTIONS</span><textarea rows={4} value={form.instructions} onChange={(event) => setForm((current) => ({ ...current, instructions: event.target.value }))} style={{ ...INPUT_STYLE, minHeight: 110, resize: "vertical" }} /></label>
           <div className="homework-meta-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 10 }}>
-            <label style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>DUE DATE *</span><input type="date" min={minimumDueDate} value={form.dueDate} onChange={(event) => setForm((current) => ({ ...current, dueDate: event.target.value }))} style={INPUT_STYLE} /></label>
+            <label style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>DUE DATE *</span><input type="date" min={minimumDueDate} aria-invalid={Boolean(fieldErrors.dueDate)} aria-describedby={fieldErrors.dueDate ? "homework-date-error" : undefined} value={form.dueDate} onChange={(event) => { setForm((current) => ({ ...current, dueDate: event.target.value })); setFieldErrors((current) => ({ ...current, dueDate: undefined })); }} style={{ ...INPUT_STYLE, border: fieldErrors.dueDate ? "1px solid #dc2626" : INPUT_STYLE.border }} />{fieldErrors.dueDate && <span id="homework-date-error" role="alert" style={{ display: "block", marginTop: 5, color: "#b91c1c", fontSize: 12 }}>{fieldErrors.dueDate}</span>}</label>
             <label style={{ minWidth: 0 }}><span style={{ display: "block", fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", marginBottom: 6 }}>TYPE</span><select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))} style={{ ...INPUT_STYLE, appearance: "auto" }}><option value="homework">Homework</option><option value="exercise">Exercise</option><option value="quiz">Quiz</option><option value="assignment">Assignment</option><option value="project">Project</option></select></label>
           </div>
         </div>
-        <button type="button" onClick={() => void createHomework()} disabled={saving} style={{ width: "100%", minHeight: 49, marginTop: 14, border: 0, borderRadius: 12, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750 }}>{saving ? "Saving…" : "Assign learner work"}</button>
+        <button type="button" onClick={() => void createHomework()} disabled={saving || !formValid} style={{ width: "100%", minHeight: 49, marginTop: 14, border: 0, borderRadius: 12, background: saving || !formValid ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750 }}>{saving ? "Saving…" : "Assign learner work"}</button>
         <div style={{ marginTop: 8, fontSize: 11, color: "var(--teacher-muted, #627168)", lineHeight: 1.4 }}>Your unfinished form is retained for this exact {sourceOccurrenceId ? "lesson" : "class"} if the connection is interrupted.</div>
         <style jsx>{`@media (max-width: 430px) { .homework-meta-grid { grid-template-columns: 1fr !important; } }`}</style>
       </section>}
