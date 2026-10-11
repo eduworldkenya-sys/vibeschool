@@ -213,4 +213,75 @@ assert.equal(audits.rows.length,3,'each successful correction writes one reason-
 assert.ok(audits.rows.some(r=>r.actor_id===id(2) && r.metadata.reason.includes('original answer script')));
 assert.ok(audits.rows.some(r=>r.actor_id===id(1) && r.metadata.action==='corrected_by_subject_teacher'));
 console.log('PASS isolated class exam authorization, state, audit and negative scenarios');
+
+await root(`update public.profiles set account_status='active' where id in ('${id(1)}','${id(2)}')`);
+await root(`update public.student_classes set is_current=true where student_id='${id(31)}'`);
+await root(`update public.exam_results set result_state='entered',is_absent=false,marks=40
+  where id='${id(70)}'`);
+await root(`insert into public.exam_results(exam_id,school_id,class_id,subject_id,student_id,teacher_id,marks,max_marks)
+ values ('${id(60)}','${id(10)}','${id(20)}','${id(90)}','${id(30)}','${id(1)}',78,100),
+        ('${id(60)}','${id(10)}','${id(20)}','${id(91)}','${id(31)}','${id(3)}',42,50)`);
+await db.exec(readFileSync('supabase/migrations/20261011122000_exam_submission_publication_authority.sql','utf8'));
+await asUser(6);
+assert.equal((await readResults()).rows.length,0,'unpublished marks hidden from linked parent');
+await asUser(8);
+assert.equal((await readResults()).rows.length,0,'unpublished marks hidden from learner');
+await assert.rejects(
+ ()=>db.query('select public.teacher_submit_class_exam_subject($1,$2,$3,$4)',[id(60),id(10),id(20),id(91)]),
+ /subject_teacher_not_authorized/);
+await asUser(3);
+let sub=await db.query('select public.teacher_submit_class_exam_subject($1,$2,$3,$4) res',
+  [id(60),id(10),id(20),id(91)]);
+assert.equal(sub.rows[0].res.status,'submitted');
+await assert.rejects(
+  ()=>db.query('update public.exam_results set marks=40 where id=$1',[id(70)]),
+  /subject_results_submitted_reopen_required/);
+await asUser(1);
+sub=await db.query('select public.teacher_submit_class_exam_subject($1,$2,$3,$4) res',
+  [id(60),id(10),id(20),id(90)]);
+assert.equal(sub.rows[0].res.status,'submitted');
+await asUser(6);
+await assert.rejects(
+  ()=>db.query('select public.school_review_class_exam_subject($1,$2,$3,$4,$5,$6)',
+  [id(60),id(10),id(20),id(91),'verify',null]),
+  /exam_review_admin_required/);
+await asUser(7);
+await assert.rejects(
+  ()=>db.query('select public.school_set_class_exam_publication($1,$2,$3,$4,$5)',
+  [id(60),id(10),id(20),true,null]),
+  /exam_subjects_not_fully_verified/);
+for(const subject of [90,91]){
+  const review=await db.query('select public.school_review_class_exam_subject($1,$2,$3,$4,$5,$6) res',
+    [id(60),id(10),id(20),id(subject),'verify',null]);
+  assert.equal(review.rows[0].res.status,'verified');
+}
+const release=await db.query('select public.school_set_class_exam_publication($1,$2,$3,$4,$5) res',
+  [id(60),id(10),id(20),true,null]);
+assert.equal(release.rows[0].res.status,'published');
+await asUser(6);
+assert.equal((await readResults()).rows.length,2,'parent sees own published scores only');
+await asUser(8);
+assert.equal((await readResults()).rows.length,2,'learner sees own published scores only');
+await asUser(3);
+await assert.rejects(
+ ()=>db.query('update public.exam_results set marks=41 where id=$1',[id(70)]),
+ /exam_class_published_reopen_required/);
+await asUser(7);
+await assert.rejects(
+ ()=>db.query('select public.school_set_class_exam_publication($1,$2,$3,$4,$5)',
+  [id(60),id(10),id(20),false,'short']),
+ /unpublish_reason_required/);
+const revoke=await db.query('select public.school_set_class_exam_publication($1,$2,$3,$4,$5) res',
+ [id(60),id(10),id(20),false,'Clerical review after transcription mistake']);
+assert.equal(revoke.rows[0].res.status,'draft');
+await asUser(6);
+assert.equal((await readResults()).rows.length,0,'unpublishing revokes parent read');
+await asUser(7);
+const reopened=await db.query('select public.school_review_class_exam_subject($1,$2,$3,$4,$5,$6) res',
+ [id(60),id(10),id(20),id(91),'reopen','English results need correction after review']);
+assert.equal(reopened.rows[0].res.status,'reopened');
+await asUser(3);
+const edit=await db.query('update public.exam_results set marks=39 where id=$1 returning marks',[id(70)]);
+assert.equal(Number(edit.rows[0].marks),39);
+console.log('PASS exam subject submission, admin moderation, publication and privacy');
 await db.close();
