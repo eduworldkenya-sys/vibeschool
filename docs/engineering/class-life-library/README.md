@@ -26,15 +26,16 @@
 | Learning groups | `class_groups` and members | Never re-create group membership inside appointments |
 | School library catalogue | `library_books` | Library authority belongs to school, not class |
 | Physical inventory | `library_book_copies` (candidate) | Book title owns numbered school inventory copies |
+| Inventory adjustments | `library_inventory_events` (candidate) | Server-authorized restock/repair events with idempotency and actor provenance |
 | Loan ledger | `library_borrowings` | One canonical learner/staff ID, copy ID, issue/due/return times, condition, idempotency |
 
 ## Work prepared without changing the visual system
 
-1. Admin resources: existing issue/return sheet now selects a **registered** learner or staff member; issues and returns call atomic, guarded RPCs. There is no new page design.
+1. Admin resources: existing issue/return sheet now selects a **registered** learner or staff member; issues and returns call atomic, guarded RPCs. Existing catalogue cards also expose a copy-management sheet for administrator-approved repair/restock and use a loan-safe archive RPC. There is no new page design.
 2. Student report: real `name`, `issued_at`, `due_date` and `returned_at` fields replace invented columns; overdue is derived using the canonical Nairobi calendar date.
 3. `canonical_library_migration_candidate.sql`: staged admin issuance/return RPCs, school identity checks, borrower integrity, and legacy REST write restriction.
 4. `canonical_learner_leadership_migration_candidate.sql`: term-bound class rep, deputy, prefect and group leader appointments; future handovers; automatic closure on class exit/group membership removal; scope-checked class and learner history reads.
-5. `canonical_library_copies_migration_candidate.sql`: staged per-physical-copy inventory with unique accession and active loan, automatic copy allocation/return, lost/damaged quarantine and preserved teacher issue API.
+5. `canonical_library_copies_migration_candidate.sql`: staged per-physical-copy inventory with unique accession and active loan, automatic copy allocation/return, lost/damaged quarantine, authorized copy repair and idempotent restock audit, and guarded archive that refuses titles with outstanding loans. Preserves the existing teacher issue API.
 6. `scripts/test-class-life-library-authority.mjs`: isolated PostgreSQL tests for idempotency, concurrent stock constraints, school isolation, future leadership, group authorization and transfer lifecycle. Exact-head CI workflow exercises these candidates.
 
 ## Release order — not optional
@@ -43,8 +44,8 @@
 2. Inspect the actual production migration ledger and current live constraints/functions. Determine whether any new library records were created. If so, the physical-copy candidate must be adapted and tested against those loans; do not force backfill.
 3. Create proper numbered migrations via `supabase migration new`, apply them on a production-equivalent isolated database, then run negative-path security tests as real authenticated **admin, class teacher, subject teacher, learner and outsider** for two schools.
 4. Integrate the existing class teacher operations view with the appointment RPC; expose group leader in existing group workflow and appointment history in the existing learner profile (no duplicate records, no redesign). Current production admin/library UI must remain unchanged until RPCs exist.
-5. Integrate stock repair and additional-copy registration in the existing administrative operations before broad circulation. Never silently convert damaged/lost stock to available. Validate book accessions, school ownership and aggregate stock reconciliation. Re-check the report for school scoping.
-6. Re-run the exact-head full TypeScript/build, RLS, concurrency, migration, accessibility and Android/desktop authenticated journeys. Review P0 risks independently before merging.
+5. Confirm the staged existing-pattern copy-management sheet against deployed `school_list_library_copies`, `school_repair_library_copy`, `school_restock_library_book` and `school_archive_library_book` RPCs. Never silently convert damaged/lost stock to available. Validate book accessions, school ownership, retry idempotency, archive refusal while borrowed and aggregate stock reconciliation. Re-check the report for school scoping.
+6. Re-run the exact-head full TypeScript/build, RLS, concurrency, migration, accessibility and Android/desktop authenticated journeys. Check access grants because Supabase will enforce explicit Data API grants on all existing projects starting October 30, 2026. Review P0 risks independently before merging.
 7. Apply the database migration before activating app code; verify migrations, permissions, zero stock drift, and teacher/admin profile projection in production. Only then enable a tightly bounded pilot using disposable school test data.
 8. After live verification, mark the original defect list with exact evidence for each item and close the pull request as complete.
 
