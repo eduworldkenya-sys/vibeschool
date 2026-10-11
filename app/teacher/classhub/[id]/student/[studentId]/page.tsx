@@ -17,6 +17,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
+import LearnerLeadershipHistoryPanel from "@/components/teacher/LearnerLeadershipHistoryPanel";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
 import {
@@ -1880,6 +1881,7 @@ export default function TeacherStudentProgressPage() {
               to the class teacher.
             </div>
           </Card>
+          <LearnerLeadershipHistoryPanel classId={classId} studentId={studentId} />
           {learnerContextFields.map((field) => (
             <Card key={field.key}>
               <label
