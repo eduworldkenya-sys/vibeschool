@@ -38,6 +38,17 @@
 5. `canonical_library_copies_migration_candidate.sql`: staged per-physical-copy inventory with unique accession and active loan, automatic copy allocation/return, lost/damaged quarantine, authorized copy repair and idempotent restock audit, and guarded archive that refuses titles with outstanding loans. Preserves the existing teacher issue API.
 6. `scripts/test-class-life-library-authority.mjs`: isolated PostgreSQL tests for idempotency, concurrent stock constraints, school isolation, future leadership, group authorization and transfer lifecycle. Exact-head CI workflow exercises these candidates.
 
+## Prepared UI integration (no leased file modified)
+
+Two small reusable panels are now staged in `components/teacher`, using the existing compact Teacher OS visual styling:
+
+- `ClassLeadershipPanel.tsx` accepts `classId`, canonical `learners`, `canManage`, `scope='class'|'group'`, optional `group`, and canonical `termEndOn`. It reads active/future appointments, schedules representatives/deputies/prefects or an authorized group leader, preserves idempotent appointment request IDs, and ends assignments without deleting history. The server rejects unauthorized actions regardless of the prop.
+- `LearnerLeadershipHistoryPanel.tsx` accepts `classId` and `studentId`. It reads the canonical appointment history and shows completed/serving/scheduled leadership without exposing new learner permissions.
+- After the Class Hub lease is formally released, mount the class panel alongside the **existing duty roster** in `app/teacher/classhub/[id]/operations/page.tsx` using `classData.learners` and `classData.isClassTeacher`. Mount group scope on the existing group details interaction using its **actual enrolled group members** and authorized teacher assignment, not free-text learners or another membership table. Mount the history panel on the existing learner profile's life/activities view. Preserve navigation, CSS and all current user functionality.
+- Only render these panels after the backend migration is confirmed in production. Their current branch presence alone does not activate them. Use the server-provided school term end date; if missing, the backend rejects out-of-term appointments.
+
+The merged pilot blocker PR #760 left a scope lease in `.cyborg/leases.json` with `releasedAt: null`; the original mission owner was notified on the merged PR conversation and must reconcile/release ownership before the above UI touches or any `supabase/migrations` writes.
+
 ## Release order — not optional
 
 1. Wait for the `CYBORG-20261011033904-c7f0f3` scope lease on `supabase/migrations`, `supabase/tests` and `app/teacher/classhub` to be formally released. Reconcile the latest `main`, PR #749 and any database changes.
