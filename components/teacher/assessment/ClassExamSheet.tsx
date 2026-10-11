@@ -89,21 +89,21 @@ export default function ClassExamSheet({ examId, schoolId, classId, className }:
   async function save(){
     if(!sheet||!selected||saving)return
     const {learner,subject,entry}=selected
-    const crossSubject = !subject.can_enter
-    if(crossSubject && (!sheet.is_class_teacher || !entry)){setSaveError('Only a subject teacher may enter the original result.');return}
+    const requiresCorrection = !subject.can_enter || (!!entry && !entry.recorder_is_me)
+    if(requiresCorrection && !entry){setSaveError('Only the assigned subject teacher may enter the original result.');return}
     const max=entry?.max_marks ?? subject.max_marks
     const numeric = resultState === 'entered' ? Number(mark) : null
     if(resultState === 'entered' && (!mark.trim() || numeric===null || !Number.isFinite(numeric) || numeric<0 || numeric>max)){
       setSaveError('Enter a mark between 0 and '+max+'.')
       return
     }
-    if(crossSubject && (reason.trim().length<10 || reason.trim().length>500)){
+    if(requiresCorrection && (reason.trim().length<10 || reason.trim().length>500)){
       setSaveError('Enter a correction reason of 10–500 characters.')
       return
     }
     setSaving(true);setSaveError('')
     try{
-      if(crossSubject){
+      if(requiresCorrection){
         await correctClassExamResult({
           examId,schoolId,classId,subjectId:subject.id,studentId:learner.id,
           marks:numeric,resultState,expectedUpdatedAt:entry!.updated_at,reason:reason.trim(),
@@ -195,7 +195,7 @@ export default function ClassExamSheet({ examId, schoolId, classId, className }:
             max={selected.entry?.max_marks??selected.subject.max_marks} step="any"
             value={mark} onChange={e=>setMark(e.target.value)} disabled={saving}/>
         </label>}
-        {!selected.subject.can_enter&&<label>Reason for correction
+        {(!selected.subject.can_enter || (selected.entry && !selected.entry.recorder_is_me))&&<label>Reason for correction
           <textarea minLength={10} maxLength={500} rows={3} value={reason}
             onChange={e=>setReason(e.target.value)} disabled={saving}
             placeholder="Describe what was checked and why the result is changing"/>

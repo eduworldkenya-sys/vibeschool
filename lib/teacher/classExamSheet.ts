@@ -20,6 +20,7 @@ export interface ClassExamResult {
   percentage: number | null
   result_state: string
   updated_at: string
+  recorder_is_me: boolean
 }
 export interface ClassExamSheet {
   exam_id: string
@@ -84,7 +85,8 @@ export async function loadClassExamSheet(input: {
   const results = rows(payload.results).map(v => {
     if (typeof v.student_id !== 'string' || !learnerIds.has(v.student_id) ||
       typeof v.subject_id !== 'string' || !subjectIds.has(v.subject_id) ||
-      typeof v.result_state !== 'string' || typeof v.updated_at !== 'string') {
+      typeof v.result_state !== 'string' || typeof v.updated_at !== 'string' ||
+      typeof v.recorder_is_me !== 'boolean') {
       throw new Error('The examination results did not match the current roster.')
     }
     const max = Number(v.max_marks)
@@ -94,6 +96,7 @@ export async function loadClassExamSheet(input: {
       marks: optionalNumber(v.marks), max_marks: max,
       percentage: optionalNumber(v.percentage),
       result_state: v.result_state, updated_at: v.updated_at,
+      recorder_is_me: v.recorder_is_me,
     }
   })
   if (new Set(results.map(r => r.student_id + ':' + r.subject_id)).size !== results.length) {

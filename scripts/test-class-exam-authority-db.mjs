@@ -99,7 +99,7 @@ insert into exam_results(id,exam_id,school_id,class_id,subject_id,student_id,tea
  values ('${id(70)}','${id(60)}','${id(10)}','${id(20)}','${id(91)}','${id(30)}','${id(3)}',35),
  ('${id(71)}','${id(60)}','${id(10)}','${id(21)}','${id(90)}','${id(32)}','${id(4)}',55),
  ('${id(72)}','${id(61)}','${id(11)}','${id(22)}','${id(91)}','${id(33)}','${id(5)}',48),
- ('${id(73)}','${id(60)}','${id(10)}','${id(20)}','${id(90)}','${id(31)}','${id(1)}',60);
+ ('${id(73)}','${id(60)}','${id(10)}','${id(20)}','${id(90)}','${id(31)}','${id(2)}',60);
 `);
 
 await db.exec(readFileSync('supabase/migrations/20261011093500_class_exam_review_authority.sql','utf8'));
@@ -128,6 +128,20 @@ await assert.rejects(()=>db.query('select public.teacher_get_class_exam_sheet($1
 
 assert.equal((await db.query('select public.teacher_is_current_class_teacher($1,$2) authorized',[id(10),id(20)])).rows[0].authorized,false);
 await assert.rejects(()=>correction({user:1}),/class_teacher_not_authorized/);
+await asUser(1);
+const originalSubjectRecord=await db.query(
+  'select updated_at from public.exam_results where id=$1',[id(73)]
+);
+const successorCorrection=await correction({
+  user:1,subject:90,student:31,marks:61,
+  expected:originalSubjectRecord.rows[0].updated_at,
+  reason:'Teacher reassignment after checking original answer script',
+});
+assert.equal(Number(successorCorrection.rows[0].result.marks),61,
+ 'successor subject teacher may correct assigned subject only');
+assert.equal(successorCorrection.rows[0].result.teacher_id,id(2),
+ 'original mark recorder remains unchanged after authorized handoff');
+
 await asUser(3);
 assert.equal((await readResults()).rows.length,2,'English teacher sees class wide');
 let result=await db.query('update public.exam_results set marks=77 where id=$1 returning id',[id(71)]);
@@ -184,8 +198,8 @@ await asUser(1);
 assert.equal((await readResults()).rows.length,0,'suspended subject teacher cannot fall through old subject policy');
 await root(`select 1`);
 const audits=await db.query(`select actor_id,metadata from public.platform_events where event_type='authority.exam_result_class_correction' order by id`);
-assert.equal(audits.rows.length,2,'each successful correction writes one reason-bearing audit');
-assert.equal(audits.rows[0].actor_id,id(2));
-assert.ok(audits.rows[0].metadata.reason.includes('original answer script'));
+assert.equal(audits.rows.length,3,'each successful correction writes one reason-bearing audit');
+assert.ok(audits.rows.some(r=>r.actor_id===id(2) && r.metadata.reason.includes('original answer script')));
+assert.ok(audits.rows.some(r=>r.actor_id===id(1) && r.metadata.action==='corrected_by_subject_teacher'));
 console.log('PASS isolated class exam authorization, state, audit and negative scenarios');
 await db.close();

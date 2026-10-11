@@ -94,3 +94,13 @@ projection; do not duplicate those results.
 3. Hosted nonproduction Supabase testing with real authenticated subject/class/admin/parent/learner actors and two distinct schools, and production parity.
 4. Full Android/mobile, offline/slow-network, report card and new-teacher workflows.
 5. Exact-head governance, typecheck, lint, full migrations replay and CI must all pass before merge. Migration deployment and Vercel release must be verified separately.
+
+## Subject-owner handoff closure (added)
+When a learning area changes teacher, the newly assigned subject teacher may now
+correct an **existing** result authored by the previous teacher through the same
+reason-required correction RPC. A successor may not enter an unrecorded score on
+behalf of another learning area. The original recorder is preserved; the actor,
+timestamp, reason and before/after values are appended to the audit trail.
+The Class Results editor uses `recorder_is_me` from the server to demand a
+reason whenever the assigned subject teacher edits a predecessor's recorded mark.
+Direct RLS UPDATE remains restricted to the original author.

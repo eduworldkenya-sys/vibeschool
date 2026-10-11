@@ -73,7 +73,8 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object(
     'student_id',er.student_id,'subject_id',er.subject_id,
     'marks',er.marks,'max_marks',er.max_marks,'percentage',er.percentage,
-    'result_state',er.result_state,'updated_at',er.updated_at
+    'result_state',er.result_state,'updated_at',er.updated_at,
+    'recorder_is_me',(er.teacher_id=(select auth.uid()))
   ) order by er.student_id,er.subject_id),'[]'::jsonb) into v_results
   from public.exam_results er
   join public.student_classes sc

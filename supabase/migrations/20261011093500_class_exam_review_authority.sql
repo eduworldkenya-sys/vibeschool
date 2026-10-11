@@ -82,7 +82,8 @@ using (
   )
 );
 
--- Class teachers can correct existing subject marks with explicit reasons. Existing
+-- Class teachers and currently assigned successor subject teachers can correct
+-- existing marks with explicit reasons. Existing
 -- records retain teacher_id (original recorder); the actor is captured by the
 -- platform_events audit stream. Per-subject writers keep their existing RPC.
 create or replace function public.teacher_correct_class_exam_result(
@@ -119,7 +120,10 @@ begin
   if nullif(v_context->>'school_id','')::uuid is distinct from p_school_id then
     raise exception 'active_school_changed';
   end if;
-  if not public.teacher_is_current_class_teacher(p_school_id, p_class_id) then
+  -- Corrections belong either to the appointed class teacher or a currently
+  -- assigned subject teacher taking over an existing recorded result.
+  if not public.teacher_is_current_class_teacher(p_school_id, p_class_id)
+    and not public.is_live_teacher_subject(p_school_id, p_class_id, p_subject_id) then
     raise exception 'class_teacher_not_authorized';
   end if;
 
@@ -196,7 +200,10 @@ begin
           is_absent = (v_state = 'absent')
     where id = v_existing.id
     returning * into v_saved;
-    v_action := 'corrected';
+    v_action := case
+      when public.teacher_is_current_class_teacher(p_school_id,p_class_id)
+      then 'corrected_by_class_teacher'
+      else 'corrected_by_subject_teacher' end;
   else
     -- Subject teacher is the entry authority. Class teacher may review
     -- missing marks but cannot silently originate another subject's score.
