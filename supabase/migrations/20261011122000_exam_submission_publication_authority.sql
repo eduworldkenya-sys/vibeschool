@@ -88,6 +88,39 @@ create policy "Published exam results for linked parent" on public.exam_results
         and psl.parent_id=(select auth.uid()))
   );
 
+-- authorization-test: public.report_card_remarks only school admin or appointed class teacher may write; linked learner and parent read after explicit publication; anonymous and other-school readers denied
+-- Some previously managed installations have remarks from direct SQL, not the
+-- checked-in migration chain. Converge that canonical table for blank rebuilds;
+-- existing production data and constraints remain untouched.
+create table if not exists public.report_card_remarks (
+  id uuid primary key default gen_random_uuid(),
+  exam_id uuid not null references public.exams(id) on delete cascade,
+  school_id uuid not null references public.schools(id) on delete cascade,
+  class_id uuid not null references public.classes(id) on delete cascade,
+  student_id uuid not null references public.students(id) on delete cascade,
+  class_teacher_id uuid not null references public.profiles(id),
+  remarks text,
+  conduct text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(exam_id,student_id)
+);
+alter table public.report_card_remarks enable row level security;
+revoke all on public.report_card_remarks from public,anon,authenticated;
+grant select,insert,update,delete on public.report_card_remarks to authenticated;
+drop policy if exists "admin manage remarks" on public.report_card_remarks;
+create policy "Admin manages class exam remarks" on public.report_card_remarks
+  for all to authenticated
+  using(public.is_school_admin(school_id))
+  with check(public.is_school_admin(school_id));
+drop policy if exists "class teacher manage remarks" on public.report_card_remarks;
+create policy "Class teacher manages assigned remarks" on public.report_card_remarks
+  for all to authenticated
+  using(class_teacher_id=(select auth.uid())
+    and public.teacher_is_current_class_teacher(school_id,class_id))
+  with check(class_teacher_id=(select auth.uid())
+    and public.teacher_is_current_class_teacher(school_id,class_id));
+
 -- Remarks also contain sensitive learner outcomes. Legacy 'member read'
 -- exposed every report remark to a same-school parent/member.
 drop policy if exists "remarks_member_read" on public.report_card_remarks;
