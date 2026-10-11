@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { nairobiDateStr } from '@/lib/time'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 
 type TabType = 'enrollment' | 'health' | 'library' | 'badges'
@@ -39,6 +40,8 @@ interface BadgeRow {
 }
 
 export default function StudentsReportPage() {
+  const router = useRouter()
+  const [schoolId, setSchoolId] = useState<string | null>(null)
   const [tab, setTab] = useState<TabType>('enrollment')
   const [students, setStudents] = useState<StudentRow[]>([])
   const [healthRows, setHealthRows] = useState<HealthRow[]>([])
@@ -49,7 +52,27 @@ export default function StudentsReportPage() {
   const [kpis, setKpis] = useState({ total: 0, male: 0, female: 0, classes: 0 })
   const [search, setSearch] = useState('')
 
-  useEffect(() => { loadTab(tab) }, [tab])
+  useEffect(() => {
+    let active=true
+    async function resolveSchool() {
+      const {data:{user}}=await supabase.auth.getUser()
+      if (!active) return
+      if (!user) { router.replace('/admin/login'); return }
+      const [admin, member, profile]=await Promise.all([
+        supabase.from('admin_profiles').select('school_id').eq('profile_id',user.id).maybeSingle(),
+        supabase.from('school_members').select('school_id').eq('profile_id',user.id).eq('role','admin').maybeSingle(),
+        supabase.from('profiles').select('school_id').eq('id',user.id).maybeSingle(),
+      ])
+      if (!active) return
+      const id=admin.data?.school_id ?? member.data?.school_id ?? profile.data?.school_id ?? null
+      if (!id) { router.replace('/admin/login'); return }
+      setSchoolId(id)
+    }
+    void resolveSchool()
+    return ()=>{active=false}
+  }, [router])
+
+  useEffect(() => { if(schoolId) void loadTab(tab) }, [tab,schoolId])
 
   async function loadTab(t: TabType) {
     setLoading(true)
@@ -113,6 +136,7 @@ export default function StudentsReportPage() {
     const {data,error} = await supabase
       .from('library_borrowings')
       .select('issued_at,due_date,returned_at,book:book_id(title),student:student_id(name)')
+      .eq('school_id',schoolId!)
       .eq('borrower_type','student')
       .is('deleted_at',null)
       .order('issued_at',{ascending:false})
