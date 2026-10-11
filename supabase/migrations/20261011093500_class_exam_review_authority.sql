@@ -71,7 +71,16 @@ drop policy if exists "Teachers view exam results for their classes" on public.e
 drop policy if exists "Teacher class-wide examination review" on public.exam_results;
 create policy "Teacher class-wide examination review" on public.exam_results
 for select to authenticated
-using (public.teacher_can_view_class_exam(school_id, class_id));
+using (
+  public.teacher_can_view_class_exam(school_id, class_id)
+  and exists (
+    select 1 from public.student_classes sc
+    where sc.school_id = exam_results.school_id
+      and sc.class_id = exam_results.class_id
+      and sc.student_id = exam_results.student_id
+      and sc.is_current = true
+  )
+);
 
 -- Class teachers can correct existing subject marks with explicit reasons. Existing
 -- records retain teacher_id (original recorder); the actor is captured by the
