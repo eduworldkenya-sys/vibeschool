@@ -7,6 +7,7 @@ import {
   type ClassExamLearner, type ClassExamResult, type ClassExamSubject, type ClassExamSheet as Sheet,
 } from '@/lib/teacher/classExamSheet'
 import styles from './ClassExamSheet.module.css'
+import { getExamLifecycle, submitExamSubject, type ExamLifecycle } from '@/lib/teacher/examLifecycle'
 
 type Selected = {
   learner: ClassExamLearner
@@ -51,14 +52,20 @@ export default function ClassExamSheet({ examId, schoolId, classId, className }:
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [version, setVersion] = useState(0)
+  const [lifecycle, setLifecycle] = useState<ExamLifecycle|null>(null)
+  const [submittingSubject, setSubmittingSubject] = useState<string|null>(null)
+  const [submissionError, setSubmissionError] = useState('')
 
   useEffect(() => {
     let active = true
     setLoading(true)
     setError('')
     setSheet(null)
-    void loadClassExamSheet({ examId,schoolId,classId })
-      .then(data => {if(active)setSheet(data)})
+    setLifecycle(null)
+    void Promise.all([
+      loadClassExamSheet({ examId,schoolId,classId }),
+      getExamLifecycle({examId,schoolId,classId}),
+    ]).then(([data,state]) => {if(active){setSheet(data);setLifecycle(state)}})
       .catch(cause=>{if(active)setError(message(cause))})
       .finally(()=>{if(active)setLoading(false)})
     return ()=>{active=false}
@@ -78,8 +85,26 @@ export default function ClassExamSheet({ examId, schoolId, classId, className }:
     const recorded=sheet?.results.filter(r => ['entered','absent','exempt','not_assessed','transferred'].includes(r.result_state)).length??0
     return {total,recorded,unresolved:Math.max(0,total-recorded)}
   },[sheet])
+  function isSubjectOpen(subjectId:string){
+    const state=lifecycle?.subjects.find(r=>r.subject_id===subjectId)?.state
+    return lifecycle?.status!=='published' && state!=='submitted' && state!=='verified'
+  }
+  async function submitSubject(subjectId:string){
+    if(!sheet || !lifecycle || submittingSubject || !isSubjectOpen(subjectId))return
+    setSubmittingSubject(subjectId);setSubmissionError('')
+    try{
+      await submitExamSubject({examId,schoolId,classId,subjectId})
+      const [next,nextLifecycle]=await Promise.all([
+        loadClassExamSheet({examId,schoolId,classId}),
+        getExamLifecycle({examId,schoolId,classId}),
+      ])
+      setSheet(next);setLifecycle(nextLifecycle)
+    }catch(cause){setSubmissionError(message(cause))}
+    finally{setSubmittingSubject(null)}
+  }
   function open(learner:ClassExamLearner,subject:ClassExamSubject,entry:ClassExamResult|null){
-    if (!sheet || sheet.is_locked || (!subject.can_enter && (!sheet.is_class_teacher || !entry))) return
+    if (!sheet || sheet.is_locked || !isSubjectOpen(subject.id) ||
+       (!subject.can_enter && (!sheet.is_class_teacher || !entry))) return
     setSelected({learner,subject,entry})
     setMark(entry?.marks == null ? '' : String(entry.marks))
     setResultState(entry?.result_state === 'absent' ? 'absent' : 'entered')
@@ -89,6 +114,7 @@ export default function ClassExamSheet({ examId, schoolId, classId, className }:
   async function save(){
     if(!sheet||!selected||saving)return
     const {learner,subject,entry}=selected
+    if(!isSubjectOpen(subject.id)){setSaveError('This subject has been submitted. Request reopening before editing.');return}
     const requiresCorrection = !subject.can_enter || (!!entry && !entry.recorder_is_me)
     if(requiresCorrection && !entry){setSaveError('Only the assigned subject teacher may enter the original result.');return}
     const max=entry?.max_marks ?? subject.max_marks
@@ -142,6 +168,24 @@ export default function ClassExamSheet({ examId, schoolId, classId, className }:
       <span className={styles.info}>{completion.unresolved} unresolved · {sheet.is_locked?'Locked':'Open'}</span>
       <button type="button" onClick={()=>setVersion(v=>v+1)} className={styles.quiet}>Refresh</button>
     </div>
+    {lifecycle&&<div className={styles.reviewBar} aria-label="Exam submission status">
+      <span className={styles.reviewSummary}>Publication: <strong>{lifecycle.status==='published'?'Published':'Not published'}</strong></span>
+      {sheet.subjects.filter(subject=>subject.can_enter).map(subject=>{
+        const state=lifecycle.subjects.find(r=>r.subject_id===subject.id)?.state??'draft'
+        const complete=sheet.learners.length>0&&sheet.learners.every(learner=>{
+          const entry=saved.get(learner.id+':'+subject.id)
+          return !!entry&&['entered','absent','exempt','not_assessed','transferred'].includes(entry.result_state)
+        })
+        return <div key={subject.id} className={styles.reviewItem}>
+          <span>{subject.name} <small>· {state}</small></span>
+          {(state==='draft'||state==='reopened')&&lifecycle.status!=='published'&&!sheet.is_locked&&
+            <button type="button" disabled={!complete||!!submittingSubject} className={styles.quiet}
+              title={complete?'Submit this learning area for school verification':'Complete every learner result before submitting'}
+              onClick={()=>{void submitSubject(subject.id)}}>{submittingSubject===subject.id?'Submitting…':'Submit'}</button>}
+        </div>
+      })}
+    </div>}
+    {submissionError&&<p role="alert" className={styles.saveError}>{submissionError}</p>}
     {sheet.subjects.length===0?<div className={styles.empty}>No learning areas are assigned to this class yet. Confirm assignments in School Hub.</div>
     : sheet.learners.length===0?<div className={styles.empty}>No currently enrolled learners were found. Check the class register.</div>
     : <div className={styles.scroller} role="region" aria-label="Class examination results" tabIndex={0}>
@@ -155,7 +199,7 @@ export default function ClassExamSheet({ examId, schoolId, classId, className }:
             {learner.admission_number&&<small>{learner.admission_number}</small>}</th>
           {sheet.subjects.map(subject=>{
             const entry=saved.get(learner.id+':'+subject.id)
-            const allowed=!sheet.is_locked&&(subject.can_enter || (sheet.is_class_teacher && !!entry))
+            const allowed=!sheet.is_locked&&isSubjectOpen(subject.id)&&(subject.can_enter || (sheet.is_class_teacher && !!entry))
             const value=display(entry)
             return <td key={subject.id}>
               {allowed?<button className={styles.cellAction} type="button"
