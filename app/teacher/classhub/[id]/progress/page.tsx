@@ -87,7 +87,7 @@ export default function ClassStudentProgressPage() {
   }
   if (loading) return <section style={{padding:20}} aria-label="Loading class progress"><p>Loading your complete class progress record…</p></section>
   return <section className="progress-print" style={{maxWidth:940,margin:'0 auto',padding:'16px 14px 112px',color:"var(--teacher-ink, #1c2923)"}}>
-    <section style={{padding:18,borderRadius:20,background:'#2c2944',color:'#fff'}}>
+    <section style={{padding:18,borderRadius:20,background:'#173f32',color:'#fff'}}>
       <button data-progress-controls type="button" onClick={() => router.push(`/teacher/classhub/${classId}`)} style={heroButton}>‹ Class</button>
       <h1 style={{margin:'12px 0 5px',fontSize:24}}>Student Progress Record · {authority?.className ?? 'Class'}</h1>
       <p style={{margin:0,fontSize:13,lineHeight:1.6}}>Review each learner's outcome evidence and choose the next useful action. A recorded score and a recorded performance level remain separate.</p>

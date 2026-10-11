@@ -11,6 +11,7 @@ import { loadExactLessonAttendance } from "@/lib/teaching/lessonAttendance";
 import { refreshPulse } from "@/lib/pulse/refresh";
 
 type AttendanceStatus = "present" | "absent" | "late" | "excused";
+type RegisterStatus = AttendanceStatus | "unmarked";
 type Mode = "class" | "lesson";
 
 type OperatingContext = {
@@ -50,19 +51,19 @@ function draftKey(mode: Mode, date: string, classId: string | null, occurrenceId
   return `vibeschool:teacher:attendance:${mode}:${date}:${classId ?? "none"}:${occurrenceId ?? "general"}`;
 }
 
-function loadDraft(key: string): Record<string, AttendanceStatus> | null {
+function loadDraft(key: string): Record<string, RegisterStatus> | null {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(key);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { statuses?: Record<string, AttendanceStatus> };
+    const parsed = JSON.parse(raw) as { statuses?: Record<string, RegisterStatus> };
     return parsed.statuses ?? null;
   } catch {
     return null;
   }
 }
 
-function saveDraft(key: string, statuses: Record<string, AttendanceStatus>) {
+function saveDraft(key: string, statuses: Record<string, RegisterStatus>) {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.setItem(key, JSON.stringify({ statuses, savedAt: new Date().toISOString() }));
@@ -127,7 +128,7 @@ function AttendancePageInner() {
   const [activeSlot, setActiveSlot] = useState<LessonSlot | null>(null);
   const [occurrenceId, setOccurrenceId] = useState<string | null>(null);
   const [students, setStudents] = useState<StudentRow[]>([]);
-  const [statuses, setStatuses] = useState<Record<string, AttendanceStatus>>({});
+  const [statuses, setStatuses] = useState<Record<string, RegisterStatus>>({});
   const [loading, setLoading] = useState(true);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -329,8 +330,8 @@ function AttendancePageInner() {
       for (const row of attendanceRes.data ?? []) {
         existing[row.student_id] = row.is_late ? "late" : (row.status as AttendanceStatus);
       }
-      const base: Record<string, AttendanceStatus> = {};
-      for (const student of roster) base[student.id] = existing[student.id] ?? "present";
+      const base: Record<string, RegisterStatus> = {};
+      for (const student of roster) base[student.id] = existing[student.id] ?? "unmarked";
       const key = draftKey(mode, selectedDate, classId, activeOccurrenceId);
       const draft = loadDraft(key);
       setStudents(roster);
@@ -386,12 +387,17 @@ function AttendancePageInner() {
       setError("Start this lesson before saving attendance.");
       return;
     }
+    const unmarked = students.filter((student) => (statuses[student.id] ?? "unmarked") === "unmarked");
+    if (unmarked.length > 0) {
+      setError(`Mark all ${unmarked.length} remaining learner${unmarked.length === 1 ? "" : "s"} before saving.`);
+      return;
+    }
     setSaving(true);
     setError(null);
     setSaved(false);
     try {
       const rows = students.map((student) => {
-        const value = statuses[student.id] ?? "present";
+        const value = statuses[student.id] as AttendanceStatus;
         return {
           student_id: student.id,
           class_id: classId,
@@ -447,6 +453,7 @@ function AttendancePageInner() {
     acc[value] = Object.values(statuses).filter((status) => status === value).length;
     return acc;
   }, { present: 0, absent: 0, late: 0, excused: 0 });
+  const unmarkedCount = Object.values(statuses).filter((status) => status === "unmarked").length;
 
   return (
     <div style={{ maxWidth: 820, margin: "0 auto", padding: "16px 14px 112px" }}>
@@ -517,18 +524,19 @@ function AttendancePageInner() {
               <div style={{ padding: "24px 8px", textAlign: "center", color: "var(--teacher-muted, #627168)", fontSize: 13 }}>{mode === "lesson" && !occurrenceId ? "Start the lesson first, then return here to take attendance." : "No current learners were found for this class."}</div>
             ) : (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, marginBottom: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6, marginBottom: 12 }}>
+                  <div style={{ borderRadius: 10, background: "#fff7ed", padding: "7px 4px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 750 }}>{unmarkedCount}</div><div style={{ fontSize: 11, color: "#9a3412" }}>Unmarked</div></div>
                   {STATUSES.map((value) => <div key={value} style={{ borderRadius: 10, background: "var(--teacher-canvas, #f5f6f2)", padding: "7px 4px", textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 750 }}>{counts[value]}</div><div style={{ fontSize: 11, color: "#627168", textTransform: "capitalize" }}>{value}</div></div>)}
                 </div>
                 <div style={{ display: "grid", gap: 8 }}>
                   {students.map((student) => (
                     <div key={student.id} style={{ border: "1px solid #e5e7eb", borderRadius: 14, padding: 11 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 9 }}><div><div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{student.name}</div>{student.admissionNumber && <div style={{ marginTop: 2, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>{student.admissionNumber}</div>}</div><div style={{ fontSize: 11, fontWeight: 750, color: "var(--teacher-muted, #627168)", textTransform: "capitalize" }}>{statuses[student.id] ?? "present"}</div></div>
-                      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>{STATUSES.map((value) => <StatusButton key={value} value={value} active={(statuses[student.id] ?? "present") === value} onClick={() => updateStatus(student.id, value)} />)}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 9 }}><div><div style={{ fontSize: 13, fontWeight: 750, color: "var(--teacher-ink, #1c2923)" }}>{student.name}</div>{student.admissionNumber && <div style={{ marginTop: 2, fontSize: 11, color: "var(--teacher-muted, #627168)" }}>Adm. {student.admissionNumber}</div>}</div><div style={{ fontSize: 11, fontWeight: 750, color: statuses[student.id] === "unmarked" ? "#9a3412" : "var(--teacher-muted, #627168)", textTransform: "capitalize" }}>{statuses[student.id] ?? "unmarked"}</div></div>
+                      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }}>{STATUSES.map((value) => <StatusButton key={value} value={value} active={statuses[student.id] === value} onClick={() => updateStatus(student.id, value)} />)}</div>
                     </div>
                   ))}
                 </div>
-                <button type="button" onClick={() => void saveRegister()} disabled={saving} style={{ width: "100%", minHeight: 50, marginTop: 14, border: 0, borderRadius: 13, background: saving ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750, fontSize: 14 }}>{saving ? "Saving…" : "Save attendance"}</button>
+                <button type="button" onClick={() => void saveRegister()} disabled={saving || unmarkedCount > 0} style={{ width: "100%", minHeight: 50, marginTop: 14, border: 0, borderRadius: 13, background: saving || unmarkedCount > 0 ? "#9ca3af" : "#111827", color: "#fff", fontWeight: 750, fontSize: 14 }}>{saving ? "Saving…" : unmarkedCount > 0 ? `Mark ${unmarkedCount} remaining` : "Save attendance"}</button>
               </>
             )}
           </section>

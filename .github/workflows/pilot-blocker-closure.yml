@@ -1,0 +1,37 @@
+name: Pilot blocker closure
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261010180500_repair_custom_scheme_generated_content_status.sql'
+      - 'scripts/test-pilot-blocker-closure.mjs'
+      - 'app/teacher/attendance/page.tsx'
+      - 'app/teacher/classhub/[id]/homework/page.tsx'
+      - 'app/teacher/lesson-plans/page.tsx'
+      - 'app/teacher/scheme/AuthoritySchemePage.jsx'
+      - 'app/teacher/schoolhub/page.tsx'
+      - '.github/workflows/pilot-blocker-closure.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pilot-blocker-closure-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  scheme-contract:
+    name: Scheme generated-column and authorization regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Install isolated PostgreSQL-compatible test runtime
+        run: npm install --prefix "$RUNNER_TEMP/pilot-tests" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8
+      - name: Exercise actual repair SQL and denial paths
+        env:
+          PILOT_PGLITE_MODULE: ${{ runner.temp }}/pilot-tests/node_modules/@electric-sql/pglite/dist/index.js
+        run: node scripts/test-pilot-blocker-closure.mjs
