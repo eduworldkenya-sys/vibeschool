@@ -8,6 +8,7 @@ import { saveCanonicalExamResult, saveCanonicalExamResults, getCanonicalExamSubj
 import { twinRecord, twinRpc } from '@/lib/twin/transport'
 import ProfessionalMarkbook from '@/components/teacher/ProfessionalMarkbook'
 import ClassExamSheet from '@/components/teacher/assessment/ClassExamSheet'
+import {getExamLifecycle,type ExamLifecycle} from '@/lib/teacher/examLifecycle'
 import AssessmentIntelligenceConsole from '@/components/teacher/AssessmentIntelligenceConsole'
 import type { Database } from '@/lib/database.types'
 
@@ -73,6 +74,8 @@ function ResultsInner() {
   const [savingAll,setSavingAll]=useState(false)
   const [errorByStudent,setErrorByStudent]=useState<Record<string,string>>({})
   const [activeTab,setActiveTab]=useState<'entry'|'class'|'analysis'>('entry')
+  const [examLifecycle,setExamLifecycle]=useState<ExamLifecycle|null>(null)
+  const [lifecycleError,setLifecycleError]=useState('')
   const [booting,setBooting]=useState(true)
   const [loading,setLoading]=useState(false)
   const [error,setError]=useState<string|null>(null)
@@ -156,6 +159,22 @@ function ResultsInner() {
     return()=>{live=false}
   },[activeExam,schoolId,classes,subjects,activeClassIdx,activeSubjectIdx])
 
+  useEffect(()=>{
+    const cls=classes[activeClassIdx],subject=subjects[activeSubjectIdx]
+    if(!activeExam||!schoolId||!cls||!subject){setExamLifecycle(null);return}
+    let mounted=true
+    setExamLifecycle(null);setLifecycleError('')
+    void getExamLifecycle({examId:activeExam.id,schoolId,classId:cls.id})
+      .then(state=>{if(mounted)setExamLifecycle(state)})
+      .catch(err=>{if(mounted)setLifecycleError(err instanceof Error?err.message:'Cannot verify examination status.')})
+    return()=>{mounted=false}
+  },[activeExam,schoolId,classes,activeClassIdx,subjects,activeSubjectIdx,activeTab])
+
+  const selectedSubjectId=subjects[activeSubjectIdx]?.id
+  const selectedSubjectReview=examLifecycle?.subjects.find(r=>r.subject_id===selectedSubjectId)?.state
+  const subjectLocked=!examLifecycle || examLifecycle.status==='published' ||
+    selectedSubjectReview==='submitted'||selectedSubjectReview==='verified'
+
   useEffect(()=>{ if (activeExam && students.length>0) void loadResults(); else setResults([]) },[activeExam,students,activeSubjectIdx])
 
   useEffect(()=>{
@@ -193,7 +212,7 @@ function ResultsInner() {
   }
 
   async function saveMark(student:Student,isAbsent=false):Promise<boolean> {
-    if (!activeExam || !teacherId || activeExam.is_locked) return false
+    if (!activeExam || !teacherId || activeExam.is_locked || subjectLocked) return false
     const raw=draftMarks[student.id]??''
     const marks=isAbsent?0:Number(raw)
     const max=subjectPolicy?.max_marks
@@ -222,7 +241,7 @@ function ResultsInner() {
   }
 
   async function saveAllMarks() {
-    if (!activeExam || activeExam.is_locked || savingAll || !subjectPolicy) return
+    if (!activeExam || activeExam.is_locked || subjectLocked || savingAll || !subjectPolicy) return
     if (!schoolId) return
     const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
     if(!classId||!subjectId)return
@@ -254,7 +273,7 @@ function ResultsInner() {
   }
 
   async function saveSubjectPolicy() {
-    if(!activeExam || !schoolId || activeExam.is_locked || savingPolicy) return
+    if(!activeExam || !schoolId || activeExam.is_locked || subjectLocked || savingPolicy) return
     const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
     if(!classId||!subjectId)return
     setSavingPolicy(true);setPolicyError('')
@@ -298,7 +317,7 @@ function ResultsInner() {
 
   async function clearAbsent(student:Student):Promise<boolean> {
     const existing=results.find(r=>r.student_id===student.id)
-    if (!existing || !existing.is_absent || !activeExam || activeExam.is_locked) return false
+    if (!existing || !existing.is_absent || !activeExam || activeExam.is_locked || subjectLocked) return false
     const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
     if(!schoolId||!classId||!subjectId)return false
     setSavingId(student.id)
@@ -346,7 +365,7 @@ function ResultsInner() {
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
         {tier===1&&<button onClick={()=>setShowContextSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>Change exam / class / subject</button>}
         <button onClick={()=>setShowExamSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>＋ New exam</button>
-        {activeExam&&tier===1&&<button type="button" onClick={()=>setEditingPolicy(x=>!x)} disabled={activeExam.is_locked} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>Scoring setup</button>}
+        {activeExam&&tier===1&&<button type="button" onClick={()=>setEditingPolicy(x=>!x)} disabled={activeExam.is_locked||subjectLocked} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>Scoring setup</button>}
         <button onClick={exportMarksCsv} disabled={!activeExam || results.length===0} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text,opacity:!activeExam||results.length===0?.5:1}}>Export</button>
       </div>
     </div>
@@ -370,12 +389,14 @@ function ResultsInner() {
     {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','class','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':tab==='class'?'Class results':'Explore'}</button>)}</div>}
 
     {activeTab==='entry' && <div style={{padding:'14px 16px 0'}}>
+      {lifecycleError&&<p role="alert" style={{fontSize:12,color:'#a83232'}}>Examination permission and submission status unavailable: {lifecycleError}</p>}
+      {selectedSubjectReview==='submitted'||selectedSubjectReview==='verified'?<p role="status" style={{fontSize:12,color:'#226342',fontWeight:700}}>This learning area is {selectedSubjectReview}. Ask the examination office to reopen before correcting marks.</p>:null}
       {!activeExam?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Create or select an exam to open the markbook.</div>
       : tier!==1?<div style={{padding:24,border:'1px solid #fde68a',background:'#fffbeb',borderRadius:14,color:'#92400e'}}>Professional marks entry requires a school class and subject assignment. This prevents unscoped exam records.</div>
       : loading?<Skeleton h={220}/>
       : students.length===0?<div style={{padding:32,textAlign:'center',color:W.textMuted}}>No students enrolled in this class.</div>
       : !subjectPolicy?<div role="status" style={{padding:28,color:W.textMuted}}>{policyError?'Scoring policy unavailable. Check your assigned subject and retry.':'Loading scoring setup…'}</div>
-      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} maxMarks={subjectPolicy.max_marks} locked={activeExam.is_locked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} onSaveAll={saveAllMarks} savingAll={savingAll} />}
+      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} maxMarks={subjectPolicy.max_marks} locked={activeExam.is_locked||subjectLocked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} onSaveAll={saveAllMarks} savingAll={savingAll} />}
     </div>}
 
     {activeTab==='class' && <div style={{padding:'14px 16px 0'}}>
