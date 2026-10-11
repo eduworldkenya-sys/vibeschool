@@ -143,6 +143,32 @@ create trigger exam_result_submission_guard
   before insert or update or delete on public.exam_results
   for each row execute function public.exam_result_submission_guard();
 
+-- A submitted exam's denominator or pass threshold is immutable until
+-- school office reopens the affected subject and withdraws publication.
+create or replace function public.exam_subject_policy_submission_guard()
+returns trigger language plpgsql security definer set search_path=''
+as $function$
+declare v_exam uuid;v_subject uuid;
+begin
+  v_exam:=coalesce(new.exam_id,old.exam_id);
+  v_subject:=coalesce(new.subject_id,old.subject_id);
+  if exists(select 1 from public.exam_class_publications p
+    where p.exam_id=v_exam and p.status='published') then
+    raise exception 'exam_class_published_reopen_required';
+  end if;
+  if exists(select 1 from public.exam_class_subject_reviews r
+    where r.exam_id=v_exam and r.subject_id=v_subject
+      and r.state in ('submitted','verified')) then
+    raise exception 'subject_results_submitted_reopen_required';
+  end if;
+  return coalesce(new,old);
+end;
+$function$;
+drop trigger if exists exam_subject_policy_submission_guard on public.exam_subject_config;
+create trigger exam_subject_policy_submission_guard
+  before insert or update or delete on public.exam_subject_config
+  for each row execute function public.exam_subject_policy_submission_guard();
+
 create or replace function public.teacher_get_class_exam_lifecycle(
  p_exam_id uuid,p_school_id uuid,p_class_id uuid
 ) returns jsonb language plpgsql security definer set search_path=''
