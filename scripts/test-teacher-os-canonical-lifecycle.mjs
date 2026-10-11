@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
-const migration = await readFile(new URL('../supabase/migrations/20261011060627_teacher_os_canonical_lifecycle.sql', import.meta.url), 'utf8')
+const migration = await readFile(new URL('../supabase/migrations/20261011183021_teacher_os_canonical_lifecycle.sql', import.meta.url), 'utf8')
 const teachMode = await readFile(new URL('../components/teacher/LessonTeachMode.tsx', import.meta.url), 'utf8')
 const planModal = await readFile(new URL('../components/teacher/LessonPlanModal.tsx', import.meta.url), 'utf8')
 const pulseFetcher = await readFile(new URL('../lib/pulse/fetcher.ts', import.meta.url), 'utf8')
