@@ -108,6 +108,9 @@ await assert.rejects(()=>scalar(appoint,[cls2,learner,'representative',null,id(4
 await assert.rejects(()=>scalar(appoint,[cls,otherLearner,'deputy',null,id(42)]),/learner_not_currently_enrolled/);
 const future=await scalar("select public.school_appoint_class_learner($1,$2,'representative',current_date+5,current_date+10,null,$3) value",[cls,learner,id(46)]);
 assert.ok(future,'future scheduled leadership appointments supported');
+const previousAppointment=await db.query('select ends_on::text as ends_on,handover_request_id,handover_scheduled_by from class_learner_appointments where id=$1',[rep]);
+assert.equal(previousAppointment.rows[0].handover_request_id,id(46),'future handover preserves attributable request');
+assert.equal(previousAppointment.rows[0].handover_scheduled_by,teacher,'future handover records appointing teacher');
 const leadership=await scalar('select public.school_get_class_leadership($1) value',[cls]);
 assert.equal(leadership.current.some(a=>a.id===rep),true,'incumbent remains until handover');
 assert.equal(leadership.upcoming.some(a=>a.id===future),true,'future appointments separated');
