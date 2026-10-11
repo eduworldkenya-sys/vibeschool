@@ -53,7 +53,7 @@ await insert("insert into classes values($1,$2,'Grade 8 East'),($3,$4,'Grade 8 W
 await insert('insert into students values($1,$2,null),($3,$4,null)',learner,'Learner One',otherLearner,'Learner Two');
 await insert('insert into student_classes(student_id,school_id,class_id,is_current) values($1,$2,$3,true),($4,$5,$6,true)',learner,school,cls,otherLearner,school2,cls2);
 await insert('insert into teacher_classes values($1,$2,$3,null,true),($4,$2,$3,$5,false)',teacher,cls,school,subjectTeacher,id(99));
-await insert('insert into class_groups(id,class_id,school_id,subject_id,name) values($1,$2,$3,$4,'Team A')',grp,cls,school,id(99));
+await insert('insert into class_groups(id,class_id,school_id,subject_id,name) values($1,$2,$3,$4,$5)',grp,cls,school,id(99),'Team A');
 await insert('insert into class_group_members values($1,$2)',grp,learner);
 await insert('insert into academic_terms values($1,$2,current_date-30,current_date+30)',term,school);
 await insert("insert into library_books values($1,$2,'Book One',2,2,null),($3,$4,'Outside Book',2,2,null)",book,school,book2,school2);
