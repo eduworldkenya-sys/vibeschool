@@ -282,7 +282,9 @@ function ResultsInner() {
         result.result_state])
     }
     const safeCsvCell=(value:string) => {
-      const guarded=/^[=+@\\-\\t\\r]/.test(value) ? "'"+value : value
+      const first=value.charAt(0)
+      const guarded=['=','+','-','@'].includes(first) || first==='\\t' || first==='\\r'
+        ? "'"+value : value
       return `"${guarded.replace(/"/g,'""')}"`
     }
     const csv=rows.map(row=>row.map(safeCsvCell).join(',')).join('\n')
