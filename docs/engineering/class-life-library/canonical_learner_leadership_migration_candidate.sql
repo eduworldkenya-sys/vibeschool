@@ -19,6 +19,9 @@ create table public.class_learner_appointments (
   ended_at timestamptz,
   ended_by uuid references public.profiles(id),
   ended_reason text check (ended_reason in ('replaced','resigned','removed','completed')),
+  handover_request_id uuid,
+  handover_scheduled_by uuid references public.profiles(id),
+  handover_scheduled_at timestamptz,
   constraint class_leader_dates_chk check (starts_on<=ends_on),
   constraint class_leader_scope_chk check ((role_code='group_leader')=(group_id is not null))
 );
@@ -139,13 +142,17 @@ begin
     -- End same-day incumbent explicitly. For future handovers, truncate the
     -- incumbent at the previous school day while retaining historical record.
     update public.class_learner_appointments a
-      set ended_at=now(),ended_by=v_uid,ended_reason='replaced'
+      set ended_at=now(),ended_by=v_uid,ended_reason='replaced',
+          handover_request_id=p_request_id,
+          handover_scheduled_by=v_uid,handover_scheduled_at=now()
     where a.class_id=p_class_id and a.role_code=p_role_code
       and a.group_id is not distinct from p_group_id and a.ended_at is null
       and a.starts_on=p_starts_on;
 
     update public.class_learner_appointments a
-      set ends_on=p_starts_on-1
+      set ends_on=p_starts_on-1,
+          handover_request_id=p_request_id,
+          handover_scheduled_by=v_uid,handover_scheduled_at=now()
     where a.class_id=p_class_id and a.role_code=p_role_code
       and a.group_id is not distinct from p_group_id and a.ended_at is null
       and a.starts_on<p_starts_on and a.ends_on>=p_starts_on;
@@ -309,6 +316,8 @@ begin
     'id',a.id,'role',a.role_code,'group_id',a.group_id,'group_name',g.name,
     'starts_on',a.starts_on,'ends_on',a.ends_on,
     'ended_at',a.ended_at,'ended_reason',a.ended_reason,
+    'handover_request_id',a.handover_request_id,
+    'handover_scheduled_at',a.handover_scheduled_at,
     'appointed_by',a.appointed_by
   ) order by a.starts_on desc,a.created_at desc),'[]'::jsonb)
   into v_result from public.class_learner_appointments a
