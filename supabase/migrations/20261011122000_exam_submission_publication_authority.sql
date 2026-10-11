@@ -310,9 +310,15 @@ begin
         on sm.profile_id=tc.teacher_id and sm.school_id=tc.school_id and sm.role='teacher'
       where tc.school_id=p_school_id and tc.class_id=p_class_id;
     if v_expected=0 then raise exception 'class_has_no_subjects';end if;
-    select count(*) into v_verified from public.exam_class_subject_reviews r
-      where r.exam_id=p_exam_id and r.school_id=p_school_id and r.class_id=p_class_id
-        and r.state='verified';
+    select count(distinct tc.subject_id) into v_verified
+    from public.teacher_classes tc
+    join public.school_members sm on sm.profile_id=tc.teacher_id
+      and sm.school_id=tc.school_id and sm.role='teacher'
+    where tc.school_id=p_school_id and tc.class_id=p_class_id
+      and exists (select 1 from public.exam_class_subject_reviews r
+        where r.exam_id=p_exam_id and r.school_id=p_school_id
+          and r.class_id=p_class_id and r.subject_id=tc.subject_id
+          and r.state='verified');
     if v_verified<>v_expected then
       raise exception 'exam_subjects_not_fully_verified % of %',v_verified,v_expected;
     end if;
