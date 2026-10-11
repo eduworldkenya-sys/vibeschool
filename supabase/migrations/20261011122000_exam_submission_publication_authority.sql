@@ -1,6 +1,8 @@
 -- Per-class examination moderation and publication gate.
 -- Canonical marks remain in public.exam_results. Unpublished results are private
 -- to authorized school staff. Never aggregate a CBC national examination.
+-- authorization-test: public.exam_class_subject_reviews only assigned subject staff and school admins read; no direct browser mutations; parent and anonymous denied; see scripts/test-class-exam-authority-db.mjs
+-- authorization-test: public.exam_class_publications only assigned class staff and school admins read; publication writes require school admin RPC; parent/anonymous denied
 begin;
 
 create table if not exists public.exam_class_subject_reviews (
