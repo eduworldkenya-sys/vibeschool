@@ -38,6 +38,17 @@
 5. `canonical_library_copies_migration_candidate.sql`: staged per-physical-copy inventory with unique accession and active loan, automatic copy allocation/return, lost/damaged quarantine, authorized copy repair and idempotent restock audit, and guarded archive that refuses titles with outstanding loans. Preserves the existing teacher issue API.
 6. `scripts/test-class-life-library-authority.mjs`: isolated PostgreSQL tests for idempotency, concurrent stock constraints, school isolation, future leadership, group authorization and transfer lifecycle. Exact-head CI workflow exercises these candidates.
 
+## Verified database environment drift (release gate)
+
+Read-only production inspection on 11 October 2026 established that the live Supabase PostgreSQL **major version is 17**, whereas the existing repository `supabase/config.toml` had `major_version = 15`. This branch now aligns the config to `17`, so a CLI shadow test must use the correct engine.
+
+The live `supabase_migrations.schema_migrations` ledger also uses versions different from several equivalent-looking files in `supabase/migrations`. Examples:
+- Live `20261006135728_school_class_responsibility_operations` versus repository `20261004210000_school_class_responsibility_operations.sql`.
+- Live `20261011055251_assessment_support_audit_repair` versus repository `20261009160000_assessment_support_audit_repair.sql`.
+- Live `20261011055302_repair_custom_scheme_generated_content_status` versus repository `20261010180500_repair_custom_scheme_generated_content_status.sql`.
+
+These are **names/versions**, not proof that SQL bodies or schema states match. Before production SQL activation, independently compare the `statements` stored in the live ledger and actual function/table definitions to the exact canonical repo migration content; reconcile only verified equivalents using an approved migration-history repair, never remove/drop or blindly reapply migrations. Re-run full SQL tests under a PG17-compatible rehearsal before applying these **three new, yet-unreleased** migration candidates. Project contains no spare healthy production-equivalent preview database, and creating a new billed branch requires separate cost approval.
+
 ## Integrated Class Hub and learner views (still draft until DB is live)
 
 Two small reusable panels are integrated into the current Class Hub and learner views, preserving the existing compact Teacher OS styling:
