@@ -134,6 +134,9 @@ const data = {
       exam_id: "e1",
       subject_id: "english",
       marks: 40,
+      max_marks: 100,
+      percentage: 40,
+      result_state: "entered",
       is_absent: false,
     },
     {
@@ -141,7 +144,10 @@ const data = {
       student_id: "a",
       exam_id: "e2",
       subject_id: "english",
-      marks: 60,
+      marks: 30,
+      max_marks: 50,
+      percentage: 60,
+      result_state: "entered",
       is_absent: false,
     },
     {
@@ -149,7 +155,10 @@ const data = {
       student_id: "b",
       exam_id: "e2",
       subject_id: "english",
-      marks: 0,
+      marks: null,
+      max_marks: 50,
+      percentage: null,
+      result_state: "absent",
       is_absent: true,
     },
     {
@@ -157,7 +166,10 @@ const data = {
       student_id: "c",
       exam_id: "e2",
       subject_id: "english",
-      marks: 60,
+      marks: 30,
+      max_marks: 50,
+      percentage: 60,
+      result_state: "entered",
       is_absent: false,
     },
   ],
@@ -207,6 +219,15 @@ assert.equal(
   "unreleased scores must not enter averages",
 );
 assert.equal(project("exams").rows[0].values.examChange, 20);
+assert.equal(
+  project("exams").rows[0].values.average, 60,
+  "scores out of 50 are normalized to percentages before comparison",
+);
+assert.equal(
+  project("exams").rows[1].values.examStatus,
+  "Absent",
+  "explicit absence is not a zero mark",
+);
 assert.equal(
   project("exams").rows[1].values.examChange,
   null,
