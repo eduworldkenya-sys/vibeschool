@@ -158,7 +158,7 @@ begin
   update public.library_borrowings set returned_at=now(),condition_in=p_condition_in,
     fine_amount=p_fine_amount,fine_paid=(p_fine_paid and p_fine_amount>0)
   where id=p_borrowing_id;
-  if p_condition_in <> 'lost' then
+  if p_condition_in in ('good','fair') then
     update public.library_books
     set available_copies=least(total_copies,available_copies+1)
     where id=v_loan.book_id and school_id=v_loan.school_id and deleted_at is null;
