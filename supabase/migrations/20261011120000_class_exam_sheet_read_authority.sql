@@ -54,7 +54,8 @@ begin
     from public.subjects s
     left join public.exam_subject_config esc
       on esc.subject_id=s.id and esc.exam_id=p_exam_id
-    where exists (
+    where s.school_id=p_school_id and (
+      exists (
       select 1 from public.teacher_classes tc
       join public.school_members sm
         on sm.profile_id=tc.teacher_id and sm.school_id=tc.school_id
@@ -65,6 +66,7 @@ begin
       select 1 from public.exam_results er
       where er.exam_id=p_exam_id and er.school_id=p_school_id
         and er.class_id=p_class_id and er.subject_id=s.id
+    )
     )
   ) a;
 
