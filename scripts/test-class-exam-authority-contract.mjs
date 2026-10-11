@@ -14,6 +14,7 @@ const checks = [
   [/for select to authenticated/, 'class-wide read is SELECT-only'],
   [/teacher_correct_class_exam_result\(/, 'separate class correction API'],
   [/class_teacher_not_authorized/, 'class edit permission checked server-side'],
+  [/result_not_entered_by_subject_teacher/, 'only the subject teacher enters new marks'],
   [/active_school_changed/, 'active school context enforced'],
   [/student_not_in_current_class/, 'canonical active learner enrollment'],
   [/class_subject_not_assigned/, 'class learning area scoped'],
@@ -28,6 +29,10 @@ const checks = [
   [/grant execute on function public\.teacher_correct_class_exam_result/, 'explicit RPC grant'],
   [/revoke all on function public\.teacher_correct_class_exam_result/, 'no anonymous RPC access'],
 ];
+assert.doesNotMatch(
+  sql, /insert into public\\.exam_results\\s*\\(/i,
+  'class-teacher corrections must never create a mark in another subject'
+);
 for (const [pattern,label] of checks) {
   assert.match(sql,pattern, label);
   console.log('PASS:',label);
