@@ -6,6 +6,10 @@
   --color-white:      #FFFFFF;
   --color-white-soft: rgba(255, 255, 255, 0.42);
   --ease-gold:        cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* Safe local fallback stacks for the mono/italic-serif variables formerly
+     fetched remotely in next/font/google at build time. */
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-serif: Georgia, 'Times New Roman', serif;
 }
 
 *, *::before, *::after {
