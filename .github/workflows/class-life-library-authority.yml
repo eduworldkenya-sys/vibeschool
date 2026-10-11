@@ -1,0 +1,30 @@
+name: Class Life and Library Authority
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/admin/resources/page.tsx"
+      - "app/admin/reports/students/page.tsx"
+      - "docs/engineering/class-life-library/**"
+      - "scripts/test-class-life-library-authority.mjs"
+      - ".github/workflows/class-life-library-authority.yml"
+permissions:
+  contents: read
+concurrency:
+  group: class-life-library-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  isolated-postgres:
+    name: Library and leadership SQL authorization
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --prefix "$RUNNER_TEMP/class-life-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.5.8
+      - name: Verify stock, tenant isolation and appointment history
+        run: WORKBOOK_PGLITE_MODULE="$RUNNER_TEMP/class-life-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-class-life-library-authority.mjs
