@@ -717,7 +717,7 @@ export default function AdminResourcesPage() {
   async function fetchBorrowings() {
     const { data } = await supabase
       .from('library_borrowings')
-      .select('*, book:book_id(title), issuer:issued_by(full_name), borrower_student:student_id(name), borrower_staff:staff_id(full_name)')
+      .select('*, book:book_id(title), issuer:profiles!library_borrowings_issued_by_fkey(full_name), borrower_student:student_id(name), borrower_staff:profiles!library_borrowings_staff_id_fkey(full_name)')
       .eq('school_id', schoolId!)
       .is('returned_at', null)
       .is('deleted_at', null)
