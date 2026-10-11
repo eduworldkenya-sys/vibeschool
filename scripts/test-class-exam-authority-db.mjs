@@ -170,6 +170,10 @@ await root(`update public.exams set is_locked=false where id='${id(60)}'`);
 const absence=await correction({expected:fresh,marks:null,state:'absent'});
 assert.equal(absence.rows[0].result.marks,null,'absence is not zero');
 assert.equal(absence.rows[0].result.result_state,'absent');
+await root(`update public.student_classes set is_current=false where student_id='${id(31)}'`);
+await asUser(1);
+assert.equal((await readResults()).rows.length,1,
+  'former learner must disappear from teacher class-wide exam visibility');
 await root(`update public.profiles set account_status='suspended' where id='${id(2)}'`);
 await asUser(2);
 assert.equal((await readResults()).rows.length,0,'inactive class teacher loses read');
