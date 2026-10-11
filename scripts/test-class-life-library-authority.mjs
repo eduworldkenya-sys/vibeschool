@@ -12,7 +12,7 @@ create function auth.uid() returns uuid language sql stable as $$ select nullif(
 grant usage on schema public,auth to authenticated,anon;
 grant execute on function auth.uid() to authenticated,anon;
 create table public.schools(id uuid primary key);
-create table public.profiles(id uuid primary key,full_name text);
+create table public.profiles(id uuid primary key,full_name text,account_status text not null default 'active',is_anonymized boolean default false);
 create table public.school_members(profile_id uuid,school_id uuid,role text,joined_at timestamptz default now());
 create table public.staff(profile_id uuid,school_id uuid,status text,deleted_at timestamptz);
 create table public.classes(id uuid primary key,school_id uuid references schools(id),name text);
@@ -48,8 +48,11 @@ create policy loan_admin on public.library_borrowings for all to authenticated u
 `);
 const insert=async(sql,...values)=>db.query(sql,values);
 await insert('insert into schools values($1),($2)',school,school2);
-await insert('insert into profiles values($1,$2),($3,$4),($5,$6),($7,$8),($9,$10)',admin,'Admin',teacher,'Class Teacher',subjectTeacher,'Subject Teacher',outsider,'Outsider',id(15),'Librarian');
+await insert('insert into profiles(id,full_name) values($1,$2),($3,$4),($5,$6),($7,$8),($9,$10)',admin,'Admin',teacher,'Class Teacher',subjectTeacher,'Subject Teacher',outsider,'Outsider',id(15),'Librarian');
 await insert("insert into staff(profile_id,school_id,status) values($1,$2,'active')",id(15),school);
+await insert("insert into profiles(id,full_name,account_status) values($1,'Disabled Staff','suspended')",id(16));
+await insert("insert into profiles(id,full_name,account_status,is_anonymized) values($1,'Anonymized Staff','active',true)",id(17));
+await insert("insert into staff(profile_id,school_id,status) values($1,$3,'active'),($2,$3,'active')",id(16),id(17),school);
 await insert("insert into school_members(profile_id,school_id,role) values($1,$2,'admin'),($3,$2,'teacher'),($4,$2,'teacher'),($5,$6,'admin')",admin,school,teacher,subjectTeacher,outsider,school2);
 await insert("insert into classes values($1,$2,'Grade 8 East'),($3,$4,'Grade 8 West')",cls,school,cls2,school2);
 await insert('insert into students values($1,$2,null),($3,$4,null)',learner,'Learner One',otherLearner,'Learner Two');
@@ -73,10 +76,12 @@ const issue="select public.school_issue_library_book($1,$2,null,current_date+7,'
 await as(admin);
 const options=await scalar('select public.school_library_borrower_options($1) value',[school]);
 assert.equal(options.students.length,1);
-assert.equal(options.staff.length,4,'registered active school staff are eligible, not only teachers');
+assert.equal(options.staff.length,4,'only active, non-anonymized school staff appear as borrowers');
 assert.deepEqual(await copies(),{available:2},'backfilled catalogue has individual available copies');
 const staffLoan=await scalar("select public.school_issue_library_book($1,null,$2,current_date+7,'good',$3) value",[book,id(15),id(60)]);
 assert.ok(staffLoan,'registered non-teaching staff can borrow');
+await assert.rejects(()=>scalar("select public.school_issue_library_book($1,null,$2,current_date+7,'good',$3) value",[book,id(16),id(81)]),/staff_profile_not_active/);
+await assert.rejects(()=>scalar("select public.school_issue_library_book($1,null,$2,current_date+7,'good',$3) value",[book,id(17),id(82)]),/staff_profile_not_active/);
 await scalar("select public.school_return_library_book($1,'good',0,false) value",[staffLoan]);
 const loan=await scalar(issue,[book,learner,id(30)]);
 assert.equal(loan,await scalar(issue,[book,learner,id(30)]),'retries must be idempotent');
