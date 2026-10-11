@@ -99,7 +99,10 @@ export type Result = {
   student_id: string;
   exam_id: string;
   subject_id: string;
-  marks: number;
+  marks: number | null;
+  max_marks: number;
+  percentage: number | null;
+  result_state: string;
   is_absent: boolean;
   updated_at: string;
 };
@@ -727,11 +730,16 @@ export function project(
             r.exam_id === e.id &&
             subject(r.subject_id),
         );
+        const examResult = matches[0];
         values[`exam_${e.id}`] = !filters.subjectId
           ? "Choose a subject"
-          : matches[0]?.is_absent
-            ? "Absent"
-            : (matches[0]?.marks ?? null);
+          : !examResult
+            ? null
+            : examResult.result_state === "entered"
+              ? examResult.marks
+              : examResult.result_state === "absent"
+                ? "Absent"
+                : examResult.result_state;
       }
       const current = data.results.find(
         (r) =>
