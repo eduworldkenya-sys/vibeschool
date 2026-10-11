@@ -83,3 +83,7 @@ WORKBOOK_PGLITE_MODULE=/tmp/class-life-db/node_modules/@electric-sql/pglite/dist
 ```
 
 **Do not merge draft PR #761 or claim rollout readiness while the required database migration is intentionally staged only in docs.**
+
+### Release migration numbering after concurrent school-life merge
+
+PR #764 merged an independent, canonical learner sports/clubs participation module to `main`, including `supabase/migrations/20261011110000_canonical_learner_school_life.sql`. Live Supabase independently recorded it as `20261011081705_canonical_learner_school_life_20261011`; this naming mismatch is a pre-existing ledger divergence and must **not** be fixed blindly. These three migrations were originally scaffolded using Supabase CLI 2.113.0 (CI workflow run 38124959683); their filenames were renumbered to `20261011110100`, `20261011110101` and `20261011110102` to preserve repository application order after #764. Their SQL bodies remain those already covered by PGlite tests. Do not apply to production using `db push` until earlier version aliases have been reconciled; a separate, independently reviewed release process is required.
