@@ -7,13 +7,15 @@ type Student = {
   name: string;
   source: "db" | "manual";
   class_name?: string;
+  admission_number?: string | null;
 };
 
 type Result = {
   id: string;
   student_id: string;
-  marks: number;
+  marks: number | null;
   is_absent: boolean;
+  result_state?: string;
 };
 
 type Props = {
@@ -21,6 +23,7 @@ type Props = {
   results: Result[];
   draftMarks: Record<string, string>;
   passMark: number;
+  maxMarks: number;
   locked: boolean;
   savingId: string | null;
   savedId: string | null;
@@ -33,25 +36,11 @@ type Props = {
   savingAll: boolean;
 };
 
-function getGrade(marks: number): string {
-  if (marks >= 80) return "EE";
-  if (marks >= 60) return "ME";
-  if (marks >= 40) return "AE";
-  return "BE";
-}
-
-function gradeTone(grade: string): { background: string; color: string } {
-  if (grade === "EE") return { background: "#ecfdf5", color: "#047857" };
-  if (grade === "ME") return { background: "#eff6ff", color: "#1d4ed8" };
-  if (grade === "AE") return { background: "#fffbeb", color: "#b45309" };
-  return { background: "#fef2f2", color: "#b91c1c" };
-}
-
 export default function ProfessionalMarkbook({
   students,
   results,
   draftMarks,
-  passMark,
+  maxMarks,
   locked,
   savingId,
   savedId,
@@ -72,31 +61,56 @@ export default function ProfessionalMarkbook({
   const recordedCount = results.length;
   const remainingCount = Math.max(0, students.length - recordedCount);
 
-  function applyPastedMarks() {
-    const lines = pasteText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-    if (lines.length === 0) {
-      setPasteMessage("Paste one mark per line.");
-      return;
+  async function applyPastedMarks() {
+    const lines=pasteText.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+    if(!lines.length){setPasteMessage('Paste admission number and mark in two columns.');return}
+    const ids=new Map<string,Student>();
+    const admissions=new Map<string,Student>();
+    const ambiguous=new Set<string>();
+    for(const student of students){
+      ids.set(student.id,student)
+      const adm=student.admission_number?.trim()
+      if(adm){
+        if(admissions.has(adm))ambiguous.add(adm)
+        admissions.set(adm,student)
+      }
     }
-    let applied = 0;
-    let skipped = 0;
-    lines.slice(0, students.length).forEach((line, index) => {
-      const parts = line.split(/[\t,;]/).map(part => part.trim()).filter(Boolean);
-      const raw = parts.length > 1 ? parts[parts.length - 1] : parts[0];
-      if (raw.toUpperCase() === "ABS" || raw.toLowerCase() === "absent") {
-        void onSaveMark(students[index], true);
-        applied += 1;
-        return;
+    const staged:{student:Student,raw:string}[]=[]
+    const seen=new Set<string>()
+    for(const line of lines){
+      const parts=line.split(/[\t,;]/).map(part=>part.trim())
+      if(parts.length!==2 || !parts[0]){
+        setPasteMessage('Every row must have an admission number or learner ID, then a mark. Nothing was added.')
+        return
       }
-      const mark = Number(raw);
-      if (Number.isFinite(mark) && mark >= 0 && mark <= 100) {
-        onChangeMark(students[index].id, String(mark));
-        applied += 1;
-      } else {
-        skipped += 1;
+      const [key,value]=parts
+      if(ambiguous.has(key)){
+        setPasteMessage('Admission number '+key+' belongs to multiple learners. Nothing was added.')
+        return
       }
-    });
-    setPasteMessage(`${applied} entr${applied === 1 ? "y" : "ies"} added${skipped ? ` · ${skipped} skipped` : ""}. Check them, then tap Save all.`);
+      const learner=ids.get(key)??admissions.get(key)
+      if(!learner || seen.has(learner.id)){
+        setPasteMessage('Unknown or repeated learner: '+key+'. Nothing was added.')
+        return
+      }
+      seen.add(learner.id)
+      const absent=/^(abs|absent)$/i.test(value)
+      const mark=Number(value)
+      if(!absent && (value==='' || !Number.isFinite(mark) || mark<0 || mark>maxMarks)){
+        setPasteMessage('Invalid mark for '+key+'. Use 0–'+maxMarks+' or ABS. Nothing was added.')
+        return
+      }
+      staged.push({student:learner,raw:absent?'ABS':String(mark)})
+    }
+    let absentCount=0
+    for(const row of staged){
+      if(row.raw==='ABS'){
+        const ok=await onSaveMark(row.student,true)
+        if(!ok){setPasteMessage('Could not save absence for '+row.student.name+'. Check the highlighted row.');return}
+        absentCount+=1
+      }else onChangeMark(row.student.id,row.raw)
+    }
+    setPasteMessage(`${staged.length} learners matched by ID · ${absentCount} absences saved. Review remaining marks, then select Save all.`)
   }
 
   function focusRelative(index: number, direction: 1 | -1) {
@@ -118,7 +132,7 @@ export default function ProfessionalMarkbook({
         inputMode="decimal"
         type="number"
         min={0}
-        max={100}
+        max={maxMarks}
         step="0.5"
         value={isAbsent ? "" : raw}
         disabled={isAbsent || isSaving}
@@ -173,10 +187,10 @@ export default function ProfessionalMarkbook({
 
       {showPaste && !locked && <div style={{ padding: "14px 16px", borderBottom: "1px solid #e7e5e4", background: "#fafaf9" }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: "#1c1917" }}>Paste marks</div>
-        <p style={{ margin: "4px 0 10px", fontSize: 12, color: "#78716c" }}>Paste one mark per learner in class-list order. You can also paste spreadsheet rows. Use ABS or Absent where a learner did not sit the exam.</p>
-        <textarea value={pasteText} onChange={event => { setPasteText(event.target.value); setPasteMessage(null); }} placeholder={"78\n64\nABS\n89"} rows={6} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d6d3d1", borderRadius: 12, padding: 11, resize: "vertical", font: "inherit", background: "#fff" }} />
+        <p style={{ margin: "4px 0 10px", fontSize: 12, color: "#78716c" }}>Paste two columns: admission number or learner ID, then mark. Do not match by list position. Use ABS or Absent for a learner who missed the exam.</p>
+        <textarea value={pasteText} onChange={event => { setPasteText(event.target.value); setPasteMessage(null); }} placeholder={"101\\t78\\n102\\t64\\n103\\tABS"} rows={6} style={{ width: "100%", boxSizing: "border-box", border: "1px solid #d6d3d1", borderRadius: 12, padding: 11, resize: "vertical", font: "inherit", background: "#fff" }} />
         <div style={{ marginTop: 9, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <button type="button" onClick={applyPastedMarks} style={{ padding: "8px 11px", borderRadius: 10, border: "none", background: "#4f46e5", color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Add to marks</button>
+          <button type="button" onClick={() => { void applyPastedMarks(); }} style={{ padding: "8px 11px", borderRadius: 10, border: "none", background: "#4f46e5", color: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Add to marks</button>
           <button type="button" onClick={() => { setPasteText(""); setPasteMessage(null); }} style={{ padding: "8px 11px", borderRadius: 10, border: "1px solid #d6d3d1", background: "#fff", cursor: "pointer", fontSize: 11, fontWeight: 800 }}>Clear</button>
           {pasteMessage && <span role="status" style={{ fontSize: 11, color: "#57534e", fontWeight: 700 }}>{pasteMessage}</span>}
         </div>
@@ -186,8 +200,8 @@ export default function ProfessionalMarkbook({
         <table style={{ width: "100%", minWidth: 680, borderCollapse: "collapse" }}>
           <thead>
             <tr style={{ background: "#fafaf9" }}>
-              {["#", "Learner", "Mark /100", "Grade", "Status", "Saved", "More"].map(label => (
-                <th key={label} style={{ padding: "10px 12px", textAlign: label === "Mark /100" ? "center" : "left", fontSize: 11, color: "#78716c", fontWeight: 800, borderBottom: "1px solid #e7e5e4", whiteSpace: "nowrap" }}>{label}</th>
+              {["#", "Learner", `Mark /${maxMarks}`, "Recorded", "Status", "Saved", "More"].map(label => (
+                <th key={label} style={{ padding: "10px 12px", textAlign: label === `Mark /${maxMarks}` ? "center" : "left", fontSize: 11, color: "#78716c", fontWeight: 800, borderBottom: "1px solid #e7e5e4", whiteSpace: "nowrap" }}>{label}</th>
               ))}
             </tr>
           </thead>
@@ -197,9 +211,7 @@ export default function ProfessionalMarkbook({
               const isAbsent = result?.is_absent ?? false;
               const raw = draftMarks[student.id] ?? "";
               const mark = Number(raw);
-              const validMark = raw.trim() !== "" && Number.isFinite(mark) && mark >= 0 && mark <= 100;
-              const grade = !isAbsent && validMark ? getGrade(mark) : null;
-              const tone = grade ? gradeTone(grade) : { background: "#f5f5f4", color: "#a8a29e" };
+              const validMark = raw.trim() !== "" && Number.isFinite(mark) && mark >= 0 && mark <= maxMarks;
               const rowError = errorByStudent[student.id];
               const isSaving = savingId === student.id;
               const justSaved = savedId === student.id;
@@ -208,8 +220,8 @@ export default function ProfessionalMarkbook({
                   <td style={{ padding: "10px 12px", fontSize: 12, color: "#a8a29e", width: 44 }}>{index + 1}</td>
                   <td style={{ padding: "10px 12px" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#1c1917" }}>{student.name}</div>{rowError && <div role="alert" style={{ marginTop: 4, fontSize: 11, color: "#b91c1c", fontWeight: 700 }}>{rowError}</div>}</td>
                   <td style={{ padding: "8px 12px", textAlign: "center" }}><MarkInput student={student} index={index} isAbsent={isAbsent} raw={raw} rowError={rowError} isSaving={isSaving} /></td>
-                  <td style={{ padding: "10px 12px" }}><span style={{ display: "inline-block", minWidth: 38, padding: "5px 8px", borderRadius: 999, textAlign: "center", fontSize: 11, fontWeight: 800, ...tone }}>{isAbsent ? "ABS" : grade ?? "—"}</span></td>
-                  <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: isAbsent ? "#991b1b" : validMark ? (mark >= passMark ? "#047857" : "#b91c1c") : "#a8a29e" }}>{isAbsent ? "Absent" : validMark ? (mark >= passMark ? "At/above pass" : "Below pass") : "Not entered"}</td>
+                  <td style={{ padding: "10px 12px" }}><span style={{ display: "inline-block", minWidth: 46, padding: "5px 8px", borderRadius: 999, textAlign: "center", fontSize: 11, fontWeight: 750, background:isAbsent?"#fef2f2":result?.result_state==='pending'?"#fff7df":"#f1f7f1", color:isAbsent?"#b91c1c":"#276047" }}>{isAbsent ? "ABS" : result?.result_state==='pending' ? "Pending" : result ? "Saved" : "—"}</span></td>
+                  <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: isAbsent ? "#991b1b" : validMark ? "#286043" : "#a8a29e" }}>{isAbsent ? "Absent" : result?.result_state==='pending' ? "Pending" : validMark ? (result ? "Recorded" : "Draft") : "Not entered"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 12, color: isSaving ? "#92400e" : justSaved ? "#047857" : result ? "#57534e" : "#a8a29e", fontWeight: 700 }}>{isSaving ? "Saving…" : justSaved ? "Saved ✓" : result ? "Saved" : "—"}</td>
                   <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap", position: "relative" }}>
                     <button type="button" onClick={() => setOpenMore(openMore === student.id ? null : student.id)} style={{ minWidth: 36, minHeight: 36, borderRadius: 9, border: "1px solid #e7e5e4", background: "#fff", fontWeight: 750, cursor: "pointer" }}>⋯</button>

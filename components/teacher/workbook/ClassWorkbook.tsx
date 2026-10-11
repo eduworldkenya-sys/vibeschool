@@ -864,14 +864,16 @@ export default function ClassWorkbook() {
                         r.subject_id === filters.subjectId &&
                         c.learners.some((l) => l.id === r.student_id),
                     );
-                    const scores = results.filter((r) => !r.is_absent);
+                    const scores = results.filter(
+                      (r) => r.result_state === "entered" && r.percentage !== null,
+                    );
                     return (
                       <tr key={c.classId}>
                         <td>{c.className}</td>
                         <td>
                           {scores.length
                             ? (
-                                scores.reduce((sum, r) => sum + r.marks, 0) /
+                                scores.reduce((sum, r) => sum + (r.percentage ?? 0), 0) /
                                 scores.length
                               ).toFixed(1)
                             : "No recorded scores"}
@@ -887,7 +889,7 @@ export default function ClassWorkbook() {
             </div>
           )}
           <p className={styles.muted}>
-            Marks are out of 100. ABS means absent; a blank means not entered.
+            Mean is based on valid percentages across scored entries. ABS means absent; a blank means not entered.
             Comparisons need the same subject and exam type. Position uses the
             whole current class; equal marks share a position.{" "}
             {currentExam?.is_locked ? "This exam is locked." : ""}

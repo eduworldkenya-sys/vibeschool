@@ -99,7 +99,10 @@ export type Result = {
   student_id: string;
   exam_id: string;
   subject_id: string;
-  marks: number;
+  marks: number | null;
+  max_marks: number;
+  percentage: number | null;
+  result_state: string;
   is_absent: boolean;
   updated_at: string;
 };
@@ -727,11 +730,16 @@ export function project(
             r.exam_id === e.id &&
             subject(r.subject_id),
         );
+        const examResult = matches[0];
         values[`exam_${e.id}`] = !filters.subjectId
           ? "Choose a subject"
-          : matches[0]?.is_absent
-            ? "Absent"
-            : (matches[0]?.marks ?? null);
+          : !examResult
+            ? null
+            : examResult.result_state === "entered"
+              ? examResult.marks
+              : examResult.result_state === "absent"
+                ? "Absent"
+                : examResult.result_state;
       }
       const current = data.results.find(
         (r) =>
@@ -747,32 +755,43 @@ export function project(
       );
       const currentExam = data.exams.find((e) => e.id === filters.examId),
         priorExam = data.exams.find((e) => e.id === filters.compareExamId);
+      const currentPercent =
+        current?.result_state === "entered" && current.percentage !== null
+          ? current.percentage
+          : null;
+      const priorPercent =
+        prior?.result_state === "entered" && prior.percentage !== null
+          ? prior.percentage
+          : null;
       if (sheet.kind === "exams") {
-        values.average = current && !current.is_absent ? current.marks : null;
+        // Source results may be /20, /50 or /100; only normalized values
+        // can be compared across different assessment denominators.
+        values.average = currentPercent;
         values.examStatus = current
-          ? current.is_absent
-            ? "Absent"
-            : "Recorded"
+          ? current.result_state === "entered"
+            ? "Recorded"
+            : current.result_state === "absent"
+              ? "Absent"
+              : current.result_state
           : "Not entered";
       }
       values.examChange =
-        current &&
-        !current.is_absent &&
-        prior &&
-        !prior.is_absent &&
+        currentPercent !== null &&
+        priorPercent !== null &&
         currentExam?.exam_type === priorExam?.exam_type &&
         filters.examId !== filters.compareExamId
-          ? Math.round((current.marks - prior.marks) * 100) / 100
+          ? Math.round((currentPercent - priorPercent) * 100) / 100
           : null;
       values.rank =
-        current && !current.is_absent
+        currentPercent !== null
           ? 1 +
             data.results.filter(
               (r) =>
                 r.exam_id === filters.examId &&
                 r.subject_id === filters.subjectId &&
-                !r.is_absent &&
-                r.marks > current.marks &&
+                r.result_state === "entered" &&
+                r.percentage !== null &&
+                r.percentage > currentPercent &&
                 data.learners.some((l) => l.id === r.student_id),
             ).length
           : null;

@@ -4,8 +4,11 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { saveCanonicalExamResult } from '@/lib/teacher/examResultAuthority'
+import { saveCanonicalExamResult, saveCanonicalExamResults, getCanonicalExamSubjectPolicy, setCanonicalExamSubjectPolicy, type ExamSubjectPolicy } from '@/lib/teacher/examResultAuthority'
+import { twinRecord, twinRpc } from '@/lib/twin/transport'
 import ProfessionalMarkbook from '@/components/teacher/ProfessionalMarkbook'
+import ClassExamSheet from '@/components/teacher/assessment/ClassExamSheet'
+import {getExamLifecycle,type ExamLifecycle} from '@/lib/teacher/examLifecycle'
 import AssessmentIntelligenceConsole from '@/components/teacher/AssessmentIntelligenceConsole'
 import type { Database } from '@/lib/database.types'
 
@@ -23,16 +26,10 @@ interface Exam {
 }
 interface ClassOption { id: string; name: string; stream: string }
 interface SubjectOption { id: string; name: string }
-interface Student { id: string; name: string; source: 'db' | 'manual'; class_name?: string }
-interface Result { id: string; student_id: string; marks: number; is_absent: boolean; updated_at: string }
+interface Student { id: string; name: string; source: 'db' | 'manual'; class_name?: string; admission_number?: string | null }
+interface Result { id: string; student_id: string; marks: number | null; max_marks: number; percentage: number | null; result_state: string; is_absent: boolean; updated_at: string }
 type Tier = 1 | 2 | 3
 
-function getGrade(marks: number): string {
-  if (marks >= 80) return 'EE'
-  if (marks >= 60) return 'ME'
-  if (marks >= 40) return 'AE'
-  return 'BE'
-}
 function Skeleton({ h = 56 }: { h?: number }) {
   return <div style={{ height: h, borderRadius: 12, background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)', backgroundSize: '200% 100%' }} />
 }
@@ -49,6 +46,7 @@ function ResultsInner() {
   const [tier,setTier]=useState<Tier|null>(null)
   const [classes,setClasses]=useState<ClassOption[]>([])
   const [subjects,setSubjects]=useState<SubjectOption[]>([])
+  const [subjectsByClass,setSubjectsByClass]=useState<Record<string,SubjectOption[]>>({})
   const [activeClassIdx,setActiveClassIdx]=useState(0)
   const [activeSubjectIdx,setActiveSubjectIdx]=useState(0)
   const [exams,setExams]=useState<Exam[]>([])
@@ -60,6 +58,12 @@ function ResultsInner() {
   const [newExamTerm,setNewExamTerm]=useState(1)
   const [newExamYear,setNewExamYear]=useState(new Date().getFullYear())
   const [newExamPass,setNewExamPass]=useState(50)
+  const [subjectPolicy,setSubjectPolicy]=useState<ExamSubjectPolicy|null>(null)
+  const [policyError,setPolicyError]=useState('')
+  const [policyMax,setPolicyMax]=useState(100)
+  const [policyPass,setPolicyPass]=useState(50)
+  const [editingPolicy,setEditingPolicy]=useState(false)
+  const [savingPolicy,setSavingPolicy]=useState(false)
   const [creatingExam,setCreatingExam]=useState(false)
   const [examError,setExamError]=useState<string|null>(null)
   const [students,setStudents]=useState<Student[]>([])
@@ -69,7 +73,9 @@ function ResultsInner() {
   const [savedId,setSavedId]=useState<string|null>(null)
   const [savingAll,setSavingAll]=useState(false)
   const [errorByStudent,setErrorByStudent]=useState<Record<string,string>>({})
-  const [activeTab,setActiveTab]=useState<'entry'|'analysis'>('entry')
+  const [activeTab,setActiveTab]=useState<'entry'|'class'|'analysis'>('entry')
+  const [examLifecycle,setExamLifecycle]=useState<ExamLifecycle|null>(null)
+  const [lifecycleError,setLifecycleError]=useState('')
   const [booting,setBooting]=useState(true)
   const [loading,setLoading]=useState(false)
   const [error,setError]=useState<string|null>(null)
@@ -95,10 +101,18 @@ function ResultsInner() {
     if (assignments.length===0) { setTier(2); await loadExams(user.id,sid); setBooting(false); return }
     setTier(1)
     const loadedClasses=Array.from(new Map(assignments.map(a=>[a.class_id,{id:a.class_id,name:a.class_name,stream:a.stream??''}])).values()) as ClassOption[]
-    const loadedSubjects=Array.from(new Map(assignments.map(a=>[a.subject_id,{id:a.subject_id,name:a.subject_name}])).values()) as SubjectOption[]
+    const byClass:Record<string,SubjectOption[]>={}
+    for(const assignment of assignments){
+      const existing=byClass[assignment.class_id]??[]
+      if(!existing.some(s=>s.id===assignment.subject_id)){
+        byClass[assignment.class_id]=[...existing,{id:assignment.subject_id,name:assignment.subject_name}]
+      }
+    }
+    setSubjectsByClass(byClass)
     let ci=0,si=0
     const urlClassId=searchParams.get('classId'); const urlSubjectId=searchParams.get('subjectId')
     if (urlClassId) { const i=loadedClasses.findIndex(c=>c.id===urlClassId); if (i!==-1) ci=i }
+    const loadedSubjects=byClass[loadedClasses[ci]?.id]??[]
     if (urlSubjectId) { const i=loadedSubjects.findIndex(s=>s.id===urlSubjectId); if (i!==-1) si=i }
     setClasses(loadedClasses); setSubjects(loadedSubjects); setActiveClassIdx(ci); setActiveSubjectIdx(si)
     await loadExams(user.id,sid)
@@ -127,13 +141,41 @@ function ResultsInner() {
     if (loadId!==loadIdRef.current) return
     const ids=(scRows??[]).map((r:{student_id:string})=>r.student_id)
     if (ids.length===0) { setStudents([]); setLoading(false); return }
-    const {data:studs}=await supabase.from('students').select('id, name').in('id',ids)
+    const {data:studs}=await supabase.from('students').select('id, name, admission_number').in('id',ids)
     if (loadId!==loadIdRef.current) return
-    setStudents(((studs??[]) as {id:string;name:string}[]).sort((a,b)=>a.name.localeCompare(b.name)).map(s=>({...s,source:'db' as const})))
+    setStudents(((studs??[]) as {id:string;name:string;admission_number:string|null}[]).sort((a,b)=>a.name.localeCompare(b.name)).map(s=>({...s,source:'db' as const})))
     setLoading(false)
   }
 
-  useEffect(()=>{ if (activeExam && students.length>0) void loadResults() },[activeExam,students,activeSubjectIdx])
+  useEffect(()=>{
+    const subject=subjects[activeSubjectIdx]
+    const cls=classes[activeClassIdx]
+    if(!activeExam||!schoolId||!cls||!subject){setSubjectPolicy(null);return}
+    let live=true
+    setSubjectPolicy(null);setPolicyError('')
+    void getCanonicalExamSubjectPolicy({examId:activeExam.id,schoolId,classId:cls.id,subjectId:subject.id})
+      .then(policy=>{if(live){setSubjectPolicy(policy);setPolicyMax(policy.max_marks);setPolicyPass(policy.pass_mark)}})
+      .catch(cause=>{if(live)setPolicyError(cause instanceof Error?cause.message:'Could not verify scoring policy.')})
+    return()=>{live=false}
+  },[activeExam,schoolId,classes,subjects,activeClassIdx,activeSubjectIdx])
+
+  useEffect(()=>{
+    const cls=classes[activeClassIdx],subject=subjects[activeSubjectIdx]
+    if(!activeExam||!schoolId||!cls||!subject){setExamLifecycle(null);return}
+    let mounted=true
+    setExamLifecycle(null);setLifecycleError('')
+    void getExamLifecycle({examId:activeExam.id,schoolId,classId:cls.id})
+      .then(state=>{if(mounted)setExamLifecycle(state)})
+      .catch(err=>{if(mounted)setLifecycleError(err instanceof Error?err.message:'Cannot verify examination status.')})
+    return()=>{mounted=false}
+  },[activeExam,schoolId,classes,activeClassIdx,subjects,activeSubjectIdx,activeTab])
+
+  const selectedSubjectId=subjects[activeSubjectIdx]?.id
+  const selectedSubjectReview=examLifecycle?.subjects.find(r=>r.subject_id===selectedSubjectId)?.state
+  const subjectLocked=!examLifecycle || examLifecycle.status==='published' ||
+    selectedSubjectReview==='submitted'||selectedSubjectReview==='verified'
+
+  useEffect(()=>{ if (activeExam && students.length>0) void loadResults(); else setResults([]) },[activeExam,students,activeSubjectIdx])
 
   useEffect(()=>{
     const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
@@ -147,14 +189,14 @@ function ResultsInner() {
   async function loadResults() {
     if (!activeExam) return
     const studentIds=students.map(s=>s.id)
-    let query=supabase.from('exam_results').select('id, student_id, marks, is_absent, updated_at').eq('exam_id',activeExam.id).in('student_id',studentIds)
+    let query=supabase.from('exam_results').select('id, student_id, marks, max_marks, percentage, result_state, is_absent, updated_at').eq('exam_id',activeExam.id).in('student_id',studentIds)
     const subjectId=subjects[activeSubjectIdx]?.id
     if (subjectId) query=query.eq('subject_id',subjectId)
     const {data}=await query
     const loaded=(data??[]) as Result[]
     setResults(loaded)
     const draft:Record<string,string>={}
-    for (const r of loaded) if (!r.is_absent) draft[r.student_id]=String(r.marks)
+    for (const r of loaded) if (!r.is_absent && r.marks!==null) draft[r.student_id]=String(r.marks)
     setDraftMarks(draft); setErrorByStudent({})
   }
 
@@ -170,11 +212,13 @@ function ResultsInner() {
   }
 
   async function saveMark(student:Student,isAbsent=false):Promise<boolean> {
-    if (!activeExam || !teacherId || activeExam.is_locked) return false
+    if (!activeExam || !teacherId || activeExam.is_locked || subjectLocked) return false
     const raw=draftMarks[student.id]??''
     const marks=isAbsent?0:Number(raw)
-    if (!isAbsent && (raw.trim()==='' || !Number.isFinite(marks) || marks<0 || marks>100)) {
-      setErrorByStudent(prev=>({...prev,[student.id]:'Enter a mark from 0 to 100.'})); return false
+    const max=subjectPolicy?.max_marks
+    if (!max) { setErrorByStudent(prev=>({...prev,[student.id]:'Scoring setup not loaded. Retry selecting this subject.'})); return false }
+    if (!isAbsent && (raw.trim()==='' || !Number.isFinite(marks) || marks<0 || marks>max)) {
+      setErrorByStudent(prev=>({...prev,[student.id]:`Enter a mark from 0 to ${max}.`})); return false
     }
     const classId=classes[activeClassIdx]?.id
     const subjectId=subjects[activeSubjectIdx]?.id
@@ -183,44 +227,86 @@ function ResultsInner() {
     }
     setSavingId(student.id); setErrorByStudent(prev=>{const n={...prev}; delete n[student.id]; return n})
     const existing=results.find(r=>r.student_id===student.id)
-    let saved:Result
     try {
-      saved=await saveCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,marks,isAbsent,expectedUpdatedAt:existing?.updated_at??null})
+      await saveCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,marks,isAbsent,expectedUpdatedAt:existing?.updated_at??null})
+      await loadResults()
       window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
     } catch (cause) {
       setErrorByStudent(prev=>({...prev,[student.id]:cause instanceof Error?cause.message:'Could not save this mark.'})); return false
     } finally { setSavingId(null) }
-    setResults(prev=>existing?prev.map(r=>r.id===saved.id?saved:r):[...prev,saved])
+
     if (isAbsent) setDraftMarks(prev=>{const n={...prev}; delete n[student.id]; return n})
     setSavedId(student.id); setTimeout(()=>setSavedId(current=>current===student.id?null:current),1600)
     return true
   }
 
   async function saveAllMarks() {
-    if (!activeExam || activeExam.is_locked || savingAll) return
-    setSavingAll(true)
+    if (!activeExam || activeExam.is_locked || subjectLocked || savingAll || !subjectPolicy) return
+    if (!schoolId) return
+    const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
+    if(!classId||!subjectId)return
+    const changes:Parameters<typeof saveCanonicalExamResults>[0]=[]
     for (const student of students) {
       const existing=results.find(r=>r.student_id===student.id)
       if (existing?.is_absent) continue
       const raw=draftMarks[student.id]??''
+      if (raw.trim()==='') continue
       const mark=Number(raw)
-      if (raw.trim()==='' || !Number.isFinite(mark) || mark<0 || mark>100) continue
-      await saveMark(student)
+      if (!Number.isFinite(mark)||mark<0||mark>subjectPolicy.max_marks) {
+        setErrorByStudent(prev=>({...prev,[student.id]:`Enter a mark from 0 to ${subjectPolicy.max_marks}.`}))
+        return
+      }
+      if (existing?.marks===mark && existing?.result_state==='entered') continue
+      changes.push({
+        examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,
+        marks:mark,isAbsent:false,expectedUpdatedAt:existing?.updated_at??null,
+      })
     }
-    setSavingAll(false)
+    if (!changes.length) return
+    setSavingAll(true)
+    try {
+      await saveCanonicalExamResults(changes)
+      await loadResults()
+    } catch (cause) {
+      setErrorByStudent(prev=>({...prev,[changes[0].studentId]:cause instanceof Error?cause.message:'Bulk save failed. Reload before retrying.'}))
+    } finally { setSavingAll(false) }
+  }
+
+  async function saveSubjectPolicy() {
+    if(!activeExam || !schoolId || activeExam.is_locked || subjectLocked || savingPolicy) return
+    const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
+    if(!classId||!subjectId)return
+    setSavingPolicy(true);setPolicyError('')
+    try{
+      const data=await setCanonicalExamSubjectPolicy({
+        examId:activeExam.id,schoolId,classId,subjectId,
+        maxMarks:policyMax,passMark:policyPass,
+      })
+      setSubjectPolicy(data);setEditingPolicy(false)
+      await loadResults()
+    }catch(cause){setPolicyError(cause instanceof Error?cause.message:'Could not save scoring policy.')}
+    finally{setSavingPolicy(false)}
   }
 
   function exportMarksCsv() {
     if (!activeExam) return
     const saved=new Map(results.map(r=>[r.student_id,r]))
-    const rows=[['Learner','Mark','Grade','Status']]
+    const rows=[['Learner','Mark','Maximum','Percent','Status']]
     for (const student of students) {
       const result=saved.get(student.id)
-      if (!result) rows.push([student.name,'','','Not entered'])
-      else if (result.is_absent) rows.push([student.name,'','ABS','Absent'])
-      else rows.push([student.name,String(result.marks),getGrade(result.marks),result.marks >= (activeExam.pass_mark??50) ? 'Passed' : 'Needs help'])
+      if (!result) rows.push([student.name,'','','','Not entered'])
+      else rows.push([student.name,
+        result.result_state==='entered' && result.marks!==null ? String(result.marks) : '',
+        String(result.max_marks),result.percentage===null?'':String(result.percentage),
+        result.result_state])
     }
-    const csv=rows.map(row=>row.map(value=>`"${String(value).replace(/"/g,'""')}"`).join(',')).join('\n')
+    const safeCsvCell=(value:string) => {
+      const first=value.charAt(0)
+      const guarded=['=','+','-','@'].includes(first) || first.charCodeAt(0)===9 || first.charCodeAt(0)===13
+        ? "'"+value : value
+      return `"${guarded.replace(/"/g,'""')}"`
+    }
+    const csv=rows.map(row=>row.map(safeCsvCell).join(',')).join('\n')
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8'})
     const url=URL.createObjectURL(blob)
     const link=document.createElement('a')
@@ -231,27 +317,37 @@ function ResultsInner() {
 
   async function clearAbsent(student:Student):Promise<boolean> {
     const existing=results.find(r=>r.student_id===student.id)
-    if (!existing || !existing.is_absent || !activeExam || activeExam.is_locked) return false
-    setSavingId(student.id)
+    if (!existing || !existing.is_absent || !activeExam || activeExam.is_locked || subjectLocked) return false
     const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
-    if(!schoolId||!classId||!subjectId){setSavingId(null);return false}
+    if(!schoolId||!classId||!subjectId)return false
+    setSavingId(student.id)
     try {
-      const data=await saveCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,marks:0,isAbsent:false,expectedUpdatedAt:existing.updated_at})
-      setResults(prev=>prev.map(r=>r.id===existing.id?data:r));setDraftMarks(prev=>({...prev,[student.id]:'0'}));setSavedId(student.id)
+      // Clearing ABS is pending, NEVER an invented score of zero.
+      const saved=twinRecord(await twinRpc('teacher','teacher_save_exam_result_state',{
+        p_exam_id:activeExam.id,p_school_id:schoolId,p_class_id:classId,
+        p_subject_id:subjectId,p_student_id:student.id,
+        p_marks:null,p_result_state:'pending',p_expected_updated_at:existing.updated_at,
+      }))
+      if (saved.student_id!==student.id || saved.result_state!=='pending' || saved.marks!==null) {
+        throw new Error('The absence correction could not be verified.')
+      }
+      setDraftMarks(prev=>{const next={...prev};delete next[student.id];return next})
+      await loadResults()
+      setSavedId(student.id)
       window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
       return true
-    }catch(cause){setErrorByStudent(prev=>({...prev,[student.id]:cause instanceof Error?cause.message:'Could not clear absence.'}));return false}
-    finally{setSavingId(null)}
+    }catch(cause){
+      setErrorByStudent(prev=>({...prev,[student.id]:cause instanceof Error?cause.message:'Could not clear absence.'}))
+      return false
+    }finally{setSavingId(null)}
   }
 
   function analysisData() {
-    const entered=results.filter(r=>!r.is_absent)
-    if (entered.length===0) return null
-    const marks=entered.map(r=>r.marks); const avg=marks.reduce((a,b)=>a+b,0)/marks.length
-    const passM=activeExam?.pass_mark??50
-    const grades:Record<string,number>={}
-    for (const m of marks) { const g=getGrade(m); grades[g]=(grades[g]??0)+1 }
-    return {avg,passed:marks.filter(m=>m>=passM).length,failed:marks.filter(m=>m<passM).length,grades,total:entered.length,absent:results.filter(r=>r.is_absent).length}
+    const scored=results.filter(r=>r.result_state==='entered' && r.marks!==null && r.percentage!==null)
+    if (!scored.length) return null
+    const avg=scored.reduce((sum,r)=>sum+(r.percentage??0),0)/scored.length
+    const absent=results.filter(r=>r.result_state==='absent').length
+    return {avg,scored:scored.length,absent,missing:Math.max(0,students.length-results.length)}
   }
   const analysis=analysisData()
 
@@ -269,31 +365,50 @@ function ResultsInner() {
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
         {tier===1&&<button onClick={()=>setShowContextSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>Change exam / class / subject</button>}
         <button onClick={()=>setShowExamSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>＋ New exam</button>
+        {activeExam&&tier===1&&<button type="button" onClick={()=>setEditingPolicy(x=>!x)} disabled={activeExam.is_locked||subjectLocked} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>Scoring setup</button>}
         <button onClick={exportMarksCsv} disabled={!activeExam || results.length===0} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text,opacity:!activeExam||results.length===0?.5:1}}>Export</button>
       </div>
     </div>
 
+    {activeExam && tier===1 && editingPolicy && <form onSubmit={e=>{e.preventDefault();void saveSubjectPolicy()}} style={{margin:'12px 16px',padding:14,background:'#fff',border:`1px solid ${W.border}`,borderRadius:12,display:'flex',alignItems:'end',gap:10,flexWrap:'wrap'}}>
+      <label style={{fontSize:12,color:W.textSoft}}>Maximum marks<input type="number" min={1} max={10000} step="any" value={policyMax} onChange={e=>setPolicyMax(Number(e.target.value))} style={{...inputStyle,width:125,display:'block',marginTop:6}}/></label>
+      <label style={{fontSize:12,color:W.textSoft}}>Internal review threshold<input type="number" min={0} max={policyMax} step="any" value={policyPass} onChange={e=>setPolicyPass(Number(e.target.value))} style={{...inputStyle,width:125,display:'block',marginTop:6}}/></label>
+      <button type="submit" disabled={savingPolicy} style={{border:'none',borderRadius:9,padding:'11px 14px',background:'#226c43',color:'#fff',fontWeight:750}}>{savingPolicy?'Saving…':'Save setup'}</button>
+      <p style={{flexBasis:'100%',fontSize:11,color:W.textSoft,margin:0}}>Internal thresholds do not assign CBC performance levels. They need an approved scoring guide.</p>
+      {policyError&&<p role="alert" style={{flexBasis:'100%',fontSize:12,color:'#991b1b',margin:0}}>{policyError}</p>}
+    </form>}
+    {activeExam && tier===1 && !editingPolicy && subjectPolicy && <div style={{margin:'8px 16px 0',fontSize:12,color:W.textSoft}}>Marks out of {subjectPolicy.max_marks}. {subjectPolicy.configured?'Subject scoring setup saved.':'Using default maximum until configured.'}</div>}
+    {policyError && !editingPolicy && <p role="alert" style={{margin:'12px 16px',fontSize:12,color:'#991b1b'}}>{policyError}</p>}
+
     {activeExam && students.length>0 && <div style={{margin:'12px 16px 0',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
-      {[['Students',students.length],['Marks entered',results.length],['Class mean',analysis?`${analysis.avg.toFixed(1)}%`:'—'],['Need support',analysis?analysis.failed:'—']].map(([label,value])=><div key={String(label)} style={{padding:'12px',background:'#fff',border:'1px solid #E7E5E4',borderRadius:14}}><div style={{fontSize:11,color:W.textSoft,fontWeight:700}}>{label}</div><div style={{fontSize:20,fontWeight:800,marginTop:3}}>{value}</div></div>)}
+      {[['Students',students.length],['Results recorded',results.length],['Subject mean',analysis?`${analysis.avg.toFixed(1)}%`:'—'],['Missing',Math.max(0,students.length-results.length)]].map(([label,value])=><div key={String(label)} style={{padding:'12px',background:'#fff',border:'1px solid #E7E5E4',borderRadius:14}}><div style={{fontSize:11,color:W.textSoft,fontWeight:700}}>{label}</div><div style={{fontSize:20,fontWeight:800,marginTop:3}}>{value}</div></div>)}
     </div>}
 
     {activeExam && tier===1 && <div style={{margin:'12px 16px 0',padding:'12px 14px',borderRadius:14,border:`1px solid ${activeExam.is_locked?'#d6d3d1':'#d1fae5'}`,background:activeExam.is_locked?'#fafaf9':'#ecfdf5',fontSize:12,color:W.textSoft}}><strong style={{color:W.text}}>{activeExam.name}</strong> · {results.length}/{students.length} learner marks recorded{students.length>0?` · ${Math.round((results.length/students.length)*100)}% complete`:''}. {activeExam.is_locked?'This exam is locked; marks are read-only.':results.length<students.length?'Continue the mark sheet below.':'This subject mark sheet is complete.'}</div>}
 
-    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':'Explore'}</button>)}</div>}
+    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','class','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':tab==='class'?'Class results':'Explore'}</button>)}</div>}
 
     {activeTab==='entry' && <div style={{padding:'14px 16px 0'}}>
+      {lifecycleError&&<p role="alert" style={{fontSize:12,color:'#a83232'}}>Examination permission and submission status unavailable: {lifecycleError}</p>}
+      {selectedSubjectReview==='submitted'||selectedSubjectReview==='verified'?<p role="status" style={{fontSize:12,color:'#226342',fontWeight:700}}>This learning area is {selectedSubjectReview}. Ask the examination office to reopen before correcting marks.</p>:null}
       {!activeExam?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Create or select an exam to open the markbook.</div>
       : tier!==1?<div style={{padding:24,border:'1px solid #fde68a',background:'#fffbeb',borderRadius:14,color:'#92400e'}}>Professional marks entry requires a school class and subject assignment. This prevents unscoped exam records.</div>
       : loading?<Skeleton h={220}/>
       : students.length===0?<div style={{padding:32,textAlign:'center',color:W.textMuted}}>No students enrolled in this class.</div>
-      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} locked={activeExam.is_locked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} onSaveAll={saveAllMarks} savingAll={savingAll} />}
+      : !subjectPolicy?<div role="status" style={{padding:28,color:W.textMuted}}>{policyError?'Scoring policy unavailable. Check your assigned subject and retry.':'Loading scoring setup…'}</div>
+      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} maxMarks={subjectPolicy.max_marks} locked={activeExam.is_locked||subjectLocked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} onSaveAll={saveAllMarks} savingAll={savingAll} />}
+    </div>}
+
+    {activeTab==='class' && <div style={{padding:'14px 16px 0'}}>
+      {!activeExam || !activeClass || !schoolId ? <div style={{padding:35,color:W.textMuted}}>Choose an exam and assigned class to view the register.</div> :
+        <ClassExamSheet examId={activeExam.id} schoolId={schoolId} classId={activeClass.id} className={`${activeClass.name}${activeClass.stream?' '+activeClass.stream:''}`} />}
     </div>}
 
     {activeTab==='analysis' && <div style={{padding:'14px 16px 0'}}>
       {!activeExam || !activeClass || !activeSubject ? <div style={{padding:40,textAlign:'center',color:W.textMuted}}>Select a class, subject and exam to open intelligence.</div> : <AssessmentIntelligenceConsole examId={activeExam.id} classId={activeClass.id} subjectId={activeSubject.id} refreshKey={`${activeExam.id}:${activeClass.id}:${activeSubject.id}:${results.length}:${results.map(r=>`${r.id}:${r.marks}:${r.is_absent}`).join('|')}`} onOpenMarkbook={()=>setActiveTab('entry')} />}
     </div>}
 
-    {showContextSheet && <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'flex-end'}} onClick={e=>{if(e.target===e.currentTarget)setShowContextSheet(false)}}><div style={{width:'100%',background:W.bg,borderRadius:'22px 22px 0 0',padding:'18px 16px 28px',maxHeight:'80vh',overflowY:'auto'}}><h2 style={{margin:'0 0 4px',fontSize:18}}>Change exam details</h2><p style={{margin:'0 0 14px',fontSize:12,color:W.textSoft}}>Choose where you are entering marks. VibeSchool keeps this context as you work.</p><label style={labelStyle}>Exam</label><select style={inputStyle} value={activeExam?.id??''} onChange={e=>setActiveExam(exams.find(x=>x.id===e.target.value)??null)}><option value="">Choose exam</option>{exams.map(e=><option key={e.id} value={e.id}>{e.name}{e.is_locked?' · Locked':''}</option>)}</select><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:12}}><div><label style={labelStyle}>Class</label><select style={inputStyle} value={activeClassIdx} onChange={e=>setActiveClassIdx(Number(e.target.value))}>{classes.map((x,i)=><option key={x.id} value={i}>{x.name}{x.stream?' '+x.stream:''}</option>)}</select></div><div><label style={labelStyle}>Subject</label><select style={inputStyle} value={activeSubjectIdx} onChange={e=>setActiveSubjectIdx(Number(e.target.value))}>{subjects.map((x,i)=><option key={x.id} value={i}>{x.name}</option>)}</select></div></div><button onClick={()=>setShowContextSheet(false)} style={{...btnPrimary,marginTop:16}}>Use this mark sheet</button></div></div>}
+    {showContextSheet && <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'flex-end'}} onClick={e=>{if(e.target===e.currentTarget)setShowContextSheet(false)}}><div style={{width:'100%',background:W.bg,borderRadius:'22px 22px 0 0',padding:'18px 16px 28px',maxHeight:'80vh',overflowY:'auto'}}><h2 style={{margin:'0 0 4px',fontSize:18}}>Change exam details</h2><p style={{margin:'0 0 14px',fontSize:12,color:W.textSoft}}>Choose where you are entering marks. VibeSchool keeps this context as you work.</p><label style={labelStyle}>Exam</label><select style={inputStyle} value={activeExam?.id??''} onChange={e=>setActiveExam(exams.find(x=>x.id===e.target.value)??null)}><option value="">Choose exam</option>{exams.map(e=><option key={e.id} value={e.id}>{e.name}{e.is_locked?' · Locked':''}</option>)}</select><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:12}}><div><label style={labelStyle}>Class</label><select style={inputStyle} value={activeClassIdx} onChange={e=>{const n=Number(e.target.value);setActiveClassIdx(n);setSubjects(subjectsByClass[classes[n]?.id]??[]);setActiveSubjectIdx(0)}}>{classes.map((x,i)=><option key={x.id} value={i}>{x.name}{x.stream?' '+x.stream:''}</option>)}</select></div><div><label style={labelStyle}>Subject</label><select style={inputStyle} value={activeSubjectIdx} onChange={e=>setActiveSubjectIdx(Number(e.target.value))}>{subjects.map((x,i)=><option key={x.id} value={i}>{x.name}</option>)}</select></div></div><button onClick={()=>setShowContextSheet(false)} style={{...btnPrimary,marginTop:16}}>Use this mark sheet</button></div></div>}
 
     {showExamSheet && <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.4)',zIndex:1000,display:'flex',alignItems:'flex-end'}} onClick={e=>{if(e.target===e.currentTarget)setShowExamSheet(false)}}><div style={{width:'100%',background:W.bg,borderRadius:'22px 22px 0 0',padding:'18px 16px 32px'}}><h2 style={{margin:'0 0 6px',fontSize:18}}>Create exam</h2><p style={{margin:'0 0 16px',fontSize:12,color:W.textSoft}}>Create the shared exam once, then teachers enter marks against the same exam record. Use a clear school-facing name such as “Term 3 End-Term”.</p><label style={labelStyle}>Exam name</label><input style={inputStyle} value={newExamName} onChange={e=>setNewExamName(e.target.value)} placeholder="e.g. Term 2 Midterm"/><div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginTop:12}}><div><label style={labelStyle}>Type</label><select style={inputStyle} value={newExamType} onChange={e=>setNewExamType(e.target.value)}>{['summative','cat','midterm','opener','endterm'].map(t=><option key={t} value={t}>{t}</option>)}</select></div><div><label style={labelStyle}>Pass mark</label><input type="number" min={0} max={100} style={inputStyle} value={newExamPass} onChange={e=>setNewExamPass(Number(e.target.value))}/></div><div><label style={labelStyle}>Term</label><select style={inputStyle} value={newExamTerm} onChange={e=>setNewExamTerm(Number(e.target.value))}>{[1,2,3].map(t=><option key={t} value={t}>Term {t}</option>)}</select></div><div><label style={labelStyle}>Year</label><input type="number" style={inputStyle} value={newExamYear} onChange={e=>setNewExamYear(Number(e.target.value))}/></div></div>{examError&&<p style={{color:'#b91c1c',fontSize:12,fontWeight:700}}>{examError}</p>}<button onClick={()=>void createExam()} disabled={creatingExam} style={{...btnPrimary,marginTop:16,opacity:creatingExam?.6:1}}>{creatingExam?'Creating…':'Create exam'}</button></div></div>}
   </div>

@@ -99,9 +99,18 @@ begin
   if not exists (
     select 1 from pg_constraint c
     where c.conrelid='public.exam_results'::regclass
-      and c.conname='exam_results_marks_check'
+      and c.conname in ('exam_results_marks_check','exam_results_score_state_check')
       and c.contype='c'
-  ) then raise exception 'TASK2 exam_results marks constraint missing'; end if;
+      and (
+        (c.conname='exam_results_marks_check' and
+          pg_get_constraintdef(c.oid) ilike '%marks%')
+        or
+        (c.conname='exam_results_score_state_check' and
+          pg_get_constraintdef(c.oid) ilike '%result_state%'
+          and pg_get_constraintdef(c.oid) ilike '%max_marks%'
+          and pg_get_constraintdef(c.oid) ilike '%marks IS NULL%')
+      )
+  ) then raise exception 'TASK2 exam_results canonical score/state constraint missing'; end if;
 end $$;
 
 -- 5) Shared auth/identity RPCs that predate Task 1 must reconstruct. Task 1 owns
