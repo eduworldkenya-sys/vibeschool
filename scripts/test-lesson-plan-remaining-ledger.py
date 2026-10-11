@@ -49,7 +49,7 @@ for required in (
     'startLessonOccurrence({',
     'completeLessonOccurrence({',
     'markLessonSchemeCovered(',
-    'buildLessonAttendanceUrl({',
+    "router.push(`/teacher/lesson-notes?${q.toString()}`)",
     'coveragePromptOccurrenceId',
     'planSchemeIdRef.current',
 ):

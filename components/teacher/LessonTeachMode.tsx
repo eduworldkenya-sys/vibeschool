@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { LessonPlanSections } from '@/lib/teaching/lessonPlanCodec'
 
@@ -16,7 +16,16 @@ type ClassroomContext = {
   occurrenceDate: string
 }
 
-export type LessonCoverageOutcome = 'covered' | 'partial' | 'reteach'
+export type LessonCoverageOutcome = 'covered' | 'partial' | 'not_covered' | 'postponed' | 'reteach'
+export type LessonCompletionReview = {
+  coverage: LessonCoverageOutcome
+  whatWasTaught: string
+  reflection: string
+  attendanceUnavailableReason: string | null
+  noEvidenceReason: string | null
+  followUpDecision: 'none' | 'existing_task' | 'create_task'
+  nextSteps: string | null
+}
 
 type Props = {
   subject: string
@@ -30,7 +39,7 @@ type Props = {
   onCaptureEvidence?: () => void
   linkedResources?: Array<{ id: string; title: string; available: boolean }>
   onOpenResource?: (id: string) => void
-  onFinishLesson?: (outcome: LessonCoverageOutcome, whatWasTaught: string) => Promise<void> | void
+  onFinishLesson?: (review: LessonCompletionReview) => Promise<void> | void
   onClose: () => void
 }
 
@@ -83,6 +92,7 @@ export default function LessonTeachMode({
   const total = useMemo(() => totalMinutes(sections), [sections])
   const [stepIndex, setStepIndex] = useState(0)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [teachingStarted, setTeachingStarted] = useState(false)
   const [packView, setPackView] = useState<PackView>('notes')
   const [scratchpad, setScratchpad] = useState(initialScratchpad)
   const [online, setOnline] = useState(true)
@@ -91,6 +101,13 @@ export default function LessonTeachMode({
   const [finishOpen, setFinishOpen] = useState(false)
   const [coverageOutcome, setCoverageOutcome] = useState<LessonCoverageOutcome>('covered')
   const [whatWasTaught, setWhatWasTaught] = useState('')
+  const [reflection, setReflection] = useState('')
+  const [attendanceResolved, setAttendanceResolved] = useState(false)
+  const [attendanceUnavailableReason, setAttendanceUnavailableReason] = useState('')
+  const [evidenceResolved, setEvidenceResolved] = useState(false)
+  const [noEvidenceReason, setNoEvidenceReason] = useState('')
+  const [followUpDecision, setFollowUpDecision] = useState<LessonCompletionReview['followUpDecision']>('none')
+  const [nextSteps, setNextSteps] = useState('')
 
   const available = useMemo(
     () => STEPS.filter(step => (sections[step.key] ?? '').trim().length > 0),
@@ -103,10 +120,10 @@ export default function LessonTeachMode({
   const step = available[safeIndex]
 
   useEffect(() => {
-    if (total === null) return undefined
+    if (total === null || !teachingStarted) return undefined
     const timer = window.setInterval(() => setElapsedSeconds(value => value + 1), 1000)
     return () => window.clearInterval(timer)
-  }, [total])
+  }, [total, teachingStarted])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -126,13 +143,14 @@ export default function LessonTeachMode({
     try {
       const raw = window.localStorage.getItem(resumeKey(context))
       if (!raw) return
-      const saved = JSON.parse(raw) as { stepIndex?: number; elapsedSeconds?: number; scratchpad?: string; lessonPlanId?: string; occurrenceId?: string }
+      const saved = JSON.parse(raw) as { stepIndex?: number; elapsedSeconds?: number; scratchpad?: string; teachingStarted?: boolean; lessonPlanId?: string; occurrenceId?: string }
       if (saved.lessonPlanId !== context.lessonPlanId || saved.occurrenceId !== context.occurrenceId) {
         window.localStorage.removeItem(resumeKey(context))
         return
       }
       if (typeof saved.stepIndex === 'number') setStepIndex(Math.max(0, Math.min(saved.stepIndex, available.length - 1)))
       if (typeof saved.elapsedSeconds === 'number' && saved.elapsedSeconds >= 0) setElapsedSeconds(saved.elapsedSeconds)
+      if (saved.teachingStarted === true) setTeachingStarted(true)
       if (typeof saved.scratchpad === 'string') {
         setScratchpad(saved.scratchpad)
         onScratchpadChange?.(saved.scratchpad)
@@ -159,7 +177,7 @@ export default function LessonTeachMode({
     }
   }, [context, subject, className, topic, sections])
 
-  function persist(nextStep: number, note: string) {
+  const persist = useCallback((nextStep: number, note: string, started = teachingStarted) => {
     if (!context || typeof window === 'undefined') return
     window.localStorage.setItem(resumeKey(context), JSON.stringify({
       version: 1,
@@ -169,15 +187,16 @@ export default function LessonTeachMode({
       teacherId: context.teacherId,
       stepIndex: nextStep,
       elapsedSeconds,
+      teachingStarted: started,
       scratchpad: note,
       savedAt: new Date().toISOString(),
     }))
-  }
+  }, [context, elapsedSeconds, teachingStarted])
 
   useEffect(() => {
     if (!context || typeof window === 'undefined' || elapsedSeconds === 0 || elapsedSeconds % 30 !== 0) return
     persist(stepIndex, scratchpad)
-  }, [context, stepIndex, scratchpad, elapsedSeconds])
+  }, [context, stepIndex, scratchpad, elapsedSeconds, persist])
 
   function changeStep(next: number) {
     setStepIndex(next)
@@ -209,10 +228,30 @@ export default function LessonTeachMode({
       setFinishError('Record what was actually taught before finishing the lesson.')
       return
     }
+    if (!reflection.trim()) {
+      setFinishError('Add a brief reflection before finishing the lesson.')
+      return
+    }
+    if (!attendanceResolved && !attendanceUnavailableReason.trim()) {
+      setFinishError('Confirm attendance or explain why it is unavailable.')
+      return
+    }
+    if (!evidenceResolved && !noEvidenceReason.trim()) {
+      setFinishError('Confirm learning evidence or explain why none was recorded.')
+      return
+    }
     setFinishing(true)
     setFinishError(null)
     try {
-      await onFinishLesson(coverageOutcome, whatWasTaught.trim())
+      await onFinishLesson({
+        coverage: coverageOutcome,
+        whatWasTaught: whatWasTaught.trim(),
+        reflection: reflection.trim(),
+        attendanceUnavailableReason: attendanceResolved ? null : attendanceUnavailableReason.trim(),
+        noEvidenceReason: evidenceResolved ? null : noEvidenceReason.trim(),
+        followUpDecision,
+        nextSteps: nextSteps.trim() || null,
+      })
       if (context && typeof window !== 'undefined') window.localStorage.removeItem(resumeKey(context))
       setFinishOpen(false)
     } catch (error) {
@@ -271,6 +310,12 @@ export default function LessonTeachMode({
           <div style={{ background:"var(--teacher-ink, #1c2923)", color:'#fff', borderRadius:14, padding:12, marginBottom:12 }}>
             <div style={{ fontSize:11, opacity:.75, textTransform:'uppercase', fontWeight:800 }}>Lesson remaining · Total lesson time: {total} min</div>
             <div style={{ fontSize:24, fontWeight:750, marginTop:3 }}>{remainingMinutes}:{remainingRemainder}</div>
+            {!teachingStarted && (
+              <button type="button" onClick={() => { setTeachingStarted(true); persist(safeIndex, scratchpad, true) }} style={{ ...actionStyle, marginTop:10, background:'#fff', color:'var(--teacher-ink, #1c2923)' }}>
+                Start teaching
+              </button>
+            )}
+            {teachingStarted && <div style={{ fontSize:11, marginTop:5, opacity:.8 }}>Timer running · progress is saved on this device</div>}
           </div>
         )}
 
@@ -379,6 +424,8 @@ export default function LessonTeachMode({
                   {([
                     ['covered','Completed · content covered'],
                     ['partial','Partially covered'],
+                    ['not_covered','Not covered'],
+                    ['postponed','Postponed'],
                     ['reteach','Reteach required'],
                   ] as Array<[LessonCoverageOutcome,string]>).map(([value,label]) => (
                     <button key={value} type="button" onClick={()=>setCoverageOutcome(value)} style={{...actionStyle,textAlign:'left',borderColor:coverageOutcome===value?'#059669':'#cbd5e1',background:coverageOutcome===value?'#ecfdf5':'#fff'}}>{label}</button>
@@ -386,9 +433,18 @@ export default function LessonTeachMode({
                 </div>
                 <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>What was actually taught?</label>
                 <textarea value={whatWasTaught} onChange={e=>setWhatWasTaught(e.target.value)} rows={3} placeholder="Briefly record the content actually covered in this occurrence." style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5, font:'inherit' }} />
+                <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>Reflection</label>
+                <textarea value={reflection} onChange={e=>setReflection(e.target.value)} rows={3} placeholder="What worked, what needs attention, and what will you change?" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5, font:'inherit' }} />
+                <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:10, fontSize:12 }}><input type="checkbox" checked={attendanceResolved} onChange={e=>setAttendanceResolved(e.target.checked)} /> Attendance is complete for this occurrence</label>
+                {!attendanceResolved && <input value={attendanceUnavailableReason} onChange={e=>setAttendanceUnavailableReason(e.target.value)} placeholder="Reason attendance is unavailable" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />}
+                <label style={{ display:'flex', gap:8, alignItems:'center', marginTop:10, fontSize:12 }}><input type="checkbox" checked={evidenceResolved} onChange={e=>setEvidenceResolved(e.target.checked)} /> Learning evidence has been recorded</label>
+                {!evidenceResolved && <input value={noEvidenceReason} onChange={e=>setNoEvidenceReason(e.target.value)} placeholder="Reason no learning evidence was recorded" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />}
+                <label style={{ display:'block', fontSize:11, fontWeight:800, marginTop:10 }}>Follow-up</label>
+                <select value={followUpDecision} onChange={e=>setFollowUpDecision(e.target.value as LessonCompletionReview['followUpDecision'])} style={{ width:'100%', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:5 }}><option value="none">No follow-up</option><option value="existing_task">Use an existing task</option><option value="create_task">Create a task after completion</option></select>
+                <input value={nextSteps} onChange={e=>setNextSteps(e.target.value)} placeholder="Next teaching step (optional)" style={{ width:'100%', boxSizing:'border-box', border:'1px solid #cbd5e1', borderRadius:10, padding:10, marginTop:6 }} />
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 2fr', gap:8, marginTop:9 }}>
                   <button type="button" disabled={finishing} onClick={()=>setFinishOpen(false)} style={actionStyle}>Cancel</button>
-                  <button type="button" disabled={finishing || !online || !whatWasTaught.trim()} onClick={finish} style={{...actionStyle,background:"var(--teacher-green, #087451)",color:'#fff',opacity:finishing || !online || !whatWasTaught.trim()?0.55:1}}>{finishing?'Finishing lesson…':online?'Confirm finish':'Reconnect to finish safely'}</button>
+                  <button type="button" disabled={finishing || !online || !whatWasTaught.trim() || !reflection.trim()} onClick={finish} style={{...actionStyle,background:"var(--teacher-green, #087451)",color:'#fff',opacity:finishing || !online || !whatWasTaught.trim() || !reflection.trim()?0.55:1}}>{finishing?'Finishing lesson…':online?'Confirm finish':'Reconnect to finish safely'}</button>
                 </div>
               </section>
             )}

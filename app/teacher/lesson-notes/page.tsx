@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { parseLessonPlanBody } from "@/lib/teaching/lessonPlanCodec";
 import type { LessonPlanSections } from "@/lib/teaching/lessonPlanCodec";
-import LessonTeachMode, { type LessonCoverageOutcome } from "@/components/teacher/LessonTeachMode";
+import LessonTeachMode, { type LessonCompletionReview } from "@/components/teacher/LessonTeachMode";
 import ReflectionSheet from "@/components/teacher/ReflectionSheet";
 import EvidenceCaptureSheet from "@/components/teacher/EvidenceCaptureSheet";
 import LessonPreparationStudio from "@/components/teacher/LessonPreparationStudio";
@@ -349,7 +349,7 @@ function LessonNotesInner() {
     <section style={{ padding: "12px 14px 32px", maxWidth: 1100, margin: "0 auto" }}>
       <button type="button" onClick={() => router.back()} style={{ border: 0, background: "transparent", fontWeight: 800, padding: "8px 0", color: "#374151" }}>← Back to lesson</button>
 
-      {plan.class_id && plan.subject_id && <TeachingWorkspaceNav classId={plan.class_id} subjectId={plan.subject_id} lessonPlanId={plan.id} current="Lesson" />}
+      {plan.class_id && plan.subject_id && <TeachingWorkspaceNav classId={plan.class_id} subjectId={plan.subject_id} lessonPlanId={plan.id} occurrenceId={occurrence?.id} timetableSlotId={plan.timetable_slot_id} occurrenceDate={plan.taught_date} current="Lesson" />}
       {sections && <LessonPreparationStudio sections={sections} topic={plan.topic || plan.title || "Lesson notes"} resourceCount={resources.length} onTeach={() => setTeachMode(true)} onEdit={() => router.push(`/teacher/lessonplan?classId=${encodeURIComponent(plan.class_id || contextClassId)}&subjectId=${encodeURIComponent(plan.subject_id || contextSubjectId)}&timetableSlotId=${encodeURIComponent(plan.timetable_slot_id || "")}&date=${encodeURIComponent(plan.taught_date || "")}`)} />}
       <details className="studio-lesson-details"><summary>Teaching pack & private notes</summary>
       <section style={{ background: "#2c2944", color: "#fff", borderRadius: 22, padding: 18, marginBottom: 14 }}>
@@ -471,22 +471,30 @@ function LessonNotesInner() {
             setReflectionSeed(value);
             setReflectionOpen(true);
           }}
-          onFinishLesson={occurrence && plan.timetable_slot_id && occurrence.lifecycle === "in_progress" ? async (outcome: LessonCoverageOutcome, whatWasTaught: string) => {
-            const nextSteps = outcome === "partial"
+          onFinishLesson={occurrence && plan.timetable_slot_id && occurrence.lifecycle === "in_progress" ? async (review: LessonCompletionReview) => {
+            const outcome = review.coverage;
+            const whatWasTaught = review.whatWasTaught;
+            const nextSteps = review.nextSteps || (review.coverage === "partial"
               ? "Continue the uncovered part of this lesson before advancing Scheme coverage."
-              : outcome === "reteach"
+              : review.coverage === "not_covered"
+                ? "Reschedule the outcome before advancing Scheme coverage."
+              : review.coverage === "postponed"
+                ? "Confirm a new occurrence for this lesson."
+              : review.coverage === "reteach"
                 ? "Reteach this lesson content using the teacher reflection and new evidence before advancing Scheme coverage."
-                : "Teaching occurrence completed and the linked Scheme item was explicitly marked covered. Learner mastery remains evidence-based and separate.";
+                : "Teaching occurrence completed and the linked Scheme item was explicitly marked covered. Learner mastery remains evidence-based and separate.");
 
+            // `outcome` is a teaching-coverage statement, not learner mastery.
             // One RPC = one database transaction. Completion, progress and (for
             // covered lessons) Scheme coverage either all persist or all roll back.
-            const { data: finalized, error: finalizeError } = await supabase.rpc("finalize_teaching_occurrence", {
-              p_timetable_slot_id: plan.timetable_slot_id as string,
-              p_occurrence_date: occurrence.occurrence_date,
+            const { data: finalized, error: finalizeError } = await supabase.rpc("finalize_teaching_occurrence_v2", {
+              p_occurrence_id: occurrence.id,
               p_outcome: outcome,
               p_what_was_taught: whatWasTaught,
-              p_challenges: outcome === "reteach" ? "Teacher marked this occurrence as reteach required." : null,
-              p_teacher_remarks: `Coverage outcome: ${outcome}. This is a teaching-coverage statement, not learner mastery.`,
+              p_reflection: review.reflection,
+              p_attendance_unavailable_reason: review.attendanceUnavailableReason,
+              p_no_evidence_reason: review.noEvidenceReason,
+              p_follow_up_decision: review.followUpDecision,
               p_next_steps: nextSteps,
             });
             if (finalizeError) {
@@ -500,8 +508,9 @@ function LessonNotesInner() {
 
             const reflectionContext = [
               liveNote.trim(),
-              `Coverage outcome: ${outcome}.`,
-              `What was taught: ${whatWasTaught}`,
+              review.reflection,
+              `Coverage outcome: ${review.coverage}.`,
+              `What was taught: ${review.whatWasTaught}`,
               `Next step: ${nextSteps}`,
             ].filter(Boolean).join("\\n\\n");
             setReflectionSeed(reflectionContext);

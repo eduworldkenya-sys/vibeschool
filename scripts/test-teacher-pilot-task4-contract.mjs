@@ -132,7 +132,9 @@ for (const token of ['attendance', 'homework', 'assessment', 'Evidence', 'Reflec
 
 const lessonModal = read('components/teacher/LessonPlanModal.tsx')
 requireText(lessonModal.includes('startLessonOccurrence'), 'lesson plan starts guarded teaching occurrence')
-requireText(lessonModal.includes('buildLessonAttendanceUrl'), 'lesson start hands exact identity into attendance')
+requireText(lessonModal.includes('occurrenceId: occurrence.id') && lessonModal.includes("teach: '1'") && lessonModal.includes('/teacher/lesson-notes?'), 'lesson start hands exact identity into Teach Mode')
+const teachMode = read('components/teacher/LessonTeachMode.tsx')
+requireText(teachMode.includes('/teacher/attendance?') && teachMode.includes('occurrenceId: context.occurrenceId'), 'Teach Mode hands exact occurrence identity into attendance')
 requireText(lessonModal.includes('completeLessonOccurrence'), 'lesson completion is authoritative')
 requireText(lessonModal.includes('markLessonSchemeCovered'), 'completed teaching can update linked scheme through guarded authority')
 

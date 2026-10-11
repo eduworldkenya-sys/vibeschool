@@ -39,6 +39,8 @@ export interface LoadLessonWorkspaceInput {
   subjectId: string
   subjectName: string
   requestedSchemeId?: string | null
+  expectedLessonPlanId?: string | null
+  expectedOccurrenceId?: string | null
 }
 
 export interface LessonCanonicalSourceIdentity {
@@ -188,6 +190,8 @@ export async function loadLessonWorkspace({
   subjectId,
   subjectName,
   requestedSchemeId = null,
+  expectedLessonPlanId = null,
+  expectedOccurrenceId = null,
 }: LoadLessonWorkspaceInput): Promise<LessonWorkspaceBootResult | null> {
   if (!occurrenceDate) {
     throw new Error('lessonWorkspace: occurrenceDate is required.')
@@ -209,6 +213,10 @@ export async function loadLessonWorkspace({
       taughtDate: occurrenceDate,
     }),
   ])
+
+  if (expectedLessonPlanId && existingPlan?.id !== expectedLessonPlanId) {
+    throw new Error('lessonWorkspace: the requested lesson plan does not belong to this scheduled lesson.')
+  }
 
   let source: LessonSourceSuggestion | null = null
   let sourceLinked = false
@@ -289,6 +297,9 @@ export async function loadLessonWorkspace({
       timetableSlotId,
       occurrenceDate,
     })
+    if (expectedOccurrenceId && occurrence?.occurrenceId !== expectedOccurrenceId) {
+      throw new Error('lessonWorkspace: the requested occurrence does not belong to this scheduled lesson.')
+    }
   } catch (workspaceError) {
     console.error('[lessonWorkspace] occurrence load failed', workspaceError)
     occurrenceError = 'Could not load the lesson teaching state.'
