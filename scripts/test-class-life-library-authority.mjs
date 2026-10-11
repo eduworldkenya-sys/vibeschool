@@ -91,7 +91,8 @@ assert.equal(rep,await scalar(appoint,[cls,learner,'representative',null,id(40)]
 await assert.rejects(()=>scalar(appoint,[cls2,learner,'representative',null,id(41)]),/leadership_authorization_required/);
 await assert.rejects(()=>scalar(appoint,[cls,otherLearner,'deputy',null,id(42)]),/learner_not_currently_enrolled/);
 await as(subjectTeacher);
-assert.ok(await scalar(appoint,[cls,learner,'group_leader',grp,id(43)]));
+const groupLeader=await scalar(appoint,[cls,learner,'group_leader',grp,id(43)]);
+assert.ok(groupLeader);
 await assert.rejects(()=>scalar(appoint,[cls,learner,'prefect',null,id(44)]),/leadership_authorization_required/);
 await as(teacher);
 await scalar("select public.school_end_class_learner_appointment($1,'completed') value",[rep]);
