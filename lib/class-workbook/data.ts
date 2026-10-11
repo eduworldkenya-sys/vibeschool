@@ -199,7 +199,7 @@ export async function loadWorkbook(
           supabase
             .from("exam_results")
             .select(
-              "id,student_id,exam_id,subject_id,marks,is_absent,updated_at",
+              "id,student_id,exam_id,subject_id,marks,max_marks,percentage,result_state,is_absent,updated_at",
             )
             .eq("school_id", schoolId)
             .eq("class_id", classId)
