@@ -887,9 +887,15 @@ export default function AdminResourcesPage() {
   }
 
   async function handleDeleteBook(book: LibraryBook) {
-    await supabase.from('library_books')
-      .update({ deleted_at: new Date().toISOString() }).eq('id', book.id)
-    setDeleteBookTarget(null); toast('Book removed.'); fetchBooks()
+    setLibActionLoading(true)
+    try {
+      const {error}=await supabase.rpc('school_archive_library_book' as never,{p_book_id:book.id} as never)
+      if (error) throw error
+      setDeleteBookTarget(null);toast('Book archived; circulation history preserved.')
+      await fetchBooks()
+    } catch(error) {
+      toast('Cannot archive book: '+(error instanceof Error ? error.message : String(error)),'error')
+    } finally {setLibActionLoading(false)}
   }
 
   const filteredBooks = books.filter(b =>
