@@ -167,6 +167,56 @@ begin
   return p_appointment_id;
 end $$;
 
+-- Closing canonical enrolment or group membership must close appointments.
+-- This prevents transferred learners from remaining active class/group leaders.
+create or replace function public.end_class_leadership_on_enrollment_exit()
+returns trigger language plpgsql security definer
+set search_path=public,auth,pg_temp as $
+begin
+  if old.is_current and not new.is_current then
+    update public.class_learner_appointments
+      set ended_at=now(),ended_by=auth.uid(),ended_reason='completed'
+      where class_id=old.class_id and school_id=old.school_id
+        and student_id=old.student_id and ended_at is null;
+  end if;
+  return new;
+end $;
+create trigger end_class_leadership_enrollment_exit
+after update of is_current on public.student_classes
+for each row execute function public.end_class_leadership_on_enrollment_exit();
+
+create or replace function public.end_group_leadership_on_member_remove()
+returns trigger language plpgsql security definer
+set search_path=public,auth,pg_temp as $
+begin
+  update public.class_learner_appointments
+  set ended_at=now(),ended_by=auth.uid(),ended_reason='completed'
+  where group_id=old.group_id and student_id=old.student_id and ended_at is null;
+  return old;
+end $;
+create trigger end_group_leadership_member_remove
+after delete on public.class_group_members
+for each row execute function public.end_group_leadership_on_member_remove();
+
+create or replace function public.end_group_leadership_on_archive()
+returns trigger language plpgsql security definer
+set search_path=public,auth,pg_temp as $
+begin
+  if old.archived_at is null and new.archived_at is not null then
+    update public.class_learner_appointments
+    set ended_at=now(),ended_by=auth.uid(),ended_reason='completed'
+    where group_id=new.id and ended_at is null;
+  end if;
+  return new;
+end $;
+create trigger end_group_leadership_archive
+after update of archived_at on public.class_groups
+for each row execute function public.end_group_leadership_on_archive();
+
+revoke all on function public.end_class_leadership_on_enrollment_exit() from public,anon,authenticated;
+revoke all on function public.end_group_leadership_on_member_remove() from public,anon,authenticated;
+revoke all on function public.end_group_leadership_on_archive() from public,anon,authenticated;
+
 revoke all on function public.school_appoint_class_learner(uuid,uuid,text,date,date,uuid,uuid) from public,anon;
 revoke all on function public.school_end_class_learner_appointment(uuid,text) from public,anon;
 grant execute on function public.school_appoint_class_learner(uuid,uuid,text,date,date,uuid,uuid) to authenticated;
