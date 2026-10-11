@@ -1,6 +1,7 @@
 "use client";
 export const dynamic = "force-dynamic";
 import { supabase } from '@/lib/supabase'
+import { nairobiDateStr } from '@/lib/time'
 
 import { useEffect, useState } from 'react'
 
@@ -117,7 +118,7 @@ export default function StudentsReportPage() {
       .order('issued_at',{ascending:false})
       .limit(200)
     if (error) { console.error('Library report failed',error);setInsight('Unable to load the library report.');return }
-    const today = new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'})
+    const today = nairobiDateStr()
     const rows:LibraryRow[] = (data??[]).map((loan:any)=>{
       const student = Array.isArray(loan.student)?loan.student[0]:loan.student
       const book = Array.isArray(loan.book)?loan.book[0]:loan.book
