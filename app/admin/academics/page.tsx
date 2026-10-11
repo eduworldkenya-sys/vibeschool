@@ -166,6 +166,10 @@ export default function AdminAcademicsPage() {
         </p>
       </header>
 
+      <button type="button" onClick={() => router.push("/admin/academics/exams")} style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,background:"#f5faf6",border:"1px solid #cde4d2",borderRadius:12,padding:"14px 17px",textAlign:"left",cursor:"pointer",color:"#195437"}}>
+        <span><strong>Examination office</strong><small style={{display:"block",marginTop:3,color:"#61806d"}}>Review subject submissions, approve and publish class results</small></span>
+        <span aria-hidden="true">→</span>
+      </button>
       {error && <div role="alert" style={{ border: "1px solid #fecaca", background: "#fef2f2", color: "#991b1b", padding: 12, borderRadius: 12 }}>{error}</div>}
 
       {!term ? (
