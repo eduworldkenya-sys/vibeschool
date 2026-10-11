@@ -314,6 +314,11 @@ export default function AdminResourcesPage() {
   const [showAddBook, setShowAddBook]             = useState(false)
   const [showIssueModal, setShowIssueModal]       = useState(false)
   const [showReturnModal, setShowReturnModal]     = useState(false)
+  const [manageBook, setManageBook]               = useState<LibraryBook | null>(null)
+  const [libraryCopies, setLibraryCopies]         = useState<{id:string;copy_number:number;accession_code:string;state:string;last_condition:string|null}[]>([])
+  const [inventoryLoading, setInventoryLoading]   = useState(false)
+  const [restockCopies, setRestockCopies]         = useState('1')
+  const inventoryRequest = useRef<{payload:string;id:string}|null>(null)
   const [issueTarget, setIssueTarget]             = useState<LibraryBook | null>(null)
   const [returnTarget, setReturnTarget]           = useState<LibraryBorrowing | null>(null)
   const [deleteBookTarget, setDeleteBookTarget]   = useState<LibraryBook | null>(null)
@@ -822,6 +827,62 @@ export default function AdminResourcesPage() {
       await Promise.all([fetchBooks(),fetchBorrowings()])
     } catch(error) {
       toast('Return failed: '+(error instanceof Error ? error.message : String(error)),'error')
+    } finally {setLibActionLoading(false)}
+  }
+
+  async function fetchManagedCopies(bookId: string) {
+    setInventoryLoading(true)
+    try {
+      const {data,error} = await supabase.rpc('school_list_library_copies' as never,{p_book_id:bookId} as never)
+      if (error) throw error
+      setLibraryCopies((data as typeof libraryCopies|null) ?? [])
+    } catch(error) {
+      toast('Cannot load individual copies: '+(error instanceof Error ? error.message : String(error)),'error')
+    } finally {setInventoryLoading(false)}
+  }
+
+  function openManageBook(book: LibraryBook) {
+    setManageBook(book);setLibraryCopies([]);setRestockCopies('1');inventoryRequest.current=null
+    void fetchManagedCopies(book.id)
+  }
+
+  async function handleRestockBook() {
+    if (!manageBook) return
+    const count=Number(restockCopies)
+    if (!Number.isInteger(count) || count<1 || count>5000) {
+      toast('Enter a whole number of copies from 1 to 5000.','error');return
+    }
+    const payload='restock:'+manageBook.id+':'+count
+    if (inventoryRequest.current?.payload!==payload) inventoryRequest.current={payload,id:crypto.randomUUID()}
+    setLibActionLoading(true)
+    try {
+      const {error}=await supabase.rpc('school_restock_library_book' as never,{
+        p_book_id:manageBook.id,p_count:count,p_request_id:inventoryRequest.current.id
+      } as never)
+      if (error) throw error
+      inventoryRequest.current=null
+      toast(count+' physical '+(count===1?'copy':'copies')+' registered.')
+      await Promise.all([fetchBooks(),fetchManagedCopies(manageBook.id)])
+    } catch(error) {
+      toast('Restock failed: '+(error instanceof Error ? error.message : String(error)),'error')
+    } finally {setLibActionLoading(false)}
+  }
+
+  async function handleRepairCopy(copyId: string) {
+    if (!manageBook) return
+    const payload='repair:'+copyId
+    if (inventoryRequest.current?.payload!==payload) inventoryRequest.current={payload,id:crypto.randomUUID()}
+    setLibActionLoading(true)
+    try {
+      const {error}=await supabase.rpc('school_repair_library_copy' as never,{
+        p_copy_id:copyId,p_request_id:inventoryRequest.current.id
+      } as never)
+      if (error) throw error
+      inventoryRequest.current=null
+      toast('Repaired copy returned to available stock.')
+      await Promise.all([fetchBooks(),fetchManagedCopies(manageBook.id)])
+    } catch(error) {
+      toast('Repair update failed: '+(error instanceof Error ? error.message : String(error)),'error')
     } finally {setLibActionLoading(false)}
   }
 
@@ -1339,6 +1400,7 @@ export default function AdminResourcesPage() {
                             disabled={book.available_copies === 0}
                             style={{ flex:1, background: book.available_copies > 0 ? C.emerald : C.bg, color: book.available_copies > 0 ? '#fff' : C.muted, border:'none', borderRadius:10, padding:'8px 0', fontWeight:700, fontSize:13, cursor: book.available_copies > 0 ? 'pointer' : 'not-allowed' }}
                           >Issue Book</button>
+                          <button onClick={() => openManageBook(book)} style={{ background:C.bg, color:C.text, border:`1px solid ${C.border}`, borderRadius:10, padding:'8px 12px', fontWeight:700, fontSize:13, cursor:'pointer' }}>Copies</button>
                           <button onClick={() => setDeleteBookTarget(book)} style={{ background:'#fee2e2', color:'#b91c1c', border:'none', borderRadius:10, padding:'8px 12px', fontWeight:700, fontSize:13, cursor:'pointer' }}>🗑</button>
                         </div>
                       </div>
@@ -1731,6 +1793,39 @@ export default function AdminResourcesPage() {
             {libActionLoading ? 'Processing…' : 'Confirm Return'}
           </button>
           <button onClick={() => setShowReturnModal(false)} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
+        </BottomSheet>
+      )}
+
+      {/* Library physical-copy inventory: existing BottomSheet pattern, no redesign */}
+      {manageBook && (
+        <BottomSheet title="Manage Copies" subtitle={manageBook.title}
+          onClose={() => {setManageBook(null);inventoryRequest.current=null}}>
+          <div style={{marginBottom:12,fontSize:13,color:C.muted}}>
+            Every physical book has its own school accession and availability state.
+          </div>
+          <div style={field()}>
+            <label style={lbl}>Add New Copies</label>
+            <input type="number" min="1" max="5000" step="1" value={restockCopies}
+              onChange={e=>{setRestockCopies(e.target.value);inventoryRequest.current=null}} style={inp}/>
+          </div>
+          <button onClick={handleRestockBook} disabled={libActionLoading || inventoryLoading}
+            style={{width:'100%',background:C.emerald,color:'#fff',border:'none',borderRadius:12,padding:12,fontWeight:700,fontSize:13,cursor:'pointer',marginBottom:14}}>
+            {libActionLoading ? 'Saving…' : 'Register New Copies'}
+          </button>
+          {inventoryLoading ? (
+            <div style={{padding:12,color:C.muted}}>Loading copies…</div>
+          ) : libraryCopies.map(copy => (
+            <div key={copy.id} style={{padding:'10px 0',borderTop:`1px solid ${C.border}`,display:'flex',alignItems:'center',gap:8}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:13,fontWeight:700,color:C.text}}>Copy {copy.copy_number} · {copy.state}</div>
+                <div style={{fontSize:11,color:C.muted,overflowWrap:'anywhere'}}>{copy.accession_code}</div>
+              </div>
+              {copy.state==='repair' && <button onClick={()=>handleRepairCopy(copy.id)} disabled={libActionLoading}
+                style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${C.border}`,background:C.surface,color:C.text,fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                Mark Repaired
+              </button>}
+            </div>
+          ))}
         </BottomSheet>
       )}
 
