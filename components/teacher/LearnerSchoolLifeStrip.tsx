@@ -21,8 +21,9 @@ export default function LearnerSchoolLifeStrip({ classId, studentId }: { classId
   const [ready, setReady] = useState(false);
   const reload = useCallback(async () => {
     const { data, error } = await supabase.rpc("teacher_school_life_snapshot" as never, { p_class_id: classId } as never);
-    if (error || !isActivitySnapshot(data)) return;
-    const value = data;
+    const payload: unknown = data;
+    if (error || !isActivitySnapshot(payload)) return;
+    const value = payload;
     const ids = new Set(value.memberships.filter(m => m.student_id === studentId).map(m => m.activity_id));
     setNames(value.activities.filter(a => ids.has(a.id)).map(a => a.title));
     setReady(true);
