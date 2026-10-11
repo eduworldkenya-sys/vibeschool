@@ -59,28 +59,39 @@ await insert('insert into academic_terms values($1,$2,current_date-30,current_da
 await insert("insert into library_books values($1,$2,'Book One',2,2,null),($3,$4,'Outside Book',2,2,null)",book,school,book2,school2);
 for(const candidate of [
   'docs/engineering/class-life-library/canonical_library_migration_candidate.sql',
-  'docs/engineering/class-life-library/canonical_learner_leadership_migration_candidate.sql'
+  'docs/engineering/class-life-library/canonical_learner_leadership_migration_candidate.sql',
+  'docs/engineering/class-life-library/canonical_library_copies_migration_candidate.sql'
 ]) {try{await db.exec(fs.readFileSync(candidate,'utf8'))}catch(error){console.error('Migration candidate failed:',candidate,error.message);throw error}}
 async function as(user){await db.exec("reset role;set request.jwt.claim.sub='"+user+"';set role authenticated;")}
 async function scalar(sql,values=[]){return (await db.query(sql,values)).rows[0]?.value}
 async function stock(){return (await db.query('select available_copies from library_books where id=$1',[book])).rows[0].available_copies}
+async function copies(){return (await db.query('select state,count(*)::int n from library_book_copies where book_id=$1 group by state',[book])).rows.reduce((a,r)=>({...a,[r.state]:r.n}),{})}
+async function copyId(loan){return (await db.query('select copy_id from library_borrowings where id=$1',[loan])).rows[0].copy_id}
 const issue="select public.school_issue_library_book($1,$2,null,current_date+7,'good',$3) value";
 await as(admin);
 const options=await scalar('select public.school_library_borrower_options($1) value',[school]);
 assert.equal(options.students.length,1);
 assert.equal(options.staff.length,3);
+assert.deepEqual(await copies(),{available:2},'backfilled catalogue has individual available copies');
 const loan=await scalar(issue,[book,learner,id(30)]);
 assert.equal(loan,await scalar(issue,[book,learner,id(30)]),'retries must be idempotent');
 assert.equal(await stock(),1);
+assert.deepEqual(await copies(),{available:1,on_loan:1},'issue marks one physical copy on loan');
+assert.ok(await copyId(loan),'borrowing records canonical physical copy');
 await assert.rejects(()=>scalar(issue,[book,otherLearner,id(31)]),/borrower_not_currently_enrolled/);
 await assert.rejects(()=>scalar(issue,[book2,learner,id(32)]),/school_admin_required/);
 await assert.rejects(()=>db.query("insert into library_borrowings(school_id,book_id,borrower_type,student_id,due_date) values($1,$2,'student',$3,current_date+7)",[school,book,learner]),/permission denied/);
 await scalar("select public.school_return_library_book($1,'good',0,false) value",[loan]);
 assert.equal(await stock(),2);
+assert.deepEqual(await copies(),{available:2},'return restores physical copy');
 await assert.rejects(()=>scalar("select public.school_return_library_book($1,'good',0,false) value",[loan]),/borrowing_already_returned/);
 const lost=await scalar(issue,[book,learner,id(33)]);
 await scalar("select public.school_return_library_book($1,'lost',0,false) value",[lost]);
 assert.equal(await stock(),1,'lost books do not re-enter circulation');
+assert.deepEqual(await copies(),{available:1,lost:1},'lost physical copy stays marked lost');
+const newBook=id(77);
+await insert("insert into library_books values($1,$2,'New School Book',3,3,null)",newBook,school);
+assert.equal((await db.query('select count(*)::int n from library_book_copies where book_id=$1',[newBook])).rows[0].n,3,'new catalogue insert seeds unique physical copies');
 await as(outsider);
 await assert.rejects(()=>scalar('select public.school_library_borrower_options($1) value',[school]),/school_admin_required/);
 await assert.rejects(()=>scalar(issue,[book,learner,id(34)]),/school_admin_required/);
