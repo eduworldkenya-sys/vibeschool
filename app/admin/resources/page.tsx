@@ -769,8 +769,11 @@ export default function AdminResourcesPage() {
     if (!bTitle.trim() || !bAuthor.trim()) {
       toast('Title and author required.', 'error'); return
     }
+    const copies = Number(bCopies)
+    if (!Number.isInteger(copies) || copies < 1 || copies > 5000) {
+      toast('Enter 1 to 5000 whole physical copies.', 'error'); return
+    }
     setLibActionLoading(true)
-    const copies = parseInt(bCopies) || 1
     const { error: err } = await supabase.from('library_books').insert({
       school_id: schoolId, title: bTitle.trim(), author: bAuthor.trim(),
       isbn: bIsbn || null, subject: bSubject || null, class_level: bClassLevel || null,
