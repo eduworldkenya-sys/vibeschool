@@ -30,11 +30,14 @@ create index class_learner_appointments_class_current_idx
 create unique index class_learner_appointments_request_uidx
   on public.class_learner_appointments(appointed_by,request_id)
   where request_id is not null;
-create unique index class_learner_appointments_class_leads_uidx
-  on public.class_learner_appointments(class_id,role_code)
+-- Concurrent role claims are serialized by school_appoint_class_learner.
+-- Overlapping future intervals cannot coexist, but an incumbent and a future
+-- appointment may coexist until the scheduled handover date.
+create unique index class_learner_appointments_class_lead_start_uidx
+  on public.class_learner_appointments(class_id,role_code,starts_on)
   where ended_at is null and role_code in ('representative','deputy');
-create unique index class_learner_appointments_group_lead_uidx
-  on public.class_learner_appointments(group_id)
+create unique index class_learner_appointments_group_lead_start_uidx
+  on public.class_learner_appointments(group_id,starts_on)
   where ended_at is null and role_code='group_leader';
 
 alter table public.class_learner_appointments enable row level security;
@@ -68,8 +71,7 @@ begin
   if p_role_code is null or p_role_code not in ('representative','deputy','prefect','group_leader') then
     raise exception 'leadership_role_invalid';
   end if;
-  if p_starts_on is null or p_ends_on is null or p_starts_on>current_date
-      or p_starts_on>p_ends_on or p_ends_on<current_date then
+  if p_starts_on is null or p_ends_on is null or p_starts_on>p_ends_on or p_ends_on<current_date then
     raise exception 'appointment_dates_invalid';
   end if;
   if (p_role_code='group_leader') is distinct from (p_group_id is not null) then
@@ -124,11 +126,35 @@ begin
   end if;
 
   if p_role_code in ('representative','deputy','group_leader') then
-    update public.class_learner_appointments
-       set ended_at=now(),ended_by=v_uid,ended_reason='replaced'
-    where class_id=p_class_id and role_code=p_role_code and ended_at is null
-      and ( (p_group_id is null and group_id is null) or group_id=p_group_id );
-  end if;
+    -- Existing starts after the requested start are a competing future
+    -- handover. Explicit cancellation is required, never silently overwrite.
+    if exists (
+      select 1 from public.class_learner_appointments a
+      where a.class_id=p_class_id and a.role_code=p_role_code
+        and a.group_id is not distinct from p_group_id
+        and a.ended_at is null and a.starts_on>p_starts_on
+        and a.starts_on<=p_ends_on
+    ) then raise exception 'future_leadership_appointment_conflict'; end if;
+
+    -- End same-day incumbent explicitly. For future handovers, truncate the
+    -- incumbent at the previous school day while retaining historical record.
+    update public.class_learner_appointments a
+      set ended_at=now(),ended_by=v_uid,ended_reason='replaced'
+    where a.class_id=p_class_id and a.role_code=p_role_code
+      and a.group_id is not distinct from p_group_id and a.ended_at is null
+      and a.starts_on=p_starts_on;
+
+    update public.class_learner_appointments a
+      set ends_on=p_starts_on-1
+    where a.class_id=p_class_id and a.role_code=p_role_code
+      and a.group_id is not distinct from p_group_id and a.ended_at is null
+      and a.starts_on<p_starts_on and a.ends_on>=p_starts_on;
+  elsif exists (
+    select 1 from public.class_learner_appointments a
+    where a.class_id=p_class_id and a.student_id=p_student_id
+      and a.role_code=p_role_code and a.ended_at is null
+      and a.starts_on<=p_ends_on and a.ends_on>=p_starts_on
+  ) then raise exception 'duplicate_active_prefect_appointment'; end if;
   insert into public.class_learner_appointments(
     school_id,class_id,student_id,academic_term_id,group_id,role_code,
     starts_on,ends_on,appointed_by,request_id
@@ -216,6 +242,85 @@ for each row execute function public.end_group_leadership_on_archive();
 revoke all on function public.end_class_leadership_on_enrollment_exit() from public,anon,authenticated;
 revoke all on function public.end_group_leadership_on_member_remove() from public,anon,authenticated;
 revoke all on function public.end_group_leadership_on_archive() from public,anon,authenticated;
+
+-- Projection-only reads keep Class Hub and learner history connected to the
+-- same appointment ledger rather than duplicating appointments in profiles.
+create or replace function public.school_get_class_leadership(p_class_id uuid)
+returns jsonb language plpgsql stable security definer
+set search_path=public,auth,pg_temp as $
+declare v_school uuid; v_result jsonb;
+begin
+  if auth.uid() is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  select school_id into v_school from public.classes where id=p_class_id;
+  if v_school is null then raise exception 'class_not_found'; end if;
+  if not (
+    public.is_school_admin(v_school) or
+    public.teacher_can_access_class(p_class_id,null,false)
+  ) then raise exception 'leadership_authorization_required' using errcode='42501'; end if;
+  select jsonb_build_object(
+    'current',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',a.id,'student_id',a.student_id,'student_name',s.name,
+        'role',a.role_code,'group_id',a.group_id,'group_name',g.name,
+        'starts_on',a.starts_on,'ends_on',a.ends_on,
+        'appointed_by',a.appointed_by
+      ) order by a.role_code,s.name)
+      from public.class_learner_appointments a
+      join public.students s on s.id=a.student_id
+      left join public.class_groups g on g.id=a.group_id
+      where a.class_id=p_class_id and a.school_id=v_school
+        and a.ended_at is null and current_date between a.starts_on and a.ends_on
+        and (g.id is null or (g.archived_at is null and (g.expires_at is null or g.expires_at>now())))
+    ),'[]'::jsonb),
+    'upcoming',coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id',a.id,'student_id',a.student_id,'student_name',s.name,
+        'role',a.role_code,'group_id',a.group_id,
+        'starts_on',a.starts_on,'ends_on',a.ends_on
+      ) order by a.starts_on)
+      from public.class_learner_appointments a
+      join public.students s on s.id=a.student_id
+      where a.class_id=p_class_id and a.school_id=v_school
+        and a.ended_at is null and a.starts_on>current_date
+    ),'[]'::jsonb)
+  ) into v_result;
+  return v_result;
+end $;
+
+create or replace function public.school_get_learner_leadership(
+  p_class_id uuid,p_student_id uuid
+) returns jsonb language plpgsql stable security definer
+set search_path=public,auth,pg_temp as $
+declare v_school uuid; v_result jsonb;
+begin
+  if auth.uid() is null then raise exception 'not_authenticated' using errcode='42501'; end if;
+  select school_id into v_school from public.classes where id=p_class_id;
+  if v_school is null then raise exception 'class_not_found'; end if;
+  if not (
+    public.is_school_admin(v_school) or
+    public.teacher_can_access_class(p_class_id,null,false)
+  ) then raise exception 'leadership_authorization_required' using errcode='42501'; end if;
+  if not exists (
+    select 1 from public.student_classes sc
+    where sc.class_id=p_class_id and sc.school_id=v_school
+      and sc.student_id=p_student_id
+  ) then raise exception 'learner_not_enrolled_in_class'; end if;
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id',a.id,'role',a.role_code,'group_id',a.group_id,'group_name',g.name,
+    'starts_on',a.starts_on,'ends_on',a.ends_on,
+    'ended_at',a.ended_at,'ended_reason',a.ended_reason,
+    'appointed_by',a.appointed_by
+  ) order by a.starts_on desc,a.created_at desc),'[]'::jsonb)
+  into v_result from public.class_learner_appointments a
+  left join public.class_groups g on g.id=a.group_id
+  where a.class_id=p_class_id and a.school_id=v_school and a.student_id=p_student_id;
+  return v_result;
+end $;
+
+revoke all on function public.school_get_class_leadership(uuid) from public,anon;
+revoke all on function public.school_get_learner_leadership(uuid,uuid) from public,anon;
+grant execute on function public.school_get_class_leadership(uuid) to authenticated;
+grant execute on function public.school_get_learner_leadership(uuid,uuid) to authenticated;
 
 revoke all on function public.school_appoint_class_learner(uuid,uuid,text,date,date,uuid,uuid) from public,anon;
 revoke all on function public.school_end_class_learner_appointment(uuid,text) from public,anon;
