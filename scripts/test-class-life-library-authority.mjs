@@ -62,11 +62,13 @@ await insert('insert into class_groups(id,class_id,school_id,subject_id,name) va
 await insert('insert into class_group_members values($1,$2)',grp,learner);
 await insert('insert into academic_terms values($1,$2,current_date-30,current_date+30)',term,school);
 await insert("insert into library_books values($1,$2,'Book One',2,2,null),($3,$4,'Outside Book',2,2,null)",book,school,book2,school2);
-for(const candidate of [
-  'docs/engineering/class-life-library/canonical_library_migration_candidate.sql',
-  'docs/engineering/class-life-library/canonical_learner_leadership_migration_candidate.sql',
-  'docs/engineering/class-life-library/canonical_library_copies_migration_candidate.sql'
-]) {try{await db.exec(fs.readFileSync(candidate,'utf8'))}catch(error){console.error('Migration candidate failed:',candidate,error.message);throw error}}
+// Verify the exact canonical SQL that is committed for Supabase deployment,
+// not only draft copies under docs/.
+for(const migration of [
+  'supabase/migrations/20261011082922_class_life_library_borrower_authority.sql',
+  'supabase/migrations/20261011082925_class_life_leadership_authority.sql',
+  'supabase/migrations/20261011082928_class_life_physical_library_copies.sql'
+]) {try{await db.exec(fs.readFileSync(migration,'utf8'))}catch(error){console.error('Canonical migration failed:',migration,error.message);throw error}}
 async function as(user){await db.exec("reset role;set request.jwt.claim.sub='"+user+"';set role authenticated;")}
 async function scalar(sql,values=[]){return (await db.query(sql,values)).rows[0]?.value}
 async function stock(){return (await db.query('select available_copies from library_books where id=$1',[book])).rows[0].available_copies}
