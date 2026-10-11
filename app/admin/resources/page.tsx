@@ -1335,7 +1335,7 @@ export default function AdminResourcesPage() {
                         </div>
                         <div style={{ display:'flex', gap:8, marginTop:12 }}>
                           <button
-                            onClick={() => { setIssueTarget(book); setShowIssueModal(true) }}
+                            onClick={() => { setIssueTarget(book); setBorrowerId(''); libraryIssueRequest.current=null; setShowIssueModal(true) }}
                             disabled={book.available_copies === 0}
                             style={{ flex:1, background: book.available_copies > 0 ? C.emerald : C.bg, color: book.available_copies > 0 ? '#fff' : C.muted, border:'none', borderRadius:10, padding:'8px 0', fontWeight:700, fontSize:13, cursor: book.available_copies > 0 ? 'pointer' : 'not-allowed' }}
                           >Issue Book</button>
