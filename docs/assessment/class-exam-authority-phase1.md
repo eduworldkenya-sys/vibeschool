@@ -1,6 +1,6 @@
 # Class-wide CBC Exam Authority — Phase 1
 
-Status: **proposed migration, NOT applied and NOT certified**.
+Status: **backend + Class Exam Register implemented on feature branch; not merged or deployed; pilot NOT certified**.
 
 ## Why this exists
 A class teacher must review all learning-area results for an assigned class, while a
@@ -9,7 +9,7 @@ subject teacher may review the same class but edit only their own subject. Exist
 existing `teacher_save_exam_result_state` refuses cross-subject corrections and
 refuses a different `teacher_id` owner on existing records.
 
-This is an **additive backend foundation**, not a new markbook. It preserves the
+This is an **additive backend and read-only/class-correction UI foundation**, not a new mark store. It preserves the
 `exams`, `exam_results`, `student_classes`, `teacher_classes`, and
 `exam_subject_config` authorities. It neither changes UI nor redefines formal KNEC
 reporting. `assessment_gradebook_entries` remains the distinct released assessment
@@ -42,7 +42,7 @@ projection; do not duplicate those results.
    cells but cannot fill them on another subject's behalf in phase 1.
    Reassigned-subject-teacher editing of historical records remains a separate
    authority/ownership issue to resolve before pilot.
-3. Submitted/approved/published per-subject lifecycle is not yet implemented.
+3. A consolidated Class Results tab is now implemented at `/teacher/results`, alongside the existing fast subject markbook. It displays the canonical enrolled roster, all assigned learning areas, saved numeric scores and non-score statuses. A subject teacher edits their assigned learning area; a class teacher may correct existing cross-subject entries with a reason. Submitted/approved/published per-subject lifecycle is not yet implemented.
    The existing `is_locked` is the only verified lock boundary; do not claim
    that it represents moderation or publication.
 4. Existing parent/learner exam-read policies do not yet enforce new publication
@@ -76,3 +76,21 @@ projection; do not duplicate those results.
 3. Fix any test failures; obtain reviewed merge with passing CI.
 4. Apply production migration through controlled deployment, verify grants and
    negative permission tests. Only then enable class-wide UI and corrections.
+
+
+## Additional work carried by this branch
+- Reconciles the four October 4 canonical exam-result migrations already applied in production but missing from main. Fixed invalid dollar quoting in the repository's migration so blank-database replay can parse it.
+- Includes the class-exam read projection RPC with explicit school/teacher verification and the existing canonical student/subject/result identities; no parallel result table.
+- Adds mobile-adaptive, horizontally scrollable class-wide results and source-authoritative correction readback.
+- The subject markbook uses the existing scoring-policy RPC for authentic /20, /50, /80 and /100 ranges. An internal threshold is **not** a CBC EE/ME/AE/BE conversion.
+- Removes automatic CBC grades from the legacy markbook and CSV; CSV includes raw maximum, percentage and original result state.
+- Uses admission/learner IDs for paste matching; positional matching is prohibited.
+- Uses existing atomic batch RPC for "Save all" and restores ABS to pending rather than manufacturing a zero.
+- Extends the exam type check to allow end-term entries already presented in UI.
+
+## Remaining release blockers
+1. Reconcile PR #739's **remaining application consumers and tests**, not just its production-applied migrations. They contain valuable score-state/report work but are still open and unmergeable.
+2. School examination subject submission, teacher correction request/reopen, admin approval, publication/privacy rules for learner/parent screens.
+3. Hosted nonproduction Supabase testing with real authenticated subject/class/admin/parent/learner actors and two distinct schools, and production parity.
+4. Full Android/mobile, offline/slow-network, report card and new-teacher workflows.
+5. Exact-head governance, typecheck, lint, full migrations replay and CI must all pass before merge. Migration deployment and Vercel release must be verified separately.
