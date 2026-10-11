@@ -325,7 +325,9 @@ export default function AdminResourcesPage() {
   const [bClassLevel, setBClassLevel]             = useState('')
   const [bCopies, setBCopies]                     = useState('1')
   const [borrowerType, setBorrowerType]           = useState<'student'|'staff'>('student')
-  const [borrowerName, setBorrowerName]           = useState('')
+  const [borrowerId, setBorrowerId]               = useState('')
+  const [libraryBorrowers, setLibraryBorrowers]   = useState<{students:{id:string;name:string;class_name:string}[];staff:{id:string;name:string}[]}>({students:[],staff:[]})
+  const libraryIssueRequest = useRef<{payload:string;id:string}|null>(null)
   const [issueDue, setIssueDue]                   = useState('')
   const [issueCondOut, setIssueCondOut]           = useState('good')
   const [returnCondIn, setReturnCondIn]           = useState('good')
@@ -370,7 +372,7 @@ export default function AdminResourcesPage() {
     if (activeTab === 'documents') fetchDocs()
     if (activeTab === 'store')     { fetchStoreItems(); fetchStoreRequests(); fetchStoreTxnCount() }
     if (activeTab === 'assets')    fetchAssets()
-    if (activeTab === 'library')   { fetchBooks(); fetchBorrowings() }
+    if (activeTab === 'library')   { fetchBooks(); fetchBorrowings(); fetchLibraryBorrowers() }
     if (activeTab === 'staff')     fetchStaff()
   }, [schoolId, activeTab])
 
@@ -704,10 +706,18 @@ export default function AdminResourcesPage() {
     setLibLoading(false)
   }
 
+  async function fetchLibraryBorrowers() {
+    if (!schoolId) return
+    const {data,error} = await supabase.rpc('school_library_borrower_options' as never,{p_school_id:schoolId} as never)
+    if (error) { toast('Could not load school borrowers: ' + error.message,'error'); return }
+    const options = data as {students?:{id:string;name:string;class_name:string}[];staff?:{id:string;name:string}[]}|null
+    setLibraryBorrowers({students:options?.students ?? [],staff:options?.staff ?? []})
+  }
+
   async function fetchBorrowings() {
     const { data } = await supabase
       .from('library_borrowings')
-      .select('*, book:book_id(title), issuer:issued_by(full_name)')
+      .select('*, book:book_id(title), issuer:issued_by(full_name), borrower_student:student_id(name), borrower_staff:staff_id(full_name)')
       .eq('school_id', schoolId!)
       .is('returned_at', null)
       .is('deleted_at', null)
@@ -743,7 +753,9 @@ export default function AdminResourcesPage() {
         created_at: row.created_at ?? new Date(0).toISOString(),
         book_title: book?.title ?? 'Unknown',
         issuer_name: issuer?.full_name ?? 'Unknown',
-        borrower_name: row.notes ?? '—',
+        borrower_name: (Array.isArray(row.borrower_student) ? row.borrower_student[0]?.name : row.borrower_student?.name)
+          ?? (Array.isArray(row.borrower_staff) ? row.borrower_staff[0]?.full_name : row.borrower_staff?.full_name)
+          ?? (row.notes || 'Unlinked borrower'),
       }
     }))
   }
@@ -767,68 +779,50 @@ export default function AdminResourcesPage() {
   }
 
   async function handleIssueBook() {
-    if (!issueTarget || !borrowerName.trim() || !issueDue) {
-      toast('Fill all required fields.', 'error'); return
-    }
-    if (issueTarget.available_copies <= 0) {
-      toast('No copies available.', 'error'); return
+    if (!issueTarget || !borrowerId || !issueDue || !schoolId) {
+      toast('Choose a registered borrower and due date.', 'error'); return
     }
     setLibActionLoading(true)
-
-    // FIX: properly set student_id / staff_id based on borrower type.
-    // We store the name in `notes` since we don't have a foreign key lookup UI here.
-    // student_id and staff_id remain null until a picker is added.
-    const { error: e1 } = await supabase.from('library_borrowings').insert({
-      school_id:     schoolId,
-      book_id:       issueTarget.id,
-      borrower_type: borrowerType,
-      student_id:    null,   // extend later with student picker
-      staff_id:      null,   // extend later with staff picker
-      issued_by:     userId!,
-      issued_at:     new Date().toISOString(),
-      due_date:      issueDue,
-      condition_out: issueCondOut,
-      fine_amount:   0,
-      fine_paid:     false,
-      notes:         borrowerName.trim(),   // borrower name stored here
-    })
-    if (e1) { toast('Issue failed: ' + e1.message, 'error'); setLibActionLoading(false); return }
-
-    await supabase.from('library_books')
-      .update({ available_copies: issueTarget.available_copies - 1 })
-      .eq('id', issueTarget.id)
-
-    toast('Book issued.')
-    setShowIssueModal(false); setIssueTarget(null)
-    setBorrowerName(''); setIssueDue(''); setIssueCondOut('good')
-    fetchBooks(); fetchBorrowings(); setLibActionLoading(false)
+    try {
+      const args = {
+        p_book_id:issueTarget.id,
+        p_student_id:borrowerType==='student' ? borrowerId : null,
+        p_staff_id:borrowerType==='staff' ? borrowerId : null,
+        p_due_date:issueDue,
+        p_condition:issueCondOut,
+      }
+      const payload = JSON.stringify(args)
+      if (libraryIssueRequest.current?.payload !== payload) libraryIssueRequest.current = {payload,id:crypto.randomUUID()}
+      const {error} = await supabase.rpc('school_issue_library_book' as never,{...args,p_request_id:libraryIssueRequest.current.id} as never)
+      if (error) throw error
+      libraryIssueRequest.current = null
+      toast('Book issued and linked to the borrower.')
+      setShowIssueModal(false);setIssueTarget(null);setBorrowerId('');setIssueDue('');setIssueCondOut('good')
+      await Promise.all([fetchBooks(),fetchBorrowings()])
+    } catch (error) {
+      toast('Issue failed: '+(error instanceof Error ? error.message : String(error)),'error')
+    } finally {setLibActionLoading(false)}
   }
 
   async function handleReturnBook() {
     if (!returnTarget) return
     setLibActionLoading(true)
-
-    // FIX: only calculate fine if actually overdue; don't overwrite existing fine_amount
-    // if the book is being returned on time.
-    const overdue = isOverdue(returnTarget.due_date, null)
-    const fine    = overdue ? calcFine(returnTarget.due_date) : 0
-
-    const { error: e1 } = await supabase.from('library_borrowings').update({
-      returned_at:  new Date().toISOString(),
-      condition_in: returnCondIn,
-      fine_amount:  fine,
-      fine_paid:    overdue ? returnFinePaid : false,
-    }).eq('id', returnTarget.id)
-    if (e1) { toast('Return failed: ' + e1.message, 'error'); setLibActionLoading(false); return }
-
-    if (returnTarget.book_id) {
-      await supabase.rpc('increment_available_copies', { book_id: returnTarget.book_id })
-    }
-
-    toast('Book returned.')
-    setShowReturnModal(false); setReturnTarget(null)
-    setReturnCondIn('good'); setReturnFinePaid(false)
-    fetchBooks(); fetchBorrowings(); setLibActionLoading(false)
+    try {
+      const overdue = isOverdue(returnTarget.due_date,null)
+      const fine = overdue ? calcFine(returnTarget.due_date) : 0
+      const {error} = await supabase.rpc('school_return_library_book' as never,{
+        p_borrowing_id:returnTarget.id,
+        p_condition_in:returnCondIn,
+        p_fine_amount:fine,
+        p_fine_paid:overdue ? returnFinePaid : false,
+      } as never)
+      if (error) throw error
+      toast('Book returned; school stock updated atomically.')
+      setShowReturnModal(false);setReturnTarget(null);setReturnCondIn('good');setReturnFinePaid(false)
+      await Promise.all([fetchBooks(),fetchBorrowings()])
+    } catch(error) {
+      toast('Return failed: '+(error instanceof Error ? error.message : String(error)),'error')
+    } finally {setLibActionLoading(false)}
   }
 
   async function handleDeleteBook(book: LibraryBook) {
@@ -1669,15 +1663,21 @@ export default function AdminResourcesPage() {
             <label style={lbl}>Borrower Type</label>
             <div style={{ display:'flex', gap:8 }}>
               {(['student','staff'] as const).map(t => (
-                <button key={t} onClick={() => setBorrowerType(t)} style={{ flex:1, padding:'9px 4px', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', border:`2px solid ${borrowerType === t ? C.emerald : C.border}`, background: borrowerType === t ? C.emeraldLt : C.surface, color: borrowerType === t ? '#065f46' : C.muted, textTransform:'capitalize' }}>
+                <button key={t} onClick={() => {setBorrowerType(t);setBorrowerId('');libraryIssueRequest.current=null}} style={{ flex:1, padding:'9px 4px', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', border:`2px solid ${borrowerType === t ? C.emerald : C.border}`, background: borrowerType === t ? C.emeraldLt : C.surface, color: borrowerType === t ? '#065f46' : C.muted, textTransform:'capitalize' }}>
                   {t}
                 </button>
               ))}
             </div>
           </div>
           <div style={field()}>
-            <label style={lbl}>Borrower Name *</label>
-            <input value={borrowerName} onChange={e => setBorrowerName(e.target.value)} placeholder="Full name" style={inp} />
+            <label style={lbl}>Registered {borrowerType === 'student' ? 'Learner' : 'Staff Member'} *</label>
+            <select value={borrowerId} onChange={e=>{setBorrowerId(e.target.value);libraryIssueRequest.current=null}} style={inp}>
+              <option value="">Select a verified {borrowerType}</option>
+              {(borrowerType === 'student' ? libraryBorrowers.students : libraryBorrowers.staff).map(person=>(
+                <option key={person.id} value={person.id}>{person.name}{'class_name' in person ? ` · ${person.class_name}` : ''}</option>
+              ))}
+            </select>
+            {!((borrowerType==='student' ? libraryBorrowers.students : libraryBorrowers.staff).length) && <p style={{fontSize:12,color:C.muted}}>No eligible registered borrowers found. Check school enrolment or staff membership.</p>}
           </div>
           <div style={field()}>
             <label style={lbl}>Due Date *</label>
@@ -1690,7 +1690,7 @@ export default function AdminResourcesPage() {
               {CONDITION_OPTIONS.map(c => <option key={c} value={c} style={{ textTransform:'capitalize' }}>{c}</option>)}
             </select>
           </div>
-          <button onClick={handleIssueBook} disabled={libActionLoading} style={{ width:'100%', background: libActionLoading ? C.muted : C.emerald, color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: libActionLoading ? 'not-allowed' : 'pointer' }}>
+          <button onClick={handleIssueBook} disabled={libActionLoading || !borrowerId || !issueDue} style={{ width:'100%', background: libActionLoading ? C.muted : C.emerald, color:'#fff', border:'none', borderRadius:12, padding:14, fontWeight:800, fontSize:15, cursor: libActionLoading ? 'not-allowed' : 'pointer' }}>
             {libActionLoading ? 'Issuing…' : 'Issue Book'}
           </button>
           <button onClick={() => setShowIssueModal(false)} style={{ width:'100%', background:'none', border:'none', color:C.muted, fontSize:14, marginTop:12, cursor:'pointer', padding:8 }}>Cancel</button>
