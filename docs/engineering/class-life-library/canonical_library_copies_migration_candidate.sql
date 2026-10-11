@@ -325,9 +325,11 @@ begin
       and returned_at is null and deleted_at is null) then
     raise exception 'book_has_active_borrowings';
   end if;
+  -- Preserve "lost" as the terminal audited physical state. Other
+  -- non-loaned copies are retired rather than erased or re-circulated.
   update public.library_book_copies
     set state='retired',updated_at=now()
-    where book_id=p_book_id and school_id=v_school;
+    where book_id=p_book_id and school_id=v_school and state<>'lost';
   update public.library_books set deleted_at=now(),available_copies=0
     where id=p_book_id and school_id=v_school;
   return p_book_id;
