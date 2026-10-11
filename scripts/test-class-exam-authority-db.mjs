@@ -20,8 +20,12 @@ create table classes(id uuid primary key, school_id uuid references schools(id))
 create table subjects(id uuid primary key, name text, school_id uuid);
 create table school_members(profile_id uuid, school_id uuid, role text not null);
 create table teacher_classes(teacher_id uuid, school_id uuid, class_id uuid, subject_id uuid, is_class_teacher boolean not null default false);
-create table students(id uuid primary key, name text, admission_number text, deleted_at timestamptz);
+create table students(id uuid primary key, name text, admission_number text, deleted_at timestamptz, profile_id uuid);
 create table student_classes(school_id uuid, class_id uuid, student_id uuid, is_current boolean);
+create table parent_student_links(parent_id uuid,student_id uuid);
+create table report_card_remarks(id uuid primary key default gen_random_uuid(),
+ exam_id uuid,school_id uuid,class_id uuid,student_id uuid,class_teacher_id uuid,
+ remarks text,conduct text);
 create table exams(id uuid primary key, school_id uuid, name text, is_locked boolean not null default false, pass_mark int not null default 50);
 create table exam_subject_config(exam_id uuid, subject_id uuid, max_marks numeric not null, pass_mark numeric not null, primary key(exam_id, subject_id));
 create table exam_results(
@@ -49,6 +53,10 @@ create table platform_events(id uuid primary key default gen_random_uuid(),
 create function public.teacher_get_operating_context(p_requested_school_id uuid default null)
  returns jsonb language sql stable security definer set search_path = '' as
  $$ select jsonb_build_object('school_id', nullif(current_setting('request.active_school', true),'')) $$;
+create function public.is_school_admin(p_school_id uuid) returns boolean
+language sql stable security definer set search_path='' as
+$ select auth.uid() is not null and exists(select 1 from public.school_members sm
+  where sm.profile_id=auth.uid() and sm.school_id=p_school_id and sm.role='admin') $;
 create function public.is_live_teacher_subject(
  p_school_id uuid, p_class_id uuid, p_subject_id uuid
 ) returns boolean language sql stable security definer set search_path = '' as
@@ -62,7 +70,8 @@ create function public.is_live_teacher_subject(
 grant usage on schema public, auth to authenticated, anon;
 grant execute on function auth.uid() to authenticated, anon;
 grant select, update on exam_results to authenticated;
-grant select on student_classes to authenticated;
+grant select on student_classes, students, parent_student_links, report_card_remarks to authenticated;
+alter table report_card_remarks enable row level security;
 alter table exam_results enable row level security;
 create policy "Teachers view exam results for their classes" on exam_results for select to authenticated
  using (public.is_live_teacher_subject(school_id,class_id,subject_id));
@@ -76,10 +85,10 @@ insert into schools values ('${id(10)}'),('${id(11)}');
 insert into classes values ('${id(20)}','${id(10)}'),('${id(21)}','${id(10)}'),('${id(22)}','${id(11)}');
 insert into subjects values ('${id(90)}','Maths','${id(10)}'),('${id(91)}','English','${id(10)}'),('${id(92)}','Science','${id(10)}');
 insert into profiles values ('${id(1)}','active',false),('${id(2)}','active',false),('${id(3)}','active',false),
- ('${id(4)}','active',false),('${id(5)}','active',false),('${id(6)}','active',false);
+ ('${id(4)}','active',false),('${id(5)}','active',false),('${id(6)}','active',false),('${id(7)}','active',false),('${id(8)}','active',false);
 insert into school_members values ('${id(1)}','${id(10)}','teacher'),('${id(2)}','${id(10)}','teacher'),
  ('${id(3)}','${id(10)}','teacher'),('${id(4)}','${id(10)}','teacher'),
- ('${id(5)}','${id(11)}','teacher'),('${id(6)}','${id(10)}','parent');
+ ('${id(5)}','${id(11)}','teacher'),('${id(6)}','${id(10)}','parent'),('${id(7)}','${id(10)}','admin');
 insert into teacher_classes values
  ('${id(1)}','${id(10)}','${id(20)}','${id(90)}',false),
  ('${id(2)}','${id(10)}','${id(20)}','${id(90)}',true),
@@ -88,6 +97,8 @@ insert into teacher_classes values
  ('${id(5)}','${id(11)}','${id(22)}','${id(91)}',true);
 insert into students (id,name) values ('${id(30)}','East 1'),('${id(31)}','East 2'),
  ('${id(32)}','West'),('${id(33)}','Other School');
+update students set profile_id='${id(8)}' where id='${id(30)}';
+insert into parent_student_links values ('${id(6)}','${id(30)}');
 insert into student_classes values
  ('${id(10)}','${id(20)}','${id(30)}',true),
  ('${id(10)}','${id(20)}','${id(31)}',true),
