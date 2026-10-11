@@ -755,24 +755,27 @@ export function project(
             : "Recorded"
           : "Not entered";
       }
+      // Non-score states must not participate in means, deltas or ranks.
+      // Compare percentages because the same subject may use /50 or /100.
       values.examChange =
-        current &&
-        !current.is_absent &&
-        prior &&
-        !prior.is_absent &&
+        current?.result_state === "entered" &&
+        current.percentage !== null &&
+        prior?.result_state === "entered" &&
+        prior.percentage !== null &&
         currentExam?.exam_type === priorExam?.exam_type &&
         filters.examId !== filters.compareExamId
-          ? Math.round((current.marks - prior.marks) * 100) / 100
+          ? Math.round((current.percentage - prior.percentage) * 100) / 100
           : null;
       values.rank =
-        current && !current.is_absent
+        current?.result_state === "entered" && current.percentage !== null
           ? 1 +
             data.results.filter(
               (r) =>
                 r.exam_id === filters.examId &&
                 r.subject_id === filters.subjectId &&
-                !r.is_absent &&
-                r.marks > current.marks &&
+                r.result_state === "entered" &&
+                r.percentage !== null &&
+                r.percentage > current.percentage! &&
                 data.learners.some((l) => l.id === r.student_id),
             ).length
           : null;
