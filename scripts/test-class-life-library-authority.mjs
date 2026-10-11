@@ -131,7 +131,7 @@ await as(outsider);
 await assert.rejects(()=>scalar('select public.school_archive_library_book($1) value',[book]),/school_admin_required/);
 await assert.rejects(()=>scalar('select public.school_list_library_copies($1) value',[book]),/school_admin_required/);
 await assert.rejects(()=>scalar('select public.school_restock_library_book($1,1,$2) value',[book,id(67)]),/school_admin_required/);
-await assert.rejects(()=>scalar('select public.school_repair_library_copy($1,$2) value',[damagedCopy,id(68)]),/school_admin_required/);
+await assert.rejects(()=>scalar('select public.school_repair_library_copy($1,$2) value',[lostCopy,id(68)]),/school_admin_required/);
 await assert.rejects(()=>db.query("update library_book_copies set state='available' where id=$1",[damagedCopy]),/permission denied/);
 await assert.rejects(()=>db.query("insert into library_inventory_events(school_id,book_id,actor_id,request_id,action,quantity) values($1,$2,$3,$4,'restock',1)",[school,book,outsider,id(69)]),/permission denied/);
 await assert.rejects(()=>scalar('select public.school_library_borrower_options($1) value',[school]),/school_admin_required/);
