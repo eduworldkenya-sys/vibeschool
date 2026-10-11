@@ -180,8 +180,9 @@ end $$;
 -- Prevent the unsafe two-request REST write path (including admin).
 -- Existing class-teacher circulation is via authorized definer RPCs.
 revoke insert,update,delete on public.library_borrowings from authenticated;
+-- Direct catalogue edits (including hiding books with live loans) are not authorized.
+-- The browser can still register a new book through its existing INSERT policy.
 revoke update,delete on public.library_books from authenticated;
-grant update(deleted_at) on public.library_books to authenticated;
 
 revoke all on function public.school_library_borrower_options(uuid) from public,anon;
 revoke all on function public.school_issue_library_book(uuid,uuid,uuid,date,text,uuid) from public,anon;
