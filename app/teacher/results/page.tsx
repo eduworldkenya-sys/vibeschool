@@ -372,12 +372,12 @@ function ResultsInner() {
 
     {activeExam && tier===1 && editingPolicy && <form onSubmit={e=>{e.preventDefault();void saveSubjectPolicy()}} style={{margin:'12px 16px',padding:14,background:'#fff',border:`1px solid ${W.border}`,borderRadius:12,display:'flex',alignItems:'end',gap:10,flexWrap:'wrap'}}>
       <label style={{fontSize:12,color:W.textSoft}}>Maximum marks<input type="number" min={1} max={10000} step="any" value={policyMax} onChange={e=>setPolicyMax(Number(e.target.value))} style={{...inputStyle,width:125,display:'block',marginTop:6}}/></label>
-      <label style={{fontSize:12,color:W.textSoft}}>Internal review threshold<input type="number" min={0} max={policyMax} step="any" value={policyPass} onChange={e=>setPolicyPass(Number(e.target.value))} style={{...inputStyle,width:125,display:'block',marginTop:6}}/></label>
+      <label style={{fontSize:12,color:W.textSoft}}>Learner support alert below<input aria-label="Learner support alert threshold" type="number" min={0} max={policyMax} step="any" value={policyPass} onChange={e=>setPolicyPass(Number(e.target.value))} style={{...inputStyle,width:125,display:'block',marginTop:6}}/></label>
       <button type="submit" disabled={savingPolicy} style={{border:'none',borderRadius:9,padding:'11px 14px',background:'#226c43',color:'#fff',fontWeight:750}}>{savingPolicy?'Saving…':'Save setup'}</button>
       <p style={{flexBasis:'100%',fontSize:11,color:W.textSoft,margin:0}}>Internal thresholds do not assign CBC performance levels. They need an approved scoring guide.</p>
       {policyError&&<p role="alert" style={{flexBasis:'100%',fontSize:12,color:'#991b1b',margin:0}}>{policyError}</p>}
     </form>}
-    {activeExam && tier===1 && !editingPolicy && subjectPolicy && <div style={{margin:'8px 16px 0',fontSize:12,color:W.textSoft}}>Marks out of {subjectPolicy.max_marks}. {subjectPolicy.configured?'Subject scoring setup saved.':'Using default maximum until configured.'}</div>}
+    {activeExam && tier===1 && !editingPolicy && subjectPolicy && <div role={subjectPolicy.configured?undefined:'alert'} style={{margin:'8px 16px 0',padding:subjectPolicy.configured?0:'10px 12px',borderRadius:10,background:subjectPolicy.configured?'transparent':'#fffbeb',fontSize:12,color:subjectPolicy.configured?W.textSoft:'#92400e'}}>Marks out of {subjectPolicy.max_marks}. {subjectPolicy.configured?'Subject scoring setup saved.':'Confirm scoring setup before entering official marks.'}</div>}
     {policyError && !editingPolicy && <p role="alert" style={{margin:'12px 16px',fontSize:12,color:'#991b1b'}}>{policyError}</p>}
 
     {activeExam && students.length>0 && <div style={{margin:'12px 16px 0',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
@@ -386,7 +386,7 @@ function ResultsInner() {
 
     {activeExam && tier===1 && <div style={{margin:'12px 16px 0',padding:'12px 14px',borderRadius:14,border:`1px solid ${activeExam.is_locked?'#d6d3d1':'#d1fae5'}`,background:activeExam.is_locked?'#fafaf9':'#ecfdf5',fontSize:12,color:W.textSoft}}><strong style={{color:W.text}}>{activeExam.name}</strong> · {results.length}/{students.length} learner marks recorded{students.length>0?` · ${Math.round((results.length/students.length)*100)}% complete`:''}. {activeExam.is_locked?'This exam is locked; marks are read-only.':results.length<students.length?'Continue the mark sheet below.':'This subject mark sheet is complete.'}</div>}
 
-    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','class','analysis'] as const).map(tab=><button key={tab} onClick={()=>setActiveTab(tab)} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':tab==='class'?'Class results':'Explore'}</button>)}</div>}
+    {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','class','analysis'] as const).map(tab=><button key={tab} onClick={()=>{setActiveTab(tab);setEditingPolicy(false)}} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':tab==='class'?'Class results':'Explore'}</button>)}</div>}
 
     {activeTab==='entry' && <div style={{padding:'14px 16px 0'}}>
       {lifecycleError&&<p role="alert" style={{fontSize:12,color:'#a83232'}}>Examination permission and submission status unavailable: {lifecycleError}</p>}

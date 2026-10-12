@@ -173,18 +173,24 @@ function Sparkline({ points }: { points: Array<{ name: string; mean: number | nu
 }
 
 function Distribution({ data }: { data: Intelligence["performance_distribution"] }) {
-  const total = Object.values(data).reduce((sum, n) => sum + n, 0);
+  const safeData = Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [key, Number.isFinite(value) && value >= 0 ? value : 0]),
+  ) as Intelligence["performance_distribution"];
+  const total = Object.values(safeData).reduce((sum, n) => sum + n, 0);
   const tones: Record<string, string> = { EE: "#087A55", ME: "#2563EB", AE: "#D97706", BE: "#C2413A" };
+  if (!Number.isFinite(total) || total <= 0) {
+    return <div role="status" style={{ padding: 14, borderRadius: 12, background: C.canvas, color: C.muted, fontSize: 13, lineHeight: 1.5 }}>Performance-level distribution is unavailable until an approved scoring guide is selected.</div>;
+  }
   return (
     <div style={{ display: "grid", gap: 12 }}>
       {(["EE", "ME", "AE", "BE"] as const).map(key => {
-        const pct = total ? Math.round((data[key] / total) * 100) : 0;
+        const pct = Math.round((safeData[key] / total) * 100);
         return <div key={key} style={{ display: "grid", gridTemplateColumns: "34px minmax(0,1fr) 70px", gap: 10, alignItems: "center" }}>
           <strong style={{ fontSize: 12 }}>{key}</strong>
           <div style={{ height: 10, borderRadius: 999, background: "#EEF0F2", overflow: "hidden" }}>
             <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: tones[key], transition: "width .25s ease" }} />
           </div>
-          <span style={{ fontSize: 12, textAlign: "right", color: C.muted }}>{data[key]} · {pct}%</span>
+          <span style={{ fontSize: 12, textAlign: "right", color: C.muted }}>{safeData[key]} · {pct}%</span>
         </div>;
       })}
     </div>
@@ -298,8 +304,8 @@ export default function AssessmentIntelligenceConsole({ examId, classId, subject
       <div style={{ display: "flex", gap: 9, overflowX: "auto", paddingBottom: 3 }}>
         <Metric label="Class mean" value={h.mean == null ? "—" : `${format(h.mean)}%`} detail={changeText} emphasis={changeEmphasis} />
         <Metric label="Highest" value={h.highest == null ? "—" : `${format(h.highest, 0)}%`} detail={top?.name ?? "No result yet"} />
-        <Metric label="Passed" value={h.meeting_percent == null ? "—" : `${format(h.meeting_percent, 0)}%`} detail={`${h.passed} learner${h.passed === 1 ? "" : "s"}`} emphasis={h.meeting_percent != null && h.meeting_percent >= 70 ? "good" : "neutral"} />
-        <Metric label="Need help" value={String(support.length)} detail={atRisk.length ? `${atRisk.length} declining and below target` : "Based on current threshold"} emphasis={support.length ? "bad" : "good"} />
+        <Metric label="At or above target" value={h.meeting_percent == null ? "—" : `${format(h.meeting_percent, 0)}%`} detail={`${h.passed} learner${h.passed === 1 ? "" : "s"}`} emphasis={h.meeting_percent != null && h.meeting_percent >= 70 ? "good" : "neutral"} />
+        <Metric label="Below target" value={String(support.length)} detail={atRisk.length ? `${atRisk.length} declining and below target` : "Based on the school review threshold"} emphasis={support.length ? "bad" : "good"} />
         <Metric label="Completion" value={`${format(data.completion.percent, 0)}%`} detail={`${data.completion.remaining} remaining · ${data.completion.absent} absent`} emphasis={data.completion.remaining === 0 ? "good" : "neutral"} />
       </div>
 
