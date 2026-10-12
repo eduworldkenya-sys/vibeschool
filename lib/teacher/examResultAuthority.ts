@@ -1,27 +1,45 @@
 import { twinRecord, twinRpc } from '@/lib/twin/transport'
+import { normalizeExamResultState, type CanonicalExamResult, type ExamResultState } from '@/lib/assessment/exam-results'
 
 export interface ExamResultSave {
   examId:string;schoolId:string;classId:string;subjectId:string;studentId:string;
-  marks:number;isAbsent:boolean;expectedUpdatedAt:string|null
+  marks:number|null;resultState?:ExamResultState;isAbsent?:boolean;expectedUpdatedAt:string|null
 }
-export async function saveCanonicalExamResult(input:ExamResultSave) {
-  const row=twinRecord(await twinRpc('teacher','teacher_save_exam_result',{
+export async function saveCanonicalExamResult(input:ExamResultSave):Promise<CanonicalExamResult> {
+  const resultState=normalizeExamResultState(input.resultState,input.isAbsent===true)
+  const row=twinRecord(await twinRpc('teacher','teacher_save_exam_result_state',{
     p_exam_id:input.examId,p_school_id:input.schoolId,p_class_id:input.classId,p_subject_id:input.subjectId,
-    p_student_id:input.studentId,p_marks:input.marks,p_is_absent:input.isAbsent,p_expected_updated_at:input.expectedUpdatedAt,
+    p_student_id:input.studentId,p_marks:resultState==='entered'?input.marks:null,p_result_state:resultState,p_expected_updated_at:input.expectedUpdatedAt,
   }))
-  if(typeof row.id!=='string'||row.student_id!==input.studentId||row.exam_id!==input.examId||row.school_id!==input.schoolId||row.class_id!==input.classId||row.subject_id!==input.subjectId||Number(row.marks)!==input.marks||row.is_absent!==input.isAbsent||typeof row.updated_at!=='string')throw new Error('The saved result could not be verified.')
-  return{id:row.id,student_id:input.studentId,marks:input.marks,is_absent:input.isAbsent,updated_at:row.updated_at}
+  const returnedState=normalizeExamResultState(row.result_state,row.is_absent===true)
+  const marks=row.marks==null?null:Number(row.marks),maxMarks=Number(row.max_marks),percentage=row.percentage==null?null:Number(row.percentage)
+  if(typeof row.id!=='string'||row.student_id!==input.studentId||row.exam_id!==input.examId||row.school_id!==input.schoolId||row.class_id!==input.classId||row.subject_id!==input.subjectId||returnedState!==resultState||typeof row.updated_at!=='string'||!Number.isFinite(maxMarks)||maxMarks<=0||(percentage!==null&&!Number.isFinite(percentage))||(resultState==='entered'&&(marks===null||marks!==input.marks)))throw new Error('The saved result could not be verified.')
+  return{id:row.id,student_id:input.studentId,marks,max_marks:maxMarks,percentage,result_state:returnedState,is_absent:returnedState==='absent',updated_at:row.updated_at}
 }
 
-export async function saveCanonicalExamResults(inputs:ExamResultSave[]):Promise<void> {
-  const saved=await twinRpc('teacher','teacher_save_exam_results',{p_changes:inputs.map(input=>({
+export async function saveCanonicalExamResults(inputs:ExamResultSave[]):Promise<CanonicalExamResult[]> {
+  if(!inputs.length)return[]
+  const saved=await twinRpc('teacher','teacher_save_exam_result_states',{p_changes:inputs.map(input=>({
     exam_id:input.examId,school_id:input.schoolId,class_id:input.classId,subject_id:input.subjectId,student_id:input.studentId,
-    marks:input.marks,is_absent:input.isAbsent,expected_updated_at:input.expectedUpdatedAt,
+    marks:normalizeExamResultState(input.resultState,input.isAbsent===true)==='entered'?input.marks:null,
+    result_state:normalizeExamResultState(input.resultState,input.isAbsent===true),expected_updated_at:input.expectedUpdatedAt,
   }))})
-  if(!Array.isArray(saved)||saved.length!==inputs.length)throw new Error('The saved marks could not be verified. Reload before retrying.')
+  if(!Array.isArray(saved)||saved.length!==inputs.length)throw new Error('The saved results could not be verified. Reload before retrying.')
+  const result:CanonicalExamResult[]=[]
   for(const input of inputs){
-    if(!saved.some(value=>{const row=twinRecord(value);return row.student_id===input.studentId&&row.exam_id===input.examId&&row.school_id===input.schoolId&&row.class_id===input.classId&&row.subject_id===input.subjectId&&Number(row.marks)===input.marks&&row.is_absent===input.isAbsent}))throw new Error('The saved marks could not be verified. Reload before retrying.')
+    const value=saved.find(value=>twinRecord(value).student_id===input.studentId)
+    if(!value)throw new Error('The saved results could not be verified. Reload before retrying.')
+    const row=twinRecord(value),state=normalizeExamResultState(row.result_state,row.is_absent===true),maxMarks=Number(row.max_marks),marks=row.marks==null?null:Number(row.marks),percentage=row.percentage==null?null:Number(row.percentage)
+    if(row.exam_id!==input.examId||row.school_id!==input.schoolId||row.class_id!==input.classId||row.subject_id!==input.subjectId||state!==normalizeExamResultState(input.resultState,input.isAbsent===true)||!Number.isFinite(maxMarks))throw new Error('The saved results could not be verified. Reload before retrying.')
+    result.push({id:String(row.id),student_id:input.studentId,marks,max_marks:maxMarks,percentage,result_state:state,is_absent:state==='absent',updated_at:String(row.updated_at)})
   }
+  window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
+  return result
+}
+
+export async function clearCanonicalExamResult(input:{examId:string;schoolId:string;classId:string;subjectId:string;studentId:string;expectedUpdatedAt:string}):Promise<void>{
+  const row=twinRecord(await twinRpc('teacher','teacher_clear_exam_result',{p_exam_id:input.examId,p_school_id:input.schoolId,p_class_id:input.classId,p_subject_id:input.subjectId,p_student_id:input.studentId,p_expected_updated_at:input.expectedUpdatedAt}))
+  if(row.deleted!==true||row.student_id!==input.studentId)throw new Error('The result could not be cleared safely.')
   window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
 }
 

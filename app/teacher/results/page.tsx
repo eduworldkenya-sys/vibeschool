@@ -4,8 +4,8 @@ export const dynamic = "force-dynamic";
 import { useEffect, useState, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { saveCanonicalExamResult, saveCanonicalExamResults, getCanonicalExamSubjectPolicy, setCanonicalExamSubjectPolicy, type ExamSubjectPolicy } from '@/lib/teacher/examResultAuthority'
-import { twinRecord, twinRpc } from '@/lib/twin/transport'
+import { clearCanonicalExamResult, saveCanonicalExamResult, saveCanonicalExamResults, getCanonicalExamSubjectPolicy, setCanonicalExamSubjectPolicy, type ExamSubjectPolicy } from '@/lib/teacher/examResultAuthority'
+import { examResultStateLabel, type CanonicalExamResult, type ExamResultState } from '@/lib/assessment/exam-results'
 import ProfessionalMarkbook from '@/components/teacher/ProfessionalMarkbook'
 import ClassExamSheet from '@/components/teacher/assessment/ClassExamSheet'
 import {getExamLifecycle,type ExamLifecycle} from '@/lib/teacher/examLifecycle'
@@ -27,8 +27,19 @@ interface Exam {
 interface ClassOption { id: string; name: string; stream: string }
 interface SubjectOption { id: string; name: string }
 interface Student { id: string; name: string; source: 'db' | 'manual'; class_name?: string; admission_number?: string | null }
-interface Result { id: string; student_id: string; marks: number | null; max_marks: number; percentage: number | null; result_state: string; is_absent: boolean; updated_at: string }
+type Result = CanonicalExamResult
 type Tier = 1 | 2 | 3
+const FINAL_STATES = new Set<ExamResultState>(['entered','absent','not_assessed','exempt','transferred'])
+
+function friendlySaveError(cause:unknown):string{
+  const message=cause instanceof Error?cause.message:''
+  if(message.includes('result_changed_review_again'))return 'This result changed in another tab. Reload before editing it again.'
+  if(message.includes('exam_locked'))return 'This exam is locked. Results can no longer be changed.'
+  if(message.includes('marks_outside_exam_maximum'))return 'The score is outside this exam’s allowed range.'
+  if(message.includes('teacher_subject_not_authorized'))return 'You no longer have permission to edit this class and subject.'
+  if(message.includes('active_school_changed'))return 'Your active school changed. Reload before saving.'
+  return message||'This result could not be saved. Your entry remains on screen.'
+}
 
 function Skeleton({ h = 56 }: { h?: number }) {
   return <div style={{ height: h, borderRadius: 12, background: 'linear-gradient(90deg,#f0f0f0 25%,#e8e8e8 50%,#f0f0f0 75%)', backgroundSize: '200% 100%' }} />
@@ -82,6 +93,12 @@ function ResultsInner() {
   const loadIdRef=useRef(0)
 
   useEffect(()=>{ void boot() },[])
+  useEffect(()=>{
+    if(!showContextSheet&&!showExamSheet)return
+    const close=(event:KeyboardEvent)=>{if(event.key==='Escape'){setShowContextSheet(false);setShowExamSheet(false)}}
+    document.body.style.overflow='hidden';window.addEventListener('keydown',close)
+    return()=>{document.body.style.overflow='';window.removeEventListener('keydown',close)}
+  },[showContextSheet,showExamSheet])
 
   async function boot() {
     setBooting(true); setError(null)
@@ -196,7 +213,7 @@ function ResultsInner() {
     const loaded=(data??[]) as Result[]
     setResults(loaded)
     const draft:Record<string,string>={}
-    for (const r of loaded) if (!r.is_absent && r.marks!==null) draft[r.student_id]=String(r.marks)
+    for (const r of loaded) if (r.result_state==='entered' && r.marks!==null) draft[r.student_id]=String(r.marks)
     setDraftMarks(draft); setErrorByStudent({})
   }
 
@@ -211,13 +228,13 @@ function ResultsInner() {
     setExams(prev=>[created,...prev]); setActiveExam(created); setShowExamSheet(false); setNewExamName(''); setCreatingExam(false)
   }
 
-  async function saveMark(student:Student,isAbsent=false):Promise<boolean> {
+  async function saveMark(student:Student):Promise<boolean> {
     if (!activeExam || !teacherId || activeExam.is_locked || subjectLocked) return false
     const raw=draftMarks[student.id]??''
-    const marks=isAbsent?0:Number(raw)
+    const marks=Number(raw)
     const max=subjectPolicy?.max_marks
     if (!max) { setErrorByStudent(prev=>({...prev,[student.id]:'Scoring setup not loaded. Retry selecting this subject.'})); return false }
-    if (!isAbsent && (raw.trim()==='' || !Number.isFinite(marks) || marks<0 || marks>max)) {
+    if (raw.trim()==='' || !Number.isFinite(marks) || marks<0 || marks>max) {
       setErrorByStudent(prev=>({...prev,[student.id]:`Enter a mark from 0 to ${max}.`})); return false
     }
     const classId=classes[activeClassIdx]?.id
@@ -228,16 +245,37 @@ function ResultsInner() {
     setSavingId(student.id); setErrorByStudent(prev=>{const n={...prev}; delete n[student.id]; return n})
     const existing=results.find(r=>r.student_id===student.id)
     try {
-      await saveCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,marks,isAbsent,expectedUpdatedAt:existing?.updated_at??null})
+      await saveCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,marks,resultState:'entered',expectedUpdatedAt:existing?.updated_at??null})
       await loadResults()
       window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
     } catch (cause) {
-      setErrorByStudent(prev=>({...prev,[student.id]:cause instanceof Error?cause.message:'Could not save this mark.'})); return false
+      setErrorByStudent(prev=>({...prev,[student.id]:friendlySaveError(cause)})); return false
     } finally { setSavingId(null) }
 
-    if (isAbsent) setDraftMarks(prev=>{const n={...prev}; delete n[student.id]; return n})
     setSavedId(student.id); setTimeout(()=>setSavedId(current=>current===student.id?null:current),1600)
     return true
+  }
+
+  async function saveState(student:Student,state:Exclude<ExamResultState,'entered'>):Promise<boolean>{
+    if(!activeExam||activeExam.is_locked||subjectLocked||!subjectPolicy)return false
+    const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
+    if(!schoolId||!classId||!subjectId)return false
+    const existing=results.find(r=>r.student_id===student.id)
+    setSavingId(student.id);setErrorByStudent(prev=>{const next={...prev};delete next[student.id];return next})
+    try{
+      await saveCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,marks:null,resultState:state,expectedUpdatedAt:existing?.updated_at??null})
+      setDraftMarks(prev=>{const next={...prev};delete next[student.id];return next});await loadResults();setSavedId(student.id);setTimeout(()=>setSavedId(current=>current===student.id?null:current),1600);return true
+    }catch(cause){setErrorByStudent(prev=>({...prev,[student.id]:friendlySaveError(cause)}));return false}
+    finally{setSavingId(null)}
+  }
+
+  async function clearResult(student:Student):Promise<boolean>{
+    const existing=results.find(r=>r.student_id===student.id),classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
+    if(!existing||!activeExam||activeExam.is_locked||subjectLocked||!schoolId||!classId||!subjectId)return false
+    setSavingId(student.id)
+    try{await clearCanonicalExamResult({examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,expectedUpdatedAt:existing.updated_at});setDraftMarks(prev=>{const next={...prev};delete next[student.id];return next});await loadResults();return true}
+    catch(cause){setErrorByStudent(prev=>({...prev,[student.id]:friendlySaveError(cause)}));return false}
+    finally{setSavingId(null)}
   }
 
   async function saveAllMarks() {
@@ -259,7 +297,7 @@ function ResultsInner() {
       if (existing?.marks===mark && existing?.result_state==='entered') continue
       changes.push({
         examId:activeExam.id,schoolId,classId,subjectId,studentId:student.id,
-        marks:mark,isAbsent:false,expectedUpdatedAt:existing?.updated_at??null,
+        marks:mark,resultState:'entered',expectedUpdatedAt:existing?.updated_at??null,
       })
     }
     if (!changes.length) return
@@ -298,7 +336,7 @@ function ResultsInner() {
       else rows.push([student.name,
         result.result_state==='entered' && result.marks!==null ? String(result.marks) : '',
         String(result.max_marks),result.percentage===null?'':String(result.percentage),
-        result.result_state])
+        examResultStateLabel(result.result_state)])
     }
     const safeCsvCell=(value:string) => {
       const first=value.charAt(0)
@@ -315,53 +353,26 @@ function ResultsInner() {
     document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url)
   }
 
-  async function clearAbsent(student:Student):Promise<boolean> {
-    const existing=results.find(r=>r.student_id===student.id)
-    if (!existing || !existing.is_absent || !activeExam || activeExam.is_locked || subjectLocked) return false
-    const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
-    if(!schoolId||!classId||!subjectId)return false
-    setSavingId(student.id)
-    try {
-      // Clearing ABS is pending, NEVER an invented score of zero.
-      const saved=twinRecord(await twinRpc('teacher','teacher_save_exam_result_state',{
-        p_exam_id:activeExam.id,p_school_id:schoolId,p_class_id:classId,
-        p_subject_id:subjectId,p_student_id:student.id,
-        p_marks:null,p_result_state:'pending',p_expected_updated_at:existing.updated_at,
-      }))
-      if (saved.student_id!==student.id || saved.result_state!=='pending' || saved.marks!==null) {
-        throw new Error('The absence correction could not be verified.')
-      }
-      setDraftMarks(prev=>{const next={...prev};delete next[student.id];return next})
-      await loadResults()
-      setSavedId(student.id)
-      window.dispatchEvent(new CustomEvent('vibeschool:record-saved',{detail:{kind:'exam_result'}}))
-      return true
-    }catch(cause){
-      setErrorByStudent(prev=>({...prev,[student.id]:cause instanceof Error?cause.message:'Could not clear absence.'}))
-      return false
-    }finally{setSavingId(null)}
-  }
-
   function analysisData() {
     const scored=results.filter(r=>r.result_state==='entered' && r.marks!==null && r.percentage!==null)
     if (!scored.length) return null
     const avg=scored.reduce((sum,r)=>sum+(r.percentage??0),0)/scored.length
     const absent=results.filter(r=>r.result_state==='absent').length
-    return {avg,scored:scored.length,absent,missing:Math.max(0,students.length-results.length)}
+    return {avg,scored:scored.length,absent,resolved:results.filter(r=>FINAL_STATES.has(r.result_state)).length,missing:Math.max(0,students.length-results.filter(r=>FINAL_STATES.has(r.result_state)).length)}
   }
   const analysis=analysisData()
 
   if (booting) return <div style={{padding:24,display:'flex',flexDirection:'column',gap:12}}><Skeleton h={40}/><Skeleton h={64}/><Skeleton h={64}/></div>
   if (error) return <div style={{padding:24,color:'#991b1b',fontSize:14}}>⚠️ {error}</div>
 
-  const activeClass=classes[activeClassIdx]; const activeSubject=subjects[activeSubjectIdx]; const passM=activeExam?.pass_mark??50
+  const activeClass=classes[activeClassIdx]; const activeSubject=subjects[activeSubjectIdx]
 
   return <div style={{padding:'0 0 80px',fontFamily:W.font,background:W.bg,minHeight:'100vh'}}>
     <div style={{padding:'20px 16px 12px',borderBottom:'1px solid #EDE0CE'}}>
       <div style={{fontSize:11,fontWeight:800,letterSpacing:.7,textTransform:'uppercase',color:W.textMuted}}>Exam Centre</div>
       <h1 style={{margin:'5px 0 0',fontSize:22,fontWeight:750,color:W.text}}>{activeExam?.name??'Choose an exam'}</h1>
       <p style={{margin:'4px 0 0',fontSize:14,fontWeight:700,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''}`:'Set up a class and subject to enter exam marks.'}</p>
-      {activeExam&&tier===1&&<p style={{margin:'5px 0 0',fontSize:12,color:W.textMuted}}>{results.length}/{students.length} marks entered{students.length>0?` · ${Math.round((results.length/students.length)*100)}% complete`:''}</p>}
+      {activeExam&&tier===1&&<p style={{margin:'5px 0 0',fontSize:12,color:W.textMuted}}>{results.filter(r=>FINAL_STATES.has(r.result_state)).length}/{students.length} final results{students.length>0?` · ${Math.round((results.filter(r=>FINAL_STATES.has(r.result_state)).length/students.length)*100)}% complete`:''}</p>}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
         {tier===1&&<button onClick={()=>setShowContextSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>Change exam / class / subject</button>}
         <button onClick={()=>setShowExamSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>＋ New exam</button>
@@ -381,10 +392,10 @@ function ResultsInner() {
     {policyError && !editingPolicy && <p role="alert" style={{margin:'12px 16px',fontSize:12,color:'#991b1b'}}>{policyError}</p>}
 
     {activeExam && students.length>0 && <div style={{margin:'12px 16px 0',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
-      {[['Students',students.length],['Results recorded',results.length],['Subject mean',analysis?`${analysis.avg.toFixed(1)}%`:'—'],['Missing',Math.max(0,students.length-results.length)]].map(([label,value])=><div key={String(label)} style={{padding:'12px',background:'#fff',border:'1px solid #E7E5E4',borderRadius:14}}><div style={{fontSize:11,color:W.textSoft,fontWeight:700}}>{label}</div><div style={{fontSize:20,fontWeight:800,marginTop:3}}>{value}</div></div>)}
+      {[['Students',students.length],['Final results',analysis?.resolved??results.filter(r=>FINAL_STATES.has(r.result_state)).length],['Subject mean',analysis?`${analysis.avg.toFixed(1)}%`:'—'],['Still open',Math.max(0,students.length-results.filter(r=>FINAL_STATES.has(r.result_state)).length)]].map(([label,value])=><div key={String(label)} style={{padding:'12px',background:'#fff',border:'1px solid #E7E5E4',borderRadius:14}}><div style={{fontSize:11,color:W.textSoft,fontWeight:700}}>{label}</div><div style={{fontSize:20,fontWeight:800,marginTop:3}}>{value}</div></div>)}
     </div>}
 
-    {activeExam && tier===1 && <div style={{margin:'12px 16px 0',padding:'12px 14px',borderRadius:14,border:`1px solid ${activeExam.is_locked?'#d6d3d1':'#d1fae5'}`,background:activeExam.is_locked?'#fafaf9':'#ecfdf5',fontSize:12,color:W.textSoft}}><strong style={{color:W.text}}>{activeExam.name}</strong> · {results.length}/{students.length} learner marks recorded{students.length>0?` · ${Math.round((results.length/students.length)*100)}% complete`:''}. {activeExam.is_locked?'This exam is locked; marks are read-only.':results.length<students.length?'Continue the mark sheet below.':'This subject mark sheet is complete.'}</div>}
+    {activeExam && tier===1 && <div style={{margin:'12px 16px 0',padding:'12px 14px',borderRadius:14,border:`1px solid ${activeExam.is_locked?'#d6d3d1':'#d1fae5'}`,background:activeExam.is_locked?'#fafaf9':'#ecfdf5',fontSize:12,color:W.textSoft}}><strong style={{color:W.text}}>{activeExam.name}</strong> · {results.filter(r=>FINAL_STATES.has(r.result_state)).length}/{students.length} learner results resolved{students.length>0?` · ${Math.round((results.filter(r=>FINAL_STATES.has(r.result_state)).length/students.length)*100)}% complete`:''}. {activeExam.is_locked?'This exam is locked; results are read-only.':results.filter(r=>FINAL_STATES.has(r.result_state)).length<students.length?'Continue the result sheet below.':'This subject result sheet is complete.'}</div>}
 
     {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','class','analysis'] as const).map(tab=><button key={tab} onClick={()=>{setActiveTab(tab);setEditingPolicy(false)}} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':tab==='class'?'Class results':'Explore'}</button>)}</div>}
 
@@ -396,7 +407,8 @@ function ResultsInner() {
       : loading?<Skeleton h={220}/>
       : students.length===0?<div style={{padding:32,textAlign:'center',color:W.textMuted}}>No students enrolled in this class.</div>
       : !subjectPolicy?<div role="status" style={{padding:28,color:W.textMuted}}>{policyError?'Scoring policy unavailable. Check your assigned subject and retry.':'Loading scoring setup…'}</div>
-      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={passM} maxMarks={subjectPolicy.max_marks} locked={activeExam.is_locked||subjectLocked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onClearAbsent={clearAbsent} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} onSaveAll={saveAllMarks} savingAll={savingAll} />}
+      : !subjectPolicy.configured?<div role="alert" style={{padding:24,border:'1px solid #fde68a',background:'#fffbeb',borderRadius:14,color:'#92400e'}}><strong>Confirm scoring before entering results</strong><p style={{margin:'6px 0 12px',fontSize:12}}>Set the real maximum marks and learner-support threshold for this subject. VibeSchool will not save official results against an unconfirmed default.</p><button type="button" onClick={()=>setEditingPolicy(true)} style={{padding:'9px 12px',border:0,borderRadius:10,background:'#92400e',color:'#fff',fontWeight:800}}>Open scoring setup</button></div>
+      : <ProfessionalMarkbook students={students} results={results} draftMarks={draftMarks} passMark={subjectPolicy.pass_mark} maxMarks={subjectPolicy.max_marks} locked={activeExam.is_locked||subjectLocked} savingId={savingId} savedId={savedId} errorByStudent={errorByStudent} onChangeMark={(studentId,value)=>{setDraftMarks(prev=>({...prev,[studentId]:value})); setErrorByStudent(prev=>{const n={...prev}; delete n[studentId]; return n})}} onSaveMark={saveMark} onSaveState={saveState} onClearResult={clearResult} reportCardHref={studentId=>`/teacher/results/report-card/${studentId}?examId=${activeExam.id}`} onSaveAll={saveAllMarks} savingAll={savingAll} />}
     </div>}
 
     {activeTab==='class' && <div style={{padding:'14px 16px 0'}}>
