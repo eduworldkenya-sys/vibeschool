@@ -612,7 +612,7 @@ function AssessmentInner() {
             {bulkMode && <button type="button" className={`${styles.checkbox} ${isSelected?styles.checkboxSelected:''}`} aria-label={`${isSelected?'Deselect':'Select'} ${s.name}`} aria-pressed={isSelected} onClick={()=>{setBulkSelected(prev=>{const next=new Set(prev);next.has(s.id)?next.delete(s.id):next.add(s.id);return next});setBulkDone(false)}}>{isSelected&&<Check size={14}/>}</button>}
             <div className={styles.avatar} style={{background:s.badge?s.badge.bg:'#eef2ef',color:s.badge?s.badge.color:'#59665e'}}>{s.badge?s.badge.short:initials}</div>
             <div className={styles.identity}><strong>{s.name}</strong><span>{s.count===0?'No record':`${s.badge?.label??'Recorded'} · ${s.count}`}</span></div>
-            {!bulkMode && <div className={styles.rowActions}><button className={`${styles.rowAction} ${styles.recordAction}`} onClick={()=>openRecord(s)}>{s.count?'Update':'Record'}</button>{s.count>0&&<button className={`${styles.rowAction} ${styles.moreAction}`} aria-label={`More actions for ${s.name}`} onClick={()=>openHistory(s)}><MoreHorizontal size={20}/></button>}</div>}
+            {!bulkMode && <div className={styles.rowActions}><button className={`${styles.rowAction} ${styles.recordAction}`} onClick={()=>openRecord(s)}>{s.count?'Add observation':'Record observation'}</button>{s.count>0&&<button className={`${styles.rowAction} ${styles.moreAction}`} aria-label={`View assessment history for ${s.name}`} onClick={()=>openHistory(s)}><MoreHorizontal size={20}/></button>}</div>}
           </article>
         })}
       </section>
@@ -635,7 +635,7 @@ function AssessmentInner() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <div>
                 <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0a0a0a' }}>
-                  {viewMode ? 'History' : editingId ? 'Edit assessment' : 'New assessment'}
+                  {viewMode ? 'Assessment history' : editingId ? 'Edit observation' : 'Add observation'}
                 </p>
                 <p style={{ margin: '2px 0 0', fontSize: 13, color: "var(--teacher-muted, #627168)" }}>{modalStudent.name}</p>
               </div>
@@ -754,7 +754,7 @@ function AssessmentInner() {
                   cursor: saving ? 'not-allowed' : 'pointer', fontSize: 15, fontWeight: 700,
                   background: saving ? '#d1d5db' : '#10b981', color: '#fff',
                 }}>
-                  {saving ? 'Saving…' : editingId ? 'Update Assessment' : 'Save Assessment'}
+                  {saving ? 'Saving…' : editingId ? 'Update observation' : 'Save observation'}
                 </button>
               </div>
             )}
