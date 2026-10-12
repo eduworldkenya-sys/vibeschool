@@ -44,7 +44,10 @@ type Intelligence = {
     mean_change: number | null;
     previous_exam_name: string | null;
   };
-  performance_distribution: Record<"EE" | "ME" | "AE" | "BE", number>;
+  performance_distribution: Partial<Record<
+    "at_or_above_target" | "below_target" | "not_scored" | "EE" | "ME" | "AE" | "BE",
+    number | string
+  >>;
   historical_trajectory: Array<{ exam_id: string; name: string; type: string; mean: number | null; learners: number }>;
   learner_rankings: Array<{ student_id: string; name: string; marks: number }>;
   learner_movements: Array<{
@@ -173,24 +176,37 @@ function Sparkline({ points }: { points: Array<{ name: string; mean: number | nu
 }
 
 function Distribution({ data }: { data: Intelligence["performance_distribution"] }) {
-  const safeData = Object.fromEntries(
-    Object.entries(data).map(([key, value]) => [key, Number.isFinite(value) && value >= 0 ? value : 0]),
-  ) as Intelligence["performance_distribution"];
-  const total = Object.values(safeData).reduce((sum, n) => sum + n, 0);
-  const tones: Record<string, string> = { EE: "#087A55", ME: "#2563EB", AE: "#D97706", BE: "#C2413A" };
+  const count = (value: number | string | undefined) => {
+    const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  };
+  const hasCanonicalDistribution = ["at_or_above_target", "below_target", "not_scored"].some(key => key in data);
+  const rows = hasCanonicalDistribution
+    ? [
+        { key: "at_or_above_target", label: "At or above target", value: count(data.at_or_above_target), tone: C.green },
+        { key: "below_target", label: "Below target", value: count(data.below_target), tone: C.red },
+        { key: "not_scored", label: "Not scored", value: count(data.not_scored), tone: C.muted },
+      ]
+    : [
+        { key: "EE", label: "EE", value: count(data.EE), tone: "#087A55" },
+        { key: "ME", label: "ME", value: count(data.ME), tone: "#2563EB" },
+        { key: "AE", label: "AE", value: count(data.AE), tone: "#D97706" },
+        { key: "BE", label: "BE", value: count(data.BE), tone: "#C2413A" },
+      ];
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
   if (!Number.isFinite(total) || total <= 0) {
-    return <div role="status" style={{ padding: 14, borderRadius: 12, background: C.canvas, color: C.muted, fontSize: 13, lineHeight: 1.5 }}>Performance-level distribution is unavailable until an approved scoring guide is selected.</div>;
+    return <div role="status" style={{ padding: 14, borderRadius: 12, background: C.canvas, color: C.muted, fontSize: 13, lineHeight: 1.5 }}>Mark distribution is unavailable until results have been recorded.</div>;
   }
   return (
     <div style={{ display: "grid", gap: 12 }}>
-      {(["EE", "ME", "AE", "BE"] as const).map(key => {
-        const pct = Math.round((safeData[key] / total) * 100);
-        return <div key={key} style={{ display: "grid", gridTemplateColumns: "34px minmax(0,1fr) 70px", gap: 10, alignItems: "center" }}>
-          <strong style={{ fontSize: 12 }}>{key}</strong>
+      {rows.map(row => {
+        const pct = Math.round((row.value / total) * 100);
+        return <div key={row.key} style={{ display: "grid", gridTemplateColumns: "minmax(110px,auto) minmax(0,1fr) 70px", gap: 10, alignItems: "center" }}>
+          <strong style={{ fontSize: 12 }}>{row.label}</strong>
           <div style={{ height: 10, borderRadius: 999, background: "#EEF0F2", overflow: "hidden" }}>
-            <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: tones[key], transition: "width .25s ease" }} />
+            <div style={{ width: `${pct}%`, height: "100%", borderRadius: 999, background: row.tone, transition: "width .25s ease" }} />
           </div>
-          <span style={{ fontSize: 12, textAlign: "right", color: C.muted }}>{safeData[key]} · {pct}%</span>
+          <span style={{ fontSize: 12, textAlign: "right", color: C.muted }}>{row.value} · {pct}%</span>
         </div>;
       })}
     </div>
