@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { examResultStateLabel, type ExamResultState } from "@/lib/assessment/exam-results";
 
 type Student = {
   id: string;
@@ -29,12 +30,25 @@ type Props = {
   savedId: string | null;
   errorByStudent: Record<string, string>;
   onChangeMark: (studentId: string, value: string) => void;
-  onSaveMark: (student: Student, isAbsent?: boolean) => Promise<boolean>;
-  onClearAbsent: (student: Student) => Promise<boolean>;
+  onSaveMark: (student: Student) => Promise<boolean>;
+  onSaveState: (student: Student, state: Exclude<ExamResultState, "entered">) => Promise<boolean>;
+  onClearResult: (student: Student) => Promise<boolean>;
   reportCardHref: (studentId: string) => string;
   onSaveAll: () => Promise<void>;
   savingAll: boolean;
 };
+
+const STATE_OPTIONS: Array<{ value: Exclude<ExamResultState, "entered">; label: string }> = [
+  { value: "absent", label: "Absent" },
+  { value: "not_assessed", label: "Not assessed" },
+  { value: "exempt", label: "Exempt" },
+  { value: "pending", label: "Pending" },
+  { value: "incomplete", label: "Incomplete" },
+  { value: "late", label: "Late" },
+  { value: "transferred", label: "Transferred" },
+  { value: "awaiting_marking", label: "Awaiting marking" },
+];
+const FINAL_STATES = new Set<ExamResultState>(["entered", "absent", "not_assessed", "exempt", "transferred"]);
 
 export default function ProfessionalMarkbook({
   students,
@@ -47,7 +61,8 @@ export default function ProfessionalMarkbook({
   errorByStudent,
   onChangeMark,
   onSaveMark,
-  onClearAbsent,
+  onSaveState,
+  onClearResult,
   reportCardHref,
   onSaveAll,
   savingAll,
@@ -58,8 +73,8 @@ export default function ProfessionalMarkbook({
   const [pasteMessage, setPasteMessage] = React.useState<string | null>(null);
   const [openMore, setOpenMore] = React.useState<string | null>(null);
   const savedMap = React.useMemo(() => new Map(results.map(result => [result.student_id, result])), [results]);
-  const recordedCount = results.length;
-  const remainingCount = Math.max(0, students.length - recordedCount);
+  const resolvedCount = results.filter(result => FINAL_STATES.has((result.result_state ?? (result.is_absent ? "absent" : "entered")) as ExamResultState)).length;
+  const remainingCount = Math.max(0, students.length - resolvedCount);
 
   async function applyPastedMarks() {
     const lines=pasteText.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
@@ -105,7 +120,7 @@ export default function ProfessionalMarkbook({
     let absentCount=0
     for(const row of staged){
       if(row.raw==='ABS'){
-        const ok=await onSaveMark(row.student,true)
+        const ok=await onSaveState(row.student,'absent')
         if(!ok){setPasteMessage('Could not save absence for '+row.student.name+'. Check the highlighted row.');return}
         absentCount+=1
       }else onChangeMark(row.student.id,row.raw)
@@ -120,10 +135,10 @@ export default function ProfessionalMarkbook({
     inputRefs.current[next.id]?.select();
   }
 
-  function MarkInput({ student, index, isAbsent, raw, rowError, isSaving }: { student: Student; index: number; isAbsent: boolean; raw: string; rowError?: string; isSaving: boolean }) {
+  function MarkInput({ student, index, nonScoreState, raw, rowError, isSaving }: { student: Student; index: number; nonScoreState: ExamResultState | null; raw: string; rowError?: string; isSaving: boolean }) {
     if (locked) {
       const result = savedMap.get(student.id);
-      return <strong>{isAbsent ? "Absent" : result?.marks ?? "—"}</strong>;
+      return <strong>{nonScoreState ? examResultStateLabel(nonScoreState) : result?.marks ?? "—"}</strong>;
     }
     return (
       <input
@@ -134,10 +149,10 @@ export default function ProfessionalMarkbook({
         min={0}
         max={maxMarks}
         step="0.5"
-        value={isAbsent ? "" : raw}
-        disabled={isAbsent || isSaving}
+        value={nonScoreState ? "" : raw}
+        disabled={Boolean(nonScoreState) || isSaving}
         onChange={event => onChangeMark(student.id, event.target.value)}
-        onBlur={() => { if (!isAbsent && raw.trim() !== "") void onSaveMark(student); }}
+        onBlur={() => { if (!nonScoreState && raw.trim() !== "") void onSaveMark(student); }}
         onKeyDown={async event => {
           if (event.key === "Enter") {
             event.preventDefault();
@@ -153,7 +168,7 @@ export default function ProfessionalMarkbook({
             focusRelative(index, -1);
           }
         }}
-        style={{ width: 84, padding: "9px 8px", borderRadius: 10, border: `1.5px solid ${rowError ? "#ef4444" : "#d6d3d1"}`, textAlign: "center", fontSize: 15, fontWeight: 800, outline: "none", background: isAbsent ? "#f5f5f4" : "#fff" }}
+        style={{ width: 84, padding: "9px 8px", borderRadius: 10, border: `1.5px solid ${rowError ? "#ef4444" : "#d6d3d1"}`, textAlign: "center", fontSize: 15, fontWeight: 800, outline: "none", background: nonScoreState ? "#f5f5f4" : "#fff" }}
       />
     );
   }
@@ -173,7 +188,7 @@ export default function ProfessionalMarkbook({
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: "#1c1917" }}>Enter marks</div>
           <div style={{ marginTop: 3, fontSize: 12, color: "#78716c" }}>
-            {recordedCount}/{students.length} entered{remainingCount > 0 ? ` · ${remainingCount} remaining` : " · complete"}
+            {resolvedCount}/{students.length} final{remainingCount > 0 ? ` · ${remainingCount} still need a final result` : " · complete"}
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -208,7 +223,7 @@ export default function ProfessionalMarkbook({
           <tbody>
             {students.map((student, index) => {
               const result = savedMap.get(student.id);
-              const isAbsent = result?.is_absent ?? false;
+              const state = (result?.result_state ?? (result?.is_absent ? "absent" : result ? "entered" : null)) as ExamResultState | null;
               const raw = draftMarks[student.id] ?? "";
               const mark = Number(raw);
               const validMark = raw.trim() !== "" && Number.isFinite(mark) && mark >= 0 && mark <= maxMarks;
@@ -219,14 +234,14 @@ export default function ProfessionalMarkbook({
                 <tr key={student.id} style={{ borderBottom: "1px solid #f5f5f4", background: rowError ? "#fff7f7" : "#fff" }}>
                   <td style={{ padding: "10px 12px", fontSize: 12, color: "#a8a29e", width: 44 }}>{index + 1}</td>
                   <td style={{ padding: "10px 12px" }}><div style={{ fontSize: 13, fontWeight: 700, color: "#1c1917" }}>{student.name}</div>{rowError && <div role="alert" style={{ marginTop: 4, fontSize: 11, color: "#b91c1c", fontWeight: 700 }}>{rowError}</div>}</td>
-                  <td style={{ padding: "8px 12px", textAlign: "center" }}><MarkInput student={student} index={index} isAbsent={isAbsent} raw={raw} rowError={rowError} isSaving={isSaving} /></td>
-                  <td style={{ padding: "10px 12px" }}><span style={{ display: "inline-block", minWidth: 46, padding: "5px 8px", borderRadius: 999, textAlign: "center", fontSize: 11, fontWeight: 750, background:isAbsent?"#fef2f2":result?.result_state==='pending'?"#fff7df":"#f1f7f1", color:isAbsent?"#b91c1c":"#276047" }}>{isAbsent ? "ABS" : result?.result_state==='pending' ? "Pending" : result ? "Saved" : "—"}</span></td>
-                  <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: isAbsent ? "#991b1b" : validMark ? "#286043" : "#a8a29e" }}>{isAbsent ? "Absent" : result?.result_state==='pending' ? "Pending" : validMark ? (result ? "Recorded" : "Draft") : "Not entered"}</td>
+                  <td style={{ padding: "8px 12px", textAlign: "center" }}><MarkInput student={student} index={index} nonScoreState={state&&state!=="entered"?state:null} raw={raw} rowError={rowError} isSaving={isSaving} /></td>
+                  <td style={{ padding: "10px 12px" }}><span style={{ display: "inline-block", minWidth: 46, padding: "5px 8px", borderRadius: 999, textAlign: "center", fontSize: 11, fontWeight: 750, background:state&&state!=="entered"?"#fff7df":"#f1f7f1", color:state&&state!=="entered"?"#92400e":"#276047" }}>{state ? examResultStateLabel(state) : "—"}</span></td>
+                  <td style={{ padding: "10px 12px", fontSize: 12, fontWeight: 700, color: state&&state!=="entered" ? "#92400e" : validMark ? "#286043" : "#a8a29e" }}>{state&&state!=="entered" ? examResultStateLabel(state) : validMark ? (result ? "Recorded" : "Draft") : "Not entered"}</td>
                   <td style={{ padding: "10px 12px", fontSize: 12, color: isSaving ? "#92400e" : justSaved ? "#047857" : result ? "#57534e" : "#a8a29e", fontWeight: 700 }}>{isSaving ? "Saving…" : justSaved ? "Saved ✓" : result ? "Saved" : "—"}</td>
                   <td style={{ padding: "8px 12px", textAlign: "right", whiteSpace: "nowrap", position: "relative" }}>
                     <button type="button" onClick={() => setOpenMore(openMore === student.id ? null : student.id)} style={{ minWidth: 36, minHeight: 36, borderRadius: 9, border: "1px solid #e7e5e4", background: "#fff", fontWeight: 750, cursor: "pointer" }}>⋯</button>
                     {openMore === student.id && <div style={{ position: "absolute", right: 12, top: 46, zIndex: 5, minWidth: 160, padding: 6, border: "1px solid #e7e5e4", borderRadius: 10, background: "#fff", boxShadow: "0 8px 24px rgba(0,0,0,.12)", textAlign: "left" }}>
-                      {!locked && <button type="button" disabled={isSaving} onClick={() => { setOpenMore(null); void (isAbsent ? onClearAbsent(student) : onSaveMark(student, true)); }} style={menuButton}>{isAbsent ? "Clear absence" : "Mark absent"}</button>}
+                      {!locked && <>{STATE_OPTIONS.map(option=><button key={option.value} type="button" disabled={isSaving} onClick={()=>{setOpenMore(null);void onSaveState(student,option.value)}} style={menuButton}>{option.label}</button>)}{result&&<button type="button" disabled={isSaving} onClick={()=>{setOpenMore(null);void onClearResult(student)}} style={menuButton}>Clear result</button>}</>}
                       <a href={reportCardHref(student.id)} style={{ ...menuButton, display: "block", textDecoration: "none" }}>View report</a>
                     </div>}
                   </td>
@@ -240,7 +255,7 @@ export default function ProfessionalMarkbook({
       <div className="mobile-list">
         {students.map((student, index) => {
           const result = savedMap.get(student.id);
-          const isAbsent = result?.is_absent ?? false;
+          const state = (result?.result_state ?? (result?.is_absent ? "absent" : result ? "entered" : null)) as ExamResultState | null;
           const raw = draftMarks[student.id] ?? "";
           const rowError = errorByStudent[student.id];
           const isSaving = savingId === student.id;
@@ -251,10 +266,10 @@ export default function ProfessionalMarkbook({
               <button type="button" onClick={() => setOpenMore(openMore === student.id ? null : student.id)} style={{ minWidth: 38, minHeight: 38, borderRadius: 10, border: "1px solid #e7e5e4", background: "#fff", fontWeight: 750 }}>⋯</button>
             </div>
             <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "minmax(0,1fr) auto", gap: 10, alignItems: "center" }}>
-              <div><div style={{ fontSize: 11, fontWeight: 800, color: "#78716c", marginBottom: 5 }}>MARK</div><MarkInput student={student} index={index} isAbsent={isAbsent} raw={raw} rowError={rowError} isSaving={isSaving} /></div>
-              {!locked && <button type="button" disabled={isSaving} onClick={() => void (isAbsent ? onClearAbsent(student) : onSaveMark(student, true))} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid #d6d3d1", background: isAbsent ? "#fef2f2" : "#fff", color: isAbsent ? "#b91c1c" : "#44403c", fontWeight: 800 }}>{isAbsent ? "Absent ✓" : "Absent"}</button>}
+              <div><div style={{ fontSize: 11, fontWeight: 800, color: "#78716c", marginBottom: 5 }}>MARK</div><MarkInput student={student} index={index} nonScoreState={state&&state!=="entered"?state:null} raw={raw} rowError={rowError} isSaving={isSaving} /></div>
+              {!locked && <select aria-label={`Set result status for ${student.name}`} value="" disabled={isSaving} onChange={event=>{const value=event.target.value;if(value==='clear')void onClearResult(student);else if(value)void onSaveState(student,value as Exclude<ExamResultState,"entered">)}} style={{ minHeight:44,padding:"0 10px",borderRadius:12,border:"1px solid #d6d3d1",background:"#fff",fontWeight:800 }}><option value="">Status…</option>{STATE_OPTIONS.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}{result&&<option value="clear">Clear result</option>}</select>}
             </div>
-            <div style={{ marginTop: 8, fontSize: 11, color: isSaving ? "#92400e" : justSaved ? "#047857" : result ? "#57534e" : "#a8a29e", fontWeight: 700 }}>{isSaving ? "Saving…" : justSaved ? "Saved ✓" : result ? (isAbsent ? "Absent · Saved" : "Saved") : "Not entered"}</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: isSaving ? "#92400e" : justSaved ? "#047857" : result ? "#57534e" : "#a8a29e", fontWeight: 700 }}>{isSaving ? "Saving…" : justSaved ? "Saved ✓" : state ? `${examResultStateLabel(state)} · Saved` : "Not entered"}</div>
             {rowError && <div role="alert" style={{ marginTop: 6, fontSize: 11, color: "#b91c1c", fontWeight: 700 }}>{rowError}</div>}
             {openMore === student.id && <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
               <a href={reportCardHref(student.id)} style={{ ...menuButton, display: "block", textDecoration: "none" }}>View learner report</a>

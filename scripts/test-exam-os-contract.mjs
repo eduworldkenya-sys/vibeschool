@@ -23,8 +23,8 @@ const checks = {
   'Class workspace links to exams': workspace.includes('/teacher/results?classId=${classId}'),
   'Workbook hands off to Exam Centre': workbook.includes('Open Exam Centre / full analysis'),
   'Exam Centre identity remains canonical': results.includes('>Exam Centre</div>'),
-  'Exam context exposes completion': results.includes('marks entered') && results.includes('% complete'),
-  'Locked exam remains read-only': results.includes('activeExam.is_locked') && results.includes('This exam is locked; marks are read-only.'),
+  'Exam context exposes completion': results.includes('final results') && results.includes('% complete'),
+  'Locked exam remains read-only': results.includes('activeExam.is_locked') && results.includes('This exam is locked; results are read-only.'),
   'Canonical result authority preserved': results.includes('saveCanonicalExamResult'),
   'No duplicate results write introduced': !results.includes(".from('exam_results').upsert") && !results.includes('.from("exam_results").upsert'),
 }

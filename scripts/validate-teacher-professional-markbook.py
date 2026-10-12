@@ -13,7 +13,7 @@ checks = {
     'marks constrained in UI': 'max={maxMarks}' in component and 'min={0}' in component,
     'save feedback visible': 'Saved ✓' in component and 'Saving…' in component,
     'per-row error visible': 'errorByStudent' in component and 'role="alert"' in component,
-    'absence workflow': 'Mark absent' in component and 'Clear absence' in component and 'Absent ✓' in component,
+    'canonical result states': 'Not assessed' in component and 'Awaiting marking' in component and 'Clear result' in component,
     'bulk paste workflow': 'Paste marks' in component and 'Add to marks' in component and 'ABS or Absent' in component,
     'save all workflow': 'Save all' in component and 'onSaveAll' in component,
     'phone-first layout': 'mobile-list' in component and '@media (max-width: 720px)' in component,
