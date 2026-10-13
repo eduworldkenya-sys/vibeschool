@@ -12,8 +12,8 @@ const workbook = read('components/teacher/workbook/ClassWorkbook.tsx')
 const workspace = read('components/teacher/classroom/ClassWorkspace.tsx')
 
 const checks = {
-  'Teacher Assess tray exposes Exams': layout.includes("label: 'Exams'") && layout.includes("href: '/teacher/results'"),
-  'Assess tray language is reconciled': layout.includes("assess: [") && layout.includes("label: 'Assessments'") && layout.includes("label: 'Exams'"),
+  'Teacher Assess tray exposes Exam Centre': layout.includes("label: 'Exam Centre'") && layout.includes("href: '/teacher/results'"),
+  'Assess tray language is reconciled': layout.includes("assess: [") && layout.includes("label: 'Classroom assessment'") && layout.includes("label: 'Exam Centre'"),
   'All tools exposes Exams': more.includes("teacherTools[tab.id]") && layout.includes("href: '/teacher/results'"),
   'Twin resolves Exam Centre to canonical route': twin.includes("label: 'Exam Centre', url: '/teacher/results'"),
   'Twin no longer emits dead /teacher/exams action': !twin.includes("label: 'Exam Centre', url: '/teacher/exams'"),
