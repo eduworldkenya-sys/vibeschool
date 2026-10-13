@@ -79,6 +79,7 @@ function ResultsInner() {
   const [examError,setExamError]=useState<string|null>(null)
   const [students,setStudents]=useState<Student[]>([])
   const [results,setResults]=useState<Result[]>([])
+  const [resultsLoading,setResultsLoading]=useState(false)
   const [draftMarks,setDraftMarks]=useState<Record<string,string>>({})
   const [savingId,setSavingId]=useState<string|null>(null)
   const [savedId,setSavedId]=useState<string|null>(null)
@@ -192,7 +193,7 @@ function ResultsInner() {
   const subjectLocked=!examLifecycle || examLifecycle.status==='published' ||
     selectedSubjectReview==='submitted'||selectedSubjectReview==='verified'
 
-  useEffect(()=>{ if (activeExam && students.length>0) void loadResults(); else setResults([]) },[activeExam,students,activeSubjectIdx])
+  useEffect(()=>{ if (activeExam && students.length>0) void loadResults(); else { setResults([]); setResultsLoading(false) } },[activeExam,students,activeSubjectIdx])
 
   useEffect(()=>{
     const classId=classes[activeClassIdx]?.id,subjectId=subjects[activeSubjectIdx]?.id
@@ -205,16 +206,24 @@ function ResultsInner() {
 
   async function loadResults() {
     if (!activeExam) return
+    setResultsLoading(true)
     const studentIds=students.map(s=>s.id)
     let query=supabase.from('exam_results').select('id, student_id, marks, max_marks, percentage, result_state, is_absent, updated_at').eq('exam_id',activeExam.id).in('student_id',studentIds)
     const subjectId=subjects[activeSubjectIdx]?.id
     if (subjectId) query=query.eq('subject_id',subjectId)
-    const {data}=await query
-    const loaded=(data??[]) as Result[]
-    setResults(loaded)
-    const draft:Record<string,string>={}
-    for (const r of loaded) if (r.result_state==='entered' && r.marks!==null) draft[r.student_id]=String(r.marks)
-    setDraftMarks(draft); setErrorByStudent({})
+    try {
+      const {data,error:resultsError}=await query
+      if(resultsError)throw resultsError
+      const loaded=(data??[]) as Result[]
+      setResults(loaded)
+      const draft:Record<string,string>={}
+      for (const r of loaded) if (r.result_state==='entered' && r.marks!==null) draft[r.student_id]=String(r.marks)
+      setDraftMarks(draft); setErrorByStudent({})
+    } catch {
+      setErrorByStudent({__sheet:'Saved results could not be loaded. Retry before editing marks.'})
+    } finally {
+      setResultsLoading(false)
+    }
   }
 
   async function createExam() {
@@ -372,7 +381,7 @@ function ResultsInner() {
       <div style={{fontSize:11,fontWeight:800,letterSpacing:.7,textTransform:'uppercase',color:W.textMuted}}>Exam Centre</div>
       <h1 style={{margin:'5px 0 0',fontSize:22,fontWeight:750,color:W.text}}>{activeExam?.name??'Choose an exam'}</h1>
       <p style={{margin:'4px 0 0',fontSize:14,fontWeight:700,color:W.textSoft}}>{tier===1?`${activeClass?.name??'—'}${activeClass?.stream?' '+activeClass.stream:''}${activeSubject?' · '+activeSubject.name:''}`:'Set up a class and subject to enter exam marks.'}</p>
-      {activeExam&&tier===1&&<p style={{margin:'5px 0 0',fontSize:12,color:W.textMuted}}>{results.filter(r=>FINAL_STATES.has(r.result_state)).length}/{students.length} final results{students.length>0?` · ${Math.round((results.filter(r=>FINAL_STATES.has(r.result_state)).length/students.length)*100)}% complete`:''}</p>}
+      {activeExam&&tier===1&&<p style={{margin:'5px 0 0',fontSize:12,color:W.textMuted}}>{resultsLoading?'Loading saved results…':<>{results.filter(r=>FINAL_STATES.has(r.result_state)).length}/{students.length} final results{students.length>0?` · ${Math.round((results.filter(r=>FINAL_STATES.has(r.result_state)).length/students.length)*100)}% complete`:''}</>}</p>}
       <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:12}}>
         {tier===1&&<button onClick={()=>setShowContextSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>Change exam / class / subject</button>}
         <button onClick={()=>setShowExamSheet(true)} style={{padding:'8px 12px',borderRadius:10,border:`1px solid ${W.border}`,background:'#fff',fontWeight:800,color:W.text}}>＋ New exam</button>
@@ -391,20 +400,21 @@ function ResultsInner() {
     {activeExam && tier===1 && !editingPolicy && subjectPolicy && <div role={subjectPolicy.configured?undefined:'alert'} style={{margin:'8px 16px 0',padding:subjectPolicy.configured?0:'10px 12px',borderRadius:10,background:subjectPolicy.configured?'transparent':'#fffbeb',fontSize:12,color:subjectPolicy.configured?W.textSoft:'#92400e'}}>Marks out of {subjectPolicy.max_marks}. {subjectPolicy.configured?'Subject scoring setup saved.':'Confirm scoring setup before entering official marks.'}</div>}
     {policyError && !editingPolicy && <p role="alert" style={{margin:'12px 16px',fontSize:12,color:'#991b1b'}}>{policyError}</p>}
 
-    {activeExam && students.length>0 && <div style={{margin:'12px 16px 0',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
+    {activeExam && students.length>0 && !resultsLoading && !errorByStudent.__sheet && <div style={{margin:'12px 16px 0',display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:8}}>
       {[['Students',students.length],['Final results',analysis?.resolved??results.filter(r=>FINAL_STATES.has(r.result_state)).length],['Subject mean',analysis?`${analysis.avg.toFixed(1)}%`:'—'],['Still open',Math.max(0,students.length-results.filter(r=>FINAL_STATES.has(r.result_state)).length)]].map(([label,value])=><div key={String(label)} style={{padding:'12px',background:'#fff',border:'1px solid #E7E5E4',borderRadius:14}}><div style={{fontSize:11,color:W.textSoft,fontWeight:700}}>{label}</div><div style={{fontSize:20,fontWeight:800,marginTop:3}}>{value}</div></div>)}
     </div>}
 
-    {activeExam && tier===1 && <div style={{margin:'12px 16px 0',padding:'12px 14px',borderRadius:14,border:`1px solid ${activeExam.is_locked?'#d6d3d1':'#d1fae5'}`,background:activeExam.is_locked?'#fafaf9':'#ecfdf5',fontSize:12,color:W.textSoft}}><strong style={{color:W.text}}>{activeExam.name}</strong> · {results.filter(r=>FINAL_STATES.has(r.result_state)).length}/{students.length} learner results resolved{students.length>0?` · ${Math.round((results.filter(r=>FINAL_STATES.has(r.result_state)).length/students.length)*100)}% complete`:''}. {activeExam.is_locked?'This exam is locked; results are read-only.':results.filter(r=>FINAL_STATES.has(r.result_state)).length<students.length?'Continue the result sheet below.':'This subject result sheet is complete.'}</div>}
+    {activeExam && tier===1 && !resultsLoading && !errorByStudent.__sheet && <div style={{margin:'12px 16px 0',padding:'12px 14px',borderRadius:14,border:`1px solid ${activeExam.is_locked?'#d6d3d1':'#d1fae5'}`,background:activeExam.is_locked?'#fafaf9':'#ecfdf5',fontSize:12,color:W.textSoft}}><strong style={{color:W.text}}>{activeExam.name}</strong> · {results.filter(r=>FINAL_STATES.has(r.result_state)).length}/{students.length} learner results resolved{students.length>0?` · ${Math.round((results.filter(r=>FINAL_STATES.has(r.result_state)).length/students.length)*100)}% complete`:''}. {activeExam.is_locked?'This exam is locked; results are read-only.':results.filter(r=>FINAL_STATES.has(r.result_state)).length<students.length?'Continue the result sheet below.':'This subject result sheet is complete.'}</div>}
 
     {activeExam && <div style={{display:'flex',gap:0,margin:'14px 16px 0',borderRadius:12,background:'#F5ECD9',padding:4}}>{(['entry','class','analysis'] as const).map(tab=><button key={tab} onClick={()=>{setActiveTab(tab);setEditingPolicy(false)}} style={{flex:1,padding:'9px 0',borderRadius:10,border:'none',fontWeight:700,background:activeTab===tab?'#fff':'transparent',color:activeTab===tab?'#111827':'#9ca3af'}}>{tab==='entry'?'Marks':tab==='class'?'Class results':'Explore'}</button>)}</div>}
 
     {activeTab==='entry' && <div style={{padding:'14px 16px 0'}}>
       {lifecycleError&&<p role="alert" style={{fontSize:12,color:'#a83232'}}>Examination permission and submission status unavailable: {lifecycleError}</p>}
+      {errorByStudent.__sheet&&<p role="alert" style={{fontSize:12,color:'#a83232'}}>{errorByStudent.__sheet}</p>}
       {selectedSubjectReview==='submitted'||selectedSubjectReview==='verified'?<p role="status" style={{fontSize:12,color:'#226342',fontWeight:700}}>This learning area is {selectedSubjectReview}. Ask the examination office to reopen before correcting marks.</p>:null}
       {!activeExam?<div style={{padding:40,textAlign:'center',color:W.textMuted}}>Create or select an exam to open the markbook.</div>
       : tier!==1?<div style={{padding:24,border:'1px solid #fde68a',background:'#fffbeb',borderRadius:14,color:'#92400e'}}>Professional marks entry requires a school class and subject assignment. This prevents unscoped exam records.</div>
-      : loading?<Skeleton h={220}/>
+      : loading||resultsLoading?<div role="status" aria-label="Loading saved exam results"><Skeleton h={220}/></div>
       : students.length===0?<div style={{padding:32,textAlign:'center',color:W.textMuted}}>No students enrolled in this class.</div>
       : !subjectPolicy?<div role="status" style={{padding:28,color:W.textMuted}}>{policyError?'Scoring policy unavailable. Check your assigned subject and retry.':'Loading scoring setup…'}</div>
       : !subjectPolicy.configured?<div role="alert" style={{padding:24,border:'1px solid #fde68a',background:'#fffbeb',borderRadius:14,color:'#92400e'}}><strong>Confirm scoring before entering results</strong><p style={{margin:'6px 0 12px',fontSize:12}}>Set the real maximum marks and learner-support threshold for this subject. VibeSchool will not save official results against an unconfirmed default.</p><button type="button" onClick={()=>setEditingPolicy(true)} style={{padding:'9px 12px',border:0,borderRadius:10,background:'#92400e',color:'#fff',fontWeight:800}}>Open scoring setup</button></div>
