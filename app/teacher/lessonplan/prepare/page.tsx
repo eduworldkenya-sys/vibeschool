@@ -4,7 +4,6 @@ export const dynamic = "force-dynamic";
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Card, Btn, C, SectionLabel } from '@/components/teacher/ui'
 import { nairobiDateAdd, nairobiDayOfWeek, nairobiWeekStart } from '@/lib/time'
 import { loadTeacherTimetableForRange, type CanonicalTimetableSlot } from '@/lib/timetable/engine'
 import {
@@ -72,12 +71,6 @@ function formatDate(date: string) {
     weekday: 'short', day: 'numeric', month: 'short',
     timeZone: 'Africa/Nairobi',
   }).format(new Date(date + 'T12:00:00+03:00'))
-}
-
-function minutesBetween(start: string, end: string) {
-  const [sh, sm] = start.slice(0,5).split(':').map(Number)
-  const [eh, em] = end.slice(0,5).split(':').map(Number)
-  return Math.max(1, eh * 60 + em - (sh * 60 + sm))
 }
 
 export default function PrepareLessonPage() {
