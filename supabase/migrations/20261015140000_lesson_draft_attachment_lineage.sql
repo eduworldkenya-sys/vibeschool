@@ -1,6 +1,7 @@
 begin;
 -- authorization-test: public.lesson_plans prepared_draft_id links only to the author's same-school, same-class, same-subject draft by an authorized attachment RPC.
 -- authorization-test: public.attach_lesson_plan_draft_to_occurrence rejects attempts to silently replace a different canonical lesson plan.
+-- authorization-test: public.guard_lesson_plan_prepared_draft forbids forged cross-school/class provenance and immutable linkage edits.
 -- Forward-only production repair: an existing dated plan is not proof that
 -- the teacher's selected prepared draft was actually attached.
 alter table public.lesson_plans
@@ -9,6 +10,45 @@ alter table public.lesson_plans
 create index if not exists lesson_plans_prepared_draft_idx
   on public.lesson_plans(prepared_draft_id)
   where prepared_draft_id is not null;
+
+-- The PostgREST client can update lesson_plans directly under existing RLS.
+-- Prevent an authorized teacher from forging or changing provenance to point
+-- to a different draft, school, subject, class, or timetable slot.
+create or replace function public.guard_lesson_plan_prepared_draft()
+returns trigger language plpgsql security definer set search_path = ''
+as $guard$
+begin
+  if tg_op = 'UPDATE' and old.prepared_draft_id is distinct from new.prepared_draft_id then
+    raise exception 'PREPARED_DRAFT_PROVENANCE_IMMUTABLE';
+  end if;
+  if new.prepared_draft_id is not null
+    and (
+      new.timetable_slot_id is null
+      or not exists (
+        select 1 from public.lesson_plan_drafts d
+        join public.timetable_slots ts on ts.id = new.timetable_slot_id
+        where d.id = new.prepared_draft_id
+          and d.teacher_id = new.teacher_id
+          and d.school_id = new.school_id
+          and d.subject_id = new.subject_id
+          and (d.class_id is null or d.class_id = new.class_id)
+          and ts.teacher_id = new.teacher_id
+          and ts.school_id = new.school_id
+          and ts.subject_id = new.subject_id
+          and ts.class_id = new.class_id
+      )
+    ) then
+    raise exception 'PREPARED_DRAFT_PROVENANCE_MISMATCH' using errcode='42501';
+  end if;
+  return new;
+end;
+$guard$;
+revoke all on function public.guard_lesson_plan_prepared_draft() from public, anon, authenticated;
+drop trigger if exists guard_lesson_plan_prepared_draft on public.lesson_plans;
+create trigger guard_lesson_plan_prepared_draft
+  before insert or update of prepared_draft_id,teacher_id,school_id,class_id,subject_id,timetable_slot_id
+  on public.lesson_plans for each row
+  execute function public.guard_lesson_plan_prepared_draft();
 
 create or replace function public.attach_lesson_plan_draft_to_occurrence(
   p_draft_id uuid,
