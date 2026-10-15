@@ -325,7 +325,7 @@ export default function TeacherStudentProgressPage() {
     [],
   );
   const [teacherEvents, setTeacherEvents] = useState<TeacherEvent[]>([]);
-  const eventRequest = useRef<{ key: string; id: string } | null>(null);
+  const eventRequest = useRef<Record<string, string>>({});
   const eventLock = useRef(false);
   const [eventNote, setEventNote] = useState("");
   const [recognitionNote, setRecognitionNote] = useState("");
@@ -605,8 +605,8 @@ export default function TeacherStudentProgressPage() {
       }
       eventLock.current = true;
       const key = JSON.stringify({ eventKind, note: activeEventNote.trim(), studentId, requestedSubjectId });
-      if (eventRequest.current?.key !== key) eventRequest.current = { key, id: crypto.randomUUID() };
-      const requestId = eventRequest.current.id;
+      if (!eventRequest.current[key]) eventRequest.current[key] = crypto.randomUUID();
+      const requestId = eventRequest.current[key];
       setEventSaving(true);
       setEventMessage("");
       try {
@@ -646,7 +646,7 @@ export default function TeacherStudentProgressPage() {
       if (!confirmed) {
         setEventMessage(insertError?.message ?? "Save could not be confirmed. Retry.");
       } else {
-        eventRequest.current = null;
+        delete eventRequest.current[key];
         if (eventKind === "recognition") setRecognitionNote(""); else setEventNote("");
         setEventMessage("Saved to this learner's story.");
         await load(false);
@@ -1220,9 +1220,7 @@ export default function TeacherStudentProgressPage() {
               type="button"
               onClick={() =>
                 nextAction.kind === "intervention"
-                  ? router.push(
-                      `/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`,
-                    )
+                  ? setPanel("support")
                   : nextAction.kind === "work"
                     ? setTab("work")
                     : setTab("assessment")
