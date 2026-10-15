@@ -1,5 +1,8 @@
 begin;
 
+-- authorization-test: public.lesson_plan_drafts authenticated teachers can only read/write their own assigned school, class and subject; other schools and anonymous callers denied.
+-- authorization-test: public.attach_lesson_plan_draft_to_occurrence denies cross-school, cross-subject and cross-teacher attachments, and preserves canonical attendance/evidence identity.
+
 -- Forward-only reconciliation: production recorded the timetable closure migration
 -- but was missing the independent lesson draft table and attachment RPC.
 -- Existing lesson plans and teaching occurrences are never rewritten here.
