@@ -133,6 +133,7 @@ function LessonPlanInner() {
   const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
   const [toast,       setToast]       = useState('')
   const [loadError,   setLoadError]   = useState<string | null>(null)
+  const [sourceCheckError, setSourceCheckError] = useState<string | null>(null)
   const [readinessFilter, setReadinessFilter] = useState<ReadinessFilter>('all')
   const [refreshNonce, setRefreshNonce] = useState(0)
   const autoOpenedKeyRef = useRef<string | null>(null)
@@ -146,6 +147,7 @@ function LessonPlanInner() {
     async function load() {
       setLoading(true)
       setLoadError(null)
+      setSourceCheckError(null)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         setLoadError('Please sign in to view lesson plans.')
@@ -214,11 +216,51 @@ function LessonPlanInner() {
         return
       }
 
+      const authoredPlans = plansRes.data ?? []
+      const candidatePlans = authoredPlans.filter(p => Boolean(p.scheme_id && p.curriculum_outcome_id))
+      const schemeIds = [...new Set(candidatePlans.map(p => p.scheme_id).filter((id): id is string => Boolean(id)))]
+      const outcomeIds = [...new Set(candidatePlans.map(p => p.curriculum_outcome_id).filter((id): id is string => Boolean(id)))]
+      const verifiedOutcomes = new Set<string>()
+      const canonicalSchemes = new Map<string, {
+        school_id: string
+        teacher_id: string | null
+        class_id: string | null
+        subject_id: string
+        curriculum_outcome_id: string | null
+      }>()
+      if (schemeIds.length && outcomeIds.length) {
+        const [verified, schemes] = await Promise.all([
+          supabase.from('curriculum_learning_outcomes')
+            .select('id').in('id', outcomeIds).eq('status', 'verified'),
+          supabase.from('scheme_of_work')
+            .select('id,school_id,teacher_id,class_id,subject_id,curriculum_outcome_id')
+            .in('id', schemeIds),
+        ])
+        if (verified.error || schemes.error) {
+          setSourceCheckError('Curriculum verification is temporarily unavailable. Lesson readiness cannot be confirmed.')
+        } else {
+          setSourceCheckError(null)
+          for (const outcome of verified.data ?? []) verifiedOutcomes.add(outcome.id)
+          for (const scheme of schemes.data ?? []) canonicalSchemes.set(scheme.id, scheme)
+        }
+      } else {
+        setSourceCheckError(null)
+      }
+
       const planMap = new Map<string, PlanRow>()
       const outcomeBySlot = new Map<string, boolean>()
-      for (const p of plansRes.data ?? []) {
+      for (const p of authoredPlans) {
         if (!p.timetable_slot_id) continue
-        outcomeBySlot.set(p.timetable_slot_id, Boolean(p.scheme_id && p.curriculum_outcome_id))
+        const scheme = p.scheme_id ? canonicalSchemes.get(p.scheme_id) : null
+        const outcomeValid = Boolean(scheme
+          && p.curriculum_outcome_id
+          && verifiedOutcomes.has(p.curriculum_outcome_id)
+          && scheme.curriculum_outcome_id === p.curriculum_outcome_id
+          && scheme.school_id === resolvedSchoolId
+          && scheme.teacher_id === user.id
+          && scheme.class_id === p.class_id
+          && scheme.subject_id === p.subject_id)
+        outcomeBySlot.set(p.timetable_slot_id, outcomeValid)
         planMap.set(p.timetable_slot_id, {
           id: p.id, classId: p.class_id, subjectId: p.subject_id,
           title: p.title ?? '', body: p.body ?? '', topic: p.topic ?? '',
@@ -428,6 +470,7 @@ function LessonPlanInner() {
         }}>{toast}</div>
       )}
 
+      {sourceCheckError && <div role="status" style={{background:'#fff6e9',border:'1px solid #e9d8b6',color:'#815923',padding:12,borderRadius:10,fontSize:12,marginBottom:12}}>{sourceCheckError}</div>}
       <header className="teacher-plans-header">
         <div className="vs-teacher-workspace__header"><div><p className="teacher-eyebrow">Week of {new Date(weekStart + 'T12:00:00+03:00').toLocaleDateString('en-KE', { day: 'numeric', month: 'short', timeZone: 'Africa/Nairobi' })}</p><h1 className="vs-teacher-workspace__title">Lesson plans</h1></div><button type="button" className="teacher-btn" onClick={()=>router.push('/teacher/lessonplan/prepare')}>Prepare ahead</button></div>
         <div className="teacher-plans-week"><button type="button" className="teacher-icon-button" aria-label="Previous week" onClick={()=>setWeekStart(w=>nairobiDateAdd(w,-7))}>←</button><button type="button" className="teacher-btn teacher-btn--secondary" aria-pressed={isThisWeek} onClick={()=>setWeekStart(nairobiWeekStart())}>{isThisWeek?'This week':'Back to this week'}</button><button type="button" className="teacher-icon-button" aria-label="Next week" onClick={()=>setWeekStart(w=>nairobiDateAdd(w,7))}>→</button></div>
@@ -483,7 +526,7 @@ function LessonPlanInner() {
                       <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
                         {slot.class} · {formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ' · ' + slot.room : ''}
                       </div>
-                      {plan && !curriculumLinked && <div className="lp-outcome-needed">Scheme learning outcome not linked</div>}
+                      {plan && !curriculumLinked && <div className="lp-outcome-needed">Scheme outcome needs verification</div>}
                       {plan && (
                         <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
                           Plan status: {STATUS_BADGE[plan.status]?.label ?? 'Draft'}

@@ -45,6 +45,12 @@ function friendlyError(value: unknown, fallback: string): string {
   if (/DRAFT_ASSIGNMENT|DRAFT_SCHEDULE_SCOPE|42501/i.test(message)) {
     return 'Your assigned school, class or subject no longer permits this action. Refresh your teaching assignments.'
   }
+  if (/OCCURRENCE_ALREADY_HAS_DIFFERENT_PLAN/i.test(message)) {
+    return 'This date already has a different lesson plan. Your prepared lesson was not attached.'
+  }
+  if (/DRAFT_CURRICULUM_REVIEW_REQUIRED/i.test(message)) {
+    return 'This lesson outcome is no longer verified. Reconnect the Scheme before attaching.'
+  }
   if (/DRAFT_SCHEME|DRAFT_OUTCOME/i.test(message)) {
     return 'The selected Scheme must have a verified learning outcome. Reconnect it before saving.'
   }
@@ -90,6 +96,7 @@ export default function PrepareLessonPage() {
   const [schemeChoices, setSchemeChoices] = useState<SchemeChoice[]>([])
   const [schemeId, setSchemeId] = useState('')
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null)
+  const [existingPlanTarget, setExistingPlanTarget] = useState<DraftTarget | null>(null)
   const [scopeKey, setScopeKey] = useState('')
   const [title, setTitle] = useState('')
   const [topic, setTopic] = useState('')
@@ -284,6 +291,12 @@ export default function PrepareLessonPage() {
 
   async function saveDraft() {
     if (!teacherId || !schoolId || !selectedScope || busy) return
+    // Do not silently discard an attached Scheme while its verified outcome
+    // is temporarily unavailable or being fetched.
+    if (schemeId && !selectedScheme) {
+      setError('The linked Scheme item is no longer available or verified. Reconnect it before saving changes.')
+      return
+    }
     if (!title.trim() && !body.trim()) {
       setError('Add a title or lesson content before saving.')
       return
@@ -324,6 +337,7 @@ export default function PrepareLessonPage() {
     if (busy) return
     setBusy(true)
     setError(null)
+    setExistingPlanTarget(null)
     try {
       await attachLessonPlanDraftToOccurrence({
         draftId: draft.id,
@@ -338,6 +352,10 @@ export default function PrepareLessonPage() {
       })
       router.push('/teacher/lessonplan?' + params.toString())
     } catch (e) {
+      const message = e instanceof Error ? e.message : ''
+      if (/OCCURRENCE_ALREADY_HAS_DIFFERENT_PLAN/i.test(message)) {
+        setExistingPlanTarget(target)
+      }
       setError(friendlyError(e, 'Could not attach prepared lesson.'))
     } finally {
       setBusy(false)
@@ -424,7 +442,19 @@ export default function PrepareLessonPage() {
         <h1>Prepare ahead</h1>
         <p className="lp-prepare__sub">Build your teaching plan now. Attach it to a dated lesson when the timetable is ready.</p>
       </header>
-      {error && <div className="lp-prepare__notice lp-prepare__notice--red" role="alert">{error}</div>}
+      {error && <div className="lp-prepare__notice lp-prepare__notice--red" role="alert">{error}{existingPlanTarget && (
+        <div style={{marginTop:10}}>
+          <button type="button" className="lp-prepare__btn" onClick={() => {
+            const params = new URLSearchParams({
+              timetableSlotId:existingPlanTarget.slotId,
+              date:existingPlanTarget.date,
+              classId:existingPlanTarget.classId,
+              subjectId:existingPlanTarget.subjectId,
+            })
+            router.push('/teacher/lessonplan?' + params.toString())
+          }}>Open existing lesson →</button>
+        </div>
+      )}</div>}
       <div className="lp-prepare__grid">
         <section className="lp-prepare__panel" id="prepared-editor" aria-label="Prepare lesson">
           <div className="lp-prepare__paneltop"><h2>{editingDraftId ? 'Edit prepared lesson' : 'New prepared lesson'}</h2><span className="lp-prepare__chip">Unscheduled draft</span></div>
