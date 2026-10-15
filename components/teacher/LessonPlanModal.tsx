@@ -1526,7 +1526,7 @@ export default function LessonPlanModal({
                       <p>Week {suggestion.week} · Term {suggestion.term}</p>
                       <p>{suggestion.objectives || 'This Scheme item still needs an authoritative learning outcome.'}</p>
                     </>
-                  ) : <p>{sourceError || 'No current-term Scheme lesson has been found. Keep this plan as a draft until it is linked.'}</p>}
+                  ) : <p>No current-term Scheme lesson has been found. Keep this plan as a draft until it is linked.</p>}
                   <button type="button" className="studio-lesson-modal__action" onClick={() => router.push('/teacher/scheme?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate}).toString())}>Open full Scheme →</button>
                 </>
               )}
