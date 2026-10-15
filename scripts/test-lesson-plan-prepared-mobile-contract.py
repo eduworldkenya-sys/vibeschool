@@ -10,7 +10,7 @@ draft = (ROOT / "lib/teaching/lessonDrafts.ts").read_text()
 prepare = (ROOT / "app/teacher/lessonplan/prepare/page.tsx").read_text()
 listing = (ROOT / "app/teacher/lessonplan/page.tsx").read_text()
 modal = (ROOT / "components/teacher/LessonPlanModal.tsx").read_text()
-migration = (ROOT / "supabase/migrations/20261015120000_lesson_drafts_production_reconcile.sql").read_text().lower()
+migration = (ROOT / "supabase/migrations/20261015123212_lesson_drafts_production_reconcile_20261015.sql").read_text().lower()
 
 def require(content: str, phrase: str, purpose: str) -> None:
     assert phrase in content, f"{purpose}: missing {phrase!r}"
