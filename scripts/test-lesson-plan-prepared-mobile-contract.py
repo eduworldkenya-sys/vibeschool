@@ -73,6 +73,12 @@ for expression in (
     "occurrence_already_has_different_plan",
     "draft_curriculum_review_required",
     "prepared_draft_id,",
+    "create or replace function public.guard_lesson_plan_prepared_draft",
+    "prepared_draft_provenance_immutable",
+    "prepared_draft_provenance_mismatch",
+    "d.school_id = new.school_id",
+    "d.subject_id = new.subject_id",
+    "ts.teacher_id = new.teacher_id",
 ):
     require(attach_sql, expression, "prepared draft lineage and collision control")
 for forbidden in ("insert into public.attendance", "insert into public.lesson_evidence", "insert into public.teaching_occurrences"):
