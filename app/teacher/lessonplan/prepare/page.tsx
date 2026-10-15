@@ -231,7 +231,17 @@ export default function PrepareLessonPage() {
           .order('week', { ascending: true })
           .limit(60)
         if (schemeLoadError) throw schemeLoadError
-        if (!cancelled) setSchemeChoices((data ?? []).filter((item): item is SchemeChoice => typeof item.curriculum_outcome_id === 'string'))
+        // An ID alone is not an approved curriculum authority.
+        const ids = (data ?? []).map(item => item.curriculum_outcome_id).filter((id): id is string => typeof id === 'string')
+        let verifiedIds = new Set<string>()
+        if (ids.length) {
+          const { data: outcomes, error: outcomeError } = await supabase
+            .from('curriculum_learning_outcomes').select('id')
+            .in('id', ids).eq('status', 'verified')
+          if (outcomeError) throw outcomeError
+          verifiedIds = new Set((outcomes ?? []).map(item => item.id))
+        }
+        if (!cancelled) setSchemeChoices((data ?? []).filter((item): item is SchemeChoice => typeof item.curriculum_outcome_id === 'string' && verifiedIds.has(item.curriculum_outcome_id)))
       } catch {
         if (!cancelled) setSchemeError('Could not check Scheme learning outcomes. Save as a draft and reconnect later.')
       } finally {
