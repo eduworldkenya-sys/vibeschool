@@ -65,7 +65,6 @@ import CoverageSheet from '@/components/teacher/CoverageSheet'
 import LessonPlanHistorySheet from '@/components/teacher/LessonPlanHistorySheet'
 import EvidenceCaptureSheet from '@/components/teacher/EvidenceCaptureSheet'
 import LessonPreparationStudio from '@/components/teacher/LessonPreparationStudio'
-import TeachingWorkspaceNav from '@/components/teacher/TeachingWorkspaceNav'
 import VibeLearnLessonSequence from '@/components/teacher/VibeLearnLessonSequence'
 import {
   listOccurrenceResourceUsage,
@@ -220,6 +219,12 @@ function Skeleton({ h = 48 }: { h?: number }) {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+function displayLessonTime(raw: string): string {
+  const [h, m] = raw.split(':').map(Number)
+  if (!Number.isInteger(h) || !Number.isInteger(m)) return raw
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+}
+
 export default function LessonPlanModal({
   slot,
   weekStart,
@@ -229,6 +234,7 @@ export default function LessonPlanModal({
 }: Props) {
   const router = useRouter()
   const [phase,    setPhase]    = useState<Phase>('loading')
+  const [workspacePanel, setWorkspacePanel] = useState<'Lesson' | 'Curriculum' | 'Subject' | 'Scheme' | 'More'>('Lesson')
   const [sections, setSections] = useState<LessonPlanSections>(EMPTY)
   const [draft,    setDraft]    = useState<LessonPlanSections>(EMPTY)
   const [status,   setStatus]   = useState<Status>('draft')
@@ -1430,6 +1436,17 @@ export default function LessonPlanModal({
         @keyframes slideUp   { from{transform:translateY(100%)} to{transform:translateY(0)} }
         @keyframes twinPulse { 0%,80%,100%{transform:scale(0.7);opacity:0.5} 40%{transform:scale(1);opacity:1} }
         @keyframes fadeIn    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .studio-lesson-modal{max-width:780px;margin:auto;border:1px solid #dce7df;background:#f6f8f6!important}
+        .studio-lesson-modal__content{scrollbar-width:thin;padding:15px!important;background:#f6f8f6!important}
+        .studio-lesson-modal__tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;background:#fff;border:1px solid #e0e9e3;padding:7px;border-radius:14px;margin-bottom:13px}
+        .studio-lesson-modal__tabs button{display:flex;justify-content:center;align-items:center;padding:12px 3px;font-size:11px;font-weight:740;background:transparent;color:#64766a;border:0;border-radius:10px;cursor:pointer}
+        .studio-lesson-modal__tabs button[aria-selected=true]{background:#e7f4ed;color:#096c51}
+        .studio-lesson-modal__panel{border:1px solid #dae8de;border-radius:15px;background:white;padding:16px;margin:0 0 13px}
+        .studio-lesson-modal__panel h3{margin:0 0 7px;font-size:16px;color:#17352a}
+        .studio-lesson-modal__panel p{margin:5px 0;font-size:12px;line-height:1.5;color:#60756a}
+        .studio-lesson-modal__action{border:1px solid #cfe2d7;border-radius:10px;color:#087255;background:#ecf8f0;font-size:12px;font-weight:750;min-height:40px;padding:9px 12px;margin-top:10px;cursor:pointer}
+        @media(max-width:650px){.studio-lesson-modal{border-radius:19px 19px 0 0!important;max-height:92dvh!important}.studio-lesson-modal__content{padding:13px!important}.studio-lesson-modal__tabs{padding:5px;gap:1px}.studio-lesson-modal__tabs button{font-size:10px;padding:10px 2px}}
+
       `}</style>
 
       {toast && (
@@ -1459,7 +1476,7 @@ export default function LessonPlanModal({
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{slot.subject}</div>
             <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
-              {slot.class}{slot.room ? ' · ' + slot.room : ''}{slot.start ? ' · ' + slot.start + '–' + slot.end : ''}
+              {slot.class}{slot.room ? ' · ' + slot.room : ''}{slot.start ? ' · ' + displayLessonTime(slot.start) + '–' + displayLessonTime(slot.end) : ''}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1476,8 +1493,69 @@ export default function LessonPlanModal({
           </div>
         </div>
 
-        <div style={{ overflowY: 'auto', flex: 1, padding: '20px', background: 'var(--teacher-canvas, #f5f3f0)' }}>
-          <TeachingWorkspaceNav classId={slot.class_id} subjectId={slot.subject_id} lessonPlanId={planId} occurrenceId={teachingOccurrence?.occurrenceId} current="Lesson" />
+        <div className="studio-lesson-modal__content" style={{ overflowY: 'auto', flex: 1, padding: '20px', background: 'var(--teacher-canvas, #f5f3f0)' }}>
+          <nav className="studio-lesson-modal__tabs" aria-label="Lesson workspace sections">
+            {(['Lesson', 'Curriculum', 'Subject', 'Scheme', 'More'] as const).map(name => (
+              <button type="button" key={name} aria-current={workspacePanel === name ? 'page' : undefined}
+                aria-selected={workspacePanel === name}
+                onClick={() => setWorkspacePanel(name)}>{name}</button>
+            ))}
+          </nav>
+          {Number(slot.start.slice(0, 2)) >= 18 && (
+            <div className="studio-lesson-modal__panel" role="note" style={{background:'#fff8ea',borderColor:'#f2deb9',padding:'11px 13px'}}>
+              <p style={{color:'#895527',margin:0}}><strong>Review lesson time:</strong> This lesson is set for {displayLessonTime(slot.start)}–{displayLessonTime(slot.end)}. Check whether this evening period is intentional.</p>
+              <button type="button" className="studio-lesson-modal__action" onClick={()=>router.push('/teacher/timetable?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate}).toString())}>Review timetable →</button>
+            </div>
+          )}
+          {workspacePanel !== 'Lesson' && (
+            <section className="studio-lesson-modal__panel" aria-label={workspacePanel}>
+              <h3>{workspacePanel === 'More' ? 'Teaching tools' : workspacePanel}</h3>
+              {workspacePanel === 'Curriculum' && (
+                <>
+                  {suggestion ? (
+                    <>
+                      <p><strong>Strand:</strong> {suggestion.strand || 'Not recorded'}</p>
+                      <p><strong>Sub-strand:</strong> {suggestion.subStrand || 'Not recorded'}</p>
+                      <p><strong>Topic:</strong> {suggestion.topic}</p>
+                      <p><strong>Learning objectives:</strong> {suggestion.objectives || 'An authoritative learning objective is not attached.'}</p>
+                    </>
+                  ) : <p>No curriculum source was resolved for this dated lesson. A custom topic does not replace an authoritative outcome.</p>}
+                  <button type="button" className="studio-lesson-modal__action" onClick={() => router.push('/teacher/curriculum?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate}).toString())}>Open full curriculum →</button>
+                </>
+              )}
+              {workspacePanel === 'Subject' && (
+                <>
+                  <p><strong>{slot.subject}</strong> · {slot.class}</p>
+                  <p>{ctx.studentCount} learners · assignment context preserved.</p>
+                  <button type="button" className="studio-lesson-modal__action" onClick={() => router.push('/teacher/subjecthub?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id}).toString())}>Open subject hub →</button>
+                </>
+              )}
+              {workspacePanel === 'Scheme' && (
+                <>
+                  {suggestion?.schemeId ? (
+                    <>
+                      <p><strong>Current Scheme topic:</strong> {suggestion.topic}</p>
+                      <p>Week {suggestion.week} · Term {suggestion.term}</p>
+                      <p>{suggestion.objectives || 'This Scheme item still needs an authoritative learning outcome.'}</p>
+                    </>
+                  ) : <p>No current-term Scheme lesson has been found. Keep this plan as a draft until it is linked.</p>}
+                  <button type="button" className="studio-lesson-modal__action" onClick={() => router.push('/teacher/scheme?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate}).toString())}>Open full Scheme →</button>
+                </>
+              )}
+              {workspacePanel === 'More' && (
+                <>
+                  <p>Open teaching notes, resources, assessment or the timetable using this lesson's class and subject context.</p>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+                    {([['Lesson notes','/teacher/lesson-notes'],['Resources','/teacher/resources'],['Assessment','/teacher/assessment'],['Timetable','/teacher/timetable']] as const).map(([label,url]) => (
+                      <button type="button" key={label} className="studio-lesson-modal__action" onClick={()=>router.push(url+'?'+new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,lessonPlanId:planId??'',date:taughtDate}).toString())}>{label} ↗</button>
+                    ))}
+                  </div>
+                </>
+              )}
+              <button type="button" className="studio-lesson-modal__action" onClick={()=>setWorkspacePanel('Lesson')}>← Back to lesson</button>
+            </section>
+          )}
+          <div style={{display: workspacePanel === 'Lesson' ? undefined : 'none'}}>
 
           {phase === 'loading' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -2440,6 +2518,7 @@ export default function LessonPlanModal({
             </div>
           )}
 
+          </div>
         </div>
       </div>
 
