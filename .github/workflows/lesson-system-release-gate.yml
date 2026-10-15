@@ -17,6 +17,7 @@ on:
       - 'scripts/test-lesson-plan-spine-security-contract.py'
       - 'scripts/test-lesson-plan-remaining-ledger.py'
       - 'scripts/test-lesson-timing-contract.cjs'
+      - 'scripts/test-lesson-plan-prepared-mobile-contract.py'
       - '.github/workflows/lesson-system-release-gate.yml'
   push:
     branches: [main]
@@ -55,6 +56,7 @@ jobs:
           prebuild_command: |
             npm run typecheck
             python scripts/test-lesson-system-release-contract.py
+            python scripts/test-lesson-plan-prepared-mobile-contract.py
             python scripts/test-lesson-plan-spine-security-contract.py
             python scripts/test-lesson-plan-remaining-ledger.py
             npx tsc lib/teaching/lessonTiming.ts --target ES2020 --module commonjs --outDir /tmp/vibeschool-lesson-timing --skipLibCheck
