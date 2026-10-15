@@ -121,6 +121,12 @@ for each row execute function public.lesson_draft_validate_scope();
 revoke all on table public.lesson_plan_drafts from public, anon, authenticated;
 grant select,insert,update,delete on public.lesson_plan_drafts to authenticated;
 grant all on public.lesson_plan_drafts to service_role;
+-- The earlier timetable migration may have created broader policies on a
+-- clean rebuild. RLS policies are OR-composed: remove these legacy rules.
+drop policy if exists lesson_plan_drafts_teacher_select on public.lesson_plan_drafts;
+drop policy if exists lesson_plan_drafts_teacher_insert on public.lesson_plan_drafts;
+drop policy if exists lesson_plan_drafts_teacher_update on public.lesson_plan_drafts;
+drop policy if exists lesson_plan_drafts_teacher_delete on public.lesson_plan_drafts;
 drop policy if exists lesson_drafts_select on public.lesson_plan_drafts;
 create policy lesson_drafts_select on public.lesson_plan_drafts
 for select to authenticated using(
