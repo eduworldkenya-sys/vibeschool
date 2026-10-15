@@ -26,7 +26,10 @@ require(prepare, ".eq('status', 'verified')", "verified outcomes")
 require(prepare, "curriculumOutcomeId: selectedScheme?.curriculum_outcome_id", "draft outcome lineage")
 require(draft, "curriculum_outcome_id", "repository outcome lineage")
 require(listing, "outcomeBySlot", "readiness needs actual outcome")
-require(listing, "Boolean(p.scheme_id && p.curriculum_outcome_id)", "Scheme/outcome readiness")
+require(listing, "verifiedOutcomes.has(p.curriculum_outcome_id)", "live verified-outcome readiness")
+require(listing, "scheme.curriculum_outcome_id === p.curriculum_outcome_id", "matching Scheme outcome")
+require(listing, "scheme.school_id === resolvedSchoolId", "school identity")
+require(listing, "scheme.class_id === p.class_id", "class identity")
 require(listing, "readinessState(plan, curriculumLinked)", "readiness classification")
 
 # Prepared draft ownership, cross-school and class-subject authorization.
@@ -59,5 +62,23 @@ require(modal, "Review lesson time", "unusual timetable disclosure")
 require(listing, "onClick={()=>setReadinessFilter", "immediate plan filtering")
 require(prepare, "editDraft(draft)", "editable prepared lesson")
 require(prepare, "attach(draft,target)", "dated attachment")
+
+# An already scheduled plan may never be silently substituted for a
+# different draft. Repeated attachment of the same draft remains idempotent.
+attach_sql = (ROOT / "supabase/migrations/20261015140000_lesson_draft_attachment_lineage.sql").read_text().lower()
+for expression in (
+    "add column if not exists prepared_draft_id",
+    "lp.prepared_draft_id",
+    "if v_existing_draft = p_draft_id then",
+    "occurrence_already_has_different_plan",
+    "draft_curriculum_review_required",
+    "prepared_draft_id,",
+):
+    require(attach_sql, expression, "prepared draft lineage and collision control")
+for forbidden in ("insert into public.attendance", "insert into public.lesson_evidence", "insert into public.teaching_occurrences"):
+    assert forbidden not in attach_sql, f"unexpected teaching-state mutation: {forbidden}"
+require(prepare, "setExistingPlanTarget(target)", "conflict navigation")
+require(prepare, "Open existing lesson", "teacher-facing collision resolution")
+require(prepare, "if (schemeId && !selectedScheme)", "linked Scheme edit preservation")
 
 print("PASS: prepared lesson scope, outcome, mobile interaction and draft failure-isolation contracts")
