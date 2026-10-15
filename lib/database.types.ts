@@ -9897,6 +9897,7 @@ export type Database = {
           objectives: string | null
           participation_score: number | null
           previous_lesson_plan_id: string | null
+          prepared_draft_id: string | null
           published_at: string | null
           reflection: string | null
           scheme_id: string | null
@@ -9934,6 +9935,7 @@ export type Database = {
           objectives?: string | null
           participation_score?: number | null
           previous_lesson_plan_id?: string | null
+          prepared_draft_id?: string | null
           published_at?: string | null
           reflection?: string | null
           scheme_id?: string | null
@@ -9971,6 +9973,7 @@ export type Database = {
           objectives?: string | null
           participation_score?: number | null
           previous_lesson_plan_id?: string | null
+          prepared_draft_id?: string | null
           published_at?: string | null
           reflection?: string | null
           scheme_id?: string | null
