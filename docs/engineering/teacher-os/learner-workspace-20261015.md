@@ -31,6 +31,10 @@ Group reads and writes remain subject-scoped in subject views; class-teacher-onl
 
 A required workbook contract on the base still expected the legacy `teacher_save_exam_results` name and equality checks. Current main already uses `teacher_save_exam_result_state(s)` and rejects mismatched response identities/states. This repair updates only those stale test assertions, adds school/class/subject response assertions, and preserves all workbook behavioral checks. Exam implementation is unchanged.
 
+## Exact-head CI repair
+
+The initial candidate `2c46bf2fdd21b7901ed7a835ca2284f6c91f057d` failed Teacher Pilot Task 4 run `38735438808` because the Class Operating System static contract required the removed presentation strings “TEACHER NOTES & ACTIONS” and “VibeSchool will not invent”. The underlying event persistence, canonical truth summary and authority assertions passed. The contract now requires separate private-note/recognition/follow-up controls and the canonical evidence-sufficiency condition plus its new insufficient-evidence message. This preserves the behavioral guard while permitting the approved shorter UI copy. Application source is unchanged by this CI-only repair; the final candidate must pass fresh checks.
+
 ## Release evidence and recovery
 
 Exact candidate SHA and CI/integration evidence are the associated PR head and provider records; this preflight note is not an assertion that merge/deployment already occurred. A local fixture build is not production certification. No Vercel preview should be triggered: existing vercel.json disables deployments outside main. After merge, verify the resulting main deployment separately.

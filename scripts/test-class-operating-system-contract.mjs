@@ -69,10 +69,10 @@ must(!groups.includes('Math.random() - 0.5') || groups.includes('Random'), 'rand
 
 must(learner.includes('teacher_learner_events'), 'learner workspace reads operational teacher events')
 must(learner.includes('saveTeacherEvent'), 'learner workspace can persist factual teacher actions')
-must(learner.includes('TEACHER NOTES & ACTIONS'), 'learner workspace exposes teacher notes/actions in simple language')
+must(learner.includes('Save private note') && learner.includes('Save recognition') && learner.includes('Add follow-up'), 'learner workspace exposes separate factual notes, recognition and follow-up actions')
 must(/teacherEvents(?:\.filter\([^\n]+\))?\.map/.test(learner), 'learner story timeline includes teacher actions')
 must(learner.includes('buildLearnerTruthSummary'), 'learner intelligence remains evidence-backed')
-must(learner.includes('VibeSchool will not invent'), 'learner workspace preserves no-fake-intelligence boundary')
+must(learner.includes('truth.evidenceState === "sufficient"') && learner.includes('Not enough learning records yet'), 'learner workspace gates its learning-picture claim on canonical evidence sufficiency')
 must(migration.includes('teacher_snapshot_class_group'), 'smart list assignment snapshots historical membership')
 must(migration.includes('classroom_games') && migration.includes('classroom_game_teams'), 'classroom game scoring reuses canonical class groups')
 must(migration.includes('teacher_adjust_game_score'), 'classroom game scoring uses a bounded server-authoritative RPC')
