@@ -96,6 +96,7 @@ begin
     if not exists (
       select 1 from public.curriculum_learning_outcomes co
       where co.id = new.curriculum_outcome_id
+        and co.status = 'verified'
         and (new.curriculum_id is null or co.curriculum_id = new.curriculum_id)
     ) then
       raise exception 'DRAFT_OUTCOME_MISMATCH';
