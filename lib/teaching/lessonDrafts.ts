@@ -11,6 +11,7 @@ export interface LessonPlanDraft {
   scheme_id: string | null
   curriculum_id: string | null
   strand_id: string | null
+  curriculum_outcome_id: string | null
   title: string | null
   topic: string | null
   body: string | null
@@ -33,6 +34,7 @@ export interface SaveLessonPlanDraftInput {
   schemeId?: string | null
   curriculumId?: string | null
   strandId?: string | null
+  curriculumOutcomeId?: string | null
   status?: Exclude<LessonDraftStatus, 'archived'>
 }
 
@@ -46,7 +48,7 @@ export async function loadLessonPlanDrafts(
 ): Promise<LessonPlanDraft[]> {
   const { data, error } = await supabase
     .from('lesson_plan_drafts')
-    .select('id,school_id,teacher_id,class_id,subject_id,scheme_id,curriculum_id,strand_id,title,topic,body,duration_minutes,status,created_at,updated_at')
+    .select('id,school_id,teacher_id,class_id,subject_id,scheme_id,curriculum_id,strand_id,curriculum_outcome_id,title,topic,body,duration_minutes,status,created_at,updated_at')
     .eq('teacher_id', teacherId)
     .eq('school_id', schoolId)
     .neq('status', 'archived')
@@ -67,6 +69,7 @@ export async function saveLessonPlanDraft(
     scheme_id: input.schemeId ?? null,
     curriculum_id: input.curriculumId ?? null,
     strand_id: input.strandId ?? null,
+    curriculum_outcome_id: input.curriculumOutcomeId ?? null,
     title: input.title.trim() || null,
     topic: input.topic?.trim() || null,
     body: input.body.trim() || null,
@@ -86,7 +89,7 @@ export async function saveLessonPlanDraft(
         .insert(payload)
 
   const { data, error } = await query
-    .select('id,school_id,teacher_id,class_id,subject_id,scheme_id,curriculum_id,strand_id,title,topic,body,duration_minutes,status,created_at,updated_at')
+    .select('id,school_id,teacher_id,class_id,subject_id,scheme_id,curriculum_id,strand_id,curriculum_outcome_id,title,topic,body,duration_minutes,status,created_at,updated_at')
     .single()
 
   assertNoError(error, 'Could not save prepared lesson draft.')
