@@ -17,6 +17,7 @@ import type { TimetableSlot, PlanRow, HistoryRow } from '@/lib/types'
 interface SlotWithPlan {
   slot: TimetableSlot
   plan: PlanRow | null
+  curriculumLinked: boolean
 }
 
 type ReadinessState = 'ready' | 'needs_review' | 'no_plan'
@@ -92,14 +93,14 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
 }
 
 const READINESS_BADGE: Record<ReadinessState, { label: string; bg: string; color: string }> = {
-  ready:        { label: 'Ready to Teach', bg: '#d1fae5', color: '#065f46' },
-  needs_review: { label: 'Needs Review',   bg: '#fef3c7', color: '#92400e' },
-  no_plan:      { label: 'No Plan',        bg: '#fee2e2', color: '#991b1b' },
+  ready:        { label: 'Ready', bg: '#d1fae5', color: '#065f46' },
+  needs_review: { label: 'Needs review',   bg: '#fef3c7', color: '#92400e' },
+  no_plan:      { label: 'No plan',        bg: '#fee2e2', color: '#991b1b' },
 }
 
-function readinessState(plan: PlanRow | null): ReadinessState {
+function readinessState(plan: PlanRow | null, curriculumLinked: boolean): ReadinessState {
   if (!plan) return 'no_plan'
-  return isLessonPlanReadyToTeach(plan.body) ? 'ready' : 'needs_review'
+  return curriculumLinked && isLessonPlanReadyToTeach(plan.body) ? 'ready' : 'needs_review'
 }
 
 function weekStartForDate(date: string): string {
@@ -128,6 +129,7 @@ function LessonPlanInner() {
   const [history,     setHistory]     = useState<HistoryRow[]>([])
   const [loading,     setLoading]     = useState(true)
   const [histLoading, setHistLoading] = useState(true)
+  const [showHistory, setShowHistory] = useState(false)
   const [activeSlot,  setActiveSlot]  = useState<TimetableSlot | null>(null)
   const [toast,       setToast]       = useState('')
   const [loadError,   setLoadError]   = useState<string | null>(null)
@@ -200,7 +202,7 @@ function LessonPlanInner() {
 
       const plansRes = await supabase
         .from('lesson_plans')
-        .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id')
+        .select('id,class_id,subject_id,timetable_slot_id,title,body,topic,day_of_week,week_start,status,curriculum_id,strand_id,scheme_id,curriculum_outcome_id')
         .eq('teacher_id', user.id)
         .eq('school_id', resolvedSchoolId)
         .eq('week_start', weekStart)
@@ -213,8 +215,10 @@ function LessonPlanInner() {
       }
 
       const planMap = new Map<string, PlanRow>()
+      const outcomeBySlot = new Map<string, boolean>()
       for (const p of plansRes.data ?? []) {
         if (!p.timetable_slot_id) continue
+        outcomeBySlot.set(p.timetable_slot_id, Boolean(p.scheme_id && p.curriculum_outcome_id))
         planMap.set(p.timetable_slot_id, {
           id: p.id, classId: p.class_id, subjectId: p.subject_id,
           title: p.title ?? '', body: p.body ?? '', topic: p.topic ?? '',
@@ -286,6 +290,7 @@ function LessonPlanInner() {
         return {
           slot,
           plan: planMap.get(s.id) ?? null,
+          curriculumLinked: outcomeBySlot.get(s.id) ?? false,
         }
       })
 
@@ -332,6 +337,7 @@ function LessonPlanInner() {
 
   useEffect(() => {
     async function loadHistory() {
+      if (!showHistory) return
       setHistLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
@@ -372,16 +378,16 @@ function LessonPlanInner() {
       setHistLoading(false)
     }
     void loadHistory()
-  }, [urlClassId, activeSlot, refreshNonce])
+  }, [urlClassId, activeSlot, refreshNonce, showHistory])
 
-  const readyCount = items.filter(({ plan }) => readinessState(plan) === 'ready').length
-  const needsReviewCount = items.filter(({ plan }) => readinessState(plan) === 'needs_review').length
-  const noPlanCount = items.filter(({ plan }) => readinessState(plan) === 'no_plan').length
+  const readyCount = items.filter(({ plan, curriculumLinked }) => readinessState(plan, curriculumLinked) === 'ready').length
+  const needsReviewCount = items.filter(({ plan, curriculumLinked }) => readinessState(plan, curriculumLinked) === 'needs_review').length
+  const noPlanCount = items.filter(({ plan, curriculumLinked }) => readinessState(plan, curriculumLinked) === 'no_plan').length
   const isThisWeek = weekStart === nairobiWeekStart()
 
-  const visibleItems = items.filter(({ plan }) => {
+  const visibleItems = items.filter(({ plan, curriculumLinked }) => {
     if (readinessFilter === 'all') return true
-    return readinessState(plan) === readinessFilter
+    return readinessState(plan, curriculumLinked) === readinessFilter
   })
 
   return (
@@ -389,6 +395,28 @@ function LessonPlanInner() {
       <style>{`
         @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
         @keyframes fadeIn  { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .vs-teacher-workspace{--lp-green:#087255;--lp-ink:#152720;--lp-line:#dfe8e2;max-width:1100px;margin:0 auto;padding:12px 16px 100px}
+        .teacher-plans-header{margin:4px 0 17px}
+        .teacher-plans-header .vs-teacher-workspace__header{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:12px}
+        .teacher-plans-header .vs-teacher-workspace__title{font-size:27px;letter-spacing:-.035em;color:var(--lp-ink);margin:3px 0}
+        .teacher-plans-header .teacher-btn:not(.teacher-btn--secondary){background:var(--lp-green);border-color:var(--lp-green);color:white;font-weight:750;border-radius:11px;min-height:41px;padding:8px 13px}
+        .teacher-plans-week{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+        .teacher-plans-week .teacher-icon-button{border-radius:10px;border:1px solid var(--lp-line);background:white;min-width:38px;min-height:38px}
+        .teacher-plans-week .teacher-btn{border:1px solid var(--lp-line);border-radius:10px;background:white;color:var(--lp-green);min-height:38px;padding:7px 12px;font-weight:700}
+        .teacher-plans-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--lp-line);border-radius:14px;background:white;overflow:hidden;margin-top:8px;gap:0}
+        .teacher-plans-metrics button{appearance:none;text-align:left;display:flex;flex-direction:column;gap:1px;padding:10px 13px;border:0;border-right:1px solid var(--lp-line);background:white;cursor:pointer}
+        .teacher-plans-metrics button:last-child{border-right:0}
+        .teacher-plans-metrics button[aria-pressed=true]{background:#e9f5ef;box-shadow:inset 0 -3px 0 var(--lp-green)}
+        .teacher-plans-metrics button strong{font-size:19px;letter-spacing:-.02em;color:var(--lp-ink)}
+        .teacher-plans-metrics button span{font-size:11px;color:#66796d;font-weight:650}
+        .studio-lesson-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,310px),1fr));gap:9px}
+        .studio-lesson-card{background:#fff;border:1px solid var(--lp-line);border-radius:14px;padding:13px 14px}
+        .lp-outcome-needed{font-size:11px;color:#92591f;background:#fff7e9;padding:6px 8px;border-radius:8px;margin-top:7px;width:fit-content}
+        .lp-history-disclosure{background:white;border:1px solid var(--lp-line);border-radius:15px;padding:12px 14px;margin:14px 0}
+        .lp-history-disclosure>summary{cursor:pointer;font-weight:760;font-size:13px;color:var(--lp-ink);display:flex;justify-content:space-between;align-items:center}
+        .lp-history-disclosure>summary span{color:#64796b;font-size:11px;font-weight:550}
+        .lp-history-disclosure .teacher-card{box-shadow:none;border:0;margin:8px 0 0;padding:0}
+        @media(max-width:650px){.vs-teacher-workspace{padding:10px 14px 112px}.teacher-plans-header .vs-teacher-workspace__title{font-size:25px}.teacher-plans-header .teacher-btn:not(.teacher-btn--secondary){font-size:12px;padding:8px 11px}.studio-lesson-grid{grid-template-columns:1fr}.studio-lesson-card{padding:12px 13px}}
       `}</style>
 
       {toast && (
@@ -401,18 +429,18 @@ function LessonPlanInner() {
       )}
 
       <header className="teacher-plans-header">
-        <div className="vs-teacher-workspace__header"><div><p className="teacher-eyebrow">Week of {weekStart}</p><h1 className="vs-teacher-workspace__title">Lesson plans</h1></div><button type="button" className="teacher-btn" onClick={()=>router.push('/teacher/lessonplan/prepare')}>Prepare without timetable</button></div>
+        <div className="vs-teacher-workspace__header"><div><p className="teacher-eyebrow">Week of {new Date(weekStart + 'T12:00:00+03:00').toLocaleDateString('en-KE', { day: 'numeric', month: 'short', timeZone: 'Africa/Nairobi' })}</p><h1 className="vs-teacher-workspace__title">Lesson plans</h1></div><button type="button" className="teacher-btn" onClick={()=>router.push('/teacher/lessonplan/prepare')}>Prepare ahead</button></div>
         <div className="teacher-plans-week"><button type="button" className="teacher-icon-button" aria-label="Previous week" onClick={()=>setWeekStart(w=>nairobiDateAdd(w,-7))}>←</button><button type="button" className="teacher-btn teacher-btn--secondary" aria-pressed={isThisWeek} onClick={()=>setWeekStart(nairobiWeekStart())}>{isThisWeek?'This week':'Back to this week'}</button><button type="button" className="teacher-icon-button" aria-label="Next week" onClick={()=>setWeekStart(w=>nairobiDateAdd(w,7))}>→</button></div>
         {urlClassId&&<button type="button" className="teacher-btn teacher-btn--secondary" onClick={()=>router.push('/teacher/classhub/'+urlClassId)}>View class</button>}
-        {!loading&&!loadError&&<div className="teacher-plans-metrics">{[{label:'Ready to teach',value:readyCount,state:'ready'},{label:'Needs review',value:needsReviewCount,state:'warning'},{label:'No plan',value:noPlanCount,state:'missing'}].map(item=><div key={item.label} data-state={item.state}><strong>{item.value}</strong><span>{item.label}</span></div>)}</div>}
+        {!loading&&!loadError&&<div className="teacher-plans-metrics">{[{key:'ready' as const,label:'Ready',value:readyCount,state:'ready'},{key:'needs_review' as const,label:'Review',value:needsReviewCount,state:'warning'},{key:'no_plan' as const,label:'No plan',value:noPlanCount,state:'missing'}].map(item=><button type="button" key={item.key} data-state={item.state} aria-pressed={readinessFilter===item.key} onClick={()=>setReadinessFilter(f=>f===item.key?'all':item.key)}><strong>{item.value}</strong><span>{item.label}</span></button>)}</div>}
       </header>
 
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <SectionLabel>
             {urlSchemeId
-              ? 'Choose Timetable Occurrence'
-              : 'Today & Upcoming'}
+              ? 'Choose scheduled lesson'
+              : 'Scheduled lessons'}
           </SectionLabel>
           {readinessFilter !== 'all' && (
             <button
@@ -442,8 +470,8 @@ function LessonPlanInner() {
           <div style={{ textAlign: 'center', padding: '28px 0', fontSize: 13, color: C.textMuted }}>No lessons match this readiness filter</div>
         ) : (
           <div className="studio-lesson-grid">
-            {visibleItems.map(({ slot, plan }) => {
-              const state = readinessState(plan)
+            {visibleItems.map(({ slot, plan, curriculumLinked }) => {
+              const state = readinessState(plan, curriculumLinked)
               const badge = READINESS_BADGE[state]
               return (
                 <div key={slot.id} className="studio-lesson-card">
@@ -455,6 +483,7 @@ function LessonPlanInner() {
                       <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
                         {slot.class} · {formatTime(slot.start)}–{formatTime(slot.end)}{slot.room ? ' · ' + slot.room : ''}
                       </div>
+                      {plan && !curriculumLinked && <div className="lp-outcome-needed">Scheme learning outcome not linked</div>}
                       {plan && (
                         <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>
                           Plan status: {STATUS_BADGE[plan.status]?.label ?? 'Draft'}
@@ -475,58 +504,10 @@ function LessonPlanInner() {
         )}
       </Card>
 
-      <Card>
-        <SectionLabel>Plan Readiness</SectionLabel>
-        {loadError ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: '#991b1b' }}>{loadError}</div>
-        ) : (
-          [
-            {
-              key: 'ready' as const,
-              level: 'Ready to Teach',
-              color: '#047857',
-              bg: '#d1fae5',
-              desc: 'The saved plan passes the teaching-readiness checks.',
-              count: readyCount,
-            },
-            {
-              key: 'needs_review' as const,
-              level: 'Needs Review',
-              color: '#92400e',
-              bg: '#fef3c7',
-              desc: 'A plan exists, but one or more teaching-readiness checks are incomplete.',
-              count: needsReviewCount,
-            },
-            {
-              key: 'no_plan' as const,
-              level: 'No Plan',
-              color: '#991b1b',
-              bg: '#fee2e2',
-              desc: 'No saved plan exists for this timetable occurrence.',
-              count: noPlanCount,
-            },
-          ].map(d => (
-            <div
-              key={d.level}
-              onClick={() => setReadinessFilter(f => f === d.key ? 'all' : d.key)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10,
-                background: d.bg, marginBottom: 8, cursor: 'pointer',
-                border: '2px solid ' + (readinessFilter === d.key ? d.color : 'transparent'),
-              }}
-            >
-              <div style={{ width: 32, height: 32, borderRadius: '50%', background: d.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 800, flexShrink: 0 }}>{d.count}</div>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 800, color: d.color }}>{d.level}</div>
-                <div style={{ fontSize: 12, color: C.textMuted }}>{d.desc}</div>
-              </div>
-            </div>
-          ))
-        )}
-      </Card>
-
-      <Card>
-        <SectionLabel>Plan History</SectionLabel>
+      <details className="lp-history-disclosure" open={showHistory} onToggle={event=>setShowHistory(event.currentTarget.open)}>
+        <summary>Past lesson plans <span>{history.length > 0 ? history.length + ' recent' : 'View history'}</span></summary>
+        <Card>
+          <SectionLabel>Plan History</SectionLabel>
         {histLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[1,2,3].map(i => <Skeleton key={i} h={48} />)}</div>
         ) : history.length === 0 ? (
@@ -555,6 +536,8 @@ function LessonPlanInner() {
           </div>
         )}
       </Card>
+
+      </details>
 
       {activeSlot && (
         <LessonPlanModal
