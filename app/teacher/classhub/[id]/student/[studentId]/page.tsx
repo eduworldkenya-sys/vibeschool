@@ -16,6 +16,9 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
+import LearnerIdentityFields from "@/components/teacher/LearnerIdentityFields";
+import LearnerDetailSheet from "@/components/teacher/LearnerDetailSheet";
+import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
@@ -42,6 +45,8 @@ type Student = {
   name: string;
   admission_number: string | null;
   profile_id: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
   deleted_at?: string | null;
 };
 type AttendanceRow = { date: string; status: string; is_late: boolean | null };
@@ -180,8 +185,8 @@ const learnerContextFields: Array<{
   },
   {
     key: "responsibilities",
-    label: "Roles and responsibilities",
-    help: "Class roles, clubs, games or responsibilities that matter in school.",
+    label: "Additional responsibility notes",
+    help: "Optional teaching context. Manage actual duties and team positions in School life → Roles.",
     placeholder: "e.g. Group leader; football team; library monitor",
   },
 ];
@@ -320,7 +325,10 @@ export default function TeacherStudentProgressPage() {
     [],
   );
   const [teacherEvents, setTeacherEvents] = useState<TeacherEvent[]>([]);
+  const eventRequest = useRef<{ key: string; id: string } | null>(null);
+  const eventLock = useRef(false);
   const [eventNote, setEventNote] = useState("");
+  const [recognitionNote, setRecognitionNote] = useState("");
   const [eventSaving, setEventSaving] = useState(false);
   const [eventMessage, setEventMessage] = useState("");
   const [tab, setTab] = useState<Tab>(
@@ -328,15 +336,10 @@ export default function TeacherStudentProgressPage() {
       ? "about"
       : "now",
   );
-  const [schoolLifeTarget, setSchoolLifeTarget] = useState<string | null>(null);
-  useEffect(() => {
-    if (schoolLifeTarget) {
-      document
-        .getElementById(schoolLifeTarget)
-        ?.scrollIntoView({ block: "start" });
-      setSchoolLifeTarget(null);
-    }
-  }, [schoolLifeTarget, tab]);
+  const [panel, setPanel] = useState<"all" | "groups" | "roles" | "resources" | "activities" | "notes" | "recognition" | "support" | null>(null);
+  const activeEventNote = panel === "recognition" ? recognitionNote : eventNote;
+  const [panelBusy, setPanelBusy] = useState(false);
+  const [selectedWork, setSelectedWork] = useState<HomeworkRow | null>(null);
   const [contextDrafts, setContextDrafts] = useState<
     Record<LearnerContextKey, string>
   >(
@@ -357,8 +360,8 @@ export default function TeacherStudentProgressPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
@@ -405,7 +408,7 @@ export default function TeacherStudentProgressPage() {
 
       const learnerRes = await supabase
         .from("students")
-        .select("id,name,admission_number,profile_id,deleted_at")
+        .select("id,name,admission_number,profile_id,gender,date_of_birth,deleted_at")
         .eq("id", studentId)
         .is("deleted_at", null)
         .maybeSingle();
@@ -592,16 +595,21 @@ export default function TeacherStudentProgressPage() {
     async (
       eventKind: "observation" | "participation" | "recognition" | "followup",
     ) => {
-      if (!context?.school_id || !context.teacher_id || !student) return;
+      if (!context?.school_id || !context.teacher_id || !student || eventLock.current) return;
       if (
         (eventKind === "observation" || eventKind === "followup") &&
-        !eventNote.trim()
+        !activeEventNote.trim()
       ) {
         setEventMessage("Add a short factual note first.");
         return;
       }
+      eventLock.current = true;
+      const key = JSON.stringify({ eventKind, note: activeEventNote.trim(), studentId, requestedSubjectId });
+      if (eventRequest.current?.key !== key) eventRequest.current = { key, id: crypto.randomUUID() };
+      const requestId = eventRequest.current.id;
       setEventSaving(true);
       setEventMessage("");
+      try {
       const defaults = {
         observation: "teacher_note",
         participation: "participated",
@@ -617,8 +625,9 @@ export default function TeacherStudentProgressPage() {
           subject_id: requestedSubjectId,
           event_kind: eventKind,
           event_code: defaults[eventKind],
+          metadata: { request_id: requestId },
           note:
-            eventNote.trim() ||
+            activeEventNote.trim() ||
             (eventKind === "participation"
               ? "Participated in class."
               : "Strong effort shown."),
@@ -629,16 +638,27 @@ export default function TeacherStudentProgressPage() {
               : null,
           created_by: context.teacher_id,
         });
-      if (insertError) {
-        setEventMessage(insertError.message);
-      } else {
-        setEventNote("");
-        setEventMessage("Saved to this learner's story.");
-        await load();
+      let confirmed = !insertError;
+      if (insertError?.code === "23505") {
+        const existing = await supabase.from("teacher_learner_events").select("event_kind,note,subject_id").eq("created_by", context.teacher_id).eq("student_id", studentId).contains("metadata", { request_id: requestId }).maybeSingle();
+        confirmed = !existing.error && existing.data?.event_kind === eventKind && existing.data?.note === activeEventNote.trim() && existing.data?.subject_id === requestedSubjectId;
       }
-      setEventSaving(false);
+      if (!confirmed) {
+        setEventMessage(insertError?.message ?? "Save could not be confirmed. Retry.");
+      } else {
+        eventRequest.current = null;
+        if (eventKind === "recognition") setRecognitionNote(""); else setEventNote("");
+        setEventMessage("Saved to this learner's story.");
+        await load(false);
+      }
+      } catch (cause) {
+        setEventMessage(cause instanceof Error ? cause.message : "Could not confirm the save. Retry.");
+      } finally {
+        eventLock.current = false;
+        setEventSaving(false);
+      }
     },
-    [classId, context, eventNote, load, requestedSubjectId, student],
+    [classId, context, activeEventNote, load, requestedSubjectId, student, studentId],
   );
 
   const saveLearnerContext = useCallback(
@@ -699,7 +719,7 @@ export default function TeacherStudentProgressPage() {
           setContextMessage(
             "Saved. The earlier version remains in the learner history.",
           );
-          await load();
+          await load(false);
         } else {
           setContextMessage(insertError.message);
         }
@@ -708,7 +728,7 @@ export default function TeacherStudentProgressPage() {
         setContextMessage(
           "Saved. The earlier version remains in the learner history.",
         );
-        await load();
+        await load(false);
       }
       setContextSaving(null);
     },
@@ -954,8 +974,7 @@ export default function TeacherStudentProgressPage() {
   ]
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .slice(0, 40);
-  const availableTabs = requestedSubjectId
-    ? tabs.filter((item) => item !== "about")
+  const availableTabs = requestedSubjectId ? tabs.filter((item) => item !== "about")
     : tabs;
 
   return (
@@ -985,7 +1004,7 @@ export default function TeacherStudentProgressPage() {
         </div>
         <button
           className={experience.iconButton}
-          onClick={() => setTab("about")}
+          onClick={() => setTab(requestedSubjectId ? "timeline" : "about")}
           aria-label="More learner details"
         >
           <Ellipsis size={20} />
@@ -1000,15 +1019,14 @@ export default function TeacherStudentProgressPage() {
           <span>Attendance</span>
         </button>
         <button
-          onClick={() => router.push(`/teacher/assessment?classId=${classId}`)}
+          onClick={() => setTab("assessment")}
         >
           <BookOpenCheck size={18} />
           <span>Assess</span>
         </button>
         <button
           onClick={() => {
-            setTab("now");
-            setSchoolLifeTarget("studio-learner-notes");
+            setPanel("notes");
           }}
         >
           <NotebookPen size={18} />
@@ -1026,28 +1044,20 @@ export default function TeacherStudentProgressPage() {
               item.status !== "completed" && item.status !== "dismissed",
           ).length
         }
-        onProgress={() =>
-          router.push(
-            `/teacher/classhub/${classId}/student/${studentId}/progress${requestedSubjectId ? `?subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`,
-          )
-        }
+        onProgress={() => setTab("assessment")}
         onAttendance={() => setTab("attendance")}
         onWork={() => setTab("work")}
-        onSupport={() =>
-          router.push(
-            `/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`,
-          )
-        }
+        onSupport={() => setPanel("support")}
       />
 
       <section className={experience.schoolLife} aria-label="School life">
         <div className={experience.sectionTitle}>
           <h2>School life</h2>
-          <span>View all</span>
+          <button type="button" className={experience.viewAll} onClick={() => setPanel("all")}>View all</button>
         </div>
         <div>
           <button
-            onClick={() => router.push(`/teacher/classhub/${classId}/groups`)}
+            onClick={() => setPanel("groups")}
           >
             <UsersRound />
             <span>Groups</span>
@@ -1055,8 +1065,7 @@ export default function TeacherStudentProgressPage() {
           {!requestedSubjectId && (
             <button
               onClick={() => {
-                setTab("about");
-                setSchoolLifeTarget("learner-context-responsibilities");
+                setPanel("roles");
               }}
             >
               <UserRound />
@@ -1065,8 +1074,7 @@ export default function TeacherStudentProgressPage() {
           )}
           <button
             onClick={() => {
-              setTab("now");
-              setSchoolLifeTarget("studio-learner-notes");
+              setPanel("recognition");
             }}
           >
             <Award />
@@ -1074,8 +1082,7 @@ export default function TeacherStudentProgressPage() {
           </button>
           <button
             onClick={() => {
-              setTab("now");
-              setSchoolLifeTarget("studio-learner-notes");
+              setPanel("notes");
             }}
           >
             <NotebookPen />
@@ -1083,9 +1090,7 @@ export default function TeacherStudentProgressPage() {
           </button>
           {!requestedSubjectId && (
             <button
-              onClick={() =>
-                router.push(`/teacher/classhub/${classId}/operations`)
-              }
+              onClick={() => setPanel("resources")}
             >
               <Library />
               <span>Resources</span>
@@ -1102,12 +1107,12 @@ export default function TeacherStudentProgressPage() {
           <strong>
             {truth.evidenceState === "sufficient"
               ? "Learning picture ready"
-              : "Building learning picture"}
+              : "Not enough learning records yet"}
           </strong>
           <small>
             {truth.evidenceState === "sufficient"
               ? `${assessmentEvidence} assessment records`
-              : "More evidence needed — VibeSchool will not invent conclusions"}
+              : "Add attendance, work or assessment records to see progress."}
           </small>
         </div>
       </section>
@@ -1121,6 +1126,7 @@ export default function TeacherStudentProgressPage() {
             key={item}
             type="button"
             aria-current={tab === item ? "page" : undefined}
+            aria-pressed={tab === item}
             onClick={() => setTab(item)}
           >
             {item === "now" ? "Overview" : item}
@@ -1428,168 +1434,9 @@ export default function TeacherStudentProgressPage() {
             )}
           </Card>
 
-          <div id="studio-learner-notes">
-            <Card>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 750,
-                  color: "var(--teacher-muted, #627168)",
-                  marginBottom: 8,
-                }}
-              >
-                TEACHER NOTES & ACTIONS
-              </div>
-              <textarea
-                value={eventNote}
-                onChange={(event) => setEventNote(event.target.value)}
-                rows={3}
-                placeholder="Factual note, e.g. Needed prompting during graph interpretation."
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  border: "1px solid #d1d5db",
-                  borderRadius: 12,
-                  padding: 10,
-                  fontFamily: "inherit",
-                  resize: "vertical",
-                }}
-              />
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-                  gap: 7,
-                  marginTop: 8,
-                }}
-              >
-                <button
-                  type="button"
-                  disabled={eventSaving}
-                  onClick={() => void saveTeacherEvent("observation")}
-                  style={{
-                    minHeight: 42,
-                    border: "1px solid #d1d5db",
-                    borderRadius: 11,
-                    background: "#fff",
-                    fontWeight: 750,
-                  }}
-                >
-                  Add note
-                </button>
-                <button
-                  type="button"
-                  disabled={eventSaving}
-                  onClick={() => void saveTeacherEvent("followup")}
-                  style={{
-                    minHeight: 42,
-                    border: "1px solid #d1d5db",
-                    borderRadius: 11,
-                    background: "#fff",
-                    fontWeight: 750,
-                  }}
-                >
-                  Follow up
-                </button>
-                <button
-                  type="button"
-                  disabled={eventSaving}
-                  onClick={() => void saveTeacherEvent("participation")}
-                  style={{
-                    minHeight: 42,
-                    border: 0,
-                    borderRadius: 11,
-                    background: "#0369a1",
-                    color: "#fff",
-                    fontWeight: 750,
-                  }}
-                >
-                  Participated
-                </button>
-                <button
-                  type="button"
-                  disabled={eventSaving}
-                  onClick={() => void saveTeacherEvent("recognition")}
-                  style={{
-                    minHeight: 42,
-                    border: 0,
-                    borderRadius: 11,
-                    background: "#065f46",
-                    color: "#fff",
-                    fontWeight: 750,
-                  }}
-                >
-                  Recognise effort
-                </button>
-              </div>
-              {eventMessage && (
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 11,
-                    color: eventMessage.startsWith("Saved")
-                      ? "#065f46"
-                      : "#92400e",
-                  }}
-                >
-                  {eventMessage}
-                </div>
-              )}
-              {teacherEvents.some((item) => !isLearnerContextEvent(item)) && (
-                <div style={{ marginTop: 12, display: "grid", gap: 7 }}>
-                  {teacherEvents
-                    .filter((item) => !isLearnerContextEvent(item))
-                    .slice(0, 5)
-                    .map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          background: "var(--teacher-canvas, #f5f6f2)",
-                          borderRadius: 11,
-                          padding: 9,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            gap: 8,
-                          }}
-                        >
-                          <strong
-                            style={{
-                              fontSize: 11,
-                              textTransform: "capitalize",
-                            }}
-                          >
-                            {item.event_kind.replaceAll("_", " ")}
-                          </strong>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              color: "var(--teacher-muted, #627168)",
-                            }}
-                          >
-                            {formatDate(item.created_at)}
-                          </span>
-                        </div>
-                        {item.note && (
-                          <div
-                            style={{
-                              marginTop: 3,
-                              fontSize: 11,
-                              color: "#4b5563",
-                            }}
-                          >
-                            {item.note}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                </div>
-              )}
-            </Card>
-          </div>
+          <Card><h3 style={{ marginTop: 0, fontSize: 15 }}>Teacher notes</h3>
+            <button type="button" onClick={() => setPanel("notes")}>View notes or add an observation</button>
+          </Card>
 
           <Card>
             <div
@@ -1777,7 +1624,7 @@ export default function TeacherStudentProgressPage() {
               <button
                 type="button"
                 onClick={() =>
-                  router.push(`/teacher/classhub/${classId}/homework`)
+                  setTab("work")
                 }
                 style={{
                   minHeight: 46,
@@ -1793,7 +1640,7 @@ export default function TeacherStudentProgressPage() {
               <button
                 type="button"
                 onClick={() =>
-                  router.push(`/teacher/assessment?classId=${classId}`)
+                  setTab("assessment")
                 }
                 style={{
                   minHeight: 46,
@@ -1809,7 +1656,7 @@ export default function TeacherStudentProgressPage() {
               <button
                 type="button"
                 onClick={() =>
-                  router.push(`/teacher/attendance?classId=${classId}`)
+                  setTab("attendance")
                 }
                 style={{
                   minHeight: 46,
@@ -1840,7 +1687,7 @@ export default function TeacherStudentProgressPage() {
         </div>
       )}
 
-      {tab === "about" && (
+      {!requestedSubjectId && tab === "about" && (
         <div style={{ display: "grid", gap: 10 }}>
           {searchParams.get("setup") === "1" && (
             <section
@@ -1876,14 +1723,14 @@ export default function TeacherStudentProgressPage() {
               Build the learner picture gradually
             </h2>
             <div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>
-              Record what you have actually observed. Attendance, marks,
-              homework and progress stay in their existing VibeSchool records
-              and appear automatically elsewhere. These notes are visible only
-              to the class teacher.
+              Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records
+              and appear automatically elsewhere. These notes are visible only to the class teacher.
             </div>
           </Card>
+          <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
           {learnerContextFields.map((field) => (
-            <Card key={field.key}>
+            <details key={field.key} className={experience.contextSection}>
+              <summary>{field.label}{contextDrafts[field.key].trim() ? " · Recorded" : " · Add"}</summary>
               <label
                 htmlFor={`learner-context-${field.key}`}
                 style={{ display: "block", fontSize: 13, fontWeight: 750 }}
@@ -1957,7 +1804,7 @@ export default function TeacherStudentProgressPage() {
                   {contextSaving === field.key ? "Saving…" : "Save section"}
                 </button>
               </div>
-            </Card>
+            </details>
           ))}
           {contextMessage && (
             <div
@@ -2018,9 +1865,7 @@ export default function TeacherStudentProgressPage() {
                     type="button"
                     key={item.id}
                     onClick={() =>
-                      router.push(
-                        `/teacher/classhub/${classId}/homework/${item.id}`,
-                      )
+                      setSelectedWork(item)
                     }
                     style={{
                       width: "100%",
@@ -2102,6 +1947,8 @@ export default function TeacherStudentProgressPage() {
 
       {tab === "assessment" && (
         <div style={{ display: "grid", gap: 10 }}>
+          <a href={`/teacher/classhub/${classId}/student/${studentId}/progress${requestedSubjectId ? `?subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full learning progress</a>
+          <a href={`/teacher/assessment?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full assessment workspace</a>
           <Card>
             <div
               style={{
@@ -2115,7 +1962,7 @@ export default function TeacherStudentProgressPage() {
             </div>
             {gradebook.length === 0 ? (
               <div style={{ color: "var(--teacher-muted, #627168)" }}>
-                No released canonical assessment scores yet.
+                No released assessment scores yet.
               </div>
             ) : (
               gradebook.map((item, index) => {
@@ -2262,6 +2109,8 @@ export default function TeacherStudentProgressPage() {
 
       {tab === "attendance" && (
         <Card>
+          <p style={{ fontSize: 12, color: "#617168", marginTop: 0 }}>Recent attendance · up to 120 recorded sessions</p>
+          <a style={{ display: "inline-block", minHeight: 44, fontSize: 13 }} href={`/teacher/attendance?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}`}>Open class attendance register</a>
           <div
             style={{
               display: "grid",
@@ -2271,7 +2120,7 @@ export default function TeacherStudentProgressPage() {
             }}
           >
             {[
-              { label: "Records", value: truth.attendance.records },
+              { label: "Sessions", value: truth.attendance.records },
               { label: "Present", value: truth.attendance.present },
               { label: "Absent", value: truth.attendance.absent },
               { label: "Late", value: truth.attendance.late },
@@ -2305,7 +2154,7 @@ export default function TeacherStudentProgressPage() {
                 color: "var(--teacher-muted, #627168)",
               }}
             >
-              No attendance evidence recorded yet.
+              No attendance records yet.
             </div>
           ) : (
             attendance.map((item, index) => (
@@ -2447,6 +2296,33 @@ export default function TeacherStudentProgressPage() {
           )}
         </Card>
       )}
+      {panel && <LearnerDetailSheet title={panel === "all" ? "School life" : panel.charAt(0).toUpperCase() + panel.slice(1)} learnerName={student.name} busy={panelBusy || eventSaving}
+        onClose={() => { setPanel(null); setEventMessage(""); }}>
+        {panel === "all" && <>{(["groups", ...(!requestedSubjectId ? ["roles", "activities", "resources"] as const : []), "recognition", "notes"] as const).map(kind =>
+          <button key={kind} type="button" onClick={() => setPanel(kind)}>{kind.charAt(0).toUpperCase() + kind.slice(1)}</button>)}</>}
+        {(panel === "groups" || panel === "roles" || panel === "resources" || panel === "activities") &&
+          <LearnerRelatedRecords kind={panel} classId={classId} studentId={studentId} subjectId={requestedSubjectId} onBusyChange={setPanelBusy}/>}
+        {(panel === "notes" || panel === "recognition") && <>
+          <p>{panel === "recognition" ? "Record a specific achievement or effort." : "Private observations and learner follow-ups."}</p>
+          <label>{panel === "recognition" ? "Recognition details" : "Factual note"}<textarea rows={3} maxLength={2000} disabled={eventSaving} value={activeEventNote} onChange={event => panel === "recognition" ? setRecognitionNote(event.target.value) : setEventNote(event.target.value)}/></label>
+          <button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent(panel === "recognition" ? "recognition" : "observation")}>{eventSaving ? "Saving…" : panel === "recognition" ? "Save recognition" : "Save private note"}</button>
+          {panel === "notes" && <><button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent("followup")}>Add follow-up · due in 7 days</button><button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent("participation")}>Record class participation</button></>}
+          {eventMessage && <p role={eventMessage.startsWith("Saved") ? "status" : "alert"}>{eventMessage}</p>}
+          {teacherEvents.filter(item => !isLearnerContextEvent(item) && (panel === "recognition" ? item.event_kind === "recognition" : ["observation", "followup", "participation"].includes(item.event_kind))).map(item => <article key={item.id}><strong>{formatDate(item.created_at)} · {item.event_kind}</strong><p>{item.note}</p></article>)}
+        </>}
+        {panel === "support" && <>
+          {!interventions.length && <p>No learning follow-ups recorded.</p>}
+          {interventions.map(item => <article key={item.interventionId}><strong>{item.subjectName} · {item.status.replaceAll("_", " ")}</strong><p>{item.recommendation}</p></article>)}
+          <a href={`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full support workspace</a>
+        </>}
+      </LearnerDetailSheet>}
+      {selectedWork && <LearnerDetailSheet title={selectedWork.title} learnerName={student.name} onClose={() => setSelectedWork(null)}>
+        <p>{selectedWork.subject} · {selectedWork.due_date ? `Due ${formatDate(selectedWork.due_date)}` : "No due date"}</p>
+        <article><strong>{submissionMap.get(selectedWork.id)?.status ?? "Not submitted"}</strong>
+          {submissionMap.get(selectedWork.id)?.mark != null && <p>Mark: {submissionMap.get(selectedWork.id)?.mark}</p>}
+          <p>{submissionMap.get(selectedWork.id)?.feedback}</p></article>
+        <a href={`/teacher/classhub/${classId}/homework/${selectedWork.id}?studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full work details</a>
+      </LearnerDetailSheet>}
     </div>
   );
 }

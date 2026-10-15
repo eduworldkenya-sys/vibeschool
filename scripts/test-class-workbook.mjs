@@ -347,9 +347,15 @@ assert.match(loader, /upsert_attendance_batch/);
 assert.match(loader, /saveCanonicalExamResults/);
 assert.match(loader, /expectedUpdatedAt/);
 const resultAuthority = fs.readFileSync("lib/teacher/examResultAuthority.ts", "utf8");
-assert.match(resultAuthority, /teacher_save_exam_results/);
-assert.match(resultAuthority, /row\.student_id===input\.studentId/);
-assert.match(resultAuthority, /row\.is_absent===input\.isAbsent/);
+// Canonical state-aware authorities replaced the legacy bulk marks RPC.
+assert.match(resultAuthority, /teacher_save_exam_result_states/);
+assert.match(resultAuthority, /teacher_save_exam_result_state/);
+assert.match(resultAuthority, /row\.student_id!==input\.studentId/, "save rejects a response for a different learner");
+assert.match(resultAuthority, /row\.school_id!==input\.schoolId/, "save rejects a response from another school");
+assert.match(resultAuthority, /row\.class_id!==input\.classId/, "save rejects a response for another class");
+assert.match(resultAuthority, /row\.subject_id!==input\.subjectId/, "save rejects a response for another subject");
+assert.match(resultAuthority, /returnedState!==resultState/, "single save verifies the normalized result state");
+assert.match(resultAuthority, /state!==normalizeExamResultState\(input\.resultState,input\.isAbsent===true\)/, "bulk save verifies normalized absence and non-score semantics");
 assert.doesNotMatch(loader, /\.from\(["']exam_results["']\)\s*\.upsert/);
 console.log(
   "Class workbook: identity imports, projections, unknown commands, missing evidence, formulas and export safety passed.",
