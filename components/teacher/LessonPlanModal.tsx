@@ -219,6 +219,12 @@ function Skeleton({ h = 48 }: { h?: number }) {
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+function displayLessonTime(raw: string): string {
+  const [h, m] = raw.split(':').map(Number)
+  if (!Number.isInteger(h) || !Number.isInteger(m)) return raw
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`
+}
+
 export default function LessonPlanModal({
   slot,
   weekStart,
@@ -1470,7 +1476,7 @@ export default function LessonPlanModal({
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: C.textPrimary }}>{slot.subject}</div>
             <div style={{ fontSize: 12, color: C.textMuted, marginTop: 2 }}>
-              {slot.class}{slot.room ? ' · ' + slot.room : ''}{slot.start ? ' · ' + slot.start + '–' + slot.end : ''}
+              {slot.class}{slot.room ? ' · ' + slot.room : ''}{slot.start ? ' · ' + displayLessonTime(slot.start) + '–' + displayLessonTime(slot.end) : ''}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1495,6 +1501,12 @@ export default function LessonPlanModal({
                 onClick={() => setWorkspacePanel(name)}>{name}</button>
             ))}
           </nav>
+          {Number(slot.start.slice(0, 2)) >= 18 && (
+            <div className="studio-lesson-modal__panel" role="note" style={{background:'#fff8ea',borderColor:'#f2deb9',padding:'11px 13px'}}>
+              <p style={{color:'#895527',margin:0}}><strong>Review lesson time:</strong> This lesson is set for {displayLessonTime(slot.start)}–{displayLessonTime(slot.end)}. Check whether this evening period is intentional.</p>
+              <button type="button" className="studio-lesson-modal__action" onClick={()=>router.push('/teacher/timetable?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate}).toString())}>Review timetable →</button>
+            </div>
+          )}
           {workspacePanel !== 'Lesson' && (
             <section className="studio-lesson-modal__panel" aria-label={workspacePanel}>
               <h3>{workspacePanel === 'More' ? 'Teaching tools' : workspacePanel}</h3>
