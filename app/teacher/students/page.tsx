@@ -229,12 +229,11 @@ export default function StudentsPage() {
         .filter((group) => group.students.length),
     [accountFilter, classFilter, groups, normalized, sortBy],
   );
-  const total = groups.reduce((sum, group) => sum + group.students.length, 0),
-    unclaimed = groups.reduce(
-      (sum, group) =>
-        sum + group.students.filter((student) => !student.profile_id).length,
-      0,
-    ),
+  const distinctLearners = new Map(groups.flatMap(
+    (group) => group.students.map((student) => [student.id, student] as const),
+  ));
+  const total = distinctLearners.size,
+    unclaimed = [...distinctLearners.values()].filter((student) => !student.profile_id).length,
     activeSchool =
       context?.schools.find((s) => s.id === context.school_id)?.name ??
       "School";
@@ -277,12 +276,12 @@ export default function StudentsPage() {
         <div>
           <UserRoundCheck size={18} />
           <strong>{total - unclaimed}</strong>
-          <span>Connected</span>
+          <span>Account linked</span>
         </div>
         <div>
           <span className={unclaimed ? styles.attentionDot : styles.goodDot} />
           <strong>{unclaimed}</strong>
-          <span>To link</span>
+          <span>Not linked</span>
         </div>
       </section>
       <div className={styles.searchBar}>
@@ -385,7 +384,7 @@ export default function StudentsPage() {
           icon={<Search />}
           title="No match"
           action="Clear"
-          onAction={() => setQuery("")}
+          onAction={() => { setQuery(""); setClassFilter("all"); setAccountFilter("all"); }}
         />
       ) : (
         <div className={styles.roster}>
