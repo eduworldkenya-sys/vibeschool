@@ -434,6 +434,25 @@ export default function TeacherStudentProgressPage() {
                 .map((item) => item.subject_id),
             ),
           );
+      // Use only the subject assignment for subject teachers. Class teachers
+      // use class-wide database policies; never trust the client filter for authorization.
+      const gradebookQuery = supabase.from("assessment_gradebook_entries")
+        .select("assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at")
+        .eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId)
+        .order("released_at", { ascending: false }).limit(80);
+      const cbcQuery = supabase.from("cbc_assessments")
+        .select("id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at")
+        .eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId)
+        .order("created_at", { ascending: false }).limit(80);
+      const examQuery = supabase.from("exam_results")
+        .select("id,exam_id,subject_id,marks,max_marks,result_state,is_absent,created_at")
+        .eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId)
+        .order("created_at", { ascending: false }).limit(80);
+      if (requestedSubjectId) {
+        gradebookQuery.eq("subject_id", requestedSubjectId);
+        cbcQuery.eq("subject_id", requestedSubjectId);
+        examQuery.eq("subject_id", requestedSubjectId);
+      }
       const [
         attendanceRes,
         homeworkRes,
