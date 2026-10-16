@@ -728,6 +728,7 @@ export default function TeacherStudentProgressPage() {
           existing?.event_code === `learner_context_${key}` &&
           (existing.note ?? "") === value
         ) {
+          contextDirtyKeys.current.delete(key);
           contextRequestIds.current[key] = crypto.randomUUID();
           setContextMessage(
             "Saved. The earlier version remains in the learner history.",
@@ -737,6 +738,7 @@ export default function TeacherStudentProgressPage() {
           setContextMessage(insertError.message);
         }
       } else {
+        contextDirtyKeys.current.delete(key);
         contextRequestIds.current[key] = crypto.randomUUID();
         setContextMessage(
           "Saved. The earlier version remains in the learner history.",
@@ -1761,12 +1763,15 @@ export default function TeacherStudentProgressPage() {
               <textarea
                 id={`learner-context-${field.key}`}
                 value={contextDrafts[field.key]}
-                onChange={(event) =>
+                disabled={contextSaving === field.key}
+                onChange={(event) => {
+                  contextDirtyKeys.current.add(field.key);
+                  contextRequestIds.current[field.key] = crypto.randomUUID();
                   setContextDrafts((current) => ({
                     ...current,
                     [field.key]: event.target.value,
-                  }))
-                }
+                  }));
+                }}
                 rows={3}
                 maxLength={1200}
                 placeholder={field.placeholder}
