@@ -348,6 +348,10 @@ export default function TeacherStudentProgressPage() {
         learnerContextFields.map((field) => [field.key, ""]),
       ) as Record<LearnerContextKey, string>,
   );
+  const contextDirtyKeys = useRef<Set<LearnerContextKey>>(new Set());
+  const [contextSaved, setContextSaved] = useState<Record<LearnerContextKey, string>>(
+    () => Object.fromEntries(learnerContextFields.map((field) => [field.key, ""])) as Record<LearnerContextKey, string>,
+  );
   const [contextSaving, setContextSaving] = useState<LearnerContextKey | null>(
     null,
   );
@@ -575,7 +579,16 @@ export default function TeacherStudentProgressPage() {
         nextDrafts[key] = event.note ?? "";
         seen.add(key);
       }
-      setContextDrafts(nextDrafts);
+      setContextSaved(nextDrafts);
+      setContextDrafts((current) => {
+        const reconciled = { ...current };
+        for (const field of learnerContextFields) {
+          if (!contextDirtyKeys.current.has(field.key)) {
+            reconciled[field.key] = nextDrafts[field.key];
+          }
+        }
+        return reconciled;
+      });
       setInterventions(
         interventionRows.filter((item) => item.studentId === studentId),
       );
