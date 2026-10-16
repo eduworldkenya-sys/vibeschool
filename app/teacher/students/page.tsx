@@ -12,6 +12,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { readCurrentRoster } from "@/lib/classroom/currentRoster";
 import styles from "@/components/teacher/LearnerExperience.module.css";
 
 type Context = {
@@ -85,45 +86,12 @@ export default function StudentsPage() {
       classMap.set(a.class_id, current);
     }
     const classIds = Array.from(classMap.keys());
-    const { data: enrolments, error: rosterError } = await supabase
-      .from("student_classes")
-      .select("class_id,student_id")
-      .eq("school_id", ctx.school_id)
-      .eq("is_current", true)
-      .in("class_id", classIds);
-    if (rosterError) throw rosterError;
-    const studentIds = Array.from(
-      new Set((enrolments ?? []).map((row) => row.student_id)),
-    );
-    const { data: studentRows, error: studentError } = studentIds.length
-      ? await supabase
-          .from("students")
-          .select("id,name,admission_number,profile_id,deleted_at")
-          .in("id", studentIds)
-          .is("deleted_at", null)
-      : { data: [], error: null };
-    if (studentError) throw studentError;
-    const byId = new Map<string, Student>(
-      (studentRows ?? []).map(
-        (s) =>
-          [
-            s.id,
-            {
-              id: s.id,
-              name: s.name,
-              admission_number: s.admission_number ?? null,
-              profile_id: s.profile_id ?? null,
-            },
-          ] as const,
-      ),
-    );
+    const roster = await readCurrentRoster(supabase, ctx.school_id, classIds);
     const grouped = new Map<string, Student[]>();
-    for (const row of enrolments ?? []) {
-      const student = byId.get(row.student_id);
-      if (!student) continue;
-      const list = grouped.get(row.class_id) ?? [];
-      if (!list.some((item) => item.id === student.id)) list.push(student);
-      grouped.set(row.class_id, list);
+    for (const { classId, learner } of roster) {
+      const list = grouped.get(classId) ?? [];
+      list.push(learner);
+      grouped.set(classId, list);
     }
     setGroups(
       classIds.map((id) => {

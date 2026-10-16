@@ -1,4 +1,5 @@
 "use client";
+import { readCurrentRoster } from '@/lib/classroom/currentRoster'
 import { rosterRows } from '@/lib/classroom/model'
 import { cbcPerformance } from '@/lib/learner-intelligence/cbcPerformance'
 import { nairobiDateStr } from '@/lib/time'
@@ -13,7 +14,7 @@ interface Student {
   id:               string
   name:             string
   admission_number: string
-  created_at:       string
+  created_at:       string | null
   profile_id:       string | null
 }
 
@@ -172,7 +173,7 @@ function ClassPageInner() {
     if (isSubject && subjectId) assessmentQuery = assessmentQuery.eq('subject_id', subjectId)
 
     const [enrollmentRes, requestsRes, attRes, assessRes, grpRes] = await Promise.all([
-      supabase.from('student_classes').select('student_id').eq('school_id', activeSchoolId).eq('class_id', classId).eq('is_current', true),
+      readCurrentRoster(supabase, activeSchoolId, [classId]).then(data => ({ data, error: null })).catch((error: unknown) => ({ data: [], error })),
       supabase.from('class_join_requests').select('id').eq('class_id', classId).eq('status', 'pending'),
       supabase.from('attendance').select('student_id,status').eq('school_id', activeSchoolId).eq('class_id', classId).eq('date', nairobiDateStr()).is('timetable_slot_id', null),
       assessmentQuery,
@@ -185,22 +186,9 @@ function ClassPageInner() {
       return []
     }
 
-    const studentIds = Array.from(new Set((enrollmentRes.data ?? []).map((row: { student_id: string }) => row.student_id)))
-    let loadedStudents: Student[] = []
-    if (studentIds.length > 0) {
-      const { data: studentRows, error: studentError } = await supabase
-        .from('students')
-        .select('id,name,admission_number,profile_id,created_at')
-        .in('id', studentIds)
-        .is('deleted_at', null)
-        .order('name')
-      if (studentError) {
-        setError('Learner identities could not be loaded. Retry instead of adding duplicate learners.')
-        setLoading(false)
-        return []
-      }
-      loadedStudents = (studentRows ?? []) as Student[]
-    }
+    const loadedStudents: Student[] = enrollmentRes.data.map(({ learner }) => ({
+      ...learner, admission_number: learner.admission_number ?? '',
+    })).sort((a, b) => a.name.localeCompare(b.name))
 
     setStudents(loadedStudents)
     setSelectedIds(prev => new Set([...prev].filter(id => loadedStudents.some(student => student.id === id))))

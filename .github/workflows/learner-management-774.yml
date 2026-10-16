@@ -6,6 +6,11 @@ on:
       - "app/teacher/students/**"
       - "app/teacher/classhub/**"
       - "lib/learner-intelligence/**"
+      - "lib/classroom/currentRoster.ts"
+      - "lib/supabase.ts"
+      - "scripts/test-current-roster.mjs"
+      - "scripts/test-learner-context-database.mjs"
+      - "supabase/migrations/20261016162301_learner_context_conflict_guard.sql"
       - "scripts/test-learner-management-774.mjs"
       - "scripts/test-learner-rls-774.mjs"
       - "supabase/migrations/20261016163000_learner_evidence_visibility_release_774.sql"
@@ -28,6 +33,12 @@ jobs:
         run: node --import ./scripts/register-typescript.mjs scripts/test-learner-management-774.mjs
       - name: Learner evidence permissions contract
         run: node scripts/test-learner-rls-774.mjs
+      - name: Shared roster pagination and error paths
+        run: node scripts/test-current-roster.mjs
+      - name: Verify learner revisions and evidence permissions in isolated PostgreSQL
+        run: |
+          npm install --prefix "$RUNNER_TEMP/learner-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.3.14
+          SCHOOL_LIFE_PGLITE_MODULE="$RUNNER_TEMP/learner-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-learner-context-database.mjs
       - name: Canonical learner contract
         run: node scripts/test-canonical-learner-record.mjs
       - name: Teacher context contract

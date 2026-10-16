@@ -350,6 +350,11 @@ export default function TeacherStudentProgressPage() {
       ) as Record<LearnerContextKey, string>,
   );
   const contextDirtyKeys = useRef<Set<LearnerContextKey>>(new Set());
+  const [contextEditor, setContextEditor] = useState<LearnerContextKey | null>(null);
+  const contextSaveLock = useRef(false);
+  const contextRevisions = useRef<Partial<Record<LearnerContextKey, string>>>({});
+  const contextDraftBases = useRef<Partial<Record<LearnerContextKey, string | null>>>({});
+  const contextScope = useRef("");
   const [contextSaved, setContextSaved] = useState<Record<LearnerContextKey, string>>(
     () => Object.fromEntries(learnerContextFields.map((field) => [field.key, ""])) as Record<LearnerContextKey, string>,
   );
@@ -395,6 +400,16 @@ export default function TeacherStudentProgressPage() {
             ? "This subject is not assigned to you in the active school."
             : "Class-wide learner history is available to the class teacher. Use the subject view for subject-scoped learner evidence.",
         );
+      const scope = `${auth.user.id}:${ctx.school_id}:${classId}:${studentId}`;
+      if (contextScope.current !== scope) {
+        contextScope.current = scope;
+        contextDirtyKeys.current.clear();
+        contextDraftBases.current = {};
+        contextRevisions.current = {};
+        for (const field of learnerContextFields) contextRequestIds.current[field.key] = crypto.randomUUID();
+        setContextEditor(null);
+        setContextMessage("");
+      }
       setContext(ctx);
 
       const enrollmentRes = await supabase
@@ -464,6 +479,7 @@ export default function TeacherStudentProgressPage() {
         libraryLoansRes,
         libraryBooksRes,
         interventionRows,
+        contextRes,
       ] = await Promise.all([
         supabase
           .from("attendance")
@@ -514,6 +530,8 @@ export default function TeacherStudentProgressPage() {
           .eq("school_id", ctx.school_id)
           .is("deleted_at", null),
         listInterventionQueue(classId),
+        requestedSubjectId ? Promise.resolve({ data: [], error: null })
+          : supabase.rpc("teacher_get_learner_context", { p_class_id: classId, p_student_id: studentId }),
       ]);
       for (const result of [
         attendanceRes,
@@ -525,6 +543,7 @@ export default function TeacherStudentProgressPage() {
         eventsRes,
         libraryLoansRes,
         libraryBooksRes,
+        contextRes,
       ])
         if (result.error) throw result.error;
 
@@ -564,12 +583,12 @@ export default function TeacherStudentProgressPage() {
       const nextDrafts = Object.fromEntries(
         learnerContextFields.map((field) => [field.key, ""]),
       ) as Record<LearnerContextKey, string>;
-      const seen = new Set<LearnerContextKey>();
-      for (const event of loadedEvents) {
-        const key = learnerContextKey(event);
-        if (!key || seen.has(key)) continue;
-        nextDrafts[key] = event.note ?? "";
-        seen.add(key);
+      contextRevisions.current = {};
+      for (const revision of contextRes.data ?? []) {
+        const field = learnerContextFields.find(item => item.key === revision.field_key);
+        if (!field) continue;
+        nextDrafts[field.key] = revision.note ?? "";
+        contextRevisions.current[field.key] = revision.event_id;
       }
       setContextSaved(nextDrafts);
       setContextDrafts((current) => {
@@ -675,16 +694,17 @@ export default function TeacherStudentProgressPage() {
         requestedSubjectId
       )
         return;
+      if (contextSaveLock.current) return;
       const value = contextDrafts[key].trim();
       if (value.length > 1200) {
         setContextMessage("Keep each section below 1,200 characters.");
         return;
       }
+      contextSaveLock.current = true;
       setContextSaving(key);
       setContextMessage("");
-      const previous = teacherEvents.find(
-        (event) => learnerContextKey(event) === key,
-      );
+      try {
+      const previousId = contextDirtyKeys.current.has(key) ? contextDraftBases.current[key] ?? null : contextRevisions.current[key] ?? null;
       const requestId = contextRequestIds.current[key];
       const { error: insertError } = await supabase
         .from("teacher_learner_events")
@@ -700,7 +720,7 @@ export default function TeacherStudentProgressPage() {
           metadata: {
             context_key: key,
             provenance: "teacher-entered",
-            supersedes_event_id: previous?.id ?? null,
+            supersedes_event_id: previousId,
             request_id: requestId,
           },
           created_by: context.teacher_id,
@@ -727,7 +747,9 @@ export default function TeacherStudentProgressPage() {
           );
           await load(false);
         } else {
-          setContextMessage(insertError.message);
+          setContextMessage(insertError.code === "40001"
+            ? "This section changed in another tab. Your draft is retained. Refresh saved values, compare, then save again."
+            : insertError.message);
         }
       } else {
         contextDirtyKeys.current.delete(key);
@@ -737,7 +759,12 @@ export default function TeacherStudentProgressPage() {
         );
         await load(false);
       }
-      setContextSaving(null);
+      } catch (cause) {
+        setContextMessage(cause instanceof Error ? cause.message : "The save could not be confirmed. Your draft is retained; retry to check the saved record.");
+      } finally {
+        contextSaveLock.current = false;
+        setContextSaving(null);
+      }
     },
     [
       classId,
@@ -1029,7 +1056,7 @@ export default function TeacherStudentProgressPage() {
           onClick={() => setTab("assessment")}
         >
           <BookOpenCheck size={18} />
-          <span>Assess</span>
+          <span>Assessment</span>
         </button>
         <button
           onClick={() => {
@@ -1040,6 +1067,23 @@ export default function TeacherStudentProgressPage() {
           <span>Note</span>
         </button>
       </div>
+      <nav
+        className={experience.profileTabs}
+        aria-label="Learner profile sections"
+      >
+        {availableTabs.map((item) => (
+          <button
+            key={item}
+            type="button"
+            aria-current={tab === item ? "page" : undefined}
+            aria-pressed={tab === item}
+            onClick={() => setTab(item)}
+          >
+            {item === "now" ? "Overview" : item}
+          </button>
+        ))}
+      </nav>
+      {tab === "now" && <>
       <LearnerSnapshot
         scores={gradebook}
         subjects={subjects}
@@ -1113,33 +1157,20 @@ export default function TeacherStudentProgressPage() {
         <div>
           <strong>
             {truth.evidenceState === "sufficient"
-              ? "Learning picture ready"
-              : "Not enough learning records yet"}
+              ? "Assessment evidence available"
+              : "More assessment evidence needed"}
           </strong>
           <small>
             {truth.evidenceState === "sufficient"
               ? `${assessmentEvidence} assessment records`
-              : "Add attendance, work or assessment records to see progress."}
+              : "Attendance and work are shown above. Add assessment evidence before drawing learning conclusions."}
           </small>
         </div>
       </section>
 
-      <nav
-        className={experience.profileTabs}
-        aria-label="Learner profile sections"
-      >
-        {availableTabs.map((item) => (
-          <button
-            key={item}
-            type="button"
-            aria-current={tab === item ? "page" : undefined}
-            aria-pressed={tab === item}
-            onClick={() => setTab(item)}
-          >
-            {item === "now" ? "Overview" : item}
-          </button>
-        ))}
-      </nav>
+
+
+      </>}
 
       {tab === "now" && (
         <div style={{ display: "grid", gap: 10 }}>
@@ -1247,7 +1278,7 @@ export default function TeacherStudentProgressPage() {
                 ? "Open support"
                 : nextAction.kind === "work"
                   ? "Review work"
-                  : "Inspect evidence"}
+                  : "View assessment records"}
             </button>
           </Card>
 
@@ -1608,87 +1639,7 @@ export default function TeacherStudentProgressPage() {
             </button>
           </Card>
 
-          <Card>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 750,
-                color: "var(--teacher-muted, #627168)",
-                marginBottom: 10,
-              }}
-            >
-              MORE ACTIONS
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-                gap: 8,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("work")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#0f766e",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Assign / review work
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("assessment")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#92400e",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Assess learner
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("attendance")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#065f46",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Attendance
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("assessment")}
-                style={{
-                  minHeight: 46,
-                  border: "1px solid #d1d5db",
-                  borderRadius: 12,
-                  background: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Inspect evidence
-              </button>
-            </div>
-          </Card>
+
         </div>
       )}
 
@@ -1714,34 +1665,34 @@ export default function TeacherStudentProgressPage() {
               </div>
             </section>
           )}
-          <Card>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 750,
-                color: "var(--teacher-muted, #627168)",
-              }}
-            >
-              ABOUT THIS LEARNER
-            </div>
-            <h2 style={{ margin: "5px 0", fontSize: 18 }}>
-              Build the learner picture gradually
-            </h2>
-            <div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>
-              Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records
-              and appear automatically elsewhere. These notes are visible only to the class teacher.
-            </div>
-          </Card>
+          <details style={{ color: "#627168", fontSize: 12, padding: "6px 2px" }}>
+            <summary style={{ minHeight: 32, cursor: "pointer" }}>About these teaching notes</summary>
+            <p>Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records
+              and appear automatically elsewhere. These notes are visible only to the class teacher.</p>
+          </details>
           <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
+          <div style={{ background: "#fff", border: "1px solid #e1e7e3", borderRadius: 12, overflow: "hidden" }}>
           {learnerContextFields.map((field) => (
-            <details key={field.key} className={experience.contextSection}>
-              <summary>
-                <strong>{field.label}</strong>
-                <span style={{ display: "block", fontWeight: 400, fontSize: 12, marginTop: 4, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
-                  {contextSaved[field.key].trim() ? contextSaved[field.key].slice(0, 160) + (contextSaved[field.key].length > 160 ? "…" : "") : "Not recorded yet"}
-                  {contextDirtyKeys.current.has(field.key) ? " · Unsaved changes" : ""}
-                </span>
-              </summary>
+            <article key={field.key} className={experience.contextSection} style={{ border: 0, borderBottom: "1px solid #edf1ee", borderRadius: 0, padding: "6px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                <h3 style={{ margin: 0, fontSize: 14 }}>{field.label}</h3>
+                <button type="button" onClick={() => { setContextMessage(""); setContextEditor(field.key); }}
+                  aria-label={`Edit ${field.label.toLowerCase()}`} style={{ minHeight: 44, color: "#166534", background: "transparent", border: 0, fontWeight: 700 }}>
+                  {contextSaved[field.key].trim() ? "Edit" : "Add"}
+                </button>
+              </div>
+              {contextSaved[field.key].trim() && <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                {contextSaved[field.key]}
+              </p>}
+              {contextDirtyKeys.current.has(field.key) && <p role="status" style={{ fontSize: 12, color: "#92400e" }}>Unsaved changes · reopen to continue</p>}
+              {contextEditor === field.key && <LearnerDetailSheet title={field.label} learnerName={student.name}
+                busy={contextSaving !== null} onClose={() => setContextEditor(null)}>
+              {contextMessage && <p role="status">{contextMessage}</p>}
+              <button type="button" disabled={contextSaving !== null} onClick={async () => {
+                await load(false);
+                contextDraftBases.current[field.key] = contextRevisions.current[field.key] ?? null;
+              }}>Refresh saved values</button>
+              <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 12 }}>Currently saved: {contextSaved[field.key] || "Not recorded yet"}</p>
               <label
                 htmlFor={`learner-context-${field.key}`}
                 style={{ display: "block", fontSize: 13, fontWeight: 750 }}
@@ -1763,6 +1714,7 @@ export default function TeacherStudentProgressPage() {
                 value={contextDrafts[field.key]}
                 disabled={contextSaving === field.key}
                 onChange={(event) => {
+                  if (!contextDirtyKeys.current.has(field.key)) contextDraftBases.current[field.key] = contextRevisions.current[field.key] ?? null;
                   contextDirtyKeys.current.add(field.key);
                   contextRequestIds.current[field.key] = crypto.randomUUID();
                   setContextDrafts((current) => ({
@@ -1809,7 +1761,7 @@ export default function TeacherStudentProgressPage() {
                     minHeight: 40,
                     border: 0,
                     borderRadius: 11,
-                    background: "#312e81",
+                    background: "#166534",
                     color: "#fff",
                     padding: "0 14px",
                     fontWeight: 750,
@@ -1818,8 +1770,10 @@ export default function TeacherStudentProgressPage() {
                   {contextSaving === field.key ? "Saving…" : "Save section"}
                 </button>
               </div>
-            </details>
+              </LearnerDetailSheet>}
+            </article>
           ))}
+          </div>
           {contextMessage && (
             <div
               role="status"
