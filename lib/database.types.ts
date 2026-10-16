@@ -9886,6 +9886,7 @@ export type Database = {
           competencies: string[] | null
           created_at: string
           curriculum_id: string | null
+          curriculum_outcome_id: string | null
           day_of_week: number
           duration_minutes: number | null
           generated_by: string
@@ -9896,6 +9897,7 @@ export type Database = {
           objectives: string | null
           participation_score: number | null
           previous_lesson_plan_id: string | null
+          prepared_draft_id: string | null
           published_at: string | null
           reflection: string | null
           scheme_id: string | null
@@ -9922,6 +9924,7 @@ export type Database = {
           competencies?: string[] | null
           created_at?: string
           curriculum_id?: string | null
+          curriculum_outcome_id?: string | null
           day_of_week: number
           duration_minutes?: number | null
           generated_by?: string
@@ -9932,6 +9935,7 @@ export type Database = {
           objectives?: string | null
           participation_score?: number | null
           previous_lesson_plan_id?: string | null
+          prepared_draft_id?: string | null
           published_at?: string | null
           reflection?: string | null
           scheme_id?: string | null
@@ -9958,6 +9962,7 @@ export type Database = {
           competencies?: string[] | null
           created_at?: string
           curriculum_id?: string | null
+          curriculum_outcome_id?: string | null
           day_of_week?: number
           duration_minutes?: number | null
           generated_by?: string
@@ -9968,6 +9973,7 @@ export type Database = {
           objectives?: string | null
           participation_score?: number | null
           previous_lesson_plan_id?: string | null
+          prepared_draft_id?: string | null
           published_at?: string | null
           reflection?: string | null
           scheme_id?: string | null
@@ -13242,6 +13248,7 @@ export type Database = {
           created_at: string | null
           curriculum_content_id: string | null
           curriculum_id: string | null
+          curriculum_outcome_id: string | null
           curriculum_type: string
           date: string | null
           day_of_week: string | null
@@ -13281,6 +13288,7 @@ export type Database = {
           created_at?: string | null
           curriculum_content_id?: string | null
           curriculum_id?: string | null
+          curriculum_outcome_id?: string | null
           curriculum_type: string
           date?: string | null
           day_of_week?: string | null
@@ -13320,6 +13328,7 @@ export type Database = {
           created_at?: string | null
           curriculum_content_id?: string | null
           curriculum_id?: string | null
+          curriculum_outcome_id?: string | null
           curriculum_type?: string
           date?: string | null
           day_of_week?: string | null
