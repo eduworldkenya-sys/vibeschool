@@ -54,7 +54,10 @@ export default function StudentsPage() {
     [error, setError] = useState<string | null>(null),
     [query, setQuery] = useState(""),
     [classFilter, setClassFilter] = useState("all"),
-    [showAddClasses, setShowAddClasses] = useState(false);
+    [showAddClasses, setShowAddClasses] = useState(false),
+    [showFilters, setShowFilters] = useState(false),
+    [accountFilter, setAccountFilter] = useState<"all" | "linked" | "unlinked">("all"),
+    [sortBy, setSortBy] = useState<"name" | "admission">("name");
   const loadContext = useCallback(async (requestedSchoolId?: string | null) => {
     const { data, error: e } = await supabase.rpc(
       "teacher_get_operating_context",
