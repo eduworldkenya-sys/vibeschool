@@ -294,8 +294,24 @@ export default function StudentsPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <SlidersHorizontal size={17} aria-hidden="true" />
+        <button type="button" aria-label="Show learner filters" aria-expanded={showFilters}
+          onClick={() => setShowFilters((shown) => !shown)}
+          style={{ border: 0, background: "transparent", display: "inline-flex", alignItems: "center", padding: 6 }}>
+          <SlidersHorizontal size={17} aria-hidden="true" />
+        </button>
       </div>
+      {showFilters && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, padding: "8px 0" }}>
+          <label>Account <select aria-label="Filter learner account link status" value={accountFilter}
+            onChange={(event) => setAccountFilter(event.target.value as "all" | "linked" | "unlinked")}>
+            <option value="all">All</option><option value="linked">Linked</option><option value="unlinked">Not linked</option>
+          </select></label>
+          <label>Sort <select aria-label="Sort learner list" value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as "name" | "admission")}>
+            <option value="name">Name</option><option value="admission">Admission number</option>
+          </select></label>
+        </div>
+      )
       {groups.length > 1 && (
         <div className={styles.classChips} aria-label="Filter by class">
           <button
