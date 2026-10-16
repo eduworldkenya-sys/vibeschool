@@ -1540,7 +1540,7 @@ export default function LessonPlanModal({
                     </>
                   ) : <>
                     <p>No current-term Scheme lesson is linked. You can prepare a draft, but the lesson cannot be marked curriculum-ready until an approved outcome is attached.</p>
-                    {/^Grade\\s*1(?:\\s|$)/i.test(slot.class) && /^English$/i.test(slot.subject.trim()) && (
+                    {/^Grade\s*1(?:\s|$)/i.test(slot.class) && /^English$/i.test(slot.subject.trim()) && (
                       <p><strong>Official reference available:</strong> KICD's revised 2024 Grade 1–3 English Language Activities design.
                         <a href="https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf"
                           target="_blank" rel="noopener noreferrer" style={{display:'block',marginTop:8,color:'#087255',fontWeight:760}}>
