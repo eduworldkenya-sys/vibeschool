@@ -216,18 +216,18 @@ export default function StudentsPage() {
         .filter((group) => classFilter === "all" || group.id === classFilter)
         .map((group) => ({
           ...group,
-          students: normalized
-            ? group.students.filter(
-                (student) =>
-                  student.name.toLowerCase().includes(normalized) ||
-                  (student.admission_number ?? "")
-                    .toLowerCase()
-                    .includes(normalized),
-              )
-            : group.students,
+          students: group.students
+            .filter((student) =>
+              (!normalized || student.name.toLowerCase().includes(normalized) ||
+                (student.admission_number ?? "").toLowerCase().includes(normalized)) &&
+              (accountFilter === "all" || (accountFilter === "linked" ? !!student.profile_id : !student.profile_id)),
+            )
+            .sort((a, b) => sortBy === "name"
+              ? a.name.localeCompare(b.name)
+              : (a.admission_number ?? "").localeCompare(b.admission_number ?? "")),
         }))
         .filter((group) => group.students.length),
-    [classFilter, groups, normalized],
+    [accountFilter, classFilter, groups, normalized, sortBy],
   );
   const total = groups.reduce((sum, group) => sum + group.students.length, 0),
     unclaimed = groups.reduce(
