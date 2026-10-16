@@ -36,5 +36,8 @@ jobs:
         run: node scripts/test-school-life-participation-contract.mjs
       - name: TypeScript check
         run: npm run typecheck
-      - name: Next.js production build
+      - name: Next.js production build (synthetic credentials, no production access)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-publishable-key-no-real-credentials
         run: npm run build
