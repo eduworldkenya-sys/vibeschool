@@ -18,7 +18,9 @@
       "supabase/migrations",
       "supabase/tests",
       ".github/workflows/learner-management-774.yml",
-      "docs/engineering/learner-management"
+      "docs/engineering/learner-management",
+      "scripts/test-teacher-pilot-task4-contract.mjs",
+      "scripts/test-class-operating-system-contract.mjs"
     ],
     "acquiredAt": "2026-10-16T16:29:57.411Z",
     "releasedAt": null

@@ -37,7 +37,9 @@
       "supabase/migrations",
       "supabase/tests",
       ".github/workflows/learner-management-774.yml",
-      "docs/engineering/learner-management"
+      "docs/engineering/learner-management",
+      "scripts/test-teacher-pilot-task4-contract.mjs",
+      "scripts/test-class-operating-system-contract.mjs"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -377,7 +379,7 @@
   "state": "MISSION",
   "learningClosure": false,
   "createdAt": "2026-10-16T16:29:57.317Z",
-  "updatedAt": "2026-10-16T16:33:57.112Z",
+  "updatedAt": "2026-10-16T16:40:09.960Z",
   "journalPath": ".cyborg/journal/CYBORG-20261016162957-291eff.ndjson",
   "activation": {
     "runtime": false,
@@ -386,5 +388,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "19f47af79c66a351330e0db10ba0a5bf35f852df5e372ae89b30b51201c305ac"
+  "lastJournalHash": "fb06ff45496e9817038402e91eb83d78ae63b63baa0917da44801ebb04066326"
 }

@@ -3,6 +3,9 @@ import { readCurrentRoster } from '../lib/classroom/currentRoster.ts';
 const students = Array.from({length:1201}, (_, i) => ({ id: String(i).padStart(5,'0'), name: `Learner ${i}`, admission_number: null, profile_id: null, created_at:'2026-10-16', deleted_at:null }));
 const enrollments = students.map(student => ({school_id:'school-a',class_id:'class-a',student_id:student.id,is_current:true}));
 enrollments.push({school_id:'school-b',class_id:'class-b',student_id:'other-school',is_current:true});
+// Contradictory legacy scope and a separate same-school class are negative controls.
+enrollments.push({school_id:'school-b',class_id:'class-a',student_id:'wrong-school',is_current:true});
+enrollments.push({school_id:'school-a',class_id:'another-class',student_id:students[0].id,is_current:true});
 enrollments.push({school_id:'school-a',class_id:'class-a',student_id:'departed',is_current:false});
 let calls = [];
 function client(identities=students, failTable=null) {
