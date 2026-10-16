@@ -549,7 +549,16 @@ export default function TeacherStudentProgressPage() {
       setExams(examRes.data ?? []);
       setLibraryLoans((libraryLoansRes.data ?? []) as LibraryLoan[]);
       setLibraryBooks((libraryBooksRes.data ?? []) as LibraryBook[]);
-      setSubjects(subjectRes.data ?? []);
+      const evidenceIds = Array.from(new Set(
+        [...(gradebookRes.data ?? []), ...(cbcRes.data ?? []), ...(examRes.data ?? [])]
+          .map((row) => row.subject_id).filter((id): id is string => typeof id === "string")
+      ));
+      const unresolvedIds = evidenceIds.filter((id) => !(subjectRes.data ?? []).some((subject) => subject.id === id));
+      const missingNames = unresolvedIds.length
+        ? await supabase.from("subjects").select("id,name").in("id", unresolvedIds)
+        : { data: [], error: null };
+      if (missingNames.error) throw missingNames.error;
+      setSubjects([...(subjectRes.data ?? []), ...(missingNames.data ?? [])]);
       const loadedEvents = (eventsRes.data ?? []) as TeacherEvent[];
       setTeacherEvents(loadedEvents);
       const nextDrafts = Object.fromEntries(
