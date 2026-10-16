@@ -29,6 +29,7 @@ type Context = {
     stream: string | null;
     subject_id: string;
     subject_name: string;
+    is_class_teacher: boolean;
   }>;
 };
 type Student = {
@@ -52,7 +53,8 @@ export default function StudentsPage() {
     [loading, setLoading] = useState(true),
     [error, setError] = useState<string | null>(null),
     [query, setQuery] = useState(""),
-    [classFilter, setClassFilter] = useState("all");
+    [classFilter, setClassFilter] = useState("all"),
+    [showAddClasses, setShowAddClasses] = useState(false);
   const loadContext = useCallback(async (requestedSchoolId?: string | null) => {
     const { data, error: e } = await supabase.rpc(
       "teacher_get_operating_context",
@@ -177,6 +179,25 @@ export default function StudentsPage() {
       setLoading(false);
     }
   }
+  const manageableClasses = Array.from(
+    new Map((context?.classes ?? [])
+      .filter((item) => item.is_class_teacher)
+      .map((item) => [item.class_id, item] as const)).values()
+  );
+  const addLearnerInClass = (classId: string) => {
+    if (!context?.school_id || !manageableClasses.some((item) => item.class_id === classId)) {
+      setError("Only an assigned class teacher can add learners to that class.");
+      return;
+    }
+    setShowAddClasses(false);
+    router.push(`/teacher/onboarding/students?school_id=${encodeURIComponent(context.school_id)}&class_id=${encodeURIComponent(classId)}`);
+  };
+  const openAddLearner = () => {
+    const chosen = manageableClasses.find((item) => item.class_id === classFilter);
+    if (chosen) return addLearnerInClass(chosen.class_id);
+    if (manageableClasses.length === 1) return addLearnerInClass(manageableClasses[0].class_id);
+    setShowAddClasses(true);
+  };
   const normalized = query.trim().toLowerCase();
   const filtered = useMemo(
     () =>
@@ -217,7 +238,8 @@ export default function StudentsPage() {
         </div>
         <button
           className={styles.addButton}
-          onClick={() => router.push("/teacher/onboarding/students")}
+          onClick={openAddLearner}
+          disabled={loading || !context?.school_id || manageableClasses.length === 0}
           aria-label="Add learner"
         >
           <Plus size={19} />
@@ -318,7 +340,7 @@ export default function StudentsPage() {
           icon={<UsersRound />}
           title="No learners yet"
           action="Add learner"
-          onAction={() => router.push("/teacher/onboarding/students")}
+          onAction={openAddLearner}
         />
       ) : !filtered.length ? (
         <EmptyState
