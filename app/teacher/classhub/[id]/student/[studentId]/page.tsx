@@ -481,46 +481,9 @@ export default function TeacherStudentProgressPage() {
           .eq("teacher_id", auth.user.id)
           .order("due_date", { ascending: false })
           .limit(80),
-        subjectIds.length
-          ? supabase
-              .from("assessment_gradebook_entries")
-              .select(
-                "assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at",
-              )
-              .eq("school_id", ctx.school_id)
-              .eq("class_id", classId)
-              .eq("student_id", studentId)
-              .eq("teacher_id", auth.user.id)
-              .in("subject_id", subjectIds)
-              .order("released_at", { ascending: false })
-              .limit(80)
-          : Promise.resolve({ data: [], error: null }),
-        subjectIds.length
-          ? supabase
-              .from("cbc_assessments")
-              .select(
-                "id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at",
-              )
-              .eq("school_id", ctx.school_id)
-              .eq("class_id", classId)
-              .eq("student_id", studentId)
-              .eq("teacher_id", auth.user.id)
-              .in("subject_id", subjectIds)
-              .order("created_at", { ascending: false })
-              .limit(80)
-          : Promise.resolve({ data: [], error: null }),
-        subjectIds.length
-          ? supabase
-              .from("exam_results")
-              .select("id,exam_id,subject_id,marks,max_marks,result_state,is_absent,created_at")
-              .eq("school_id", ctx.school_id)
-              .eq("class_id", classId)
-              .eq("student_id", studentId)
-              .eq("teacher_id", auth.user.id)
-              .in("subject_id", subjectIds)
-              .order("created_at", { ascending: false })
-              .limit(80)
-          : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? gradebookQuery : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? cbcQuery : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? examQuery : Promise.resolve({ data: [], error: null }),
         subjectIds.length
           ? supabase.from("subjects").select("id,name").in("id", subjectIds)
           : Promise.resolve({ data: [], error: null }),
