@@ -198,6 +198,14 @@ export default function StudentsPage() {
     if (manageableClasses.length === 1) return addLearnerInClass(manageableClasses[0].class_id);
     setShowAddClasses(true);
   };
+  const learnerProfileHref = (classId: string, learnerId: string) => {
+    const assignments = (context?.classes ?? []).filter((item) => item.class_id === classId);
+    const scopedSubjectId = assignments.some((item) => item.is_class_teacher)
+      ? null
+      : assignments[0]?.subject_id;
+    const suffix = scopedSubjectId ? `?subjectId=${encodeURIComponent(scopedSubjectId)}` : "";
+    return `/teacher/classhub/${classId}/student/${learnerId}${suffix}`;
+  };
   const normalized = query.trim().toLowerCase();
   const filtered = useMemo(
     () =>
@@ -380,7 +388,7 @@ export default function StudentsPage() {
                     key={student.id}
                     onClick={() =>
                       router.push(
-                        `/teacher/classhub/${group.id}/student/${student.id}`,
+                        learnerProfileHref(group.id, student.id),
                       )
                     }
                     className={styles.learnerRow}
