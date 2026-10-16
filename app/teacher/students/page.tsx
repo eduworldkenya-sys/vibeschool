@@ -12,6 +12,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { readCurrentRoster } from "@/lib/classroom/currentRoster";
 import styles from "@/components/teacher/LearnerExperience.module.css";
 
 type Context = {
@@ -29,6 +30,7 @@ type Context = {
     stream: string | null;
     subject_id: string;
     subject_name: string;
+    is_class_teacher: boolean;
   }>;
 };
 type Student = {
@@ -52,7 +54,11 @@ export default function StudentsPage() {
     [loading, setLoading] = useState(true),
     [error, setError] = useState<string | null>(null),
     [query, setQuery] = useState(""),
-    [classFilter, setClassFilter] = useState("all");
+    [classFilter, setClassFilter] = useState("all"),
+    [showAddClasses, setShowAddClasses] = useState(false),
+    [showFilters, setShowFilters] = useState(false),
+    [accountFilter, setAccountFilter] = useState<"all" | "linked" | "unlinked">("all"),
+    [sortBy, setSortBy] = useState<"name" | "admission">("name");
   const loadContext = useCallback(async (requestedSchoolId?: string | null) => {
     const { data, error: e } = await supabase.rpc(
       "teacher_get_operating_context",
@@ -80,45 +86,12 @@ export default function StudentsPage() {
       classMap.set(a.class_id, current);
     }
     const classIds = Array.from(classMap.keys());
-    const { data: enrolments, error: rosterError } = await supabase
-      .from("student_classes")
-      .select("class_id,student_id")
-      .eq("school_id", ctx.school_id)
-      .eq("is_current", true)
-      .in("class_id", classIds);
-    if (rosterError) throw rosterError;
-    const studentIds = Array.from(
-      new Set((enrolments ?? []).map((row) => row.student_id)),
-    );
-    const { data: studentRows, error: studentError } = studentIds.length
-      ? await supabase
-          .from("students")
-          .select("id,name,admission_number,profile_id,deleted_at")
-          .in("id", studentIds)
-          .is("deleted_at", null)
-      : { data: [], error: null };
-    if (studentError) throw studentError;
-    const byId = new Map<string, Student>(
-      (studentRows ?? []).map(
-        (s) =>
-          [
-            s.id,
-            {
-              id: s.id,
-              name: s.name,
-              admission_number: s.admission_number ?? null,
-              profile_id: s.profile_id ?? null,
-            },
-          ] as const,
-      ),
-    );
+    const roster = await readCurrentRoster(supabase, ctx.school_id, classIds);
     const grouped = new Map<string, Student[]>();
-    for (const row of enrolments ?? []) {
-      const student = byId.get(row.student_id);
-      if (!student) continue;
-      const list = grouped.get(row.class_id) ?? [];
-      if (!list.some((item) => item.id === student.id)) list.push(student);
-      grouped.set(row.class_id, list);
+    for (const { classId, learner } of roster) {
+      const list = grouped.get(classId) ?? [];
+      list.push(learner);
+      grouped.set(classId, list);
     }
     setGroups(
       classIds.map((id) => {
@@ -177,6 +150,33 @@ export default function StudentsPage() {
       setLoading(false);
     }
   }
+  const manageableClasses = Array.from(
+    new Map((context?.classes ?? [])
+      .filter((item) => item.is_class_teacher)
+      .map((item) => [item.class_id, item] as const)).values()
+  );
+  const addLearnerInClass = (classId: string) => {
+    if (!context?.school_id || !manageableClasses.some((item) => item.class_id === classId)) {
+      setError("Only an assigned class teacher can add learners to that class.");
+      return;
+    }
+    setShowAddClasses(false);
+    router.push(`/teacher/onboarding/students?school_id=${encodeURIComponent(context.school_id)}&class_id=${encodeURIComponent(classId)}`);
+  };
+  const openAddLearner = () => {
+    const chosen = manageableClasses.find((item) => item.class_id === classFilter);
+    if (chosen) return addLearnerInClass(chosen.class_id);
+    if (manageableClasses.length === 1) return addLearnerInClass(manageableClasses[0].class_id);
+    setShowAddClasses(true);
+  };
+  const learnerProfileHref = (classId: string, learnerId: string) => {
+    const assignments = (context?.classes ?? []).filter((item) => item.class_id === classId);
+    const scopedSubjectId = assignments.some((item) => item.is_class_teacher)
+      ? null
+      : assignments[0]?.subject_id;
+    const suffix = scopedSubjectId ? `?subjectId=${encodeURIComponent(scopedSubjectId)}` : "";
+    return `/teacher/classhub/${classId}/student/${learnerId}${suffix}`;
+  };
   const normalized = query.trim().toLowerCase();
   const filtered = useMemo(
     () =>
@@ -184,25 +184,24 @@ export default function StudentsPage() {
         .filter((group) => classFilter === "all" || group.id === classFilter)
         .map((group) => ({
           ...group,
-          students: normalized
-            ? group.students.filter(
-                (student) =>
-                  student.name.toLowerCase().includes(normalized) ||
-                  (student.admission_number ?? "")
-                    .toLowerCase()
-                    .includes(normalized),
-              )
-            : group.students,
+          students: group.students
+            .filter((student) =>
+              (!normalized || student.name.toLowerCase().includes(normalized) ||
+                (student.admission_number ?? "").toLowerCase().includes(normalized)) &&
+              (accountFilter === "all" || (accountFilter === "linked" ? !!student.profile_id : !student.profile_id)),
+            )
+            .sort((a, b) => sortBy === "name"
+              ? a.name.localeCompare(b.name)
+              : (a.admission_number ?? "").localeCompare(b.admission_number ?? "")),
         }))
         .filter((group) => group.students.length),
-    [classFilter, groups, normalized],
+    [accountFilter, classFilter, groups, normalized, sortBy],
   );
-  const total = groups.reduce((sum, group) => sum + group.students.length, 0),
-    unclaimed = groups.reduce(
-      (sum, group) =>
-        sum + group.students.filter((student) => !student.profile_id).length,
-      0,
-    ),
+  const distinctLearners = new Map(groups.flatMap(
+    (group) => group.students.map((student) => [student.id, student] as const),
+  ));
+  const total = distinctLearners.size,
+    unclaimed = [...distinctLearners.values()].filter((student) => !student.profile_id).length,
     activeSchool =
       context?.schools.find((s) => s.id === context.school_id)?.name ??
       "School";
@@ -217,13 +216,25 @@ export default function StudentsPage() {
         </div>
         <button
           className={styles.addButton}
-          onClick={() => router.push("/teacher/onboarding/students")}
+          onClick={openAddLearner}
+          disabled={loading || !context?.school_id || manageableClasses.length === 0}
           aria-label="Add learner"
         >
           <Plus size={19} />
           <span>Add</span>
         </button>
       </header>
+      {showAddClasses && manageableClasses.length > 1 && (
+        <div role="group" aria-label="Choose a class" style={{ padding: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <strong style={{ width: "100%" }}>Add learner to which class?</strong>
+          {manageableClasses.map((item) => (
+            <button key={item.class_id} type="button" onClick={() => addLearnerInClass(item.class_id)}>
+              {item.class_name}{item.stream ? ` ${item.stream}` : ""}
+            </button>
+          ))}
+          <button type="button" onClick={() => setShowAddClasses(false)}>Cancel</button>
+        </div>
+      )}
       <section className={styles.insightStrip} aria-label="Learner summary">
         <div>
           <UsersRound size={18} />
@@ -233,12 +244,12 @@ export default function StudentsPage() {
         <div>
           <UserRoundCheck size={18} />
           <strong>{total - unclaimed}</strong>
-          <span>Connected</span>
+          <span>Account linked</span>
         </div>
         <div>
           <span className={unclaimed ? styles.attentionDot : styles.goodDot} />
           <strong>{unclaimed}</strong>
-          <span>To link</span>
+          <span>Not linked</span>
         </div>
       </section>
       <div className={styles.searchBar}>
@@ -250,8 +261,24 @@ export default function StudentsPage() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <SlidersHorizontal size={17} aria-hidden="true" />
+        <button type="button" aria-label="Show learner filters" aria-expanded={showFilters}
+          onClick={() => setShowFilters((shown) => !shown)}
+          style={{ border: 0, background: "transparent", display: "inline-flex", alignItems: "center", padding: 6 }}>
+          <SlidersHorizontal size={17} aria-hidden="true" />
+        </button>
       </div>
+      {showFilters && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, padding: "8px 0" }}>
+          <label>Account <select aria-label="Filter learner account link status" value={accountFilter}
+            onChange={(event) => setAccountFilter(event.target.value as "all" | "linked" | "unlinked")}>
+            <option value="all">All</option><option value="linked">Linked</option><option value="unlinked">Not linked</option>
+          </select></label>
+          <label>Sort <select aria-label="Sort learner list" value={sortBy}
+            onChange={(event) => setSortBy(event.target.value as "name" | "admission")}>
+            <option value="name">Name</option><option value="admission">Admission number</option>
+          </select></label>
+        </div>
+      )}
       {groups.length > 1 && (
         <div className={styles.classChips} aria-label="Filter by class">
           <button
@@ -318,14 +345,14 @@ export default function StudentsPage() {
           icon={<UsersRound />}
           title="No learners yet"
           action="Add learner"
-          onAction={() => router.push("/teacher/onboarding/students")}
+          onAction={openAddLearner}
         />
       ) : !filtered.length ? (
         <EmptyState
           icon={<Search />}
           title="No match"
           action="Clear"
-          onAction={() => setQuery("")}
+          onAction={() => { setQuery(""); setClassFilter("all"); setAccountFilter("all"); }}
         />
       ) : (
         <div className={styles.roster}>
@@ -347,7 +374,7 @@ export default function StudentsPage() {
                     key={student.id}
                     onClick={() =>
                       router.push(
-                        `/teacher/classhub/${group.id}/student/${student.id}`,
+                        learnerProfileHref(group.id, student.id),
                       )
                     }
                     className={styles.learnerRow}

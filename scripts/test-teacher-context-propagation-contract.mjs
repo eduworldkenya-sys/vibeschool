@@ -31,7 +31,7 @@ assert.match(lessonContext, /from\('students'\)[\s\S]*?\.in\('id', studentIds\)/
 assert.doesNotMatch(lessonContext, /student_id,students\(/)
 
 assert.match(learnerWorkspace, /from\("student_classes"\)[\s\S]*?\.select\("student_id"\)[\s\S]*?\.eq\("school_id", ctx\.school_id\)[\s\S]*?\.eq\("class_id", classId\)[\s\S]*?\.eq\("student_id", studentId\)[\s\S]*?\.eq\("is_current", true\)/)
-assert.match(learnerWorkspace, /from\("students"\)[\s\S]*?\.select\("id,name,admission_number,profile_id,deleted_at"\)[\s\S]*?\.eq\("id", studentId\)[\s\S]*?\.is\("deleted_at", null\)/)
+assert.match(learnerWorkspace, /from\("students"\)[\s\S]*?\.select\("id,name,admission_number,profile_id,(?:gender,date_of_birth,)?deleted_at"\)[\s\S]*?\.eq\("id", studentId\)[\s\S]*?\.is\("deleted_at", null\)/)
 assert.doesNotMatch(learnerWorkspace, /student_id,students\(/)
 
 assert.match(pulse, /from\("student_classes"\)/)

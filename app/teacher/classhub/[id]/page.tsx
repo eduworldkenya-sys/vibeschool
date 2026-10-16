@@ -1,5 +1,7 @@
 "use client";
+import { readCurrentRoster } from '@/lib/classroom/currentRoster'
 import { rosterRows } from '@/lib/classroom/model'
+import { cbcPerformance } from '@/lib/learner-intelligence/cbcPerformance'
 import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 import { Users, ClipboardCheck, Table2, School, TrendingUp, NotebookPen, CalendarDays, UsersRound, ClipboardList, Folder, Ruler, Bell, BookOpen, ArrowUpRight, Award } from 'lucide-react'
@@ -12,7 +14,7 @@ interface Student {
   id:               string
   name:             string
   admission_number: string
-  created_at:       string
+  created_at:       string | null
   profile_id:       string | null
 }
 
@@ -126,7 +128,7 @@ function ClassPageInner() {
   const [joinRequests,   setJoinRequests]   = useState<number>(0)
   const [attendanceRate, setAttendanceRate] = useState<string>('—')
   const [avgScore,       setAvgScore]       = useState<string>('—')
-  const [studentGroups,  setStudentGroups]  = useState<Record<string, { name: string; color: string }>>({})
+  const [studentGroups,  setStudentGroups]  = useState<Record<string, { name: string; color: string }[]>>({})
   const [schoolId,        setSchoolId]        = useState('')
   const [addRequestId,    setAddRequestId]    = useState('')
   const [showBulk,        setShowBulk]        = useState(false)
@@ -171,7 +173,7 @@ function ClassPageInner() {
     if (isSubject && subjectId) assessmentQuery = assessmentQuery.eq('subject_id', subjectId)
 
     const [enrollmentRes, requestsRes, attRes, assessRes, grpRes] = await Promise.all([
-      supabase.from('student_classes').select('student_id').eq('school_id', activeSchoolId).eq('class_id', classId).eq('is_current', true),
+      readCurrentRoster(supabase, activeSchoolId, [classId]).then(data => ({ data, error: null })).catch((error: unknown) => ({ data: [], error })),
       supabase.from('class_join_requests').select('id').eq('class_id', classId).eq('status', 'pending'),
       supabase.from('attendance').select('student_id,status').eq('school_id', activeSchoolId).eq('class_id', classId).eq('date', nairobiDateStr()).is('timetable_slot_id', null),
       assessmentQuery,
@@ -184,22 +186,9 @@ function ClassPageInner() {
       return []
     }
 
-    const studentIds = Array.from(new Set((enrollmentRes.data ?? []).map((row: { student_id: string }) => row.student_id)))
-    let loadedStudents: Student[] = []
-    if (studentIds.length > 0) {
-      const { data: studentRows, error: studentError } = await supabase
-        .from('students')
-        .select('id,name,admission_number,profile_id,created_at')
-        .in('id', studentIds)
-        .is('deleted_at', null)
-        .order('name')
-      if (studentError) {
-        setError('Learner identities could not be loaded. Retry instead of adding duplicate learners.')
-        setLoading(false)
-        return []
-      }
-      loadedStudents = (studentRows ?? []) as Student[]
-    }
+    const loadedStudents: Student[] = enrollmentRes.data.map(({ learner }) => ({
+      ...learner, admission_number: learner.admission_number ?? '',
+    })).sort((a, b) => a.name.localeCompare(b.name))
 
     setStudents(loadedStudents)
     setSelectedIds(prev => new Set([...prev].filter(id => loadedStudents.some(student => student.id === id))))
@@ -267,19 +256,22 @@ function ClassPageInner() {
     setAttentionItems([...attentionMap.values()].filter(item => ids.includes(item.student_id)).slice(0, 12))
     if (attRes.error || assessRes.error || overdueHomeworkRes.error || targetMembers.error || followupRes.error) setError('Some class evidence could not be loaded. Refresh before using these summaries.')
 
-    const PERF_MAP: Record<string, number> = { BE: 1, AE: 2, ME: 3, EE: 4 }
-    const scored = (assessRes.data ?? []).map((row: { performance: string }) => PERF_MAP[row.performance]).filter((value): value is number => value !== undefined)
-    setAvgScore(scored.length > 0 ? (scored.reduce((a,b) => a+b,0) / scored.length).toFixed(1) + '/4' : '—')
+    const cbcObservations = (assessRes.data ?? [])
+      .map((row: { performance: string }) => cbcPerformance(row.performance))
+      .filter((value) => value !== null)
+    setAvgScore(cbcObservations.length > 0
+      ? String(cbcObservations.filter((value) => value.needsSupport).length)
+      : '—')
 
     if (loadedStudents.length > 0) {
       const grpData = grpRes.data ?? []
       const { data: mbrData } = grpData.length
         ? await supabase.from('class_group_members').select('student_id,group_id').in('group_id', grpData.map((group: { id: string }) => group.id))
         : { data: [] }
-      const nextGroups: Record<string, { name: string; color: string }> = {}
+      const nextGroups: Record<string, { name: string; color: string }[]> = {}
       for (const member of mbrData ?? []) {
         const group = grpData.find((candidate: { id: string }) => candidate.id === member.group_id) as { id: string; name: string; color: string } | undefined
-        if (group) nextGroups[member.student_id] = { name: group.name, color: group.color }
+        if (group) (nextGroups[member.student_id] ??= []).push({ name: group.name, color: group.color })
       }
       setStudentGroups(nextGroups)
     } else {
@@ -519,7 +511,7 @@ function ClassPageInner() {
         ) : (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}><div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{isSubject ? <BookOpen size={25}/> : <School size={25}/>}</div><div><h1 style={{ fontSize: 22, fontWeight: 750, color: C.textPrimary, margin: 0, lineHeight: 1.2 }}>{isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}</h1><p style={{ fontSize: 13, color: C.textMuted, margin: '3px 0 0' }}>{isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}</p></div></div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>{[{ label: 'Students', value: students.length },{ label: 'Claimed', value: students.filter(s => s.profile_id).length },{ label: 'Avg Score', value: avgScore }].map(s => <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}</div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>{[{ label: 'Students', value: students.length },{ label: 'Claimed', value: students.filter(s => s.profile_id).length },{ label: 'CBC support', value: avgScore }].map(s => <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}</div>
           </>
         )}
       </div>
@@ -579,7 +571,7 @@ function ClassPageInner() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 40, height: 40, borderRadius: '50%', background: claimed ? C.accentLight : '#ede9fe', display: 'grid', placeItems: 'center', fontWeight: 800, color: claimed ? '#065f46' : C.dark }}>{student.name.charAt(0).toUpperCase()}</div>
-                        <div><div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{student.name}</div><div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 }}>{student.admission_number && <span style={{ fontSize: 11, color: C.textMuted }}>{student.admission_number}</span>}{studentGroups[student.id] && <span style={{ fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: studentGroups[student.id].color + '22', color: studentGroups[student.id].color }}>{studentGroups[student.id].name}</span>}<span style={{ fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>{claimed ? 'Claimed' : 'Unclaimed'}</span></div></div>
+                        <div><div style={{ fontSize: 14, fontWeight: 800, color: C.textPrimary }}>{student.name}</div><div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 3 }}>{student.admission_number && <span style={{ fontSize: 11, color: C.textMuted }}>{student.admission_number}</span>}{studentGroups[student.id]?.slice(0, 2).map((group, groupIndex) => <span key={groupIndex} style={{ fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: group.color + '22', color: group.color }}>{group.name}</span>)}{(studentGroups[student.id]?.length ?? 0) > 2 && <span style={{ fontSize: 11, color: C.textMuted }}>+{studentGroups[student.id].length - 2} groups</span>}<span style={{ fontSize: 11, fontWeight: 800, padding: '1px 6px', borderRadius: 20, background: claimed ? C.accentLight : '#fef3c7', color: claimed ? '#065f46' : '#92400e' }}>{claimed ? 'Claimed' : 'Unclaimed'}</span></div></div>
                       </div><span>›</span>
                     </div>
                   </button>

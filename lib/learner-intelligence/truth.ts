@@ -1,3 +1,4 @@
+import { cbcPerformance } from "./cbcPerformance";
 export type LearnerAttendanceEvidence = {
   date: string;
   status: string;
@@ -63,7 +64,7 @@ export type LearnerTruthSummary = {
   signals: LearnerSignal[];
 };
 
-const CBC_SUPPORT_LEVELS = new Set(["BE", "AE"]);
+// Support levels use the canonical stored CBC enum, not exam percentages.
 
 function finitePercent(value: number | null) {
   return value !== null && Number.isFinite(value) && value >= 0 && value <= 100;
@@ -156,7 +157,7 @@ export function buildLearnerTruthSummary(input: LearnerTruthInput): LearnerTruth
   }
 
   const cbcSupportGroups = new Map<string, LearnerCbcEvidence[]>();
-  for (const row of input.cbc.filter((item) => CBC_SUPPORT_LEVELS.has(item.performance))) {
+  for (const row of input.cbc.filter((item) => cbcPerformance(item.performance)?.needsSupport === true)) {
     const key = `${row.subject_id}::${row.sub_strand ?? "unspecified"}`;
     const group = cbcSupportGroups.get(key) ?? [];
     group.push(row);
@@ -166,7 +167,7 @@ export function buildLearnerTruthSummary(input: LearnerTruthInput): LearnerTruth
   if (repeatedCbc && repeatedCbc.length >= 2) {
     signals.push({
       id: "repeated_cbc_support",
-      reason: `${repeatedCbc.length} CBC observations on the same curriculum area are at BE/AE. Review teacher evidence before acting.`,
+      reason: `${repeatedCbc.length} CBC observations on the same curriculum area are approaching/below expectations. Review teacher evidence before acting.`,
       evidenceCount: repeatedCbc.length,
       confidence: repeatedCbc.length >= 3 ? "high" : "medium",
     });

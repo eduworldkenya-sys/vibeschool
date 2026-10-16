@@ -13,6 +13,7 @@ const must = (condition, message) => {
 
 const migration = read('supabase/migrations/20261002103000_class_operating_system_foundation.sql')
 const classHub = read('app/teacher/classhub/[id]/page.tsx')
+const sharedRoster = read('lib/classroom/currentRoster.ts')
 const groups = read('app/teacher/classhub/[id]/groups/page.tsx')
 const learner = read('app/teacher/classhub/[id]/student/[studentId]/page.tsx')
 const homework = read('app/teacher/classhub/[id]/homework/page.tsx')
@@ -39,7 +40,7 @@ must(migration.includes('revoke all on function public.teacher_add_student_v2'),
 
 must(classHub.includes("teacher_get_operating_context"), 'ClassHub uses canonical teacher operating context')
 must(!classHub.includes(".from('teacher_classes')\n        .select('class_id')"), 'ClassHub no longer uses legacy direct assignment authorization')
-must(classHub.includes(".eq('school_id', activeSchoolId).eq('class_id', classId).eq('is_current', true)"), 'ClassHub roster is current enrollment scoped to active school and class')
+must(classHub.includes("readCurrentRoster(supabase, activeSchoolId, [classId])") && sharedRoster.includes('.eq("school_id", schoolId).eq("is_current", true).in("class_id", classIds)'), 'ClassHub roster is current enrollment scoped to active school and class')
 must(classHub.includes(".eq('date', nairobiDateStr())"), 'ClassHub attendance summary uses canonical date column')
 must(!classHub.includes(".gte('timestamp'"), 'ClassHub never queries nonexistent attendance timestamp')
 must(classHub.includes('teacher_add_student_v2'), 'ClassHub single-add uses idempotent optional-admission provisioning')
@@ -72,7 +73,7 @@ must(learner.includes('saveTeacherEvent'), 'learner workspace can persist factua
 must(learner.includes('Save private note') && learner.includes('Save recognition') && learner.includes('Add follow-up'), 'learner workspace exposes separate factual notes, recognition and follow-up actions')
 must(/teacherEvents(?:\.filter\([^\n]+\))?\.map/.test(learner), 'learner story timeline includes teacher actions')
 must(learner.includes('buildLearnerTruthSummary'), 'learner intelligence remains evidence-backed')
-must(learner.includes('truth.evidenceState === "sufficient"') && learner.includes('Not enough learning records yet'), 'learner workspace gates its learning-picture claim on canonical evidence sufficiency')
+must(learner.includes('truth.evidenceState === "sufficient"') && learner.includes('More assessment evidence needed') && learner.includes('Assessment evidence available'), 'learner workspace gates its learning-picture claim on canonical evidence sufficiency')
 must(migration.includes('teacher_snapshot_class_group'), 'smart list assignment snapshots historical membership')
 must(migration.includes('classroom_games') && migration.includes('classroom_game_teams'), 'classroom game scoring reuses canonical class groups')
 must(migration.includes('teacher_adjust_game_score'), 'classroom game scoring uses a bounded server-authoritative RPC')
