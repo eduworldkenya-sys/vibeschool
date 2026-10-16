@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
+import ClassLeadershipPanel from "@/components/teacher/ClassLeadershipPanel";
 import type { Json } from "@/lib/database.types";
 
 type ContextClass = {
@@ -72,6 +73,7 @@ function GroupsInner() {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [resolved, setResolved] = useState<Record<string, ResolvedMember[]>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [leadershipGroupId, setLeadershipGroupId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -528,6 +530,13 @@ function GroupsInner() {
             </div>
             {group.mode === "smart" && <button onClick={() => resolveSmart(group)} style={{ marginTop: 10, minHeight: 40, border: "1px solid #c7d2fe", background: "#eef2ff", color: "#3730a3", borderRadius: 10, padding: "0 12px", fontWeight: 750 }}>Refresh smart list</button>}
             <button onClick={() => void assignGroupHomework(group)} disabled={saving} style={{ marginTop: 10, marginLeft: 6, minHeight: 40, border: 0, background: "#0f766e", color: "#fff", borderRadius: 10, padding: "0 12px", fontWeight: 750 }}>Assign homework</button>
+            {group.mode !== "smart" && (!group.expires_at || Date.parse(group.expires_at) > Date.now()) && (
+              <button type="button" aria-expanded={leadershipGroupId === group.id}
+                onClick={() => setLeadershipGroupId(current => current === group.id ? null : group.id)}
+                style={{ marginTop: 10, marginLeft: 6, minHeight: 40, border: "1px solid #bbf7d0", background: "#ecfdf5", color: "#065f46", borderRadius: 10, padding: "0 12px", fontWeight: 750 }}>
+                {leadershipGroupId === group.id ? "Close leadership" : "Group leadership"}
+              </button>
+            )}
             <div style={{ marginTop: 10, display: "grid", gap: 6 }}>
               {(live ?? []).map(item => <div key={item.student_id} style={{ background: "var(--teacher-canvas, #f5f6f2)", borderRadius: 10, padding: 9 }}>
                 <div style={{ fontSize: 12, fontWeight: 800 }}>{studentById.get(item.student_id)?.name ?? "Learner"}</div>
@@ -536,6 +545,13 @@ function GroupsInner() {
               {group.mode === "smart" && !resolved[group.id] && <div style={{ fontSize: 11, color: C.textMuted }}>Refresh to see current rule-based members.</div>}
               {live && live.length === 0 && <div style={{ fontSize: 11, color: C.textMuted }}>No current members.</div>}
             </div>
+            {leadershipGroupId === group.id && group.mode !== "smart" && (
+              <div style={{ marginTop: 12 }}>
+                <ClassLeadershipPanel classId={classId} scope="group" group={{ id: group.id, name: group.name }}
+                  learners={savedIds.map(id => studentById.get(id)).filter((learner): learner is Student => Boolean(learner)).map(learner => ({ id: learner.id, name: learner.name }))}
+                  canManage={Boolean(group.subject_id ? assignment?.subject_id === group.subject_id : assignment?.is_class_teacher)} />
+              </div>
+            )}
           </article>;
         })}
         {groups.length === 0 && <div style={{ background: "#fff", borderRadius: 16, padding: 20, color: C.textMuted, textAlign: "center" }}>No groups or lists yet. Select learners above or create a smart list.</div>}

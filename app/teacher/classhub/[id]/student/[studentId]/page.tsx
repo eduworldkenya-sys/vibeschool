@@ -19,6 +19,7 @@ import {
 import LearnerIdentityFields from "@/components/teacher/LearnerIdentityFields";
 import LearnerDetailSheet from "@/components/teacher/LearnerDetailSheet";
 import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
+import { readContextDrafts, saveContextDraft, removeContextDraft, type DraftScope } from "@/lib/classroom/contextDrafts";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
@@ -355,6 +356,9 @@ export default function TeacherStudentProgressPage() {
   const contextRevisions = useRef<Partial<Record<LearnerContextKey, string>>>({});
   const contextDraftBases = useRef<Partial<Record<LearnerContextKey, string | null>>>({});
   const contextScope = useRef("");
+  const contextDraftScope = useRef<DraftScope | null>(null);
+  const hydratedDraftScope = useRef("");
+  const [draftRecoveryMessage, setDraftRecoveryMessage] = useState("");
   const [contextSaved, setContextSaved] = useState<Record<LearnerContextKey, string>>(
     () => Object.fromEntries(learnerContextFields.map((field) => [field.key, ""])) as Record<LearnerContextKey, string>,
   );
@@ -439,6 +443,23 @@ export default function TeacherStudentProgressPage() {
           "This learner identity could not be loaded. Retry instead of treating the enrolment as missing.",
         );
       setStudent(learner);
+      if (!requestedSubjectId && hydratedDraftScope.current !== scope) {
+        const draftScope = { actorId: auth.user.id, schoolId: ctx.school_id, classId, studentId };
+        contextDraftScope.current = draftScope;
+        hydratedDraftScope.current = scope;
+        const recovered = readContextDrafts(draftScope);
+        for (const field of learnerContextFields) {
+          const draft = recovered.entries[field.key];
+          if (!draft) continue;
+          contextDirtyKeys.current.add(field.key);
+          contextDraftBases.current[field.key] = draft.baseId;
+          contextRequestIds.current[field.key] = draft.requestId;
+          setContextDrafts(current => ({ ...current, [field.key]: draft.value }));
+        }
+        setDraftRecoveryMessage(Object.keys(recovered.entries).length
+          ? "Unsaved notes recovered for this learner. Review them before saving."
+          : recovered.available ? "" : "Draft recovery is unavailable in this browser. Keep this page open until your changes are saved.");
+      }
 
       const subjectIds = requestedSubjectId
         ? [requestedSubjectId]
@@ -741,6 +762,8 @@ export default function TeacherStudentProgressPage() {
           (existing.note ?? "") === value
         ) {
           contextDirtyKeys.current.delete(key);
+          if (contextDraftScope.current) removeContextDraft(contextDraftScope.current, key);
+          if (!contextDirtyKeys.current.size) setDraftRecoveryMessage("");
           contextRequestIds.current[key] = crypto.randomUUID();
           setContextMessage(
             "Saved. The earlier version remains in the learner history.",
@@ -753,6 +776,8 @@ export default function TeacherStudentProgressPage() {
         }
       } else {
         contextDirtyKeys.current.delete(key);
+        if (contextDraftScope.current) removeContextDraft(contextDraftScope.current, key);
+        if (!contextDirtyKeys.current.size) setDraftRecoveryMessage("");
         contextRequestIds.current[key] = crypto.randomUUID();
         setContextMessage(
           "Saved. The earlier version remains in the learner history.",
@@ -780,6 +805,15 @@ export default function TeacherStudentProgressPage() {
   useEffect(() => {
     void load();
   }, [load]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!contextDirtyKeys.current.size) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
 
   const subjectNames = useMemo(
     () => new Map(subjects.map((item) => [item.id, item.name])),
@@ -1670,6 +1704,7 @@ export default function TeacherStudentProgressPage() {
             <p>Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records
               and appear automatically elsewhere. These notes are visible only to the class teacher.</p>
           </details>
+          {draftRecoveryMessage && <p role="status" style={{ margin: 0, fontSize: 12, color: "#627168" }}>{draftRecoveryMessage}</p>}
           <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
           <div style={{ background: "#fff", border: "1px solid #e1e7e3", borderRadius: 12, overflow: "hidden" }}>
           {learnerContextFields.map((field) => (
@@ -1691,6 +1726,10 @@ export default function TeacherStudentProgressPage() {
               <button type="button" disabled={contextSaving !== null} onClick={async () => {
                 await load(false);
                 contextDraftBases.current[field.key] = contextRevisions.current[field.key] ?? null;
+                const draftScope = contextDraftScope.current;
+                if (draftScope && contextDirtyKeys.current.has(field.key)) {
+                  saveContextDraft(draftScope, field.key, { value: contextDrafts[field.key], baseId: contextDraftBases.current[field.key] ?? null, requestId: contextRequestIds.current[field.key], updatedAt: Date.now() });
+                }
               }}>Refresh saved values</button>
               <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 12 }}>Currently saved: {contextSaved[field.key] || "Not recorded yet"}</p>
               <label
@@ -1717,6 +1756,10 @@ export default function TeacherStudentProgressPage() {
                   if (!contextDirtyKeys.current.has(field.key)) contextDraftBases.current[field.key] = contextRevisions.current[field.key] ?? null;
                   contextDirtyKeys.current.add(field.key);
                   contextRequestIds.current[field.key] = crypto.randomUUID();
+                  const draftScope = contextDraftScope.current;
+                  if (draftScope && !saveContextDraft(draftScope, field.key, { value: event.target.value, baseId: contextDraftBases.current[field.key] ?? null, requestId: contextRequestIds.current[field.key], updatedAt: Date.now() })) {
+                    setDraftRecoveryMessage("Draft recovery is unavailable in this browser. Keep this page open until your changes are saved.");
+                  }
                   setContextDrafts((current) => ({
                     ...current,
                     [field.key]: event.target.value,
@@ -1753,6 +1796,16 @@ export default function TeacherStudentProgressPage() {
                 >
                   {contextDrafts[field.key].length}/1200
                 </span>
+                {contextDirtyKeys.current.has(field.key) && <button type="button" disabled={contextSaving !== null} onClick={() => {
+                  const cleared = !contextDraftScope.current || removeContextDraft(contextDraftScope.current, field.key);
+                  if (!cleared) { setDraftRecoveryMessage("The recovered draft could not be cleared. Keep this page open and retry."); return; }
+                  contextDirtyKeys.current.delete(field.key);
+                  delete contextDraftBases.current[field.key];
+                  contextRequestIds.current[field.key] = crypto.randomUUID();
+                  setContextDrafts(current => ({ ...current, [field.key]: contextSaved[field.key] }));
+                  if (!contextDirtyKeys.current.size) setDraftRecoveryMessage("");
+                  setContextMessage("Unsaved changes discarded. Saved notes are unchanged.");
+                }}>Discard changes</button>}
                 <button
                   type="button"
                   disabled={contextSaving !== null}
@@ -2263,7 +2316,7 @@ export default function TeacherStudentProgressPage() {
         {panel === "all" && <>{(["groups", ...(!requestedSubjectId ? ["roles", "activities", "resources"] as const : []), "recognition", "notes"] as const).map(kind =>
           <button key={kind} type="button" onClick={() => setPanel(kind)}>{kind.charAt(0).toUpperCase() + kind.slice(1)}</button>)}</>}
         {(panel === "groups" || panel === "roles" || panel === "resources" || panel === "activities") &&
-          <LearnerRelatedRecords kind={panel} classId={classId} studentId={studentId} subjectId={requestedSubjectId} onBusyChange={setPanelBusy}/>}
+          <LearnerRelatedRecords kind={panel} classId={classId} studentId={studentId} learnerName={student.name} subjectId={requestedSubjectId} onBusyChange={setPanelBusy}/>}
         {(panel === "notes" || panel === "recognition") && <>
           <p>{panel === "recognition" ? "Record a specific achievement or effort." : "Private observations and learner follow-ups."}</p>
           <label>{panel === "recognition" ? "Recognition details" : "Factual note"}<textarea rows={3} maxLength={2000} disabled={eventSaving} value={activeEventNote} onChange={event => panel === "recognition" ? setRecognitionNote(event.target.value) : setEventNote(event.target.value)}/></label>

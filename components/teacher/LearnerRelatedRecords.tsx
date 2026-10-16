@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import ClassLeadershipPanel from "./ClassLeadershipPanel";
+import LearnerLeadershipHistoryPanel from "./LearnerLeadershipHistoryPanel";
 import SchoolLifeParticipation from "./SchoolLifeParticipation";
 
 type Group = { id: string; name: string; mode: string; purpose: string | null; subject_id: string | null; member: boolean; reason: string | null };
@@ -19,8 +21,8 @@ function operations(value: unknown): Operations {
 }
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Nairobi" });
 
-export default function LearnerRelatedRecords({ kind, classId, studentId, subjectId, onBusyChange }: {
-  kind: "groups" | "roles" | "resources" | "activities"; classId: string; studentId: string; subjectId: string | null;
+export default function LearnerRelatedRecords({ kind, classId, studentId, subjectId, learnerName, onBusyChange }: {
+  kind: "groups" | "roles" | "resources" | "activities"; classId: string; studentId: string; subjectId: string | null; learnerName: string;
   onBusyChange: (busy: boolean) => void;
 }) {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -99,6 +101,9 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
       <Link href={`/teacher/classhub/${classId}/groups?selected=${studentId}${subjectId ? `&subjectId=${encodeURIComponent(subjectId)}` : ""}`}>Open full Groups workspace</Link>
     </>}
     {!loading && !error && kind === "roles" && <>
+      <ClassLeadershipPanel classId={classId} scope="class" focusedStudentId={studentId}
+        learners={[{ id: studentId, name: learnerName }]} canManage onBusyChange={onBusyChange}/>
+      <LearnerLeadershipHistoryPanel classId={classId} studentId={studentId}/>
       <h3>Duties and responsibilities</h3>
       {data.duties.filter(duty => duty.members.some(member => member.student_id === studentId)).map(duty => <article key={duty.id}>
         <strong>{duty.title}</strong><p>{duty.starts_on} – {duty.ends_on}</p>

@@ -28,14 +28,14 @@ Status: **NOT CERTIFIED**. This is an implementation checkpoint, not a release o
 - Shared reader: 1,201 learners, bounded identity batches, school/current filters, missing identities and error propagation: PASS. This is client-contract evidence, not a database performance benchmark.
 - Isolated PostgreSQL: exact canonical class-access helper and event RLS, new context trigger/projection and proposed evidence policies: PASS. Includes class/subject/other-school/parent/learner/anon boundaries, disabled/removed teacher, departed learner, stale base, replay conflict and history rewrite denial.
 - Negative control: removing the stale-base comparison makes its regression fail: PASS.
-- Actual component browser suite: 111 assertions at 320/360/390/412/768/1440px, including existing in-place School Life flows, identity conflict, independent About drafts, save/re-enter, retry and focus: PASS on the checkpoint's working content. Synthetic network fixtures are explicit and are not production/RLS proof.
+- Actual component browser suite: 117 assertions (prior checkpoint) at 320/360/390/412/768/1440px, including existing in-place School Life flows, identity conflict, independent About drafts, save/re-enter, retry and focus: PASS on the checkpoint's working content. Synthetic network fixtures are explicit and are not production/RLS proof.
 - TypeScript: PASS. Lint: exit 0 with pre-existing repository warnings. Production build with nonsecret synthetic Supabase configuration: PASS. Any later source change requires affected checks again.
 - Existing production browser session verified the learner list and test learner profile read-only; this does not prove candidate deployment.
 
 ## Unfinished release gates (do not silently drop)
 
 - Reconcile and independently test PR #761 formal leadership and canonical school-library changes; preserve existing resources design. Its three migrations are not deployed. Verify current circulation before considering migration/backfill.
-- Persist/recover unsaved drafts across reload/network loss with scoped cleanup and retained operation/base identities; current About drafts are memory-only.
+- Draft recovery is implemented: actor/school/class/learner-scoped tab storage, 24-hour expiry, original request/base retention, field discard and sign-out cleanup. Storage failure is visible. Complete real authenticated offline/concurrent-tab coverage remains open.
 - Complete term/date windows, provenance, assessment/work/attendance completeness and progressive source loading. A bounded record window must not be presented as lifetime totals.
 - Complete roster presentation/search/filter/bulk parity and authenticated transfer/exit/duplicate lifecycle tests.
 - Measure 50/200/1000 realistic rosters and query plans against declared budgets; fixture pagination is not performance certification.
@@ -67,3 +67,14 @@ Keep application code off main until the new projection and policies pass releas
 Security advisors include anonymous/authenticated execute warnings for `class_group_enforce_scope()` and `teacher_learner_event_enforce_scope()`. Both return `trigger`; PostgreSQL does not permit invoking a trigger function as an ordinary function. Treat these as function-specific hardening follow-ups, not proof of arbitrary data access. Do not bulk-revoke canonical application RPCs. See https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable.
 
 Performance advisors identify missing foreign-key indexes and per-row auth calls on learner/enrollment/evidence/library tables. The new gradebook policy uses an init-plan for user identity; other existing policies and indexes still need measured query-plan review. No mass index/policy changes were made. See https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan.
+
+## 16 October continuation checkpoint
+
+- Previous published candidate `df3abf3f6a4a809f486aa0309c3ce623f1117e5e` passed all 30 GitHub CI workflows. This does not certify the later changes.
+- Recovery implementation is preserved in local commit `b6b56eb5`; reload tests retain the original revision base and retry identity and clear only confirmed/discarded drafts.
+- #761 leadership/library lineage is reconciled into this candidate. Roles uses the same formal appointment ledger as Class Hub; no alternate identity, group or circulation ledger. Three numbered migrations remain unapplied.
+- Security review found missing explicit active-profile checks in library/leadership operations. Added guards for suspended/anonymized actors and direct new-table reads, plus negative SQL tests.
+- Combined TypeScript, interface contracts and isolated library/leadership SQL tests passed. Exact-head CI, independent assurance and all unfinished release gates above remain required. No production writes, deployment or main merge have occurred.
+
+- Continuation browser evidence: 153 assertions at six widths passed, including focused learner appointment, actual term default, lost acknowledgement with retained request ID, duplicate prevention and ended history refresh. Network boundary is synthetic.
+- Fresh read-only production inspection: PostgreSQL 17.6, no appointment/copy tables, zero catalogue titles and borrowings. No backfill is currently required; recheck immediately before any activation.

@@ -20,7 +20,14 @@
       ".github/workflows/learner-management-774.yml",
       "docs/engineering/learner-management",
       "scripts/test-teacher-pilot-task4-contract.mjs",
-      "scripts/test-class-operating-system-contract.mjs"
+      "scripts/test-class-operating-system-contract.mjs",
+      "scripts/test-learner-context-drafts.mjs",
+      "app/admin/resources/page.tsx",
+      "app/admin/reports/students/page.tsx",
+      "docs/engineering/class-life-library",
+      "scripts/test-class-life-library-authority.mjs",
+      "scripts/test-class-life-interface-contract.mjs",
+      ".github/workflows/class-life-library-authority.yml"
     ],
     "acquiredAt": "2026-10-16T16:29:57.411Z",
     "releasedAt": null

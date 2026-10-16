@@ -7,6 +7,8 @@ on:
       - "app/teacher/classhub/**"
       - "lib/learner-intelligence/**"
       - "lib/classroom/currentRoster.ts"
+      - "lib/classroom/contextDrafts.ts"
+      - "scripts/test-learner-context-drafts.mjs"
       - "lib/supabase.ts"
       - "scripts/test-current-roster.mjs"
       - "scripts/test-learner-context-database.mjs"
@@ -33,6 +35,8 @@ jobs:
         run: node --import ./scripts/register-typescript.mjs scripts/test-learner-management-774.mjs
       - name: Learner evidence permissions contract
         run: node scripts/test-learner-rls-774.mjs
+      - name: Scoped unsaved draft recovery and cleanup
+        run: node scripts/test-learner-context-drafts.mjs
       - name: Shared roster pagination and error paths
         run: node scripts/test-current-roster.mjs
       - name: Verify learner revisions and evidence permissions in isolated PostgreSQL

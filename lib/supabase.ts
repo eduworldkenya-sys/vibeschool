@@ -1,3 +1,4 @@
+import { clearLearnerDrafts } from "./classroom/contextDrafts"
 import { createBrowserClient } from '@supabase/ssr'
 import type { Database } from './database.types'
 import { getHQSupabaseClient } from './hq/supabase'
@@ -109,7 +110,12 @@ type LiveSchemaCompatClient = TypedBrowserClient & {
 let client: TypedBrowserClient | null = null
 
 export function getSupabaseClient() {
-  if (!client) client = createSupabaseClient()
+  if (!client) {
+    client = createSupabaseClient()
+    client.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'INITIAL_SESSION' && !session) clearLearnerDrafts()
+    })
+  }
   return client
 }
 
