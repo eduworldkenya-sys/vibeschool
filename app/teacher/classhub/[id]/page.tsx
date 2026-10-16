@@ -127,7 +127,7 @@ function ClassPageInner() {
   const [joinRequests,   setJoinRequests]   = useState<number>(0)
   const [attendanceRate, setAttendanceRate] = useState<string>('—')
   const [avgScore,       setAvgScore]       = useState<string>('—')
-  const [studentGroups,  setStudentGroups]  = useState<Record<string, { name: string; color: string }>>({})
+  const [studentGroups,  setStudentGroups]  = useState<Record<string, { name: string; color: string }[]>>({})
   const [schoolId,        setSchoolId]        = useState('')
   const [addRequestId,    setAddRequestId]    = useState('')
   const [showBulk,        setShowBulk]        = useState(false)
@@ -280,10 +280,10 @@ function ClassPageInner() {
       const { data: mbrData } = grpData.length
         ? await supabase.from('class_group_members').select('student_id,group_id').in('group_id', grpData.map((group: { id: string }) => group.id))
         : { data: [] }
-      const nextGroups: Record<string, { name: string; color: string }> = {}
+      const nextGroups: Record<string, { name: string; color: string }[]> = {}
       for (const member of mbrData ?? []) {
         const group = grpData.find((candidate: { id: string }) => candidate.id === member.group_id) as { id: string; name: string; color: string } | undefined
-        if (group) nextGroups[member.student_id] = { name: group.name, color: group.color }
+        if (group) (nextGroups[member.student_id] ??= []).push({ name: group.name, color: group.color })
       }
       setStudentGroups(nextGroups)
     } else {
