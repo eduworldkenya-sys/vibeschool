@@ -7,6 +7,8 @@ on:
       - "app/teacher/classhub/**"
       - "lib/learner-intelligence/**"
       - "scripts/test-learner-management-774.mjs"
+      - "scripts/test-learner-rls-774.mjs"
+      - "supabase/migrations/20261016163000_learner_evidence_visibility_release_774.sql"
       - ".github/workflows/learner-management-774.yml"
   workflow_dispatch:
 permissions:
@@ -24,6 +26,8 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Learner release-specific regressions
         run: node --import ./scripts/register-typescript.mjs scripts/test-learner-management-774.mjs
+      - name: Learner evidence permissions contract
+        run: node scripts/test-learner-rls-774.mjs
       - name: Canonical learner contract
         run: node scripts/test-canonical-learner-record.mjs
       - name: Teacher context contract
