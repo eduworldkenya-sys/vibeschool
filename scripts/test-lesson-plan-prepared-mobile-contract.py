@@ -87,4 +87,17 @@ require(prepare, "setExistingPlanTarget(target)", "conflict navigation")
 require(prepare, "Open existing lesson", "teacher-facing collision resolution")
 require(prepare, "if (schemeId && !selectedScheme)", "linked Scheme edit preservation")
 
+# Grade 1 English official source is an evidence reference, never a fake
+# verified outcome or an invented Term 3 curriculum assignment.
+hq = (ROOT / "app/hq/curriculum-authority/page.tsx").read_text()
+official_source = "Grade-1-3-English-Activities-Revised-Sept.pdf"
+require(modal, official_source, "Grade 1 in-place Scheme source reference")
+require(modal, "No current-term Scheme lesson is linked", "honest Scheme gap")
+require(modal, "timetableSlotId:slot.id", "preserve dated lesson identity when navigating")
+require(prepare, official_source, "Prepare Ahead official source reference")
+require(prepare, "Official reference only", "no false curriculum readiness")
+require(hq, official_source, "HQ official Grade 1 evidence discovery")
+require(hq, "grade.trim().toLowerCase() === \"grade 1\"", "source provenance is grade-specific")
+require(hq, "owner-reviewed before any outcome promotion", "owner authority retained")
+
 print("PASS: prepared lesson scope, outcome, mobile interaction and draft failure-isolation contracts")

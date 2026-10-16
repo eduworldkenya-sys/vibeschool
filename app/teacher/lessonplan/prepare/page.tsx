@@ -199,6 +199,13 @@ export default function PrepareLessonPage() {
   const selectedScope = scopeOptions.find(option => option.key === scopeKey) ?? null
 
   const selectedScheme = schemeChoices.find(s => s.id === schemeId) ?? null
+  const selectedAssignment = selectedScope
+    ? assignments.find(row => row.class_id === selectedScope.classId && row.subject_id === selectedScope.subjectId)
+    : null
+  const isGrade1English = Boolean(selectedAssignment
+    && /^Grade\s*1$/i.test(selectedAssignment.class_name.trim())
+    && /^English$/i.test(selectedAssignment.subject_name.trim()))
+
 
   useEffect(() => {
     let cancelled = false
@@ -479,7 +486,18 @@ export default function PrepareLessonPage() {
                 ) : schemeLoading ? (
                   <p className="lp-prepare__hint">Checking current-term learning outcomes…</p>
                 ) : schemeError || schemeChoices.length === 0 ? (
-                  <div className="lp-prepare__notice" role="status">{schemeError ?? 'No current-term Scheme item has a canonical learning outcome. Save your work as a draft; curriculum readiness remains incomplete.'}</div>
+                  <div className="lp-prepare__notice" role="status">
+                    {schemeError ?? 'No current-term Scheme item has a verified learning outcome. You can save a draft, but it is not ready to teach.'}
+                    {isGrade1English && (
+                      <div style={{marginTop:9}}>
+                        <a href="https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf"
+                          target="_blank" rel="noopener noreferrer" style={{color:'#087255',fontWeight:760}}>
+                          View revised KICD Grade 1 English design ↗
+                        </a>
+                        <p className="lp-prepare__hint">Official reference only. Its outcomes are not yet verified in VibeSchool or scheduled into this school's Scheme.</p>
+                      </div>
+                    )}
+                  </div>
                 ) : selectedScheme ? (
                   <div className="lp-prepare__notice lp-prepare__notice--subtle">Linked to a current-term Scheme and its canonical learning outcome.</div>
                 ) : <p className="lp-prepare__hint">Choose a verified Scheme item to preserve outcome authority.</p>}
