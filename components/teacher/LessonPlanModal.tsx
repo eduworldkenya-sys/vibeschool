@@ -1538,8 +1538,19 @@ export default function LessonPlanModal({
                       <p>Week {suggestion.week} · Term {suggestion.term}</p>
                       <p>{suggestion.objectives || 'This Scheme item still needs an authoritative learning outcome.'}</p>
                     </>
-                  ) : <p>No current-term Scheme lesson has been found. Keep this plan as a draft until it is linked.</p>}
-                  <button type="button" className="studio-lesson-modal__action" onClick={() => router.push('/teacher/scheme?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate}).toString())}>Open full Scheme →</button>
+                  ) : <>
+                    <p>No current-term Scheme lesson is linked. You can prepare a draft, but the lesson cannot be marked curriculum-ready until an approved outcome is attached.</p>
+                    {/^Grade\\s*1(?:\\s|$)/i.test(slot.class) && /^English$/i.test(slot.subject.trim()) && (
+                      <p><strong>Official reference available:</strong> KICD's revised 2024 Grade 1–3 English Language Activities design.
+                        <a href="https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf"
+                          target="_blank" rel="noopener noreferrer" style={{display:'block',marginTop:8,color:'#087255',fontWeight:760}}>
+                          View official curriculum (PDF) ↗
+                        </a>
+                        <span style={{display:'block',marginTop:6}}>This source has not yet been promoted to verified outcomes in VibeSchool. School-specific term and week placement must still be set through the Scheme.</span>
+                      </p>
+                    )}
+                  </>}
+                  <button type="button" className="studio-lesson-modal__action" onClick={() => router.push('/teacher/scheme?' + new URLSearchParams({classId:slot.class_id,subjectId:slot.subject_id,date:taughtDate,timetableSlotId:slot.id,lessonPlanId:planId??''}).toString())}>Open full Scheme →</button>
                 </>
               )}
               {workspacePanel === 'More' && (
