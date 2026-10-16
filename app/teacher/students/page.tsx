@@ -310,7 +310,7 @@ export default function StudentsPage() {
             <option value="name">Name</option><option value="admission">Admission number</option>
           </select></label>
         </div>
-      )
+      )}
       {groups.length > 1 && (
         <div className={styles.classChips} aria-label="Filter by class">
           <button
