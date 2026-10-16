@@ -17,6 +17,7 @@ const button = (accent = C.blue, done = false): React.CSSProperties => ({ border
 const badge = (accent = C.blue): React.CSSProperties => ({ display: "inline-flex", border: `1px solid ${accent}45`, background: `${accent}14`, color: accent, borderRadius: 999, padding: "4px 8px", fontSize: 9.5, fontWeight: 900 })
 
 const KICD_G10_PURE_SCIENCES_PAGE = "https://kicd.ac.ke/cbc-materials/curriculum-designs/grade-ten/#category6"
+const KICD_G1_ENGLISH_REFERENCE = "https://kicd.ac.ke/wp-content/uploads/2024/10/Grade-1-3-English-Activities-Revised-Sept.pdf"
 const KICD_G10_CHEMISTRY_PREVIEW = "https://drive.google.com/file/d/1R293rOfFoxio7GqwY-mVAolmLDnnHnQ2/preview"
 const KICD_G10_CHEMISTRY_IMPORT = "cb335e35-3460-4c16-a3d1-1fb90bf4fb16"
 const DEFAULT_OBSERVATIONS = JSON.stringify([
@@ -151,7 +152,15 @@ export default function CurriculumAuthorityPage() {
         p_authority_name: authorityName.trim(), p_curriculum_framework: framework.trim(), p_grade: grade.trim(),
         p_canonical_subject_id: subjectId, p_source_url: sourceUrl.trim(), p_source_version: sourceVersion.trim(),
         p_source_published_on: null,
-        p_metadata: { parent_authority_page: KICD_G10_PURE_SCIENCES_PAGE, source_title: `${selectedSubject} ${grade} - ${sourceVersion}`, intake_surface: "/hq/curriculum-authority" },
+        p_metadata: {
+           parent_authority_page: grade.trim().toLowerCase() === "grade 1" && selectedSubject.trim().toLowerCase() === "english"
+             ? KICD_G1_ENGLISH_REFERENCE
+             : grade.trim().toLowerCase() === "grade 10" && selectedSubject.trim().toLowerCase() === "chemistry"
+               ? KICD_G10_PURE_SCIENCES_PAGE
+               : sourceUrl.trim(),
+           source_title: `${selectedSubject} ${grade} - ${sourceVersion}`,
+           intake_surface: "/hq/curriculum-authority",
+         },
       })
       if (error) throw error
       setSourceId(String(data))
@@ -286,6 +295,18 @@ export default function CurriculumAuthorityPage() {
         Completed authority actions are restored from Supabase on every load. Refreshing this page does not reset completed work or require you to repeat successful steps.
       </section>
       {error && <div role="alert" style={{ border: `1px solid ${C.red}45`, background: `${C.red}12`, color: "#fecdd3", borderRadius: 12, padding: 11, marginBottom: 12, fontSize: 11.5 }}>{error}</div>}
+      <section style={{border:`1px solid ${C.line}`,borderRadius:12,padding:13,marginBottom:14,background:C.panel2}}>
+        <strong style={{fontSize:13}}>Grade 1 English — official source discovered</strong>
+        <div style={{color:C.muted,fontSize:11,lineHeight:1.6,marginTop:5}}>
+          The KICD September 2024 revised English Language Activities design covers Grades 1–3.
+          Existing Grade 1 English hierarchy rows lack verified outcome provenance. The source must be ingested,
+          reconciled and owner-reviewed before any outcome promotion. A school-specific Scheme must be scheduled separately.
+        </div>
+        <a href={KICD_G1_ENGLISH_REFERENCE} target="_blank" rel="noopener noreferrer"
+          style={{...button(C.blue),textDecoration:"none",display:"inline-flex",marginTop:9}}>Review KICD Grade 1–3 source ↗</a>
+        <div style={{color:C.amber,fontSize:10.5,marginTop:8}}>No automatic import, outcome verification or lesson scheduling is performed by opening this reference.</div>
+      </section>
+
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 14 }}>
         <section style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 14, padding: 14 }}>
