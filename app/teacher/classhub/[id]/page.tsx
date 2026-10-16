@@ -114,6 +114,7 @@ function ClassPageInner() {
   const [students,       setStudents]       = useState<Student[]>([])
   const [loading,        setLoading]        = useState(true)
   const [showRoster,     setShowRoster]     = useState(false)
+  const [addedLearnerId, setAddedLearnerId] = useState<string | null>(null)
   const [showForm,       setShowForm]       = useState(false)
   const [saving,         setSaving]         = useState(false)
   const [error,          setError]          = useState('')
@@ -325,6 +326,7 @@ function ClassPageInner() {
     }
 
     setSaving(false)
+    setAddedLearnerId(String(studentId))
     setForm({ name: '', admission_number: '' })
     setAddRequestId('')
     setShowForm(false)
@@ -534,9 +536,10 @@ function ClassPageInner() {
             </div>}
           </div>
 
+          {addedLearnerId && <div role="status" style={{ padding: 14, background: '#eef8f1', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}><span>Learner added. Build their profile as you teach.</span><button type="button" onClick={() => router.push(`/teacher/classhub/${classId}/student/${addedLearnerId}?tab=about`)} style={{ ...inputStyle, width: 'auto' }}>Add more information</button><button type="button" onClick={() => setAddedLearnerId(null)}>Dismiss</button></div>}
           {!isSubject && showForm && <div style={{ padding: 16, borderBottom: '1px solid #f3f4f6' }}>
             <div style={{ display: 'grid', gap: 12 }}>
-              <div><label style={labelStyle}>Full Name *</label><input style={inputStyle} placeholder="e.g. Amara Osei" value={form.name} onChange={e => setForm(current => ({ ...current, name: e.target.value }))} /></div>
+              <div><label style={labelStyle}>Full Name *</label><input style={inputStyle} placeholder="e.g. Mary Wakire" value={form.name} onChange={e => setForm(current => ({ ...current, name: e.target.value }))} /></div>
               <div><label style={labelStyle}>Admission Number (optional)</label><input style={inputStyle} placeholder="e.g. ADM/2024/001" value={form.admission_number} onChange={e => setForm(current => ({ ...current, admission_number: e.target.value }))} /></div>
             </div>
             <button onClick={handleAdd} disabled={saving} style={{ marginTop: 14, width: '100%', minHeight: 44, borderRadius: 10, background: saving ? C.accentLight : C.accent, color: '#fff', fontWeight: 800, border: 'none' }}>{saving ? 'Saving…' : 'Add Student'}</button>

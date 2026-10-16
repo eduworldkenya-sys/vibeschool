@@ -6,6 +6,12 @@ on:
       - "supabase/migrations/20261011110000_canonical_learner_school_life.sql"
       - "components/teacher/SchoolLifeParticipation*"
       - "components/teacher/LearnerSchoolLifeStrip.tsx"
+      - "components/teacher/LearnerDetailSheet*"
+      - "components/teacher/LearnerRelatedRecords.tsx"
+      - "components/teacher/LearnerIdentityFields.tsx"
+      - "components/teacher/LearnerExperience.module.css"
+      - "components/teacher/LearnerSnapshot.tsx"
+      - "scripts/test-learner-workspace.mjs"
       - "app/teacher/classhub/**"
       - "scripts/test-school-life-participation-contract.mjs"
       - ".github/workflows/learner-school-life.yml"
@@ -31,3 +37,9 @@ jobs:
           SCHOOL_LIFE_PGLITE_MODULE="$RUNNER_TEMP/school-life-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-school-life-database.mjs
       - name: Verify TypeScript
         run: npm run typecheck
+      - name: Install isolated browser verification dependencies
+        run: npm install --prefix "$RUNNER_TEMP/learner-ui" --ignore-scripts --no-audit --no-fund esbuild@0.28.2 playwright@1.55.0
+      - name: Install verification browser
+        run: node "$RUNNER_TEMP/learner-ui/node_modules/playwright/cli.js" install --with-deps chromium
+      - name: Verify actual learner workspace at mobile and desktop widths
+        run: LEARNER_UI_MODULES="$RUNNER_TEMP/learner-ui/node_modules" node scripts/test-learner-workspace.mjs

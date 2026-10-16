@@ -16,7 +16,8 @@
       "scripts",
       "docs/engineering/teacher-os",
       "tests",
-      "e2e"
+      "e2e",
+      ".github/workflows/learner-school-life.yml"
     ],
     "acquiredAt": "2026-10-11T15:01:12.413Z",
     "releasedAt": null
