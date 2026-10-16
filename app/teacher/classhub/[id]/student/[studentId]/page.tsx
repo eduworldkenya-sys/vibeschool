@@ -1983,12 +1983,12 @@ export default function TeacherStudentProgressPage() {
             >
               RELEASED ASSESSMENTS
             </div>
-            {gradebook.length === 0 ? (
+            {gradebook.filter((item) => item.released_at !== null).length === 0 ? (
               <div style={{ color: "var(--teacher-muted, #627168)" }}>
                 No released assessment scores yet.
               </div>
             ) : (
-              gradebook.map((item, index) => {
+              gradebook.filter((item) => item.released_at !== null).map((item, index) => {
                 const percentage = item.percentage;
                 return (
                   <div
