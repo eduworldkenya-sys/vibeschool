@@ -1,5 +1,6 @@
 "use client";
 import { rosterRows } from '@/lib/classroom/model'
+import { cbcPerformance } from '@/lib/learner-intelligence/cbcPerformance'
 import { nairobiDateStr } from '@/lib/time'
 export const dynamic = "force-dynamic";
 import { Users, ClipboardCheck, Table2, School, TrendingUp, NotebookPen, CalendarDays, UsersRound, ClipboardList, Folder, Ruler, Bell, BookOpen, ArrowUpRight, Award } from 'lucide-react'
@@ -267,9 +268,12 @@ function ClassPageInner() {
     setAttentionItems([...attentionMap.values()].filter(item => ids.includes(item.student_id)).slice(0, 12))
     if (attRes.error || assessRes.error || overdueHomeworkRes.error || targetMembers.error || followupRes.error) setError('Some class evidence could not be loaded. Refresh before using these summaries.')
 
-    const PERF_MAP: Record<string, number> = { BE: 1, AE: 2, ME: 3, EE: 4 }
-    const scored = (assessRes.data ?? []).map((row: { performance: string }) => PERF_MAP[row.performance]).filter((value): value is number => value !== undefined)
-    setAvgScore(scored.length > 0 ? (scored.reduce((a,b) => a+b,0) / scored.length).toFixed(1) + '/4' : '—')
+    const cbcObservations = (assessRes.data ?? [])
+      .map((row: { performance: string }) => cbcPerformance(row.performance))
+      .filter((value) => value !== null)
+    setAvgScore(cbcObservations.length > 0
+      ? String(cbcObservations.filter((value) => value.needsSupport).length)
+      : '—')
 
     if (loadedStudents.length > 0) {
       const grpData = grpRes.data ?? []
@@ -519,7 +523,7 @@ function ClassPageInner() {
         ) : (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}><div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{isSubject ? <BookOpen size={25}/> : <School size={25}/>}</div><div><h1 style={{ fontSize: 22, fontWeight: 750, color: C.textPrimary, margin: 0, lineHeight: 1.2 }}>{isSubject ? classInfo?.subject : (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : ''))}</h1><p style={{ fontSize: 13, color: C.textMuted, margin: '3px 0 0' }}>{isSubject ? (classInfo?.name + (classInfo?.stream ? ' · ' + classInfo.stream : '')) : classInfo?.subject}</p></div></div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>{[{ label: 'Students', value: students.length },{ label: 'Claimed', value: students.filter(s => s.profile_id).length },{ label: 'Avg Score', value: avgScore }].map(s => <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}</div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>{[{ label: 'Students', value: students.length },{ label: 'Claimed', value: students.filter(s => s.profile_id).length },{ label: 'CBC support', value: avgScore }].map(s => <div key={s.label} style={{ flex: 1, background: C.surface, borderRadius: 12, padding: '10px 8px', textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800, color: C.textPrimary }}>{s.value}</div><div style={{ fontSize: 11, color: C.textMuted, fontWeight: 600, marginTop: 2 }}>{s.label}</div></div>)}</div>
           </>
         )}
       </div>
