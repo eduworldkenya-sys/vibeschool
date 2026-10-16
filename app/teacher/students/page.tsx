@@ -246,6 +246,17 @@ export default function StudentsPage() {
           <span>Add</span>
         </button>
       </header>
+      {showAddClasses && manageableClasses.length > 1 && (
+        <div role="group" aria-label="Choose a class" style={{ padding: 12, display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <strong style={{ width: "100%" }}>Add learner to which class?</strong>
+          {manageableClasses.map((item) => (
+            <button key={item.class_id} type="button" onClick={() => addLearnerInClass(item.class_id)}>
+              {item.class_name}{item.stream ? ` ${item.stream}` : ""}
+            </button>
+          ))}
+          <button type="button" onClick={() => setShowAddClasses(false)}>Cancel</button>
+        </div>
+      )}
       <section className={styles.insightStrip} aria-label="Learner summary">
         <div>
           <UsersRound size={18} />
