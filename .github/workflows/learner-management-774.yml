@@ -1,0 +1,36 @@
+name: Learner Management Release #774
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/teacher/students/**"
+      - "app/teacher/classhub/**"
+      - "lib/learner-intelligence/**"
+      - "scripts/test-learner-management-774.mjs"
+      - ".github/workflows/learner-management-774.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  learner-contract-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Learner release-specific regressions
+        run: node --import ./scripts/register-typescript.mjs scripts/test-learner-management-774.mjs
+      - name: Canonical learner contract
+        run: node scripts/test-canonical-learner-record.mjs
+      - name: Teacher context contract
+        run: node scripts/test-teacher-context-propagation-contract.mjs
+      - name: School life contract
+        run: node scripts/test-school-life-participation-contract.mjs
+      - name: TypeScript check
+        run: npm run typecheck
+      - name: Next.js production build
+        run: npm run build
