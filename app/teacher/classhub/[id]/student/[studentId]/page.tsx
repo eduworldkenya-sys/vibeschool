@@ -22,6 +22,7 @@ import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
+import { cbcPerformance } from "@/lib/learner-intelligence/cbcPerformance";
 import {
   listInterventionQueue,
   type InterventionQueueItem,
@@ -1743,7 +1744,13 @@ export default function TeacherStudentProgressPage() {
           <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
           {learnerContextFields.map((field) => (
             <details key={field.key} className={experience.contextSection}>
-              <summary>{field.label}{contextDrafts[field.key].trim() ? " · Recorded" : " · Add"}</summary>
+              <summary>
+                <strong>{field.label}</strong>
+                <span style={{ display: "block", fontWeight: 400, fontSize: 12, marginTop: 4, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                  {contextSaved[field.key].trim() ? contextSaved[field.key].slice(0, 160) + (contextSaved[field.key].length > 160 ? "…" : "") : "Not recorded yet"}
+                  {contextDirtyKeys.current.has(field.key) ? " · Unsaved changes" : ""}
+                </span>
+              </summary>
               <label
                 htmlFor={`learner-context-${field.key}`}
                 style={{ display: "block", fontSize: 13, fontWeight: 750 }}
@@ -2067,14 +2074,8 @@ export default function TeacherStudentProgressPage() {
                     </div>
                   </div>
                   <Badge
-                    text={item.performance}
-                    tone={
-                      item.performance === "EE" || item.performance === "ME"
-                        ? "good"
-                        : item.performance === "BE"
-                          ? "bad"
-                          : "warn"
-                    }
+                    text={cbcPerformance(item.performance)?.label ?? "CBC level unavailable"}
+                    tone={cbcPerformance(item.performance)?.tone ?? "warn"}
                   />
                 </div>
               ))
