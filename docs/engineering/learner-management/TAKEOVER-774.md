@@ -78,3 +78,9 @@ Performance advisors identify missing foreign-key indexes and per-row auth calls
 
 - Continuation browser evidence: 153 assertions at six widths passed, including focused learner appointment, actual term default, lost acknowledgement with retained request ID, duplicate prevention and ended history refresh. Network boundary is synthetic.
 - Fresh read-only production inspection: PostgreSQL 17.6, no appointment/copy tables, zero catalogue titles and borrowings. No backfill is currently required; recheck immediately before any activation.
+
+## Progressive profile continuation
+
+Authenticated identity and current enrollment now resolve before evidence, releasing the profile header and in-place School Life immediately. Teaching notes resolve independently of learning evidence. Failed learning sources suppress assessment/attendance/work conclusions and expose retry; failed teaching-note reads disable context edits until canonical revisions load. Overlapping/unmounted reads cannot overwrite a newer load. Existing scoped drafts and revision bases remain retained. Term/date completeness, per-source incremental evidence and lazy querying remain open. The learner browser and release workflows now explicitly check out the PR candidate revision.
+
+Validation for the progressive loader: TypeScript, lint, canonical learner/context/School Life contracts pass. Browser suite passes 164 assertions, including delayed evidence with usable About/Groups, independent evidence-only and context-only failures, disabled editing before canonical revisions, and recovered retry. This is component-boundary proof, not real authenticated production evidence.

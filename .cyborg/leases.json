@@ -27,7 +27,8 @@
       "docs/engineering/class-life-library",
       "scripts/test-class-life-library-authority.mjs",
       "scripts/test-class-life-interface-contract.mjs",
-      ".github/workflows/class-life-library-authority.yml"
+      ".github/workflows/class-life-library-authority.yml",
+      ".github/workflows/learner-school-life.yml"
     ],
     "acquiredAt": "2026-10-16T16:29:57.411Z",
     "releasedAt": null

@@ -372,11 +372,22 @@ export default function TeacherStudentProgressPage() {
     ) as Record<LearnerContextKey, string>,
   );
   const [loading, setLoading] = useState(true);
+  const [evidenceState, setEvidenceState] = useState<"loading" | "ready" | "error">("loading");
+  const [evidenceError, setEvidenceError] = useState("");
+  const [contextReadState, setContextReadState] = useState<"loading" | "ready" | "error">("loading");
+  const [contextReadError, setContextReadError] = useState("");
+  const loadGeneration = useRef(0);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (showLoading = true) => {
+    const generation = ++loadGeneration.current;
+    let identityReady = false;
     if (showLoading) setLoading(true);
     setError(null);
+    setEvidenceState("loading");
+    setEvidenceError("");
+    setContextReadState("loading");
+    setContextReadError("");
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth.user) {
@@ -387,6 +398,7 @@ export default function TeacherStudentProgressPage() {
       const { data: contextData, error: contextError } = await supabase.rpc(
         "teacher_get_operating_context",
       );
+      if (generation !== loadGeneration.current) return;
       if (contextError) throw contextError;
       const ctx = parseContext(contextData);
       if (!ctx.school_id) throw new Error("School context is missing.");
@@ -436,6 +448,7 @@ export default function TeacherStudentProgressPage() {
         .eq("id", studentId)
         .is("deleted_at", null)
         .maybeSingle();
+      if (generation !== loadGeneration.current) return;
       if (learnerRes.error) throw learnerRes.error;
       const learner = learnerRes.data as Student | null;
       if (!learner)
@@ -443,6 +456,8 @@ export default function TeacherStudentProgressPage() {
           "This learner identity could not be loaded. Retry instead of treating the enrolment as missing.",
         );
       setStudent(learner);
+      identityReady = true;
+      setLoading(false);
       if (!requestedSubjectId && hydratedDraftScope.current !== scope) {
         const draftScope = { actorId: auth.user.id, schoolId: ctx.school_id, classId, studentId };
         contextDraftScope.current = draftScope;
@@ -460,6 +475,43 @@ export default function TeacherStudentProgressPage() {
           ? "Unsaved notes recovered for this learner. Review them before saving."
           : recovered.available ? "" : "Draft recovery is unavailable in this browser. Keep this page open until your changes are saved.");
       }
+
+      const contextRead = (async () => {
+        try {
+          const contextRes = requestedSubjectId ? { data: [], error: null }
+            : await supabase.rpc("teacher_get_learner_context", { p_class_id: classId, p_student_id: studentId });
+          if (generation !== loadGeneration.current) return contextRes;
+          if (contextRes.error) throw contextRes.error;
+          const nextDrafts = Object.fromEntries(
+            learnerContextFields.map((field) => [field.key, ""]),
+          ) as Record<LearnerContextKey, string>;
+          contextRevisions.current = {};
+          for (const revision of contextRes.data ?? []) {
+            const field = learnerContextFields.find(item => item.key === revision.field_key);
+            if (!field) continue;
+            nextDrafts[field.key] = revision.note ?? "";
+            contextRevisions.current[field.key] = revision.event_id;
+          }
+          setContextSaved(nextDrafts);
+          setContextDrafts((current) => {
+            const reconciled = { ...current };
+            for (const field of learnerContextFields) {
+              if (!contextDirtyKeys.current.has(field.key)) {
+                reconciled[field.key] = nextDrafts[field.key];
+              }
+            }
+            return reconciled;
+          });
+          setContextReadState("ready");
+          return contextRes;
+        } catch (cause) {
+          if (generation === loadGeneration.current) {
+            setContextReadState("error");
+            setContextReadError(cause instanceof Error ? cause.message : "Saved teaching notes could not load. Retry before editing.");
+          }
+          return { data: [], error: null };
+        }
+      })();
 
       const subjectIds = requestedSubjectId
         ? [requestedSubjectId]
@@ -500,7 +552,7 @@ export default function TeacherStudentProgressPage() {
         libraryLoansRes,
         libraryBooksRes,
         interventionRows,
-        contextRes,
+        _contextRes,
       ] = await Promise.all([
         supabase
           .from("attendance")
@@ -551,9 +603,9 @@ export default function TeacherStudentProgressPage() {
           .eq("school_id", ctx.school_id)
           .is("deleted_at", null),
         listInterventionQueue(classId),
-        requestedSubjectId ? Promise.resolve({ data: [], error: null })
-          : supabase.rpc("teacher_get_learner_context", { p_class_id: classId, p_student_id: studentId }),
+        contextRead,
       ]);
+      if (generation !== loadGeneration.current) return;
       for (const result of [
         attendanceRes,
         homeworkRes,
@@ -564,7 +616,6 @@ export default function TeacherStudentProgressPage() {
         eventsRes,
         libraryLoansRes,
         libraryBooksRes,
-        contextRes,
       ])
         if (result.error) throw result.error;
 
@@ -579,6 +630,7 @@ export default function TeacherStudentProgressPage() {
               homeworkRows.map((item) => item.id),
             )
         : { data: [], error: null };
+      if (generation !== loadGeneration.current) return;
       if (submissionRes.error) throw submissionRes.error;
 
       setAttendance(attendanceRes.data ?? []);
@@ -597,34 +649,23 @@ export default function TeacherStudentProgressPage() {
       const missingNames = unresolvedIds.length
         ? await supabase.from("subjects").select("id,name").in("id", unresolvedIds)
         : { data: [], error: null };
+      if (generation !== loadGeneration.current) return;
       if (missingNames.error) throw missingNames.error;
       setSubjects([...(subjectRes.data ?? []), ...(missingNames.data ?? [])]);
       const loadedEvents = (eventsRes.data ?? []) as TeacherEvent[];
       setTeacherEvents(loadedEvents);
-      const nextDrafts = Object.fromEntries(
-        learnerContextFields.map((field) => [field.key, ""]),
-      ) as Record<LearnerContextKey, string>;
-      contextRevisions.current = {};
-      for (const revision of contextRes.data ?? []) {
-        const field = learnerContextFields.find(item => item.key === revision.field_key);
-        if (!field) continue;
-        nextDrafts[field.key] = revision.note ?? "";
-        contextRevisions.current[field.key] = revision.event_id;
-      }
-      setContextSaved(nextDrafts);
-      setContextDrafts((current) => {
-        const reconciled = { ...current };
-        for (const field of learnerContextFields) {
-          if (!contextDirtyKeys.current.has(field.key)) {
-            reconciled[field.key] = nextDrafts[field.key];
-          }
-        }
-        return reconciled;
-      });
       setInterventions(
         interventionRows.filter((item) => item.studentId === studentId),
       );
+      setEvidenceState("ready");
+      return;
     } catch (loadError) {
+      if (generation !== loadGeneration.current) return;
+      if (identityReady) {
+        setEvidenceState("error");
+        setEvidenceError(loadError instanceof Error ? loadError.message : "Some learner evidence could not load. Retry to view learning records.");
+        return;
+      }
       console.error("[LearnerWorkspace] load", loadError);
       setError(
         loadError instanceof Error
@@ -632,7 +673,7 @@ export default function TeacherStudentProgressPage() {
           : "Learner workspace could not be loaded.",
       );
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }, [classId, requestedSubjectId, router, studentId]);
 
@@ -715,7 +756,7 @@ export default function TeacherStudentProgressPage() {
         requestedSubjectId
       )
         return;
-      if (contextSaveLock.current) return;
+      if (contextSaveLock.current || contextReadState !== "ready") return;
       const value = contextDrafts[key].trim();
       if (value.length > 1200) {
         setContextMessage("Keep each section below 1,200 characters.");
@@ -794,7 +835,7 @@ export default function TeacherStudentProgressPage() {
     [
       classId,
       context,
-      contextDrafts,
+      contextDrafts, contextReadState,
       load,
       requestedSubjectId,
       student,
@@ -804,6 +845,7 @@ export default function TeacherStudentProgressPage() {
 
   useEffect(() => {
     void load();
+    return () => { loadGeneration.current += 1; };
   }, [load]);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
@@ -1117,8 +1159,14 @@ export default function TeacherStudentProgressPage() {
           </button>
         ))}
       </nav>
+      {evidenceState === "loading" && <p role="status" style={{ padding: 14, color: "#627168" }}>Loading learning records… Learner details and School Life remain available.</p>}
+      {evidenceState === "error" && <div role="alert" style={{ padding: 14, background: "#fff7ed", borderRadius: 12 }}>
+        <strong>Learning records are unavailable.</strong> <p>{evidenceError}</p>
+        <p>No learning conclusion is shown from incomplete records. Learner details and School Life remain available.</p>
+        <button type="button" onClick={() => void load(false)}>Retry learning records</button>
+      </div>}
       {tab === "now" && <>
-      <LearnerSnapshot
+      {evidenceState === "ready" && <LearnerSnapshot
         scores={gradebook}
         subjects={subjects}
         attendance={truth.attendance}
@@ -1133,7 +1181,7 @@ export default function TeacherStudentProgressPage() {
         onAttendance={() => setTab("attendance")}
         onWork={() => setTab("work")}
         onSupport={() => setPanel("support")}
-      />
+      />}
 
       <section className={experience.schoolLife} aria-label="School life">
         <div className={experience.sectionTitle}>
@@ -1184,7 +1232,7 @@ export default function TeacherStudentProgressPage() {
         </div>
       </section>
 
-      <section
+      {evidenceState === "ready" && <section
         className={`${experience.evidenceState} ${truth.evidenceState === "sufficient" ? experience.evidenceReady : ""}`}
       >
         <span />
@@ -1200,13 +1248,11 @@ export default function TeacherStudentProgressPage() {
               : "Attendance and work are shown above. Add assessment evidence before drawing learning conclusions."}
           </small>
         </div>
-      </section>
-
-
+      </section>}
 
       </>}
 
-      {tab === "now" && (
+      {evidenceState === "ready" && tab === "now" && (
         <div style={{ display: "grid", gap: 10 }}>
           <Card>
             <div
@@ -1706,12 +1752,14 @@ export default function TeacherStudentProgressPage() {
           </details>
           {draftRecoveryMessage && <p role="status" style={{ margin: 0, fontSize: 12, color: "#627168" }}>{draftRecoveryMessage}</p>}
           <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
+          {contextReadState === "loading" && <p role="status">Loading saved teaching notes…</p>}
+          {contextReadState === "error" && <div role="alert">{contextReadError} <button type="button" onClick={() => void load(false)}>Retry teaching notes</button></div>}
           <div style={{ background: "#fff", border: "1px solid #e1e7e3", borderRadius: 12, overflow: "hidden" }}>
           {learnerContextFields.map((field) => (
             <article key={field.key} className={experience.contextSection} style={{ border: 0, borderBottom: "1px solid #edf1ee", borderRadius: 0, padding: "6px 14px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
                 <h3 style={{ margin: 0, fontSize: 14 }}>{field.label}</h3>
-                <button type="button" onClick={() => { setContextMessage(""); setContextEditor(field.key); }}
+                <button type="button" disabled={contextReadState !== "ready"} onClick={() => { setContextMessage(""); setContextEditor(field.key); }}
                   aria-label={`Edit ${field.label.toLowerCase()}`} style={{ minHeight: 44, color: "#166534", background: "transparent", border: 0, fontWeight: 700 }}>
                   {contextSaved[field.key].trim() ? "Edit" : "Add"}
                 </button>
@@ -1861,7 +1909,7 @@ export default function TeacherStudentProgressPage() {
         </div>
       )}
 
-      {tab === "work" && (
+      {evidenceState === "ready" && tab === "work" && (
         <Card>
           {homework.length === 0 ? (
             <div
@@ -1966,7 +2014,7 @@ export default function TeacherStudentProgressPage() {
         </Card>
       )}
 
-      {tab === "assessment" && (
+      {evidenceState === "ready" && tab === "assessment" && (
         <div style={{ display: "grid", gap: 10 }}>
           <a href={`/teacher/classhub/${classId}/student/${studentId}/progress${requestedSubjectId ? `?subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full learning progress</a>
           <a href={`/teacher/assessment?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full assessment workspace</a>
@@ -2122,7 +2170,7 @@ export default function TeacherStudentProgressPage() {
         </div>
       )}
 
-      {tab === "attendance" && (
+      {evidenceState === "ready" && tab === "attendance" && (
         <Card>
           <p style={{ fontSize: 12, color: "#617168", marginTop: 0 }}>Recent attendance · up to 120 recorded sessions</p>
           <a style={{ display: "inline-block", minHeight: 44, fontSize: 13 }} href={`/teacher/attendance?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}`}>Open class attendance register</a>
@@ -2200,7 +2248,7 @@ export default function TeacherStudentProgressPage() {
         </Card>
       )}
 
-      {tab === "timeline" && (
+      {evidenceState === "ready" && tab === "timeline" && (
         <Card>
           <div
             style={{
@@ -2323,9 +2371,11 @@ export default function TeacherStudentProgressPage() {
           <button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent(panel === "recognition" ? "recognition" : "observation")}>{eventSaving ? "Saving…" : panel === "recognition" ? "Save recognition" : "Save private note"}</button>
           {panel === "notes" && <><button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent("followup")}>Add follow-up · due in 7 days</button><button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent("participation")}>Record class participation</button></>}
           {eventMessage && <p role={eventMessage.startsWith("Saved") ? "status" : "alert"}>{eventMessage}</p>}
-          {teacherEvents.filter(item => !isLearnerContextEvent(item) && (panel === "recognition" ? item.event_kind === "recognition" : ["observation", "followup", "participation"].includes(item.event_kind))).map(item => <article key={item.id}><strong>{formatDate(item.created_at)} · {item.event_kind}</strong><p>{item.note}</p></article>)}
+          {evidenceState !== "ready" && <p role="status">Saved story records are {evidenceState === "loading" ? "loading" : "unavailable"}.</p>}
+          {evidenceState === "ready" && teacherEvents.filter(item => !isLearnerContextEvent(item) && (panel === "recognition" ? item.event_kind === "recognition" : ["observation", "followup", "participation"].includes(item.event_kind))).map(item => <article key={item.id}><strong>{formatDate(item.created_at)} · {item.event_kind}</strong><p>{item.note}</p></article>)}
         </>}
-        {panel === "support" && <>
+        {panel === "support" && evidenceState !== "ready" && <p role="status">Learning follow-up records are {evidenceState === "loading" ? "loading" : "unavailable"}.</p>}
+        {panel === "support" && evidenceState === "ready" && <>
           {!interventions.length && <p>No learning follow-ups recorded.</p>}
           {interventions.map(item => <article key={item.interventionId}><strong>{item.subjectName} · {item.status.replaceAll("_", " ")}</strong><p>{item.recommendation}</p></article>)}
           <a href={`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full support workspace</a>

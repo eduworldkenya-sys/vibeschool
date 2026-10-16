@@ -46,7 +46,8 @@
       "docs/engineering/class-life-library",
       "scripts/test-class-life-library-authority.mjs",
       "scripts/test-class-life-interface-contract.mjs",
-      ".github/workflows/class-life-library-authority.yml"
+      ".github/workflows/class-life-library-authority.yml",
+      ".github/workflows/learner-school-life.yml"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -386,7 +387,7 @@
   "state": "MISSION",
   "learningClosure": false,
   "createdAt": "2026-10-16T16:29:57.317Z",
-  "updatedAt": "2026-10-16T19:40:13.434Z",
+  "updatedAt": "2026-10-16T19:47:01.687Z",
   "journalPath": ".cyborg/journal/CYBORG-20261016162957-291eff.ndjson",
   "activation": {
     "runtime": false,
@@ -395,5 +396,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "65fc21e6eade55868889536e6c03483d043a4c234399ae2af950d8c33f657101"
+  "lastJournalHash": "a3741d79b65990e7b19b125c005609bc8c7b63637df60d00259bdc671f223b38"
 }
