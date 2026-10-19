@@ -14,6 +14,22 @@ import { ArrowLeft, ChevronDown, MessageSquare, Wallet, Sparkles } from "lucide-
 import Link from "next/link";
 import { ToastContext, UserContext, CreditContext } from "@/components/teacher/TeacherUiContext";
 
+const SHELL_AUTH_TIMEOUT_MS = 12_000;
+
+async function getTeacherShellUserWithTimeout() {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error("teacher_shell_auth_timeout")), SHELL_AUTH_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 function activeTeacherSchoolName(value: unknown): string {
   if (!value || typeof value !== "object") return "";
   const activeSchoolId = Reflect.get(value, "active_school_id");
@@ -93,6 +109,8 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const [creditBalance, setCreditBalance] = useState<number | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
   const [authReady, setAuthReady] = useState(false);
+  const [authIssue, setAuthIssue] = useState("");
+  const [authRetry, setAuthRetry] = useState(0);
   const teacherIdRef = useRef<string | null>(null);
 
   const refreshCredits = useCallback(() => {
@@ -115,12 +133,20 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
     let cancelled = false
 
     async function bootstrapShell() {
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      // A slow/rejected network request must not strand new teachers in a
+      // full-screen spinner. Only a confirmed missing/invalid session signs out.
+      const authResult = await getTeacherShellUserWithTimeout().catch(() => null)
       if (cancelled) return
+      if (!authResult) {
+        setAuthIssue("We could not verify your session. Check your connection and retry.")
+        return
+      }
+      const { data: { user }, error: authError } = authResult
       if (authError || !user) {
         router.replace("/?role=teacher")
         return
       }
+      setAuthIssue("")
 
       // Session is the only hard gate for rendering the Teacher OS shell.
       // Every page/RPC retains its own server/RLS authority checks.
@@ -154,7 +180,7 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
 
     void bootstrapShell()
     return () => { cancelled = true }
-  }, [refreshCredits, router]);
+  }, [refreshCredits, router, authRetry]);
 
   // Onboarding routes are already server-authorized by middleware and must not be
   // blocked by the full Teacher OS bootstrap. A brand-new teacher may not yet
@@ -162,7 +188,17 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   const isOnboardingPath = pathname?.startsWith("/teacher/onboarding") ?? false;
   if (isOnboardingPath) return <div className="teacher-light-surface" style={{ minHeight: "100vh", background: "var(--teacher-canvas, #f5f6f2)", color: "var(--teacher-ink, #1c2923)" }}>{children}</div>;
 
-  if (!authReady) return <div className="teacher-shell teacher-boot" role="status" aria-live="polite"><span className="teacher-brand-mark">V</span><p>Opening your teacher workspace…</p><div className="teacher-boot__skeleton" aria-hidden="true"><div className="teacher-skeleton"/><div className="teacher-skeleton"/><div className="teacher-skeleton"/></div></div>;
+  if (!authReady) return <div className="teacher-shell teacher-boot" role="status" aria-live="polite">
+    <span className="teacher-brand-mark">V</span>
+    <p>Opening your teacher workspace…</p>
+    {authIssue ? <div role="alert" style={{ maxWidth: 360, padding: 18, textAlign: "center" }}>
+      <p>{authIssue}</p>
+      <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
+        <button type="button" onClick={() => { setAuthIssue(""); setAuthRetry(n => n + 1); }} style={{ padding: "10px 16px", borderRadius: 9, background: "#157347", color: "#fff", border: 0, fontWeight: 700 }}>Retry session</button>
+        <button type="button" onClick={() => router.replace("/academy/signin?role=teacher")} style={{ padding: "10px 16px", borderRadius: 9, background: "#fff", color: "#1c2923", border: "1px solid #ccc", fontWeight: 700 }}>Sign in</button>
+      </div>
+    </div> : <div className="teacher-boot__skeleton" aria-hidden="true"><div className="teacher-skeleton"/><div className="teacher-skeleton"/><div className="teacher-skeleton"/></div>}
+  </div>;
 
   return (
     <ToastContext.Provider value={{ showToast }}>
