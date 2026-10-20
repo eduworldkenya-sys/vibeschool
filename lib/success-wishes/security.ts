@@ -8,6 +8,12 @@ export function equalHash(a: string, b: string) {
   if (!/^[a-f0-9]{64}$/.test(a) || !/^[a-f0-9]{64}$/.test(b)) return false
   return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'))
 }
+export function messageExpiry(retentionDays: number, campaignExpiry: string, now = Date.now()): string {
+  if (!Number.isInteger(retentionDays) || retentionDays < 1 || retentionDays > 365) throw new Error('Invalid message retention policy.')
+  const campaignEnd = Date.parse(campaignExpiry)
+  if (!Number.isFinite(campaignEnd) || campaignEnd <= now) throw new Error('The school campaign has ended.')
+  return new Date(Math.min(campaignEnd, now + retentionDays * 86400000)).toISOString()
+}
 export function enabled(env: Record<string, string | undefined> = process.env) {
   return env.SUCCESS_WISHES_ENABLED === 'true' && !!env.NEXT_PUBLIC_SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY
 }
