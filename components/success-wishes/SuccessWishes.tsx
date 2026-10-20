@@ -90,7 +90,10 @@ function SendForm({ config }: { config: Configuration | null }) {
   async function send() {
     if (!school || busy || !config?.enabled || kind !== 'text') return
     setBusy(true); setError('')
-    if (!idempotencyKey.current) idempotencyKey.current = crypto.randomUUID()
+    if (!idempotencyKey.current) {
+      const random = crypto.getRandomValues(new Uint8Array(32))
+      idempotencyKey.current = Array.from(random, byte => byte.toString(16).padStart(2, '0')).join('')
+    }
     try {
       const result = await request<Receipt>('/api/success-wishes/messages', { method: 'POST', body: JSON.stringify({ schoolId: school.id, admissionNumber: admissionNumber.trim(), candidateName: candidateName.trim(), senderName: senderName.trim(), relationship: relationship.trim(), kind, text: text.trim(), consent: true, idempotencyKey: idempotencyKey.current }) })
       setReceipt(result)
