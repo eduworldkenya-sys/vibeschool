@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { submission, WishError } from '@/lib/success-wishes/contracts'
 import { database, failure, json, limit, reply } from '@/lib/success-wishes/server'
-import { hashSecret } from '@/lib/success-wishes/security'
+import { hashSecret, messageExpiry } from '@/lib/success-wishes/security'
 export const runtime = 'nodejs'
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     await limit('submission:global', 1000, 60)
     await limit(`submit:${input.schoolId}`, 100, 60)
     await limit(`recipient:${input.schoolId}:${input.admissionNumber.toLowerCase()}`, 20)
-    const { data: school, error } = await db.from('success_wishes_schools').select('sponsored_text,retention_days').eq('school_id', input.schoolId).eq('enabled', true).gt('expires_at', new Date().toISOString()).maybeSingle()
+    const { data: school, error } = await db.from('success_wishes_schools').select('sponsored_text,retention_days,expires_at').eq('school_id', input.schoolId).eq('enabled', true).gt('expires_at', new Date().toISOString()).maybeSingle()
     if (error) throw error
     if (!school) throw new WishError(503, 'Sending is not available for this school.')
     if (input.kind !== 'text') throw new WishError(503, 'Voice and video sending are not open yet.')
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       inbox_id: inboxId, sender_name: input.senderName, relationship: input.relationship,
       format: 'text', body: input.text, management_token_hash: hashSecret(manageToken),
       idempotency_key: input.idempotencyKey, payment_status: 'sponsored', state: 'request',
-      expires_at: new Date(Date.now() + Math.min(Math.max(school.retention_days, 1), 365) * 86400000).toISOString(),
+      expires_at: messageExpiry(school.retention_days, school.expires_at),
     }
     const { data: inserted, error: insertError } = await db.from('success_wishes_messages').insert(message).select('id').single()
     if (insertError?.code === '23505') {
