@@ -56,7 +56,7 @@ export default function LearnerGroupSummary({
           ? await supabase.from("subjects").select("id,name").in("id", subjects)
           : { data: [], error: null };
         if (namesResult.error) throw namesResult.error;
-        const names = new Map((namesResult.data ?? []).map(row => [row.id, row.name]));
+        const names = new Map<string, string>((namesResult.data ?? []).map((row: { id: string; name: string }): [string, string] => [row.id, row.name]));
         const entries = await Promise.all(groups.map(async group => {
           if (group.mode !== "smart") return manualIds.has(group.id) ? group : null;
           const resolved = await supabase.rpc("teacher_resolve_class_group_members", { p_group_id: group.id });
