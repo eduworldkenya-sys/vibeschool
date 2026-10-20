@@ -92,7 +92,7 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
       {!groups.some(group => group.member) && <p>No current group memberships for this learner.</p>}
       {[...groups].sort((a, b) => Number(b.member) - Number(a.member)).map(group => <article key={group.id}>
         <strong>{group.name}</strong><p>{group.subjectName ? `Subject: ${group.subjectName}` : "Class-wide group"} · {group.purpose ? `Purpose: ${group.purpose}` : "Purpose not specified"}</p>
-        <p>{group.expires_at ? `Review by ${new Date(group.expires_at).toLocaleDateString("en-KE", { timeZone: "Africa/Nairobi", day: "numeric", month: "short", year: "numeric" })}` : "No review date recorded"}</p>
+        <p>{group.expires_at ? `Expires ${new Date(group.expires_at).toLocaleDateString("en-KE", { timeZone: "Africa/Nairobi", day: "numeric", month: "short", year: "numeric" })}` : "Review date not recorded"}</p>
         <p>{group.member ? `Member${group.reason && group.mode === "smart" ? ` · ${group.reason}` : ""}` : "Not a member"} · {group.mode === "smart" ? "Smart list" : "Saved group"}</p>
         {group.mode !== "smart" && <button disabled={busy} onClick={() => void act(async () => {
           const result = group.member
