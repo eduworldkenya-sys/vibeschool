@@ -88,7 +88,7 @@ export default function LearnerGroupSummary({
           <strong>{group.name}</strong>
           <span>{[group.subjectName ? `Subject: ${group.subjectName}` : "Class-wide",
             group.purpose ? `Purpose: ${group.purpose}` : "Purpose not specified",
-            group.expires_at ? `Review by ${new Date(group.expires_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Nairobi" })}` : "No review date recorded"
+            group.expires_at ? `Expires ${new Date(group.expires_at).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Nairobi" })}` : "Review date not recorded"
           ].join(" · ")}</span>
         </div>
       )) : <p>No current group memberships recorded.</p>}
