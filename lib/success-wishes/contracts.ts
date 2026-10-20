@@ -18,6 +18,11 @@ export function uuid(value: unknown): string {
   if (!UUID.test(result)) throw new WishError(400, 'Check the details and try again.')
   return result
 }
+export function retryKey(value: unknown): string {
+  const secret = field(value, 64, 64)
+  if (!/^[a-f0-9]{64}$/.test(secret)) throw new WishError(400, 'Check the submission reference and try again.')
+  return secret
+}
 export function submission(value: unknown) {
   const b = object(value)
   const kind = field(b.kind, 4, 5)
@@ -27,6 +32,6 @@ export function submission(value: unknown) {
     candidateName: field(b.candidateName, 2, 160), senderName: field(b.senderName, 2, 100),
     relationship: field(b.relationship, 2, 60), kind: kind as WishKind,
     text: kind === 'text' ? field(b.text, 1, 2000) : null,
-    idempotencyKey: uuid(b.idempotencyKey),
+    idempotencyKey: retryKey(b.idempotencyKey),
   }
 }
