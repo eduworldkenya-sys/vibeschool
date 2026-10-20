@@ -1635,6 +1635,7 @@ export default function TeacherStudentProgressPage() {
                 <p>Information recorded at enrolment</p>
               </div>
               <button type="button" className={experience.aboutEditButton}
+                aria-label="Edit school details"
                 onClick={() => { setContextMessage(""); setEditingIdentity(true); }}>
                 <Pencil size={15} aria-hidden="true"/> Edit
               </button>
