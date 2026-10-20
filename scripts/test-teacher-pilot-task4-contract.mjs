@@ -76,9 +76,10 @@ requireText(!homework.includes('label: "Expected"'), "homework overview does not
 requireText(homework.includes('teacher_get_operating_context'), 'homework overview uses canonical active-school context')
 requireText(!homework.includes('.from("students").select("id, class_id")'), 'homework overview no longer counts legacy students.class_id')
 
+const sharedRoster = read('lib/classroom/currentRoster.ts')
 const students = read('app/teacher/students/page.tsx')
-requireText(students.includes('.from("student_classes")'), 'teacher learner roster comes from canonical student_classes')
-requireText(students.includes('.eq("is_current", true)'), 'teacher learner roster only includes current enrollment')
+requireText(students.includes('readCurrentRoster(supabase, ctx.school_id, classIds)') && sharedRoster.includes('.from("student_classes")'), 'teacher learner roster comes from shared canonical student_classes reader')
+requireText(sharedRoster.includes('.eq("school_id", schoolId).eq("is_current", true)'), 'shared learner roster is school-scoped and only includes current enrollment')
 requireText(students.includes('teacher_get_operating_context'), 'teacher learner roster uses canonical active-school context')
 requireText(!students.includes(".eq('is_class_teacher', true)") && !students.includes('.eq("is_class_teacher", true)'), 'subject teachers are not excluded from authorized learner roster')
 
@@ -90,13 +91,13 @@ for (const staleField of ['first_name', 'last_name', 'job_title', 'department', 
 requireText(profile.includes('designation') && profile.includes('teaching_style'), 'teacher profile uses production professional fields')
 
 const studentsRoster = read('app/teacher/students/page.tsx')
-requireText(studentsRoster.includes('.from("student_classes")'), 'Students derives roster from canonical enrollment')
-requireText(studentsRoster.includes('.from("students")'), 'Students resolves learner identity separately from enrollment')
+requireText(studentsRoster.includes('readCurrentRoster(supabase, ctx.school_id, classIds)') && sharedRoster.includes('.from("student_classes")'), 'Students derives roster from shared canonical enrollment')
+requireText(sharedRoster.includes('.from("students")') && !sharedRoster.includes('students('), 'shared reader resolves learner identity separately from enrollment')
 requireText(!studentsRoster.includes('students(id,name,admission_number,profile_id,deleted_at)'), 'Students does not depend on nested learner RLS join')
 
 const classHubRoster = read('app/teacher/classhub/[id]/page.tsx')
-requireText(classHubRoster.includes(".from('student_classes')"), 'ClassHub derives roster from canonical enrollment')
-requireText(classHubRoster.includes(".from('students')"), 'ClassHub resolves learner identity separately from enrollment')
+requireText(classHubRoster.includes('readCurrentRoster(supabase, activeSchoolId, [classId])') && sharedRoster.includes('.from("student_classes")'), 'ClassHub derives roster from shared canonical enrollment')
+requireText(classHubRoster.includes('readCurrentRoster') && sharedRoster.includes('.from("students")'), 'ClassHub uses the separate shared identity read')
 requireText(classHubRoster.includes('Retry instead of adding duplicate learners'), 'ClassHub does not translate roster read failures into zero learners')
 
 const assessmentRoster = read('app/teacher/assessment/page.tsx')

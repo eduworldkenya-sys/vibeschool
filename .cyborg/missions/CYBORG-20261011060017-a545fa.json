@@ -35,7 +35,10 @@
       "docs/engineering/teacher-os",
       "tests",
       "e2e",
-      ".github/workflows/learner-school-life.yml"
+      ".github/workflows/learner-school-life.yml",
+      "lib/learner-intelligence",
+      "lib/supabase.ts",
+      "lib/classroom"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -389,7 +392,7 @@
   "state": "MISSION",
   "learningClosure": false,
   "createdAt": "2026-10-11T06:00:17.526Z",
-  "updatedAt": "2026-10-15T12:17:20.207Z",
+  "updatedAt": "2026-10-16T16:29:57.220Z",
   "journalPath": ".cyborg/journal/CYBORG-20261011060017-a545fa.ndjson",
   "activation": {
     "runtime": false,
@@ -398,5 +401,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "fe5d898d3b7784f419ad2fc0b76a00f02cfc5c6e8ca1355e83db44b39ba5ee08"
+  "lastJournalHash": "2c275f0693b03d284eb845476ef0e8eddfc6c3d34cf0275051cb118d176fabe8"
 }

@@ -1,0 +1,56 @@
+name: Learner Management Release #774
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/teacher/students/**"
+      - "app/teacher/classhub/**"
+      - "lib/learner-intelligence/**"
+      - "lib/classroom/currentRoster.ts"
+      - "lib/classroom/contextDrafts.ts"
+      - "scripts/test-learner-context-drafts.mjs"
+      - "lib/supabase.ts"
+      - "scripts/test-current-roster.mjs"
+      - "scripts/test-learner-context-database.mjs"
+      - "supabase/migrations/20261016162301_learner_context_conflict_guard.sql"
+      - "scripts/test-learner-management-774.mjs"
+      - "scripts/test-learner-rls-774.mjs"
+      - "supabase/migrations/20261016163000_learner_evidence_visibility_release_774.sql"
+      - ".github/workflows/learner-management-774.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  learner-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Learner release-specific regressions
+        run: node --import ./scripts/register-typescript.mjs scripts/test-learner-management-774.mjs
+      - name: Learner evidence permissions contract
+        run: node scripts/test-learner-rls-774.mjs
+      - name: Scoped unsaved draft recovery and cleanup
+        run: node scripts/test-learner-context-drafts.mjs
+      - name: Shared roster pagination and error paths
+        run: node scripts/test-current-roster.mjs
+      - name: Verify learner revisions and evidence permissions in isolated PostgreSQL
+        run: |
+          npm install --prefix "$RUNNER_TEMP/learner-db" --ignore-scripts --no-audit --no-fund @electric-sql/pglite@0.3.14
+          SCHOOL_LIFE_PGLITE_MODULE="$RUNNER_TEMP/learner-db/node_modules/@electric-sql/pglite/dist/index.js" node scripts/test-learner-context-database.mjs
+      - name: Canonical learner contract
+        run: node scripts/test-canonical-learner-record.mjs
+      - name: Teacher context contract
+        run: node scripts/test-teacher-context-propagation-contract.mjs
+      - name: School life contract
+        run: node scripts/test-school-life-participation-contract.mjs
+      - name: TypeScript check
+        run: npm run typecheck
+      # The central TypeScript and Production Build Gate owns the canonical build.

@@ -19,9 +19,11 @@ import {
 import LearnerIdentityFields from "@/components/teacher/LearnerIdentityFields";
 import LearnerDetailSheet from "@/components/teacher/LearnerDetailSheet";
 import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
+import { readContextDrafts, saveContextDraft, removeContextDraft, type DraftScope } from "@/lib/classroom/contextDrafts";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
+import { cbcPerformance } from "@/lib/learner-intelligence/cbcPerformance";
 import {
   listInterventionQueue,
   type InterventionQueueItem,
@@ -348,6 +350,18 @@ export default function TeacherStudentProgressPage() {
         learnerContextFields.map((field) => [field.key, ""]),
       ) as Record<LearnerContextKey, string>,
   );
+  const contextDirtyKeys = useRef<Set<LearnerContextKey>>(new Set());
+  const [contextEditor, setContextEditor] = useState<LearnerContextKey | null>(null);
+  const contextSaveLock = useRef(false);
+  const contextRevisions = useRef<Partial<Record<LearnerContextKey, string>>>({});
+  const contextDraftBases = useRef<Partial<Record<LearnerContextKey, string | null>>>({});
+  const contextScope = useRef("");
+  const contextDraftScope = useRef<DraftScope | null>(null);
+  const hydratedDraftScope = useRef("");
+  const [draftRecoveryMessage, setDraftRecoveryMessage] = useState("");
+  const [contextSaved, setContextSaved] = useState<Record<LearnerContextKey, string>>(
+    () => Object.fromEntries(learnerContextFields.map((field) => [field.key, ""])) as Record<LearnerContextKey, string>,
+  );
   const [contextSaving, setContextSaving] = useState<LearnerContextKey | null>(
     null,
   );
@@ -358,11 +372,22 @@ export default function TeacherStudentProgressPage() {
     ) as Record<LearnerContextKey, string>,
   );
   const [loading, setLoading] = useState(true);
+  const [evidenceState, setEvidenceState] = useState<"loading" | "ready" | "error">("loading");
+  const [evidenceError, setEvidenceError] = useState("");
+  const [contextReadState, setContextReadState] = useState<"loading" | "ready" | "error">("loading");
+  const [contextReadError, setContextReadError] = useState("");
+  const loadGeneration = useRef(0);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (showLoading = true) => {
+    const generation = ++loadGeneration.current;
+    let identityReady = false;
     if (showLoading) setLoading(true);
     setError(null);
+    setEvidenceState("loading");
+    setEvidenceError("");
+    setContextReadState("loading");
+    setContextReadError("");
     try {
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth.user) {
@@ -373,6 +398,7 @@ export default function TeacherStudentProgressPage() {
       const { data: contextData, error: contextError } = await supabase.rpc(
         "teacher_get_operating_context",
       );
+      if (generation !== loadGeneration.current) return;
       if (contextError) throw contextError;
       const ctx = parseContext(contextData);
       if (!ctx.school_id) throw new Error("School context is missing.");
@@ -390,6 +416,16 @@ export default function TeacherStudentProgressPage() {
             ? "This subject is not assigned to you in the active school."
             : "Class-wide learner history is available to the class teacher. Use the subject view for subject-scoped learner evidence.",
         );
+      const scope = `${auth.user.id}:${ctx.school_id}:${classId}:${studentId}`;
+      if (contextScope.current !== scope) {
+        contextScope.current = scope;
+        contextDirtyKeys.current.clear();
+        contextDraftBases.current = {};
+        contextRevisions.current = {};
+        for (const field of learnerContextFields) contextRequestIds.current[field.key] = crypto.randomUUID();
+        setContextEditor(null);
+        setContextMessage("");
+      }
       setContext(ctx);
 
       const enrollmentRes = await supabase
@@ -412,6 +448,7 @@ export default function TeacherStudentProgressPage() {
         .eq("id", studentId)
         .is("deleted_at", null)
         .maybeSingle();
+      if (generation !== loadGeneration.current) return;
       if (learnerRes.error) throw learnerRes.error;
       const learner = learnerRes.data as Student | null;
       if (!learner)
@@ -419,6 +456,62 @@ export default function TeacherStudentProgressPage() {
           "This learner identity could not be loaded. Retry instead of treating the enrolment as missing.",
         );
       setStudent(learner);
+      identityReady = true;
+      setLoading(false);
+      if (!requestedSubjectId && hydratedDraftScope.current !== scope) {
+        const draftScope = { actorId: auth.user.id, schoolId: ctx.school_id, classId, studentId };
+        contextDraftScope.current = draftScope;
+        hydratedDraftScope.current = scope;
+        const recovered = readContextDrafts(draftScope);
+        for (const field of learnerContextFields) {
+          const draft = recovered.entries[field.key];
+          if (!draft) continue;
+          contextDirtyKeys.current.add(field.key);
+          contextDraftBases.current[field.key] = draft.baseId;
+          contextRequestIds.current[field.key] = draft.requestId;
+          setContextDrafts(current => ({ ...current, [field.key]: draft.value }));
+        }
+        setDraftRecoveryMessage(Object.keys(recovered.entries).length
+          ? "Unsaved notes recovered for this learner. Review them before saving."
+          : recovered.available ? "" : "Draft recovery is unavailable in this browser. Keep this page open until your changes are saved.");
+      }
+
+      const contextRead = (async () => {
+        try {
+          const contextRes = requestedSubjectId ? { data: [], error: null }
+            : await supabase.rpc("teacher_get_learner_context", { p_class_id: classId, p_student_id: studentId });
+          if (generation !== loadGeneration.current) return contextRes;
+          if (contextRes.error) throw contextRes.error;
+          const nextDrafts = Object.fromEntries(
+            learnerContextFields.map((field) => [field.key, ""]),
+          ) as Record<LearnerContextKey, string>;
+          contextRevisions.current = {};
+          for (const revision of contextRes.data ?? []) {
+            const field = learnerContextFields.find(item => item.key === revision.field_key);
+            if (!field) continue;
+            nextDrafts[field.key] = revision.note ?? "";
+            contextRevisions.current[field.key] = revision.event_id;
+          }
+          setContextSaved(nextDrafts);
+          setContextDrafts((current) => {
+            const reconciled = { ...current };
+            for (const field of learnerContextFields) {
+              if (!contextDirtyKeys.current.has(field.key)) {
+                reconciled[field.key] = nextDrafts[field.key];
+              }
+            }
+            return reconciled;
+          });
+          setContextReadState("ready");
+          return contextRes;
+        } catch (cause) {
+          if (generation === loadGeneration.current) {
+            setContextReadState("error");
+            setContextReadError(cause instanceof Error ? cause.message : "Saved teaching notes could not load. Retry before editing.");
+          }
+          return { data: [], error: null };
+        }
+      })();
 
       const subjectIds = requestedSubjectId
         ? [requestedSubjectId]
@@ -429,6 +522,25 @@ export default function TeacherStudentProgressPage() {
                 .map((item) => item.subject_id),
             ),
           );
+      // Use only the subject assignment for subject teachers. Class teachers
+      // use class-wide database policies; never trust the client filter for authorization.
+      const gradebookQuery = supabase.from("assessment_gradebook_entries")
+        .select("assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at")
+        .eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId)
+        .order("released_at", { ascending: false }).limit(80);
+      const cbcQuery = supabase.from("cbc_assessments")
+        .select("id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at")
+        .eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId)
+        .order("created_at", { ascending: false }).limit(80);
+      const examQuery = supabase.from("exam_results")
+        .select("id,exam_id,subject_id,marks,max_marks,result_state,is_absent,created_at")
+        .eq("school_id", ctx.school_id).eq("class_id", classId).eq("student_id", studentId)
+        .order("created_at", { ascending: false }).limit(80);
+      if (requestedSubjectId) {
+        gradebookQuery.eq("subject_id", requestedSubjectId);
+        cbcQuery.eq("subject_id", requestedSubjectId);
+        examQuery.eq("subject_id", requestedSubjectId);
+      }
       const [
         attendanceRes,
         homeworkRes,
@@ -440,6 +552,7 @@ export default function TeacherStudentProgressPage() {
         libraryLoansRes,
         libraryBooksRes,
         interventionRows,
+        _contextRes,
       ] = await Promise.all([
         supabase
           .from("attendance")
@@ -457,46 +570,9 @@ export default function TeacherStudentProgressPage() {
           .eq("teacher_id", auth.user.id)
           .order("due_date", { ascending: false })
           .limit(80),
-        subjectIds.length
-          ? supabase
-              .from("assessment_gradebook_entries")
-              .select(
-                "assessment_id,subject_id,score,max_score,percentage,assessment_type,assessment_title,released_at",
-              )
-              .eq("school_id", ctx.school_id)
-              .eq("class_id", classId)
-              .eq("student_id", studentId)
-              .eq("teacher_id", auth.user.id)
-              .in("subject_id", subjectIds)
-              .order("released_at", { ascending: false })
-              .limit(80)
-          : Promise.resolve({ data: [], error: null }),
-        subjectIds.length
-          ? supabase
-              .from("cbc_assessments")
-              .select(
-                "id,subject_id,strand_id,sub_strand,assessment_type,performance,notes,created_at",
-              )
-              .eq("school_id", ctx.school_id)
-              .eq("class_id", classId)
-              .eq("student_id", studentId)
-              .eq("teacher_id", auth.user.id)
-              .in("subject_id", subjectIds)
-              .order("created_at", { ascending: false })
-              .limit(80)
-          : Promise.resolve({ data: [], error: null }),
-        subjectIds.length
-          ? supabase
-              .from("exam_results")
-              .select("id,exam_id,subject_id,marks,max_marks,result_state,is_absent,created_at")
-              .eq("school_id", ctx.school_id)
-              .eq("class_id", classId)
-              .eq("student_id", studentId)
-              .eq("teacher_id", auth.user.id)
-              .in("subject_id", subjectIds)
-              .order("created_at", { ascending: false })
-              .limit(80)
-          : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? gradebookQuery : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? cbcQuery : Promise.resolve({ data: [], error: null }),
+        subjectIds.length ? examQuery : Promise.resolve({ data: [], error: null }),
         subjectIds.length
           ? supabase.from("subjects").select("id,name").in("id", subjectIds)
           : Promise.resolve({ data: [], error: null }),
@@ -527,7 +603,9 @@ export default function TeacherStudentProgressPage() {
           .eq("school_id", ctx.school_id)
           .is("deleted_at", null),
         listInterventionQueue(classId),
+        contextRead,
       ]);
+      if (generation !== loadGeneration.current) return;
       for (const result of [
         attendanceRes,
         homeworkRes,
@@ -552,6 +630,7 @@ export default function TeacherStudentProgressPage() {
               homeworkRows.map((item) => item.id),
             )
         : { data: [], error: null };
+      if (generation !== loadGeneration.current) return;
       if (submissionRes.error) throw submissionRes.error;
 
       setAttendance(attendanceRes.data ?? []);
@@ -562,24 +641,31 @@ export default function TeacherStudentProgressPage() {
       setExams(examRes.data ?? []);
       setLibraryLoans((libraryLoansRes.data ?? []) as LibraryLoan[]);
       setLibraryBooks((libraryBooksRes.data ?? []) as LibraryBook[]);
-      setSubjects(subjectRes.data ?? []);
+      const evidenceIds = Array.from(new Set(
+        [...(gradebookRes.data ?? []), ...(cbcRes.data ?? []), ...(examRes.data ?? [])]
+          .map((row) => row.subject_id).filter((id): id is string => typeof id === "string")
+      ));
+      const unresolvedIds = evidenceIds.filter((id) => !(subjectRes.data ?? []).some((subject) => subject.id === id));
+      const missingNames = unresolvedIds.length
+        ? await supabase.from("subjects").select("id,name").in("id", unresolvedIds)
+        : { data: [], error: null };
+      if (generation !== loadGeneration.current) return;
+      if (missingNames.error) throw missingNames.error;
+      setSubjects([...(subjectRes.data ?? []), ...(missingNames.data ?? [])]);
       const loadedEvents = (eventsRes.data ?? []) as TeacherEvent[];
       setTeacherEvents(loadedEvents);
-      const nextDrafts = Object.fromEntries(
-        learnerContextFields.map((field) => [field.key, ""]),
-      ) as Record<LearnerContextKey, string>;
-      const seen = new Set<LearnerContextKey>();
-      for (const event of loadedEvents) {
-        const key = learnerContextKey(event);
-        if (!key || seen.has(key)) continue;
-        nextDrafts[key] = event.note ?? "";
-        seen.add(key);
-      }
-      setContextDrafts(nextDrafts);
       setInterventions(
         interventionRows.filter((item) => item.studentId === studentId),
       );
+      setEvidenceState("ready");
+      return;
     } catch (loadError) {
+      if (generation !== loadGeneration.current) return;
+      if (identityReady) {
+        setEvidenceState("error");
+        setEvidenceError(loadError instanceof Error ? loadError.message : "Some learner evidence could not load. Retry to view learning records.");
+        return;
+      }
       console.error("[LearnerWorkspace] load", loadError);
       setError(
         loadError instanceof Error
@@ -587,7 +673,7 @@ export default function TeacherStudentProgressPage() {
           : "Learner workspace could not be loaded.",
       );
     } finally {
-      setLoading(false);
+      if (generation === loadGeneration.current) setLoading(false);
     }
   }, [classId, requestedSubjectId, router, studentId]);
 
@@ -670,16 +756,17 @@ export default function TeacherStudentProgressPage() {
         requestedSubjectId
       )
         return;
+      if (contextSaveLock.current || contextReadState !== "ready") return;
       const value = contextDrafts[key].trim();
       if (value.length > 1200) {
         setContextMessage("Keep each section below 1,200 characters.");
         return;
       }
+      contextSaveLock.current = true;
       setContextSaving(key);
       setContextMessage("");
-      const previous = teacherEvents.find(
-        (event) => learnerContextKey(event) === key,
-      );
+      try {
+      const previousId = contextDirtyKeys.current.has(key) ? contextDraftBases.current[key] ?? null : contextRevisions.current[key] ?? null;
       const requestId = contextRequestIds.current[key];
       const { error: insertError } = await supabase
         .from("teacher_learner_events")
@@ -695,7 +782,7 @@ export default function TeacherStudentProgressPage() {
           metadata: {
             context_key: key,
             provenance: "teacher-entered",
-            supersedes_event_id: previous?.id ?? null,
+            supersedes_event_id: previousId,
             request_id: requestId,
           },
           created_by: context.teacher_id,
@@ -715,27 +802,40 @@ export default function TeacherStudentProgressPage() {
           existing?.event_code === `learner_context_${key}` &&
           (existing.note ?? "") === value
         ) {
+          contextDirtyKeys.current.delete(key);
+          if (contextDraftScope.current) removeContextDraft(contextDraftScope.current, key);
+          if (!contextDirtyKeys.current.size) setDraftRecoveryMessage("");
           contextRequestIds.current[key] = crypto.randomUUID();
           setContextMessage(
             "Saved. The earlier version remains in the learner history.",
           );
           await load(false);
         } else {
-          setContextMessage(insertError.message);
+          setContextMessage(insertError.code === "40001"
+            ? "This section changed in another tab. Your draft is retained. Refresh saved values, compare, then save again."
+            : insertError.message);
         }
       } else {
+        contextDirtyKeys.current.delete(key);
+        if (contextDraftScope.current) removeContextDraft(contextDraftScope.current, key);
+        if (!contextDirtyKeys.current.size) setDraftRecoveryMessage("");
         contextRequestIds.current[key] = crypto.randomUUID();
         setContextMessage(
           "Saved. The earlier version remains in the learner history.",
         );
         await load(false);
       }
-      setContextSaving(null);
+      } catch (cause) {
+        setContextMessage(cause instanceof Error ? cause.message : "The save could not be confirmed. Your draft is retained; retry to check the saved record.");
+      } finally {
+        contextSaveLock.current = false;
+        setContextSaving(null);
+      }
     },
     [
       classId,
       context,
-      contextDrafts,
+      contextDrafts, contextReadState,
       load,
       requestedSubjectId,
       student,
@@ -745,7 +845,17 @@ export default function TeacherStudentProgressPage() {
 
   useEffect(() => {
     void load();
+    return () => { loadGeneration.current += 1; };
   }, [load]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!contextDirtyKeys.current.size) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
 
   const subjectNames = useMemo(
     () => new Map(subjects.map((item) => [item.id, item.name])),
@@ -1022,7 +1132,7 @@ export default function TeacherStudentProgressPage() {
           onClick={() => setTab("assessment")}
         >
           <BookOpenCheck size={18} />
-          <span>Assess</span>
+          <span>Assessment</span>
         </button>
         <button
           onClick={() => {
@@ -1033,7 +1143,30 @@ export default function TeacherStudentProgressPage() {
           <span>Note</span>
         </button>
       </div>
-      <LearnerSnapshot
+      <nav
+        className={experience.profileTabs}
+        aria-label="Learner profile sections"
+      >
+        {availableTabs.map((item) => (
+          <button
+            key={item}
+            type="button"
+            aria-current={tab === item ? "page" : undefined}
+            aria-pressed={tab === item}
+            onClick={() => setTab(item)}
+          >
+            {item === "now" ? "Overview" : item}
+          </button>
+        ))}
+      </nav>
+      {evidenceState === "loading" && <p role="status" style={{ padding: 14, color: "#627168" }}>Loading learning records… Learner details and School Life remain available.</p>}
+      {evidenceState === "error" && <div role="alert" style={{ padding: 14, background: "#fff7ed", borderRadius: 12 }}>
+        <strong>Learning records are unavailable.</strong> <p>{evidenceError}</p>
+        <p>No learning conclusion is shown from incomplete records. Learner details and School Life remain available.</p>
+        <button type="button" onClick={() => void load(false)}>Retry learning records</button>
+      </div>}
+      {tab === "now" && <>
+      {evidenceState === "ready" && <LearnerSnapshot
         scores={gradebook}
         subjects={subjects}
         attendance={truth.attendance}
@@ -1048,7 +1181,7 @@ export default function TeacherStudentProgressPage() {
         onAttendance={() => setTab("attendance")}
         onWork={() => setTab("work")}
         onSupport={() => setPanel("support")}
-      />
+      />}
 
       <section className={experience.schoolLife} aria-label="School life">
         <div className={experience.sectionTitle}>
@@ -1099,42 +1232,27 @@ export default function TeacherStudentProgressPage() {
         </div>
       </section>
 
-      <section
+      {evidenceState === "ready" && <section
         className={`${experience.evidenceState} ${truth.evidenceState === "sufficient" ? experience.evidenceReady : ""}`}
       >
         <span />
         <div>
           <strong>
             {truth.evidenceState === "sufficient"
-              ? "Learning picture ready"
-              : "Not enough learning records yet"}
+              ? "Assessment evidence available"
+              : "More assessment evidence needed"}
           </strong>
           <small>
             {truth.evidenceState === "sufficient"
               ? `${assessmentEvidence} assessment records`
-              : "Add attendance, work or assessment records to see progress."}
+              : "Attendance and work are shown above. Add assessment evidence before drawing learning conclusions."}
           </small>
         </div>
-      </section>
+      </section>}
 
-      <nav
-        className={experience.profileTabs}
-        aria-label="Learner profile sections"
-      >
-        {availableTabs.map((item) => (
-          <button
-            key={item}
-            type="button"
-            aria-current={tab === item ? "page" : undefined}
-            aria-pressed={tab === item}
-            onClick={() => setTab(item)}
-          >
-            {item === "now" ? "Overview" : item}
-          </button>
-        ))}
-      </nav>
+      </>}
 
-      {tab === "now" && (
+      {evidenceState === "ready" && tab === "now" && (
         <div style={{ display: "grid", gap: 10 }}>
           <Card>
             <div
@@ -1240,7 +1358,7 @@ export default function TeacherStudentProgressPage() {
                 ? "Open support"
                 : nextAction.kind === "work"
                   ? "Review work"
-                  : "Inspect evidence"}
+                  : "View assessment records"}
             </button>
           </Card>
 
@@ -1601,87 +1719,7 @@ export default function TeacherStudentProgressPage() {
             </button>
           </Card>
 
-          <Card>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 750,
-                color: "var(--teacher-muted, #627168)",
-                marginBottom: 10,
-              }}
-            >
-              MORE ACTIONS
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-                gap: 8,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("work")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#0f766e",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Assign / review work
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("assessment")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#92400e",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Assess learner
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("attendance")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#065f46",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Attendance
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("assessment")}
-                style={{
-                  minHeight: 46,
-                  border: "1px solid #d1d5db",
-                  borderRadius: 12,
-                  background: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Inspect evidence
-              </button>
-            </div>
-          </Card>
+
         </div>
       )}
 
@@ -1707,28 +1745,41 @@ export default function TeacherStudentProgressPage() {
               </div>
             </section>
           )}
-          <Card>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 750,
-                color: "var(--teacher-muted, #627168)",
-              }}
-            >
-              ABOUT THIS LEARNER
-            </div>
-            <h2 style={{ margin: "5px 0", fontSize: 18 }}>
-              Build the learner picture gradually
-            </h2>
-            <div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>
-              Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records
-              and appear automatically elsewhere. These notes are visible only to the class teacher.
-            </div>
-          </Card>
+          <details style={{ color: "#627168", fontSize: 12, padding: "6px 2px" }}>
+            <summary style={{ minHeight: 32, cursor: "pointer" }}>About these teaching notes</summary>
+            <p>Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records
+              and appear automatically elsewhere. These notes are visible only to the class teacher.</p>
+          </details>
+          {draftRecoveryMessage && <p role="status" style={{ margin: 0, fontSize: 12, color: "#627168" }}>{draftRecoveryMessage}</p>}
           <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
+          {contextReadState === "loading" && <p role="status">Loading saved teaching notes…</p>}
+          {contextReadState === "error" && <div role="alert">{contextReadError} <button type="button" onClick={() => void load(false)}>Retry teaching notes</button></div>}
+          <div style={{ background: "#fff", border: "1px solid #e1e7e3", borderRadius: 12, overflow: "hidden" }}>
           {learnerContextFields.map((field) => (
-            <details key={field.key} className={experience.contextSection}>
-              <summary>{field.label}{contextDrafts[field.key].trim() ? " · Recorded" : " · Add"}</summary>
+            <article key={field.key} className={experience.contextSection} style={{ border: 0, borderBottom: "1px solid #edf1ee", borderRadius: 0, padding: "6px 14px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+                <h3 style={{ margin: 0, fontSize: 14 }}>{field.label}</h3>
+                <button type="button" disabled={contextReadState !== "ready"} onClick={() => { setContextMessage(""); setContextEditor(field.key); }}
+                  aria-label={`Edit ${field.label.toLowerCase()}`} style={{ minHeight: 44, color: "#166534", background: "transparent", border: 0, fontWeight: 700 }}>
+                  {contextSaved[field.key].trim() ? "Edit" : "Add"}
+                </button>
+              </div>
+              {contextSaved[field.key].trim() && <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
+                {contextSaved[field.key]}
+              </p>}
+              {contextDirtyKeys.current.has(field.key) && <p role="status" style={{ fontSize: 12, color: "#92400e" }}>Unsaved changes · reopen to continue</p>}
+              {contextEditor === field.key && <LearnerDetailSheet title={field.label} learnerName={student.name}
+                busy={contextSaving !== null} onClose={() => setContextEditor(null)}>
+              {contextMessage && <p role="status">{contextMessage}</p>}
+              <button type="button" disabled={contextSaving !== null} onClick={async () => {
+                await load(false);
+                contextDraftBases.current[field.key] = contextRevisions.current[field.key] ?? null;
+                const draftScope = contextDraftScope.current;
+                if (draftScope && contextDirtyKeys.current.has(field.key)) {
+                  saveContextDraft(draftScope, field.key, { value: contextDrafts[field.key], baseId: contextDraftBases.current[field.key] ?? null, requestId: contextRequestIds.current[field.key], updatedAt: Date.now() });
+                }
+              }}>Refresh saved values</button>
+              <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 12 }}>Currently saved: {contextSaved[field.key] || "Not recorded yet"}</p>
               <label
                 htmlFor={`learner-context-${field.key}`}
                 style={{ display: "block", fontSize: 13, fontWeight: 750 }}
@@ -1748,12 +1799,20 @@ export default function TeacherStudentProgressPage() {
               <textarea
                 id={`learner-context-${field.key}`}
                 value={contextDrafts[field.key]}
-                onChange={(event) =>
+                disabled={contextSaving === field.key}
+                onChange={(event) => {
+                  if (!contextDirtyKeys.current.has(field.key)) contextDraftBases.current[field.key] = contextRevisions.current[field.key] ?? null;
+                  contextDirtyKeys.current.add(field.key);
+                  contextRequestIds.current[field.key] = crypto.randomUUID();
+                  const draftScope = contextDraftScope.current;
+                  if (draftScope && !saveContextDraft(draftScope, field.key, { value: event.target.value, baseId: contextDraftBases.current[field.key] ?? null, requestId: contextRequestIds.current[field.key], updatedAt: Date.now() })) {
+                    setDraftRecoveryMessage("Draft recovery is unavailable in this browser. Keep this page open until your changes are saved.");
+                  }
                   setContextDrafts((current) => ({
                     ...current,
                     [field.key]: event.target.value,
-                  }))
-                }
+                  }));
+                }}
                 rows={3}
                 maxLength={1200}
                 placeholder={field.placeholder}
@@ -1785,6 +1844,16 @@ export default function TeacherStudentProgressPage() {
                 >
                   {contextDrafts[field.key].length}/1200
                 </span>
+                {contextDirtyKeys.current.has(field.key) && <button type="button" disabled={contextSaving !== null} onClick={() => {
+                  const cleared = !contextDraftScope.current || removeContextDraft(contextDraftScope.current, field.key);
+                  if (!cleared) { setDraftRecoveryMessage("The recovered draft could not be cleared. Keep this page open and retry."); return; }
+                  contextDirtyKeys.current.delete(field.key);
+                  delete contextDraftBases.current[field.key];
+                  contextRequestIds.current[field.key] = crypto.randomUUID();
+                  setContextDrafts(current => ({ ...current, [field.key]: contextSaved[field.key] }));
+                  if (!contextDirtyKeys.current.size) setDraftRecoveryMessage("");
+                  setContextMessage("Unsaved changes discarded. Saved notes are unchanged.");
+                }}>Discard changes</button>}
                 <button
                   type="button"
                   disabled={contextSaving !== null}
@@ -1793,7 +1862,7 @@ export default function TeacherStudentProgressPage() {
                     minHeight: 40,
                     border: 0,
                     borderRadius: 11,
-                    background: "#312e81",
+                    background: "#166534",
                     color: "#fff",
                     padding: "0 14px",
                     fontWeight: 750,
@@ -1802,8 +1871,10 @@ export default function TeacherStudentProgressPage() {
                   {contextSaving === field.key ? "Saving…" : "Save section"}
                 </button>
               </div>
-            </details>
+              </LearnerDetailSheet>}
+            </article>
           ))}
+          </div>
           {contextMessage && (
             <div
               role="status"
@@ -1838,7 +1909,7 @@ export default function TeacherStudentProgressPage() {
         </div>
       )}
 
-      {tab === "work" && (
+      {evidenceState === "ready" && tab === "work" && (
         <Card>
           {homework.length === 0 ? (
             <div
@@ -1943,7 +2014,7 @@ export default function TeacherStudentProgressPage() {
         </Card>
       )}
 
-      {tab === "assessment" && (
+      {evidenceState === "ready" && tab === "assessment" && (
         <div style={{ display: "grid", gap: 10 }}>
           <a href={`/teacher/classhub/${classId}/student/${studentId}/progress${requestedSubjectId ? `?subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full learning progress</a>
           <a href={`/teacher/assessment?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full assessment workspace</a>
@@ -1958,12 +2029,12 @@ export default function TeacherStudentProgressPage() {
             >
               RELEASED ASSESSMENTS
             </div>
-            {gradebook.length === 0 ? (
+            {gradebook.filter((item) => item.released_at !== null).length === 0 ? (
               <div style={{ color: "var(--teacher-muted, #627168)" }}>
                 No released assessment scores yet.
               </div>
             ) : (
-              gradebook.map((item, index) => {
+              gradebook.filter((item) => item.released_at !== null).map((item, index) => {
                 const percentage = item.percentage;
                 return (
                   <div
@@ -2049,14 +2120,8 @@ export default function TeacherStudentProgressPage() {
                     </div>
                   </div>
                   <Badge
-                    text={item.performance}
-                    tone={
-                      item.performance === "EE" || item.performance === "ME"
-                        ? "good"
-                        : item.performance === "BE"
-                          ? "bad"
-                          : "warn"
-                    }
+                    text={cbcPerformance(item.performance)?.label ?? "CBC level unavailable"}
+                    tone={cbcPerformance(item.performance)?.tone ?? "warn"}
                   />
                 </div>
               ))
@@ -2105,7 +2170,7 @@ export default function TeacherStudentProgressPage() {
         </div>
       )}
 
-      {tab === "attendance" && (
+      {evidenceState === "ready" && tab === "attendance" && (
         <Card>
           <p style={{ fontSize: 12, color: "#617168", marginTop: 0 }}>Recent attendance · up to 120 recorded sessions</p>
           <a style={{ display: "inline-block", minHeight: 44, fontSize: 13 }} href={`/teacher/attendance?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}`}>Open class attendance register</a>
@@ -2183,7 +2248,7 @@ export default function TeacherStudentProgressPage() {
         </Card>
       )}
 
-      {tab === "timeline" && (
+      {evidenceState === "ready" && tab === "timeline" && (
         <Card>
           <div
             style={{
@@ -2299,16 +2364,18 @@ export default function TeacherStudentProgressPage() {
         {panel === "all" && <>{(["groups", ...(!requestedSubjectId ? ["roles", "activities", "resources"] as const : []), "recognition", "notes"] as const).map(kind =>
           <button key={kind} type="button" onClick={() => setPanel(kind)}>{kind.charAt(0).toUpperCase() + kind.slice(1)}</button>)}</>}
         {(panel === "groups" || panel === "roles" || panel === "resources" || panel === "activities") &&
-          <LearnerRelatedRecords kind={panel} classId={classId} studentId={studentId} subjectId={requestedSubjectId} onBusyChange={setPanelBusy}/>}
+          <LearnerRelatedRecords kind={panel} classId={classId} studentId={studentId} learnerName={student.name} subjectId={requestedSubjectId} onBusyChange={setPanelBusy}/>}
         {(panel === "notes" || panel === "recognition") && <>
           <p>{panel === "recognition" ? "Record a specific achievement or effort." : "Private observations and learner follow-ups."}</p>
           <label>{panel === "recognition" ? "Recognition details" : "Factual note"}<textarea rows={3} maxLength={2000} disabled={eventSaving} value={activeEventNote} onChange={event => panel === "recognition" ? setRecognitionNote(event.target.value) : setEventNote(event.target.value)}/></label>
           <button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent(panel === "recognition" ? "recognition" : "observation")}>{eventSaving ? "Saving…" : panel === "recognition" ? "Save recognition" : "Save private note"}</button>
           {panel === "notes" && <><button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent("followup")}>Add follow-up · due in 7 days</button><button disabled={eventSaving || !activeEventNote.trim()} onClick={() => void saveTeacherEvent("participation")}>Record class participation</button></>}
           {eventMessage && <p role={eventMessage.startsWith("Saved") ? "status" : "alert"}>{eventMessage}</p>}
-          {teacherEvents.filter(item => !isLearnerContextEvent(item) && (panel === "recognition" ? item.event_kind === "recognition" : ["observation", "followup", "participation"].includes(item.event_kind))).map(item => <article key={item.id}><strong>{formatDate(item.created_at)} · {item.event_kind}</strong><p>{item.note}</p></article>)}
+          {evidenceState !== "ready" && <p role="status">Saved story records are {evidenceState === "loading" ? "loading" : "unavailable"}.</p>}
+          {evidenceState === "ready" && teacherEvents.filter(item => !isLearnerContextEvent(item) && (panel === "recognition" ? item.event_kind === "recognition" : ["observation", "followup", "participation"].includes(item.event_kind))).map(item => <article key={item.id}><strong>{formatDate(item.created_at)} · {item.event_kind}</strong><p>{item.note}</p></article>)}
         </>}
-        {panel === "support" && <>
+        {panel === "support" && evidenceState !== "ready" && <p role="status">Learning follow-up records are {evidenceState === "loading" ? "loading" : "unavailable"}.</p>}
+        {panel === "support" && evidenceState === "ready" && <>
           {!interventions.length && <p>No learning follow-ups recorded.</p>}
           {interventions.map(item => <article key={item.interventionId}><strong>{item.subjectName} · {item.status.replaceAll("_", " ")}</strong><p>{item.recommendation}</p></article>)}
           <a href={`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full support workspace</a>

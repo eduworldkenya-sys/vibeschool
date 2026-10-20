@@ -1,0 +1,2 @@
+-- Historical draft retired during #774 reconciliation.
+-- Do not execute this file. The canonical tested migration is under supabase/migrations; see README.md.
