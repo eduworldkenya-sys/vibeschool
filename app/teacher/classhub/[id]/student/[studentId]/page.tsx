@@ -1009,10 +1009,10 @@ export default function TeacherStudentProgressPage() {
         subjects={subjects}
         attendance={truth.attendance}
         work={truth.work}
-        followUps={interventions.filter(item => item.status !== "completed" && item.status !== "dismissed").length}
+        followUps={interventions.filter(item => item.status !== "completed" && item.status !== "dismissed").length + teacherEvents.filter(item => item.event_kind === "followup" && !item.resolved_at).length}
         overdue={truth.work.missing}
-        assessmentRecords={truth.assessment.released + truth.assessment.cbc + truth.assessment.exams}
-        releasedScores={gradebook.filter(item => Boolean(item.released_at)).length}
+        assessmentRecords={gradebook.length + cbc.length + exams.length}
+        releasedScores={gradebook.filter(item => Boolean(item.released_at) && item.percentage !== null && Number.isFinite(item.percentage)).length}
         onProgress={() => setTab("assessment")}
         onAttendance={() => setTab("attendance")}
         onWork={() => setTab("work")}
@@ -1504,7 +1504,7 @@ export default function TeacherStudentProgressPage() {
                     <h2>School life</h2>
                     <button type="button" className={experience.viewAll} onClick={() => setPanel("all")}>Explore</button>
                   </div>
-                  <div>
+                  <div className={experience.schoolLifeActions}>
                     <button
                       onClick={() => setPanel("groups")}
                     >
@@ -2186,8 +2186,9 @@ export default function TeacherStudentProgressPage() {
           {teacherEvents.filter(item => !isLearnerContextEvent(item) && (panel === "recognition" ? item.event_kind === "recognition" : ["observation", "followup", "participation"].includes(item.event_kind))).map(item => <article key={item.id}><strong>{formatDate(item.created_at)} · {item.event_kind}</strong><p>{item.note}</p></article>)}
         </>}
         {panel === "support" && <>
-          {!interventions.length && <p>No learning follow-ups recorded.</p>}
+          {!interventions.length && !teacherEvents.some(item => item.event_kind === "followup" && !item.resolved_at) && <p>No active learning follow-ups recorded.</p>}
           {interventions.map(item => <article key={item.interventionId}><strong>{item.subjectName} · {item.status.replaceAll("_", " ")}</strong><p>{item.recommendation}</p></article>)}
+          {teacherEvents.filter(item => item.event_kind === "followup" && !item.resolved_at).map(item => <article key={item.id}><strong>Teacher follow-up · {formatDate(item.created_at)}</strong><p>{item.note || "Follow-up recorded"}</p>{item.due_at && <p>Due {formatDate(item.due_at)}</p>}</article>)}
           <a href={`/teacher/assessment/interventions?classId=${encodeURIComponent(classId)}&studentId=${encodeURIComponent(studentId)}${requestedSubjectId ? `&subjectId=${encodeURIComponent(requestedSubjectId)}` : ""}`}>Open full support workspace</a>
         </>}
       </LearnerDetailSheet>}
