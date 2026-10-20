@@ -49,7 +49,7 @@ export default function LearnerRelatedRecords({ kind, classId, studentId, subjec
         ? await supabase.from("subjects").select("id,name").in("id", subjectIds)
         : { data: [], error: null };
       if (subjectResult.error) throw subjectResult.error;
-      const subjectNames = new Map((subjectResult.data ?? []).map(item => [item.id, item.name]));
+      const subjectNames = new Map<string, string>((subjectResult.data ?? []).map((item: { id: string; name: string }): [string, string] => [item.id, item.name]));
       const savedMemberships = rows.length
         ? await supabase.from("class_group_members").select("group_id,student_id").eq("student_id", studentId).in("group_id", rows.map(group => group.id))
         : { data: [], error: null };
