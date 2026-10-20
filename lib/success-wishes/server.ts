@@ -41,7 +41,7 @@ export async function json(req: NextRequest) {
     chunks.push(value)
   }
   const raw = Buffer.concat(chunks).toString('utf8')
-  try { return JSON.parse(raw) as unknown } catch { throw new WishError(400, 'Check the details and try again.') }
+  try { const parsed: unknown = JSON.parse(raw); return parsed } catch { throw new WishError(400, 'Check the details and try again.') }
 }
 export async function limit(key: string, max: number, seconds = 900) {
   const { data, error } = await database().rpc('success_wishes_take_attempt', {
