@@ -1502,14 +1502,14 @@ export default function TeacherStudentProgressPage() {
           <section className={experience.schoolLife} aria-label="School life">
                   <div className={experience.sectionTitle}>
                     <h2>School life</h2>
-                    <button type="button" className={experience.viewAll} onClick={() => setPanel("all")}>Explore</button>
+                    <button type="button" className={experience.viewAll} onClick={() => setPanel("all")}>View all</button>
                   </div>
                   <div className={experience.schoolLifeActions}>
                     <button
                       onClick={() => setPanel("groups")}
                     >
                       <UsersRound />
-                      <span>Manage groups</span>
+                      <span>Groups</span>
                     </button>
                     {!requestedSubjectId && (
                       <button
