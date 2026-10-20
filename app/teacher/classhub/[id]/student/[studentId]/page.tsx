@@ -10,7 +10,6 @@ import {
   Award,
   BookOpenCheck,
   CalendarCheck,
-  Ellipsis,
   Library,
   NotebookPen,
   UserRound,
@@ -20,6 +19,7 @@ import LearnerIdentityFields from "@/components/teacher/LearnerIdentityFields";
 import LearnerDetailSheet from "@/components/teacher/LearnerDetailSheet";
 import LearnerRelatedRecords from "@/components/teacher/LearnerRelatedRecords";
 import LearnerSnapshot from "@/components/teacher/LearnerSnapshot";
+import LearnerGroupSummary from "@/components/teacher/LearnerGroupSummary";
 import experience from "@/components/teacher/LearnerExperience.module.css";
 import { buildLearnerTruthSummary } from "@/lib/learner-intelligence/truth";
 import {
@@ -339,6 +339,7 @@ export default function TeacherStudentProgressPage() {
   const [panel, setPanel] = useState<"all" | "groups" | "roles" | "resources" | "activities" | "notes" | "recognition" | "support" | null>(null);
   const activeEventNote = panel === "recognition" ? recognitionNote : eventNote;
   const [panelBusy, setPanelBusy] = useState(false);
+  const [groupRefreshKey, setGroupRefreshKey] = useState(0);
   const [selectedWork, setSelectedWork] = useState<HomeworkRow | null>(null);
   const [contextDrafts, setContextDrafts] = useState<
     Record<LearnerContextKey, string>
@@ -999,123 +1000,24 @@ export default function TeacherStudentProgressPage() {
           <span>
             {classAssignment?.class_name ?? "Class"}
             {classAssignment?.stream ? ` ${classAssignment.stream}` : ""}
-            {student.admission_number ? ` · ${student.admission_number}` : ""}
+            {student.admission_number ? ` · Adm. no. ${student.admission_number}` : " · Admission no. not recorded"}
           </span>
         </div>
-        <button
-          className={experience.iconButton}
-          onClick={() => setTab(requestedSubjectId ? "timeline" : "about")}
-          aria-label="More learner details"
-        >
-          <Ellipsis size={20} />
-        </button>
       </header>
-      <div
-        className={experience.quickActions}
-        aria-label="Quick learner actions"
-      >
-        <button onClick={() => setTab("attendance")}>
-          <CalendarCheck size={18} />
-          <span>Attendance</span>
-        </button>
-        <button
-          onClick={() => setTab("assessment")}
-        >
-          <BookOpenCheck size={18} />
-          <span>Assess</span>
-        </button>
-        <button
-          onClick={() => {
-            setPanel("notes");
-          }}
-        >
-          <NotebookPen size={18} />
-          <span>Note</span>
-        </button>
-      </div>
       <LearnerSnapshot
         scores={gradebook}
         subjects={subjects}
         attendance={truth.attendance}
         work={truth.work}
-        followUps={
-          interventions.filter(
-            (item) =>
-              item.status !== "completed" && item.status !== "dismissed",
-          ).length
-        }
+        followUps={interventions.filter(item => item.status !== "completed" && item.status !== "dismissed").length}
+        overdue={truth.work.missing}
+        assessmentRecords={truth.assessment.released + truth.assessment.cbc + truth.assessment.exams}
+        releasedScores={gradebook.filter(item => Boolean(item.released_at)).length}
         onProgress={() => setTab("assessment")}
         onAttendance={() => setTab("attendance")}
         onWork={() => setTab("work")}
         onSupport={() => setPanel("support")}
       />
-
-      <section className={experience.schoolLife} aria-label="School life">
-        <div className={experience.sectionTitle}>
-          <h2>School life</h2>
-          <button type="button" className={experience.viewAll} onClick={() => setPanel("all")}>View all</button>
-        </div>
-        <div>
-          <button
-            onClick={() => setPanel("groups")}
-          >
-            <UsersRound />
-            <span>Groups</span>
-          </button>
-          {!requestedSubjectId && (
-            <button
-              onClick={() => {
-                setPanel("roles");
-              }}
-            >
-              <UserRound />
-              <span>Roles</span>
-            </button>
-          )}
-          <button
-            onClick={() => {
-              setPanel("recognition");
-            }}
-          >
-            <Award />
-            <span>Recognition</span>
-          </button>
-          <button
-            onClick={() => {
-              setPanel("notes");
-            }}
-          >
-            <NotebookPen />
-            <span>Notes</span>
-          </button>
-          {!requestedSubjectId && (
-            <button
-              onClick={() => setPanel("resources")}
-            >
-              <Library />
-              <span>Resources</span>
-            </button>
-          )}
-        </div>
-      </section>
-
-      <section
-        className={`${experience.evidenceState} ${truth.evidenceState === "sufficient" ? experience.evidenceReady : ""}`}
-      >
-        <span />
-        <div>
-          <strong>
-            {truth.evidenceState === "sufficient"
-              ? "Learning picture ready"
-              : "Not enough learning records yet"}
-          </strong>
-          <small>
-            {truth.evidenceState === "sufficient"
-              ? `${assessmentEvidence} assessment records`
-              : "Add attendance, work or assessment records to see progress."}
-          </small>
-        </div>
-      </section>
 
       <nav
         className={experience.profileTabs}
@@ -1432,10 +1334,6 @@ export default function TeacherStudentProgressPage() {
             )}
           </Card>
 
-          <Card><h3 style={{ marginTop: 0, fontSize: 15 }}>Teacher notes</h3>
-            <button type="button" onClick={() => setPanel("notes")}>View notes or add an observation</button>
-          </Card>
-
           <Card>
             <div
               style={{
@@ -1601,87 +1499,55 @@ export default function TeacherStudentProgressPage() {
             </button>
           </Card>
 
-          <Card>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 750,
-                color: "var(--teacher-muted, #627168)",
-                marginBottom: 10,
-              }}
-            >
-              MORE ACTIONS
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(2,minmax(0,1fr))",
-                gap: 8,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("work")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#0f766e",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Assign / review work
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("assessment")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#92400e",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Assess learner
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setTab("attendance")
-                }
-                style={{
-                  minHeight: 46,
-                  border: 0,
-                  borderRadius: 12,
-                  background: "#065f46",
-                  color: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Attendance
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab("assessment")}
-                style={{
-                  minHeight: 46,
-                  border: "1px solid #d1d5db",
-                  borderRadius: 12,
-                  background: "#fff",
-                  fontWeight: 750,
-                }}
-              >
-                Inspect evidence
-              </button>
-            </div>
-          </Card>
+          <section className={experience.schoolLife} aria-label="School life">
+                  <div className={experience.sectionTitle}>
+                    <h2>School life</h2>
+                    <button type="button" className={experience.viewAll} onClick={() => setPanel("all")}>Explore</button>
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => setPanel("groups")}
+                    >
+                      <UsersRound />
+                      <span>Manage groups</span>
+                    </button>
+                    {!requestedSubjectId && (
+                      <button
+                        onClick={() => {
+                          setPanel("roles");
+                        }}
+                      >
+                        <UserRound />
+                        <span>Roles</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setPanel("recognition");
+                      }}
+                    >
+                      <Award />
+                      <span>Recognition</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setPanel("notes");
+                      }}
+                    >
+                      <NotebookPen />
+                      <span>Notes</span>
+                    </button>
+                    {!requestedSubjectId && (
+                      <button
+                        onClick={() => setPanel("resources")}
+                      >
+                        <Library />
+                        <span>Resources</span>
+                      </button>
+                    )}
+                  </div>
+                </section>
+                  <LearnerGroupSummary classId={classId} studentId={studentId} subjectId={requestedSubjectId} refreshKey={groupRefreshKey} onManage={() => setPanel("groups")}/>
         </div>
       )}
 
@@ -1718,17 +1584,27 @@ export default function TeacherStudentProgressPage() {
               ABOUT THIS LEARNER
             </div>
             <h2 style={{ margin: "5px 0", fontSize: 18 }}>
-              Build the learner picture gradually
+              Learner details
             </h2>
             <div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>
-              Record what you have actually observed. Attendance, marks, homework and progress stay in their existing VibeSchool records
-              and appear automatically elsewhere. These notes are visible only to the class teacher.
+              Saved details are shown below. Edit only the information you have confirmed. These teacher notes are visible only to the class teacher.
             </div>
+          </Card>
+          <Card>
+            <h3 style={{ margin: "0 0 9px", fontSize: 14 }}>School identity</h3>
+            <dl className={experience.identityDetails}>
+              <div><dt>Name</dt><dd>{student.name}</dd></div>
+              <div><dt>Admission number</dt><dd>{student.admission_number || "Not recorded"}</dd></div>
+              <div><dt>Date of birth</dt><dd>{student.date_of_birth ? formatDate(student.date_of_birth) : "Not recorded"}</dd></div>
+              <div><dt>Gender</dt><dd>{student.gender || "Not recorded"}</dd></div>
+            </dl>
           </Card>
           <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
           {learnerContextFields.map((field) => (
-            <details key={field.key} className={experience.contextSection}>
-              <summary>{field.label}{contextDrafts[field.key].trim() ? " · Recorded" : " · Add"}</summary>
+            <section key={field.key} className={experience.readableContext}>
+              <div><h3>{field.label}</h3><p>{contextDrafts[field.key].trim() || "Not recorded"}</p></div>
+              <details className={experience.contextSection}>
+              <summary>{contextDrafts[field.key].trim() ? "Edit" : "Add"} {field.label.toLowerCase()}</summary>
               <label
                 htmlFor={`learner-context-${field.key}`}
                 style={{ display: "block", fontSize: 13, fontWeight: 750 }}
@@ -1802,7 +1678,8 @@ export default function TeacherStudentProgressPage() {
                   {contextSaving === field.key ? "Saving…" : "Save section"}
                 </button>
               </div>
-            </details>
+              </details>
+            </section>
           ))}
           {contextMessage && (
             <div
@@ -2295,7 +2172,7 @@ export default function TeacherStudentProgressPage() {
         </Card>
       )}
       {panel && <LearnerDetailSheet title={panel === "all" ? "School life" : panel.charAt(0).toUpperCase() + panel.slice(1)} learnerName={student.name} busy={panelBusy || eventSaving}
-        onClose={() => { setPanel(null); setEventMessage(""); }}>
+        onClose={() => { if (panel === "groups") setGroupRefreshKey(current => current + 1); setPanel(null); setEventMessage(""); }}>
         {panel === "all" && <>{(["groups", ...(!requestedSubjectId ? ["roles", "activities", "resources"] as const : []), "recognition", "notes"] as const).map(kind =>
           <button key={kind} type="button" onClick={() => setPanel(kind)}>{kind.charAt(0).toUpperCase() + kind.slice(1)}</button>)}</>}
         {(panel === "groups" || panel === "roles" || panel === "resources" || panel === "activities") &&
