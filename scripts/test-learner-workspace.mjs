@@ -121,7 +121,12 @@ try{
  await profile.locator('dd').filter({hasText:'Football and drawing'}).waitFor();
  assert.equal(await profile.locator('textarea').count(),0);
  assert.equal(await profile.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
- assertions+=2;
+ await profile.getByRole('button',{name:'Overview',exact:true}).click();
+ const savedPreview=profile.getByRole('region',{name:'Saved learner details'});
+ await savedPreview.getByText('Football and drawing',{exact:true}).waitFor();
+ await savedPreview.getByRole('button',{name:'View details'}).click();
+ await profile.getByRole('heading',{name:'Learning and interests'}).waitFor();
+ assertions+=3;
  await profile.screenshot({path:path.join(dir,'learner-about-390.png'),fullPage:true});
  await profile.setViewportSize({width:1440,height:900});
  assert.equal(await profile.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
