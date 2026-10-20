@@ -13,6 +13,14 @@ const entry=`import React from 'react';import {createRoot} from 'react-dom/clien
 await build({stdin:{contents:entry,resolveDir:process.cwd(),loader:'jsx'},outfile:path.join(dir,'app.js'),bundle:true,platform:'browser',format:'iife',jsx:'automatic',external:['/fonts/*'],plugins:[{name:'synthetic-network-only',setup(b){b.onLoad({filter:/\.module\.css$/},a=>({contents:fs.readFileSync(a.path,'utf8'),loader:'local-css'}));b.onResolve({filter:/^(next\/navigation|next\/link|@\/lib\/supabase|@\/lib\/assessment\/interventions)$/},a=>({path:a.path,namespace:'fixture'}));b.onLoad({filter:/.*/,namespace:'fixture'},a=>({loader:'js',resolveDir:process.cwd(),contents:a.path==='next/navigation'?`const router={push:url=>window.routes.push(url),replace:url=>window.routes.push(url)};const search=new URLSearchParams(location.search);export const useParams=()=>({id:'class',studentId:'mary'});export const useRouter=()=>router;export const useSearchParams=()=>search;`:a.path==='next/link'?`import React from 'react';export default function Link(props){return React.createElement('a',props)}`:a.path.endsWith('/interventions')?`export const listInterventionQueue=async()=>location.search.includes('support=1')?[{studentId:'mary',interventionId:'support1',subjectName:'Mathematics',status:'active',priority:'support',masteryScore:30,recommendation:'Practise number patterns.',remedialAssessmentId:null}]:[];`:`export const supabase=window.client;`}))}}]});
 const fixture=String.raw`
 window.routes=[];window.calls=[];window.state={activities:[],memberships:[],students:[{id:'mary',name:'Mary Wakire'},{id:'other',name:'Other Learner'}],groups:[{id:'g1',name:'Readers',mode:'static',subject_id:'math',class_id:'class',purpose:'Reading together'}],groupMembers:[{group_id:'g1',student_id:'other'}],events:[],identity:{id:'mary',name:'Mary Wakire',admission_number:'098',profile_id:null,gender:null,date_of_birth:null,deleted_at:null},loans:[{id:'l1',student_id:'mary',book_id:'b1',book_title:'Science Book',due_date:'2026-12-01',issued_at:'2026-10-01',returned_at:null},{id:'l2',student_id:'other',book_title:'PRIVATE OTHER BOOK',due_date:'2026-12-01',returned_at:null}],failMembers:0,failGroups:false};
+try {
+  const saved = sessionStorage.getItem('learner-profile-test-records');
+  if (saved) {
+    const restored = JSON.parse(saved);
+    window.state.events = restored.events;
+    window.state.identity = restored.identity;
+  }
+} catch {}
 const ok=data=>({data,error:null});
 window.client={auth:{getUser:async()=>ok({user:{id:'teacher'}})},rpc:async(name,args)=>{calls.push({name,args});const s=state;
 if(name==='teacher_manage_class_learner'){if(JSON.stringify(args.p_payload.expected)!==JSON.stringify({name:s.identity.name,admission_number:s.identity.admission_number,gender:s.identity.gender,date_of_birth:s.identity.date_of_birth}))return {data:null,error:{message:'learner_edit_conflict'}};for(const key of ['name','admission_number','gender','date_of_birth'])s.identity[key]=args.p_payload[key];return ok('mary')}
@@ -59,25 +67,68 @@ try{
   await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:path.join(dir,`learner-${width}.png`),fullPage:true});await page.close();
  }
  const subject=await browser.newPage();await subject.goto(url+'?subjectId=math');await subject.getByRole('heading',{name:'Mary Wakire'}).waitFor();assert.equal(await subject.getByRole('button',{name:'Roles',exact:true}).count(),0);assert.equal(await subject.getByRole('button',{name:'Resources',exact:true}).count(),0);await subject.getByRole('button',{name:'Groups',exact:true}).click();await subject.getByRole('dialog').getByText('Readers').waitFor();assert.ok((await subject.evaluate(()=>calls)).some(c=>c.table==='class_groups'&&c.filters.some(([k,v])=>k==='subject_id'&&v==='math')));assertions+=3;await subject.close();
- const profile=await browser.newPage();profile.setDefaultTimeout(10000);await profile.goto(url+'?tab=about');await profile.getByRole('heading',{name:'Mary Wakire'}).waitFor();await profile.getByText('School identity · Edit details',{exact:true}).click();await profile.getByLabel('Date of birth (optional)').fill('2018-04-12');await profile.getByRole('button',{name:'Save identity details'}).click();await profile.getByText('Saved learner details.',{exact:true}).waitFor();assert.equal(await profile.evaluate(()=>state.identity.date_of_birth),'2018-04-12');await profile.evaluate(()=>state.identity.admission_number='EXTERNAL');await profile.getByLabel('Admission number (optional)').fill('LOCAL');await profile.getByRole('button',{name:'Save identity details'}).click();await profile.getByRole('alert').getByText(/changed elsewhere/).waitFor();assert.equal(await profile.evaluate(()=>state.identity.admission_number),'EXTERNAL');assertions+=2;
-  // A draft must never be displayed as saved learner information.
-  const interestsDisplay = profile.getByRole('heading',{name:'Interests',exact:true}).locator('..').locator('p');
-  assert.equal(await interestsDisplay.textContent(),'Not recorded');
-  await profile.getByText('Add interests',{exact:true}).click();
-  await profile.getByLabel('Interests',{exact:true}).fill('Football and drawing');
-  assert.equal(await interestsDisplay.textContent(),'Not recorded');
-  assertions+=2;
-  await profile.getByRole('button',{name:'Save section',exact:true}).click();
-  await profile.getByText('Football and drawing',{exact:true}).waitFor();
-  assert.equal(await interestsDisplay.textContent(),'Football and drawing');
-  await profile.getByLabel('Interests',{exact:true}).fill('Unsaved change');
-  assert.equal(await interestsDisplay.textContent(),'Football and drawing');
-  assertions+=2;
-  await profile.reload();
-  await profile.getByRole('heading',{name:'Interests',exact:true}).waitFor();
-  assert.equal(await profile.getByRole('heading',{name:'Interests',exact:true}).locator('..').locator('p').textContent(),'Football and drawing');
-  assertions++;
-  await profile.close();
+ const profile=await browser.newPage({viewport:{width:390,height:850}});
+ profile.setDefaultTimeout(10000);
+ await profile.goto(url+'?tab=about');
+ await profile.getByRole('heading',{name:'Mary Wakire',exact:true}).waitFor();
+ await profile.getByRole('heading',{name:'About Mary',exact:true}).waitFor();
+ assert.equal(await profile.getByRole('heading',{name:'No learner notes recorded yet'}).count(),1);
+ assert.equal(await profile.locator('textarea').count(),0);
+ assertions+=2;
+
+ await profile.getByRole('button',{name:'Edit school details'}).click();
+ let details=profile.getByRole('dialog',{name:'Edit school details · Mary Wakire'});
+ await details.getByLabel('Date of birth (optional)').fill('2018-04-12');
+ await details.getByRole('button',{name:'Save details',exact:true}).click();
+ await profile.getByText('School details saved.',{exact:true}).waitFor();
+ assert.equal(await profile.evaluate(()=>state.identity.date_of_birth),'2018-04-12');
+ assertions++;
+ await profile.evaluate(()=>state.identity.admission_number='EXTERNAL');
+ await profile.getByRole('button',{name:'Edit school details'}).click();
+ details=profile.getByRole('dialog',{name:'Edit school details · Mary Wakire'});
+ await details.getByLabel('Admission number (optional)').fill('LOCAL');
+ await details.getByRole('button',{name:'Save details',exact:true}).click();
+ await details.getByRole('alert').getByText(/changed elsewhere/).waitFor();
+ assert.equal(await profile.evaluate(()=>state.identity.admission_number),'EXTERNAL');
+ await details.getByRole('button',{name:'Close Edit school details'}).click();
+ assertions++;
+
+ await profile.getByRole('button',{name:'Add detail',exact:true}).click();
+ const picker=profile.getByRole('dialog',{name:'Add learner detail · Mary Wakire'});
+ await picker.getByRole('button',{name:/^Interests/}).click();
+ let editor=profile.getByRole('dialog',{name:'Add Interests · Mary Wakire'});
+ await editor.getByRole('textbox',{name:'Interests',exact:true}).fill('Football and drawing');
+ assert.equal(await profile.locator('dd').filter({hasText:'Football and drawing'}).count(),0);
+ await editor.getByRole('button',{name:'Save details',exact:true}).click();
+ await profile.locator('dd').filter({hasText:'Football and drawing'}).waitFor();
+ await profile.getByRole('heading',{name:'Learning and interests'}).waitFor();
+ assert.equal(await profile.locator('textarea').count(),0);
+ assertions+=2;
+ await profile.getByRole('button',{name:'Edit Interests',exact:true}).click();
+ editor=profile.getByRole('dialog',{name:'Edit Interests · Mary Wakire'});
+ await editor.getByRole('textbox',{name:'Interests',exact:true}).fill('Unsaved change');
+ assert.equal(await profile.locator('dd').filter({hasText:'Football and drawing'}).count(),1);
+ await editor.getByRole('button',{name:'Cancel',exact:true}).click();
+ assert.equal(await profile.locator('dd').filter({hasText:'Football and drawing'}).count(),1);
+ assertions+=2;
+
+ // Persist mock records between reloads to imitate the server-side database.
+ await profile.evaluate(()=>sessionStorage.setItem('learner-profile-test-records',JSON.stringify({
+   events:state.events, identity:state.identity,
+ })));
+ await profile.reload();
+ await profile.getByRole('heading',{name:'About Mary'}).waitFor();
+ await profile.locator('dd').filter({hasText:'Football and drawing'}).waitFor();
+ assert.equal(await profile.locator('textarea').count(),0);
+ assert.equal(await profile.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ assertions+=2;
+ await profile.screenshot({path:path.join(dir,'learner-about-390.png'),fullPage:true});
+ await profile.setViewportSize({width:1440,height:900});
+ assert.equal(await profile.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ assertions++;
+ await profile.screenshot({path:path.join(dir,'learner-about-1440.png'),fullPage:true});
+ await profile.close();
+
  const failure=await browser.newPage();failure.setDefaultTimeout(10000);await failure.goto(url);await failure.getByRole('heading',{name:'Mary Wakire'}).waitFor();await failure.evaluate(()=>state.failGroups=true);await failure.getByRole('button',{name:'Groups',exact:true}).click();await failure.getByRole('alert').waitFor();assert.equal(await failure.getByRole('dialog').getByText('No current group memberships for this learner.').count(),0);await failure.evaluate(()=>state.failGroups=false);await failure.getByRole('button',{name:'Retry',exact:true}).click();await failure.getByRole('dialog').getByText('Readers',{exact:true}).waitFor();await failure.keyboard.press('Escape');assert.equal(await failure.evaluate(()=>document.activeElement.textContent),'Groups');assertions+=2;await failure.close();
  const support=await browser.newPage();support.setDefaultTimeout(10000);await support.goto(url+'?support=1');await support.getByRole('button',{name:'Open support',exact:true}).click();await support.getByRole('dialog',{name:'Support · Mary Wakire',exact:true}).getByText('Practise number patterns.',{exact:true}).waitFor();assert.deepEqual(await support.evaluate(()=>routes),[]);assertions++;await support.close();
  const ack=await browser.newPage();ack.setDefaultTimeout(10000);await ack.goto(url);await ack.getByRole('heading',{name:'Mary Wakire'}).waitFor();await ack.getByRole('button',{name:'Notes',exact:true}).click();await ack.getByLabel('Factual note').fill('Private retry case');await ack.evaluate(()=>state.failEventAck=true);await ack.getByRole('button',{name:'Save private note',exact:true}).click();await ack.getByRole('alert').getByText('simulated lost acknowledgement',{exact:true}).waitFor();await ack.keyboard.press('Escape');await ack.getByRole('button',{name:'Recognition',exact:true}).click();await ack.getByLabel('Recognition details').fill('Recognition between retries');await ack.getByRole('button',{name:'Save recognition',exact:true}).click();await ack.getByText("Saved to this learner's story.",{exact:true}).waitFor();await ack.keyboard.press('Escape');await ack.getByRole('button',{name:'Notes',exact:true}).click();await ack.getByRole('button',{name:'Save private note',exact:true}).click();await ack.getByText("Saved to this learner's story.",{exact:true}).waitFor();assert.equal(await ack.evaluate(()=>state.events.filter(e=>e.note==='Private retry case').length),1);assertions++;await ack.close();
