@@ -1,0 +1,13 @@
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
+export const SESSION_COOKIE = 'vs_wishes_session'
+export const SESSION_SECONDS = 15 * 60
+export function token() { return randomBytes(32).toString('hex') }
+export function hashSecret(value: string) { return createHash('sha256').update(value).digest('hex') }
+export function accessHash(code: string) { return hashSecret('success-wishes:inbox:' + code.trim().toUpperCase()) }
+export function equalHash(a: string, b: string) {
+  if (!/^[a-f0-9]{64}$/.test(a) || !/^[a-f0-9]{64}$/.test(b)) return false
+  return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'))
+}
+export function enabled(env: Record<string, string | undefined> = process.env) {
+  return env.SUCCESS_WISHES_ENABLED === 'true' && !!env.NEXT_PUBLIC_SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY
+}
