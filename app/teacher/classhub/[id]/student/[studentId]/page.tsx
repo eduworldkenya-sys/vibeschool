@@ -7,6 +7,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
   ArrowLeft,
+  Activity,
   Award,
   BookOpenCheck,
   CalendarCheck,
@@ -1519,6 +1520,12 @@ export default function TeacherStudentProgressPage() {
                       >
                         <UserRound />
                         <span>Roles</span>
+                      </button>
+                    )}
+                    {!requestedSubjectId && (
+                      <button type="button" onClick={() => setPanel("activities")}>
+                        <Activity />
+                        <span>Activities</span>
                       </button>
                     )}
                     <button
