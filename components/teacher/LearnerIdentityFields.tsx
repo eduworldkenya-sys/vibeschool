@@ -16,12 +16,14 @@ export default function LearnerIdentityFields({
   identity,
   onSaved,
   onCancel,
+  onBusyChange,
 }: {
   classId: string;
   studentId: string;
   identity: Identity;
   onSaved: () => Promise<void>;
   onCancel?: () => void;
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const [draft, setDraft] = useState(identity);
   const [busy, setBusy] = useState(false);
@@ -34,6 +36,7 @@ export default function LearnerIdentityFields({
     if (lock.current || !draft.name.trim()) return;
     lock.current = true;
     setBusy(true);
+    onBusyChange?.(true);
     setMessage("");
     const payload = {
       ...draft,
@@ -69,6 +72,7 @@ export default function LearnerIdentityFields({
     } finally {
       lock.current = false;
       setBusy(false);
+      onBusyChange?.(false);
     }
   }
 
