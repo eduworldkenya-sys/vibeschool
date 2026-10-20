@@ -1,14 +1,29 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { accessHash, enabled, equalHash, hashSecret, token } from './security'
-import { field, object, submission, uuid, WishError } from './contracts'
+import { accessHash, enabled, equalHash, hashSecret, messageExpiry, token } from './security'
+import { field, object, retryKey, submission, uuid, WishError } from './contracts'
 
 const valid = {
   schoolId: '00000000-0000-4000-8000-000000000001', admissionNumber: '1234',
   candidateName: 'Test Candidate', senderName: 'Test Sender', relationship: 'Parent',
   kind: 'text', text: 'We believe in you.', consent: true,
-  idempotencyKey: '00000000-0000-4000-8000-000000000002',
+  idempotencyKey: 'a'.repeat(64),
 }
+
+test('retention is bounded by campaign and invalid policy fails closed', () => {
+  const now = Date.parse('2026-10-20T12:00:00Z')
+  const end = '2026-10-21T12:00:00.000Z'
+  assert.equal(messageExpiry(60, end, now), end)
+  assert.equal(messageExpiry(1, '2026-11-20T12:00:00Z', now), end)
+  for (const days of [0, -1, 366, NaN, 1.1]) assert.throws(() => messageExpiry(days, end, now))
+  for (const expiry of ['', 'not-a-date', '2026-10-19T12:00:00Z']) assert.throws(() => messageExpiry(60, expiry, now))
+})
+test('retry capabilities use 256 bits of formatted random material', () => {
+  assert.equal(retryKey('a'.repeat(64)), 'a'.repeat(64))
+  for (const invalid of ['a'.repeat(63), 'g'.repeat(64), '00000000-0000-4000-8000-000000000002']) {
+    assert.throws(() => retryKey(invalid), WishError)
+  }
+})
 
 test('sending stays closed unless explicit flag and both database credentials exist', () => {
   for (const env of [{}, { SUCCESS_WISHES_ENABLED: 'true' },
@@ -39,6 +54,8 @@ test('submission rejects identity, consent, format and idempotency abuse', () =>
     {...valid, consent:'true'}, {...valid, consent:false}, {...valid, kind:'html'},
     {...valid, senderName:' '}, {...valid, candidateName:'\u0000'},
     {...valid, admissionNumber: 1234}, {...valid, idempotencyKey:'known-order'},
+    {...valid, idempotencyKey:'00000000-0000-4000-8000-000000000002'},
+    {...valid, idempotencyKey:'z'.repeat(64)},
     {...valid, text:'x'.repeat(2001)}, {...valid, text:'\u0000'}]
   for (const input of invalid) assert.throws(() => submission(input), WishError)
 })
