@@ -13,6 +13,8 @@ import {
   CalendarCheck,
   Library,
   NotebookPen,
+  Pencil,
+  Plus,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -136,6 +138,24 @@ const tabs: Tab[] = [
   "attendance",
   "timeline",
 ];
+const aboutSections: Array<{
+  heading: string;
+  fields: LearnerContextKey[];
+}> = [
+  {
+    heading: "Learning and interests",
+    fields: ["strengths", "interests", "learning_preferences", "helpful_strategies"],
+  },
+  {
+    heading: "Support and communication",
+    fields: ["support_needs", "accommodations", "communication_preferences"],
+  },
+  {
+    heading: "Other school context",
+    fields: ["responsibilities"],
+  },
+];
+
 const learnerContextFields: Array<{
   key: LearnerContextKey;
   label: string;
@@ -355,6 +375,10 @@ export default function TeacherStudentProgressPage() {
   const [savedContext, setSavedContext] = useState<Record<LearnerContextKey, string>>(
     () => Object.fromEntries(learnerContextFields.map(field => [field.key, ""])) as Record<LearnerContextKey, string>,
   );
+  const [editingContext, setEditingContext] = useState<LearnerContextKey | null>(null);
+  const [choosingContext, setChoosingContext] = useState(false);
+  const [editingIdentity, setEditingIdentity] = useState(false);
+  const [identitySaving, setIdentitySaving] = useState(false);
   const [contextSaving, setContextSaving] = useState<LearnerContextKey | null>(
     null,
   );
@@ -724,19 +748,17 @@ export default function TeacherStudentProgressPage() {
           (existing.note ?? "") === value
         ) {
           contextRequestIds.current[key] = crypto.randomUUID();
-          setContextMessage(
-            "Saved. The earlier version remains in the learner history.",
-          );
+          setContextMessage("Learner details saved.");
           await load(false);
+          setEditingContext(null);
         } else {
           setContextMessage(insertError.message);
         }
       } else {
         contextRequestIds.current[key] = crypto.randomUUID();
-        setContextMessage(
-          "Saved. The earlier version remains in the learner history.",
-        );
+        setContextMessage("Learner details saved.");
         await load(false);
+        setEditingContext(null);
       }
       setContextSaving(null);
     },
@@ -982,6 +1004,27 @@ export default function TeacherStudentProgressPage() {
   ]
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .slice(0, 40);
+  const recordedDetails = learnerContextFields.filter(
+    field => savedContext[field.key].trim().length > 0,
+  );
+  const unrecordedDetails = learnerContextFields.filter(
+    field => !savedContext[field.key].trim(),
+  );
+  const editingField = learnerContextFields.find(field => field.key === editingContext);
+  const openContextEditor = (key: LearnerContextKey) => {
+    setChoosingContext(false);
+    setContextMessage("");
+    setContextDrafts(current => ({ ...current, [key]: savedContext[key] }));
+    setEditingContext(key);
+  };
+  const closeContextEditor = () => {
+    if (contextSaving !== null) return;
+    if (editingContext) {
+      setContextDrafts(current => ({ ...current, [editingContext]: savedContext[editingContext] }));
+    }
+    setContextMessage("");
+    setEditingContext(null);
+  };
   const availableTabs = requestedSubjectId ? tabs.filter((item) => item !== "about")
     : tabs;
 
@@ -1565,167 +1608,170 @@ export default function TeacherStudentProgressPage() {
       )}
 
       {!requestedSubjectId && tab === "about" && (
-        <div style={{ display: "grid", gap: 10 }}>
-          {searchParams.get("setup") === "1" && (
-            <section
-              style={{
-                borderRadius: 16,
-                padding: 14,
-                background: "#ecfdf5",
-                border: "1px solid #a7f3d0",
-                color: "#065f46",
-              }}
-            >
-              <strong style={{ fontSize: 13 }}>
-                Learner added successfully
-              </strong>
-              <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.45 }}>
-                You can add useful information now or return later. These
-                sections are optional and should only contain information that
-                helps teaching and support.
+        <div className={experience.aboutPage}>
+          <header className={experience.aboutHeading}>
+            <div>
+              <p className={experience.aboutEyebrow}>Learner details</p>
+              <h2>About {student.name.split(/\s+/)[0]}</h2>
+              <p>
+                {recordedDetails.length} of {learnerContextFields.length} notes recorded
+                <span aria-hidden="true"> · </span>
+                Class teacher only
+              </p>
+            </div>
+            {unrecordedDetails.length > 0 && (
+              <button type="button" className={experience.aboutAddButton}
+                onClick={() => { setContextMessage(""); setChoosingContext(true); }}>
+                <Plus size={17} aria-hidden="true"/>
+                Add detail
+              </button>
+            )}
+          </header>
+
+          <section className={experience.aboutSection} aria-labelledby="learner-school-details">
+            <div className={experience.aboutSectionHeading}>
+              <div>
+                <h3 id="learner-school-details">School details</h3>
+                <p>Information recorded at enrolment</p>
               </div>
-            </section>
-          )}
-          <Card>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 750,
-                color: "var(--teacher-muted, #627168)",
-              }}
-            >
-              ABOUT THIS LEARNER
+              <button type="button" className={experience.aboutEditButton}
+                onClick={() => { setContextMessage(""); setEditingIdentity(true); }}>
+                <Pencil size={15} aria-hidden="true"/> Edit
+              </button>
             </div>
-            <h2 style={{ margin: "5px 0", fontSize: 18 }}>
-              Learner details
-            </h2>
-            <div style={{ color: "#4b5563", fontSize: 12, lineHeight: 1.5 }}>
-              Saved details are shown below. Edit only the information you have confirmed. These teacher notes are visible only to the class teacher.
-            </div>
-          </Card>
-          <Card>
-            <h3 style={{ margin: "0 0 9px", fontSize: 14 }}>School identity</h3>
-            <dl className={experience.identityDetails}>
-              <div><dt>Name</dt><dd>{student.name}</dd></div>
-              <div><dt>Admission number</dt><dd>{student.admission_number || "Not recorded"}</dd></div>
-              <div><dt>Date of birth</dt><dd>{student.date_of_birth ? formatDate(student.date_of_birth) : "Not recorded"}</dd></div>
-              <div><dt>Gender</dt><dd>{student.gender || "Not recorded"}</dd></div>
+            <dl className={experience.aboutIdentityGrid}>
+              <div>
+                <dt>Admission no.</dt>
+                <dd>{student.admission_number || "Not recorded"}</dd>
+              </div>
+              <div>
+                <dt>Class</dt>
+                <dd>{classAssignment?.class_name ?? "Class"}{classAssignment?.stream ? ` ${classAssignment.stream}` : ""}</dd>
+              </div>
+              <div>
+                <dt>Date of birth</dt>
+                <dd>{student.date_of_birth ? formatDate(student.date_of_birth) : "Not recorded"}</dd>
+              </div>
+              <div>
+                <dt>Gender</dt>
+                <dd>{student.gender || "Not recorded"}</dd>
+              </div>
             </dl>
-          </Card>
-          <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
-          {learnerContextFields.map((field) => (
-            <section key={field.key} className={experience.readableContext}>
-              <div><h3>{field.label}</h3><p>{savedContext[field.key].trim() || "Not recorded"}</p></div>
-              <details className={experience.contextSection}>
-              <summary>{savedContext[field.key].trim() ? "Edit" : "Add"} {field.label.toLowerCase()}</summary>
-              <label
-                htmlFor={`learner-context-${field.key}`}
-                style={{ display: "block", fontSize: 13, fontWeight: 750 }}
-              >
-                {field.label}
-              </label>
-              <div
-                style={{
-                  marginTop: 3,
-                  color: "var(--teacher-muted, #627168)",
-                  fontSize: 11,
-                  lineHeight: 1.4,
-                }}
-              >
-                {field.help}
-              </div>
-              <textarea
-                id={`learner-context-${field.key}`}
-                value={contextDrafts[field.key]}
-                onChange={(event) =>
-                  setContextDrafts((current) => ({
-                    ...current,
-                    [field.key]: event.target.value,
-                  }))
-                }
-                rows={3}
-                maxLength={1200}
-                placeholder={field.placeholder}
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  marginTop: 9,
-                  border: "1px solid #d1d5db",
-                  borderRadius: 12,
-                  padding: 10,
-                  fontFamily: "inherit",
-                  resize: "vertical",
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: 10,
-                  marginTop: 8,
-                }}
-              >
-                <span
-                  style={{
-                    color: "var(--teacher-muted, #627168)",
-                    fontSize: 11,
-                  }}
-                >
-                  {contextDrafts[field.key].length}/1200
-                </span>
-                <button
-                  type="button"
+          </section>
+
+          {recordedDetails.length === 0 ? (
+            <section className={experience.aboutEmpty} aria-label="Learner notes">
+              <div className={experience.aboutEmptyIcon} aria-hidden="true"><NotebookPen size={22}/></div>
+              <h3>No learner notes recorded yet</h3>
+              <p>Add strengths, interests or classroom strategies when you have observed them. Saved information will appear here as part of the learner profile.</p>
+              <button type="button" className={experience.aboutAddButton}
+                onClick={() => { setContextMessage(""); setChoosingContext(true); }}>
+                <Plus size={17} aria-hidden="true"/> Add first detail
+              </button>
+            </section>
+          ) : (
+            aboutSections.map(section => {
+              const visible = section.fields
+                .map(key => learnerContextFields.find(field => field.key === key))
+                .filter((field): field is typeof learnerContextFields[number] =>
+                  Boolean(field && savedContext[field.key].trim()));
+              if (!visible.length) return null;
+              return (
+                <section key={section.heading} className={experience.aboutSection}
+                  aria-label={section.heading}>
+                  <div className={experience.aboutSectionHeading}>
+                    <h3>{section.heading}</h3>
+                  </div>
+                  <dl className={experience.aboutDetailList}>
+                    {visible.map(field => (
+                      <div key={field.key} className={experience.aboutDetailRow}>
+                        <div>
+                          <dt>{field.label}</dt>
+                          <dd>{savedContext[field.key]}</dd>
+                        </div>
+                        <button type="button" className={experience.aboutEditButton}
+                          onClick={() => openContextEditor(field.key)}
+                          aria-label={`Edit ${field.label}`}>
+                          <Pencil size={15} aria-hidden="true"/> Edit
+                        </button>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              );
+            })
+          )}
+
+          <p className={experience.aboutFootnote}>
+            Notes here are teacher-recorded context, not assessment results or fixed labels.
+            Manage official groups, duties and activities in School life.
+          </p>
+          {contextMessage.startsWith("Learner details saved.") && (
+            <p className={experience.aboutSuccess} role="status">{contextMessage}</p>
+          )}
+        </div>
+      )}
+
+      {!requestedSubjectId && editingIdentity && (
+        <LearnerDetailSheet title="Edit school details" learnerName={student.name}
+          busy={identitySaving} onClose={() => setEditingIdentity(false)}>
+          <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId}
+            identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }}
+            onSaved={async () => { await load(false); setEditingIdentity(false); setContextMessage("School details saved."); }}
+            onCancel={() => setEditingIdentity(false)}
+            onBusyChange={setIdentitySaving}/>
+        </LearnerDetailSheet>
+      )}
+
+      {!requestedSubjectId && choosingContext && (
+        <LearnerDetailSheet title="Add learner detail" learnerName={student.name}
+          onClose={() => setChoosingContext(false)}>
+          <p className={experience.aboutPickerIntro}>
+            Choose the detail to record. It will be shown directly on this profile after saving.
+          </p>
+          <div className={experience.aboutPickerList}>
+            {unrecordedDetails.map(field => (
+              <button key={field.key} type="button" onClick={() => openContextEditor(field.key)}>
+                <span><strong>{field.label}</strong><small>{field.help}</small></span>
+                <Plus size={17} aria-hidden="true"/>
+              </button>
+            ))}
+          </div>
+        </LearnerDetailSheet>
+      )}
+
+      {!requestedSubjectId && editingField && (
+        <LearnerDetailSheet
+          title={`${savedContext[editingField.key].trim() ? "Edit" : "Add"} ${editingField.label}`}
+          learnerName={student.name}
+          busy={contextSaving !== null}
+          onClose={closeContextEditor}>
+          <div className={experience.aboutEditor}>
+            <p>{editingField.help}</p>
+            <label htmlFor="edit-learner-context">{editingField.label}</label>
+            <textarea id="edit-learner-context" value={contextDrafts[editingField.key]}
+              rows={5} maxLength={1200} disabled={contextSaving !== null}
+              placeholder={editingField.placeholder}
+              onChange={event => setContextDrafts(current => ({
+                ...current, [editingField.key]: event.target.value,
+              }))}/>
+            <div className={experience.aboutEditorFooter}>
+              <span>{contextDrafts[editingField.key].length}/1200</span>
+              <div>
+                <button type="button" className={experience.aboutCancelButton}
+                  disabled={contextSaving !== null} onClick={closeContextEditor}>Cancel</button>
+                <button type="button" className={experience.aboutSaveButton}
                   disabled={contextSaving !== null}
-                  onClick={() => void saveLearnerContext(field.key)}
-                  style={{
-                    minHeight: 40,
-                    border: 0,
-                    borderRadius: 11,
-                    background: "#312e81",
-                    color: "#fff",
-                    padding: "0 14px",
-                    fontWeight: 750,
-                  }}
-                >
-                  {contextSaving === field.key ? "Saving…" : "Save section"}
+                  onClick={() => void saveLearnerContext(editingField.key)}>
+                  {contextSaving === editingField.key ? "Saving…" : "Save details"}
                 </button>
               </div>
-              </details>
-            </section>
-          ))}
-          {contextMessage && (
-            <div
-              role="status"
-              style={{
-                borderRadius: 13,
-                padding: 11,
-                background: contextMessage.startsWith("Saved")
-                  ? "#ecfdf5"
-                  : "#fffbeb",
-                color: contextMessage.startsWith("Saved")
-                  ? "#065f46"
-                  : "#92400e",
-                fontSize: 11,
-              }}
-            >
-              {contextMessage}
             </div>
-          )}
-          <button
-            type="button"
-            onClick={() => router.push(`/teacher/classhub/${classId}`)}
-            style={{
-              minHeight: 46,
-              border: "1px solid #d1d5db",
-              borderRadius: 13,
-              background: "#fff",
-              fontWeight: 750,
-            }}
-          >
-            Done — return to class
-          </button>
-        </div>
+            {contextMessage && !contextMessage.startsWith("Learner details saved.") && (
+              <p role="alert" className={experience.aboutEditorError}>{contextMessage}</p>
+            )}
+          </div>
+        </LearnerDetailSheet>
       )}
 
       {tab === "work" && (
