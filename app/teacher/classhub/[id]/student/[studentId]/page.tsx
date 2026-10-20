@@ -1730,7 +1730,7 @@ export default function TeacherStudentProgressPage() {
             Notes here are teacher-recorded context, not assessment results or fixed labels.
             Manage official groups, duties and activities in School life.
           </p>
-          {contextMessage.startsWith("Learner details saved.") && (
+          {(contextMessage === "Learner details saved." || contextMessage === "School details saved.") && (
             <p className={experience.aboutSuccess} role="status">{contextMessage}</p>
           )}
         </div>
