@@ -1088,6 +1088,29 @@ export default function TeacherStudentProgressPage() {
 
       {tab === "now" && (
         <div style={{ display: "grid", gap: 10 }}>
+          {!requestedSubjectId && ["strengths", "interests", "support_needs", "helpful_strategies"]
+            .some(key => savedContext[key as LearnerContextKey].trim()) && (
+            <section className={experience.overviewContext} aria-label="Saved learner details">
+              <div className={experience.overviewContextHeading}>
+                <div>
+                  <h2>About {student.name.split(/\s+/)[0]}</h2>
+                  <p>Teacher-recorded details</p>
+                </div>
+                <button type="button" onClick={() => setTab("about")}>View details</button>
+              </div>
+              <dl>
+                {(["strengths", "interests", "support_needs", "helpful_strategies"] as LearnerContextKey[])
+                  .filter(key => savedContext[key].trim())
+                  .slice(0, 3)
+                  .map(key => (
+                    <div key={key}>
+                      <dt>{learnerContextFields.find(field => field.key === key)?.label}</dt>
+                      <dd>{savedContext[key]}</dd>
+                    </div>
+                  ))}
+              </dl>
+            </section>
+          )}
           <Card>
             <div
               style={{
