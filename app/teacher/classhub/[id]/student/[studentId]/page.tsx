@@ -350,6 +350,11 @@ export default function TeacherStudentProgressPage() {
         learnerContextFields.map((field) => [field.key, ""]),
       ) as Record<LearnerContextKey, string>,
   );
+  // Keep confirmed server values separate from editable drafts, so unsaved typing
+  // never masquerades as learner profile information.
+  const [savedContext, setSavedContext] = useState<Record<LearnerContextKey, string>>(
+    () => Object.fromEntries(learnerContextFields.map(field => [field.key, ""])) as Record<LearnerContextKey, string>,
+  );
   const [contextSaving, setContextSaving] = useState<LearnerContextKey | null>(
     null,
   );
@@ -577,6 +582,7 @@ export default function TeacherStudentProgressPage() {
         nextDrafts[key] = event.note ?? "";
         seen.add(key);
       }
+      setSavedContext(nextDrafts);
       setContextDrafts(nextDrafts);
       setInterventions(
         interventionRows.filter((item) => item.studentId === studentId),
@@ -1609,9 +1615,9 @@ export default function TeacherStudentProgressPage() {
           <LearnerIdentityFields key={student.id} classId={classId} studentId={studentId} identity={{ name: student.name, admission_number: student.admission_number, gender: student.gender, date_of_birth: student.date_of_birth }} onSaved={() => load(false)}/>
           {learnerContextFields.map((field) => (
             <section key={field.key} className={experience.readableContext}>
-              <div><h3>{field.label}</h3><p>{contextDrafts[field.key].trim() || "Not recorded"}</p></div>
+              <div><h3>{field.label}</h3><p>{savedContext[field.key].trim() || "Not recorded"}</p></div>
               <details className={experience.contextSection}>
-              <summary>{contextDrafts[field.key].trim() ? "Edit" : "Add"} {field.label.toLowerCase()}</summary>
+              <summary>{savedContext[field.key].trim() ? "Edit" : "Add"} {field.label.toLowerCase()}</summary>
               <label
                 htmlFor={`learner-context-${field.key}`}
                 style={{ display: "block", fontSize: 13, fontWeight: 750 }}
