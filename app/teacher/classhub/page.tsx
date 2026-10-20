@@ -9,9 +9,9 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-type OperatingClass = { class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string }
+type OperatingClass = { class_id: string; class_name: string; stream: string | null; subject_id: string; subject_name: string; is_class_teacher?: boolean }
 type OperatingContext = { school_id: string | null; state: 'ready' | 'needs_school' | 'needs_class' | 'needs_curriculum_reconciliation'; classes: OperatingClass[] }
-type ClassRow = { id: string; name: string; stream: string | null; subject: string | null }
+type ClassRow = { id: string; name: string; stream: string | null; subject: string | null; subjectId: string; isClassTeacher: boolean }
 
 export default function ClassHubPage() {
   const router = useRouter()
@@ -58,9 +58,15 @@ export default function ClassHubPage() {
             name: assignment.class_name,
             stream: assignment.stream,
             subject: assignment.subject_name,
+            subjectId: assignment.subject_id,
+            isClassTeacher: assignment.is_class_teacher === true,
           })
-        } else if (assignment.subject_name && !existing.subject?.split(' · ').includes(assignment.subject_name)) {
+        } else {
+          // Prefer the class overview when either assignment carries class-teacher authority.
+          if (assignment.is_class_teacher) existing.isClassTeacher = true
+          if (assignment.subject_name && !existing.subject?.split(' · ').includes(assignment.subject_name)) {
           existing.subject = [existing.subject, assignment.subject_name].filter(Boolean).join(' · ')
+          }
         }
       }
       const loadedClasses = Array.from(unique.values()).sort((a, b) => a.name.localeCompare(b.name))
@@ -113,7 +119,7 @@ export default function ClassHubPage() {
       <div className="teacher-class-grid">{visible.map(cls=><article className="teacher-class-card" key={cls.id}>
         <div className="teacher-class-card__identity"><span className="teacher-state__icon"><SchoolIcon/></span><span className="teacher-class-card__count"><Users size={14} aria-hidden="true"/>{counts[cls.id]??0}</span></div>
         <h2>{cls.name}{cls.stream ? ` ${cls.stream}` : ''}</h2><p>{cls.subject || 'Class workspace'}</p>
-        <div className="teacher-class-card__actions"><Link href={`/teacher/classhub/${cls.id}`} className="teacher-btn">Open class<ArrowUpRight size={16}/></Link><Link href={`/teacher/classhub/${cls.id}/progress`} className="teacher-btn teacher-btn--secondary" aria-label={`Student progress for ${cls.name}${cls.stream ? ` ${cls.stream}` : ''}`}>Progress</Link></div>
+        <div className="teacher-class-card__actions"><Link href={cls.isClassTeacher ? `/teacher/classhub/${cls.id}` : `/teacher/classhub/${cls.id}?mode=subject&subjectId=${encodeURIComponent(cls.subjectId)}`} className="teacher-btn">Open class<ArrowUpRight size={16}/></Link><Link href={`/teacher/classhub/${cls.id}/progress`} className="teacher-btn teacher-btn--secondary" aria-label={`Student progress for ${cls.name}${cls.stream ? ` ${cls.stream}` : ''}`}>Progress</Link></div>
       </article>)}</div>
       {visible.length===0 && <div className="teacher-state"><h2>No matching classes</h2><p>Try a different class or subject name.</p><button type="button" className="teacher-btn teacher-btn--secondary" onClick={()=>setQuery('')}>Clear search</button></div>}
     </>}
