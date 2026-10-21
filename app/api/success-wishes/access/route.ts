@@ -2,10 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest } from 'next/server'
 import { object, uuid, WishError } from '@/lib/success-wishes/contracts'
 import { failure, json, reply } from '@/lib/success-wishes/server'
-import { enabled } from '@/lib/success-wishes/security'
+import { staffReady } from '@/lib/success-wishes/security'
 export async function POST(req: NextRequest) {
   try {
-    if (!enabled()) throw new WishError(503, 'Success Wishes is not open yet.')
+    if (!staffReady()) throw new WishError(503, 'Success Wishes is not open yet.')
     const b = object(await json(req)), schoolId = uuid(b.schoolId), studentId = uuid(b.studentId)
     const response = reply({})
     const db = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
