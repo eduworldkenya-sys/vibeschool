@@ -37,7 +37,7 @@ type DataResult<T> = Promise<{data: T | null;error: unknown | null}>
 export type VoiceStore = {
   from(bucket: string): {
     createSignedUploadUrl(path: string): DataResult<{ signedUrl: string;token: string;path: string }>
-    info(path: string): DataResult<{ size: number; contentType: string }>
+    info(path: string): DataResult<{ size?: number; contentType?: string }>
     createSignedUrl(path: string,expiresIn: number): DataResult<{ signedUrl: string }>
     remove(paths: string[]): DataResult<unknown>
   }
@@ -50,6 +50,9 @@ export function createPrivateVoiceAdapter(storage: VoiceStore) {
     const result = await bucket.info(path)
     if (result.error || !result.data) throw new Error('Voice object not present.')
     const {size,contentType} = result.data
+    if (typeof size !== 'number' || typeof contentType !== 'string') {
+      throw new Error('Voice object metadata is incomplete.')
+    }
     validVoiceUpload(contentType,size)
     const extension = PATH.exec(path)![3].toLowerCase()
     if (MIME_TO_EXTENSION[contentType as VoiceMime] !== extension) {
