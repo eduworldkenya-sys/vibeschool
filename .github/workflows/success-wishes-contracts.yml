@@ -114,6 +114,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/voice-validation-assertions.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021125239_success_wishes_durable_media_reservations.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/media-reservation-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021170000_success_wishes_guest_mpesa_ledger.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/guest-mpesa-ledger-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety
