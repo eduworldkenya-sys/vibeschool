@@ -27,7 +27,10 @@ begin
     if f.prosecdef <> staff_function then
       raise exception 'Unexpected SECURITY DEFINER setting: %', f.proname;
     end if;
-    if f.proconfig is null or not f.proconfig @> array['search_path=']::text[] then
+    if f.proconfig is null or not (
+      f.proconfig @> array['search_path=']::text[]
+      or f.proconfig @> array['search_path=""']::text[]
+    ) then
       raise exception 'Function search_path not pinned to empty: %', f.proname;
     end if;
   end loop;
