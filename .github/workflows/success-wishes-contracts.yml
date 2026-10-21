@@ -39,3 +39,5 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run privacy, submission, and media contract tests
         run: node --import ./scripts/register-typescript.mjs --import ./lib/success-wishes/test-resolver.mjs --test lib/success-wishes/*.test.ts
+      - name: Check disabled-service HTTP and cookie boundaries
+        run: node lib/success-wishes/http-check.cjs
