@@ -64,8 +64,10 @@ begin
   if new.payment_status<>'sponsored' then return new; end if;
   if new.format<>'text' then
     raise exception 'only_text_can_be_sponsored' using errcode='23514'; end if;
-  if TG_OP='UPDATE' and old.payment_status='sponsored'
-    and old.inbox_id=new.inbox_id and old.format=new.format then return new; end if;
+  if TG_OP='UPDATE' then
+    if old.payment_status='sponsored'
+      and old.inbox_id=new.inbox_id and old.format=new.format then return new; end if;
+  end if;
   select i.school_id into v_school from public.success_wishes_inboxes i
     where i.id=new.inbox_id;
   if v_school is null then
