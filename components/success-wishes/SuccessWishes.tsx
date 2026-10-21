@@ -61,7 +61,7 @@ function SendForm({ config }: { config: Configuration | null }) {
   const [admissionNumber, setAdmissionNumber] = useState('')
   const [candidateName, setCandidateName] = useState('')
   const [senderName, setSenderName] = useState('')
-  const [senderEmail, setSenderEmail] = useState('')
+  const [senderPhone, setSenderEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [senderProof, setSenderProof] = useState('')
@@ -157,10 +157,10 @@ function SendForm({ config }: { config: Configuration | null }) {
     setVerifying(true); setError('')
     try {
       await request('/api/success-wishes/verify-sender', {
-        method: 'POST', body: JSON.stringify({ email: senderEmail.trim() }),
+        method: 'POST', body: JSON.stringify({ phone: senderPhone.trim() }),
       })
       setOtpSent(true); setOtpCode('')
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Verification email could not be sent.') }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Verification SMS could not be sent.') }
     finally { setVerifying(false) }
   }
 
@@ -169,17 +169,17 @@ function SendForm({ config }: { config: Configuration | null }) {
     setVerifying(true); setError('')
     try {
       const verified = await request<{ verified: boolean; senderProof: string }>('/api/success-wishes/verify-sender', {
-        method: 'PATCH', body: JSON.stringify({ email: senderEmail.trim(), code: otpCode.trim() }),
+        method: 'PATCH', body: JSON.stringify({ phone: senderPhone.trim(), code: otpCode.trim() }),
       })
-      if (!verified.verified) throw new Error('Email verification failed.')
+      if (!verified.verified) throw new Error('Phone verification failed.')
       setSenderProof(verified.senderProof); setOtpCode('')
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Email verification failed.') }
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Phone verification failed.') }
     finally { setVerifying(false) }
   }
 
   async function send() {
     if (!school || busy || !config?.enabled || kind !== 'text') return
-    if (!senderProof) { setError('Verify your email before submitting.'); return }
+    if (!senderProof) { setError('Verify your phone before submitting.'); return }
     setBusy(true); setError('')
     if (!idempotencyKey.current) {
       const random = crypto.getRandomValues(new Uint8Array(32))
@@ -205,12 +205,12 @@ function SendForm({ config }: { config: Configuration | null }) {
   if (receipt) return <section className={styles.panel} aria-live="polite"><CheckCircle2 size={34} className={styles.successIcon} aria-hidden="true"/><h2>Submission received</h2><p className={styles.hint}>{receipt.message || 'Your message has been received. Availability depends on recipient verification and any required payment.'}</p>{receipt.reference && <p className={styles.status}>Reference: <strong>{receipt.reference}</strong></p>}{receipt.managementToken && <div className={styles.section}><label className={styles.field}>Private withdrawal code<input readOnly value={receipt.managementToken} autoComplete="off" onFocus={event => event.target.select()}/><small>Save this code privately now. It is shown only here and lets you withdraw your message. Do not send it to the candidate.</small></label></div>}{receipt.status && <p className={styles.status}>Status: {receipt.status.replace(/_/g, ' ')}</p>}<div className={styles.actions}><button className={styles.secondary} type="button" onClick={() => { setReceipt(null); setPreview(false); idempotencyKey.current = '' }}>Send another wish</button></div></section>
 
   if (preview) return <section className={styles.panel}><h2>Review your wish</h2><p className={styles.hint}>Check the recipient before submitting.</p><div className={styles.preview}><div className={styles.eyebrow}>For {candidateName}</div><strong>{school?.name}</strong><p className={styles.hint}>Admission number: {admissionNumber}</p>{kind === 'text' ? <p className={styles.messageText}>{text}</p> : kind === 'voice' ? <audio className={styles.media} controls src={mediaUrl} preload="metadata"/> : <video className={styles.media} controls src={mediaUrl} preload="metadata" playsInline/>}<p className={styles.sender}>From {senderName} · {relationship}</p></div>{kind !== 'text' && <p className={styles.status}>This is a local preview. Media sending is not available yet; your file has not been uploaded.</p>}{config?.paymentsEnabled && <p className={styles.status}>Any required payment must be confirmed before delivery. Submitting does not confirm payment.</p>}{config?.enabled && <div className={styles.section}>
-      <h3>Verify your email</h3>
-      <p className={styles.hint}>A six-digit code confirms control of your email address. Your email is not shared with the candidate.</p>
-      <p className={styles.status}>{senderEmail || 'Add your email in the form.'}</p>
-      {senderProof ? <p className={styles.status} role="status"><ShieldCheck size={16} aria-hidden="true"/> Email verified.</p> :
+      <h3>Verify your phone</h3>
+      <p className={styles.hint}>A six-digit SMS code confirms control of your phone. Your number is not shared with the candidate.</p>
+      <p className={styles.status}>{senderPhone || 'Add your phone number in the form.'}</p>
+      {senderProof ? <p className={styles.status} role="status"><ShieldCheck size={16} aria-hidden="true"/> Phone verified.</p> :
         <div className={styles.row}>
-          <button className={styles.secondary} type="button" disabled={verifying || !senderEmail} onClick={() => void requestSenderCode()}>{verifying ? 'Please wait…' : otpSent ? 'Resend code' : 'Email a code'}</button>
+          <button className={styles.secondary} type="button" disabled={verifying || !senderPhone} onClick={() => void requestSenderCode()}>{verifying ? 'Please wait…' : otpSent ? 'Resend code' : 'Text me a code'}</button>
           {otpSent && <><label className={styles.field}>Six-digit code<input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={otpCode} onChange={event => setOtpCode(event.target.value)} autoComplete="one-time-code"/></label><button type="button" className={styles.secondary} disabled={verifying || !/^[0-9]{6}$/.test(otpCode)} onClick={() => void verifySenderCode()}>Verify code</button></>}
         </div>}
     </div>}
@@ -227,7 +227,7 @@ function SendForm({ config }: { config: Configuration | null }) {
     </div>}
     <div className={styles.section}><SchoolPicker selected={school} onChange={setSchool}/><div className={styles.grid} style={{ marginTop: 16 }}><label className={styles.field}>Candidate’s name<input value={candidateName} onChange={event => setCandidateName(event.target.value)} required maxLength={120} autoComplete="off"/></label><label className={styles.field}>Admission number<input value={admissionNumber} onChange={event => setAdmissionNumber(event.target.value)} required maxLength={60} autoComplete="off"/><small>Use the number issued by their school.</small></label></div></div>
     <div className={styles.section}><h3>Your message</h3><div className={styles.kinds} role="group" aria-label="Message format">{([{ id: 'text', label: 'Text', Icon: Mail }, { id: 'voice', label: 'Voice', Icon: Mic }, { id: 'video', label: 'Video', Icon: Video }] as const).map(({ id, label, Icon }) => <button key={id} type="button" aria-pressed={kind === id} className={`${styles.kind} ${kind === id ? styles.selectedKind : ''}`} onClick={() => { setKind(id); setFile(null); setError('') }}><Icon size={17} aria-hidden="true"/>{label}</button>)}</div>{kind === 'text' ? <><label className={styles.field}>Your encouragement<textarea value={text} onChange={event => setText(event.target.value)} required maxLength={2000} placeholder="Tell them what you want them to hear."/></label><p className={styles.count}>{text.length}/2,000</p></> : <div className={styles.file}><label className={styles.field}>{kind === 'voice' ? 'Choose a voice message' : 'Choose a video'}<input key={kind} type="file" accept={kind === 'voice' ? 'audio/*' : 'video/*'} onChange={event => chooseFile(event.target.files?.[0])}/><small>Up to {config?.maxSeconds || 60} seconds · {Math.round((config?.maxBytes || 25 * 1024 * 1024) / 1024 / 1024)} MB maximum.</small></label><p className={styles.status}>You can preview a file. Sending {kind === 'voice' ? 'voice messages' : 'videos'} is currently unavailable.</p></div>}</div>
-    <div className={styles.section}><div className={styles.grid}><label className={styles.field}>Your name<input value={senderName} onChange={event => setSenderName(event.target.value)} required maxLength={100} autoComplete="off"/></label><label className={styles.field}>Relationship<input value={relationship} onChange={event => setRelationship(event.target.value)} required maxLength={60} placeholder="e.g. Mum, Uncle, Teacher" autoComplete="off"/></label></div><label className={styles.field}>Your email (for a private verification code)<input type="email" value={senderEmail} onChange={event => { setSenderEmail(event.target.value); setSenderProof(''); setOtpSent(false); setOtpCode('') }} required maxLength={254} autoComplete="email"/><small>Email verification does not establish a legal guardian relationship.</small></label><label className={styles.consent}><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} required/><span>I have permission to share this content with this candidate. I understand it is a private message.</span></label></div>
+    <div className={styles.section}><div className={styles.grid}><label className={styles.field}>Your name<input value={senderName} onChange={event => setSenderName(event.target.value)} required maxLength={100} autoComplete="off"/></label><label className={styles.field}>Relationship<input value={relationship} onChange={event => setRelationship(event.target.value)} required maxLength={60} placeholder="e.g. Mum, Uncle, Teacher" autoComplete="off"/></label></div><label className={styles.field}>Mobile number (for an SMS code)<input type="tel" inputMode="tel" value={senderPhone} onChange={event => { setSenderEmail(event.target.value); setSenderProof(''); setOtpSent(false); setOtpCode('') }} required maxLength={18} autoComplete="tel"/><small>Phone verification does not establish a legal guardian relationship.</small></label><label className={styles.consent}><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} required/><span>I have permission to share this content with this candidate. I understand it is a private message.</span></label></div>
     {kind === 'text' && <label className={styles.consent}>
       <input type="checkbox" checked={saveDraft} onChange={event => {
         if (!event.target.checked) discardDraft()
