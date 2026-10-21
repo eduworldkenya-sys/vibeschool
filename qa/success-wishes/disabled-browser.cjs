@@ -10,12 +10,12 @@ const os = require('node:os')
 const path = require('node:path')
 
 const PORT = 3092
-const ROOT = `http://127.0.0.1:${PORT}`
+const ROOT = `http://localhost:${PORT}`
 const logFile = path.join(os.tmpdir(), 'success-wishes-disabled-browser.log')
 const serverLog = fs.openSync(logFile, 'w')
 const screenshots = path.join(process.cwd(), 'qa', 'success-wishes', 'artifacts')
 fs.mkdirSync(screenshots, { recursive: true })
-const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--hostname', '127.0.0.1', '--port', String(PORT)], {
+const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--port', String(PORT)], {
   env: {
     ...process.env,
     NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
