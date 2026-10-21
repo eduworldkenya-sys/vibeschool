@@ -61,8 +61,9 @@ test('sends exact sandbox STK with server-controlled callback and returns awaiti
     assert.equal(body.PartyA,'254712345678')
     assert.equal(body.PhoneNumber,'254712345678')
     assert.equal(body.CallBackURL,env.SUCCESS_WISHES_MPESA_CALLBACK_URL)
-    assert.equal(body.AccountReference,'VS-W-000000000000')
-    assert.equal(body.Timestamp,'20261021091500')
+    assert.equal(body.AccountReference,'VW0000000000')
+    assert.equal(body.TransactionDesc,'Success Wish')
+    assert.equal(body.Timestamp,'20261021121500')
     return Response.json({
       ResponseCode:'0',CheckoutRequestID:'checkout_1234',
       MerchantRequestID:'merchant_1234',CustomerMessage:'Check your phone',
