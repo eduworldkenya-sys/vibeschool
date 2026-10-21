@@ -2,10 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest } from 'next/server'
 import { WishError } from './contracts'
 import { limit } from './server'
-import { enabled } from './security'
+import { staffReady } from './security'
 
 export async function schoolAdmin(req: NextRequest, schoolId: string) {
-  if (!enabled()) throw new WishError(503, 'School setup is not open yet.')
+  if (!staffReady()) throw new WishError(503, 'School setup is not open yet.')
   const userDb = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -20,6 +20,6 @@ export async function schoolAdmin(req: NextRequest, schoolId: string) {
   if (profileError || !profile || profile.account_status !== 'active' || profile.is_anonymized) {
     throw new WishError(403, 'An active school administrator is required.')
   }
-  await limit(`school-wishes-admin:${schoolId}:${user.id}`, 90, 900)
+  await limit(`school-wishes-admin:${schoolId}:${user.id}`, 90, 900, true)
   return userDb
 }
