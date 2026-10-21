@@ -54,7 +54,7 @@ insert into public.success_wishes_messages(
   inbox_id,sender_name,relationship,format,body,management_token_hash,
   idempotency_key,payment_status,expires_at
 ) select id,'First concurrent','Guardian','text','Good luck',
-  repeat('a',64),repeat('b',64),'sponsored',now()+interval '2 days'
+  repeat('f',64),repeat('1',64),'sponsored',now()+interval '2 days'
 from public.success_wishes_inboxes
 where school_id='11111111-1111-4111-8111-111111111111';
 \echo FIRST_INSERT_ACKNOWLEDGED
