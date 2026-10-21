@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   try {
     const schoolId = uuid(req.nextUrl.searchParams.get('schoolId'))
     await schoolAdmin(req, schoolId)
-    const { data, error } = await database().from('success_wishes_reports')
+    const { data, error } = await database({ staffOnly: true }).from('success_wishes_reports')
       .select('id,reason,status,created_at,success_wishes_inboxes!inner(school_id)')
       .eq('success_wishes_inboxes.school_id', schoolId)
       .eq('status', 'open').order('created_at', { ascending: false }).limit(50)
