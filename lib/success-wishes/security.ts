@@ -17,3 +17,11 @@ export function messageExpiry(retentionDays: number, campaignExpiry: string, now
 export function enabled(env: Record<string, string | undefined> = process.env) {
   return env.SUCCESS_WISHES_ENABLED === 'true' && !!env.NEXT_PUBLIC_SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY
 }
+
+// Separately commissioned, staff-only preparation never enables public sending.
+export function staffReady(env: Record<string, string | undefined> = process.env) {
+  return (enabled(env) || env.SUCCESS_WISHES_STAFF_SETUP_ENABLED === 'true')
+    && !!env.NEXT_PUBLIC_SUPABASE_URL
+    && !!env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    && !!env.SUPABASE_SERVICE_ROLE_KEY
+}
