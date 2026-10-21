@@ -173,7 +173,7 @@ export default function SchoolAccess() {
       </>}
       <SchoolParticipation schoolId={schoolId}/>
       <SchoolReports schoolId={schoolId}/>
-      <SchoolViewing schoolId={schoolId}/>
+      <SchoolViewing key={schoolId} schoolId={schoolId}/>
       {error && <p className={styles.error} role="alert">{error}</p>}
       {unauthorised && <Link href="/login/admin" className={styles.secondary}>Sign in as school staff</Link>}
     </main>
