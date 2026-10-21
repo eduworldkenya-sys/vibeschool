@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { FormEvent, useRef, useState } from 'react'
 import { LockKeyhole, Search } from 'lucide-react'
 import styles from './SuccessWishes.module.css'
+import SchoolParticipation from './SchoolParticipation'
 
 type Candidate = { id: string; name: string; admissionNumber: string | null }
 
@@ -139,6 +140,7 @@ export default function SchoolAccess() {
           </div>
         </form>}
       </>}
+      <SchoolParticipation schoolId={schoolId}/>
       {error && <p className={styles.error} role="alert">{error}</p>}
       {unauthorised && <Link href="/login/admin" className={styles.secondary}>Sign in as school staff</Link>}
     </main>
