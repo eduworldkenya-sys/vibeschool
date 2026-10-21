@@ -142,7 +142,7 @@ function Inbox({ registerExit }: { registerExit: (handler: (() => Promise<boolea
       setAuthenticated(false); setMessages([]); setAdmissionNumber(''); setCode(''); setInboxLoaded(false)
       setNotice(expired ? 'Your session ended after inactivity. Open your inbox again to continue.' : 'Signed out. Your messages are no longer shown on this device.')
       return true
-    } catch { setMessages([]); setError('Sign-out could not be confirmed. Close this browser and contact your school before sharing the device.'); return false }
+    } catch { setAuthenticated(false); setMessages([]); setAdmissionNumber(''); setCode(''); setInboxLoaded(false); setError('Sign-out could not be confirmed. Close this browser and contact your school before sharing the device.'); return false }
     finally { setBusy(false) }
   }, [])
 
