@@ -8,6 +8,38 @@
 -- enrollment here. These synthetic mutations simulate registry changes in CI.
 grant insert,update,delete on public.students, public.student_classes to service_role;
 
+-- Authorization tests for every private service-only table listed in the
+-- canonical migration. Verify no grants to anonymous/authenticated clients,
+-- including inherited rights, and service-role CRUD access only behind APIs.
+do $sw_service_contract$
+declare relation text;
+begin
+  foreach relation in array array[
+    'public.success_wishes_schools','public.success_wishes_inboxes',
+    'public.success_wishes_sessions','public.success_wishes_messages',
+    'public.success_wishes_reports','public.success_wishes_audit',
+    'public.success_wishes_attempts'
+  ] loop
+    if not exists (
+      select 1 from pg_class c where c.oid=relation::regclass and c.relrowsecurity
+    ) then raise exception 'Private table % lacks RLS', relation; end if;
+    if has_table_privilege('anon',relation,'SELECT')
+      or has_table_privilege('anon',relation,'INSERT')
+      or has_table_privilege('anon',relation,'UPDATE')
+      or has_table_privilege('anon',relation,'DELETE')
+      or has_table_privilege('authenticated',relation,'SELECT')
+      or has_table_privilege('authenticated',relation,'INSERT')
+      or has_table_privilege('authenticated',relation,'UPDATE')
+      or has_table_privilege('authenticated',relation,'DELETE')
+      then raise exception 'Direct public API privileges leaked for %', relation; end if;
+    if not has_table_privilege('service_role',relation,'SELECT')
+      or not has_table_privilege('service_role',relation,'INSERT')
+      or not has_table_privilege('service_role',relation,'UPDATE')
+      or not has_table_privilege('service_role',relation,'DELETE')
+      then raise exception 'Trusted service CRUD grants missing on %', relation; end if;
+  end loop;
+end $sw_service_contract$;
+
 set role service_role;
 insert into public.success_wishes_sessions(token_hash,inbox_id,access_epoch,expires_at)
 select repeat('c',64), id, access_epoch, now()+interval '1 hour'
