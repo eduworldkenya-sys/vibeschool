@@ -20,9 +20,17 @@ end $sw$;
 set role service_role;
 insert into public.success_wishes_senders(email_digest) values
   (repeat('1',64)),(repeat('2',64));
-update public.success_wishes_messages set sender_id=(
-  select id from public.success_wishes_senders where email_digest=repeat('1',64)
-) where management_token_hash=repeat('5',64);
+-- The preceding concurrency test removed fixture hash 5 to free its last
+-- sponsored slot. Create a new unpaid synthetic request with a verified sender.
+insert into public.success_wishes_messages(
+  inbox_id,sender_id,sender_name,relationship,format,body,
+  management_token_hash,idempotency_key,payment_status,expires_at
+) select i.id,s.id,'Verified guardian','Guardian','text','You can do this',
+  repeat('5',64),repeat('6',64),'pending',now()+interval '2 days'
+from public.success_wishes_inboxes i
+cross join public.success_wishes_senders s
+where i.school_id='11111111-1111-4111-8111-111111111111'
+  and s.email_digest=repeat('1',64);
 
 do $sw$
 declare alpha uuid; beta uuid; sender uuid; wish uuid;
