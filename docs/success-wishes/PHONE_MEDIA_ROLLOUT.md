@@ -54,6 +54,21 @@ Media depends on additional operational proof:
 Keep `mpesa_runtime_control.initiation_enabled=false` and
 `SUCCESS_WISHES_PAYMENTS_ENABLED=false` until the payments workstream is actually reconciled.
 
+## Media emergency stop and deletion backlog
+
+- Server-side voice and video playback authorization must check both the general
+  Success Wishes availability and `SUCCESS_WISHES_MEDIA_CERTIFIED=true` before
+  issuing a **new** five-minute provider playback capability.
+- Switching media certification OFF blocks new playback requests. It does **not**
+  instantly revoke previously issued signed URLs/tokens: those expire within their
+  existing TTL, or must be revoked at the storage/video provider for urgent cases.
+- Cleanup must filter on eligible, non-deleted upload reservations before applying
+  any page limit. An old page of already-deleted messages must never starve later
+  expired private media. If deletion fails, retain a durable retry obligation and
+  do not label the asset deleted.
+- Proof required: exact-head contract tests, real private-provider revocation and
+  deletion checks, expired-asset backlog progression, and independent privacy sign-off.
+
 ## Test and release gate
 
 - Disposable PostgreSQL fixtures: sender isolation, staff consent, 2-school
