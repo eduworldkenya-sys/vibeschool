@@ -23,9 +23,27 @@ export async function POST(req:NextRequest){
       .gt('expires_at',new Date().toISOString()).maybeSingle()
     if(senderError)throw senderError
     if(!sender)throw new WishError(401,'Verify your phone again.')
-    const {data:order,error}=await db.from('success_wishes_guest_orders')
+    const readOrder=()=>db.from('success_wishes_guest_orders')
       .select('id,state,amount_kes,format,message_id,idempotency_key,created_at')
       .eq('id',reference).eq('sender_id',sender.sender_id).maybeSingle()
+    const initial=await readOrder()
+    if(initial.error)throw initial.error
+    if(!initial.data)throw new WishError(404,'Payment reference not found.')
+    // Recover a verified callback that arrived before STK acknowledgement was
+    // attached. Only provider-confirmed, server-private events can be replayed.
+    if(initial.data.state==='awaiting_customer'
+      ||initial.data.state==='reconciliation_required'){
+      const {data:attempt}=await db.from('success_wishes_guest_payment_attempts')
+        .select('checkout_request_id').eq('order_id',reference).maybeSingle()
+      if(attempt?.checkout_request_id){
+        const {data:events}=await db.from('success_wishes_guest_payment_events')
+          .select('id').eq('checkout_request_id',attempt.checkout_request_id)
+          .eq('provider_confirmed',true).eq('processing_state','pending').limit(5)
+        for(const event of events||[])
+          await db.rpc('success_wishes_settle_guest_event',{p_event_id:event.id})
+      }
+    }
+    const {data:order,error}=await readOrder()
     if(error)throw error
     if(!order)throw new WishError(404,'Payment reference not found.')
     const paid=order.state==='settled'
