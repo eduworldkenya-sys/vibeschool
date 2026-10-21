@@ -7,9 +7,9 @@ export async function POST(req: NextRequest) {
   try {
     const raw = object(await json(req))
     const input = submission(raw)
+    const db = database() // Explicit disabled-service gate before verification requirements.
     const senderProof = field(raw.senderProof, 64, 64)
     if (!/^[a-f0-9]{64}$/.test(senderProof)) throw new WishError(401, 'Verify your email before sending.')
-    const db = database()
     const { data: verified, error: verificationError } = await db.from('success_wishes_sender_sessions')
       .select('sender_id').eq('token_hash', hashSecret(senderProof))
       .gt('expires_at',new Date().toISOString()).maybeSingle()
