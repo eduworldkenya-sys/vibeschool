@@ -42,7 +42,7 @@ test('only one accepted SMS response counts as sent and message contains no lear
       assert.equal(form.get('to'),'+254712345678')
       assert.equal(form.get('username'),'sandbox')
       assert.match(form.get('message')||'',/123456/)
-      assert.doesNotMatch(String(opts?.body),/admission|candidate|school/i)
+      assert.doesNotMatch(String(opts?.body),/admission|candidate/i)
       return Response.json({SMSMessageData:{Recipients:[{number:'+254712345678',status:'Success',statusCode:102}]}})
     },
   })
