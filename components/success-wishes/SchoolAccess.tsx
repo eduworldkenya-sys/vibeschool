@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { FormEvent, useRef, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { LockKeyhole, Search } from 'lucide-react'
 import styles from './SuccessWishes.module.css'
 import SchoolParticipation from './SchoolParticipation'
@@ -10,6 +10,26 @@ type Candidate = { id: string; name: string; admissionNumber: string | null }
 
 export default function SchoolAccess() {
   const [schoolId, setSchoolId] = useState('')
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([])
+  const [schoolError, setSchoolError] = useState('')
+  const [loadingSchools, setLoadingSchools] = useState(true)
+  useEffect(() => {
+    let live = true
+    fetch('/api/success-wishes/my-schools', { credentials: 'same-origin', cache: 'no-store' })
+      .then(async response => {
+        const body = await response.json().catch(() => ({}))
+        if (!response.ok) throw new Error(body.error || 'School accounts could not be loaded.')
+        return body as { schools?: { id: string; name: string }[] }
+      }).then(body => {
+        if (!live) return
+        const items = Array.isArray(body.schools) ? body.schools : []
+        setSchools(items)
+        if (items.length === 1) setSchoolId(items[0].id)
+      }).catch(reason => {
+        if (live) setSchoolError(reason instanceof Error ? reason.message : 'School lookup failed.')
+      }).finally(() => { if (live) setLoadingSchools(false) })
+    return () => { live = false }
+  }, [])
   const [candidateQuery, setCandidateQuery] = useState('')
   const [candidates, setCandidates] = useState<Candidate[]>([])
   const [student, setStudent] = useState<Candidate | null>(null)
@@ -100,11 +120,13 @@ export default function SchoolAccess() {
           <h2>Find a candidate</h2>
           <p className={styles.hint}>Only authorised school administrators can use this search.</p>
           <div className={styles.grid} style={{ marginTop: 16 }}>
-            <label className={styles.field}>School record ID
-              <input value={schoolId} onChange={event => changeSchool(event.target.value)}
-                required maxLength={36}
-                pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
-                autoComplete="off"/>
+            <label className={styles.field}>Your school
+              <select value={schoolId} onChange={event => changeSchool(event.target.value)}
+                disabled={loadingSchools} required>
+                <option value="">{loadingSchools ? 'Loading schools…' : 'Select your school'}</option>
+                {schools.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+              {schoolError && <small role="alert">{schoolError}</small>}
             </label>
             <label className={styles.field}>Candidate name
               <input value={candidateQuery} onChange={event => { setCandidateQuery(event.target.value); setStudent(null); setConfirmed(false) }}
