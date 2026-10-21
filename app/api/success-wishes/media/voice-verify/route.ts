@@ -12,7 +12,7 @@ export const dynamic='force-dynamic'
 // can mark media as ready. Missing ffprobe infrastructure fails closed.
 export async function POST(req:NextRequest){
  try{
-   if(!trustedAudioProbeReady())throw new WishError(503,'Voice verification is not available.')
+   if(process.env.SUCCESS_WISHES_MEDIA_CERTIFIED!=='true' || !trustedAudioProbeReady())throw new WishError(503,'Voice verification is not available.')
    const body=object(await json(req))
    const id=uuid(body.messageId),proof=field(body.senderProof,64,64)
    if(!/^[a-f0-9]{64}$/.test(proof))throw new WishError(401,'Verify your email first.')
