@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { accessHash, enabled, equalHash, hashSecret, messageExpiry, token } from './security'
-import { field, object, retryKey, submission, uuid, WishError } from './contracts'
+import { field, object, retryKey, sameSavedTextSubmission, submission, uuid, WishError } from './contracts'
 
 const valid = {
   schoolId: '00000000-0000-4000-8000-000000000001', admissionNumber: '1234',
@@ -72,4 +72,16 @@ test('common parser boundaries reject arrays, null, controls and malformed UUIDs
   assert.throws(() => field('a\u0008b',1,20), WishError)
   assert.throws(() => uuid('00000000-0000-0000-0000-000000000000'), WishError)
   assert.equal(field('  hello  ',1,10),'hello')
+})
+
+test('text retry only recovers the exact saved sender and content', () => {
+  const saved = {
+    sender_name: 'Test Sender', relationship: 'Parent', format: 'text', body: 'We believe in you.',
+  }
+  assert.equal(sameSavedTextSubmission(saved, submission(valid)), true)
+  assert.equal(sameSavedTextSubmission(saved, submission({...valid, text: 'Different message'})), false)
+  assert.equal(sameSavedTextSubmission(saved, submission({...valid, senderName: 'Someone Else'})), false)
+  assert.equal(sameSavedTextSubmission(saved, submission({...valid, relationship: 'Uncle'})), false)
+  assert.equal(sameSavedTextSubmission({...saved, body: null}, submission(valid)), false)
+  assert.equal(sameSavedTextSubmission(saved, submission({...valid, kind: 'voice'})), false)
 })
