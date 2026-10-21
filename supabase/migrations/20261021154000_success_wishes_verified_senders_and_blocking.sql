@@ -127,12 +127,13 @@ revoke all on function public.success_wishes_sender_cleanup(integer)
   from public,anon,authenticated;
 grant execute on function public.success_wishes_sender_cleanup(integer) to service_role;
 
+-- Optional in disposable CI (pg_cron unavailable); required/verified in live
+-- hosting before sender verification may be enabled.
 do $sw$
 begin
-  if not exists (select 1 from pg_extension where extname='pg_cron') then
-    raise exception 'pg_cron_must_be_enabled';
+  if exists (select 1 from pg_extension where extname='pg_cron') then
+    execute 'select cron.schedule(''success-wishes-sender-expiry'',
+      ''*/30 * * * *'', ''select public.success_wishes_sender_cleanup(500);'')';
   end if;
 end $sw$;
-select cron.schedule('success-wishes-sender-expiry','*/30 * * * *',
-  'select public.success_wishes_sender_cleanup(500);');
 commit;
