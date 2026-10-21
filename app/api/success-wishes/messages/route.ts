@@ -10,11 +10,11 @@ export async function POST(req: NextRequest) {
     await limit('submission:global', 1000, 60)
     await limit(`submit:${input.schoolId}`, 100, 60)
     await limit(`recipient:${input.schoolId}:${input.admissionNumber.toLowerCase()}`, 20)
-    const { data: school, error } = await db.from('success_wishes_schools').select('sponsored_text,retention_days,expires_at').eq('school_id', input.schoolId).eq('enabled', true).gt('expires_at', new Date().toISOString()).maybeSingle()
+    const { data: school, error } = await db.from('success_wishes_schools').select('sponsored_text,sponsored_text_until,retention_days,expires_at').eq('school_id', input.schoolId).eq('enabled', true).gt('expires_at', new Date().toISOString()).maybeSingle()
     if (error) throw error
     if (!school) throw new WishError(503, 'Sending is not available for this school.')
     if (input.kind !== 'text') throw new WishError(503, 'Voice and video sending are not open yet.')
-    if (!school.sponsored_text) throw new WishError(503, 'Payments are not open yet. No payment has been taken.')
+    if (!school.sponsored_text || !(Date.parse(school.sponsored_text_until || '') > Date.now())) throw new WishError(503, 'Sponsored sending is not available for this school. No payment has been taken.')
     const { data: inboxId, error: matchError } = await db.rpc('success_wishes_match_recipient', { p_school_id: input.schoolId, p_admission_number: input.admissionNumber, p_name: input.candidateName })
     if (matchError) throw matchError
     // Generic non-enumerating result: do not identify whether a learner/inbox exists.
@@ -34,6 +34,7 @@ export async function POST(req: NextRequest) {
       if (retryError || !previous || !sameSavedTextSubmission(previous, input)) throw new WishError(409, 'This submission reference cannot be reused. Start a new message.')
       return reply({ reference: previous.id, managementToken: manageToken, status: previous.state, message: 'This submission was already received. No duplicate was created. Save your private withdrawal code.' })
     }
+    if (insertError?.code === '23514') throw new WishError(429, 'This school has reached its sponsored wish limit. No payment has been taken.')
     if (insertError || !inserted) throw insertError || new Error('insert_failed')
     return reply({ reference: inserted.id, status: 'request', managementToken: manageToken, message: 'Sent as a message request. The candidate can choose to open it. Save your private withdrawal code.' }, 201)
   } catch (error) { return failure(error) }
