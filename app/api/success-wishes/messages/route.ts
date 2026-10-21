@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { submission, WishError } from '@/lib/success-wishes/contracts'
+import { sameSavedTextSubmission, submission, WishError } from '@/lib/success-wishes/contracts'
 import { database, failure, json, limit, reply } from '@/lib/success-wishes/server'
 import { hashSecret, messageExpiry } from '@/lib/success-wishes/security'
 export const runtime = 'nodejs'
@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
     const { data: inserted, error: insertError } = await db.from('success_wishes_messages').insert(message).select('id').single()
     if (insertError?.code === '23505') {
       const { data: previous, error: retryError } = await db.from('success_wishes_messages')
-        .select('id,state').eq('idempotency_key', input.idempotencyKey)
+        .select('id,state,sender_name,relationship,format,body').eq('idempotency_key', input.idempotencyKey)
         .eq('management_token_hash', hashSecret(manageToken)).eq('inbox_id', inboxId).maybeSingle()
-      if (retryError || !previous) throw new WishError(409, 'This submission reference cannot be reused. Start a new message.')
+      if (retryError || !previous || !sameSavedTextSubmission(previous, input)) throw new WishError(409, 'This submission reference cannot be reused. Start a new message.')
       return reply({ reference: previous.id, managementToken: manageToken, status: previous.state, message: 'This submission was already received. No duplicate was created. Save your private withdrawal code.' })
     }
     if (insertError || !inserted) throw insertError || new Error('insert_failed')
