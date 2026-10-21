@@ -15,7 +15,7 @@ export async function POST(req:NextRequest){
      throw new WishError(503,'Media uploads are not open.')
    const b=object(await json(req)),messageId=uuid(b.messageId)
    const proof=field(b.senderProof,64,64),nonce=retryKey(b.requestKey)
-   if(!/^[a-f0-9]{64}$/.test(proof))throw new WishError(401,'Verify your email first.')
+   if(!/^[a-f0-9]{64}$/.test(proof))throw new WishError(401,'Verify your phone first.')
    const kind=field(b.kind,5,5)
    if(!['voice','video'].includes(kind))throw new WishError(400,'Choose voice or video.')
    const mime=field(b.contentType,5,80),bytes=b.bytes
@@ -30,7 +30,7 @@ export async function POST(req:NextRequest){
       .select('sender_id').eq('token_hash',hashSecret(proof))
       .gt('expires_at',new Date().toISOString()).maybeSingle()
    if(senderError)throw senderError
-   if(!sender)throw new WishError(401,'Verify your email first.')
+   if(!sender)throw new WishError(401,'Verify your phone first.')
    const provider=kind==='voice'?'supabase-private-voice':'cloudflare-stream'
    const {data:claimed,error:claimError}=await db.from('success_wishes_media_uploads')
      .insert({
