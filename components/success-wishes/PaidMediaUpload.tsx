@@ -165,6 +165,10 @@ export default function PaidMediaUpload(){
          onChange={e=>choose(e.target.files?.[0]||null)} disabled={uploaded}/>
      </label>
      {kind==='voice'&&<VoiceRecorder disabled={busy||uploaded} onFile={recording=>choose(recording)}/>}
+     {kind==='video'&&<label className={styles.field}>Record a video on your phone
+       <input type="file" accept="video/*" capture="environment" disabled={busy||uploaded}
+         onChange={e=>choose(e.target.files?.[0]||null)}/>
+     </label>}
      {previewUrl&&(kind==='voice'?<audio controls preload="metadata" className={styles.media} src={previewUrl}/>
        :<video controls playsInline preload="metadata" className={styles.media} src={previewUrl}/>)}
      <p className={styles.hint}>Maximum 60 seconds. Actual duration and file format are independently verified after upload.</p>
