@@ -6,6 +6,7 @@ import { LockKeyhole, Search } from 'lucide-react'
 import styles from './SuccessWishes.module.css'
 import SchoolParticipation from './SchoolParticipation'
 import SchoolReports from './SchoolReports'
+import SchoolViewing from './SchoolViewing'
 
 type Candidate = { id: string; name: string; admissionNumber: string | null }
 
@@ -172,6 +173,7 @@ export default function SchoolAccess() {
       </>}
       <SchoolParticipation schoolId={schoolId}/>
       <SchoolReports schoolId={schoolId}/>
+      <SchoolViewing schoolId={schoolId}/>
       {error && <p className={styles.error} role="alert">{error}</p>}
       {unauthorised && <Link href="/login/admin" className={styles.secondary}>Sign in as school staff</Link>}
     </main>
