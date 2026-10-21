@@ -128,13 +128,13 @@ export default function PaidMediaUpload(){
          onChange={e=>{setReference(e.target.value.trim());setUploaded(false);setReady(false);key.current=''}}
          autoComplete="off" />
      </label>
-     <label className={styles.field}>Your verified sender email
-       <input type="email" required value={phone}
+     <label className={styles.field}>Your verified sender phone
+       <input type="tel" inputMode="tel" required value={phone}
          onChange={e=>{setPhone(e.target.value);setProof('');setChallengeSent(false);setUploaded(false);key.current=''}}
          maxLength={18} autoComplete="tel"/>
      </label>
      {!proof?<div className={styles.row}>
-       <button type="button" className={styles.secondary} disabled={busy||!email} onClick={()=>void sendCode()}>
+       <button type="button" className={styles.secondary} disabled={busy||!phone} onClick={()=>void sendCode()}>
          {challengeSent?'Resend code':'SMS verification code'}
        </button>
        {challengeSent&&<>
