@@ -75,6 +75,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-fixture.sql
           psql -v ON_ERROR_STOP=1 -f docs/success-wishes/schema.sql
           psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/adversarial-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety
