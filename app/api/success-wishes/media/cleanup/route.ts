@@ -25,11 +25,34 @@ export async function GET(req:NextRequest){
    auth:{persistSession:false,autoRefreshToken:false},
  })
  const now=new Date().toISOString()
- const {data:uploads,error}=await db.from('success_wishes_media_uploads')
+ // Process abandoned reservations and completed but withdrawn/expired media
+ // separately; otherwise a large healthy ready backlog can starve deletion.
+ const {data:stale,error}=await db.from('success_wishes_media_uploads')
    .select('message_id,provider,asset_id,state,upload_expires_at')
-   .in('state',['issued','processing','ready','cleanup_required'])
-   .lte('upload_expires_at',now).order('upload_expires_at',{ascending:true}).limit(25)
+   .in('state',['issued','processing','cleanup_required'])
+   .lte('upload_expires_at',now).order('upload_expires_at',{ascending:true}).limit(15)
  if(error)return reply({error:'Could not read private cleanup queue.'},503)
+ const {data:retired,error:retiredError}=await db.from('success_wishes_messages')
+   .select('id').in('format',['voice','video']).in('state',['withdrawn','blocked','expired'])
+   .order('expires_at',{ascending:true}).limit(20)
+ const {data:expired,error:expiryError}=await db.from('success_wishes_messages')
+   .select('id').in('format',['voice','video']).lt('expires_at',now)
+   .order('expires_at',{ascending:true}).limit(20)
+ if(retiredError||expiryError)return reply({error:'Could not verify expired wishes.'},503)
+ const ids=[...new Set([...(retired||[]),...(expired||[])].map(m=>m.id))]
+ const {data:more,error:moreError}=ids.length
+   ?await db.from('success_wishes_media_uploads')
+      .select('message_id,provider,asset_id,state,upload_expires_at')
+      .in('message_id',ids).in('state',['ready','issued','processing','cleanup_required'])
+      .lte('upload_expires_at',now).limit(20)
+   :{data:[],error:null}
+ if(moreError)return reply({error:'Could not read retired media assets.'},503)
+ const seen=new Set<string>()
+ const uploads=[...(stale||[]),...(more||[])].filter(u=>{
+   if(seen.has(u.message_id))return false
+   seen.add(u.message_id)
+   return true
+ })
  let deleted=0,failed=0,skipped=0
  for(const upload of uploads||[]){
    try{
