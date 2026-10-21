@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { WishError } from './contracts'
-import { enabled, hashSecret, SESSION_COOKIE } from './security'
+import { enabled, hashSecret, SESSION_COOKIE, staffReady } from './security'
 
 // This module is only imported by Node API routes. Never expose its client to a browser.
-export function database() {
+export function database(options: { staffOnly?: boolean } = {}) {
   if (typeof window !== 'undefined') throw new Error('Server-only module')
-  if (!enabled()) throw new WishError(503, 'Success Wishes is not open yet. Please try again later.')
+  if (!(options.staffOnly ? staffReady() : enabled())) throw new WishError(503, 'Success Wishes is not open yet. Please try again later.')
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false, autoRefreshToken: false },
   })
@@ -43,8 +43,8 @@ export async function json(req: NextRequest) {
   const raw = Buffer.concat(chunks).toString('utf8')
   try { const parsed: unknown = JSON.parse(raw); return parsed } catch { throw new WishError(400, 'Check the details and try again.') }
 }
-export async function limit(key: string, max: number, seconds = 900) {
-  const { data, error } = await database().rpc('success_wishes_take_attempt', {
+export async function limit(key: string, max: number, seconds = 900, staffOnly = false) {
+  const { data, error } = await database({ staffOnly }).rpc('success_wishes_take_attempt', {
     p_key_hash: hashSecret(key), p_limit: max, p_window_seconds: seconds,
   })
   if (error) throw new WishError(503, 'Please try again later.')
