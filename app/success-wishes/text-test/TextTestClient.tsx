@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { FormEvent, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, Inbox, LockKeyhole, RotateCcw, Send, ShieldCheck } from 'lucide-react'
 import styles from '@/components/success-wishes/SuccessWishes.module.css'
+import { syntheticTextTransition, type SyntheticTextState } from '@/lib/success-wishes/synthetic-text-state'
 
-type Status = 'compose' | 'request' | 'accepted' | 'hidden'
 const SCHOOL = 'VibeSchool Test Academy'
 const CANDIDATE = 'Test Candidate'
 const SENDER = 'Test Sender'
@@ -15,7 +15,7 @@ const SENDER = 'Test Sender'
 export default function TextTestClient() {
   const [tab, setTab] = useState<'sender' | 'candidate'>('sender')
   const [text, setText] = useState('I believe in you. All the best in your exams!')
-  const [status, setStatus] = useState<Status>('compose')
+  const [status, setStatus] = useState<SyntheticTextState>('compose')
   const [showPreview, setShowPreview] = useState(false)
   const [consent, setConsent] = useState(false)
   const [error, setError] = useState('')
@@ -38,7 +38,7 @@ export default function TextTestClient() {
 
   function simulateSend() {
     if (status !== 'compose' || !showPreview || !consent || !text.trim()) return
-    setStatus('request')
+    setStatus(current => syntheticTextTransition(current, 'send'))
     setShowPreview(false)
     setTab('candidate')
   }
@@ -102,8 +102,8 @@ export default function TextTestClient() {
           <article className={styles.message}><div className={styles.messageHeader}><div><strong>{SENDER}</strong><small>Family friend (test) · fictitious</small></div></div>
           {status === 'request' ? <>
             <p className={styles.status}>A test message request is waiting. Accept it to reveal the text, or hide it.</p>
-            <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => setStatus('accepted')}><Check size={15}/> Accept test wish</button><button className={styles.secondary} type="button" onClick={() => setStatus('hidden')}>Hide wish</button></div>
-          </> : status === 'accepted' ? <><p className={styles.status}>Accepted — this text is visible only after acceptance.</p><p className={styles.messageText}>{text}</p><button type="button" className={styles.secondary} onClick={() => setStatus('hidden')}>Hide wish</button></> : <p className={styles.status}>This simulated wish was hidden and cannot be opened.</p>}
+            <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => setStatus(current => syntheticTextTransition(current, 'accept'))}><Check size={15}/> Accept test wish</button><button className={styles.secondary} type="button" onClick={() => setStatus(current => syntheticTextTransition(current, 'hide'))}>Hide wish</button></div>
+          </> : status === 'accepted' ? <><p className={styles.status}>Accepted — this text is visible only after acceptance.</p><p className={styles.messageText}>{text}</p><button type="button" className={styles.secondary} onClick={() => setStatus(current => syntheticTextTransition(current, 'hide'))}>Hide wish</button></> : <p className={styles.status}>This simulated wish was hidden and cannot be opened.</p>}
           </article>}
       </section>}
       <div className={styles.actions}>
