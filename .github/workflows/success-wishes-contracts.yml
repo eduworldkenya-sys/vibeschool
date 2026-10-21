@@ -14,6 +14,7 @@ on:
       - 'supabase/migrations/*_success_wishes_verified_senders_and_blocking.sql'
       - 'supabase/migrations/*_success_wishes_private_voice_bucket.sql'
       - 'supabase/migrations/*_success_wishes_media_voice_validation.sql'
+      - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
@@ -33,6 +34,7 @@ on:
       - 'supabase/migrations/*_success_wishes_verified_senders_and_blocking.sql'
       - 'supabase/migrations/*_success_wishes_private_voice_bucket.sql'
       - 'supabase/migrations/*_success_wishes_media_voice_validation.sql'
+      - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
@@ -110,6 +112,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/voice-bucket-assertions.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021170000_success_wishes_media_voice_validation.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/voice-validation-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021173000_success_wishes_durable_media_reservations.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/media-reservation-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety
