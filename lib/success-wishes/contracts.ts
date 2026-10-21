@@ -35,3 +35,14 @@ export function submission(value: unknown) {
     idempotencyKey: retryKey(b.idempotencyKey),
   }
 }
+
+// Do not treat a changed request as a successful retry of an earlier message.
+export function sameSavedTextSubmission(
+  previous: { sender_name: string; relationship: string; format: string; body: string | null },
+  current: ReturnType<typeof submission>,
+): boolean {
+  return current.kind === 'text' && previous.format === 'text'
+    && previous.sender_name === current.senderName
+    && previous.relationship === current.relationship
+    && previous.body === current.text
+}
