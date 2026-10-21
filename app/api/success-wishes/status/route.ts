@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
     if (!data) throw new WishError(404, 'Check the reference and private code.')
     return reply({
       reference: data.id,
-      status: data.state,
+      // Never reveal candidate report/block decisions to a sender.
+      status: data.state === 'reported' || data.state === 'blocked' ? 'unavailable' : data.state,
       paymentStatus: data.payment_status,
       createdAt: data.created_at,
       expiresAt: data.expires_at,
