@@ -66,6 +66,9 @@ function SendForm({ config }: { config: Configuration | null }) {
   const [receipt, setReceipt] = useState<Receipt | null>(null)
   const idempotencyKey = useRef('')
 
+  // A failed request can be retried only if all submission details are unchanged.
+  useEffect(() => { idempotencyKey.current = '' }, [school?.id, admissionNumber, candidateName, senderName, relationship, kind, text])
+
   useEffect(() => {
     if (!file) { setMediaUrl(''); return }
     const url = URL.createObjectURL(file); setMediaUrl(url)
@@ -125,8 +128,14 @@ function Inbox({ registerExit }: { registerExit: (handler: (() => Promise<boolea
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [inboxLoaded, setInboxLoaded] = useState(false)
+  const inboxGeneration = useRef(0)
+
+  useEffect(() => () => { inboxGeneration.current += 1 }, [])
 
   const signOut = useCallback(async (expired = false) => {
+    // Invalidate pending reads before attempting the network sign-out.
+    inboxGeneration.current += 1
+    setMessages([]); setInboxLoaded(false)
     setBusy(true); setError('')
     try {
       await request('/api/success-wishes/session', { method: 'DELETE' })
@@ -152,10 +161,17 @@ function Inbox({ registerExit }: { registerExit: (handler: (() => Promise<boolea
   }, [authenticated, signOut])
 
   async function loadInbox() {
+    const current = ++inboxGeneration.current
     setBusy(true); setError(''); setInboxLoaded(false)
-    try { const data = await request<{ messages: Message[] }>('/api/success-wishes/inbox'); setMessages(data.messages); setInboxLoaded(true) }
-    catch (reason) { setError(reason instanceof Error ? reason.message : 'Messages could not load.') }
-    finally { setBusy(false) }
+    try {
+      const data = await request<{ messages: Message[] }>('/api/success-wishes/inbox')
+      if (current !== inboxGeneration.current) return
+      setMessages(data.messages); setInboxLoaded(true)
+    } catch (reason) {
+      if (current === inboxGeneration.current) setError(reason instanceof Error ? reason.message : 'Messages could not load.')
+    } finally {
+      if (current === inboxGeneration.current) setBusy(false)
+    }
   }
 
   async function act(messageId: string, action: 'accept' | 'block' | 'report') {
