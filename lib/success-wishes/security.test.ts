@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { accessHash, enabled, equalHash, hashSecret, messageExpiry, staffReady, token } from './security'
+import { accessHash, enabled, equalHash, hashSecret, messageExpiry, mediaPlaybackEnabled, staffReady, token } from './security'
 import { field, object, retryKey, sameSavedTextSubmission, submission, uuid, WishError } from './contracts'
 
 const valid = {
@@ -97,4 +97,19 @@ test('staff onboarding is independently gated and never enables public sending',
   assert.equal(enabled({ ...credentials, SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'true' }), false)
   assert.equal(staffReady({ ...credentials, SUPABASE_SERVICE_ROLE_KEY: undefined, SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'true' }), false)
   assert.equal(staffReady({ ...credentials, NEXT_PUBLIC_SUPABASE_ANON_KEY: undefined, SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'true' }), false)
+})
+
+
+test('media emergency stop blocks playback independently of storage readiness', () => {
+  const env = {
+    SUCCESS_WISHES_ENABLED: 'true',
+    SUCCESS_WISHES_MEDIA_CERTIFIED: 'true',
+    NEXT_PUBLIC_SUPABASE_URL: 'https://example.supabase.co',
+    SUPABASE_SERVICE_ROLE_KEY: 'fixture-server-only',
+  }
+  assert.equal(mediaPlaybackEnabled(env), true)
+  assert.equal(mediaPlaybackEnabled({ ...env, SUCCESS_WISHES_MEDIA_CERTIFIED: 'false' }), false)
+  assert.equal(mediaPlaybackEnabled({ ...env, SUCCESS_WISHES_MEDIA_CERTIFIED: undefined }), false)
+  assert.equal(mediaPlaybackEnabled({ ...env, SUCCESS_WISHES_ENABLED: 'false' }), false)
+  assert.equal(mediaPlaybackEnabled({ ...env, SUPABASE_SERVICE_ROLE_KEY: undefined }), false)
 })

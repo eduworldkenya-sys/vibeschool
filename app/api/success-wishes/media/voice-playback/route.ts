@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { uuid, WishError } from '@/lib/success-wishes/contracts'
+import { mediaPlaybackEnabled } from '@/lib/success-wishes/security'
 import { failure, limit, reply, session } from '@/lib/success-wishes/server'
 import { createPrivateVoiceAdapter } from '@/lib/success-wishes/voice'
 
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic'
 // storage URLs in the inbox list or offer them to unaccepted recipients.
 export async function GET(req: NextRequest) {
   try {
+    if (!mediaPlaybackEnabled()) throw new WishError(503, 'Media playback is not open.')
     const messageId = uuid(req.nextUrl.searchParams.get('messageId'))
     const {db,inbox} = await session(req)
     await limit('voice-playback:' + inbox.id, 40, 900)

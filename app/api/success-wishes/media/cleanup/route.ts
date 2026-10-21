@@ -4,6 +4,7 @@ import {createClient} from '@supabase/supabase-js'
 import {reply} from '@/lib/success-wishes/server'
 import {createSuccessWishesMediaAdapter,successWishesMediaReady} from '@/lib/success-wishes/media'
 import {createPrivateVoiceAdapter} from '@/lib/success-wishes/voice'
+import {selectRetiredMediaUploads} from '@/lib/success-wishes/cleanup-queue'
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
 export const maxDuration=60
@@ -32,20 +33,9 @@ export async function GET(req:NextRequest){
    .in('state',['issued','processing','cleanup_required'])
    .lte('upload_expires_at',now).order('upload_expires_at',{ascending:true}).limit(15)
  if(error)return reply({error:'Could not read private cleanup queue.'},503)
- const {data:retired,error:retiredError}=await db.from('success_wishes_messages')
-   .select('id').in('format',['voice','video']).in('state',['withdrawn','blocked','expired'])
-   .order('expires_at',{ascending:true}).limit(20)
- const {data:expired,error:expiryError}=await db.from('success_wishes_messages')
-   .select('id').in('format',['voice','video']).lt('expires_at',now)
-   .order('expires_at',{ascending:true}).limit(20)
- if(retiredError||expiryError)return reply({error:'Could not verify expired wishes.'},503)
- const ids=[...new Set([...(retired||[]),...(expired||[])].map(m=>m.id))]
- const {data:more,error:moreError}=ids.length
-   ?await db.from('success_wishes_media_uploads')
-      .select('message_id,provider,asset_id,state,upload_expires_at')
-      .in('message_id',ids).in('state',['ready','issued','processing','cleanup_required'])
-      .lte('upload_expires_at',now).limit(20)
-   :{data:[],error:null}
+ // Page media *reservations* after joining eligible retired/expired messages.
+ // Paging messages first can starve cleanup when the first 20 were already deleted.
+ const {data:more,error:moreError}=await selectRetiredMediaUploads(db,now)
  if(moreError)return reply({error:'Could not read retired media assets.'},503)
  const seen=new Set<string>()
  const uploads=[...(stale||[]),...(more||[])].filter(u=>{

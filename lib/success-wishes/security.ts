@@ -18,6 +18,13 @@ export function enabled(env: Record<string, string | undefined> = process.env) {
   return env.SUCCESS_WISHES_ENABLED === 'true' && !!env.NEXT_PUBLIC_SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY
 }
 
+// Emergency shutoff applies to every new private voice/video playback capability,
+// independently of upload reservations and existing paid media. Previously
+// issued provider URLs expire separately and require provider-level revocation.
+export function mediaPlaybackEnabled(env: Record<string, string | undefined> = process.env) {
+  return enabled(env) && env.SUCCESS_WISHES_MEDIA_CERTIFIED === 'true'
+}
+
 // Separately commissioned, staff-only preparation never enables public sending.
 export function staffReady(env: Record<string, string | undefined> = process.env) {
   return (enabled(env) || env.SUCCESS_WISHES_STAFF_SETUP_ENABLED === 'true')
