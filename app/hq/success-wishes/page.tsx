@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { HQPage, HQPanel, HQ_THEME, hqButtonStyle } from '@/components/hq/HQShell'
 import { hqSupabase } from '@/lib/hq/supabase'
 
@@ -13,7 +13,7 @@ type School = {
   sponsored_until: string | null
   daily_limit: number
 }
-const fieldStyle: React.CSSProperties = {
+const fieldStyle: CSSProperties = {
   width: '100%', minHeight: 44, padding: '8px 12px', borderRadius: 10,
   border: '1px solid ' + HQ_THEME.border, background: HQ_THEME.panelSoft,
   color: HQ_THEME.text, fontSize: 14,
