@@ -10,26 +10,29 @@ export async function POST(req:NextRequest){
    if(process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED!=='true' || process.env.SUCCESS_WISHES_MEDIA_CERTIFIED!=='true')
      throw new WishError(503,'Media uploads are not open.')
    const b=object(await json(req)),id=uuid(b.messageId),proof=field(b.senderProof,64,64)
-   if(!/^[a-f0-9]{64}$/.test(proof))throw new WishError(401,'Verify your email first.')
+   if(!/^[a-f0-9]{64}$/.test(proof))throw new WishError(401,'Verify your phone first.')
    const db=database()
    await limit('media-finalize:'+id,30,3600)
    const {data:sender,error:senderError}=await db.from('success_wishes_sender_sessions')
      .select('sender_id').eq('token_hash',hashSecret(proof))
      .gt('expires_at',new Date().toISOString()).maybeSingle()
    if(senderError)throw senderError
-   if(!sender)throw new WishError(401,'Verify your email first.')
+   if(!sender)throw new WishError(401,'Verify your phone first.')
    const {data:reservation,error:claimError}=await db.from('success_wishes_media_uploads')
      .select('kind,provider,asset_id,state').eq('message_id',id).eq('sender_id',sender.sender_id)
      .in('state',['issued','processing','ready']).maybeSingle()
    if(claimError)throw claimError
    if(!reservation?.asset_id)throw new WishError(404,'This private upload is unavailable.')
-   if(reservation.state==='ready')return reply({ready:true})
    const {data:message,error:messageError}=await db.from('success_wishes_messages')
      .select('id,media_asset_id').eq('id',id).eq('sender_id',sender.sender_id)
-     .eq('media_asset_id',reservation.asset_id).eq('payment_status','paid')
+     .eq('media_asset_id',reservation.asset_id).eq('format',reservation.kind)
+     .eq('media_provider',reservation.provider).eq('payment_status','paid')
      .eq('state','request').gt('expires_at',new Date().toISOString()).maybeSingle()
    if(messageError)throw messageError
    if(!message)throw new WishError(404,'This paid wish is unavailable.')
+   // A previously completed reservation does not override withdrawal, expiry,
+   // sender ownership, message format, or revoked school participation.
+   if(reservation.state==='ready')return reply({ready:true,status:'ready'})
    if(reservation.kind==='voice'){
      return reply({ready:false,status:'awaiting_validation',
        message:'Audio must pass independent server-side content and duration inspection.'},202)
