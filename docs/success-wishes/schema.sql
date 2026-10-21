@@ -288,4 +288,32 @@ revoke all on function public.success_wishes_set_school_participation(uuid,boole
 grant execute on function public.success_wishes_set_school_participation(uuid,boolean,boolean)
   to authenticated;
 
+
+-- Reports can be resolved by a current school administrator. Neither the RPC
+-- nor the staff report queue exposes message bodies or media access.
+create function public.success_wishes_resolve_report(
+  p_school_id uuid, p_report_id uuid
+) returns boolean language plpgsql security definer set search_path = '' as $
+declare v_inbox uuid;
+begin
+  if auth.uid() is null or p_school_id is null or p_report_id is null
+    or not public.is_school_admin(p_school_id)
+    or not public.is_operational_school(p_school_id)
+    or not exists (
+      select 1 from public.profiles p where p.id=auth.uid()
+        and p.account_status::text='active' and not p.is_anonymized
+    ) then raise exception 'not_authorized' using errcode='42501'; end if;
+  select r.inbox_id into v_inbox from public.success_wishes_reports r
+    join public.success_wishes_inboxes i on i.id=r.inbox_id
+    where r.id=p_report_id and i.school_id=p_school_id and r.status='open'
+    for update of r;
+  if v_inbox is null then return false; end if;
+  update public.success_wishes_reports set status='resolved' where id=p_report_id and status='open';
+  insert into public.success_wishes_audit (school_id,inbox_id,actor_id,event)
+    values (p_school_id,v_inbox,auth.uid(),'report_resolved:'||p_report_id::text);
+  return true;
+end; $;
+revoke all on function public.success_wishes_resolve_report(uuid,uuid) from public,anon;
+grant execute on function public.success_wishes_resolve_report(uuid,uuid) to authenticated;
+
 commit;
