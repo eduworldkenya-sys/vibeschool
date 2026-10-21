@@ -17,7 +17,9 @@ test('unverified candidate cannot read any inbox or obtain audio/video capabilit
   ] as const
   for(const [path,handler] of urls){
     const response=await handler(new NextRequest(origin+path))
-    assert.equal(response.status,401,path)
+    // Media kill switch fails closed before session lookup; the inbox still
+    // rejects missing guest credentials with 401. Neither response leaks content.
+    assert.equal(response.status,path.includes('/media/')?503:401,path)
     assert.match(response.headers.get('cache-control')||'',/no-store/)
     const result=await response.json()
     assert.equal(Object.hasOwn(result,'messages'),false)
@@ -40,5 +42,27 @@ test('cross-site web pages cannot submit candidate acceptance, hiding or block a
       body:JSON.stringify({messageId,action:selected}),
     }))
     assert.equal(response.status,403,selected)
+  }
+})
+
+
+test('when media playback is commissioned, an unverified candidate still gets 401',async()=>{
+  const keys=['SUCCESS_WISHES_ENABLED','SUCCESS_WISHES_MEDIA_CERTIFIED','NEXT_PUBLIC_SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY'] as const
+  const old=keys.map(key=>process.env[key])
+  try {
+    process.env.SUCCESS_WISHES_ENABLED='true'
+    process.env.SUCCESS_WISHES_MEDIA_CERTIFIED='true'
+    process.env.NEXT_PUBLIC_SUPABASE_URL='https://example.supabase.co'
+    process.env.SUPABASE_SERVICE_ROLE_KEY='test-private-key'
+    for(const [path,handler] of [
+      ['/api/success-wishes/media/voice-playback?messageId='+messageId,voice],
+      ['/api/success-wishes/media/playback?messageId='+messageId,video],
+    ] as const){
+      const response=await handler(new NextRequest(origin+path))
+      assert.equal(response.status,401,path)
+      assert.equal(Object.hasOwn(await response.json(),'url'),false)
+    }
+  }finally {
+    keys.forEach((key,i)=>{if(old[i]===undefined)delete process.env[key];else process.env[key]=old[i]})
   }
 })
