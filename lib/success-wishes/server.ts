@@ -73,5 +73,5 @@ export async function eligible(db: ReturnType<typeof database>, inbox: { school_
     .eq('is_current', true).is('left_at', null).eq('classes.school_id', inbox.school_id)
     .is('students.deleted_at', null).limit(2)
   if (settingError || enrollmentError) throw new WishError(503, 'We could not verify this inbox. Please try again.')
-  if (!setting || enrollments?.length !== 1) throw new WishError(401, 'This inbox is no longer available. Check with your school.')
+  if (!setting || !enrollments?.length) throw new WishError(401, 'This inbox is no longer available. Check with your school.')
 }
