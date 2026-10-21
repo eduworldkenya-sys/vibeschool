@@ -7,7 +7,7 @@ on:
       - 'app/success-wishes/**'
       - 'components/success-wishes/**'
       - 'lib/success-wishes/**'
-      - 'docs/success-wishes/schema.sql'
+      - 'docs/success-wishes/*.sql'
       - '.github/workflows/success-wishes-contracts.yml'
   push:
     branches: [main]
@@ -16,7 +16,7 @@ on:
       - 'app/success-wishes/**'
       - 'components/success-wishes/**'
       - 'lib/success-wishes/**'
-      - 'docs/success-wishes/schema.sql'
+      - 'docs/success-wishes/*.sql'
       - '.github/workflows/success-wishes-contracts.yml'
 
 permissions:
@@ -41,3 +41,36 @@ jobs:
         run: node --import ./scripts/register-typescript.mjs --import ./lib/success-wishes/test-resolver.mjs --test lib/success-wishes/*.test.ts
       - name: Check disabled-service HTTP and cookie boundaries
         run: node lib/success-wishes/http-check.cjs
+
+  success-wishes-postgres:
+    name: Success Wishes PostgreSQL Isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-fixture-only
+          POSTGRES_DB: success_wishes_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d success_wishes_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Apply disposable canonical fixture and proposed schema
+        env:
+          PGPASSWORD: disposable-fixture-only
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGDATABASE=success_wishes_test
+          psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f docs/success-wishes/schema.sql
+          psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-assertions.sql
