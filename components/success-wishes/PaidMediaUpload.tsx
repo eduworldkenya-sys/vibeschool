@@ -31,7 +31,7 @@ function nonce():string {
 // entering a reference alone never creates an entitlement or charges money.
 export default function PaidMediaUpload(){
  const [reference,setReference]=useState('')
- const [email,setEmail]=useState('')
+ const [phone,setPhone]=useState('')
  const [challengeSent,setChallengeSent]=useState(false)
  const [code,setCode]=useState('')
  const [proof,setProof]=useState('')
@@ -60,18 +60,18 @@ export default function PaidMediaUpload(){
  async function sendCode(){
    setBusy(true);setError('')
    try{
-     await post('/api/success-wishes/verify-sender',{email})
-     setChallengeSent(true);setMessage('Check your email for the six-digit code.')
-   }catch(e){setError(e instanceof Error?e.message:'Email could not be verified.')}
+     await post('/api/success-wishes/verify-sender',{phone})
+     setChallengeSent(true);setMessage('Check your phone for the six-digit SMS code.')
+   }catch(e){setError(e instanceof Error?e.message:'Phone could not be verified.')}
    finally{setBusy(false)}
  }
  async function verify(){
    setBusy(true);setError('')
    try{
-     const response=await post<VerifyResponse>('/api/success-wishes/verify-sender',{email,code},'PATCH')
-     if(!response.verified)throw Error('Email verification failed.')
-     setProof(response.senderProof);setCode('');setMessage('Email verified.')
-   }catch(e){setError(e instanceof Error?e.message:'Email verification failed.')}
+     const response=await post<VerifyResponse>('/api/success-wishes/verify-sender',{phone,code},'PATCH')
+     if(!response.verified)throw Error('Phone verification failed.')
+     setProof(response.senderProof);setCode('');setMessage('Phone verified.')
+   }catch(e){setError(e instanceof Error?e.message:'Phone verification failed.')}
    finally{setBusy(false)}
  }
  async function complete(){
@@ -129,22 +129,22 @@ export default function PaidMediaUpload(){
          autoComplete="off" />
      </label>
      <label className={styles.field}>Your verified sender email
-       <input type="email" required value={email}
-         onChange={e=>{setEmail(e.target.value);setProof('');setChallengeSent(false);setUploaded(false);key.current=''}}
-         maxLength={254} autoComplete="email"/>
+       <input type="email" required value={phone}
+         onChange={e=>{setPhone(e.target.value);setProof('');setChallengeSent(false);setUploaded(false);key.current=''}}
+         maxLength={18} autoComplete="tel"/>
      </label>
      {!proof?<div className={styles.row}>
        <button type="button" className={styles.secondary} disabled={busy||!email} onClick={()=>void sendCode()}>
-         {challengeSent?'Resend code':'Email verification code'}
+         {challengeSent?'Resend code':'SMS verification code'}
        </button>
        {challengeSent&&<>
-         <label className={styles.field}>Six-digit email code
+         <label className={styles.field}>Six-digit SMS code
            <input value={code} onChange={e=>setCode(e.target.value)} maxLength={6}
              inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"/>
          </label>
          <button type="button" className={styles.secondary} disabled={busy||!/^[0-9]{6}$/.test(code)} onClick={()=>void verify()}>Verify</button>
        </>}
-     </div>:<p role="status">Email verified for this browser session.</p>}
+     </div>:<p role="status">Phone verified for this browser session.</p>}
      <div className={styles.kinds} role="group" aria-label="Media type">
        {(['voice','video'] as const).map(next=><button type="button" key={next}
          aria-pressed={kind===next} className={kind===next?styles.selectedKind:styles.secondary}
