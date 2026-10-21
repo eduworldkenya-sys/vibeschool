@@ -10,6 +10,11 @@ type Configuration = { enabled: boolean; mediaEnabled: boolean; paymentsEnabled:
 type Kind = 'text' | 'voice' | 'video'
 type Message = { id: string; senderName: string; relationship: string; kind: Kind; state: 'request' | 'available'; text?: string | null; createdAt: string; mediaUrl?: string | null }
 type Receipt = { reference?: string; managementToken?: string; status?: string; message?: string }
+type SavedWishDraft = {
+  savedAt: number; school: School; admissionNumber: string; candidateName: string;
+  senderName: string; relationship: string; text: string; retryKey: string
+}
+const DRAFT_KEY = 'vs-success-wishes-private-tab-draft-v1'
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { cache: 'no-store', credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } })
@@ -65,9 +70,59 @@ function SendForm({ config }: { config: Configuration | null }) {
   const [mediaUrl, setMediaUrl] = useState('')
   const [receipt, setReceipt] = useState<Receipt | null>(null)
   const idempotencyKey = useRef('')
+  const restoreKey = useRef('')
+  const [saveDraft, setSaveDraft] = useState(false)
+  const [storedDraft, setStoredDraft] = useState<SavedWishDraft | null>(null)
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const value: unknown = JSON.parse(raw)
+      if (!value || typeof value !== 'object') return
+      const data = value as Partial<SavedWishDraft>
+      if (typeof data.savedAt !== 'number' || Date.now() - data.savedAt > 30 * 60 * 1000
+        || !data.school || typeof data.school.id !== 'string'
+        || typeof data.candidateName !== 'string' || typeof data.text !== 'string'
+        || typeof data.admissionNumber !== 'string' || typeof data.senderName !== 'string'
+        || typeof data.relationship !== 'string' || data.text.length > 2000) {
+        sessionStorage.removeItem(DRAFT_KEY)
+        return
+      }
+      setStoredDraft(data as SavedWishDraft)
+    } catch { try { sessionStorage.removeItem(DRAFT_KEY) } catch { /* storage unavailable */ } }
+  }, [])
+
+  function restoreDraft() {
+    if (!storedDraft) return
+    restoreKey.current = /^[a-f0-9]{64}$/.test(storedDraft.retryKey) ? storedDraft.retryKey : ''
+    setSchool(storedDraft.school); setAdmissionNumber(storedDraft.admissionNumber)
+    setCandidateName(storedDraft.candidateName); setSenderName(storedDraft.senderName)
+    setRelationship(storedDraft.relationship); setKind('text'); setText(storedDraft.text)
+    setConsent(false); setSaveDraft(true); setStoredDraft(null)
+  }
+
+  function discardDraft() {
+    try { sessionStorage.removeItem(DRAFT_KEY) } catch { /* storage unavailable */ }
+    restoreKey.current = ''; idempotencyKey.current = ''
+    setSaveDraft(false); setStoredDraft(null)
+  }
 
   // A failed request can be retried only if all submission details are unchanged.
-  useEffect(() => { idempotencyKey.current = '' }, [school?.id, admissionNumber, candidateName, senderName, relationship, kind, text])
+  useEffect(() => {
+    idempotencyKey.current = restoreKey.current || ''
+    restoreKey.current = ''
+  }, [school?.id, admissionNumber, candidateName, senderName, relationship, kind, text])
+
+  useEffect(() => {
+    if (!saveDraft || !school || kind !== 'text' || receipt) return
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+        savedAt: Date.now(), school, admissionNumber, candidateName, senderName,
+        relationship, text, retryKey: idempotencyKey.current,
+      } satisfies SavedWishDraft))
+    } catch { /* user may have storage disabled; form still works */ }
+  }, [saveDraft, school, admissionNumber, candidateName, senderName, relationship, kind, text, receipt])
 
   useEffect(() => {
     if (!file) { setMediaUrl(''); return }
@@ -98,7 +153,16 @@ function SendForm({ config }: { config: Configuration | null }) {
       idempotencyKey.current = Array.from(random, byte => byte.toString(16).padStart(2, '0')).join('')
     }
     try {
+      if (saveDraft) {
+        try {
+          sessionStorage.setItem(DRAFT_KEY, JSON.stringify({
+            savedAt: Date.now(), school, admissionNumber, candidateName, senderName,
+            relationship, text, retryKey: idempotencyKey.current,
+          } satisfies SavedWishDraft))
+        } catch { /* no persistent storage is required to send */ }
+      }
       const result = await request<Receipt>('/api/success-wishes/messages', { method: 'POST', body: JSON.stringify({ schoolId: school.id, admissionNumber: admissionNumber.trim(), candidateName: candidateName.trim(), senderName: senderName.trim(), relationship: relationship.trim(), kind, text: text.trim(), consent: true, idempotencyKey: idempotencyKey.current }) })
+      discardDraft()
       setReceipt(result)
       setText(''); setCandidateName(''); setAdmissionNumber(''); setSenderName(''); setRelationship(''); setConsent(false); setFile(null)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Your message could not be submitted.') }
@@ -111,9 +175,23 @@ function SendForm({ config }: { config: Configuration | null }) {
 
   return <form className={styles.panel} onSubmit={showPreview}>
     <h2>Who are you cheering on?</h2><p className={styles.hint}>Your message goes to one candidate’s private inbox.</p>
+    {storedDraft && <div className={styles.notice} role="status">
+      <p>A draft was saved in this browser tab. Only restore it on your own device.</p>
+      <div className={styles.row}>
+        <button className={styles.secondary} type="button" onClick={restoreDraft}>Restore draft</button>
+        <button className={styles.quiet} type="button" onClick={discardDraft}>Discard</button>
+      </div>
+    </div>}
     <div className={styles.section}><SchoolPicker selected={school} onChange={setSchool}/><div className={styles.grid} style={{ marginTop: 16 }}><label className={styles.field}>Candidate’s name<input value={candidateName} onChange={event => setCandidateName(event.target.value)} required maxLength={120} autoComplete="off"/></label><label className={styles.field}>Admission number<input value={admissionNumber} onChange={event => setAdmissionNumber(event.target.value)} required maxLength={60} autoComplete="off"/><small>Use the number issued by their school.</small></label></div></div>
     <div className={styles.section}><h3>Your message</h3><div className={styles.kinds} role="group" aria-label="Message format">{([{ id: 'text', label: 'Text', Icon: Mail }, { id: 'voice', label: 'Voice', Icon: Mic }, { id: 'video', label: 'Video', Icon: Video }] as const).map(({ id, label, Icon }) => <button key={id} type="button" aria-pressed={kind === id} className={`${styles.kind} ${kind === id ? styles.selectedKind : ''}`} onClick={() => { setKind(id); setFile(null); setError('') }}><Icon size={17} aria-hidden="true"/>{label}</button>)}</div>{kind === 'text' ? <><label className={styles.field}>Your encouragement<textarea value={text} onChange={event => setText(event.target.value)} required maxLength={2000} placeholder="Tell them what you want them to hear."/></label><p className={styles.count}>{text.length}/2,000</p></> : <div className={styles.file}><label className={styles.field}>{kind === 'voice' ? 'Choose a voice message' : 'Choose a video'}<input key={kind} type="file" accept={kind === 'voice' ? 'audio/*' : 'video/*'} onChange={event => chooseFile(event.target.files?.[0])}/><small>Up to {config?.maxSeconds || 60} seconds · {Math.round((config?.maxBytes || 25 * 1024 * 1024) / 1024 / 1024)} MB maximum.</small></label><p className={styles.status}>You can preview a file. Sending {kind === 'voice' ? 'voice messages' : 'videos'} is currently unavailable.</p></div>}</div>
     <div className={styles.section}><div className={styles.grid}><label className={styles.field}>Your name<input value={senderName} onChange={event => setSenderName(event.target.value)} required maxLength={100} autoComplete="off"/></label><label className={styles.field}>Relationship<input value={relationship} onChange={event => setRelationship(event.target.value)} required maxLength={60} placeholder="e.g. Mum, Uncle, Teacher" autoComplete="off"/></label></div><label className={styles.consent}><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)} required/><span>I have permission to share this content with this candidate. I understand it is a private message.</span></label></div>
+    {kind === 'text' && <label className={styles.consent}>
+      <input type="checkbox" checked={saveDraft} onChange={event => {
+        if (!event.target.checked) discardDraft()
+        else setSaveDraft(true)
+      }}/>
+      <span>Save a draft for up to 30 minutes in this browser tab. Use only on a private device; leave unchecked on shared phones.</span>
+    </label>}
     {error && <div className={styles.error} role="alert">{error}</div>}<div className={styles.actions}><span className={styles.hint}><LockKeyhole size={12} aria-hidden="true"/> Private by default</span><button type="submit" className={styles.primary} disabled={!school || !consent}>Preview wish <span aria-hidden="true">→</span></button></div>
   </form>
 }
