@@ -11,6 +11,7 @@ on:
       - 'supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql'
       - 'supabase/migrations/*_success_wishes_school_viewing_windows.sql'
       - 'supabase/migrations/*_success_wishes_text_expiry_schedule.sql'
+      - 'supabase/migrations/*_success_wishes_verified_senders_and_blocking.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
@@ -27,6 +28,7 @@ on:
       - 'supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql'
       - 'supabase/migrations/*_success_wishes_school_viewing_windows.sql'
       - 'supabase/migrations/*_success_wishes_text_expiry_schedule.sql'
+      - 'supabase/migrations/*_success_wishes_verified_senders_and_blocking.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
@@ -94,6 +96,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sponsorship-fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021102904_success_wishes_sponsored_pilot_limits.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sponsorship-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021154000_success_wishes_verified_senders_and_blocking.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/verified-sender-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/function-acl-assertions.sql
           bash qa/success-wishes/concurrent-sponsorship.sh
 
