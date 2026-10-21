@@ -43,9 +43,11 @@ SUCCESS_WISHES_PRICE_VIDEO_KES=<approved-test-price>
 ```
 
 The sandbox flags in this document are **not** a complete switch-on procedure:
-the durable guest order APIs, isolated migration, server-authorised callback
-receiver, independently confirmed settlement, message release, refunds, and
-real provider sandbox transaction have to pass their own review first.
+the new guest order APIs, isolated migration, server-authorised callback
+receiver, independently confirmed settlement and candidate-message release
+are now **staged in code**, but still require an isolated database, exact-head
+CI, security review and a real provider sandbox transaction. Refund execution,
+provider dispute tooling and operational reconciliation certification remain open.
 
 ## Safaricom account setup
 
@@ -77,3 +79,36 @@ real provider sandbox transaction have to pass their own review first.
   receiving business shortcode in Safaricom's documentation and live credentials.
 
 Official source: https://developer.safaricom.co.ke/apis/MpesaExpressSimulate
+
+## Added on the isolated work branch
+
+- `supabase/migrations/20261021170000_success_wishes_guest_mpesa_ledger.sql`:
+  isolated private order, STK attempt and event tables; canonical runtime-control
+  claim; atomic provider-confirmed message settlement.
+- `app/api/success-wishes/payments/checkout`: server-quoted verified guest
+  order; at-most-one STK attempt; separate sandbox gate.
+- `app/api/success-wishes/payments/status`: verified sender receipt/status
+  recovery and replay of early provider-confirmed callbacks.
+- `app/api/success-wishes/payments/reconcile`: secret-gated batch
+  reconciliation. It **never** issues a new STK. A scheduler still needs
+  commissioning in the isolated environment.
+- `supabase/functions/success-wishes-mpesa-callback`: draft sandbox-only
+  callback handler. It stores the event *before* querying Daraja and releases
+  the wish only when result code, checkout, merchant, phone, amount and receipt
+  reconcile.
+- `qa/success-wishes/guest-mpesa-ledger-assertions.sql`: disposable
+  PostgreSQL settlement, idempotency, cancellation-prevention and grant tests.
+
+### Mandatory operational review before enabling
+
+Confirm an entirely separate Supabase project, sandbox credentials and SMS
+verification provider; apply migrations there and deploy the callback only
+there with its callback secret (minimum 32 characters). Never use production
+student records, payment switches or secrets in the sandbox. Verify all
+required test cases with Safaricom and independent QA.
+
+**Not done yet:** real Daraja sandbox calls, active callback deployment,
+live reconciliation job, automatic refunds/reversals, support workflow,
+approved prices, independent privacy review, and a business shortcode for
+production. These are release blockers; green unit tests alone do not
+complete the payment service.
