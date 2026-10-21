@@ -153,11 +153,11 @@ export default function CurriculumAuthorityPage() {
         p_canonical_subject_id: subjectId, p_source_url: sourceUrl.trim(), p_source_version: sourceVersion.trim(),
         p_source_published_on: null,
         p_metadata: {
-           parent_authority_page: grade.trim().toLowerCase() === "grade 1" && selectedSubject.trim().toLowerCase() === "english"
-             ? KICD_G1_ENGLISH_REFERENCE
-             : grade.trim().toLowerCase() === "grade 10" && selectedSubject.trim().toLowerCase() === "chemistry"
-               ? KICD_G10_PURE_SCIENCES_PAGE
-               : sourceUrl.trim(),
+           ...(grade.trim().toLowerCase() === "grade 10" && selectedSubject.trim().toLowerCase() === "chemistry"
+             ? { parent_authority_page: KICD_G10_PURE_SCIENCES_PAGE }
+             : grade.trim().toLowerCase() === "grade 1" && selectedSubject.trim().toLowerCase() === "english"
+               ? { parent_authority_page: KICD_G1_ENGLISH_REFERENCE }
+               : { parent_authority_page: sourceUrl.trim() }),
            source_title: `${selectedSubject} ${grade} - ${sourceVersion}`,
            intake_surface: "/hq/curriculum-authority",
          },
