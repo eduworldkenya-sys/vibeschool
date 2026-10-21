@@ -41,6 +41,13 @@ export default function SchoolAccess() {
   const [unauthorised, setUnauthorised] = useState(false)
   const [code, setCode] = useState('')
   const [confirmed, setConfirmed] = useState(false)
+  useEffect(() => {
+    if (!code) return
+    const timeout = window.setTimeout(() => setCode(''), 60_000)
+    const clearIfHidden = () => { if (document.visibilityState === 'hidden') setCode('') }
+    document.addEventListener('visibilitychange', clearIfHidden)
+    return () => { window.clearTimeout(timeout); document.removeEventListener('visibilitychange', clearIfHidden) }
+  }, [code])
   const searchEpoch = useRef(0)
   const changeSchool = (value: string) => {
     searchEpoch.current++
@@ -130,7 +137,7 @@ export default function SchoolAccess() {
               {schoolError && <small role="alert">{schoolError}</small>}
             </label>
             <label className={styles.field}>Candidate name
-              <input value={candidateQuery} onChange={event => { setCandidateQuery(event.target.value); setStudent(null); setConfirmed(false) }}
+              <input value={candidateQuery} onChange={event => { searchEpoch.current++; setCandidateQuery(event.target.value); setCandidates([]); setSearched(false); setStudent(null); setConfirmed(false) }}
                 required minLength={2} maxLength={80} autoComplete="off" placeholder="Search name"/>
             </label>
           </div>
