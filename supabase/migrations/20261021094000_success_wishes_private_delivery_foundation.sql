@@ -1,6 +1,20 @@
 -- Canonical additive Success Wishes foundation; feature and M-Pesa remain disabled.
 -- This migration is reviewed in disposable PostgreSQL before live deployment.
 -- Do NOT enable public sending on application or payment infrastructure by applying this file.
+-- access: service-only public.success_wishes_schools
+-- authorization-test: public.success_wishes_schools
+-- access: service-only public.success_wishes_inboxes
+-- authorization-test: public.success_wishes_inboxes
+-- access: service-only public.success_wishes_sessions
+-- authorization-test: public.success_wishes_sessions
+-- access: service-only public.success_wishes_messages
+-- authorization-test: public.success_wishes_messages
+-- access: service-only public.success_wishes_reports
+-- authorization-test: public.success_wishes_reports
+-- access: service-only public.success_wishes_audit
+-- authorization-test: public.success_wishes_audit
+-- access: service-only public.success_wishes_attempts
+-- authorization-test: public.success_wishes_attempts
 -- Requires canonical schools/students/student_classes/classes, is_school_admin,
 -- is_operational_school, and pgcrypto installed in extensions.
 begin;
