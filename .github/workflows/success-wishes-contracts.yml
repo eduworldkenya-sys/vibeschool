@@ -10,6 +10,7 @@ on:
       - 'docs/success-wishes/*.sql'
       - 'supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql'
       - 'supabase/migrations/*_success_wishes_school_viewing_windows.sql'
+      - 'supabase/migrations/*_success_wishes_text_expiry_schedule.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
@@ -25,9 +26,11 @@ on:
       - 'docs/success-wishes/*.sql'
       - 'supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql'
       - 'supabase/migrations/*_success_wishes_school_viewing_windows.sql'
+      - 'supabase/migrations/*_success_wishes_text_expiry_schedule.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
+      - 'qa/success-wishes/**'
       - '.github/workflows/success-wishes-contracts.yml'
 
 permissions:
