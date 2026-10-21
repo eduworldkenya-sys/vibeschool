@@ -6,7 +6,7 @@ create schema if not exists auth;
 create extension if not exists pgcrypto with schema extensions;
 create role anon nologin;
 create role authenticated nologin;
-create role service_role nologin;
+create role service_role nologin bypassrls; -- mirrors Supabase service_role
 grant usage on schema public, auth, extensions to anon, authenticated, service_role;
 
 create table public.schools (
