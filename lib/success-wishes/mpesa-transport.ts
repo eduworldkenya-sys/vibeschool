@@ -83,7 +83,8 @@ export function createGuestMpesaTransport(options:{
       })
       const access=oauth.access_token
       if(typeof access!=='string'||access.length<8)throw new Error('M-Pesa authorization was not confirmed.')
-      const timestamp=now().toISOString().replace(/\D/g,'').slice(0,14)
+      // Daraja interprets this password timestamp in Africa/Nairobi (UTC+3), not UTC.
+      const timestamp=new Date(now().getTime()+3*60*60*1000).toISOString().replace(/\D/g,'').slice(0,14)
       if(!/^\d{14}$/.test(timestamp))throw new Error('Invalid M-Pesa timestamp.')
       const password=btoa(settings.shortcode+settings.passkey+timestamp)
       const stk=await call(settings.host+'/mpesa/stkpush/v1/processrequest',{
@@ -93,8 +94,8 @@ export function createGuestMpesaTransport(options:{
           BusinessShortCode:settings.shortcode,Password:password,Timestamp:timestamp,
           TransactionType:'CustomerPayBillOnline',Amount:attempt.amountKes,
           PartyA:phone,PartyB:settings.shortcode,PhoneNumber:phone,
-          CallBackURL:settings.callback,AccountReference:'VS-W-'+attempt.id.replace(/-/g,'').slice(0,12),
-          TransactionDesc:'VibeSchool Success Wish',
+          CallBackURL:settings.callback,AccountReference:'VW'+attempt.id.replace(/-/g,'').slice(0,10),
+          TransactionDesc:'Success Wish',
         }),
       })
       if(stk.ResponseCode!=='0'||typeof stk.CheckoutRequestID!=='string'
