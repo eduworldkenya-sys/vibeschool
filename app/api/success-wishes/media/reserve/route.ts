@@ -9,6 +9,7 @@ export const dynamic='force-dynamic'
 const MIME_VIDEO=new Set(['video/mp4','video/webm','video/quicktime'])
 export async function POST(req:NextRequest){
  let reservedId:string|null=null
+ let allocatedAsset:string|null=null
  try{
    if(process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED!=='true')
      throw new WishError(503,'Media uploads are not open.')
@@ -47,6 +48,7 @@ export async function POST(req:NextRequest){
       ?await createPrivateVoiceAdapter(db.storage).reserve(messageId,mime,Number(bytes))
       :await createSuccessWishesMediaAdapter().createDirectUpload(messageId)
    const assetId='path' in upload?upload.path:upload.uid
+   allocatedAsset=assetId
    const {data:saved,error:saveError}=await db.from('success_wishes_media_uploads')
      .update({asset_id:assetId,state:'issued',upload_expires_at:('expiresAt' in upload
        ?upload.expiresAt:new Date(Date.now()+2*60*60*1000).toISOString()),
@@ -65,6 +67,13 @@ export async function POST(req:NextRequest){
      method:kind==='voice'?'PUT':'POST',status:'issued'},201)
  }catch(error){
    if(reservedId){
+     // Persist any allocated provider UID/path BEFORE recording a cleanup
+     // obligation. A crash here still needs provider metadata reconciliation.
+     if(allocatedAsset)try{
+       await database().from('success_wishes_media_uploads').update({
+         asset_id:allocatedAsset,updated_at:new Date().toISOString(),
+       }).eq('message_id',reservedId).is('asset_id',null)
+     }catch{ /* missing provider evidence requires manual reconciliation */ }
      // This state is never considered paid/delivered. Reconciliation and
      // orphan-provider cleanup are required before retrying.
      try{
