@@ -14,7 +14,7 @@ Base: 22af786b62620618e230f582fd7861c98febfa82. Branch: feat/success-wishes.
 - Cloudflare private-video adapter with injected-fetch tests; not connected to a user upload endpoint.
 - Proposed private schema, atomic limiter/actions, audited reset and bounded cleanup.
 - School-scoped staff candidate lookup and administrator school picker; no public learner list.
-- Explicit school consent/opt-in, opt-out with guest session revocation, and school abuse-report resolution contracts.
+- Explicit school consent/opt-in, opt-out with guest session revocation, and school abuse-report resolution contracts. Staff onboarding has an independent, default-OFF `SUCCESS_WISHES_STAFF_SETUP_ENABLED` guard so school preparation does not turn on public sending.
 - Staff report queue showing reason/time only; message content and attachments remain private.
 - Optional 30-minute browser-tab draft with explicit restore/discard; off by default for shared devices.
 - Retry payload binding, stale inbox-response invalidation, fail-closed logout cookie and corresponding tests.
@@ -62,7 +62,7 @@ Media controls are local previews only. Video hosting adapter tests use injected
 
 ## Rollback and activation
 
-Keep SUCCESS_WISHES_ENABLED unset/false. No existing Teacher OS or identity writers are changed. If enabled later, disabling that flag closes this API. Provider uploads/payments must have separate verified readiness and canonical activation gates. Do not delete tables or messages as a code rollback. Revoke sessions/capabilities, preserve necessary payment/audit records, and follow retention policy for personal content.
+Keep `SUCCESS_WISHES_ENABLED` unset/false until all release gates pass. `SUCCESS_WISHES_STAFF_SETUP_ENABLED` is independent, defaults OFF, and requires a separately reviewed schema, credentials, school administrator permissions and staff pilot approval. No existing Teacher OS or identity writers are changed. If enabled later, disabling that flag closes this API. Provider uploads/payments must have separate verified readiness and canonical activation gates. Do not delete tables or messages as a code rollback. Revoke sessions/capabilities, preserve necessary payment/audit records, and follow retention policy for personal content.
 
 ## Verify locally
 
