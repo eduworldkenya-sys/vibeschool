@@ -3,6 +3,8 @@
 -- to any browser role. No client endpoint may insert validator assertions.
 begin;
 
+-- access: service-only public.success_wishes_voice_validations
+-- authorization-test: public.success_wishes_voice_validations
 create table if not exists public.success_wishes_voice_validations (
   message_id uuid primary key references public.success_wishes_messages(id) on delete cascade,
   object_path text not null,
