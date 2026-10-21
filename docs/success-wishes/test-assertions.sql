@@ -56,7 +56,8 @@ begin
   if not exists(select 1 from public.success_wishes_reports where message_id=wish
     and reason='Suspicious sender' and status='open')
     then raise exception 'Report not persisted atomically'; end if;
-end $$;
+end $;
+select set_config('success_wishes.test_report_id', (select id::text from public.success_wishes_reports limit 1), false);
 reset role;
 
 -- No direct anonymous or authenticated table access is allowed.
@@ -85,7 +86,7 @@ do $$
 declare report_id uuid;
 begin
   perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
-  select id into report_id from public.success_wishes_reports limit 1;
+  report_id := current_setting('success_wishes.test_report_id',true)::uuid;
   if public.success_wishes_resolve_report('11111111-1111-4111-8111-111111111111',report_id) is not true
     then raise exception 'Authorised report review failed'; end if;
   if public.success_wishes_set_school_participation('11111111-1111-4111-8111-111111111111',false,false) is not true
