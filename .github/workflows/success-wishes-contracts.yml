@@ -89,7 +89,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021100959_success_wishes_school_viewing_windows.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/viewing-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sponsorship-fixture.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021103000_success_wishes_sponsored_pilot_limits.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021102904_success_wishes_sponsored_pilot_limits.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sponsorship-assertions.sql
 
   success-wishes-browser:
