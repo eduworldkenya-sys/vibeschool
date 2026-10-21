@@ -2,14 +2,14 @@
 -- schema.sql in a throwaway database, never against production.
 
 -- All private tables must be RLS-enabled and require explicit grants.
-do $$
+do $sw_assert$
 declare n integer;
 begin
   select count(*) into n from pg_class c join pg_namespace s on s.oid=c.relnamespace
     where s.nspname='public' and c.relname like 'success_wishes_%'
       and c.relkind='r' and c.relrowsecurity;
   if n<>7 then raise exception 'Expected seven RLS-protected domain tables, got %', n; end if;
-end $$;
+end $sw_assert$;
 
 -- Test service-role matching using two school/candidate identities.
 set role service_role;
@@ -21,7 +21,7 @@ insert into public.success_wishes_inboxes(school_id,student_id,access_code_hash,
     encode(extensions.digest('success-wishes:inbox:'||repeat('A',32),'sha256'),'hex'),now()+interval '30 days'),
   ('22222222-2222-4222-8222-222222222222','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
     encode(extensions.digest('success-wishes:inbox:'||repeat('B',32),'sha256'),'hex'),now()+interval '30 days');
-do $$
+do $sw_assert$
 declare alpha uuid; beta uuid;
 begin
   select id into alpha from public.success_wishes_inboxes where school_id='11111111-1111-4111-8111-111111111111';
@@ -34,7 +34,7 @@ begin
     or public.success_wishes_match_recipient('22222222-2222-4222-8222-222222222222','A-100','Alice Wanjiku') is not null
     or public.success_wishes_match_recipient('11111111-1111-4111-8111-111111111111','A-100','Wrong Name') is not null
     then raise exception 'Recipient lookup crossed school/name authority'; end if;
-end $$;
+end $sw_assert$;
 
 insert into public.success_wishes_messages(
   inbox_id,sender_name,relationship,format,body,management_token_hash,
@@ -43,7 +43,7 @@ insert into public.success_wishes_messages(
   repeat('a',64),repeat('b',64),'sponsored',now()+interval '10 days'
   from public.success_wishes_inboxes where school_id='11111111-1111-4111-8111-111111111111';
 
-do $$
+do $sw_assert$
 declare inbox uuid; wish uuid;
 begin
   select i.id,m.id into inbox,wish from public.success_wishes_inboxes i
@@ -56,33 +56,33 @@ begin
   if not exists(select 1 from public.success_wishes_reports where message_id=wish
     and reason='Suspicious sender' and status='open')
     then raise exception 'Report not persisted atomically'; end if;
-end $;
+end $sw_assert$;
 select set_config('success_wishes.test_report_id', (select id::text from public.success_wishes_reports limit 1), false);
 reset role;
 
 -- No direct anonymous or authenticated table access is allowed.
 set role anon;
-do $$
+do $sw_assert$
 begin
   begin
     perform 1 from public.success_wishes_messages limit 1;
     raise exception 'Anonymous role read private messages';
   exception when insufficient_privilege then null;
   end;
-end $$;
+end $sw_assert$;
 reset role;
 set role authenticated;
-do $$
+do $sw_assert$
 begin
   begin
     perform 1 from public.success_wishes_messages limit 1;
     raise exception 'Authenticated role read private messages';
   exception when insufficient_privilege then null;
   end;
-end $$;
+end $sw_assert$;
 
 -- School Alpha administrator may manage only Alpha reports and participation.
-do $$
+do $sw_assert$
 declare report_id uuid;
 begin
   perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
@@ -91,8 +91,8 @@ begin
     then raise exception 'Authorised report review failed'; end if;
   if public.success_wishes_set_school_participation('11111111-1111-4111-8111-111111111111',false,false) is not true
     then raise exception 'Authorised opt-out failed'; end if;
-end $$;
-do $$
+end $sw_assert$;
+do $sw_assert$
 begin
   perform set_config('request.jwt.claim.sub','44444444-4444-4444-8444-444444444444',true);
   begin
@@ -100,8 +100,8 @@ begin
     raise exception 'School Beta administrator managed School Alpha';
   exception when insufficient_privilege then null;
   end;
-end $$;
-do $$
+end $sw_assert$;
+do $sw_assert$
 begin
   perform set_config('request.jwt.claim.sub','33333333-3333-4333-8333-333333333333',true);
   begin
@@ -109,7 +109,7 @@ begin
     raise exception 'School opt-in accepted missing consent';
   exception when check_violation then null;
   end;
-end $$;
+end $sw_assert$;
 reset role;
 
 select 'success-wishes disposable PostgreSQL assertions passed' as result;
