@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest } from 'next/server'
 import { uuid, WishError } from '@/lib/success-wishes/contracts'
 import { database, failure, limit, reply } from '@/lib/success-wishes/server'
-import { enabled } from '@/lib/success-wishes/security'
+import { staffReady } from '@/lib/success-wishes/security'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 // School staff only. Public senders must never receive a student directory.
 export async function GET(req: NextRequest) {
   try {
-    if (!enabled()) throw new WishError(503, 'Success Wishes is not open yet.')
+    if (!staffReady()) throw new WishError(503, 'Success Wishes is not open yet.')
     const schoolId = uuid(req.nextUrl.searchParams.get('schoolId'))
     const query = (req.nextUrl.searchParams.get('q') || '').trim()
     if (query.length < 2 || query.length > 80 || /[\u0000-\u001f]/.test(query)) {
@@ -30,10 +30,10 @@ export async function GET(req: NextRequest) {
     if (profileError || !profile || profile.account_status !== 'active' || profile.is_anonymized) {
       throw new WishError(403, 'Your school account cannot access candidate records.')
     }
-    await limit(`candidate-search:${schoolId}:${user.id}`, 30, 60)
+    await limit(`candidate-search:${schoolId}:${user.id}`, 30, 60, true)
     const clean = query.replace(/[%_,()\\]/g, '')
     if (clean.length < 2) throw new WishError(400, 'Enter a candidate name.')
-    const { data, error } = await database().from('student_classes')
+    const { data, error } = await database({ staffOnly: true }).from('student_classes')
       .select('student_id,students!inner(id,name,admission_number,deleted_at),classes!inner(school_id)')
       .eq('school_id', schoolId)
       .eq('classes.school_id', schoolId)
