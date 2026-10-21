@@ -80,7 +80,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql
           psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/adversarial-assertions.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021121500_success_wishes_school_viewing_windows.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021100959_success_wishes_school_viewing_windows.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/viewing-assertions.sql
 
   success-wishes-browser:
