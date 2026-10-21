@@ -10,6 +10,9 @@ on:
       - 'docs/success-wishes/*.sql'
       - 'supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql'
       - 'supabase/migrations/*_success_wishes_school_viewing_windows.sql'
+      - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
+      - 'app/hq/success-wishes/**'
+      - 'components/hq/HQShell.tsx'
       - 'qa/success-wishes/**'
       - '.github/workflows/success-wishes-contracts.yml'
   push:
@@ -22,6 +25,9 @@ on:
       - 'docs/success-wishes/*.sql'
       - 'supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql'
       - 'supabase/migrations/*_success_wishes_school_viewing_windows.sql'
+      - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
+      - 'app/hq/success-wishes/**'
+      - 'components/hq/HQShell.tsx'
       - '.github/workflows/success-wishes-contracts.yml'
 
 permissions:
@@ -82,6 +88,9 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/adversarial-assertions.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021100959_success_wishes_school_viewing_windows.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/viewing-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sponsorship-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021103000_success_wishes_sponsored_pilot_limits.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sponsorship-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety
