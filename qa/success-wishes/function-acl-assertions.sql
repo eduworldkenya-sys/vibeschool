@@ -37,7 +37,7 @@ begin
 
   if (select count(*) from pg_catalog.pg_proc p
       join pg_catalog.pg_namespace n on n.oid=p.pronamespace
-      where n.nspname='public' and p.proname like 'success_wishes_%') <> 10 then
+      where n.nspname='public' and p.proname like 'success_wishes_%') <> 13 then
     raise exception 'Unexpected Success Wishes function inventory';
   end if;
 end $sw_acl$;
