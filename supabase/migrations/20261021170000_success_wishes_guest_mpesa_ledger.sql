@@ -220,7 +220,7 @@ begin
       when ord.format='video' then 'cloudflare-stream' else null end,
     case when ord.format<>'text' then 'pending:'||ord.id::text else null end,
     'pending','paid','request',expiry,ord.idempotency_key,
-    encode(extensions.digest('success-wishes:guest:manage:'||ord.id::text,'sha256'),'hex')
+    encode(extensions.digest(encode(extensions.digest('success-wishes:manage:'||ord.idempotency_key,'sha256'),'hex'),'sha256'),'hex')
   ) returning id into new_message;
   update public.success_wishes_guest_orders
      set state='settled',provider_receipt=ev.provider_receipt,message_id=new_message,
