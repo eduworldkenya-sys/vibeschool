@@ -95,4 +95,27 @@ before insert or update of payment_status,inbox_id,format
 on public.success_wishes_messages
 for each row execute function public.success_wishes_enforce_sponsored_quota();
 
+
+-- A deliberately minimal founder-only directory: no student names, message
+-- bodies, media metadata or candidate identifiers.
+create function public.success_wishes_owner_schools()
+returns table (
+  school_id uuid, school_name text, participates boolean,
+  campaign_expires_at timestamptz, sponsored boolean,
+  sponsored_until timestamptz, daily_limit integer
+) language plpgsql security definer set search_path='' as $sw$
+begin
+  if auth.uid() is null or not public.is_platform_owner()
+    then raise exception 'owner_authorization_required' using errcode='42501'; end if;
+  return query
+    select w.school_id,s.name,w.enabled and w.expires_at>now(),
+      w.expires_at,w.sponsored_text,w.sponsored_text_until,w.sponsored_text_max_daily
+    from public.success_wishes_schools w
+      join public.schools s on s.id=w.school_id
+    where s.deleted_at is null and public.is_operational_school(s.id)
+    order by s.name limit 100;
+end $sw$;
+revoke all on function public.success_wishes_owner_schools() from public,anon;
+grant execute on function public.success_wishes_owner_schools() to authenticated;
+
 commit;
