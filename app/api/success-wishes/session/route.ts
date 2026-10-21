@@ -38,5 +38,16 @@ export async function DELETE(req: NextRequest) {
     const response = reply({ ok: true })
     response.cookies.set(SESSION_COOKIE, '', { httpOnly: true, secure: req.nextUrl.protocol === 'https:', sameSite: 'strict', path: '/api/success-wishes', maxAge: 0 })
     return response
-  } catch (error) { return failure(error) }
+  } catch (error) {
+    const response = failure(error)
+    // A failed database revocation must never leave a reusable cookie on this device.
+    // Preserve the error so the client does not falsely claim server-side revocation.
+    if (req.headers.get('origin') === req.nextUrl.origin) {
+      response.cookies.set(SESSION_COOKIE, '', {
+        httpOnly: true, secure: req.nextUrl.protocol === 'https:', sameSite: 'strict',
+        path: '/api/success-wishes', maxAge: 0,
+      })
+    }
+    return response
+  }
 }
