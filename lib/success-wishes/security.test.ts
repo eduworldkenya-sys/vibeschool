@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { accessHash, enabled, equalHash, hashSecret, messageExpiry, token } from './security'
+import { accessHash, enabled, equalHash, hashSecret, messageExpiry, staffReady, token } from './security'
 import { field, object, retryKey, sameSavedTextSubmission, submission, uuid, WishError } from './contracts'
 
 const valid = {
@@ -84,4 +84,17 @@ test('text retry only recovers the exact saved sender and content', () => {
   assert.equal(sameSavedTextSubmission(saved, submission({...valid, relationship: 'Uncle'})), false)
   assert.equal(sameSavedTextSubmission({...saved, body: null}, submission(valid)), false)
   assert.equal(sameSavedTextSubmission(saved, submission({...valid, kind: 'voice'})), false)
+})
+
+test('staff onboarding is independently gated and never enables public sending', () => {
+  const credentials = {
+    NEXT_PUBLIC_SUPABASE_URL: 'https://example.test',
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: 'public-test-key',
+    SUPABASE_SERVICE_ROLE_KEY: 'server-only-test-key',
+  }
+  assert.equal(staffReady({ ...credentials, SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'false' }), false)
+  assert.equal(staffReady({ ...credentials, SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'true' }), true)
+  assert.equal(enabled({ ...credentials, SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'true' }), false)
+  assert.equal(staffReady({ ...credentials, SUPABASE_SERVICE_ROLE_KEY: undefined, SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'true' }), false)
+  assert.equal(staffReady({ ...credentials, NEXT_PUBLIC_SUPABASE_ANON_KEY: undefined, SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'true' }), false)
 })
