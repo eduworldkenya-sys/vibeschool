@@ -15,7 +15,7 @@ test('phone normalization accepts Kenya mobile and rejects arbitrary internation
   for(const s of ['0712345678','+254712345678','254712345678','07 1234 5678'])
     assert.equal(senderPhone(s),'+254712345678')
   assert.equal(senderPhone('0112345678'),'+254112345678')
-  for(const bad of ['','070000','+256712345678','999999999999','+254712345678;evil','0700000000\n'])
+  for(const bad of ['','070000','+256712345678','999999999999','+254712345678;evil','0700000000\nBcc:'])
     assert.throws(()=>senderPhone(bad))
 })
 test('phone HMAC is stable, private and separated from other identities',()=>{
