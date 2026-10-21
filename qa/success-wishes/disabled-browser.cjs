@@ -66,16 +66,22 @@ async function checkViewport(width) {
       data: { schoolId: '00000000-0000-4000-8000-000000000001', studentId: '00000000-0000-4000-8000-000000000002' },
     })
     assert.equal(access.status(), 503)
-    const submit = await page.request.post(`${ROOT}/api/success-wishes/messages`, {
-      headers: { origin: ROOT },
-      data: {
-        schoolId: '00000000-0000-4000-8000-000000000001',
-        admissionNumber: 'dummy', candidateName: 'Test Candidate', senderName: 'Test Sender',
-        relationship: 'Guardian', kind: 'text', text: 'Good luck',
-        idempotencyKey: 'a'.repeat(64), consent: true,
-      },
+    // Submit through the actual browser origin, not Playwright's API client:
+    // NextRequest's Origin/Host comparison must see a real same-origin POST.
+    const submitStatus = await page.evaluate(async () => {
+      const response = await fetch('/api/success-wishes/messages', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          schoolId: '00000000-0000-4000-8000-000000000001',
+          admissionNumber: 'dummy', candidateName: 'Test Candidate', senderName: 'Test Sender',
+          relationship: 'Guardian', kind: 'text', text: 'Good luck',
+          idempotencyKey: 'a'.repeat(64), consent: true,
+        }),
+      })
+      return response.status
     })
-    assert.equal(submit.status(), 503)
+    assert.equal(submitStatus, 503)
     return { width, pageStatus: 200, appErrors: 0, overflow: false, sendingDisabled: true }
   } finally {
     await context.close()
