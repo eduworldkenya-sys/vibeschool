@@ -4,7 +4,7 @@ import { database, failure, json, limit, reply } from '@/lib/success-wishes/serv
 import { equalHash, hashSecret, token } from '@/lib/success-wishes/security'
 import {
   sendSenderCode, senderChallengeHash, senderCode, senderEmail,
-  senderFingerprint, senderVerificationReady,
+  senderFingerprint, senderVerificationReady, emailVerificationReady,
 } from '@/lib/success-wishes/verification'
 import {phoneFingerprint, phoneVerificationReady, sendSenderPhoneCode, senderPhone} from '@/lib/success-wishes/phone-verification'
 
@@ -18,7 +18,7 @@ function identity(input:Record<string,unknown>):{channel:'phone'|'email';address
     const address=senderPhone(input.phone)
     return {channel:'phone',address,fingerprint:phoneFingerprint(address,secret)}
   }
-  if(!senderVerificationReady())throw new WishError(503,'Email verification is not configured yet.')
+  if(!emailVerificationReady())throw new WishError(503,'Email verification is not configured yet.')
   const address=senderEmail(input.email)
   return {channel:'email',address,fingerprint:senderFingerprint(address,secret)}
 }
