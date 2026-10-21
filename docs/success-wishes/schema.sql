@@ -255,7 +255,7 @@ grant execute on function public.success_wishes_reset_access(uuid,uuid) to authe
 -- free sponsorship or turn on payment/media provider infrastructure.
 create function public.success_wishes_set_school_participation(
   p_school_id uuid, p_opt_in boolean, p_confirm_school_consent boolean
-) returns boolean language plpgsql security definer set search_path = '' as $
+) returns boolean language plpgsql security definer set search_path = '' as $wishes$
 begin
   if auth.uid() is null or p_school_id is null or p_opt_in is null
     or not public.is_school_admin(p_school_id)
@@ -282,7 +282,7 @@ begin
   insert into public.success_wishes_audit(school_id,actor_id,event)
     values (p_school_id,auth.uid(),case when p_opt_in then 'school_opted_in' else 'school_opted_out' end);
   return true;
-end; $;
+end; $wishes$;
 revoke all on function public.success_wishes_set_school_participation(uuid,boolean,boolean)
   from public,anon;
 grant execute on function public.success_wishes_set_school_participation(uuid,boolean,boolean)
@@ -293,7 +293,7 @@ grant execute on function public.success_wishes_set_school_participation(uuid,bo
 -- nor the staff report queue exposes message bodies or media access.
 create function public.success_wishes_resolve_report(
   p_school_id uuid, p_report_id uuid
-) returns boolean language plpgsql security definer set search_path = '' as $
+) returns boolean language plpgsql security definer set search_path = '' as $wishes$
 declare v_inbox uuid;
 begin
   if auth.uid() is null or p_school_id is null or p_report_id is null
@@ -312,7 +312,7 @@ begin
   insert into public.success_wishes_audit (school_id,inbox_id,actor_id,event)
     values (p_school_id,v_inbox,auth.uid(),'report_resolved:'||p_report_id::text);
   return true;
-end; $;
+end; $wishes$;
 revoke all on function public.success_wishes_resolve_report(uuid,uuid) from public,anon;
 grant execute on function public.success_wishes_resolve_report(uuid,uuid) to authenticated;
 
