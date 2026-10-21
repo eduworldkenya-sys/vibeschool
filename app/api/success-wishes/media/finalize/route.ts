@@ -7,7 +7,7 @@ export const runtime='nodejs'
 export const dynamic='force-dynamic'
 export async function POST(req:NextRequest){
  try{
-   if(process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED!=='true')
+   if(process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED!=='true' || process.env.SUCCESS_WISHES_MEDIA_CERTIFIED!=='true')
      throw new WishError(503,'Media uploads are not open.')
    const b=object(await json(req)),id=uuid(b.messageId),proof=field(b.senderProof,64,64)
    if(!/^[a-f0-9]{64}$/.test(proof))throw new WishError(401,'Verify your email first.')
