@@ -25,6 +25,11 @@ export async function GET(req: NextRequest) {
     if (authError || !user) throw new WishError(401, 'Sign in as authorised school staff.')
     const { data: isAdmin, error: roleError } = await userDb.rpc('is_school_admin', { p_school_id: schoolId })
     if (roleError || isAdmin !== true) throw new WishError(403, 'Your account cannot search candidates at this school.')
+    const { data: profile, error: profileError } = await userDb.from('profiles')
+      .select('account_status,is_anonymized').eq('id', user.id).maybeSingle()
+    if (profileError || !profile || profile.account_status !== 'active' || profile.is_anonymized) {
+      throw new WishError(403, 'Your school account cannot access candidate records.')
+    }
     await limit(`candidate-search:${schoolId}:${user.id}`, 30, 60)
     const clean = query.replace(/[%_,()\\]/g, '')
     if (clean.length < 2) throw new WishError(400, 'Enter a candidate name.')
