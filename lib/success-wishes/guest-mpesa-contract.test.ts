@@ -119,3 +119,28 @@ test('cancellation fails cleanly; malformed or duplicate metadata fail closed',(
     CheckoutRequestID:checkout,MerchantRequestID:merchant,ResultCode:0,
   }}}))
 })
+
+test('sandbox STK query provides provider evidence without creating another charge',async()=>{
+  const urls:string[]=[]
+  for(const [returned,expected] of [
+    [{ResultCode:'0'},0],
+    [{ResultCode:'1032'},1032],
+    [{ResponseCode:'0'},null],
+  ] as const){
+    const transport=createGuestMpesaTransport({env,request:async(url,init)=>{
+      urls.push(String(url))
+      if(String(url).includes('/oauth/'))return Response.json({access_token:'sandbox-oauth-token'})
+      assert.equal(init?.method,'POST')
+      assert.equal(String(url),'https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query')
+      const input=JSON.parse(String(init?.body))
+      assert.equal(input.CheckoutRequestID,checkout)
+      return Response.json(returned)
+    }})
+    assert.equal(await transport.queryStk(checkout),expected)
+  }
+  assert.equal(urls.length,6)
+  assert.equal(urls.some(x=>x.includes('/processrequest')),false)
+  const transport=createGuestMpesaTransport({env,request:async()=>{throw Error('unavailable')}})
+  await assert.rejects(transport.queryStk(checkout),/provider could not be reached/)
+  await assert.rejects(transport.queryStk('bad'),/checkout/)
+})
