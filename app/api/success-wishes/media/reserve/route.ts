@@ -11,7 +11,7 @@ export async function POST(req:NextRequest){
  let reservedId:string|null=null
  let allocatedAsset:string|null=null
  try{
-   if(process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED!=='true')
+   if(process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED!=='true' || process.env.SUCCESS_WISHES_MEDIA_CERTIFIED!=='true')
      throw new WishError(503,'Media uploads are not open.')
    const b=object(await json(req)),messageId=uuid(b.messageId)
    const proof=field(b.senderProof,64,64),nonce=retryKey(b.requestKey)
