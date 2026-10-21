@@ -40,7 +40,7 @@ begin
   insert into public.success_wishes_guest_orders(
     inbox_id,sender_id,sender_name,relationship,format,body,phone,amount_kes,idempotency_key
   ) values(inbox,sender,'Sandbox parent','Parent','text',
-           'Great effort. Keep going!','254712345678',10,repeat('b',64))
+           'Great effort. Keep going!','254712345678',10,repeat('1a',32))
   returning id into oid;
   insert into public.success_wishes_guest_payment_attempts(order_id)
   values(oid) returning id into aid;
@@ -90,13 +90,13 @@ begin
     then raise exception 'Duplicate verified callback not recognized'; end if;
   if (select processing_state from public.success_wishes_guest_payment_events where id=ev2)
     <>'duplicate' then raise exception 'Duplicate callback not recorded'; end if;
-  if (select count(*) from public.success_wishes_messages where idempotency_key=repeat('b',64))<>1
+  if (select count(*) from public.success_wishes_messages where idempotency_key=repeat('1a',32))<>1
     then raise exception 'Double delivered on callback replay'; end if;
 
   begin
     insert into public.success_wishes_guest_orders(
       inbox_id,sender_id,sender_name,relationship,format,body,phone,amount_kes,idempotency_key
-    ) values(inbox,sender,'Replay','Parent','text','Another','254712345678',10,repeat('b',64));
+    ) values(inbox,sender,'Replay','Parent','text','Another','254712345678',10,repeat('1a',32));
     raise exception 'Duplicate idempotency key accepted';
   exception when unique_violation then null;
   end;
