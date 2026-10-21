@@ -1,8 +1,6 @@
--- Voice playback is only possible after a trusted server-side audio probe.
--- Applied independently of payment rollout: private by default and zero grants
--- to any browser role. No client endpoint may insert validator assertions.
+-- Private audio is never playable until a trusted server-side probe
+-- independently confirms its bytes, codec, duration and object identity.
 begin;
-
 -- access: service-only public.success_wishes_voice_validations
 -- authorization-test: public.success_wishes_voice_validations
 create table if not exists public.success_wishes_voice_validations (
@@ -17,13 +15,12 @@ create table if not exists public.success_wishes_voice_validations (
   check (split_part(object_path,'/',1) = message_id::text),
   check (object_path ~ '^[0-9a-f-]{36}/[0-9a-f-]{36}[.](webm|m4a|mp3|ogg)$')
 );
-
 alter table public.success_wishes_voice_validations enable row level security;
 revoke all on public.success_wishes_voice_validations from public,anon,authenticated;
 grant select,insert,update,delete on public.success_wishes_voice_validations to service_role;
 
--- A ready voice message MUST have a matching, bounded, independently verified
--- object. Subsequent object replacement cannot silently inherit a probe result.
+-- A voice message cannot become ready without a matching private asset and
+-- independently observed duration. A media replacement rechecks the guard.
 create or replace function public.success_wishes_guard_voice_ready()
 returns trigger language plpgsql security invoker set search_path = '' as $wish$
 begin
@@ -40,11 +37,9 @@ begin
   return new;
 end $wish$;
 revoke all on function public.success_wishes_guard_voice_ready() from public,anon,authenticated;
-
 drop trigger if exists success_wishes_voice_ready_guard on public.success_wishes_messages;
 create trigger success_wishes_voice_ready_guard
 before insert or update of format,media_asset_id,media_status
 on public.success_wishes_messages
 for each row execute function public.success_wishes_guard_voice_ready();
-
 commit;
