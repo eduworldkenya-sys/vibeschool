@@ -108,7 +108,7 @@ begin
   if auth.uid() is null or not public.is_platform_owner()
     then raise exception 'owner_authorization_required' using errcode='42501'; end if;
   return query
-    select w.school_id,s.name,w.enabled and w.expires_at>now(),
+    select w.school_id,s.name::text,w.enabled and w.expires_at>now(),
       w.expires_at,w.sponsored_text,w.sponsored_text_until,w.sponsored_text_max_daily
     from public.success_wishes_schools w
       join public.schools s on s.id=w.school_id
