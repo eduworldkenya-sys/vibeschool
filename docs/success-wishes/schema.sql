@@ -231,7 +231,7 @@ begin
   select least(w.expires_at,now()+make_interval(days=>w.retention_days)) into v_expiry
     from public.success_wishes_schools w where w.school_id=p_school_id and w.enabled and w.expires_at>now();
   if v_expiry is null then raise exception 'school_unavailable'; end if;
-  select count(*) into n from public.students s
+  select count(distinct s.id) into n from public.students s
     join public.student_classes sc on sc.student_id=s.id
     join public.classes c on c.id=sc.class_id and c.school_id=sc.school_id
     where s.id=p_student_id and s.deleted_at is null and sc.school_id=p_school_id
@@ -256,7 +256,6 @@ grant execute on function public.success_wishes_reset_access(uuid,uuid) to authe
 create function public.success_wishes_set_school_participation(
   p_school_id uuid, p_opt_in boolean, p_confirm_school_consent boolean
 ) returns boolean language plpgsql security definer set search_path = '' as $
-declare v_inbox_count integer;
 begin
   if auth.uid() is null or p_school_id is null or p_opt_in is null
     or not public.is_school_admin(p_school_id)
