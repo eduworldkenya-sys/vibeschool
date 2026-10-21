@@ -2,14 +2,14 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
 import { database, failure, limit, reply } from '@/lib/success-wishes/server'
-import { enabled } from '@/lib/success-wishes/security'
+import { staffReady } from '@/lib/success-wishes/security'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
   try {
-    if (!enabled()) throw new WishError(503, 'School setup is not open yet.')
+    if (!staffReady()) throw new WishError(503, 'School setup is not open yet.')
     const userDb = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -22,8 +22,8 @@ export async function GET(req: NextRequest) {
     if (profileError || !profile || profile.account_status !== 'active' || profile.is_anonymized) {
       throw new WishError(403, 'An active school administrator is required.')
     }
-    await limit(`my-wishes-schools:${user.id}`, 30, 900)
-    const { data, error } = await database().from('school_members')
+    await limit(`my-wishes-schools:${user.id}`, 30, 900, true)
+    const { data, error } = await database({ staffOnly: true }).from('school_members')
       .select('school_id,schools!inner(id,name,status,deleted_at)')
       .eq('profile_id', user.id).eq('role', 'admin')
       .eq('schools.status', 'active').is('schools.deleted_at', null).limit(50)
