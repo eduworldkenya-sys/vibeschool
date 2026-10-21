@@ -68,6 +68,29 @@ export function createGuestMpesaTransport(options:{
     return data
   }
   return {
+    // Read-only provider query. The returned code must be matched against a
+    // durable callback event before settlement. Null means unresolved, not paid.
+    async queryStk(checkoutRequestId:string):Promise<number|null>{
+      const settings=config(env)
+      if(!CHECKOUT.test(checkoutRequestId))throw new Error('Invalid STK checkout reference.')
+      const oauth=await call(settings.host+'/oauth/v1/generate?grant_type=client_credentials',{
+        method:'GET',headers:{Authorization:'Basic '+btoa(settings.consumerKey+':'+settings.consumerSecret)},
+      })
+      if(typeof oauth.access_token!=='string'||oauth.access_token.length<8)
+        throw new Error('M-Pesa query authorization failed.')
+      const timestamp=new Date(now().getTime()+3*60*60*1000).toISOString().replace(/\D/g,'').slice(0,14)
+      const result=await call(settings.host+'/mpesa/stkpushquery/v1/query',{
+        method:'POST',headers:{Authorization:'Bearer '+oauth.access_token,'Content-Type':'application/json'},
+        body:JSON.stringify({
+          BusinessShortCode:settings.shortcode,
+          Password:btoa(settings.shortcode+settings.passkey+timestamp),
+          Timestamp:timestamp,CheckoutRequestID:checkoutRequestId,
+        }),
+      })
+      if(result.ResultCode===undefined||result.ResultCode===null)return null
+      const code=Number(result.ResultCode)
+      return Number.isSafeInteger(code)&&code>=0&&code<=99999?code:null
+    },
     // An acknowledged STK request must be durably attached to the locked
     // attempt. A timeout may STILL have issued an STK; never blindly retry.
     async sendStk(attempt:ClaimedWishAttempt,canonicalClaimAndKillSwitch:()=>Promise<boolean>):Promise<StkAcknowledgement> {
