@@ -6,7 +6,8 @@ create table if not exists public.mpesa_runtime_control (
 insert into public.mpesa_runtime_control(singleton,initiation_enabled)
 values(true,false) on conflict(singleton) do update
 set initiation_enabled=false;
-grant select on public.mpesa_runtime_control to service_role;
+-- Match verified live service-role SELECT/UPDATE grants inside disposable PG only.
+grant select,update on public.mpesa_runtime_control to service_role;
 
 do $sw$
 declare relation text;
