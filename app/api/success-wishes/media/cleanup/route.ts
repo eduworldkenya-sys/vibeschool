@@ -41,7 +41,7 @@ export async function GET(req:NextRequest){
      const abandoned=upload.state==='issued'||upload.state==='processing'||upload.state==='cleanup_required'
      if(!blocked&&!expired&&!abandoned){skipped++;continue}
      if(!upload.asset_id){failed++;continue} // external orphan inventory reconciliation needed
-     if(message&&message.media_asset_id!==upload.asset_id){
+     if(message&&message.media_asset_id!==upload.asset_id && upload.state!=='cleanup_required'){
        failed++;continue // never delete a newly replaced live asset
      }
      if(upload.provider==='cloudflare-stream'){
