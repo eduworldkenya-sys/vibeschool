@@ -282,15 +282,45 @@ function WithdrawMessage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [status, setStatus] = useState<{ status: string; paymentStatus: string; expiresAt: string } | null>(null)
+  async function checkStatus() {
+    if (!reference.trim() || !managementToken.trim()) { setError('Enter the reference and private code.'); return }
+    setBusy(true); setError(''); setStatus(null)
+    try {
+      const result = await request<{ status: string; paymentStatus: string; expiresAt: string }>(
+        '/api/success-wishes/status', {
+          method: 'POST',
+          body: JSON.stringify({ reference: reference.trim(), managementToken: managementToken.trim() }),
+        },
+      )
+      setStatus(result)
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Status could not be checked.') }
+    finally { setBusy(false) }
+  }
   async function withdraw(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setBusy(true); setError('')
+    event.preventDefault(); setBusy(true); setError(''); setStatus(null)
     try {
       await request('/api/success-wishes/messages', { method: 'DELETE', body: JSON.stringify({ reference: reference.trim(), managementToken: managementToken.trim() }) })
       setDone(true); setReference(''); setManagementToken('')
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'The message could not be withdrawn.') }
     finally { setBusy(false) }
   }
-  return <details className={styles.section}><summary style={{ cursor: 'pointer', fontSize: 12, color: '#526958', padding: '10px 0' }}>Withdraw a message you sent</summary>{done ? <p className={styles.notice} role="status">Your withdrawal request has been completed.</p> : <form onSubmit={withdraw}><div className={styles.grid} style={{ marginTop: 14 }}><label className={styles.field}>Submission reference<input value={reference} onChange={event => setReference(event.target.value)} required autoComplete="off" maxLength={100}/></label><label className={styles.field}>Private withdrawal code<input type="password" value={managementToken} onChange={event => setManagementToken(event.target.value)} required autoComplete="off" maxLength={200}/></label></div><p className={styles.hint} style={{ marginTop: 10 }}>Withdrawing removes access to this message. Previously saved copies cannot be recalled.</p>{error && <p className={styles.error} role="alert">{error}</p>}<button className={styles.secondary} type="submit" disabled={busy} style={{ marginTop: 14 }}>{busy ? 'Withdrawing…' : 'Withdraw message'}</button></form>}</details>
+  return <details className={styles.section}>
+    <summary style={{ cursor: 'pointer', fontSize: 12, color: '#526958', padding: '10px 0' }}>Check or withdraw a wish you sent</summary>
+    {done ? <p className={styles.notice} role="status">Your withdrawal request has been completed.</p> : <form onSubmit={withdraw}>
+      <div className={styles.grid} style={{ marginTop: 14 }}>
+        <label className={styles.field}>Submission reference<input value={reference} disabled={busy} onChange={event => { setReference(event.target.value); setStatus(null) }} required autoComplete="off" maxLength={100}/></label>
+        <label className={styles.field}>Private withdrawal code<input type="password" value={managementToken} disabled={busy} onChange={event => { setManagementToken(event.target.value); setStatus(null) }} required autoComplete="off" maxLength={200}/></label>
+      </div>
+      <p className={styles.hint} style={{ marginTop: 10 }}>Only someone with both the reference and private code can check or withdraw this wish. Do not share your code.</p>
+      {status && <p className={styles.notice} role="status">Wish: <strong>{status.status.replace(/_/g, ' ')}</strong> · Payment: {status.paymentStatus.replace(/_/g, ' ')} · Available until {new Date(status.expiresAt).toLocaleDateString('en-KE')}</p>}
+      {error && <p className={styles.error} role="alert">{error}</p>}
+      <div className={styles.row} style={{ marginTop: 14 }}>
+        <button className={styles.secondary} type="button" disabled={busy} onClick={() => void checkStatus()}>Check status</button>
+        <button className={styles.secondary} type="submit" disabled={busy}>{busy ? 'Please wait…' : 'Withdraw message'}</button>
+      </div>
+    </form>}
+  </details>
 }
 
 export default function SuccessWishes() {
