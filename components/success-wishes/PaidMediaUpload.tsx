@@ -1,8 +1,9 @@
 'use client'
 
 import {createClient} from '@supabase/supabase-js'
-import {FormEvent,useRef,useState} from 'react'
+import {FormEvent,useEffect,useRef,useState} from 'react'
 import styles from './SuccessWishes.module.css'
+import VoiceRecorder from './VoiceRecorder'
 
 type Kind='voice'|'video'
 type VerifyResponse={verified:boolean;senderProof:string}
@@ -36,6 +37,7 @@ export default function PaidMediaUpload(){
  const [code,setCode]=useState('')
  const [proof,setProof]=useState('')
  const [file,setFile]=useState<File|null>(null)
+ const [previewUrl,setPreviewUrl]=useState('')
  const [busy,setBusy]=useState(false)
  const [error,setError]=useState('')
  const [message,setMessage]=useState('')
@@ -43,6 +45,12 @@ export default function PaidMediaUpload(){
  const [ready,setReady]=useState(false)
  const key=useRef('')
  const [kind,setKind]=useState<Kind>('voice')
+ useEffect(()=>{
+   if(!file){setPreviewUrl('');return}
+   const url=URL.createObjectURL(file)
+   setPreviewUrl(url)
+   return ()=>URL.revokeObjectURL(url)
+ },[file])
  function choose(next:File|null){
    setError('');setFile(null);setUploaded(false);setReady(false);setMessage('')
    if(!next)return
@@ -156,6 +164,9 @@ export default function PaidMediaUpload(){
        <input type="file" accept={kind==='voice'?'audio/webm,audio/mp4,audio/mpeg,audio/ogg':'video/mp4,video/webm,video/quicktime'}
          onChange={e=>choose(e.target.files?.[0]||null)} disabled={uploaded}/>
      </label>
+     {kind==='voice'&&<VoiceRecorder disabled={busy||uploaded} onFile={recording=>choose(recording)}/>}
+     {previewUrl&&(kind==='voice'?<audio controls preload="metadata" className={styles.media} src={previewUrl}/>
+       :<video controls playsInline preload="metadata" className={styles.media} src={previewUrl}/>)}
      <p className={styles.hint}>Maximum 60 seconds. Actual duration and file format are independently verified after upload.</p>
      {error&&<p role="alert" className={styles.error}>{error}</p>}
      {message&&<p role="status" className={styles.status}>{message}</p>}
