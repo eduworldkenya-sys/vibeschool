@@ -1,6 +1,7 @@
 import { createHmac, randomInt } from 'node:crypto'
 import { WishError } from './contracts'
 import { equalHash } from './security'
+import { phoneVerificationReady } from './phone-verification'
 
 type Env = Record<string, string | undefined>
 const EMAIL = /^[a-z0-9.!#$%&'*+/=?^`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/
@@ -13,12 +14,15 @@ export function senderEmail(value: unknown): string {
   }
   return email
 }
-export function senderVerificationReady(env: Env = process.env): boolean {
+export function emailVerificationReady(env: Env = process.env): boolean {
   return env.SUCCESS_WISHES_SENDER_VERIFICATION_ENABLED === 'true'
     && typeof env.SUCCESS_WISHES_VERIFICATION_SECRET === 'string'
     && env.SUCCESS_WISHES_VERIFICATION_SECRET.length >= 32
     && !!env.SUCCESS_WISHES_RESEND_API_KEY?.trim()
     && !!env.SUCCESS_WISHES_EMAIL_FROM?.trim()
+}
+export function senderVerificationReady(env: Env = process.env): boolean {
+  return emailVerificationReady(env) || phoneVerificationReady(env)
 }
 export function senderFingerprint(email: string, secret: string): string {
   if (secret.length < 32) throw new Error('Sender verification secret is not configured.')
@@ -40,7 +44,7 @@ export async function sendSenderCode(email: string, code: string, opts: {
   env?: Env; fetcher?: typeof fetch; fingerprint: string
 }): Promise<void> {
   const env = opts.env ?? process.env
-  if (!senderVerificationReady(env)) throw new Error('Sender email is not configured.')
+  if (!emailVerificationReady(env)) throw new Error('Sender email is not configured.')
   const response = await (opts.fetcher ?? fetch)('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
