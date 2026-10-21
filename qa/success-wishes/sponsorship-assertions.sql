@@ -11,6 +11,11 @@ begin
     raise exception 'Non-owner could enable sponsored messages';
   exception when insufficient_privilege then null;
   end;
+  begin
+    perform public.success_wishes_owner_schools();
+    raise exception 'Non-owner accessed the founder-only school directory';
+  exception when insufficient_privilege then null;
+  end;
 end $sw$;
 
 do $sw$
