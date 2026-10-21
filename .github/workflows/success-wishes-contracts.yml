@@ -1,0 +1,145 @@
+name: Success Wishes Contracts
+
+on:
+  pull_request:
+    paths:
+      - 'app/api/success-wishes/**'
+      - 'app/success-wishes/**'
+      - 'components/success-wishes/**'
+      - 'lib/success-wishes/**'
+      - 'docs/success-wishes/*.sql'
+      - 'supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql'
+      - 'supabase/migrations/*_success_wishes_school_viewing_windows.sql'
+      - 'supabase/migrations/*_success_wishes_text_expiry_schedule.sql'
+      - 'supabase/migrations/*_success_wishes_verified_senders_and_blocking.sql'
+      - 'supabase/migrations/*_success_wishes_private_voice_bucket.sql'
+      - 'supabase/migrations/*_success_wishes_media_voice_validation.sql'
+      - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
+      - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
+      - 'app/hq/success-wishes/**'
+      - 'components/hq/HQShell.tsx'
+      - 'qa/success-wishes/**'
+      - '.github/workflows/success-wishes-contracts.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'app/api/success-wishes/**'
+      - 'app/success-wishes/**'
+      - 'components/success-wishes/**'
+      - 'lib/success-wishes/**'
+      - 'docs/success-wishes/*.sql'
+      - 'supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql'
+      - 'supabase/migrations/*_success_wishes_school_viewing_windows.sql'
+      - 'supabase/migrations/*_success_wishes_text_expiry_schedule.sql'
+      - 'supabase/migrations/*_success_wishes_verified_senders_and_blocking.sql'
+      - 'supabase/migrations/*_success_wishes_private_voice_bucket.sql'
+      - 'supabase/migrations/*_success_wishes_media_voice_validation.sql'
+      - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
+      - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
+      - 'app/hq/success-wishes/**'
+      - 'components/hq/HQShell.tsx'
+      - 'qa/success-wishes/**'
+      - '.github/workflows/success-wishes-contracts.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  success-wishes-contracts:
+    name: Success Wishes Contract Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run privacy, submission, and media contract tests
+        run: node --import ./scripts/register-typescript.mjs --import ./lib/success-wishes/test-resolver.mjs --test lib/success-wishes/*.test.ts
+      - name: Check disabled-service HTTP and cookie boundaries
+        run: node lib/success-wishes/http-check.cjs
+
+  success-wishes-postgres:
+    name: Success Wishes PostgreSQL Isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-fixture-only
+          POSTGRES_DB: success_wishes_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d success_wishes_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Apply disposable canonical fixture and proposed schema
+        env:
+          PGPASSWORD: disposable-fixture-only
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGDATABASE=success_wishes_test
+          psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021095148_success_wishes_private_delivery_foundation.sql
+          psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/adversarial-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021100959_success_wishes_school_viewing_windows.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/viewing-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sponsorship-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021102904_success_wishes_sponsored_pilot_limits.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sponsorship-assertions.sql
+          bash qa/success-wishes/concurrent-sponsorship.sh
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021124712_success_wishes_verified_senders_and_blocking.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/verified-sender-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/function-acl-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/storage-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021124718_success_wishes_private_voice_bucket.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021124718_success_wishes_private_voice_bucket.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/voice-bucket-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021125233_success_wishes_media_voice_validation.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/voice-validation-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021125239_success_wishes_durable_media_reservations.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/media-reservation-assertions.sql
+
+  success-wishes-browser:
+    name: Success Wishes Disabled Browser Safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install isolated browser test dependency
+        run: npm install --no-save --ignore-scripts --no-audit --no-fund playwright@1.56.1
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Verify disabled service at four browser sizes
+        run: node qa/success-wishes/disabled-browser.cjs
+      - name: Publish synthetic-only browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: success-wishes-disabled-browser
+          path: qa/success-wishes/artifacts/
+          if-no-files-found: ignore
+          retention-days: 3
