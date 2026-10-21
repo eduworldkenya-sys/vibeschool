@@ -250,4 +250,43 @@ begin
 end; $$;
 revoke all on function public.success_wishes_reset_access(uuid,uuid) from public,anon;
 grant execute on function public.success_wishes_reset_access(uuid,uuid) to authenticated;
+
+-- Participating schools must explicitly opt in. A school cannot grant itself
+-- free sponsorship or turn on payment/media provider infrastructure.
+create function public.success_wishes_set_school_participation(
+  p_school_id uuid, p_opt_in boolean, p_confirm_school_consent boolean
+) returns boolean language plpgsql security definer set search_path = '' as $
+declare v_inbox_count integer;
+begin
+  if auth.uid() is null or p_school_id is null or p_opt_in is null
+    or not public.is_school_admin(p_school_id)
+    or not public.is_operational_school(p_school_id)
+    or not exists (
+      select 1 from public.profiles p where p.id=auth.uid()
+        and p.account_status::text='active' and not p.is_anonymized
+    ) then raise exception 'not_authorized' using errcode='42501'; end if;
+  if p_opt_in and p_confirm_school_consent is distinct from true
+    then raise exception 'school_consent_required' using errcode='23514'; end if;
+  insert into public.success_wishes_schools (school_id, enabled, sponsored_text, expires_at)
+    values (p_school_id, p_opt_in, false, now()+interval '60 days')
+  on conflict (school_id) do update
+    set enabled=excluded.enabled,
+      sponsored_text=case when p_opt_in then public.success_wishes_schools.sponsored_text else false end,
+      expires_at=case when p_opt_in then greatest(public.success_wishes_schools.expires_at, excluded.expires_at)
+        else now() end;
+  if not p_opt_in then
+    -- Access is revoked immediately by server eligibility checks.
+    delete from public.success_wishes_sessions s
+      using public.success_wishes_inboxes i
+      where s.inbox_id=i.id and i.school_id=p_school_id;
+  end if;
+  insert into public.success_wishes_audit(school_id,actor_id,event)
+    values (p_school_id,auth.uid(),case when p_opt_in then 'school_opted_in' else 'school_opted_out' end);
+  return true;
+end; $;
+revoke all on function public.success_wishes_set_school_participation(uuid,boolean,boolean)
+  from public,anon;
+grant execute on function public.success_wishes_set_school_participation(uuid,boolean,boolean)
+  to authenticated;
+
 commit;
