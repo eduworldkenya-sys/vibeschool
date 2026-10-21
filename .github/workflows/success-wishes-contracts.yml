@@ -8,6 +8,7 @@ on:
       - 'components/success-wishes/**'
       - 'lib/success-wishes/**'
       - 'docs/success-wishes/*.sql'
+      - 'supabase/migrations/20261021094000_success_wishes_private_delivery_foundation.sql'
       - 'qa/success-wishes/**'
       - '.github/workflows/success-wishes-contracts.yml'
   push:
@@ -18,6 +19,7 @@ on:
       - 'components/success-wishes/**'
       - 'lib/success-wishes/**'
       - 'docs/success-wishes/*.sql'
+      - 'supabase/migrations/20261021094000_success_wishes_private_delivery_foundation.sql'
       - '.github/workflows/success-wishes-contracts.yml'
 
 permissions:
@@ -73,7 +75,7 @@ jobs:
           set -euo pipefail
           export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGDATABASE=success_wishes_test
           psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-fixture.sql
-          psql -v ON_ERROR_STOP=1 -f docs/success-wishes/schema.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021094000_success_wishes_private_delivery_foundation.sql
           psql -v ON_ERROR_STOP=1 -f docs/success-wishes/test-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/adversarial-assertions.sql
 
