@@ -1,12 +1,20 @@
 import { NextRequest } from 'next/server'
-import { sameSavedTextSubmission, submission, WishError } from '@/lib/success-wishes/contracts'
+import { field, object, sameSavedTextSubmission, submission, WishError } from '@/lib/success-wishes/contracts'
 import { database, failure, json, limit, reply } from '@/lib/success-wishes/server'
 import { hashSecret, messageExpiry } from '@/lib/success-wishes/security'
 export const runtime = 'nodejs'
 export async function POST(req: NextRequest) {
   try {
-    const input = submission(await json(req))
+    const raw = object(await json(req))
+    const input = submission(raw)
+    const senderProof = field(raw.senderProof, 64, 64)
+    if (!/^[a-f0-9]{64}$/.test(senderProof)) throw new WishError(401, 'Verify your email before sending.')
     const db = database()
+    const { data: verified, error: verificationError } = await db.from('success_wishes_sender_sessions')
+      .select('sender_id').eq('token_hash', hashSecret(senderProof))
+      .gt('expires_at',new Date().toISOString()).maybeSingle()
+    if (verificationError) throw verificationError
+    if (!verified) throw new WishError(401, 'Verify your email before sending.')
     await limit('submission:global', 1000, 60)
     await limit(`submit:${input.schoolId}`, 100, 60)
     await limit(`recipient:${input.schoolId}:${input.admissionNumber.toLowerCase()}`, 20)
@@ -21,7 +29,7 @@ export async function POST(req: NextRequest) {
     if (typeof inboxId !== 'string') throw new WishError(400, 'We could not send using those details. Please check with the school.')
     const manageToken = hashSecret('success-wishes:manage:' + input.idempotencyKey)
     const message = {
-      inbox_id: inboxId, sender_name: input.senderName, relationship: input.relationship,
+      inbox_id: inboxId, sender_id: verified.sender_id, sender_name: input.senderName, relationship: input.relationship,
       format: 'text', body: input.text, management_token_hash: hashSecret(manageToken),
       idempotency_key: input.idempotencyKey, payment_status: 'sponsored', state: 'request',
       expires_at: messageExpiry(school.retention_days, school.expires_at),
@@ -29,12 +37,12 @@ export async function POST(req: NextRequest) {
     const { data: inserted, error: insertError } = await db.from('success_wishes_messages').insert(message).select('id').single()
     if (insertError?.code === '23505') {
       const { data: previous, error: retryError } = await db.from('success_wishes_messages')
-        .select('id,state,sender_name,relationship,format,body').eq('idempotency_key', input.idempotencyKey)
+        .select('id,state,sender_id,sender_name,relationship,format,body').eq('idempotency_key', input.idempotencyKey)
         .eq('management_token_hash', hashSecret(manageToken)).eq('inbox_id', inboxId).maybeSingle()
-      if (retryError || !previous || !sameSavedTextSubmission(previous, input)) throw new WishError(409, 'This submission reference cannot be reused. Start a new message.')
+      if (retryError || !previous || previous.sender_id !== verified.sender_id || !sameSavedTextSubmission(previous, input)) throw new WishError(409, 'This submission reference cannot be reused. Start a new message.')
       return reply({ reference: previous.id, managementToken: manageToken, status: previous.state, message: 'This submission was already received. No duplicate was created. Save your private withdrawal code.' })
     }
-    if (insertError?.code === '23514') throw new WishError(429, 'This school has reached its sponsored wish limit. No payment has been taken.')
+    if (insertError?.code === '23514') throw new WishError(429, 'This wish cannot be received at this time. No payment has been taken.')
     if (insertError || !inserted) throw insertError || new Error('insert_failed')
     return reply({ reference: inserted.id, status: 'request', managementToken: manageToken, message: 'Sent as a message request. The candidate can choose to open it. Save your private withdrawal code.' }, 201)
   } catch (error) { return failure(error) }
