@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     const schoolId = uuid(req.nextUrl.searchParams.get('schoolId'))
     await schoolAdmin(req, schoolId)
-    const { data, error } = await database().from('success_wishes_schools')
+    const { data, error } = await database({ staffOnly: true }).from('success_wishes_schools')
       .select('enabled,expires_at,sponsored_text').eq('school_id', schoolId).maybeSingle()
     if (error) throw error
     return reply({
