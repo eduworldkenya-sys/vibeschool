@@ -4,6 +4,10 @@
 -- Stronger adversarial checks: actual opt-out session revocation, epoch rotation,
 -- duplicate admissions, lost enrollment and cross-school report confidentiality.
 
+-- Fixture-only rights: production service-role application code never edits learner
+-- enrollment here. These synthetic mutations simulate registry changes in CI.
+grant insert,update,delete on public.students, public.student_classes to service_role;
+
 set role service_role;
 insert into public.success_wishes_sessions(token_hash,inbox_id,access_epoch,expires_at)
 select repeat('c',64), id, access_epoch, now()+interval '1 hour'
