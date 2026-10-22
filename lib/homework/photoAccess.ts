@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
 
 const BUCKET = "homework-photos";
-const KEY_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\/[0-9a-f-]+\\.(jpe?g|png|webp|heic)$/i;
+const KEY_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f-]+\.(jpe?g|png|webp|heic)$/i;
 
 /**
  * New submissions persist the storage object key, not an expiring signed URL.
