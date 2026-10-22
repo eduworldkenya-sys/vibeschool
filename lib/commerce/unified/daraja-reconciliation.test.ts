@@ -15,7 +15,7 @@ const settings:DarajaSandboxSettings={
   consumerKey:'synthetic-only-key',consumerSecret:'synthetic-only-secret',
   passkey:'synthetic-passkey',businessShortCode:'174379',partyB:'174379',
   transactionType:'CustomerPayBillOnline',
-  callbackUrl:'https://fixture-project.supabase.co/functions/v1/unified-commerce-sandbox-callback',
+  callbackUrl:'https://fixture-project.supabase.co/functions/v1/unified-commerce-sandbox-callback?sandbox_token=fixturesandboxtoken12345678901234567890123456789',
   testPhone:'254712345678',
 }
 const order=(productKind:'teacher_credits'|'learning_product'|'exam_access'|'success_wish'|'school_subscription'|'premium_feature'='success_wish')=>
