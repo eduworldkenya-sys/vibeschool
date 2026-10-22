@@ -75,3 +75,13 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-lifecycle.sql
           psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-lifecycle-assertions.sql
+      - name: Run Node and PostgreSQL joined synthetic STK / callback / query / simulated delivery
+        env:
+          PGPASSWORD: disposable-fixture-only
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: commerce_sandbox_test
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --import ./scripts/register-typescript.mjs --test qa/commerce/unified-sandbox-integration.test.mjs
