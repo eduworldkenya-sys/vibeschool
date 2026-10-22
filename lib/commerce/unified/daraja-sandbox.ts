@@ -37,8 +37,10 @@ function validated(settings: DarajaSandboxSettings) {
   const callback = new URL(settings.callbackUrl)
   if (callback.protocol !== 'https:' || !/^[a-z0-9-]+\.supabase\.co$/i.test(callback.hostname)
     || callback.port || callback.username || callback.password
-    || callback.search || callback.hash
-    || callback.pathname !== '/functions/v1/unified-commerce-sandbox-callback') {
+    || callback.hash
+    || callback.pathname !== '/functions/v1/unified-commerce-sandbox-callback'
+    || [...callback.searchParams.keys()].length !== 1
+    || !/^[A-Za-z0-9_-]{32,200}$/.test(callback.searchParams.get('sandbox_token') || '')) {
     throw new Error('Sandbox callback must be a dedicated HTTPS Supabase endpoint')
   }
   return { ...settings, testPhone: normalizeKenyanPhone(settings.testPhone) }
@@ -66,13 +68,16 @@ export async function sendUniversalDarajaSandboxStk(input: {
   phone: string
   settings: DarajaSandboxSettings
   env: Record<string, string | undefined>
-  /** Only use for an already-durably-reserved order/attempt, in nonproduction. */
+  /** Atomically claim an already-durably-reserved attempt exactly once. */
   hasReservedAttempt: () => Promise<boolean>
   fetcher?: Fetcher
   now?: () => Date
 }): Promise<SandboxAttempt> {
   assertDarajaSandboxOnly(input.env)
   const settings = validated(input.settings)
+  if (input.env.COMMERCE_SANDBOX_ISOLATED_PROJECT === 'true'
+    && new URL(settings.callbackUrl).origin !== input.env.SUPABASE_URL)
+    throw new Error('Sandbox callback is not hosted on the isolated project')
   if (input.order.mode !== 'sandbox' || input.order.state !== 'created'
     || !Number.isSafeInteger(input.order.amountKes)
     || input.order.amountKes < 1 || input.order.amountKes > 250000) {
