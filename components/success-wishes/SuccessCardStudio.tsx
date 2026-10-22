@@ -148,7 +148,12 @@ export default function SuccessCardStudio() {
             setStatus('Your phone sharing options were opened.')
           } catch (reason) {
             if (reason instanceof Error && reason.name === 'AbortError') return
-            throw reason
+            // Some phones reject native sharing after asynchronous image creation.
+            // Keep the card useful by falling back to a real downloadable image.
+            if (reason instanceof Error && (reason.name === 'NotAllowedError' || reason.name === 'InvalidStateError' || reason.name === 'TypeError')) {
+              download(png, fileName)
+              setStatus('Direct sharing was unavailable. Your PNG was downloaded so you can share it from your phone.')
+            } else throw reason
           }
         } else {
           download(png, fileName)
