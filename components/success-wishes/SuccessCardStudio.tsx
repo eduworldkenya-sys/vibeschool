@@ -175,7 +175,7 @@ export default function SuccessCardStudio({ onContinue, onOpenInbox, initialDraf
       <div className={styles.intro}><p className={styles.eyebrow}>VIBESCHOOL SUCCESS WISHES</p><h1>A little encouragement. A card they&apos;ll remember.</h1>
         <p>Choose a design, write from the heart and share a beautiful personalised card. Free to create.</p></div>
       {onOpenInbox && <aside className={styles.inboxCta} aria-label="Candidate inbox">
-        <div><strong>Are you a candidate?</strong><span>Open your private inbox with your school and access code. No card creation needed.</span></div>
+        <div><strong>Are you a candidate?</strong><span>Open your private inbox with your school and access code. No card creation needed. If your boarding school limits phones, use an approved device or viewing time.</span></div>
         <button type="button" className={styles.secondary} onClick={onOpenInbox}>Open candidate inbox <ArrowRight size={17}/></button>
       </aside>}
       <section aria-labelledby="choose-card" className={styles.section}>
