@@ -5,8 +5,6 @@
 .intro{max-width:730px;margin-bottom:35px}.eyebrow,.heading>span,.live>span{font-size:10px;letter-spacing:1.5px;color:#18704f;font-weight:850}
 .intro h1{font:600 clamp(35px,5vw,59px)/1.08 Georgia,'Times New Roman',serif;letter-spacing:-1.5px;margin:10px 0 13px}
 .intro>p:last-child{color:#62746f;font-size:14px;line-height:1.7;max-width:570px}
-.inboxCta{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 20px;margin:-13px 0 35px;border:1px solid #cbd9ce;border-radius:15px;background:#eef5ee}
-.inboxCta>div{display:grid;gap:5px}.inboxCta strong{font-size:14px}.inboxCta span{font-size:12px;line-height:1.6;color:#62746f}
 .heading h2{font:600 clamp(24px,3vw,33px)/1.15 Georgia,serif;margin:8px 0 17px}
 .gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:17px;margin-bottom:38px}
 .option{min-width:0;text-align:left;border:1px solid #dfe7df;border-radius:16px;padding:7px;background:#fff;cursor:pointer;color:#192e2b;transition:transform .15s,border-color .15s}
@@ -34,5 +32,5 @@
 .footer p+p{margin-top:7px}.footer a{color:#13664b;font-weight:700;text-decoration:underline;text-underline-offset:2px}.footer a svg{display:inline;vertical-align:middle}
 .page button:focus-visible,.page a:focus-visible{outline:3px solid #deb95a;outline-offset:3px}
 @media(max-width:800px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.composer{grid-template-columns:1fr}.live{position:static;max-width:540px;width:100%;margin:auto}}
-@media(max-width:520px){.header{padding:15px}.main{padding:29px 15px}.intro h1{font-size:38px}.gallery{gap:9px}.option{padding:5px}.option.active{padding:4px}.optionCaption{padding:9px 3px 5px}.optionCaption strong{font-size:11px}.optionCaption small{font-size:9px}.form,.live{padding:18px}.inboxCta{align-items:stretch;flex-direction:column;margin-top:-10px;padding:16px}.inboxCta .secondary{width:100%}.actions>.primary,.actions>.secondary{width:100%}}
+@media(max-width:520px){.header{padding:15px}.main{padding:29px 15px}.intro h1{font-size:38px}.gallery{gap:9px}.option{padding:5px}.option.active{padding:4px}.optionCaption{padding:9px 3px 5px}.optionCaption strong{font-size:11px}.optionCaption small{font-size:9px}.form,.live{padding:18px}.actions>.primary,.actions>.secondary{width:100%}}
 @media(prefers-reduced-motion:reduce){.option{transition:none}}

@@ -1,20 +1,5 @@
-'use client'
-
-import { useState } from 'react'
-import SuccessCardStudio, { type CardDesignDraft } from './SuccessCardStudio'
-import SuccessWishes from './SuccessWishes'
+import SuccessCardStudio from './SuccessCardStudio'
 
 export default function UnifiedSuccessWishes() {
-  const [draft, setDraft] = useState<CardDesignDraft | null>(null)
-  const [step, setStep] = useState<'design' | 'recipient' | 'inbox'>('design')
-
-  if (step === 'design') {
-    return <SuccessCardStudio initialDraft={draft || undefined} onOpenInbox={() => { setDraft(null); setStep('inbox') }} onContinue={value => { setDraft(value); setStep('recipient') }} />
-  }
-
-  return <SuccessWishes
-    initialWish={step === 'recipient' ? draft || undefined : undefined}
-    initialMode={step === 'inbox' ? 'inbox' : 'send'}
-    onBackToDesign={() => setStep('design')}
-  />
+  return <SuccessCardStudio />
 }
