@@ -99,7 +99,8 @@ export function useHomeworkFeed(
     if (!classId || !studentId) { setItems([]); setLoading(false); return; }
     setLoading(true);
 
-    const cached = readCache<HomeworkFeedItem[]>("homework", studentId);
+    const cacheKey = [studentId, classId, schoolId ?? ""].join(":");
+    const cached = readCache<HomeworkFeedItem[]>("homework", cacheKey);
     if (cached) { setItems(cached); setLoading(false); }
 
     async function load(validClassId: string, validStudentId: string, validSchoolId: string | null) {
@@ -136,7 +137,7 @@ export function useHomeworkFeed(
           const sub    = subMap.get(h.id);
           const supported: HomeworkSubmissionStatus[] = ["pending", "draft", "submitted", "received", "under_review", "returned", "marked"];
           const rawStatus = sub?.status ?? "pending";
-          if (!supported.includes(rawStatus as HomeworkSubmissionStatus)) return null;
+          if (!supported.includes(rawStatus as HomeworkSubmissionStatus)) throw new Error("Unknown homework submission status");
           const status = rawStatus as HomeworkSubmissionStatus;
           const releasedAt = (sub as (HomeworkSubmission & { feedback_released_at?: string | null }) | undefined)?.feedback_released_at;
           const feedbackReleased = Boolean(releasedAt);
@@ -148,7 +149,7 @@ export function useHomeworkFeed(
             feedbackReleased,
             lifecycle: lifecycleOf(h.due_date, status, feedbackReleased),
           };
-        }).filter((h): h is HomeworkFeedItem => h !== null);
+        });
 
       const rank: Record<LifecycleStatus, number> = {
         returned: 0, overdue: 1, due_today: 2, due_tomorrow: 3, draft: 4, upcoming: 5,
@@ -161,7 +162,7 @@ export function useHomeworkFeed(
       });
 
       if (!cancelled) {
-        writeCache("homework", validStudentId, result);
+        writeCache("homework", cacheKey, result);
         setItems(result);
         setError(null);
         setLoading(false);
