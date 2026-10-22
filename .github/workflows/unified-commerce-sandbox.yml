@@ -11,6 +11,7 @@ on:
     branches: [main]
     paths:
       - 'lib/commerce/unified/**'
+      - 'qa/commerce/unified-sandbox-*.sql'
       - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
       - '.github/workflows/unified-commerce-sandbox.yml'
 
