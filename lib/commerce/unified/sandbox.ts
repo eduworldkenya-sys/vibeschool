@@ -96,8 +96,17 @@ export function makeSandboxOrder(input: {
  * existing production mpesa_runtime_control initiation switch.
  */
 export function assertDarajaSandboxOnly(env: Record<string, string | undefined>): void {
-  if (env.VERCEL_ENV === 'production' || env.NODE_ENV === 'production' && env.VERCEL_ENV !== 'preview'
-    || !['preview', 'development'].includes(env.VERCEL_ENV || '')
+  const projectRef = env.COMMERCE_SANDBOX_PROJECT_REF || ''
+  const hostedUrl = env.SUPABASE_URL || ''
+  const isIsolatedSupabase = env.COMMERCE_SANDBOX_ISOLATED_PROJECT === 'true'
+    && /^[a-z0-9]{12,32}$/.test(projectRef)
+    && hostedUrl === 'https://' + projectRef + '.supabase.co'
+    // Explicit veto for the currently connected production project.
+    && projectRef !== 'yauqsxggtuxuykcbrtzf'
+  const isPreview = env.VERCEL_ENV === 'preview' || env.VERCEL_ENV === 'development'
+  const unsafeWeb = env.VERCEL_ENV === 'production'
+    || (env.NODE_ENV === 'production' && !isPreview && !isIsolatedSupabase)
+  if (unsafeWeb || (!isPreview && !isIsolatedSupabase)
     || env.COMMERCE_DARAJA_SANDBOX_ENABLED !== 'true'
     || env.MPESA_ENV !== 'sandbox') {
     throw new Error('Universal commerce sandbox is disabled')
