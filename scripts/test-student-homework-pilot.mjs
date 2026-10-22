@@ -14,7 +14,7 @@ function sourceFunction(name) {
   const sf = ts.createSourceFile('feed.ts', feed, ts.ScriptTarget.Latest, true);
   const node = sf.statements.find(s => ts.isFunctionDeclaration(s) && s.name?.text === name);
   assert.ok(node, name + ' must exist');
-  return node.getText(sf);
+  return node.getText(sf).replace(/^export\\s+/, '');
 }
 
 const js = ts.transpileModule(
