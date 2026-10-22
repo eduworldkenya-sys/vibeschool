@@ -40,7 +40,8 @@ Official documentation:
 - `lib/commerce/unified/sandbox.ts`: common typed order covering credits, learning products, exams, wishes, subscriptions and premium features; server-trusted integer KES prices, guest/profile owner contracts, idempotency-key shape, Kenya phone normalization and strict callback matching. Every object is tagged `mode:'sandbox'`. Sandbox settlements **cannot grant live entitlements**.
 - `lib/commerce/unified/daraja-sandbox.ts`: isolated Daraja adapter with **hardcoded sandbox host**, preview/development gate and explicit `COMMERCE_DARAJA_SANDBOX_ENABLED=true` plus `MPESA_ENV=sandbox`. It rejects production, real/customer phones other than an explicitly configured simulator test phone, non-HTTPS/different callback targets and missing durable reservation. Test caller must inject or configure a reserved attempt.
 - `lib/commerce/unified/sandbox.test.ts`: unit regression using injected fake HTTP responses, **no network, secrets, production calls or database writes**.
-- `.github/workflows/unified-commerce-sandbox.yml`: CI tests + repository typecheck.
+- `qa/commerce/unified-sandbox-fixture.sql` and `qa/commerce/unified-sandbox-assertions.sql`: disposable PostgreSQL-only ledger with six product types, guest/profile ownership, immutable price/receipt evidence, duplicate attempts/callback rejection, and private schema/RLS safeguards. **Not a deployable migration.**
+- `.github/workflows/unified-commerce-sandbox.yml`: CI TypeScript tests, typecheck and ephemeral PostgreSQL contract verification.
 - No existing Edge Functions, deployed endpoints, migrations, customer data, payments, or environment values are changed by this PR.
 
 ### Run the test locally
@@ -48,6 +49,9 @@ Official documentation:
 npm ci --ignore-scripts --no-audit --no-fund
 node --import ./scripts/register-typescript.mjs --test lib/commerce/unified/sandbox.test.ts
 npm run typecheck
+# For disposable Postgres only (as in CI):
+# psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-fixture.sql
+# psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-assertions.sql
 ```
 
 **Do not import the sandbox adapter from a publicly callable production route.** The adapter returns an STK acknowledgement, not a settlement; its callback URL contract is reserved for a *future* isolated sandbox function, which **does not exist in this PR**. There is no durable unified order table or test provider session yet.
