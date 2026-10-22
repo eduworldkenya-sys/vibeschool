@@ -71,3 +71,27 @@ $migration$;
 revoke insert, update, delete on public.homework_submissions from authenticated;
 -- Keep authenticated SELECT under its existing student/parent/teacher RLS policies.
 -- All state-changing student and teacher clients must use authorized RPCs.
+
+-- A received homework submission is final until a teacher explicitly returns it.
+-- The existing server-authorized draft RPC was previously able to reopen received
+-- work; update only those exact legacy fragments and fail on unknown schema drift.
+do $migration$
+declare
+  draft_ddl text;
+  source_status text := 'when public.homework_submissions.status in (''marked'',''under_review'')';
+  source_lock text := 'if v_submission.status in (''marked'',''under_review'') then';
+begin
+  select pg_get_functiondef('public.save_student_homework_draft(uuid,jsonb,text)'::regprocedure)
+    into draft_ddl;
+  if draft_ddl is null
+     or position(source_status in draft_ddl) = 0
+     or position(source_lock in draft_ddl) = 0 then
+    raise exception 'homework_draft_lifecycle_contract_drift';
+  end if;
+  draft_ddl := replace(draft_ddl, source_status,
+    'when public.homework_submissions.status in (''marked'',''under_review'',''submitted'',''received'')');
+  draft_ddl := replace(draft_ddl, source_lock,
+    'if v_submission.status in (''marked'',''under_review'',''submitted'',''received'') then');
+  execute draft_ddl;
+end
+$migration$;
