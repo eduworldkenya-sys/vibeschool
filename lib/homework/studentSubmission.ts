@@ -7,7 +7,7 @@ export interface StudentHomeworkAnswerInput {
 
 export interface StudentHomeworkSubmissionResult {
   submissionId: string
-  status: 'draft' | 'received'
+  status: 'draft' | 'received' | 'returned'
   revisionNumber: number
   updatedAt?: string
   submittedAt?: string
@@ -34,7 +34,7 @@ function parseResult(data: unknown): StudentHomeworkSubmissionResult {
   if (typeof submissionId !== 'string' || !submissionId) {
     throw new Error('Homework submission identity is missing.')
   }
-  if (status !== 'draft' && status !== 'received') {
+  if (status !== 'draft' && status !== 'received' && status !== 'returned') {
     throw new Error('Homework submission status is invalid.')
   }
   if (typeof revisionNumber !== 'number' || !Number.isInteger(revisionNumber)) {
