@@ -124,7 +124,7 @@ function download(blob: Blob, name: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 30000)
 }
 
-export default function SuccessCardStudio({ onContinue, initialDraft }: { onContinue?: (draft: CardDesignDraft) => void; initialDraft?: CardDesignDraft }) {
+export default function SuccessCardStudio({ onContinue, onOpenInbox, initialDraft }: { onContinue?: (draft: CardDesignDraft) => void; onOpenInbox?: () => void; initialDraft?: CardDesignDraft }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
   const [candidate, setCandidate] = useState(initialDraft?.candidate || '')
   const [sender, setSender] = useState(initialDraft?.sender || '')
@@ -174,6 +174,10 @@ export default function SuccessCardStudio({ onContinue, initialDraft }: { onCont
     <main className={styles.main}>
       <div className={styles.intro}><p className={styles.eyebrow}>VIBESCHOOL SUCCESS WISHES</p><h1>A little encouragement. A card they&apos;ll remember.</h1>
         <p>Choose a design, write from the heart and share a beautiful personalised card. Free to create.</p></div>
+      {onOpenInbox && <aside className={styles.inboxCta} aria-label="Candidate inbox">
+        <div><strong>Are you a candidate?</strong><span>Open your private inbox with your school and access code. No card creation needed.</span></div>
+        <button type="button" className={styles.secondary} onClick={onOpenInbox}>Open candidate inbox <ArrowRight size={17}/></button>
+      </aside>}
       <section aria-labelledby="choose-card" className={styles.section}>
         <div className={styles.heading}><span>01 — CHOOSE YOUR CARD</span><h2 id="choose-card">Find their perfect wish</h2></div>
         <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => setTheme(item.id)}
