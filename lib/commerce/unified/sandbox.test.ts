@@ -34,7 +34,7 @@ const settings: DarajaSandboxSettings = {
   businessShortCode: '174379',
   partyB: '174379',
   transactionType: 'CustomerPayBillOnline',
-  callbackUrl: 'https://example-ref.supabase.co/functions/v1/unified-commerce-sandbox-callback',
+  callbackUrl: 'https://example-ref.supabase.co/functions/v1/unified-commerce-sandbox-callback?sandbox_token=fixturesandboxtoken12345678901234567890123456789',
   testPhone: '254712345678',
 }
 const env = {
