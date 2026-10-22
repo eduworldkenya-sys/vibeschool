@@ -5,6 +5,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { C } from "@/components/teacher/ui";
+import { getHomeworkPhotoViewUrl } from "@/lib/homework/photoAccess";
 
 type SubmissionStatus =
   | "draft"
@@ -103,6 +104,8 @@ function HomeworkGradePageInner() {
   const [view, setView] = useState<View>("list");
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
+  const [photoLink, setPhotoLink] = useState<string | null>(null);
+  const [photoLinkError, setPhotoLinkError] = useState<string | null>(null);
   const [markInput, setMarkInput] = useState("");
   const [feedbackInput, setFeedbackInput] = useState("");
   const [returnReasonInput, setReturnReasonInput] = useState("");
@@ -198,6 +201,20 @@ function HomeworkGradePageInner() {
 
   useEffect(() => { void load(); return () => { loadGeneration.current++; }; }, [classId, hwId]);
 
+  useEffect(() => {
+    let active = true;
+    setPhotoLink(null);
+    setPhotoLinkError(null);
+    if (selectedSub?.photo_url) {
+      void getHomeworkPhotoViewUrl(selectedSub.photo_url).then(url => {
+        if (!active) return;
+        setPhotoLink(url);
+        if (!url) setPhotoLinkError("Attachment reference is invalid. Ask support to review it.");
+      }).catch(() => { if (active) setPhotoLinkError("Could not open the photo. Try refreshing."); });
+    }
+    return () => { active = false; };
+  }, [selectedSub?.photo_url]);
+
   function openGrade(student: Student, sub: Submission) {
     setSelectedStudent(student);
     setSelectedSub(sub);
@@ -283,7 +300,9 @@ function HomeworkGradePageInner() {
             const answer = selectedSub.answers.find(item => item.question_id === question.id)?.answer_text;
             return <div key={question.id} style={{ padding: 12, borderRadius: 12, background: "var(--teacher-canvas, #f5f6f2)" }}><strong style={{ fontSize: 12 }}>Q{index + 1}. {question.question}</strong><div style={{ marginTop: 7, fontSize: 12, whiteSpace: "pre-wrap" }}>{answer || "No answer"}</div></div>;
           })}
-          {selectedSub.photo_url && <a href={selectedSub.photo_url} target="_blank" rel="noreferrer" style={{ color: C.accent, fontWeight: 700, fontSize: 12 }}>Open uploaded work ↗</a>}
+          {selectedSub.photo_url && (photoLink
+             ? <a href={photoLink} target="_blank" rel="noreferrer" style={{ color: C.accent, fontWeight: 700, fontSize: 12 }}>Open uploaded work ↗</a>
+             : <span role={photoLinkError ? "alert" : "status"} style={{ fontSize: 12, color: photoLinkError ? "#b91c1c" : C.textMuted }}>{photoLinkError ?? "Preparing secure photo access…"}</span>)}
         </div>
 
         {selectedSub.status === "returned" && selectedSub.returned_reason && <div style={{ marginTop: 14, padding: 11, borderRadius: 10, background: "#fff7ed", color: "#9a3412", fontSize: 12 }}><strong>Returned for revision:</strong> {selectedSub.returned_reason}</div>}
