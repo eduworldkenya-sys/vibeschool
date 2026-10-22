@@ -77,6 +77,7 @@ export default function HomeworkDetailPage() {
   const [saving, setSaving] = useState<"idle" | "draft" | "submit" | "upload">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -85,7 +86,9 @@ export default function HomeworkDetailPage() {
 
     async function load() {
       setLoading(true);
-      const { data: raw } = await supabase.from("homework").select("*").eq("id", id).maybeSingle();
+      setLoadError(null);
+      const { data: raw, error: homeworkError } = await supabase.from("homework").select("*").eq("id", id).maybeSingle();
+      if (homeworkError) { setLoadError("Could not load homework. Check your connection."); setLoading(false); return; }
       if (!raw) {
         setLoading(false);
         return;
@@ -101,6 +104,11 @@ export default function HomeworkDetailPage() {
         supabase.from("homework_submissions").select("id,status,photo_url,mark,feedback,feedback_released_at,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", identity!.studentId).maybeSingle(),
       ]);
 
+      if (teacherRes.error || questionRes.error || submissionRes.error) {
+        setLoadError("Could not load the homework details or submission. Please retry.");
+        setLoading(false);
+        return;
+      }
       setTeacher(teacherRes.data?.full_name ?? "Teacher");
       setQuestions((questionRes.data as HomeworkQuestion[]) ?? []);
 
@@ -143,7 +151,7 @@ export default function HomeworkDetailPage() {
       setError("Please answer every question before submitting.");
       return false;
     }
-    if (questions.length === 0 && !photoFile && !photoPreview) {
+    if (questions.length === 0 && !photoFile && !photoReference) {
       setError("Please add a clear photo of your completed work.");
       return false;
     }
@@ -183,7 +191,10 @@ export default function HomeworkDetailPage() {
         returned_reason: previous?.returned_reason ?? null,
       }));
       setPhotoReference(photoUrl);
-      if (photoUrl) setPhotoPreview(await getHomeworkPhotoViewUrl(photoUrl));
+      if (photoUrl) {
+        try { setPhotoPreview(await getHomeworkPhotoViewUrl(photoUrl)); }
+        catch { setPhotoPreview(null); }
+      }
       setPhotoFile(null);
       setMessage("Draft saved. You can continue later.");
     } catch (cause) {
@@ -221,7 +232,10 @@ export default function HomeworkDetailPage() {
         created_at: result.receivedAt ?? "",
       })));
       setPhotoReference(photoUrl);
-      if (photoUrl) setPhotoPreview(await getHomeworkPhotoViewUrl(photoUrl));
+      if (photoUrl) {
+        try { setPhotoPreview(await getHomeworkPhotoViewUrl(photoUrl)); }
+        catch { setPhotoPreview(null); }
+      }
       setPhotoFile(null);
       setMessage("Submitted successfully. Vibeschool has received your work.");
     } catch (cause) {
@@ -233,6 +247,7 @@ export default function HomeworkDetailPage() {
 
   if (identityLoading || loading) return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}><Skel h={28} radius={8} /><Skel h={120} radius={14} /><Skel h={180} radius={14} /></div>;
   if (identityError) return <div role="alert" style={{ padding: 20 }}><p>{identityError}</p><button type="button" onClick={retryIdentity}>Try again</button></div>;
+  if (loadError) return <div role="alert" style={{ padding: 20 }}><p>{loadError}</p><button type="button" onClick={() => window.location.reload()}>Retry</button></div>;
   if (!homework || !badge) return <div style={{ padding: 32, textAlign: "center", color: "var(--vs-muted)" }}>Homework not found or learner access unavailable.</div>;
 
   return (
