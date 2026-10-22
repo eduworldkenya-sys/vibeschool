@@ -104,7 +104,8 @@ export function assertDarajaSandboxOnly(env: Record<string, string | undefined>)
     // Explicit veto for the currently connected production project.
     && projectRef !== 'yauqsxggtuxuykcbrtzf'
   const isPreview = env.VERCEL_ENV === 'preview' || env.VERCEL_ENV === 'development'
-  const unsafeWeb = env.VERCEL_ENV === 'production'
+  const unsafeWeb = hostedUrl === 'https://yauqsxggtuxuykcbrtzf.supabase.co'
+    || env.VERCEL_ENV === 'production'
     || (env.NODE_ENV === 'production' && !isPreview && !isIsolatedSupabase)
   if (unsafeWeb || (!isPreview && !isIsolatedSupabase)
     || env.COMMERCE_DARAJA_SANDBOX_ENABLED !== 'true'
