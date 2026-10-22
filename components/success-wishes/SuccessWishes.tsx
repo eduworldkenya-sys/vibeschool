@@ -12,7 +12,7 @@ type Configuration = { enabled: boolean; mediaEnabled: boolean; paymentsEnabled:
 type Kind = 'text' | 'voice' | 'video'
 type Message = { id: string; senderName: string; relationship: string; kind: Kind; state: 'request' | 'available'; text?: string | null; createdAt: string; mediaUrl?: string | null }
 type ViewingWindow = { weekday: number; startsAt: string; endsAt: string; venue: string; guidance: string }
-type Receipt = { reference?: string; managementToken?: string; status?: string; message?: string }
+type Receipt = { reference?: string; managementToken?: string; status?: string; state?: string; paid?: boolean; amountKes?: number; message?: string }
 type SavedWishDraft = {
   savedAt: number; school: School; admissionNumber: string; candidateName: string;
   senderName: string; relationship: string; text: string; retryKey: string
@@ -195,17 +195,38 @@ function SendForm({ config }: { config: Configuration | null }) {
           } satisfies SavedWishDraft))
         } catch { /* no persistent storage is required to send */ }
       }
-      const result = await request<Receipt>('/api/success-wishes/messages', { method: 'POST', body: JSON.stringify({ schoolId: school.id, admissionNumber: admissionNumber.trim(), candidateName: candidateName.trim(), senderName: senderName.trim(), relationship: relationship.trim(), kind, text: text.trim(), consent: true, senderProof, idempotencyKey: idempotencyKey.current }) })
+      const sandboxCheckout = config.paymentsEnabled
+      const result = await request<Receipt>(sandboxCheckout
+        ? '/api/success-wishes/payments/checkout' : '/api/success-wishes/messages', {
+        method: 'POST', body: JSON.stringify({ schoolId: school.id,
+          admissionNumber: admissionNumber.trim(), candidateName: candidateName.trim(),
+          senderName: senderName.trim(), relationship: relationship.trim(), kind,
+          text: text.trim(), phone: senderPhone.trim(), consent: true,
+          senderProof, idempotencyKey: idempotencyKey.current,
+        }),
+      })
       discardDraft()
-      setReceipt(result)
+      setReceipt({...result,status:result.status || result.state})
       setText(''); setCandidateName(''); setAdmissionNumber(''); setSenderName(''); setRelationship(''); setConsent(false); setFile(null)
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Your message could not be submitted.') }
     finally { setBusy(false) }
   }
 
-  if (receipt) return <section className={styles.panel} aria-live="polite"><CheckCircle2 size={34} className={styles.successIcon} aria-hidden="true"/><h2>Submission received</h2><p className={styles.hint}>{receipt.message || 'Your message has been received. Availability depends on recipient verification and any required payment.'}</p>{receipt.reference && <p className={styles.status}>Reference: <strong>{receipt.reference}</strong></p>}{receipt.managementToken && <div className={styles.section}><label className={styles.field}>Private withdrawal code<input readOnly value={receipt.managementToken} autoComplete="off" onFocus={event => event.target.select()}/><small>Save this code privately now. It is shown only here and lets you withdraw your message. Do not send it to the candidate.</small></label></div>}{receipt.status && <p className={styles.status}>Status: {receipt.status.replace(/_/g, ' ')}</p>}<div className={styles.actions}><button className={styles.secondary} type="button" onClick={() => { setReceipt(null); setPreview(false); idempotencyKey.current = '' }}>Send another wish</button></div></section>
+  async function refreshSandboxPayment(){
+    if(!receipt?.reference||!senderProof||busy)return
+    setBusy(true);setError('')
+    try{
+      const data=await request<Receipt>('/api/success-wishes/payments/status',{
+        method:'POST',body:JSON.stringify({reference:receipt.reference,senderProof}),
+      })
+      setReceipt({...receipt,...data,status:data.state || data.status})
+    }catch(reason){setError(reason instanceof Error?reason.message:'Payment status could not be checked.')}
+    finally{setBusy(false)}
+  }
 
-  if (preview) return <section className={styles.panel}><h2>Review your wish</h2><p className={styles.hint}>Check the recipient before submitting.</p><div className={styles.preview}><div className={styles.eyebrow}>For {candidateName}</div><strong>{school?.name}</strong><p className={styles.hint}>Admission number: {admissionNumber}</p>{kind === 'text' ? <p className={styles.messageText}>{text}</p> : kind === 'voice' ? <audio className={styles.media} controls src={mediaUrl} preload="metadata"/> : <video className={styles.media} controls src={mediaUrl} preload="metadata" playsInline/>}<p className={styles.sender}>From {senderName} · {relationship}</p></div>{kind !== 'text' && <p className={styles.status}>This is a local preview. Media sending is not available yet; your file has not been uploaded.</p>}{config?.paymentsEnabled && <p className={styles.status}>Any required payment must be confirmed before delivery. Submitting does not confirm payment.</p>}{config?.enabled && <div className={styles.section}>
+  if (receipt) return <section className={styles.panel} aria-live="polite"><CheckCircle2 size={34} className={styles.successIcon} aria-hidden="true"/><h2>{config?.paymentsEnabled ? 'Sandbox payment request' : 'Submission received'}</h2><p className={styles.hint}>{receipt.message || 'Your message has been received. Availability depends on recipient verification and any required payment.'}</p>{receipt.reference && <p className={styles.status}>Reference: <strong>{receipt.reference}</strong></p>}{receipt.managementToken && <div className={styles.section}><label className={styles.field}>Private withdrawal code<input readOnly value={receipt.managementToken} autoComplete="off" onFocus={event => event.target.select()}/><small>Save this code privately now. It is shown only here and lets you withdraw your message. Do not send it to the candidate.</small></label></div>}{receipt.status && <p className={styles.status}>Status: {receipt.status.replace(/_/g, ' ')}</p>}{config?.paymentsEnabled && <p className={styles.status}>Sandbox test only · No real payment will be collected.</p>}{error && <p className={styles.error} role="alert">{error}</p>}<div className={styles.actions}>{config?.paymentsEnabled && receipt.status !== 'settled' && <button className={styles.secondary} type="button" disabled={busy} onClick={() => void refreshSandboxPayment()}>{busy ? 'Checking…' : 'Check payment status'}</button>}<button className={styles.secondary} type="button" onClick={() => { setReceipt(null); setPreview(false); idempotencyKey.current = '' }}>Send another wish</button></div></section>
+
+  if (preview) return <section className={styles.panel}><h2>Review your wish</h2><p className={styles.hint}>Check the recipient before submitting.</p><div className={styles.preview}><div className={styles.eyebrow}>For {candidateName}</div><strong>{school?.name}</strong><p className={styles.hint}>Admission number: {admissionNumber}</p>{kind === 'text' ? <p className={styles.messageText}>{text}</p> : kind === 'voice' ? <audio className={styles.media} controls src={mediaUrl} preload="metadata"/> : <video className={styles.media} controls src={mediaUrl} preload="metadata" playsInline/>}<p className={styles.sender}>From {senderName} · {relationship}</p></div>{kind !== 'text' && <p className={styles.status}>This is a local preview. Media sending is not available yet; your file has not been uploaded.</p>}{config?.paymentsEnabled && <p className={styles.status}>Safaricom sandbox · no real money is collected. The wish becomes available only after verified test settlement.</p>}{config?.enabled && <div className={styles.section}>
       <h3>Verify your phone</h3>
       <p className={styles.hint}>A six-digit SMS code confirms control of your phone. Your number is not shared with the candidate.</p>
       <p className={styles.status}>{senderPhone || 'Add your phone number in the form.'}</p>
@@ -215,7 +236,7 @@ function SendForm({ config }: { config: Configuration | null }) {
           {otpSent && <><label className={styles.field}>Six-digit code<input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={otpCode} onChange={event => setOtpCode(event.target.value)} autoComplete="one-time-code"/></label><button type="button" className={styles.secondary} disabled={verifying || !/^[0-9]{6}$/.test(otpCode)} onClick={() => void verifySenderCode()}>Verify code</button></>}
         </div>}
     </div>}
-    {error && <div className={styles.error} role="alert">{error}</div>}<div className={styles.actions}><button className={styles.secondary} type="button" disabled={busy} onClick={() => setPreview(false)}>Edit</button><button className={styles.primary} type="button" onClick={() => void send()} disabled={busy || !config?.enabled || kind !== 'text' || !senderProof}>{busy ? 'Submitting…' : 'Submit wish'}</button></div></section>
+    {error && <div className={styles.error} role="alert">{error}</div>}<div className={styles.actions}><button className={styles.secondary} type="button" disabled={busy} onClick={() => setPreview(false)}>Edit</button><button className={styles.primary} type="button" onClick={() => void send()} disabled={busy || !config?.enabled || kind !== 'text' || !senderProof}>{busy ? 'Submitting…' : config?.paymentsEnabled ? 'Test M-Pesa checkout' : 'Submit wish'}</button></div></section>
 
   return <form className={styles.panel} onSubmit={showPreview}>
     <h2>Who are you cheering on?</h2><p className={styles.hint}>Your message goes to one candidate’s private inbox.</p>
