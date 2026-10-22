@@ -82,15 +82,21 @@ declare
 begin
   select pg_get_functiondef('public.save_student_homework_draft(uuid,jsonb,text)'::regprocedure)
     into draft_ddl;
-  if draft_ddl is null
-     or position(source_status in draft_ddl) = 0
-     or position(source_lock in draft_ddl) = 0 then
+  if draft_ddl is null then
+    raise exception 'homework_draft_lifecycle_contract_missing';
+  elsif position('if found and v_submission.status in (''submitted'', ''received'', ''under_review'', ''marked'') then' in draft_ddl) > 0 then
+    -- Clean rebuild already includes the stricter, idempotent draft lifecycle.
+    null;
+  elsif position(source_status in draft_ddl) > 0
+        and position(source_lock in draft_ddl) > 0 then
+    -- Upgrade a known older production function; no open-ended SQL rewriting.
+    draft_ddl := replace(draft_ddl, source_status,
+      'when public.homework_submissions.status in (''marked'',''under_review'',''submitted'',''received'')');
+    draft_ddl := replace(draft_ddl, source_lock,
+      'if v_submission.status in (''marked'',''under_review'',''submitted'',''received'') then');
+    execute draft_ddl;
+  else
     raise exception 'homework_draft_lifecycle_contract_drift';
   end if;
-  draft_ddl := replace(draft_ddl, source_status,
-    'when public.homework_submissions.status in (''marked'',''under_review'',''submitted'',''received'')');
-  draft_ddl := replace(draft_ddl, source_lock,
-    'if v_submission.status in (''marked'',''under_review'',''submitted'',''received'') then');
-  execute draft_ddl;
 end
 $migration$;
