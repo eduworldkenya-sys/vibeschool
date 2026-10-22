@@ -21,7 +21,7 @@ const js = ts.transpileModule(
   sourceFunction('daysUntil') + '\n' + sourceFunction('lifecycleOf'),
   { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }
 ).outputText;
-const sandbox = { Date, Math };
+const sandbox = { Date, Math, STALE_AFTER_DAYS: 14 };
 const status = vm.runInNewContext(js + '\n lifecycleOf;', sandbox);
 const tomorrow = new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString();
 
