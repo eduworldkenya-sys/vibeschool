@@ -71,7 +71,7 @@ on conflict(id) do update set full_name=excluded.full_name,role=null;
 insert into public.students(id,name,admission_number,class_id)
 values('$DUAL_LEARNER','Dual Lane Claim Learner','T3-DUAL-001','$CLASS_A');
 insert into public.student_claim_codes(student_id,code,claimed,role)
-values('$DUAL_LEARNER','T3DUALLANE',false,'both');
+values('$DUAL_LEARNER','T3DUALLANE',false,'shared');
 SQL
 
 (run_as "$DUAL_STUDENT" "select public.redeem_student_claim('T3DUALLANE','$DUAL_STUDENT');" "$work/dual.student" || true) & ps=$!
