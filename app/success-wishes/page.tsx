@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import SuccessCardStudio from '@/components/success-wishes/SuccessCardStudio'
+import UnifiedSuccessWishes from '@/components/success-wishes/UnifiedSuccessWishes'
 
 export const metadata: Metadata = {
-  title: 'Success Wishes — Personalised Exam Cards | VibeSchool',
-  description: 'Create a beautiful, personalised success wishes card and share it as an image.',
+  title: 'Success Wishes | VibeSchool',
+  description: 'Create a personal wish, choose the candidate’s school and use the private Success Wishes inbox.',
 }
 
 export default function SuccessWishesPage() {
-  return <SuccessCardStudio />
+  return <UnifiedSuccessWishes />
 }

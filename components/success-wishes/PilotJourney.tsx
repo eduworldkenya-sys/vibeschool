@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, ArrowRight, Check, Heart, MailOpen, Mic, Play, ShieldCheck, Trash2, Video } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Heart, MailOpen, Mic, ShieldCheck, Trash2, Video } from 'lucide-react'
 import VoiceRecorder from './VoiceRecorder'
 import styles from './PilotJourney.module.css'
 
@@ -58,8 +58,12 @@ function Card({ template, recipient, sender, text, compact = false }: { template
   return <div className={[styles.cardArtwork, styles[template], compact ? styles.compact : ''].join(' ')}>
     <div className={styles.cardTop}>VIBESCHOOL <span>SUCCESS WISHES</span></div>
     <div className={styles.cardOrnament} aria-hidden="true">{template === 'botanical' ? '✿' : template === 'nightfall' ? '✦' : template === 'sunrise' ? '✳' : '✧'}</div>
-    <div className={styles.cardCenter}><span className={styles.cardKicker}>To a remarkable candidate</span><strong>{chosen.line}</strong><span className={styles.cardRecipient}>{recipient}</span></div>
-    {text && <p className={styles.cardMessage}>{text}</p>}
+    <div className={styles.cardCenter}>
+      <span className={styles.cardKicker}>To a remarkable candidate</span>
+      <strong>{chosen.line}</strong>
+      <span className={styles.cardRecipient}>{recipient}</span>
+      {text && <blockquote className={styles.cardMessage}>{text}</blockquote>}
+    </div>
     <div className={styles.cardBottom}>{sender ? 'From ' + sender : 'WITH ALL OUR BEST WISHES'} <span>2026</span></div>
   </div>
 }
@@ -83,7 +87,6 @@ export default function PilotJourney() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [reason, setReason] = useState('Unwanted message')
-  const [preview, setPreview] = useState(false)
 
   useEffect(() => {
     setState(safeRead()); setReady(true)
@@ -98,6 +101,14 @@ export default function PilotJourney() {
     return () => URL.revokeObjectURL(url)
   }, [file])
   const view = useMemo(() => state.wishes.find(w => w.id === viewId), [state.wishes, viewId])
+  const unread = state.wishes.filter(w => w.status === 'request').length
+  const visibleWishes = state.wishes.filter(w => w.status === 'request' || w.status === 'accepted').length
+  const missingFields = [
+    !sender.trim() && 'sender name',
+    !relationship.trim() && 'relationship',
+    !message.trim() && 'personal message',
+    format !== 'text' && !file && (format === 'voice' ? 'voice recording' : 'video'),
+  ].filter(Boolean).join(', ')
   useEffect(() => {
     let active = true
     let objectUrl = ''
@@ -113,7 +124,7 @@ export default function PilotJourney() {
     try { localStorage.setItem(KEY, JSON.stringify(next)) } catch { setError('Browser storage is disabled. The changes may not survive a refresh.') }
   }
   function setModeSafe(next: 'sender' | 'candidate' | 'school') {
-    setMode(next); setError(''); setPreview(false); setViewId('')
+    setMode(next); setError(''); setViewId('')
     if (next !== 'candidate') { setCandidateUnlocked(false); setCandidateCode('') }
   }
   function chooseMedia(e: ChangeEvent<HTMLInputElement>) {
@@ -140,7 +151,7 @@ export default function PilotJourney() {
         text: message.trim().slice(0, 800), format, fileName: file?.name.slice(0, 100), status: 'request',
         createdAt: new Date().toISOString() }
       update({ ...state, wishes: [wish, ...state.wishes].slice(0, 20) })
-      setReceipt(id.slice(0, 8).toUpperCase()); setFile(null); setPreview(false)
+      setReceipt(id.slice(0, 8).toUpperCase()); setFile(null)
     } catch (err) { setError(err instanceof Error ? err.message : 'Could not save test card.') }
     finally { setBusy(false) }
   }
@@ -172,21 +183,21 @@ export default function PilotJourney() {
     <section className={styles.hero}>
       <div><p className={styles.eyebrow}>Gilgil Township · Free sponsored test</p>
         <h1>Give them a moment to remember.</h1>
-        <p className={styles.lead}>Choose a beautiful card, make it personal and open it as a candidate. This pilot uses a fictional learner and test-only school participation.</p>
+        <p className={styles.lead}>Create a card and try opening it as a fictional candidate. This test does not deliver real messages.</p>
       </div>
       <div className={styles.heroMeta}><ShieldCheck size={19}/><strong>Safe to explore</strong><span>No live messages, payments, OTP or school records are changed. Test data stays in this browser.</span></div>
     </section>
     <nav className={styles.tabs} aria-label="Choose test role">
       <button className={mode === 'sender' ? styles.active : ''} onClick={() => setModeSafe('sender')}>01 <strong>Create a wish</strong></button>
-      <button className={mode === 'candidate' ? styles.active : ''} onClick={() => setModeSafe('candidate')}>02 <strong>Candidate inbox</strong><span className={styles.count}>{state.wishes.filter(w => w.status === 'request').length}</span></button>
+      <button className={mode === 'candidate' ? styles.active : ''} onClick={() => setModeSafe('candidate')}>02 <strong>Candidate inbox</strong><span className={styles.count}>{unread} unread</span></button>
       <button className={mode === 'school' ? styles.active : ''} onClick={() => setModeSafe('school')}>03 <strong>School controls</strong></button>
     </nav>
     {error && <div className={styles.error} role="alert">{error}</div>}
     {mode === 'sender' && <>
       {receipt ? <section className={styles.success} role="status"><Check size={28}/><div><h2>Your test wish was saved.</h2><p>Reference {receipt}. Open the candidate inbox on this browser, enter the test code and accept the card. No real delivery or payment occurred.</p>
-        <div className={styles.row}><button className={styles.primary} onClick={() => { setReceipt(''); setModeSafe('candidate') }}>Open candidate inbox <ArrowRight size={16}/></button><button className={styles.outline} onClick={() => { setReceipt(''); setPreview(false) }}>Create another card</button></div></div></section> :
+        <div className={styles.row}><button className={styles.primary} onClick={() => { setReceipt(''); setModeSafe('candidate') }}>Open candidate inbox <ArrowRight size={16}/></button><button className={styles.outline} onClick={() => { setReceipt('') }}>Create another card</button></div></div></section> :
       <form onSubmit={send}>
-        <div className={styles.sectionTitle}><div><span>STEP ONE</span><h2>Choose your card</h2><p>Four finished, responsive styles. Your choice follows the wish into the inbox.</p></div></div>
+        <div className={styles.sectionTitle}><div><span>STEP ONE</span><h2>Choose your card</h2><p>Pick a style for your message.</p></div></div>
         <div className={styles.gallery}>
           {TEMPLATES.map(t => <button type="button" key={t.id} className={[styles.templateChoice, template === t.id ? styles.chosen : ''].join(' ')} aria-pressed={template === t.id} onClick={() => setTemplate(t.id)}>
             <Card compact template={t.id} recipient={CANDIDATE}/>
@@ -210,10 +221,11 @@ export default function PilotJourney() {
               {file && <div><p>{file.name} · {(file.size/1024/1024).toFixed(1)} MB</p>{format==='voice'?<audio controls src={filePreview}/>:<video className={styles.localVideo} controls playsInline src={filePreview}/>}</div>}
               <small>Audio/video is stored locally in this browser's test IndexedDB, not uploaded to VibeSchool. Limit 20 MB.</small>
             </div>}
-            <div className={styles.controls}><button className={styles.outline} type="button" onClick={()=>setPreview(v=>!v)}>{preview?'Hide preview':'Preview full card'}</button><button className={styles.primary} type="submit" disabled={busy || !state.open || !message.trim() || (format!=='text'&&!file)}>{busy?'Saving…':'Send test card'} <ArrowRight size={17}/></button></div>
+            <div className={styles.controls}><button className={styles.primary} type="submit" disabled={busy || !state.open || Boolean(missingFields)}>{busy?'Saving…':'Send test card'} <ArrowRight size={17}/></button></div>
+            {missingFields && <p className={styles.fieldHelp}>To save a test card, add: {missingFields}.</p>}
             {!state.open && <p className={styles.warning}>Sending is disabled by the school simulation. Reopen it in School controls.</p>}
           </div>
-          <div className={styles.liveCard}><span>LIVE CARD PREVIEW</span><Card template={template} recipient={CANDIDATE} sender={sender} text={preview?message:undefined}/><p>Premium design is generated from your actual choices, not a static sample.</p></div>
+          <div className={styles.liveCard}><span>YOUR CARD</span><Card template={template} recipient={CANDIDATE} sender={sender} text={message}/></div>
         </div>
       </form>}
     </>}
@@ -224,7 +236,7 @@ export default function PilotJourney() {
           <p className={styles.testCode}>Test code: <strong>{state.code}</strong></p>
           <button className={styles.primary} type="submit">Open inbox <ArrowRight size={17}/></button>
         </form>
-      </div> : <div className={styles.inbox}><div className={styles.inboxHeader}><div><span>GILGIL TOWNSHIP · FICTIONAL</span><h2>Wishes for {CANDIDATE}</h2><p>Open and accept the messages you want to see.</p></div><button className={styles.outline} onClick={()=>{setCandidateUnlocked(false);setViewId('');setCandidateCode('')}}>Finish & sign out</button></div>
+      </div> : <div className={styles.inbox}><div className={styles.inboxHeader}><div><span>GILGIL TOWNSHIP · FICTIONAL</span><h2>Wishes for {CANDIDATE}</h2><p>{visibleWishes} wishes · {unread} unread. Open and accept the messages you want to see.</p></div><button className={styles.outline} onClick={()=>{setCandidateUnlocked(false);setViewId('');setCandidateCode('')}}>Finish & sign out</button></div>
         {view && view.status === 'accepted' ? <div className={styles.openCard}>
           <button className={styles.textBack} onClick={()=>setViewId('')}><ArrowLeft size={17}/> All wishes</button>
           <Card template={view.template} recipient={CANDIDATE} sender={view.sender} text={view.text}/>
