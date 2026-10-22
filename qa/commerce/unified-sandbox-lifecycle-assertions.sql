@@ -51,6 +51,10 @@ begin
     end if;
   end;
 
+  if commerce_sandbox.claim_stk_send(v_guest_attempt)<>true
+    or commerce_sandbox.claim_stk_send(v_guest_attempt)<>false then
+    raise exception 'duplicate STK send claimed'; end if;
+
   -- Callback arrives BEFORE request id is attached: saved, not settled.
   insert into commerce_sandbox.provider_inbox(
     checkout_request_id,merchant_request_id,provider_event_key,
@@ -97,6 +101,8 @@ begin
     'learning_product','sandbox-learning-pack','profile',
     'founder-test-profile-1','timeout-idempotency-12345');
   v_expired_attempt:=commerce_sandbox.reserve_attempt(v_expired,'254712345678');
+  if not commerce_sandbox.claim_stk_send(v_expired_attempt) then
+    raise exception 'timeout attempt not claimed'; end if;
   perform commerce_sandbox.attach_stk(v_expired_attempt,
     'ws_CO_SYNTHETIC1037','merchant_SYNTHETIC1037');
   insert into commerce_sandbox.provider_query_observations(
@@ -117,6 +123,8 @@ begin
     'exam_access','sandbox-exam-access','profile',
     'exam-test-profile-1','conflict-idempotency-12345');
   v_conflict_attempt:=commerce_sandbox.reserve_attempt(v_conflict,'254712345678');
+  if not commerce_sandbox.claim_stk_send(v_conflict_attempt) then
+    raise exception 'tampered attempt not claimed'; end if;
   perform commerce_sandbox.attach_stk(v_conflict_attempt,
     'ws_CO_SYNTHETICBAD','merchant_SYNTHETICBAD');
   insert into commerce_sandbox.provider_query_observations(
