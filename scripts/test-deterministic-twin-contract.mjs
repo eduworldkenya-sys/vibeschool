@@ -123,8 +123,8 @@ for (const marker of [
   'authorityReadError',
 ]) requireText('lib/twin/core.ts', marker, 'Shared Twin core is missing an authority invariant')
 
-requireText('lib/student-context.tsx', 'getTwinAuthorityContext', 'Student portal must derive relationship authority')
-requireText('lib/student-context.tsx', 'requireTwinRole(authority, "student")', 'Student portal must require a proven learner role')
+requireText('lib/student-context.tsx', 'rpc("current_student_id")', 'Student portal must resolve canonical learner authority')
+requireText('lib/student-context.tsx', 'enrollments.length !== 1', 'Student portal must reject ambiguous current enrollment')
 requireText('lib/student-context.tsx', 'from("student_classes")', 'Student portal must use canonical current enrollment')
 forbidText('lib/student-context.tsx', 'profile.role !== "student"', 'Student portal must not collapse multi-role identity to profiles.role')
 
