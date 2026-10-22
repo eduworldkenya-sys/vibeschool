@@ -68,7 +68,7 @@ Deno.serve(async(req)=>{
           result_code,paid_amount_kes,phone,provider_receipt
         ) values (
           ${callback.checkoutRequestId},${callback.merchantRequestId},${key},
-          ${callback.resultCode},${callback.amountKes},${callback.phone},${callback.receipt}
+          ${callback.resultCode},${callback.amountKes ?? null},${callback.phone ?? null},${callback.receipt ?? null}
         ) on conflict(provider_event_key) do nothing`
       },
       async findAttempt(checkoutRequestId){
