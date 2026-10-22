@@ -115,7 +115,9 @@ async function checkGilgilPilot(width) {
     await page.getByRole('button', { name: /New Beginnings/ }).click()
     const wish = 'Gilgil controlled pilot: this is a personalised test wish at width ' + width + '.'
     await page.locator('textarea').fill(wish)
-    await page.locator('[class*="liveCard"] blockquote').getByText(wish, { exact: true }).waitFor()
+    const previewMessage = page.locator('[class*="liveCard"] blockquote')
+    await previewMessage.waitFor()
+    assert.equal((await previewMessage.textContent()).trim(), wish)
     assert.equal(await page.getByText(/Premium design is generated/).count(), 0)
     await page.getByRole('button', { name: /Send test card/ }).click()
     await page.getByRole('heading', { name: 'Your test wish was saved.' }).waitFor()
