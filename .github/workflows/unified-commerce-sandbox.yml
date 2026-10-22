@@ -36,7 +36,7 @@ jobs:
       - name: Install locked dependencies, without install scripts
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run sandbox contracts with injected transport (no real network)
-        run: node --import ./scripts/register-typescript.mjs --test lib/commerce/unified/sandbox.test.ts
+        run: node --import ./scripts/register-typescript.mjs --test lib/commerce/unified/*.test.ts
       - name: Typecheck whole repository
         run: npm run typecheck
 
