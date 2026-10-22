@@ -6,14 +6,15 @@ import {
 } from './sandbox'
 import { sendUniversalDarajaSandboxStk, type DarajaSandboxSettings } from './daraja-sandbox'
 
-const order = () => makeSandboxOrder({
+const orderInput = () => ({
   orderId: 'order_123456789',
   productKind: 'learning_product',
   itemReference: 'ebook_form4_biology',
   trustedPriceKes: 300,
   owner: { kind: 'profile', profileId: 'profile_123456' },
   idempotencyKey: 'idempotency_123456789',
-})
+} as const)
+const order = () => makeSandboxOrder(orderInput())
 const ack = () => recordSandboxAcknowledgement(order(), '0712345678', {
   checkoutRequestId: 'ws_CO_1234567',
   merchantRequestId: 'merchant_12345',
@@ -46,21 +47,21 @@ test('one universal order schema covers every paid VibeSchool product', () => {
   const types = ['teacher_credits', 'learning_product', 'exam_access',
     'success_wish', 'school_subscription', 'premium_feature'] as const
   for (const productKind of types) {
-    const actual = makeSandboxOrder({ ...order(), productKind, trustedPriceKes: 50 })
+    const actual = makeSandboxOrder({ ...orderInput(), productKind, trustedPriceKes: 50 })
     assert.equal(actual.productKind, productKind)
     assert.equal(actual.amountKes, 50)
     assert.equal(actual.mode, 'sandbox')
   }
-  const guest = makeSandboxOrder({ ...order(), owner: { kind: 'guest', guestReference: 'guest_12345678' } })
+  const guest = makeSandboxOrder({ ...orderInput(), owner: { kind: 'guest', guestReference: 'guest_12345678' } })
   assert.equal(guest.owner.kind, 'guest')
 })
 test('rejects malformed or client-like pricing and identifiers', () => {
   for (const trustedPriceKes of [0,-1,0.5,Infinity,NaN,250001]) {
-    assert.throws(() => makeSandboxOrder({ ...order(), trustedPriceKes }))
+    assert.throws(() => makeSandboxOrder({ ...orderInput(), trustedPriceKes }))
   }
-  assert.throws(() => makeSandboxOrder({ ...order(), productKind: 'unsupported' as never }))
-  assert.throws(() => makeSandboxOrder({ ...order(), idempotencyKey: 'short' }))
-  assert.throws(() => makeSandboxOrder({ ...order(), itemReference: 'x' }))
+  assert.throws(() => makeSandboxOrder({ ...orderInput(), productKind: 'unsupported' as never }))
+  assert.throws(() => makeSandboxOrder({ ...orderInput(), idempotencyKey: 'short' }))
+  assert.throws(() => makeSandboxOrder({ ...orderInput(), itemReference: 'x' }))
 })
 test('strict Kenya phone normalization rejects injection and wrong country', () => {
   assert.equal(normalizeKenyanPhone('0712345678'), '254712345678')
