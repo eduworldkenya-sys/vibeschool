@@ -1,0 +1,36 @@
+.page{min-height:100dvh;background:#f8f8f3;color:#192e2b;font-family:var(--font-jakarta),system-ui,sans-serif}
+.page *{box-sizing:border-box}.header{max-width:1180px;margin:auto;padding:18px 24px;border-bottom:1px solid #dfe7df;display:flex;align-items:center;justify-content:space-between;gap:12px;color:#62746f;font-size:12px}
+.brand{color:#13664b;font-weight:850;letter-spacing:-.6px;font-size:19px;text-decoration:none}.brand span{color:#697a70;font-weight:500;font-size:13px}
+.main{max-width:1180px;margin:0 auto;padding:36px 24px 46px}
+.intro{max-width:730px;margin-bottom:35px}.eyebrow,.heading>span,.live>span{font-size:10px;letter-spacing:1.5px;color:#18704f;font-weight:850}
+.intro h1{font:600 clamp(35px,5vw,59px)/1.08 Georgia,'Times New Roman',serif;letter-spacing:-1.5px;margin:10px 0 13px}
+.intro>p:last-child{color:#62746f;font-size:14px;line-height:1.7;max-width:570px}
+.heading h2{font:600 clamp(24px,3vw,33px)/1.15 Georgia,serif;margin:8px 0 17px}
+.gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:17px;margin-bottom:38px}
+.option{min-width:0;text-align:left;border:1px solid #dfe7df;border-radius:16px;padding:7px;background:#fff;cursor:pointer;color:#192e2b;transition:transform .15s,border-color .15s}
+.option:hover{transform:translateY(-2px)}.option.active{border:2px solid #13664b;padding:6px;box-shadow:0 5px 20px #13664b18}
+.art{display:block;width:100%;height:auto;aspect-ratio:3/4;border-radius:10px;overflow:hidden}
+.optionCaption{display:block;padding:12px 6px 7px}.optionCaption strong{font-size:13px;display:block}.optionCaption small{font-size:11px;display:block;margin-top:4px;color:#62746f}
+.composer{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.85fr);align-items:start;gap:28px}
+.form,.live{border:1px solid #dfe7df;background:#fff;border-radius:19px;padding:27px}
+.form label{font-size:12px;font-weight:750;display:grid;gap:9px;margin-top:19px}
+.form input,.form textarea{display:block;width:100%;padding:12px 14px;border:1px solid #d4ddd3;border-radius:10px;background:#fff;color:#192e2b;font:400 14px/1.5 system-ui,sans-serif}
+.form textarea{resize:vertical;min-height:125px}
+.form input:focus,.form textarea:focus{outline:3px solid #c8e1d1;outline-offset:1px}
+.counter{text-align:right;font-size:11px;color:#6b786c;margin-top:5px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 8px}
+.primary,.secondary{min-height:48px;padding:12px 17px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-size:13px;font-weight:800;cursor:pointer}
+.primary{background:#14684d;color:#fff;border:1px solid #14684d}.secondary{background:#fff;color:#14684d;border:1px solid #cbd9ce}
+.primary:disabled,.secondary:disabled{opacity:.5;cursor:not-allowed}
+.hint,.privacy,.status,.error{font-size:12px;line-height:1.65;margin:12px 0 0;color:#65756b}
+.privacy{border-top:1px solid #e7eee6;padding-top:16px;margin-top:21px}
+.status{color:#17684a}.error{color:#a53e31}
+.live{position:sticky;top:14px;background:#f5f2eb;text-align:center;display:grid;gap:13px;justify-items:center}
+.live .art{max-width:460px;box-shadow:0 7px 24px #192e2b17}
+.live>p{max-width:300px;font-size:11px;color:#65756b;line-height:1.7}
+.footer{border-top:1px solid #dfe7df;margin-top:35px;padding:20px 0;color:#62746f;font-size:12px;line-height:1.7}
+.footer p+p{margin-top:7px}.footer a{color:#13664b;font-weight:700;text-decoration:underline;text-underline-offset:2px}.footer a svg{display:inline;vertical-align:middle}
+.page button:focus-visible,.page a:focus-visible{outline:3px solid #deb95a;outline-offset:3px}
+@media(max-width:800px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.composer{grid-template-columns:1fr}.live{position:static;max-width:540px;width:100%;margin:auto}}
+@media(max-width:520px){.header{padding:15px}.main{padding:29px 15px}.intro h1{font-size:38px}.gallery{gap:9px}.option{padding:5px}.option.active{padding:4px}.optionCaption{padding:9px 3px 5px}.optionCaption strong{font-size:11px}.optionCaption small{font-size:9px}.form,.live{padding:18px}.actions>.primary,.actions>.secondary{width:100%}}
+@media(prefers-reduced-motion:reduce){.option{transition:none}}
