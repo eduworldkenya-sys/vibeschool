@@ -73,3 +73,5 @@ jobs:
           export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGDATABASE=commerce_sandbox_test
           psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-fixture.sql
           psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-lifecycle.sql
+          psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-lifecycle-assertions.sql
