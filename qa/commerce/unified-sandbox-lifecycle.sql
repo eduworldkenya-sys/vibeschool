@@ -106,10 +106,23 @@ begin
     return v_id;
   end if;
   insert into commerce_sandbox.payment_attempts(order_id,amount_kes,phone,state)
-    values(p_order_id,v_order.amount_kes,p_phone,'submitting')
+    values(p_order_id,v_order.amount_kes,p_phone,'created')
     returning id into v_id;
   update commerce_sandbox.orders set state='awaiting_payment' where id=p_order_id;
   return v_id;
+end $$;
+
+-- One-time, transactional claim immediately before an external STK request.
+-- If network fails afterwards the attempt stays submitting, requiring status
+-- investigation. A retry of the same request cannot claim again.
+create function commerce_sandbox.claim_stk_send(p_attempt uuid)
+returns boolean language plpgsql set search_path = '' as $$
+declare v_id uuid;
+begin
+  update commerce_sandbox.payment_attempts set state='submitting'
+    where id=p_attempt and state='created'
+    returning id into v_id;
+  return v_id is not null;
 end $$;
 
 create function commerce_sandbox.attach_stk(
