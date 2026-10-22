@@ -81,57 +81,111 @@ export default function HomeworkDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (identityLoading) return;
-    if (!identity || !id) { setLoading(false); return; }
+    let cancelled = false;
+    // Never let a prior learner or route's work survive an identity change.
+    setHomework(null);
+    setSubmission(null);
+    setQuestions([]);
+    setAnswers([]);
+    setDraft({});
+    setPhotoFile(null);
+    setPhotoReference(null);
+    setPhotoPreview(null);
+    setError(null);
+    setLoadError(null);
+    setLoading(true);
+
+    if (identityLoading) return () => { cancelled = true; };
+    if (!identity || !id) {
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+    if (!identity.classId || !identity.schoolId) {
+      setLoadError("Your current class is unavailable. Ask the school to confirm your enrollment.");
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+    const studentId = identity.studentId;
+    const classId = identity.classId;
+    const schoolId = identity.schoolId;
 
     async function load() {
-      setLoading(true);
-      setLoadError(null);
-      const { data: raw, error: homeworkError } = await supabase.from("homework").select("*").eq("id", id).maybeSingle();
-      if (homeworkError) { setLoadError("Could not load homework. Check your connection."); setLoading(false); return; }
-      if (!raw) {
-        setLoading(false);
-        return;
-      }
+      try {
+        const { data: raw, error: homeworkError } = await supabase
+          .from("homework")
+          .select("*")
+          .eq("id", id)
+          .eq("class_id", classId)
+          .eq("school_id", schoolId)
+          .maybeSingle();
+        if (cancelled) return;
+        if (homeworkError) throw new Error("Could not load homework. Check your connection.");
+        if (!raw) { setLoading(false); return; }
+        const hw = raw as Homework;
 
-      const hw = raw as Homework;
-      setHomework(hw);
+        if (hw.target_group_id) {
+          const { data: groupMember, error: groupError } = await supabase
+            .from("class_group_members")
+            .select("group_id")
+            .eq("student_id", studentId)
+            .eq("group_id", hw.target_group_id)
+            .maybeSingle();
+          if (cancelled) return;
+          if (groupError) throw new Error("Could not verify this assignment's group access.");
+          if (!groupMember) { setLoading(false); return; }
+        }
 
-      const [teacherRes, questionRes, submissionRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", hw.teacher_id).maybeSingle(),
-        // Never fetch model_answer into the learner browser.
-        supabase.from("homework_questions").select("id,homework_id,question,order_num").eq("homework_id", hw.id).order("order_num"),
-        supabase.from("homework_submissions").select("id,status,photo_url,mark,feedback,feedback_released_at,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", identity!.studentId).maybeSingle(),
-      ]);
+        const [teacherRes, questionRes, submissionRes] = await Promise.all([
+          supabase.from("profiles").select("full_name").eq("id", hw.teacher_id).maybeSingle(),
+          supabase.from("homework_questions").select("id,homework_id,question,order_num").eq("homework_id", hw.id).order("order_num"),
+          supabase.from("homework_submissions").select("id,status,photo_url,mark,feedback,feedback_released_at,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", studentId).maybeSingle(),
+        ]);
+        if (cancelled) return;
+        if (teacherRes.error || questionRes.error || submissionRes.error) {
+          throw new Error("Could not load the homework details or submission. Please retry.");
+        }
 
-      if (teacherRes.error || questionRes.error || submissionRes.error) {
-        setLoadError("Could not load the homework details or submission. Please retry.");
-        setLoading(false);
-        return;
-      }
-      setTeacher(teacherRes.data?.full_name ?? "Teacher");
-      setQuestions((questionRes.data as HomeworkQuestion[]) ?? []);
+        const sub = submissionRes.data as SubmissionRow | null;
+        let photoViewUrl: string | null = null;
+        if (sub?.photo_url) {
+          try { photoViewUrl = await getHomeworkPhotoViewUrl(sub.photo_url); }
+          catch {
+            if (!cancelled) setError("Could not open your homework photo. Refresh to retry.");
+          }
+        }
+        if (cancelled) return;
 
-      const sub = submissionRes.data as SubmissionRow | null;
-      setSubmission(sub);
-      if (sub?.photo_url) {
-        setPhotoReference(sub.photo_url);
-        try { setPhotoPreview(await getHomeworkPhotoViewUrl(sub.photo_url)); }
-        catch { setError("Could not open your homework photo. Refresh to retry."); }
-      } else { setPhotoReference(null); setPhotoPreview(null); }
+        let loadedAnswers: HomeworkAnswer[] = [];
+        if (sub) {
+          const { data, error: answerError } = await supabase
+            .from("homework_answers")
+            .select("id,submission_id,question_id,answer_text,created_at")
+            .eq("submission_id", sub.id);
+          if (cancelled) return;
+          if (answerError) throw new Error("Could not load your saved answers. Please retry.");
+          loadedAnswers = (data as HomeworkAnswer[]) ?? [];
+        }
 
-      if (sub) {
-        const { data } = await supabase.from("homework_answers").select("id,submission_id,question_id,answer_text,created_at").eq("submission_id", sub.id);
-        const loadedAnswers = (data as HomeworkAnswer[]) ?? [];
+        if (cancelled) return;
+        setHomework(hw);
+        setTeacher(teacherRes.data?.full_name ?? "Teacher");
+        setQuestions((questionRes.data as HomeworkQuestion[]) ?? []);
+        setSubmission(sub);
+        setPhotoReference(sub?.photo_url ?? null);
+        setPhotoPreview(photoViewUrl);
         setAnswers(loadedAnswers);
         setDraft(Object.fromEntries(loadedAnswers.map(answer => [answer.question_id, answer.answer_text ?? ""])));
+        setLoading(false);
+      } catch (cause) {
+        if (cancelled) return;
+        setLoadError(cause instanceof Error ? cause.message : "Could not load homework. Please retry.");
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     void load();
-  }, [id, identity, identityLoading]);
+    return () => { cancelled = true; };
+  }, [id, identity?.studentId, identity?.classId, identity?.schoolId, identityLoading]);
 
   const locked = submission != null && ["submitted", "received", "under_review", "marked"].includes(submission.status);
   const editable = !locked;
