@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'lib/commerce/unified/**'
+      - 'supabase/functions/unified-commerce-sandbox-*/**'
       - 'qa/commerce/unified-sandbox-*.sql'
       - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
       - '.github/workflows/unified-commerce-sandbox.yml'
@@ -85,3 +86,22 @@ jobs:
         run: |
           npm ci --ignore-scripts --no-audit --no-fund
           node --import ./scripts/register-typescript.mjs --test qa/commerce/unified-sandbox-integration.test.mjs
+
+  edge-typecheck:
+    name: Typecheck isolated sandbox Edge Functions (no deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check isolated sandbox HTTP handlers
+        run: |
+          deno check supabase/functions/unified-commerce-sandbox-checkout/index.ts
+          deno check supabase/functions/unified-commerce-sandbox-callback/index.ts
+          deno check supabase/functions/unified-commerce-sandbox-status/index.ts
