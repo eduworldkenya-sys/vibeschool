@@ -7,6 +7,8 @@ import styles from './SuccessWishes.module.css'
 import PaidMediaUpload from './PaidMediaUpload'
 import VoiceRecorder from './VoiceRecorder'
 import WishCardExperience from './WishCardExperience'
+import type { CardDesignDraft } from './SuccessCardStudio'
+import { CardArt } from './SuccessCardStudio'
 
 type School = { id: string; name: string; county: string | null }
 type Configuration = { enabled: boolean; mediaEnabled: boolean; paymentsEnabled: boolean; maxSeconds: number; maxBytes: number }
@@ -58,11 +60,11 @@ function SchoolPicker({ selected, onChange, disabled = false }: { selected: Scho
   </div>
 }
 
-function SendForm({ config }: { config: Configuration | null }) {
+function SendForm({ config, initialWish }: { config: Configuration | null; initialWish?: CardDesignDraft }) {
   const [school, setSchool] = useState<School | null>(null)
   const [admissionNumber, setAdmissionNumber] = useState('')
-  const [candidateName, setCandidateName] = useState('')
-  const [senderName, setSenderName] = useState('')
+  const [candidateName, setCandidateName] = useState(initialWish?.candidate || '')
+  const [senderName, setSenderName] = useState(initialWish?.sender || '')
   const [senderPhone, setSenderEmail] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [otpSent, setOtpSent] = useState(false)
@@ -70,7 +72,7 @@ function SendForm({ config }: { config: Configuration | null }) {
   const [verifying, setVerifying] = useState(false)
   const [relationship, setRelationship] = useState('')
   const [kind, setKind] = useState<Kind>('text')
-  const [text, setText] = useState('')
+  const [text, setText] = useState(initialWish?.message || '')
   const [consent, setConsent] = useState(false)
   const [preview, setPreview] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -147,10 +149,11 @@ function SendForm({ config }: { config: Configuration | null }) {
     setFile(next)
   }
 
-  function showPreview(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); setError('')
-    if (!school) { setError('Choose the candidate’s school.'); return }
-    if (kind !== 'text' && !file) { setError('Choose a file to preview.'); return }
+  function showPreview() {
+    setError('')
+    if (!candidateName.trim() || !senderName.trim() || (kind === 'text' ? !text.trim() : !file)) {
+      setError('Add the candidate’s name, your name and a wish before previewing the card.'); return
+    }
     setPreview(true)
   }
 
@@ -181,6 +184,9 @@ function SendForm({ config }: { config: Configuration | null }) {
 
   async function send() {
     if (!school || busy || !config?.enabled || kind !== 'text') return
+    if (!candidateName.trim() || !admissionNumber.trim() || !senderName.trim() || !relationship.trim() || !text.trim() || !consent) {
+      setError('Complete the recipient, message and permission details before submitting.'); return
+    }
     if (!senderProof) { setError('Verify your phone before submitting.'); return }
     setBusy(true); setError('')
     if (!idempotencyKey.current) {
@@ -206,7 +212,7 @@ function SendForm({ config }: { config: Configuration | null }) {
 
   if (receipt) return <section className={styles.panel} aria-live="polite"><CheckCircle2 size={34} className={styles.successIcon} aria-hidden="true"/><h2>Submission received</h2><p className={styles.hint}>{receipt.message || 'Your message has been received. Availability depends on recipient verification and any required payment.'}</p>{receipt.reference && <p className={styles.status}>Reference: <strong>{receipt.reference}</strong></p>}{receipt.managementToken && <div className={styles.section}><label className={styles.field}>Private withdrawal code<input readOnly value={receipt.managementToken} autoComplete="off" onFocus={event => event.target.select()}/><small>Save this code privately now. It is shown only here and lets you withdraw your message. Do not send it to the candidate.</small></label></div>}{receipt.status && <p className={styles.status}>Status: {receipt.status.replace(/_/g, ' ')}</p>}<div className={styles.actions}><button className={styles.secondary} type="button" onClick={() => { setReceipt(null); setPreview(false); idempotencyKey.current = '' }}>Send another wish</button></div></section>
 
-  if (preview) return <section className={styles.panel}><h2>Review your wish</h2><p className={styles.hint}>Check the recipient before submitting.</p><div className={styles.preview}><WishCardExperience recipient={candidateName} school={school?.name} sender={senderName} text={kind === 'text' ? text : null} kind={kind} mediaUrl={kind !== 'text' ? mediaUrl : undefined}/></div>{kind !== 'text' && <p className={styles.status}>This is a local preview. Media sending is not available yet; your file has not been uploaded.</p>}{config?.paymentsEnabled && <p className={styles.status}>Any required payment must be confirmed before delivery. Submitting does not confirm payment.</p>}{config?.enabled && <div className={styles.section}>
+  if (preview) return <section className={styles.panel}><h2>Review your wish</h2><p className={styles.hint}>Check the card before you send it.</p>{initialWish && <><p className={styles.status}>Selected design: {initialWish.theme}. This style is shown for your card download. The private inbox currently stores and sends the text only, so the candidate will see the VibeSchool inbox card design.</p><div className={styles.preview} style={{ maxWidth: 460, margin: '0 auto' }}><CardArt template={initialWish.theme} values={{ candidate: candidateName, sender: senderName, message: text }}/></div></>}<div className={styles.preview}><WishCardExperience recipient={candidateName} school={school?.name} sender={senderName} text={kind === 'text' ? text : null} kind={kind} mediaUrl={kind !== 'text' ? mediaUrl : undefined}/></div>{kind !== 'text' && <p className={styles.status}>This is a local preview. Media sending is not available yet; your file has not been uploaded.</p>}{config?.paymentsEnabled && <p className={styles.status}>Any required payment must be confirmed before delivery. Submitting does not confirm payment.</p>}{config?.enabled && school && <div className={styles.section}>
       <h3>Verify your phone</h3>
       <p className={styles.hint}>A six-digit SMS code confirms control of your phone. Your number is not shared with the candidate.</p>
       <p className={styles.status}>{senderPhone || 'Add your phone number in the form.'}</p>
@@ -216,9 +222,9 @@ function SendForm({ config }: { config: Configuration | null }) {
           {otpSent && <><label className={styles.field}>Six-digit code<input type="text" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={otpCode} onChange={event => setOtpCode(event.target.value)} autoComplete="one-time-code"/></label><button type="button" className={styles.secondary} disabled={verifying || !/^[0-9]{6}$/.test(otpCode)} onClick={() => void verifySenderCode()}>Verify code</button></>}
         </div>}
     </div>}
-    {error && <div className={styles.error} role="alert">{error}</div>}<div className={styles.actions}><button className={styles.secondary} type="button" disabled={busy} onClick={() => setPreview(false)}>Edit</button><button className={styles.primary} type="button" onClick={() => void send()} disabled={busy || !config?.enabled || kind !== 'text' || !senderProof}>{busy ? 'Submitting…' : 'Submit wish'}</button></div></section>
+    {!school && <p className={styles.status}>This is a local preview. Choose the candidate’s school before submitting.</p>}{error && <div className={styles.error} role="alert">{error}</div>}<div className={styles.actions}><button className={styles.secondary} type="button" onClick={() => setPreview(false)}>Edit</button><button className={styles.primary} type="button" onClick={() => void send()} disabled={busy || !config?.enabled || !school || kind !== 'text' || !consent || !senderProof}>{busy ? 'Submitting…' : 'Submit wish'}</button></div></section>
 
-  return <form className={styles.panel} onSubmit={showPreview}>
+  return <form className={styles.panel} noValidate onSubmit={event => event.preventDefault()}>
     <h2>Who are you cheering on?</h2><p className={styles.hint}>Your message goes to one candidate’s private inbox.</p>
     {storedDraft && <div className={styles.notice} role="status">
       <p>A draft was saved in this browser tab. Only restore it on your own device.</p>
@@ -237,7 +243,7 @@ function SendForm({ config }: { config: Configuration | null }) {
       }}/>
       <span>Save a draft for up to 30 minutes in this browser tab. Use only on a private device; leave unchecked on shared phones.</span>
     </label>}
-    {error && <div className={styles.error} role="alert">{error}</div>}<div className={styles.actions}><span className={styles.hint}><LockKeyhole size={12} aria-hidden="true"/> Private by default</span><button type="submit" className={styles.primary} disabled={!school || !consent}>Preview wish <span aria-hidden="true">→</span></button></div>
+    {error && <div className={styles.error} role="alert">{error}</div>}<div className={styles.actions}><span className={styles.hint}><LockKeyhole size={12} aria-hidden="true"/> Enter the candidate, your name and a wish to preview.</span><button type="button" onClick={showPreview} className={styles.primary} disabled={!candidateName.trim() || !senderName.trim() || (kind === 'text' ? !text.trim() : !file)}>Preview wish <span aria-hidden="true">→</span></button></div>
   </form>
 }
 
@@ -410,7 +416,7 @@ function WithdrawMessage() {
   </details>
 }
 
-export default function SuccessWishes() {
+export default function SuccessWishes({ initialWish, onBackToDesign }: { initialWish?: CardDesignDraft; onBackToDesign?: () => void }) {
   const [mode, setMode] = useState<'send' | 'inbox'>('send')
   const [config, setConfig] = useState<Configuration | null>(null)
   const [configError, setConfigError] = useState('')
@@ -426,5 +432,6 @@ export default function SuccessWishes() {
     request<Configuration>('/api/success-wishes/config').then(value => { if (live) setConfig(value) }).catch(() => { if (live) setConfigError('Availability could not be checked. You can prepare a wish, but sending is unavailable.') })
     return () => { live = false }
   }, [])
-  return <div className={styles.page}><header className={styles.header}><Link href="/" className={styles.brand} onClick={event => { if (exitInbox.current) { event.preventDefault(); void exitInbox.current().then(ok => { if (ok) window.location.assign('/') }) } }}>VibeSchool<span style={{ color: '#82927c', fontWeight: 400 }}> / </span><span style={{ fontSize: 13, letterSpacing: 0 }}>Success Wishes</span></Link><span className={styles.headerNote}><LockKeyhole size={13} aria-hidden="true"/>Private messages</span></header><main className={styles.main} id="main-content"><div className={styles.intro}><p className={styles.eyebrow}>A few words. A familiar voice.</p><h1>Let them know you believe.</h1><p>Send your candidate a personal wish, or open encouragement from the people cheering you on.</p></div>{mode === 'send' && <section className={styles.pilotBanner} aria-label="Gilgil Township card pilot"><div><span className={styles.pilotEyebrow}>REAL CARD EXPERIENCE · TEST MODE</span><h2>Create and open a personalised card</h2><p>Explore four finished card designs using a fictional Gilgil Township candidate. Send and receive inside your browser; no live learner data, SMS or payment.</p></div><Link className={styles.pilotLink} href="/success-wishes/pilot">Try working cards <span aria-hidden="true">→</span></Link></section>}<div className={styles.formColumn} id="wish-composer"><div className={styles.tabs} role="group" aria-label="Success wishes options"><button type="button" className={`${styles.tab} ${mode === 'send' ? styles.activeTab : ''}`} aria-pressed={mode === 'send'} onClick={() => void changeMode('send')}><Heart size={17} aria-hidden="true"/>Send wishes</button><button type="button" className={`${styles.tab} ${mode === 'inbox' ? styles.activeTab : ''}`} aria-pressed={mode === 'inbox'} onClick={() => void changeMode('inbox')}><Mail size={17} aria-hidden="true"/>My messages</button></div>{configError && <div className={styles.notice} role="status">{configError}</div>}{config && !config.enabled && <div className={styles.notice} role="status">Success Wishes is not accepting messages yet. You can explore the form; nothing will be sent or charged.</div>}{mode === 'send' ? <><SendForm config={config}/>{config?.mediaEnabled && <PaidMediaUpload/>}<WithdrawMessage/></> : <Inbox registerExit={registerExit}/>}</div><p className={styles.footer}><ShieldCheck size={12} aria-hidden="true"/> Keep personal details private. <Link href="/legal/privacy" style={{ color: 'inherit' }} onClick={event => { if (exitInbox.current) { event.preventDefault(); void exitInbox.current().then(ok => { if (ok) window.location.assign('/legal/privacy') }) } }}>Privacy</Link> · <Link href="/success-wishes/school" style={{ color: 'inherit' }} onClick={event => { if (exitInbox.current) { event.preventDefault(); void exitInbox.current().then(ok => { if (ok) window.location.assign('/success-wishes/school') }) } }}>School access</Link></p></main></div>
+  return <div className={styles.page}><header className={styles.header}><Link href="/" className={styles.brand} onClick={event => { if (exitInbox.current) { event.preventDefault(); void exitInbox.current().then(ok => { if (ok) window.location.assign('/') }) } }}>VibeSchool<span style={{ color: '#82927c', fontWeight: 400 }}> / </span><span style={{ fontSize: 13, letterSpacing: 0 }}>Success Wishes</span></Link><span className={styles.headerNote}><LockKeyhole size={13} aria-hidden="true"/>Private messages</span></header><main className={styles.main} id="main-content"><div className={styles.intro}><p className={styles.eyebrow}>VibeSchool Success Wishes</p><h1>Let them know you believe.</h1><p>Choose the candidate’s school, write your wish, review the card and send it to their private inbox when delivery is available.</p></div>{initialWish && onBackToDesign && <button type="button" className={styles.quiet} onClick={onBackToDesign}>← Back to card design</button>}<div className={styles.formColumn} id="wish-composer"><div className={styles.tabs} role="group" aria-label="Success wishes options"><button type="button" className={`${styles.tab} ${mode === 'send' ? styles.activeTab : ''}`} aria-pressed={mode === 'send'} onClick={() => void changeMode('send')}><Heart size={17} aria-hidden="true"/>Send wishes</button><button type="button" className={`${styles.tab} ${mode === 'inbox' ? styles.activeTab : ''}`} aria-pressed={mode === 'inbox'} onClick={() => void changeMode('inbox')}><Mail size={17} aria-hidden="true"/>Candidate inbox</button></div>{configError && <div className={styles.notice} role="status">{configError}</div>}{config && !config.enabled && <div className={styles.notice} role="status">Delivery is paused while the private service is being prepared. You can review the journey, but no message will be sent or charged.</div>}{mode === 'send' ? <><SendForm config={config} initialWish={initialWish}/>{config?.mediaEnabled && <PaidMediaUpload/>}<WithdrawMessage/></> : <Inbox registerExit={registerExit}/>}</div><p className={styles.footer}><ShieldCheck size={12} aria-hidden="true"/> Keep personal details private. <Link href="/legal/privacy" style={{ color: 'inherit' }} onClick={event => { if (exitInbox.current) { event.preventDefault(); void exitInbox.current().then(ok => { if (ok) window.location.assign('/legal/privacy') }) } }}>Privacy</Link> · <Link href="/success-wishes/school" style={{ color: 'inherit' }} onClick={event => { if (exitInbox.current) { event.preventDefault(); void exitInbox.current().then(ok => { if (ok) window.location.assign('/success-wishes/school') }) } }}>School access</Link></p></main></div>
+
 }

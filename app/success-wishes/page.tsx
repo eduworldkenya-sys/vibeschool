@@ -1,14 +1,11 @@
 import type { Metadata } from 'next'
-import SuccessWishes from '@/components/success-wishes/SuccessWishes'
+import UnifiedSuccessWishes from '@/components/success-wishes/UnifiedSuccessWishes'
 
-export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
-  title: 'Success Wishes',
-  description: 'Send a candidate your encouragement. Open personal success wishes privately.',
-  robots: { index: false, follow: false },
-  referrer: 'no-referrer',
+  title: 'Success Wishes | VibeSchool',
+  description: 'Create a personal wish, choose the candidate’s school and use the private Success Wishes inbox.',
 }
 
 export default function SuccessWishesPage() {
-  return <SuccessWishes />
+  return <UnifiedSuccessWishes />
 }
