@@ -102,6 +102,6 @@ jobs:
           deno-version: v2.x
       - name: Check isolated sandbox HTTP handlers
         run: |
-          deno check supabase/functions/unified-commerce-sandbox-checkout/index.ts
-          deno check supabase/functions/unified-commerce-sandbox-callback/index.ts
-          deno check supabase/functions/unified-commerce-sandbox-status/index.ts
+          deno check --node-modules-dir=auto supabase/functions/unified-commerce-sandbox-checkout/index.ts
+          deno check --node-modules-dir=auto supabase/functions/unified-commerce-sandbox-callback/index.ts
+          deno check --node-modules-dir=auto supabase/functions/unified-commerce-sandbox-status/index.ts
