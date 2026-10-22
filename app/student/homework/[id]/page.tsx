@@ -180,7 +180,7 @@ export default function HomeworkDetailPage() {
       const result = await saveStudentHomeworkDraft({ homeworkId: homework.id, answers: answerPayload(), photoUrl });
       setSubmission(previous => ({
         id: result.submissionId,
-        status: "draft",
+        status: result.status === "returned" ? "returned" : "draft",
         photo_url: photoUrl ?? previous?.photo_url ?? null,
         mark: previous?.mark ?? null,
         feedback: previous?.feedback ?? null,
@@ -196,7 +196,7 @@ export default function HomeworkDetailPage() {
         catch { setPhotoPreview(null); }
       }
       setPhotoFile(null);
-      setMessage("Draft saved. You can continue later.");
+      setMessage(result.status === "returned" ? "Corrections saved. Resubmit when ready." : "Draft saved. You can continue later.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save draft.");
     } finally {
