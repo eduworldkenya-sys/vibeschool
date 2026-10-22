@@ -1,6 +1,7 @@
 -- Run ONLY after both disposable fixture and lifecycle SQL, never on production.
 begin;
-do $$
+create role commerce_fixture_untrusted nologin;
+do $
 declare
   v_order uuid; v_same uuid; v_attempt uuid; v_second uuid;
   v_guest uuid; v_guest_attempt uuid; v_expired uuid; v_expired_attempt uuid;
