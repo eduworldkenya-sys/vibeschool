@@ -32,7 +32,7 @@ const settings={
   consumerKey:'fake-simulator-key',consumerSecret:'fake-simulator-secret',
   passkey:'fake-simulator-passkey',businessShortCode:'174379',
   partyB:'174379',transactionType:'CustomerPayBillOnline',
-  callbackUrl:'https://isolated-fake.supabase.co/functions/v1/unified-commerce-sandbox-callback',
+  callbackUrl:'https://isolated-fake.supabase.co/functions/v1/unified-commerce-sandbox-callback?sandbox_token=fixturesandboxtoken12345678901234567890123456789',
   testPhone:'254712345678',
 }
 const checkout='ws_CO_SYNTHETIC_HTTP_123'
