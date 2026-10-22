@@ -3,7 +3,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { getTwinAuthorityContext, requireTwinRole } from "@/lib/twin/core"
 
 export interface StudentIdentity {
   profileId:   string
@@ -49,85 +48,77 @@ export function StudentProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       setError(null)
       try {
-        // Twin/portal role authority is relationship-derived. profiles.role is not
-        // an authorization root, which allows one identity to hold multiple roles.
-        const authority = await getTwinAuthorityContext()
-        const studentBindings = requireTwinRole(authority, "student")
-        if (studentBindings.length > 1) {
-          throw new Error("Multiple current learner school scopes are attached to this account. Choose or reconcile the active enrollment before continuing.")
+        // The canonical learner RPC is the authority for account → student identity.
+        // Do not require unrelated teacher/parent Twin queries for student sign-in.
+        const { data: auth, error: authError } = await supabase.auth.getUser()
+        if (authError) throw new Error("Could not verify this learner session.")
+        const userId = auth.user?.id
+        if (!userId) {
+          if (!cancelled) router.replace("/login/student")
+          return
         }
-        const binding = studentBindings[0]
-        const userId = authority.userId
 
-        const { data: profile, error: profileErr } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("id", userId)
-          .single()
-
+        const { data: canonicalId, error: canonicalError } = await supabase.rpc("current_student_id")
         if (cancelled) return
-        if (profileErr || !profile) { router.replace("/?role=student"); return }
-
-        const { data: student, error: studentErr } = await supabase
-          .from("students")
-          .select("id, name, admission_number, class_id")
-          .eq("profile_id", userId)
-          .is("deleted_at", null)
-          .maybeSingle()
-
-        if (cancelled) return
-        if (studentErr) throw new Error(studentErr.message || "Learner identity could not be resolved.")
-        if (!student) {
+        if (canonicalError) throw new Error(canonicalError.message || "Learner identity could not be verified.")
+        if (!canonicalId) {
           router.replace("/student/claim")
           return
         }
-        if (student.id !== binding.scopeId) throw new Error("Learner identity does not match the authorized Student Twin scope.")
 
-        let classId: string | null = null
-        let schoolId: string | null = binding.schoolId
-
-        if (schoolId) {
-          const { data: enrollment, error: enrollmentErr } = await supabase
-            .from("student_classes")
-            .select("class_id, school_id")
-            .eq("student_id", student.id)
-            .eq("school_id", schoolId)
-            .eq("is_current", true)
-            .order("joined_at", { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (cancelled) return
-          if (enrollmentErr) throw new Error(enrollmentErr.message || "Current learner enrollment could not be resolved.")
-          classId = enrollment?.class_id ?? null
-          schoolId = enrollment?.school_id ?? schoolId
-        } else {
-          // Legacy fallback only when there is no current canonical enrollment yet.
-          classId = student.class_id ?? null
+        const [profileRes, learnerRes] = await Promise.all([
+          supabase.from("profiles").select("full_name").eq("id", userId).single(),
+          supabase.from("students")
+            .select("id, name, admission_number")
+            .eq("id", canonicalId)
+            .eq("profile_id", userId)
+            .is("deleted_at", null)
+            .single(),
+        ])
+        if (cancelled) return
+        if (profileRes.error || !profileRes.data || learnerRes.error || !learnerRes.data) {
+          throw new Error("Learner account data is unavailable. Please retry.")
         }
+        const profile = profileRes.data
+        const student = learnerRes.data
+
+        const { data: enrollments, error: enrollmentError } = await supabase
+          .from("student_classes")
+          .select("class_id, school_id")
+          .eq("student_id", student.id)
+          .eq("is_current", true)
+          .limit(2)
+        if (cancelled) return
+        if (enrollmentError) throw new Error("Could not verify your current class. Please retry.")
+        if (!enrollments?.length) throw new Error("Your school has not confirmed your current class. Ask your teacher to complete enrollment.")
+        if (enrollments.length !== 1 || !enrollments[0].class_id || !enrollments[0].school_id) {
+          throw new Error("Your school has conflicting or incomplete current enrollment. Ask an administrator to correct it.")
+        }
+        const classId = enrollments[0].class_id
+        const schoolId = enrollments[0].school_id
 
         let className = ""
         if (classId) {
-          const { data: cls } = await supabase
+          const { data: cls, error: classError } = await supabase
             .from("classes")
             .select("name, stream, school_id")
             .eq("id", classId)
             .single()
           if (cancelled) return
-          if (cls) {
-            className = cls.name + (cls.stream ? " " + cls.stream : "")
-            schoolId = schoolId ?? cls.school_id ?? null
-          }
+          if (classError || !cls || cls.school_id !== schoolId) throw new Error("Your class does not match the current school enrollment.")
+          className = cls.name + (cls.stream ? " " + cls.stream : "")
         }
 
         let schoolName = ""
         if (schoolId) {
-          const { data: school } = await supabase
+          const { data: school, error: schoolError } = await supabase
             .from("schools")
             .select("name")
             .eq("id", schoolId)
             .single()
           if (cancelled) return
-          schoolName = school?.name ?? ""
+          if (schoolError || !school) throw new Error("Your school record is unavailable. Please retry.")
+          schoolName = school.name ?? ""
         }
 
         const fullName  = student.name?.trim() || profile.full_name?.trim() || "Student"
