@@ -1,4 +1,5 @@
 -- Reconstruct the live homework review authority for clean deployments.
+-- authorization-test: public.homework_submission_reviews
 -- Preserves legacy public table identities, uses one audited teacher/admin RPC,
 -- and requires explicit release of marks/feedback to learner clients.
 alter table public.homework_submissions
