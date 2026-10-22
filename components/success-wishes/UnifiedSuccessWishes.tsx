@@ -9,11 +9,12 @@ export default function UnifiedSuccessWishes() {
   const [step, setStep] = useState<'design' | 'recipient'>('design')
 
   if (step === 'design') {
-    return <SuccessCardStudio initialDraft={draft || undefined} onContinue={value => { setDraft(value); setStep('recipient') }} />
+    return <SuccessCardStudio initialDraft={draft || undefined} onContinue={value => { setDraft(value); setStep('recipient') }} onOpenInbox={() => { setDraft(null); setStep('recipient') }} />
   }
 
   return <SuccessWishes
     initialWish={draft || undefined}
+    initialMode={draft ? 'send' : 'inbox'}
     onBackToDesign={() => setStep('design')}
   />
 }

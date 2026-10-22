@@ -124,7 +124,7 @@ function download(blob: Blob, name: string) {
   window.setTimeout(() => URL.revokeObjectURL(url), 30000)
 }
 
-export default function SuccessCardStudio({ onContinue, initialDraft }: { onContinue?: (draft: CardDesignDraft) => void; initialDraft?: CardDesignDraft }) {
+export default function SuccessCardStudio({ onContinue, onOpenInbox, initialDraft }: { onContinue?: (draft: CardDesignDraft) => void; onOpenInbox?: () => void; initialDraft?: CardDesignDraft }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
   const [candidate, setCandidate] = useState(initialDraft?.candidate || '')
   const [sender, setSender] = useState(initialDraft?.sender || '')
@@ -170,7 +170,7 @@ export default function SuccessCardStudio({ onContinue, initialDraft }: { onCont
   }
 
   return <div className={styles.page}>
-    <header className={styles.header}><Link href="/" className={styles.brand}>VibeSchool <span>/ Success Wishes</span></Link><span>Personal cards</span></header>
+    <header className={styles.header}><Link href="/" className={styles.brand}>VibeSchool <span>/ Success Wishes</span></Link>{onOpenInbox ? <button type="button" className={styles.secondary} onClick={onOpenInbox}>Open candidate inbox</button> : <span>Personal cards</span>}</header>
     <main className={styles.main}>
       <div className={styles.intro}><p className={styles.eyebrow}>VIBESCHOOL SUCCESS WISHES</p><h1>A little encouragement. A card they&apos;ll remember.</h1>
         <p>Choose a design, write from the heart and share a beautiful personalised card. Free to create.</p></div>

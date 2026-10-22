@@ -32,5 +32,5 @@
 .footer p+p{margin-top:7px}.footer a{color:#13664b;font-weight:700;text-decoration:underline;text-underline-offset:2px}.footer a svg{display:inline;vertical-align:middle}
 .page button:focus-visible,.page a:focus-visible{outline:3px solid #deb95a;outline-offset:3px}
 @media(max-width:800px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.composer{grid-template-columns:1fr}.live{position:static;max-width:540px;width:100%;margin:auto}}
-@media(max-width:520px){.header{padding:15px}.main{padding:29px 15px}.intro h1{font-size:38px}.gallery{gap:9px}.option{padding:5px}.option.active{padding:4px}.optionCaption{padding:9px 3px 5px}.optionCaption strong{font-size:11px}.optionCaption small{font-size:9px}.form,.live{padding:18px}.actions>.primary,.actions>.secondary{width:100%}}
+@media(max-width:520px){.header{padding:15px;flex-wrap:wrap}.header .secondary{min-height:40px}.main{padding:29px 15px}.intro h1{font-size:38px}.gallery{gap:9px}.option{padding:5px}.option.active{padding:4px}.optionCaption{padding:9px 3px 5px}.optionCaption strong{font-size:11px}.optionCaption small{font-size:9px}.form,.live{padding:18px}.actions>.primary,.actions>.secondary{width:100%}}
 @media(prefers-reduced-motion:reduce){.option{transition:none}}
