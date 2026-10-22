@@ -78,7 +78,7 @@ async function callSubmissionRpc(
   // Submission and task execution authority land in additive migrations. This
   // narrow cast avoids coupling the client to generated RPC types between
   // schema regeneration cycles.
-  const client = supabase as unknown as RpcClient
+  const client: RpcClient = { rpc: (fn, args) => supabase.rpc(fn, args) }
 
   const { data, error } = await client.rpc(name, {
     p_homework_id: input.homeworkId,
