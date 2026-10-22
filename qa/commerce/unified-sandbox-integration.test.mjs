@@ -76,11 +76,10 @@ test('synthetic guest checkout persists one paid-simulated wish and no real enti
   })
   const result=await sendUniversalDarajaSandboxStk({
     order,phone:'0712345678',settings,env,fetcher,
-    hasReservedAttempt:async()=>sql(`select count(*) from commerce_sandbox.payment_attempts
-      where id='${attemptId}' and state='submitting';`)==='1',
+    hasReservedAttempt:async()=>sql(`select commerce_sandbox.claim_stk_send('${attemptId}');`)==='t',
     now:()=>new Date('2026-10-22T11:00:00Z'),
   })
-  assert.equal(sql(\`select commerce_sandbox.claim_stk_send('${attemptId}');\`),'f')
+  assert.equal(sql(`select commerce_sandbox.claim_stk_send('${attemptId}');`),'f')
   assert.equal(result.state,'awaiting_customer')
   assert.equal(result.receipt,null)
 
