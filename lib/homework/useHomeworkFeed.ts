@@ -12,16 +12,22 @@ import { Homework, HomeworkSubmission } from "@/lib/types";
 export type LifecycleStatus =
   | "marked"
   | "submitted"
+  | "under_review"
+  | "returned"
+  | "draft"
   | "overdue"
   | "stale"
   | "due_today"
   | "due_tomorrow"
   | "upcoming";
 
+export type HomeworkSubmissionStatus = "pending" | "draft" | "submitted" | "received" | "under_review" | "returned" | "marked";
+
 export interface HomeworkFeedItem extends Homework {
-  status:    "pending" | "submitted" | "marked";
-  mark:      number | null;
-  feedback:  string | null;
+  status: HomeworkSubmissionStatus;
+  mark: number | null;
+  feedback: string | null;
+  feedbackReleased: boolean;
   lifecycle: LifecycleStatus;
 }
 
@@ -41,9 +47,12 @@ export function isOverdue(dateStr: string): boolean {
   return daysUntil(dateStr) < 0;
 }
 
-export function lifecycleOf(dueDate: string, status: "pending" | "submitted" | "marked"): LifecycleStatus {
-  if (status === "marked")    return "marked";
-  if (status === "submitted") return "submitted";
+export function lifecycleOf(dueDate: string, status: HomeworkSubmissionStatus, feedbackReleased = false): LifecycleStatus {
+  if (status === "marked") return feedbackReleased ? "marked" : "under_review";
+  if (status === "submitted" || status === "received") return "submitted";
+  if (status === "under_review") return "under_review";
+  if (status === "returned") return "returned";
+  if (status === "draft") return "draft";
   const n = daysUntil(dueDate);
   if (n <= -STALE_AFTER_DAYS) return "stale";
   if (n < 0)   return "overdue";
@@ -69,7 +78,9 @@ interface UseHomeworkFeedResult {
   overdue:   HomeworkFeedItem[];
   pending:   HomeworkFeedItem[];
   submitted: HomeworkFeedItem[];
-  loading:   boolean;
+  loading: boolean;
+  error: string | null;
+  retry: () => void;
 }
 
 export function useHomeworkFeed(
@@ -77,11 +88,16 @@ export function useHomeworkFeed(
   studentId: string | null,
   schoolId:  string | null = null
 ): UseHomeworkFeedResult {
-  const [items,   setItems]   = useState<HomeworkFeedItem[]>([]);
+  const [items, setItems] = useState<HomeworkFeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryNonce, setRetryNonce] = useState(0);
 
   useEffect(() => {
-    if (!classId || !studentId) { setLoading(false); return; }
+    let cancelled = false;
+    setError(null);
+    if (!classId || !studentId) { setItems([]); setLoading(false); return; }
+    setLoading(true);
 
     const cached = readCache<HomeworkFeedItem[]>("homework", studentId);
     if (cached) { setItems(cached); setLoading(false); }
@@ -100,6 +116,14 @@ export function useHomeworkFeed(
         supabase.from("class_group_members").select("group_id").eq("student_id", validStudentId),
       ]);
 
+      if (hwRes.error || subRes.error || grpRes.error) {
+        if (!cancelled) {
+          setError("Could not refresh homework. Check your connection and try again.");
+          setLoading(false);
+        }
+        return;
+      }
+
       const subMap = new Map<string, HomeworkSubmission>();
       for (const s of (subRes.data as HomeworkSubmission[] | null) ?? []) {
         subMap.set(s.homework_id, s);
@@ -110,19 +134,25 @@ export function useHomeworkFeed(
         .filter(h => h.target_group_id === null || myGroupIds.has(h.target_group_id))
         .map(h => {
           const sub    = subMap.get(h.id);
-          const status = (sub?.status ?? "pending") as "pending" | "submitted" | "marked";
+          const supported: HomeworkSubmissionStatus[] = ["pending", "draft", "submitted", "received", "under_review", "returned", "marked"];
+          const rawStatus = sub?.status ?? "pending";
+          if (!supported.includes(rawStatus as HomeworkSubmissionStatus)) return null;
+          const status = rawStatus as HomeworkSubmissionStatus;
+          const releasedAt = (sub as (HomeworkSubmission & { feedback_released_at?: string | null }) | undefined)?.feedback_released_at;
+          const feedbackReleased = Boolean(releasedAt);
           return {
             ...h,
             status,
-            mark:      sub?.mark ?? null,
-            feedback:  sub?.feedback ?? null,
-            lifecycle: lifecycleOf(h.due_date, status),
+            mark: feedbackReleased ? sub?.mark ?? null : null,
+            feedback: feedbackReleased ? sub?.feedback ?? null : null,
+            feedbackReleased,
+            lifecycle: lifecycleOf(h.due_date, status, feedbackReleased),
           };
-        });
+        }).filter((h): h is HomeworkFeedItem => h !== null);
 
       const rank: Record<LifecycleStatus, number> = {
-        overdue: 0, due_today: 1, due_tomorrow: 2, upcoming: 3,
-        submitted: 4, marked: 4, stale: 5,
+        returned: 0, overdue: 1, due_today: 2, due_tomorrow: 3, draft: 4, upcoming: 5,
+        submitted: 6, under_review: 6, marked: 7, stale: 8,
       };
       result.sort((a, b) => {
         const r = rank[a.lifecycle] - rank[b.lifecycle];
@@ -130,18 +160,28 @@ export function useHomeworkFeed(
         return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
       });
 
-      writeCache("homework", validStudentId, result);
-      setItems(result);
-      setLoading(false);
+      if (!cancelled) {
+        writeCache("homework", validStudentId, result);
+        setItems(result);
+        setError(null);
+        setLoading(false);
+      }
     }
-    void load(classId, studentId, schoolId);
-  }, [classId, studentId, schoolId]);
+    void load(classId, studentId, schoolId).catch(() => {
+      if (!cancelled) {
+        setError("Could not refresh homework. Check your connection and try again.");
+        setLoading(false);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [classId, studentId, schoolId, retryNonce]);
 
   const stale     = items.filter(h => h.lifecycle === "stale");
   const active    = items.filter(h => h.lifecycle !== "stale");
   const overdue   = items.filter(h => h.lifecycle === "overdue");
-  const pending   = items.filter(h => h.status === "pending" && (h.lifecycle === "upcoming" || h.lifecycle === "due_today" || h.lifecycle === "due_tomorrow"));
-  const submitted = items.filter(h => h.status === "submitted" || h.status === "marked");
+  const pending = items.filter(h => h.lifecycle === "returned" || h.lifecycle === "draft" ||
+    (h.status === "pending" && ["upcoming", "due_today", "due_tomorrow"].includes(h.lifecycle)));
+  const submitted = items.filter(h => ["submitted", "received", "under_review", "marked"].includes(h.status));
 
-  return { items, active, stale, overdue, pending, submitted, loading };
+  return { items, active, stale, overdue, pending, submitted, loading, error, retry: () => setRetryNonce(n => n + 1) };
 }
