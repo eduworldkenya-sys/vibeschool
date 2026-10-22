@@ -1,0 +1,50 @@
+-- Student OS pilot: canonical learner enrolment is visible to its owner,
+-- while school membership alone must not reveal every learner's enrolment.
+-- Teacher assignment and parent-child links retain their separate authorities.
+-- Stage for disposable-DB RLS tests before production application.
+
+do $migration$
+begin
+  if to_regclass('public.student_classes') is null
+     or to_regclass('public.school_members') is null
+     or to_regclass('public.students') is null
+     or to_regprocedure('public.current_student_id()') is null then
+    raise exception 'student_pilot_enrollment_contract_missing';
+  end if;
+end
+$migration$;
+
+alter table public.student_classes enable row level security;
+
+drop policy if exists pol_student_classes_select on public.student_classes;
+create policy pol_student_classes_select
+  on public.student_classes for select to authenticated
+  using (
+    exists (
+      select 1 from public.school_members sm
+      where sm.school_id = student_classes.school_id
+        and sm.profile_id = (select auth.uid())
+        and sm.role::text in ('owner','admin')
+    )
+  );
+
+drop policy if exists pol_student_classes_learner_self_read on public.student_classes;
+create policy pol_student_classes_learner_self_read
+  on public.student_classes for select to authenticated
+  using (student_id = (select public.current_student_id()));
+
+drop policy if exists pol_student_classes_parent_link_read on public.student_classes;
+create policy pol_student_classes_parent_link_read
+  on public.student_classes for select to authenticated
+  using (
+    exists (
+      select 1 from public.parent_student_links psl
+      where psl.student_id = student_classes.student_id
+        and psl.parent_id = (select auth.uid())
+        and coalesce(psl.access_level,'full') <> 'none'
+    )
+  );
+
+-- The pre-existing pol_student_classes_teacher_read policy continues
+-- restricting staff to their assigned teacher_classes class/school scope.
+-- Do not add broad teacher or student school-membership reads.
