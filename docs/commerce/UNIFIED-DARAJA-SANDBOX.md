@@ -54,7 +54,7 @@ npm run typecheck
 # psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-assertions.sql
 ```
 
-**Do not import the sandbox adapter from a publicly callable production route.** The adapter returns an STK acknowledgement, not a settlement; its callback URL contract is reserved for a *future* isolated sandbox function, which **does not exist in this PR**. There is no durable unified order table or test provider session yet.
+**Do not import the sandbox adapter from a publicly callable production route.** The adapter returns an STK acknowledgement, not a settlement. Isolated Edge Function source exists in this PR but is **not deployed**. A disposable, persistent PostgreSQL ledger is exercised in CI; no hosted sandbox database or real Daraja test session has been provisioned or verified by this PR.
 
 ## Next engineering work, safely sequenced
 1. Coordinate the `supabase/migrations` and commerce scopes with their current owners. Design one additive provider-independent `commerce_orders` + `commerce_attempts` + immutable `commerce_events` + `commerce_fulfilments` ledger, typed `product_kind` and optional verified guest owner. Do not weaken existing learning-product foreign keys or silently rewrite existing paid state.
@@ -73,3 +73,43 @@ npm run typecheck
 - Unknown provider states are quarantined, **never** blindly retried.
 - Simulation never unlocks real goods/services.
 - The existing `mpesa_runtime_control.initiation_enabled=false` stays unchanged.
+
+## Stage 2 — isolated checkout, callback and status (2026-10-22)
+
+Source now implemented on PR #790:
+- `lib/commerce/unified/daraja-reconciliation.ts`: sandbox OAuth-protected STK Query, strict callback parsing, amount/phone/receipt checks, and joint independent verification. `1037` becomes **expired**, never paid.
+- `lib/commerce/unified/callback-ingress.ts`: method/content-length/token gate, immutable callback persistence **before** acknowledgement, early-callback safety and independent Daraja query. The callback URL token is NOT a provider signature; it only limits unsolicited HTTP traffic. Independently verify the provider's status before simulated settlement.
+- `qa/commerce/unified-sandbox-lifecycle.sql`: isolated server-priced catalogue (six product kinds), idempotent orders, one-time compare-and-swap STK claim, immutable events, independent query observations, locked reconciliation, and a sandbox-only simulated entitlement table. NOT a production migration.
+- `qa/commerce/unified-sandbox-lifecycle-assertions.sql` and `qa/commerce/unified-sandbox-integration.test.mjs`: ephemeral real PostgreSQL + mocked HTTP STK/Query/callback proof, including early arrival and one simulated entitlement.
+- `supabase/functions/unified-commerce-sandbox-checkout/index.ts`: **operator-only** staging API. Server loads authoritative catalogue price, reserves an order and atomically claims one STK request before making any external call.
+- `supabase/functions/unified-commerce-sandbox-callback/index.ts`: token-protected staging webhook; saves evidence, independently queries Daraja and reconciles private PostgreSQL tables.
+- `supabase/functions/unified-commerce-sandbox-status/index.ts`: operator-only staging Query/reconciliation and simulated confirmation. This is not a public customer-facing confirmation endpoint.
+- CI runs Node sandbox tests, disposable PostgreSQL assertions, joined Node/Postgres synthetic checkout and isolated Edge Function typechecks. All HTTP responses and test provider credentials are fake.
+
+### Safe manual commissioning prerequisites (isolated Supabase project ONLY)
+This branch does **not** create a new Supabase project, provision credentials, perform a real sandbox request, deploy Edge Functions, update existing real data, or enable production payments.
+
+Only in a separate Supabase project (never `yauqsxggtuxuykcbrtzf`):
+1. Apply `qa/commerce/unified-sandbox-fixture.sql` followed by `qa/commerce/unified-sandbox-lifecycle.sql` **to the disposable/isolated test database only**, using its private DB administration connection. Do not apply the assertion scripts as migrations (they roll back tests).
+2. Configure these **isolated project server secrets** through Supabase Dashboard → Edge Functions → Secrets (never GitHub/chat):
+   - `COMMERCE_SANDBOX_PROJECT_REF` = isolated project reference, not the VibeSchool production reference.
+   - `COMMERCE_SANDBOX_ISOLATED_PROJECT=true`
+   - `COMMERCE_DARAJA_SANDBOX_ENABLED=true`
+   - `MPESA_ENV=sandbox`
+   - `COMMERCE_SANDBOX_DATABASE_URL` = password-bearing database URI of **the same isolated project** (direct DB host or pooler with matching ref); no query parameters.
+   - `COMMERCE_DARAJA_SANDBOX_CONSUMER_KEY`, `COMMERCE_DARAJA_SANDBOX_CONSUMER_SECRET` = credentials of the Daraja sandbox app.
+   - `COMMERCE_DARAJA_SANDBOX_SHORTCODE`, `COMMERCE_DARAJA_SANDBOX_PASSKEY`, `COMMERCE_DARAJA_SANDBOX_PARTY_B`, `COMMERCE_DARAJA_SANDBOX_TEST_PHONE` = Safaricom simulator test data.
+   - `COMMERCE_DARAJA_SANDBOX_WEBHOOK_TOKEN` = random secret ≥32 characters, unrelated to any Daraja or Supabase key.
+   - `COMMERCE_DARAJA_SANDBOX_CALLBACK_URL` = `https://<isolated-ref>.supabase.co/functions/v1/unified-commerce-sandbox-callback?sandbox_token=<the-webhook-token>`; **never expose in client code**.
+   - `COMMERCE_SANDBOX_OPERATOR_TOKEN` = separate random secret ≥32 characters, only accessible to an authorised test operator.
+3. Deploy **only to the isolated project**, after exact-head Deno typecheck/CI and independent security approval. `unified-commerce-sandbox-callback` must accept Safaricom's unauthenticated-by-JWT POST but enforces its own URL-token gate; the operator-only checkout/status routes also validate their own operator secret. Never expose a sandbox operator bearer token in browsers.
+4. Use an approved simulator test phone and an internal operator script to submit `product_kind`, `item_reference`, `owner_type`, `owner_reference`, `idempotency_key`, `phone`. A customer-supplied `amount` is ignored. These APIs are *not* suitable for public customer sign-up or guest access; those require session ownership and consent checks before production rollout.
+5. Verify OAuth → STK → webhook → Query → same-order settlement → **simulated** entitlement. When callbacks are absent use operator status query; when Daraja gives `1037`, expect no entitlement. Rotate the callback token if it is exposed in HTTP access logs. Refund/reversal operations remain a separate commissioning gate.
+
+### Evidence classification
+- **Passed:** Mocked Daraja request/query plus real disposable PostgreSQL synthetic receipt, strict callbacks, all six product kinds, idempotent attempts, simulated entitlement, timeout 1037, amount/phone/receipt mismatch, one-time claim and nonproduction guard.
+- **Not passed/not attempted:** real network OAuth against founder's app credentials from a secure deployed service, successful live Daraja *sandbox* callback-to-DB roundtrip, independent security review, proper guest/signed-in customer-facing authorization, refund/reversal and migration of existing business payment systems.
+- **Release:** PR remains draft and production M-Pesa initiation remains OFF.
+
+### Security note
+Safaricom M-Pesa Express callbacks are not inherently signed with an application HMAC. The callback URL token is a gate, not cryptographic proof that payment settled. Even a signed ingress must not unlock access without a matching provider status query and durable server-side ledger checks. For production monetary settlement, add independent receipt validation and financial reconciliation.
