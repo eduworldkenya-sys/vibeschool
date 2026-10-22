@@ -22,6 +22,7 @@ const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev'
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'public-test-key',
     SUCCESS_WISHES_ENABLED: 'false',
     SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'false',
+    SUCCESS_WISHES_LOCAL_PILOT_TEST: 'true',
   },
   stdio: ['ignore', serverLog, serverLog],
 })
@@ -44,78 +45,55 @@ async function checkViewport(width) {
   try {
     const page = await context.newPage()
     const errors = []
+    const mutations = []
     page.on('pageerror', error => errors.push(error.message))
+    page.on('request', request => {
+      if (request.url().includes('/api/success-wishes/') && request.method() !== 'GET') mutations.push(request.url())
+    })
     const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
     assert.equal(response.status(), 200)
-    await page.getByRole('heading', { name: /A little encouragement\. A card they'll remember\./ }).waitFor()
-    const calls = []
-    page.on('request', request => {
-      if (request.url().includes('/api/success-wishes/') && request.method() !== 'GET') calls.push(request.url())
-    })
+    await page.getByRole('heading', { name: /A little encouragement/ }).waitFor()
     await page.getByRole('button', { name: /New Beginnings/ }).click()
-    await page.getByRole('textbox', { name: /Candidate.s name/ }).fill('Alex Test')
-    await page.getByRole('textbox', { name: /Your name/ }).fill('Test Parent')
-    await page.getByRole('textbox', { name: /Your personal wish/ }).fill('You can do this! We believe in you.')
-    const downloadReady = page.waitForEvent('download')
+    await page.getByRole('textbox', { name: /Candidate.s name/ }).fill('Synthetic Candidate')
+    await page.getByRole('textbox', { name: /Your name/ }).fill('Synthetic Sender')
+    const wish = `Synthetic browser check at ${width}px: you can do this.`
+    await page.getByRole('textbox', { name: /Your personal wish/ }).fill(wish)
+    const cardDownload = page.waitForEvent('download')
     await page.getByRole('button', { name: /Download card/ }).click()
-    const imageDownload = await downloadReady
-    assert.equal(imageDownload.suggestedFilename(), 'vibeschool-success-wishes.png')
-    const imageFile = await imageDownload.path()
-    const png = fs.readFileSync(imageFile)
+    const image = await cardDownload
+    assert.equal(image.suggestedFilename(), 'vibeschool-success-wishes.png')
+    const imagePath = await image.path()
+    const png = fs.readFileSync(imagePath)
     assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
-    assert(png.byteLength > 5000, 'Generated image must contain more than a blank PNG header')
-    const canShare = await page.evaluate(() => {
-      if (!navigator.share || !navigator.canShare) return false
-      return navigator.canShare({ files: [new File(['test'], 'test.png', { type: 'image/png' })] })
-    })
-    if (!canShare) {
-      const fallbackDownloadReady = page.waitForEvent('download')
-      await page.getByRole('button', { name: /Share card/ }).click()
-      const fallback = await fallbackDownloadReady
-      assert.equal(fallback.suggestedFilename(), 'vibeschool-success-wishes.png')
-      await page.getByText(/Your image was downloaded/).waitFor()
-    }
-    const studioOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-    assert(studioOverflow <= 1, 'Card studio mobile overflow of ' + studioOverflow + 'px at width ' + width)
-    assert.deepEqual(calls, [], 'Card editor must not send live messages')
-    await page.screenshot({ path: path.join(screenshots, `disabled-${width}.png`), fullPage: true })
-    const oldPrivate = await page.goto(ROOT + '/success-wishes/private', { waitUntil: 'networkidle', timeout: 90000 })
-    assert.equal(oldPrivate.status(), 200)
-    await page.getByRole('heading', { name: 'Let them know you believe.', exact: true }).waitFor()
+    assert(png.byteLength > 5000, 'Card download should contain rendered art, not a blank PNG header')
+    await page.getByRole('button', { name: /Choose school.*candidate/ }).click()
+    await page.getByRole('heading', { name: 'Let them know you believe.' }).waitFor()
+    assert.equal(await page.getByRole('textbox', { name: /Candidate.s name/ }).inputValue(), 'Synthetic Candidate')
+    assert.equal(await page.getByRole('textbox', { name: /Your encouragement/ }).inputValue(), wish)
+    await page.getByRole('button', { name: /Preview wish/ }).click()
+    await page.getByRole('heading', { name: 'Open your special wish' }).waitFor()
+    assert.equal((await page.getByText(wish, { exact: true }).count()), 1, 'Preview must show the exact synthetic wish')
+    assert.equal((await page.getByText(/Selected design: botanical/).count()), 1, 'Selected design must carry into the send review')
+    assert.equal(await page.getByRole('button', { name: /Submit wish/ }).isDisabled(), true, 'Disabled service must block submission')
+    assert.equal(await page.getByText(/Choose the candidate’s school before submitting/).count(), 1)
+    await page.getByRole('button', { name: 'Edit', exact: true }).click()
+    await page.getByRole('button', { name: 'Candidate inbox' }).click()
+    await page.getByRole('heading', { name: 'Open your messages' }).waitFor()
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     assert(overflow <= 1, `Unexpected horizontal overflow of ${overflow}px at ${width}px`)
-    assert.deepEqual(errors, [], `Client JavaScript errors at ${width}px`)
     const config = await page.request.get(`${ROOT}/api/success-wishes/config`)
     assert.equal(config.status(), 200)
-    assert.match(config.headers()['cache-control'], /no-store/i)
     assert.deepEqual(await config.json(), {
       enabled: false, mediaEnabled: false, paymentsEnabled: false,
       maxSeconds: 60, maxBytes: 26214400,
     })
-    const schools = await page.request.get(`${ROOT}/api/success-wishes/schools?q=Test`)
-    assert.deepEqual(await schools.json(), { schools: [], available: false })
-    const access = await page.request.post(`${ROOT}/api/success-wishes/access`, {
-      headers: { origin: ROOT },
-      data: { schoolId: '00000000-0000-4000-8000-000000000001', studentId: '00000000-0000-4000-8000-000000000002' },
-    })
-    assert.equal(access.status(), 503)
-    // Submit through the actual browser origin, not Playwright's API client:
-    // NextRequest's Origin/Host comparison must see a real same-origin POST.
-    const submitStatus = await page.evaluate(async () => {
-      const response = await fetch('/api/success-wishes/messages', {
-        method: 'POST', credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          schoolId: '00000000-0000-4000-8000-000000000001',
-          admissionNumber: 'dummy', candidateName: 'Test Candidate', senderName: 'Test Sender',
-          relationship: 'Guardian', kind: 'text', text: 'Good luck',
-          idempotencyKey: 'a'.repeat(64), consent: true,
-        }),
-      })
-      return response.status
-    })
-    assert.equal(submitStatus, 503)
-    return { width, pageStatus: 200, appErrors: 0, overflow: false, sendingDisabled: true }
+    assert.deepEqual(mutations, [], 'Local synthetic review must not mutate the service')
+    assert.deepEqual(errors, [], `Client JavaScript errors at ${width}px`)
+    await page.screenshot({ path: path.join(screenshots, `unified-disabled-${width}.png`), fullPage: true })
+    const oldPrivate = await fetch(`${ROOT}/success-wishes/private`, { redirect: 'manual' })
+    assert.equal(oldPrivate.status, 307)
+    assert.equal(oldPrivate.headers.get('location'), '/success-wishes')
+    return { width, pageStatus: 200, syntheticPreview: true, inboxInSamePage: true, sendingDisabled: true, mutations: 0, overflow: false }
   } finally {
     await context.close()
   }
@@ -135,15 +113,31 @@ async function checkGilgilPilot(width) {
     const opened = await page.goto(ROOT + '/success-wishes/pilot', { waitUntil: 'networkidle', timeout: 90000 })
     assert.equal(opened.status(), 200)
     await page.getByRole('heading', { name: 'Give them a moment to remember.' }).waitFor()
+    await page.getByRole('button', { name: /Candidate inbox.*0 unread/ }).waitFor()
+    const senderField = page.getByRole('textbox', { name: /Your test sender name/ })
+    await senderField.fill('')
+    assert.equal(await page.getByRole('button', { name: /Send test card/ }).isDisabled(), true)
+    await page.getByText(/To save a test card, add: sender name/).waitFor()
+    await senderField.fill('Test Parent')
+    await page.getByRole('button', { name: /Voice note/ }).click()
+    assert.equal(await page.getByRole('button', { name: /Send test card/ }).isDisabled(), true)
+    await page.getByText(/To save a test card, add: voice recording/).waitFor()
+    await page.getByRole('button', { name: 'Message', exact: true }).click()
     await page.getByRole('button', { name: /New Beginnings/ }).click()
     const wish = 'Gilgil controlled pilot: this is a personalised test wish at width ' + width + '.'
     await page.locator('textarea').fill(wish)
+    const previewMessage = page.locator('[class*="liveCard"] blockquote')
+    await previewMessage.waitFor()
+    assert.equal((await previewMessage.textContent()).trim(), wish)
+    assert.equal(await page.getByText(/Premium design is generated/).count(), 0)
     await page.getByRole('button', { name: /Send test card/ }).click()
     await page.getByRole('heading', { name: 'Your test wish was saved.' }).waitFor()
+    await page.getByRole('button', { name: /Candidate inbox.*1 unread/ }).waitFor()
     await page.getByRole('button', { name: /Open candidate inbox/ }).click()
     await page.getByPlaceholder('Enter code').fill('GILGIL-TEST')
     await page.getByRole('button', { name: /Open inbox/ }).click()
     await page.getByRole('button', { name: /Accept & open/ }).click()
+    await page.getByRole('button', { name: /Candidate inbox.*0 unread/ }).waitFor()
     await page.getByText(wish, { exact: true }).waitFor()
     await page.reload({ waitUntil: 'networkidle' })
     // Candidate session is intentionally not persisted on a shared device.

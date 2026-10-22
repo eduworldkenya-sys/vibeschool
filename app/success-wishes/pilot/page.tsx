@@ -1,13 +1,13 @@
-import type { Metadata } from 'next'
-import PilotJourney from '@/components/success-wishes/PilotJourney'
+import { redirect } from 'next/navigation'
 
-export const metadata: Metadata = {
-  title: 'Gilgil Township Success Wishes Pilot | VibeSchool',
-  description: 'A browser-isolated test of digital greeting cards using a fictional candidate. No live school delivery.',
-  robots: { index: false, follow: false },
-  referrer: 'no-referrer',
-}
+export const dynamic = 'force-dynamic'
 
-export default function GilgilSuccessWishesPilot() {
+export default async function GilgilSuccessWishesPilot() {
+  // The browser-only Gilgil journey is retained solely for local synthetic QA.
+  // Production and ordinary previews have one canonical Success Wishes page.
+  if (process.env.NODE_ENV !== 'development' || process.env.SUCCESS_WISHES_LOCAL_PILOT_TEST !== 'true') {
+    redirect('/success-wishes')
+  }
+  const { default: PilotJourney } = await import('@/components/success-wishes/PilotJourney')
   return <PilotJourney />
 }
