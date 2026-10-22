@@ -70,6 +70,10 @@ values('$DUAL_STUDENT','Task3 Dual Claim Student',null)
 on conflict(id) do update set full_name=excluded.full_name,role=null;
 insert into public.students(id,name,admission_number,class_id)
 values('$DUAL_LEARNER','Dual Lane Claim Learner','T3-DUAL-001','$CLASS_A');
+-- Both identities must race against an already-enrolled learner. Parent
+-- redemption needs canonical student_classes.school_id before either claim.
+insert into public.student_classes(school_id, student_id, class_id, is_current)
+values('$SCHOOL_ID','$DUAL_LEARNER','$CLASS_A',true);
 insert into public.student_claim_codes(student_id,code,claimed,role)
 values('$DUAL_LEARNER','T3DUALLANE',false,'shared');
 SQL
@@ -86,6 +90,7 @@ student_binding=$("${PSQL[@]}" -Atc "select count(*) from public.students where 
 
 if [[ "$dual_student_success" != "1" || "$dual_parent_success" != "1" || "$dual_state" != "1|1|1|1" || "$parent_link" != "1" || "$student_binding" != "1" ]]; then
   echo "student/parent dual-lane claim race failed: student_success=$dual_student_success parent_success=$dual_parent_success state=$dual_state parent_link=$parent_link student_binding=$student_binding" >&2
+  printf 'student_response=%s parent_response=%s\\n' "$(cat "$work/dual.student")" "$(cat "$work/dual.parent")" >&2
   cat "$work/dual.student.err" "$work/dual.parent.err" >&2 || true
   exit 1
 fi
