@@ -329,7 +329,7 @@ export default function HomeworkDetailPage() {
         </section>
       )}
 
-      {submission?.status === "returned" && <section style={{ background: "#fef3c7", borderRadius: 14, padding: 16, marginBottom: 14 }}><strong>Returned for correction</strong><p>{submission.returned_reason || "Please review your work, make corrections and submit again."}</p></section>}
+      {submission?.returned_reason && ["returned", "draft"].includes(submission.status) && <section style={{ background: "#fef3c7", borderRadius: 14, padding: 16, marginBottom: 14 }}><strong>Returned for correction</strong><p>{submission.returned_reason || "Please review your work, make corrections and submit again."}</p></section>}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
         {questions.map((question, index) => (
