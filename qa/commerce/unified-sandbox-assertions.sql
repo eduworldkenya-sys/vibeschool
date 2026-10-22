@@ -13,6 +13,7 @@ declare
   ];
   k text;
   n integer := 0;
+  was_rejected boolean;
 begin
   if has_schema_privilege('commerce_fixture_untrusted','commerce_sandbox','USAGE') then
     raise exception 'untrusted role may use sandbox commerce schema';
@@ -56,15 +57,15 @@ begin
     end if;
   end;
 
+  was_rejected:=false;
   begin
     insert into commerce_sandbox.payment_attempts(order_id,amount_kes,phone)
       values(o,1,'254712345678');
-    raise exception 'mismatched amount unexpectedly accepted';
-  exception when raise_exception then
-    if (select count(*) from commerce_sandbox.payment_attempts where order_id=o) <> 0 then
-      raise exception 'mismatched attempt persisted';
-    end if;
+  exception when raise_exception then was_rejected:=true;
   end;
+  if not was_rejected or (select count(*) from commerce_sandbox.payment_attempts where order_id=o) <> 0 then
+    raise exception 'mismatched attempt unexpectedly accepted';
+  end if;
 
   insert into commerce_sandbox.payment_attempts(order_id,amount_kes,phone)
     values(o,300,'254712345678') returning id into a;
@@ -87,16 +88,16 @@ begin
   exception when unique_violation then null;
   end;
 
+  was_rejected:=false;
   begin
     update commerce_sandbox.callback_events set result_code=1
       where provider_event_key='sandbox_event_001';
-    raise exception 'callback mutation unexpectedly accepted';
-  exception when raise_exception then
-    if (select result_code from commerce_sandbox.callback_events
-        where provider_event_key='sandbox_event_001') <> 0 then
-      raise exception 'callback evidence was mutated';
-    end if;
+  exception when raise_exception then was_rejected:=true;
   end;
+  if not was_rejected or (select result_code from commerce_sandbox.callback_events
+      where provider_event_key='sandbox_event_001') <> 0 then
+    raise exception 'callback evidence unexpectedly mutated';
+  end if;
   raise notice 'PASS: all six kinds, guest/profile ownership, price lock, dedupe, append-only, schema access and RLS';
 end $$;
 rollback;
