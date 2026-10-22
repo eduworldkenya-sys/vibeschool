@@ -48,3 +48,26 @@ create policy pol_student_classes_parent_link_read
 -- The pre-existing pol_student_classes_teacher_read policy continues
 -- restricting staff to their assigned teacher_classes class/school scope.
 -- Do not add broad teacher or student school-membership reads.
+
+-- Prevent a learner from bypassing review RPCs through direct PostgREST
+-- UPDATE/INSERT writes (which previously exposed mark/feedback/status columns).
+-- Confirm the authorized SECURITY DEFINER submission/review RPCs still exist.
+do $migration$
+declare rpc_count integer;
+begin
+  select count(*) into rpc_count from pg_proc p
+  where p.pronamespace='public'::regnamespace
+    and p.proname in (
+      'save_student_homework_draft',
+      'submit_student_homework',
+      'review_homework_submission'
+    )
+    and p.prosecdef
+    and pg_get_userbyid(p.proowner)='postgres';
+  if rpc_count <> 3 then raise exception 'homework_rpc_authority_contract_missing'; end if;
+end
+$migration$;
+
+revoke insert, update, delete on public.homework_submissions from authenticated;
+-- Keep authenticated SELECT under its existing student/parent/teacher RLS policies.
+-- All state-changing student and teacher clients must use authorized RPCs.
