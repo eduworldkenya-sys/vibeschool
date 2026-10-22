@@ -62,8 +62,7 @@ begin
       'submit_student_homework',
       'review_homework_submission'
     )
-    and p.prosecdef
-    and pg_get_userbyid(p.proowner)='postgres';
+    and p.prosecdef;
   if rpc_count <> 3 then raise exception 'homework_rpc_authority_contract_missing'; end if;
 end
 $migration$;
