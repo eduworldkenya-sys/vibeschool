@@ -63,6 +63,20 @@ async function checkViewport(width) {
     const imageFile = await imageDownload.path()
     const png = fs.readFileSync(imageFile)
     assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
+    assert(png.byteLength > 5000, 'Generated image must contain more than a blank PNG header')
+    const canShare = await page.evaluate(() => {
+      if (!navigator.share || !navigator.canShare) return false
+      return navigator.canShare({ files: [new File(['test'], 'test.png', { type: 'image/png' })] })
+    })
+    if (!canShare) {
+      const fallbackDownloadReady = page.waitForEvent('download')
+      await page.getByRole('button', { name: /Share card/ }).click()
+      const fallback = await fallbackDownloadReady
+      assert.equal(fallback.suggestedFilename(), 'vibeschool-success-wishes.png')
+      await page.getByText(/Your image was downloaded/).waitFor()
+    }
+    const studioOverflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    assert(studioOverflow <= 1, 'Card studio mobile overflow of ' + studioOverflow + 'px at width ' + width)
     assert.deepEqual(calls, [], 'Card editor must not send live messages')
     await page.screenshot({ path: path.join(screenshots, `disabled-${width}.png`), fullPage: true })
     const oldPrivate = await page.goto(ROOT + '/success-wishes/private', { waitUntil: 'networkidle', timeout: 90000 })
