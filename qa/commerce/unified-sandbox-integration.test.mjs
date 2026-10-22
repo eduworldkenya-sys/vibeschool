@@ -80,6 +80,7 @@ test('synthetic guest checkout persists one paid-simulated wish and no real enti
       where id='${attemptId}' and state='submitting';`)==='1',
     now:()=>new Date('2026-10-22T11:00:00Z'),
   })
+  assert.equal(sql(\`select commerce_sandbox.claim_stk_send('${attemptId}');\`),'f')
   assert.equal(result.state,'awaiting_customer')
   assert.equal(result.receipt,null)
 
