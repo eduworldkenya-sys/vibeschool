@@ -1,14 +1,11 @@
 import type { Metadata } from 'next'
-import SuccessWishes from '@/components/success-wishes/SuccessWishes'
+import SuccessCardStudio from '@/components/success-wishes/SuccessCardStudio'
 
-export const dynamic = 'force-dynamic'
 export const metadata: Metadata = {
-  title: 'Success Wishes',
-  description: 'Send a candidate your encouragement. Open personal success wishes privately.',
-  robots: { index: false, follow: false },
-  referrer: 'no-referrer',
+  title: 'Success Wishes — Personalised Exam Cards | VibeSchool',
+  description: 'Create a beautiful, personalised success wishes card and share it as an image.',
 }
 
 export default function SuccessWishesPage() {
-  return <SuccessWishes />
+  return <SuccessCardStudio />
 }

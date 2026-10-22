@@ -4,32 +4,32 @@ import { ArrowLeft, ArrowRight, Check, CheckCircle2, GraduationCap, Heart, LockK
 import styles from './WishCardExperience.module.css'
 
 type Props = {
-  demo?: boolean; recipient?: string; school?: string; sender?: string
+  recipient?: string; school?: string; sender?: string
   text?: string | null; kind?: 'text' | 'voice' | 'video'
   mediaUrl?: string | null; busy?: boolean; onPlay?: () => void
 }
 
 // Pure presentation: real inbox API controls consent, identity and private playback.
-export default function WishCardExperience({demo = false, recipient, school, sender, text, kind = 'text', mediaUrl, busy = false, onPlay}: Props) {
+export default function WishCardExperience({recipient, school, sender, text, kind = 'text', mediaUrl, busy = false, onPlay}: Props) {
   const [step, setStep] = useState(0)
-  const who = demo ? 'Faith (example)' : (recipient || 'You')
-  const from = demo ? 'Someone who believes in you' : (sender || 'Someone special')
-  const schoolName = demo ? 'Sample School' : school
-  const wish = demo ? 'Dear Faith, believe in yourself, stay focused and do your best. You have worked hard and we are proud of you.' : text?.trim()
+  const who = recipient || 'You'
+  const from = sender || 'Someone special'
+  const schoolName = school
+  const wish = text?.trim()
   const screens = ['Cover', 'Message', 'Voice and video', 'Final wish']
   const next = () => setStep(value => Math.min(3, value + 1))
   const screenStyle = (index: number, variant: string) => [styles.phone, variant, step === index ? styles.current : styles.notCurrent].join(' ')
 
-  return <section className={styles.experience} aria-label={demo ? 'Example digital success card' : 'Private success card'}>
+  return <section className={styles.experience} aria-label="Private success card">
     <div className={styles.topline}>
-      <div><span className={styles.overline}><Sparkles size={14} aria-hidden="true"/>{demo ? 'SEE THE EXPERIENCE' : 'JUST FOR YOU'}</span>
-        <h2>{demo ? 'More than a card. A moment to remember.' : 'Open your special wish'}</h2>
-        <p>{demo ? 'Explore this fictional example. No real candidate or media is shown.' : 'A message from someone cheering you on.'}</p></div>
-      <span className={styles.privacy}><LockKeyhole size={14} aria-hidden="true"/>{demo ? 'Illustration only' : 'Private view'}</span>
+      <div><span className={styles.overline}><Sparkles size={14} aria-hidden="true"/>JUST FOR YOU</span>
+        <h2>Open your special wish</h2>
+        <p>A message from someone cheering you on.</p></div>
+      <span className={styles.privacy}><LockKeyhole size={14} aria-hidden="true"/>Private view</span>
     </div>
     <div className={styles.screenGrid}>
       <article className={screenStyle(0, styles.cover)} aria-label="Cover — 1 of 4">
-        <div className={styles.phoneTop}><span><GraduationCap size={16} aria-hidden="true"/> VibeSchool</span><span>{demo ? 'SAMPLE' : 'FOR YOU'}</span></div>
+        <div className={styles.phoneTop}><span><GraduationCap size={16} aria-hidden="true"/> VibeSchool</span><span>FOR YOU</span></div>
         <div className={styles.coverArtwork} aria-hidden="true"><span className={styles.halo}/><span className={styles.figureHead}/><span className={styles.figureBody}/><Sparkles className={styles.coverStar} size={25}/></div>
         <div className={styles.coverCopy}><span className={styles.cheer}>Your future is bright</span><div className={styles.coverTitle}>ALL THE<br/><em>BEST!</em></div><span className={styles.recipient}>{who}</span>{schoolName && <span className={styles.schoolName}>{schoolName}</span>}</div>
         <button className={styles.phoneAction} type="button" onClick={next}>Open your card <ArrowRight size={16} aria-hidden="true"/></button>
@@ -46,11 +46,7 @@ export default function WishCardExperience({demo = false, recipient, school, sen
       </article>
       <article className={screenStyle(2, styles.voices)} aria-label="Voice and video — 3 of 4">
         <div className={styles.phoneTop}><span><Mic size={16} aria-hidden="true"/> Voices of support</span><span>03 / 04</span></div>
-        {demo ? <>
-          <div className={styles.mediaPoster}><span className={styles.mediaIcon}><Video size={26} aria-hidden="true"/></span><strong>Video wishes</strong><small>See encouragement from your people</small><span className={styles.exampleTag}>Illustrative preview</span></div>
-          <div className={styles.voiceTile}><span className={styles.voiceAvatar}><Mic size={19} aria-hidden="true"/></span><span><strong>Voice notes</strong><small>Hear their familiar voices</small></span><span className={styles.wave} aria-hidden="true">▂▅▃▆▄▇▃▅</span></div>
-          <p className={styles.mediaHint}>Real media appears only after it has been approved for private viewing.</p>
-        </> : kind === 'text' ? <div className={styles.mediaPlaceholder}><Heart size={36} aria-hidden="true"/><strong>Words worth keeping</strong><p>This wish was sent as a personal message.</p></div> : <>
+        {kind === 'text' ? <div className={styles.mediaPlaceholder}><Heart size={36} aria-hidden="true"/><strong>Words worth keeping</strong><p>This wish was sent as a personal message.</p></div> : <>
           <div className={styles.mediaPoster}>
             <span className={styles.mediaIcon}>{kind === 'voice' ? <Mic size={26} aria-hidden="true"/> : <Video size={26} aria-hidden="true"/>}</span>
             <strong>{kind === 'voice' ? 'A voice note for you' : 'A video wish for you'}</strong><small>From {from}</small>
@@ -73,6 +69,5 @@ export default function WishCardExperience({demo = false, recipient, school, sen
     <nav className={styles.navigation} aria-label="Card pages"><button type="button" className={styles.back} onClick={() => setStep(value => Math.max(0, value - 1))} disabled={step === 0}><ArrowLeft size={16} aria-hidden="true"/> Back</button>
       <div className={styles.steps}>{screens.map((screen, index) => <button type="button" key={screen} className={[styles.dot, step === index ? styles.activeDot : ''].join(' ')} aria-current={step === index ? 'step' : undefined} aria-label={'Show ' + screen} onClick={() => setStep(index)}>{index < step ? <Check size={12} aria-hidden="true"/> : index + 1}</button>)}</div>
       <button type="button" className={styles.forward} onClick={step === 3 ? () => setStep(0) : next}>{step === 3 ? 'Replay' : 'Next'} <ArrowRight size={16} aria-hidden="true"/></button></nav>
-    {demo && <p className={styles.disclaimer}>Fictional example · No real messages, learner details, recordings or payments</p>}
   </section>
 }
