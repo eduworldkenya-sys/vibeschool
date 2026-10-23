@@ -26,6 +26,15 @@ async function equalSecret(a:string,b:string){
   for(let i=0;i<x.length;i++)diff|=x[i]^y[i]
   return diff===0
 }
+/** Produce only a sandbox callback URL for the exact isolated project. */
+function sandboxCallbackUrl(projectUrl: string): string {
+  const configured=Deno.env.get('COMMERCE_DARAJA_SANDBOX_CALLBACK_URL')?.trim()
+  if(configured)return configured
+  const token=Deno.env.get('COMMERCE_DARAJA_SANDBOX_WEBHOOK_TOKEN')?.trim()||''
+  if(!/^[A-Za-z0-9_-]{32,200}$/.test(token))throw new Error('Sandbox webhook token not configured')
+  return projectUrl+'/functions/v1/unified-commerce-sandbox-callback?sandbox_token='+token
+}
+
 Deno.serve(async(req)=>{
   if(req.method!=='POST')return json({error:'Method not allowed'},405)
   const env={
@@ -51,7 +60,7 @@ Deno.serve(async(req)=>{
       throw Error('Invalid order')
   }catch{return json({error:'Invalid order id'},400)}
   const ref=env.COMMERCE_SANDBOX_PROJECT_REF||''
-  const databaseUrl=Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL')||''
+  const databaseUrl=(Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL') || Deno.env.get('SUPABASE_DB_URL') || '')
   let parsed:URL
   try{parsed=new URL(databaseUrl)}
   catch{return json({error:'Sandbox database not configured'},503)}
@@ -95,7 +104,7 @@ Deno.serve(async(req)=>{
       businessShortCode:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_SHORTCODE')?.trim() || '174379'),
       partyB:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_PARTY_B')?.trim() || '174379'),
       transactionType:'CustomerPayBillOnline',
-      callbackUrl:required('COMMERCE_DARAJA_SANDBOX_CALLBACK_URL'),
+      callbackUrl:sandboxCallbackUrl(env.SUPABASE_URL || ''),
       testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
     }
     const attempt:SandboxAttempt={
