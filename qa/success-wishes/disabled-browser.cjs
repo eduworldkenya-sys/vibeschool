@@ -63,7 +63,7 @@ async function makeWish(context, { message, theme }) {
 
   await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
   await page.getByRole('textbox', { name: 'Exam year' }).fill('2026')
-  await page.getByRole('button', { name: 'School (optional)' }).click()
+  await page.locator('summary').filter({ hasText: 'School (optional)' }).click()
   await page.getByRole('textbox', { name: 'School' }).fill('Gilgil Township')
   await page.getByRole('textbox', { name: 'Your name' }).fill('Synthetic sender')
   await page.getByRole('textbox', { name: 'Your wish' }).fill(message)
