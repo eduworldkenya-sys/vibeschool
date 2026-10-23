@@ -19,7 +19,23 @@ export type LocalTestWish = {
   sessions?: Array<{ hash: string; expiresAt: string }>
 }
 
-type Store = { wishes: LocalTestWish[] }
+export type LocalTestCheckout = {
+  id: string
+  keyHash: string
+  candidate: string
+  sender: string
+  message: string
+  examYear: string
+  school: string
+  theme: string
+  phoneLast4: string
+  amountKes: 50
+  state: 'awaiting_test_result' | 'settled_simulated' | 'failed_simulated'
+  createdAt: string
+  expiresAt: string
+  wishId?: string
+}
+type Store = { wishes: LocalTestWish[]; checkouts?: LocalTestCheckout[] }
 const storePath = path.join(process.cwd(), '.success-wishes-test-data.json')
 const RETENTION_DAYS = 30
 const SESSION_DAYS = 7
@@ -48,7 +64,7 @@ async function writeStore(store: Store) {
 async function pruneExpiredWishes() {
   const store = await readUnprunedStore()
   const retained = store.wishes.filter(wish => !wish.revokedAt && Date.now() < Date.parse(wish.expiresAt))
-  if (retained.length !== store.wishes.length) await writeStore({ wishes: retained })
+  if (retained.length !== store.wishes.length) await writeStore({ ...store, wishes: retained })
 }
 
 async function readStore(): Promise<Store> {
@@ -62,7 +78,7 @@ async function readStore(): Promise<Store> {
     wish.sessions = liveSessions
   }
   if (changed) await writeStore({ wishes: retained })
-  return { wishes: retained }
+  return { ...store, wishes: retained, checkouts: (store.checkouts || []).filter(item => Date.now() < Date.parse(item.expiresAt)) }
 }
 
 export async function createLocalTestWish(input: Omit<LocalTestWish, 'id' | 'createdAt' | 'expiresAt' | 'invitationHash' | 'sessions' | 'revokedAt'>) {
@@ -129,4 +145,93 @@ if (process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WIS
   void pruneExpiredWishes().catch(() => undefined)
   processState.__vswTestPruneTimer = setInterval(() => { void pruneExpiredWishes().catch(() => undefined) }, 60_000)
   processState.__vswTestPruneTimer.unref()
+}
+
+/**
+ * Localhost-only test payments. These are not M-Pesa requests, provider
+ * settlements, receipts or real entitlements. The invoking Next route MUST
+ * call localTestGuard before using any of these functions.
+ *
+ * Finish and invitation minting share one atomic store write. A single-process
+ * queue prevents concurrent test requests from granting twice.
+ */
+let checkoutQueue: Promise<void> = Promise.resolve()
+async function serialCheckout<T>(fn: () => Promise<T>): Promise<T> {
+  const pending = checkoutQueue.then(fn, fn)
+  checkoutQueue = pending.then(() => undefined, () => undefined)
+  return pending
+}
+
+type TestCheckoutInput = Pick<LocalTestCheckout,
+  'candidate' | 'sender' | 'message' | 'examYear' | 'school' |
+  'theme' | 'phoneLast4'>
+
+export async function startLocalTestCheckout(input: TestCheckoutInput) {
+  return serialCheckout(async () => {
+    const store = await readStore()
+    const createdAt = new Date()
+    const key = randomBytes(32).toString('base64url')
+    const checkout: LocalTestCheckout = {
+      ...input,
+      id: randomUUID(),
+      keyHash: hash(key),
+      amountKes: 50,
+      state: 'awaiting_test_result',
+      createdAt: createdAt.toISOString(),
+      expiresAt: new Date(createdAt.getTime() + 30 * 60_000).toISOString(),
+    }
+    store.checkouts = [...(store.checkouts || []), checkout]
+    await writeStore(store)
+    return { orderId: checkout.id, key, amountKes: checkout.amountKes,
+      state: checkout.state, expiresAt: checkout.expiresAt }
+  })
+}
+
+function lookupCheckout(store: Store, orderId: string, key: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(orderId) || !/^[a-zA-Z0-9_-]{40,60}$/.test(key)) return null
+  const found = store.checkouts?.find(item => item.id === orderId)
+  return found && found.keyHash === hash(key) ? found : null
+}
+
+export async function readLocalTestCheckout(orderId: string, key: string) {
+  const store = await readStore()
+  const found = lookupCheckout(store, orderId, key)
+  if (!found || Date.now() >= Date.parse(found.expiresAt)) return null
+  return { orderId: found.id, amountKes: found.amountKes, state: found.state,
+    simulated: true, realAccess: false, expiresAt: found.expiresAt,
+    phoneLast4: found.phoneLast4, wishId: found.wishId || null }
+}
+
+export async function resolveLocalTestCheckout(orderId: string, key: string, outcome: 'success' | 'failure') {
+  return serialCheckout(async () => {
+    const store = await readStore()
+    const found = lookupCheckout(store, orderId, key)
+    if (!found || Date.now() >= Date.parse(found.expiresAt)) return null
+    if (found.state !== 'awaiting_test_result') {
+      return { conflict: true, state: found.state, simulated: true, realAccess: false }
+    }
+
+    if (outcome === 'failure') {
+      found.state = 'failed_simulated'
+      await writeStore(store)
+      return { state: found.state, simulated: true, realAccess: false, invitationToken: null }
+    }
+
+    // Simulated success only: mint one LOCAL TEST invitation, never a real grant.
+    const now = new Date()
+    const invitationToken = randomBytes(32).toString('base64url')
+    const wish: LocalTestWish = {
+      id: randomUUID(), candidate: found.candidate, sender: found.sender,
+      message: found.message, examYear: found.examYear,
+      school: found.school, theme: found.theme, version: 'text', priceKes: 50,
+      createdAt: now.toISOString(), expiresAt: addDays(now, RETENTION_DAYS),
+      invitationHash: hash(invitationToken),
+    }
+    store.wishes.push(wish)
+    found.state = 'settled_simulated'
+    found.wishId = wish.id
+    await writeStore(store)
+    return { state: found.state, simulated: true, realAccess: false,
+      invitationToken, wishId: wish.id, expiresAt: wish.expiresAt }
+  })
 }
