@@ -11,6 +11,8 @@ on:
       - 'app/api/success-wishes/test-daraja/route.ts'
       - 'lib/success-wishes/hosted-daraja-test.ts'
       - 'scripts/test-success-wishes-hosted-daraja.mjs'
+      - 'scripts/test-success-wishes-hosted-http.mjs'
+      - 'scripts/commerce/mock-hosted-daraja-http.cjs'
       - 'app/api/success-wishes/test-checkout/route.ts'
       - 'components/success-wishes/SuccessCardStudio.tsx'
       - 'lib/success-wishes/local-test-store.ts'
@@ -27,6 +29,8 @@ on:
       - 'app/api/success-wishes/test-daraja/route.ts'
       - 'lib/success-wishes/hosted-daraja-test.ts'
       - 'scripts/test-success-wishes-hosted-daraja.mjs'
+      - 'scripts/test-success-wishes-hosted-http.mjs'
+      - 'scripts/commerce/mock-hosted-daraja-http.cjs'
       - 'app/api/success-wishes/test-checkout/route.ts'
       - 'components/success-wishes/SuccessCardStudio.tsx'
       - 'lib/success-wishes/local-test-store.ts'
@@ -62,6 +66,8 @@ jobs:
         run: node --test scripts/test-success-wishes-local-checkout.mjs
       - name: Test operator-only Daraja STK bridge with mocked transport
         run: node --test scripts/test-success-wishes-hosted-daraja.mjs
+      - name: Test guarded hosted checkout over actual Next.js HTTP (fake provider only)
+        run: node --test scripts/test-success-wishes-hosted-http.mjs
       - name: Typecheck whole repository
         run: npm run typecheck
 
