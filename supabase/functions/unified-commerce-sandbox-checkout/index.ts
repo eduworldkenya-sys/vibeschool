@@ -96,11 +96,11 @@ Deno.serve(async req=>{
       consumerKey:setting('COMMERCE_DARAJA_SANDBOX_CONSUMER_KEY'),
       consumerSecret:setting('COMMERCE_DARAJA_SANDBOX_CONSUMER_SECRET'),
       passkey:setting('COMMERCE_DARAJA_SANDBOX_PASSKEY'),
-      businessShortCode:setting('COMMERCE_DARAJA_SANDBOX_SHORTCODE'),
-      partyB:setting('COMMERCE_DARAJA_SANDBOX_PARTY_B'),
+      businessShortCode:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_SHORTCODE')?.trim() || '174379'),
+      partyB:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_PARTY_B')?.trim() || '174379'),
       transactionType:'CustomerPayBillOnline',
       callbackUrl:setting('COMMERCE_DARAJA_SANDBOX_CALLBACK_URL'),
-      testPhone:setting('COMMERCE_DARAJA_SANDBOX_TEST_PHONE'),
+      testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
     }
   }catch{return json({error:'Sandbox provider not configured'},503)}
   const db=postgres(databaseUrl,{max:1,prepare:false,idle_timeout:5,connect_timeout:5})
