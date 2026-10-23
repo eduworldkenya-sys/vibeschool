@@ -267,7 +267,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" aria-describedby="exam-year-help"/><small id="exam-year-help">Printed on card. Not a sign-in code.</small></label>
           </div>
           <div className={styles.optionalField}>
-            <div className={styles.optionalFieldHeading}><label htmlFor={schoolInputId}>School <span>(optional)</span></label><small>Help describe the recipient</small></div>
+            <div className={styles.optionalFieldHeading}><label htmlFor={schoolInputId}>School (optional)</label><small>Help describe the recipient</small></div>
             <input id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search VibeSchool&apos;s school list"/>
             {schoolSearchState === 'loading' && <p className={styles.schoolSearchStatus} role="status">Searching VibeSchool schools…</p>}
             {schoolSearchState === 'error' && <p className={styles.schoolSearchStatus} role="status">School search is unavailable right now. You can leave this optional field blank.</p>}

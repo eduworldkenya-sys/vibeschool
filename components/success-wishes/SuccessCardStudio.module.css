@@ -103,7 +103,6 @@
 .optionalField{margin-top:15px;border:1px solid #e1e9e0;border-radius:12px;background:#fbfcf9;padding:12px 13px 13px}
 .optionalFieldHeading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 8px}
 .optionalFieldHeading label{margin:0!important;display:inline;font-size:12px;font-weight:800;color:#234c3a}
-.optionalFieldHeading label span{color:#718076;font-weight:500}
 .optionalFieldHeading>small{font-size:10px;color:#738075}
 .optionalField>input{margin:0}
 .optionalField>.schoolSearchStatus{margin-top:7px}
