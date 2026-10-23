@@ -110,7 +110,17 @@ Deno.serve(async req=>{
   const db=postgres(databaseGuard.connectionString,{max:1,prepare:false,ssl:'require',idle_timeout:5,connect_timeout:5})
   let attemptId:string|null=null
   try{
-    // The database chooses the price; user-supplied amount is never read.
+    // The database's private active catalogue decides which product can be
+    // sold and for what price. Reject unknown references before creating
+    // any order or reserving/sending any STK. Never trust a caller price.
+    const products=await db`select trusted_price_kes
+      from commerce_sandbox.catalogue
+      where product_kind=${kind} and item_reference=${ref} and active=true
+      limit 1`
+    if(products.length!==1)return json({
+      error:'Unknown or inactive sandbox catalogue item',
+      code:'invalid_catalogue_item',
+    },400)
     const rows=await db`select commerce_sandbox.create_trusted_order(
       ${kind},${ref},${ownerType},${ownerReference},${key}) as id`
     const orderId=String(rows[0]?.id||'')
@@ -149,8 +159,13 @@ Deno.serve(async req=>{
       message:'Sandbox STK accepted. This is not payment settlement.',
     },202)
   }catch{
-    // Once claimed, network errors leave a durable submitting attempt.
-    // Never blindly retry. Do not expose provider secrets or response bodies.
+    // No durable attempt means no STK was sent; don't claim that a provider
+    // response needs reconciliation when the database itself was unavailable.
+    // Never log connection details or private provider responses.
+    if(!attemptId)return json({mode:'sandbox',attempt_id:null,
+      state:'pre_payment_failure',
+      message:'Failed before reserving a payment attempt. Check isolated database connectivity and catalogue.'},503)
+    // Once reserved, outcome can be uncertain; do NOT resubmit STK.
     return json({mode:'sandbox',attempt_id:attemptId,
       state:'reconciliation_required',
       message:'Provider status uncertain. Check sandbox status before another request.'},409)
