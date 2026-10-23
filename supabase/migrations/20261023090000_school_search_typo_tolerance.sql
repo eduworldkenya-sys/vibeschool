@@ -134,7 +134,7 @@ canonical as (
     )
   group by s.id,s.name,s.county,s.sub_county,s.ward,s.school_type,
     s.school_category,s.ownership_type,s.gender_type,s.accommodation_type,
-    s.cluster,s.knec_code,s.nemis_code,s.gps_lat,s.gps_lng,q.raw,q.n
+    s.cluster,s.knec_code,s.nemis_code,s.gps_lat,s.gps_lng,q.raw,q.n,exact_search.has_exact
 ),
 directory as (
   select
