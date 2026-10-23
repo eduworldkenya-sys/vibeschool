@@ -34,6 +34,11 @@ export type LocalTestCheckout = {
   createdAt: string
   expiresAt: string
   wishId?: string
+  providerMode?: 'daraja'
+  hostedOrderId?: string
+  hostedCheckoutRequestId?: string
+  hostedState?: 'prepared' | 'submitting' | 'awaiting_customer' |
+    'outcome_unknown' | 'reconciliation_required' | 'failed' | 'expired' | 'cancelled'
 }
 type Store = { wishes: LocalTestWish[]; checkouts?: LocalTestCheckout[] }
 const storePath = path.join(process.cwd(), '.success-wishes-test-data.json')
@@ -77,7 +82,7 @@ async function readStore(): Promise<Store> {
     if (liveSessions.length !== sessions.length) changed = true
     wish.sessions = liveSessions
   }
-  if (changed) await writeStore({ wishes: retained })
+  if (changed) await writeStore({ ...store, wishes: retained })
   return { ...store, wishes: retained, checkouts: (store.checkouts || []).filter(item => Date.now() < Date.parse(item.expiresAt)) }
 }
 
@@ -166,13 +171,15 @@ type TestCheckoutInput = Pick<LocalTestCheckout,
   'candidate' | 'sender' | 'message' | 'examYear' | 'school' |
   'theme' | 'phoneLast4'>
 
-export async function startLocalTestCheckout(input: TestCheckoutInput) {
+export async function startLocalTestCheckout(input: TestCheckoutInput, mode: 'local' | 'daraja' = 'local') {
   return serialCheckout(async () => {
     const store = await readStore()
     const createdAt = new Date()
     const key = randomBytes(32).toString('base64url')
     const checkout: LocalTestCheckout = {
       ...input,
+      providerMode: mode === 'daraja' ? 'daraja' : undefined,
+      hostedState: mode === 'daraja' ? 'prepared' : undefined,
       id: randomUUID(),
       keyHash: hash(key),
       amountKes: 50,
@@ -199,7 +206,10 @@ export async function readLocalTestCheckout(orderId: string, key: string) {
   if (!found || Date.now() >= Date.parse(found.expiresAt)) return null
   return { orderId: found.id, amountKes: found.amountKes, state: found.state,
     simulated: true, realAccess: false, expiresAt: found.expiresAt,
-    phoneLast4: found.phoneLast4, wishId: found.wishId || null }
+    phoneLast4: found.phoneLast4, wishId: found.wishId || null,
+    providerMode: found.providerMode || 'local',
+    hostedOrderId: found.hostedOrderId || null,
+    hostedState: found.hostedState || null }
 }
 
 export async function resolveLocalTestCheckout(orderId: string, key: string, outcome: 'success' | 'failure') {
@@ -207,6 +217,10 @@ export async function resolveLocalTestCheckout(orderId: string, key: string, out
     const store = await readStore()
     const found = lookupCheckout(store, orderId, key)
     if (!found || Date.now() >= Date.parse(found.expiresAt)) return null
+    if (found.providerMode === 'daraja') {
+      return { conflict: true, state: found.hostedState || 'prepared',
+        simulated: true, realAccess: false }
+    }
     if (found.state !== 'awaiting_test_result') {
       return { conflict: true, state: found.state, simulated: true, realAccess: false }
     }
@@ -224,6 +238,97 @@ export async function resolveLocalTestCheckout(orderId: string, key: string, out
       id: randomUUID(), candidate: found.candidate, sender: found.sender,
       message: found.message, examYear: found.examYear,
       school: found.school, theme: found.theme, version: 'text', priceKes: 50,
+      createdAt: now.toISOString(), expiresAt: addDays(now, RETENTION_DAYS),
+      invitationHash: hash(invitationToken),
+    }
+    store.wishes.push(wish)
+    found.state = 'settled_simulated'
+    found.wishId = wish.id
+    await writeStore(store)
+    return { state: found.state, simulated: true, realAccess: false,
+      invitationToken, wishId: wish.id, expiresAt: wish.expiresAt }
+  })
+}
+
+/**
+ * Hosted Daraja sandbox commissioning is separate from synthetic success.
+ * An STK can be sent only after atomically claiming one prepared localhost
+ * test order. Network uncertainty NEVER permits resending the STK.
+ */
+export async function claimHostedSandboxSend(orderId: string, key: string) {
+  return serialCheckout(async () => {
+    const store = await readStore()
+    const found = lookupCheckout(store, orderId, key)
+    if (!found || found.providerMode !== 'daraja' ||
+      Date.now() >= Date.parse(found.expiresAt) ||
+      found.hostedState !== 'prepared') return false
+    found.hostedState = 'submitting'
+    await writeStore(store)
+    return true
+  })
+}
+
+export async function attachHostedSandboxOrder(
+  orderId: string, key: string, hostedOrderId: string, checkoutRequestId: string
+) {
+  return serialCheckout(async () => {
+    const store = await readStore()
+    const found = lookupCheckout(store, orderId, key)
+    if (!found || found.providerMode !== 'daraja' || found.hostedState !== 'submitting' ||
+      !/^[0-9a-f-]{36}$/i.test(hostedOrderId) ||
+      !/^ws_CO_[A-Za-z0-9_:-]{12,}$/.test(checkoutRequestId)) return false
+    found.hostedOrderId = hostedOrderId
+    found.hostedCheckoutRequestId = checkoutRequestId
+    found.hostedState = 'awaiting_customer'
+    await writeStore(store)
+    return true
+  })
+}
+
+export async function markHostedSandboxUncertain(orderId: string, key: string) {
+  return serialCheckout(async () => {
+    const store = await readStore()
+    const found = lookupCheckout(store, orderId, key)
+    if (!found || found.providerMode !== 'daraja' ||
+      found.hostedState !== 'submitting') return false
+    found.hostedState = 'outcome_unknown'
+    await writeStore(store)
+    return true
+  })
+}
+
+/** Only an authenticated, server-queried, matching provider verdict may call
+ * this helper. The invitation is LOCAL TEST ONLY, never a real entitlement. */
+export async function applyHostedSandboxVerdict(
+  orderId: string, key: string, hostedOrderId: string,
+  verdict: 'success' | 'failed' | 'cancelled' | 'expired' | 'pending'
+) {
+  return serialCheckout(async () => {
+    const store = await readStore()
+    const found = lookupCheckout(store, orderId, key)
+    if (!found || found.providerMode !== 'daraja' ||
+      found.hostedOrderId !== hostedOrderId ||
+      Date.now() >= Date.parse(found.expiresAt)) return null
+    if (found.state !== 'awaiting_test_result') {
+      return { conflict: true, state: found.state, simulated: true, realAccess: false }
+    }
+    if (verdict === 'pending') return {
+      state: found.hostedState || 'awaiting_customer', simulated: true, realAccess: false
+    }
+    if (verdict !== 'success') {
+      found.hostedState = verdict
+      found.state = 'failed_simulated'
+      await writeStore(store)
+      return { state: verdict, simulated: true, realAccess: false, invitationToken: null }
+    }
+    if (found.hostedState !== 'awaiting_customer' &&
+        found.hostedState !== 'reconciliation_required') return null
+    const now = new Date()
+    const invitationToken = randomBytes(32).toString('base64url')
+    const wish: LocalTestWish = {
+      id: randomUUID(), candidate: found.candidate, sender: found.sender,
+      message: found.message, examYear: found.examYear, school: found.school,
+      theme: found.theme, version: 'text', priceKes: 50,
       createdAt: now.toISOString(), expiresAt: addDays(now, RETENTION_DAYS),
       invitationHash: hash(invitationToken),
     }
