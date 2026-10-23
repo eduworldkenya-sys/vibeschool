@@ -65,7 +65,7 @@ Deno.serve(async(req)=>{
   const databaseGuard=validateIsolatedSandboxDatabaseUrl(databaseUrl,ref)
   if(!databaseGuard.ok)
     return json({error:'Refusing non-isolated database',reason:databaseGuard.reason},503)
-  const db=postgres(databaseUrl,{max:1,prepare:false,idle_timeout:5,connect_timeout:5})
+  const db=postgres(databaseGuard.connectionString,{max:1,prepare:false,ssl:'require',idle_timeout:5,connect_timeout:5})
   try{
     const rows=await db`select o.id as order_id,o.state as order_state,
       a.checkout_request_id,a.merchant_request_id,a.amount_kes,a.phone,
