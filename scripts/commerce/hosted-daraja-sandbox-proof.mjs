@@ -80,11 +80,12 @@ export async function runHostedProof(options) {
   const log = options.log || console.log
 
   const nonce = randomUUID().replace(/-/g, '')
-  // A new order every time. Never reuse an old simulation or reuse a
-  // checkout idempotency key; never retry an uncertain STK POST.
+  // A new order every time, using the EXISTING trusted sandbox catalogue
+  // item. The unique owner + idempotency key identifies the fresh purchase;
+  // never use a fake item_reference or repeat an uncertain STK POST.
   const checkout = await apiPost('unified-commerce-sandbox-checkout', {
     product_kind: 'success_wish',
-    item_reference: `wish_proof_${nonce}`,
+    item_reference: 'sandbox-success-wish',
     owner_type: 'guest',
     owner_reference: `guest_${nonce}`,
     idempotency_key: `sbproof_${nonce}`,
