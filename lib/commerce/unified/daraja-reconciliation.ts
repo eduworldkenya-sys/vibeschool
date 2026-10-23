@@ -46,7 +46,8 @@ export function parseDarajaSandboxQuery(
     ?null:resultCode(obj.ResultCode)
   if (obj.ResultCode!==undefined&&obj.ResultCode!==null&&code===null)
     throw new Error('Invalid Daraja final result code')
-  const state=code===null?'pending':code===0?'succeeded_unverified'
+  // Daraja 4999 is an in-progress STK, not a failed charge.
+  const state=code===null||code===4999?'pending':code===0?'succeeded_unverified'
     :code===1032?'cancelled':code===1037?'expired':'failed'
   return {
     checkoutRequestId:expected.checkoutRequestId,
