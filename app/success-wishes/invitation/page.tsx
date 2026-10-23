@@ -26,37 +26,38 @@ export default function SuccessWishInvitationPage() {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const stopSound = useRef<(() => void) | null>(null)
   const receivedWishHeading = useRef<HTMLHeadingElement>(null)
+  const invitationLoad = useRef<Promise<Wish> | null>(null)
 
   useEffect(() => {
     let cancelled = false
-    async function openInvitation() {
+    if (!invitationLoad.current) {
       const token = new URLSearchParams(window.location.hash.slice(1)).get('token')
       if (token) {
         window.history.replaceState(null, '', window.location.pathname)
-        try {
+      }
+      invitationLoad.current = (async () => {
+        if (token) {
           const response = await fetch('/api/success-wishes/test-access', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ token }), cache: 'no-store',
           })
           const payload = await response.json()
           if (!response.ok) throw new Error(payload.error || 'This invitation could not be opened.')
-          if (!cancelled) setWish(payload.wish)
-        } catch (reason) {
-          if (!cancelled) setError(reason instanceof Error ? reason.message : 'This invitation could not be opened.')
+          return payload.wish as Wish
         }
-      } else {
-        try {
-          const response = await fetch('/api/success-wishes/test-access', { cache: 'no-store' })
-          const payload = await response.json()
-          if (!response.ok) throw new Error(payload.error || 'Use the private invitation link to open this wish.')
-          if (!cancelled) setWish(payload.wish)
-        } catch (reason) {
-          if (!cancelled) setError(reason instanceof Error ? reason.message : 'Use the private invitation link to open this wish.')
-        }
-      }
-      if (!cancelled) setBusy(false)
+        const response = await fetch('/api/success-wishes/test-access', { cache: 'no-store' })
+        const payload = await response.json()
+        if (!response.ok) throw new Error(payload.error || 'Use the private invitation link to open this wish.')
+        return payload.wish as Wish
+      })()
     }
-    void openInvitation()
+    void invitationLoad.current.then(loadedWish => {
+      if (!cancelled) setWish(loadedWish)
+    }).catch(reason => {
+      if (!cancelled) setError(reason instanceof Error ? reason.message : 'This invitation could not be opened.')
+    }).finally(() => {
+      if (!cancelled) setBusy(false)
+    })
     return () => { cancelled = true }
   }, [])
 
