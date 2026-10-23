@@ -87,10 +87,17 @@ async function makeWish(context, { message, theme }) {
 async function openCandidate(invitation, message, width, muteFirst = false) {
   const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
   const page = await context.newPage()
+  const pageErrors = []
+  page.on('pageerror', error => pageErrors.push(error.message))
   const claim = page.waitForResponse(response => response.url().includes('/api/success-wishes/test-access') && response.request().method() === 'POST')
   await page.goto(invitation, { waitUntil: 'networkidle', timeout: 90000 })
-  assert.equal((await claim).status(), 200, 'Candidate claims the private invitation successfully')
+  const claimResponse = await claim
+  assert.equal(claimResponse.status(), 200, 'Candidate claims the private invitation successfully')
   const cover = page.getByRole('button', { name: /Open the private success wish for John Mwangi/ })
+  if (!(await cover.isVisible().catch(() => false))) {
+    process.stdout.write(`Candidate page ${width}px: ${JSON.stringify({ main: await page.locator('main').innerText(), pageErrors })}\n`)
+    await page.screenshot({ path: path.join(screenshots, `candidate-debug-${width}.png`), fullPage: true })
+  }
   await cover.waitFor({ state: 'visible' })
   await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Wish text stays behind the closed card')
