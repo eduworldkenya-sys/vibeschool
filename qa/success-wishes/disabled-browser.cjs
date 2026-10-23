@@ -1,7 +1,7 @@
 'use strict'
 
-// Browser-level release guard for the disabled Success Wishes service.
-// Uses no learner data, production secrets or real payment infrastructure.
+// Browser-level acceptance test for the unified Success Wishes journey.
+// Uses synthetic candidates and the development-only local test APIs.
 const assert = require('node:assert/strict')
 const { spawn } = require('node:child_process')
 const { chromium } = require('playwright')
@@ -11,9 +11,11 @@ const path = require('node:path')
 
 const PORT = 3092
 const ROOT = `http://localhost:${PORT}`
-const logFile = path.join(os.tmpdir(), 'success-wishes-disabled-browser.log')
+const logFile = path.join(os.tmpdir(), 'success-wishes-ecommerce-browser.log')
 const serverLog = fs.openSync(logFile, 'w')
 const screenshots = path.join(process.cwd(), 'qa', 'success-wishes', 'artifacts')
+const testStore = path.join(process.cwd(), '.success-wishes-test-data.json')
+const hadTestStore = fs.existsSync(testStore)
 fs.mkdirSync(screenshots, { recursive: true })
 const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev', '--port', String(PORT)], {
   env: {
@@ -22,7 +24,7 @@ const server = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'dev'
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'public-test-key',
     SUCCESS_WISHES_ENABLED: 'false',
     SUCCESS_WISHES_STAFF_SETUP_ENABLED: 'false',
-    SUCCESS_WISHES_LOCAL_PILOT_TEST: 'true',
+    VIBESCHOOL_SUCCESS_WISHES_TEST_MODE: '1',
   },
   stdio: ['ignore', serverLog, serverLog],
 })
@@ -40,140 +42,153 @@ async function ready() {
   throw new Error('Success Wishes dev server did not become ready')
 }
 
-async function checkViewport(width) {
-  const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
-  try {
-    const page = await context.newPage()
-    const errors = []
-    const mutations = []
-    page.on('pageerror', error => errors.push(error.message))
-    page.on('request', request => {
-      if (request.url().includes('/api/success-wishes/') && request.method() !== 'GET') mutations.push(request.url())
-    })
-    const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
-    assert.equal(response.status(), 200)
-    await page.getByRole('heading', { name: /A little encouragement/ }).waitFor()
-    await page.getByRole('button', { name: /New Beginnings/ }).click()
-    await page.getByRole('textbox', { name: /Candidate.s name/ }).fill('Synthetic Candidate')
-    await page.getByRole('textbox', { name: /Your name/ }).fill('Synthetic Sender')
-    const wish = `Synthetic browser check at ${width}px: you can do this.`
-    await page.getByRole('textbox', { name: /Your personal wish/ }).fill(wish)
-    const cardDownload = page.waitForEvent('download')
-    await page.getByRole('button', { name: /Download card/ }).click()
-    const image = await cardDownload
-    assert.equal(image.suggestedFilename(), 'vibeschool-success-wishes.png')
-    const imagePath = await image.path()
-    const png = fs.readFileSync(imagePath)
-    assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
-    assert(png.byteLength > 5000, 'Card download should contain rendered art, not a blank PNG header')
-    await page.getByRole('button', { name: /Choose school.*candidate/ }).click()
-    await page.getByRole('heading', { name: 'Let them know you believe.' }).waitFor()
-    assert.equal(await page.getByRole('textbox', { name: /Candidate.s name/ }).inputValue(), 'Synthetic Candidate')
-    assert.equal(await page.getByRole('textbox', { name: /Your encouragement/ }).inputValue(), wish)
-    await page.getByRole('button', { name: /Preview wish/ }).click()
-    await page.getByRole('heading', { name: 'Open your special wish' }).waitFor()
-    assert.equal((await page.getByText(wish, { exact: true }).count()), 1, 'Preview must show the exact synthetic wish')
-    assert.equal((await page.getByText(/Selected design: botanical/).count()), 1, 'Selected design must carry into the send review')
-    assert.equal(await page.getByRole('button', { name: /Submit wish/ }).isDisabled(), true, 'Disabled service must block submission')
-    assert.equal(await page.getByText(/Choose the candidate’s school before submitting/).count(), 1)
-    await page.getByRole('button', { name: 'Edit', exact: true }).click()
-    await page.getByRole('button', { name: 'Candidate inbox' }).click()
-    await page.getByRole('heading', { name: 'Open your messages' }).waitFor()
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-    assert(overflow <= 1, `Unexpected horizontal overflow of ${overflow}px at ${width}px`)
-    const config = await page.request.get(`${ROOT}/api/success-wishes/config`)
-    assert.equal(config.status(), 200)
-    assert.deepEqual(await config.json(), {
-      enabled: false, mediaEnabled: false, paymentsEnabled: false,
-      maxSeconds: 60, maxBytes: 26214400,
-    })
-    assert.deepEqual(mutations, [], 'Local synthetic review must not mutate the service')
-    assert.deepEqual(errors, [], `Client JavaScript errors at ${width}px`)
-    await page.screenshot({ path: path.join(screenshots, `unified-disabled-${width}.png`), fullPage: true })
-    const oldPrivate = await fetch(`${ROOT}/success-wishes/private`, { redirect: 'manual' })
-    assert.equal(oldPrivate.status, 307)
-    assert.equal(oldPrivate.headers.get('location'), '/success-wishes')
-    return { width, pageStatus: 200, syntheticPreview: true, inboxInSamePage: true, sendingDisabled: true, mutations: 0, overflow: false }
-  } finally {
-    await context.close()
-  }
+async function makeWish(context, { message, theme }) {
+  const page = await context.newPage()
+  const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
+  assert.equal(response.status(), 200)
+  await page.getByRole('heading', { name: /A little encouragement/ }).waitFor()
+  await page.getByRole('button', { name: new RegExp(`Preview ${theme}; versions and prices`, 'i') }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.waitFor({ state: 'visible' })
+  await page.screenshot({ path: path.join(screenshots, `design-preview-${theme.replace(/\s+/g, '-')}.png`) })
+  await dialog.getByRole('heading', { name: theme, exact: true }).waitFor()
+  const cardCover = dialog.locator('button[class*="modalCardCover"]')
+  await cardCover.waitFor({ state: 'visible' })
+  assert.equal(await cardCover.getAttribute('aria-label'), `Open ${theme} card`, 'Card cover retains its accessible open label')
+  assert.equal(await cardCover.isDisabled(), false)
+  await cardCover.click()
+  assert.equal(await cardCover.isDisabled(), true, 'The cover swings away after one tap')
+  assert.equal(await dialog.getByRole('button', { name: 'Sound on' }).getAttribute('aria-pressed'), 'true')
+  await dialog.getByRole('button', { name: /Choose Text Wish/ }).click()
+
+  await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
+  await page.getByRole('textbox', { name: 'Exam year' }).fill('2026')
+  await page.locator('summary').filter({ hasText: 'School (optional)' }).click()
+  await page.getByRole('textbox', { name: 'School' }).fill('Gilgil Township')
+  await page.getByRole('textbox', { name: 'Your name' }).fill('Synthetic sender')
+  await page.getByRole('textbox', { name: 'Your wish' }).fill(message)
+  await page.getByRole('button', { name: /Preview exact wish/ }).click()
+  const card = page.locator('svg[aria-label*="Success Wishes card"]').last()
+  await card.waitFor()
+  const accessibleCard = await card.getAttribute('aria-label')
+  assert.match(accessibleCard, /John Mwangi/)
+  assert.match(accessibleCard, /exam year 2026/)
+  assert.match(accessibleCard, /Gilgil Township/)
+  assert.ok(accessibleCard.includes(message), 'Preview must show the exact original wish')
+  assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
+  await page.getByRole('button', { name: /Complete test order · KES 50/ }).click()
+  await page.getByRole('heading', { name: 'Test wish saved' }).waitFor()
+  const invitation = await page.getByLabel('Private invitation').inputValue()
+  assert.equal(new URL(invitation).origin, ROOT)
+  assert.match(await page.locator('main').innerText(), /No payment was taken/)
+  return { invitation, page }
 }
 
-async function checkGilgilPilot(width) {
+async function openCandidate(invitation, message, width, muteFirst = false) {
   const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
-  try {
-    const page = await context.newPage()
-    const errors = []
-    const realSends = []
-    page.on('pageerror', error => errors.push(error.message))
-    page.on('request', request => {
-      if (request.method() !== 'GET' && request.url().includes('/api/success-wishes/'))
-        realSends.push(request.url())
-    })
-    const opened = await page.goto(ROOT + '/success-wishes/pilot', { waitUntil: 'networkidle', timeout: 90000 })
-    assert.equal(opened.status(), 200)
-    await page.getByRole('heading', { name: 'Give them a moment to remember.' }).waitFor()
-    await page.getByRole('button', { name: /Candidate inbox.*0 unread/ }).waitFor()
-    const senderField = page.getByRole('textbox', { name: /Your test sender name/ })
-    await senderField.fill('')
-    assert.equal(await page.getByRole('button', { name: /Send test card/ }).isDisabled(), true)
-    await page.getByText(/To save a test card, add: sender name/).waitFor()
-    await senderField.fill('Test Parent')
-    await page.getByRole('button', { name: /Voice note/ }).click()
-    assert.equal(await page.getByRole('button', { name: /Send test card/ }).isDisabled(), true)
-    await page.getByText(/To save a test card, add: voice recording/).waitFor()
-    await page.getByRole('button', { name: 'Message', exact: true }).click()
-    await page.getByRole('button', { name: /New Beginnings/ }).click()
-    const wish = 'Gilgil controlled pilot: this is a personalised test wish at width ' + width + '.'
-    await page.locator('textarea').fill(wish)
-    const previewMessage = page.locator('[class*="liveCard"] blockquote')
-    await previewMessage.waitFor()
-    assert.equal((await previewMessage.textContent()).trim(), wish)
-    assert.equal(await page.getByText(/Premium design is generated/).count(), 0)
-    await page.getByRole('button', { name: /Send test card/ }).click()
-    await page.getByRole('heading', { name: 'Your test wish was saved.' }).waitFor()
-    await page.getByRole('button', { name: /Candidate inbox.*1 unread/ }).waitFor()
-    await page.getByRole('button', { name: /Open candidate inbox/ }).click()
-    await page.getByPlaceholder('Enter code').fill('GILGIL-TEST')
-    await page.getByRole('button', { name: /Open inbox/ }).click()
-    await page.getByRole('button', { name: /Accept & open/ }).click()
-    await page.getByRole('button', { name: /Candidate inbox.*0 unread/ }).waitFor()
-    await page.getByText(wish, { exact: true }).waitFor()
-    await page.reload({ waitUntil: 'networkidle' })
-    // Candidate session is intentionally not persisted on a shared device.
-    await page.getByRole('heading', { name: 'Give them a moment to remember.' }).waitFor()
-    await page.getByRole('button', { name: /Candidate inbox/ }).click()
-    await page.getByPlaceholder('Enter code').fill('GILGIL-TEST')
-    await page.getByRole('button', { name: /Open inbox/ }).click()
-    await page.getByRole('button', { name: /Open again/ }).click()
-    await page.getByText(wish, { exact: true }).waitFor()
-    await page.getByRole('button', { name: /Report/ }).click()
-    await page.getByRole('button', { name: /School controls/ }).click()
-    await page.getByText('Unwanted message ·', { exact: false }).waitFor()
-    await page.getByRole('button', { name: /Mark resolved/ }).click()
-    await page.getByRole('button', { name: /Close sending/ }).click()
-    await page.screenshot({ path: path.join(screenshots, 'gilgil-pilot-' + width + '.png'), fullPage: true })
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
-    assert(overflow <= 1, 'Gilgil pilot horizontal overflow at ' + width + ': ' + overflow)
-    assert.deepEqual(errors, [], 'Gilgil pilot browser exceptions at ' + width)
-    assert.deepEqual(realSends, [], 'Pilot must not call live Success Wishes mutation API')
-    return { width, opened: true, saved: true, accepted: true, persistedAcrossRefresh: true, reported: true, sendingControlled: true }
-  } finally { await context.close() }
+  const page = await context.newPage()
+  const pageErrors = []
+  page.on('pageerror', error => pageErrors.push(error.message))
+  const claim = page.waitForResponse(response => response.url().includes('/api/success-wishes/test-access') && response.request().method() === 'POST')
+  await page.goto(invitation, { waitUntil: 'networkidle', timeout: 90000 })
+  const claimResponse = await claim
+  assert.equal(claimResponse.status(), 200, 'Candidate claims the private invitation successfully')
+  assert.ok((await context.cookies(`${ROOT}/api/success-wishes/test-access`)).some(cookie => cookie.name === 'vsw_test_claim'), 'Private session cookie is stored for this wish')
+  const cover = page.getByRole('button', { name: /Open the private success wish for John Mwangi/ })
+  if (!(await cover.isVisible().catch(() => false))) {
+    process.stdout.write(`Candidate page ${width}px: ${JSON.stringify({ main: await page.locator('main').innerText(), pageErrors })}\n`)
+    await page.screenshot({ path: path.join(screenshots, `candidate-debug-${width}.png`), fullPage: true })
+  }
+  await cover.waitFor({ state: 'visible' })
+  await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
+  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Wish text stays behind the closed card')
+  const sound = page.getByRole('button', { name: 'Sound on' })
+  assert.equal(await sound.getAttribute('aria-pressed'), 'true', 'Signature sound starts on, but waits for a card tap')
+  if (muteFirst) {
+    await sound.click()
+    assert.equal(await page.getByRole('button', { name: 'Sound off' }).getAttribute('aria-pressed'), 'false', 'One-touch mute is available')
+  }
+  await cover.click()
+  await page.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
+  assert.equal(await page.getByText(message, { exact: true }).count(), 1)
+  assert.equal(await page.locator('dd').filter({ hasText: 'Gilgil Township' }).count(), 1, 'Optional school is shown as a descriptive label')
+  await page.screenshot({ path: path.join(screenshots, `candidate-open-${width}.png`), fullPage: true })
+  const revisit = page.waitForResponse(response => response.url().includes('/api/success-wishes/test-access') && response.request().method() === 'GET')
+  await page.reload({ waitUntil: 'networkidle' })
+  const revisitResponse = await revisit
+  assert.equal(revisitResponse.status(), 200, 'Active private session returns to the saved wish')
+  await page.getByRole('button', { name: /Open the private success wish for John Mwangi/ }).waitFor({ state: 'visible' })
+  await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
+  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Refresh returns to the closed-card reveal')
+  await page.getByRole('button', { name: /Open the private success wish for John Mwangi/ }).click()
+  await page.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
+  assert.equal(await page.getByText(message, { exact: true }).count(), 1, 'Candidate can return after refresh')
+  return { context, page, width }
 }
 
 ;(async () => {
+  assert.equal(hadTestStore, false, 'Refusing to overwrite existing local test wishes')
   await ready()
   browser = await chromium.launch({ headless: true })
-  const viewports = []
-  for (const width of [360, 390, 768, 1440]) viewports.push(await checkViewport(width))
-  const gilgil = []
-  for (const width of [390, 1440]) gilgil.push(await checkGilgilPilot(width))
-  console.log(JSON.stringify({ suite: 'success-wishes-disabled-and-gilgil-pilot-browser', viewports, gilgil }, null, 2))
+  const widths = []
+  for (const width of [360, 390, 768, 1440]) {
+    const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
+    const page = await context.newPage()
+    const errors = []
+    page.on('pageerror', error => errors.push(error.message))
+    const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
+    assert.equal(response.status(), 200)
+    await page.getByRole('heading', { name: /A little encouragement/ }).waitFor()
+    for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
+      assert.equal(await page.getByRole('button', { name: new RegExp(`Preview ${design}; versions and prices`, 'i') }).count(), 1)
+    }
+    assert.equal(await page.getByRole('heading', { name: 'Text Wish' }).count(), 1)
+    assert.equal(await page.getByRole('heading', { name: 'Voice Wish' }).count(), 1)
+    assert.equal(await page.getByRole('heading', { name: 'Video Wish' }).count(), 1)
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    assert(overflow <= 1, `Unexpected horizontal overflow at ${width}px: ${overflow}`)
+    const config = await page.request.get(`${ROOT}/api/success-wishes/config`)
+    assert.deepEqual(await config.json(), { enabled: false, mediaEnabled: false, paymentsEnabled: false, maxSeconds: 60, maxBytes: 26214400 })
+    assert.deepEqual(errors, [], `Browser errors at ${width}px`)
+    await page.screenshot({ path: path.join(screenshots, `ecommerce-${width}.png`), fullPage: true })
+    widths.push({ width, page: 'single unified journey', overflow: false, productionSending: false })
+    await context.close()
+  }
+
+  const messageA = 'John, we are proud of your hard work. Go forward with courage.'
+  const messageB = 'John, may your next chapter bring you joy and opportunity.'
+  const senderA = await makeWish(await browser.newContext({ viewport: { width: 1440, height: 850 } }), { message: messageA, theme: 'New Beginnings' })
+  const senderB = await makeWish(await browser.newContext({ viewport: { width: 390, height: 850 } }), { message: messageB, theme: 'Golden Hour' })
+  assert.notEqual(senderA.invitation, senderB.invitation, 'Same-name, same-school and same-year candidates need unique invitations')
+
+  const candidateA = await openCandidate(senderA.invitation, messageA, 1440)
+  const candidateB = await openCandidate(senderB.invitation, messageB, 390, true)
+  assert.equal(await candidateA.page.getByText(messageB, { exact: true }).count(), 0)
+  assert.equal(await candidateB.page.getByText(messageA, { exact: true }).count(), 0)
+  await candidateA.page.getByRole('button', { name: 'Sign out on this device' }).click()
+  await candidateA.page.getByText('You are signed out.', { exact: false }).waitFor()
+  assert.equal(await candidateB.page.getByText(messageB, { exact: true }).count(), 1, 'Signing out one candidate context leaves the other separate wish intact')
+
+  const wrongContext = await browser.newContext()
+  const wrongPage = await wrongContext.newPage()
+  await wrongPage.goto(`${ROOT}/success-wishes/invitation#token=invalid-token-that-does-not-match-a-wish-00000`, { waitUntil: 'domcontentloaded' })
+  await wrongPage.getByRole('heading', { name: 'Invitation unavailable' }).waitFor()
+  await wrongContext.close()
+
+  const privateRoute = await fetch(`${ROOT}/success-wishes/private`, { redirect: 'manual' })
+  assert.equal(privateRoute.status, 307)
+  assert.equal(privateRoute.headers.get('location'), '/success-wishes')
+  const oldPilot = await fetch(`${ROOT}/success-wishes/pilot`, { redirect: 'manual' })
+  assert.equal(oldPilot.status, 307)
+  assert.equal(oldPilot.headers.get('location'), '/success-wishes')
+  console.log(JSON.stringify({ suite: 'success-wishes-unified-ecommerce-browser', senderWidths: widths, candidateWidths: [candidateA.width, candidateB.width], signatureSoundTapGated: true, muteVerified: true, duplicateNameCandidates: true, separatePrivateInvitations: true, exactMessageAndRefresh: true, wrongInvitationRejected: true, signOutVerified: true, productionPaymentAndSending: false }, null, 2))
 })().catch(error => {
   console.error(error)
   process.exitCode = 1
 }).finally(async () => {
   if (browser) await browser.close()
   server.kill('SIGTERM')
+  await new Promise(resolve => server.once('exit', resolve))
   fs.closeSync(serverLog)
+  if (!hadTestStore && fs.existsSync(testStore)) fs.unlinkSync(testStore)
 })
