@@ -1,6 +1,8 @@
 -- Add typo-tolerant matching to the shared school directory search.
 -- Search exact names/codes/verified aliases first; use close spelling matches only
--- when there are no direct matches. This never creates aliases or changes identity.
+-- when there are no direct matches. One edit per meaningful word is allowed.
+-- This never creates aliases or changes school identity.
+create extension if not exists fuzzystrmatch with schema extensions;
 begin;
 
 create or replace function public.search_school_directory(
@@ -37,7 +39,7 @@ language sql
 stable
 security definer
 set search_path = public, extensions, pg_temp
-set pg_trgm.strict_word_similarity_threshold = '0.45'
+set pg_trgm.word_similarity_threshold = '0.30'
 as $function$
 with q as (
   select
@@ -96,7 +98,7 @@ canonical as (
         when lower(s.name) like q.raw||'%' then .92
         when lower(s.name) like '%'||q.raw||'%' then .78
         when q.n<>'' and coalesce(s.name_normalized,'') like '%'||q.n||'%' then .78
-        when not exact_search.has_exact and length(q.raw)>=4 then extensions.strict_word_similarity(q.raw,coalesce(s.name_normalized,''))
+        when not exact_search.has_exact and length(q.raw)>=4 then extensions.word_similarity(q.raw,coalesce(s.name_normalized,''))
         else 0
       end,
       coalesce((select max(am.confidence) from alias_matches am where am.school_id=s.id),0)
@@ -116,7 +118,19 @@ canonical as (
       or s.knec_code=trim(p_query)
       or s.nemis_code=trim(p_query)
       or exists(select 1 from alias_matches am where am.school_id=s.id)
-      or (not exact_search.has_exact and length(q.raw)>=4 and q.raw OPERATOR(extensions.<<%) coalesce(s.name_normalized,''))
+      or (not exact_search.has_exact and length(q.raw)>=4 and q.raw OPERATOR(extensions.<%) coalesce(s.name_normalized,'')
+        and exists (
+          select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
+          where length(qt.token)>=4
+        )
+        and not exists (
+          select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
+          where length(qt.token)>=4
+            and not exists (
+              select 1 from regexp_split_to_table(coalesce(s.name_normalized,''),'[^a-z0-9]+') as nt(token)
+              where extensions.levenshtein_less_equal(qt.token,nt.token,1)<=1
+            )
+        ))
     )
   group by s.id,s.name,s.county,s.sub_county,s.ward,s.school_type,
     s.school_category,s.ownership_type,s.gender_type,s.accommodation_type,
@@ -142,7 +156,7 @@ directory as (
         when lower(d.name) like q.raw||'%' then .82
         when lower(d.name) like '%'||q.raw||'%' then .70
         when q.n<>'' and lower(regexp_replace(d.name,'[^a-zA-Z0-9]+','','g')) like '%'||q.n||'%' then .72
-        when not exact_search.has_exact and length(q.raw)>=4 then extensions.strict_word_similarity(q.raw,d.name)
+        when not exact_search.has_exact and length(q.raw)>=4 then extensions.word_similarity(q.raw,d.name)
         else 0
       end
     )::real match_score
@@ -156,7 +170,19 @@ directory as (
       q.raw=''
       or lower(d.name) like '%'||q.raw||'%'
       or (q.n<>'' and lower(regexp_replace(d.name,'[^a-zA-Z0-9]+','','g')) like '%'||q.n||'%')
-      or (not exact_search.has_exact and length(q.raw)>=4 and q.raw OPERATOR(extensions.<<%) d.name)
+      or (not exact_search.has_exact and length(q.raw)>=4 and q.raw OPERATOR(extensions.<%) d.name
+        and exists (
+          select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
+          where length(qt.token)>=4
+        )
+        and not exists (
+          select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
+          where length(qt.token)>=4
+            and not exists (
+              select 1 from regexp_split_to_table(d.name,'[^a-z0-9]+') as nt(token)
+              where extensions.levenshtein_less_equal(qt.token,nt.token,1)<=1
+            )
+        ))
     )
     and not exists(
       select 1 from public.school_identity_candidates c
@@ -211,7 +237,7 @@ language sql
 stable
 security invoker
 set search_path = public, extensions, pg_temp
-set pg_trgm.strict_word_similarity_threshold = '0.45'
+set pg_trgm.word_similarity_threshold = '0.30'
 as $function$
 with q as materialized (
   select btrim(coalesce(p_query,'')) query, lower(btrim(coalesce(p_query,''))) query_lower
@@ -239,13 +265,26 @@ typo_matches as materialized (
   cross join q
   where length(q.query) >= 4
     and not exists(select 1 from exact_matches)
-    and q.query_lower OPERATOR(extensions.<<%) lower(d.name)
-  order by extensions.strict_word_similarity(q.query_lower,lower(d.name)) desc, d.name asc
+    and q.query_lower OPERATOR(extensions.<%) d.name
+    and exists (
+      select 1 from regexp_split_to_table(q.query_lower,'[^a-z0-9]+') as qt(token)
+      where length(qt.token)>=4
+    )
+    and not exists (
+      select 1 from regexp_split_to_table(q.query_lower,'[^a-z0-9]+') as qt(token)
+      where length(qt.token)>=4
+        and not exists (
+          select 1 from regexp_split_to_table(d.name,'[^a-z0-9]+') as nt(token)
+          where extensions.levenshtein_less_equal(qt.token,nt.token,1)<=1
+        )
+    )
+  order by extensions.word_similarity(q.query_lower,d.name) desc, d.name asc
   limit least(greatest(coalesce(p_limit,12),1),12)
 )
 select * from exact_matches
 union all
-select * from typo_matches$function$;
+select * from typo_matches
+$function$;
 
 revoke all on function public.success_wishes_school_search_public_v1(text,integer) from public;
 grant execute on function public.success_wishes_school_search_public_v1(text,integer) to anon, authenticated;
