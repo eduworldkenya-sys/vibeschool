@@ -44,14 +44,13 @@ async function ready() {
 
 async function makeWish(context, { message, theme }) {
   const page = await context.newPage()
-  const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
+  const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
   assert.equal(response.status(), 200)
   await page.getByRole('heading', { name: /A little encouragement/ }).waitFor()
   await page.getByRole('button', { name: new RegExp(`Preview ${theme}; versions and prices`, 'i') }).click()
   const dialog = page.getByRole('dialog')
   await dialog.waitFor({ state: 'visible' })
   await page.screenshot({ path: path.join(screenshots, `design-preview-${theme.replace(/\s+/g, '-')}.png`) })
-  process.stdout.write(`Design preview ${theme}: ${JSON.stringify(await dialog.innerText())}\n`)
   await dialog.getByRole('heading', { name: theme, exact: true }).waitFor()
   const cardCover = dialog.locator('button[class*="modalCardCover"]')
   await cardCover.waitFor({ state: 'visible' })
@@ -101,6 +100,7 @@ async function openCandidate(invitation, message, width, muteFirst = false) {
   await page.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 1)
   assert.equal(await page.getByText('Gilgil Township', { exact: true }).count(), 1)
+  await page.screenshot({ path: path.join(screenshots, `candidate-open-${width}.png`), fullPage: true })
   await page.reload({ waitUntil: 'domcontentloaded' })
   await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Refresh returns to the closed-card reveal')
