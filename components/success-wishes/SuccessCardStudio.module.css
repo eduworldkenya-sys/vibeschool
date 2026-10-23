@@ -97,3 +97,71 @@
 @keyframes wish-message-appears{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:700px){.recipientSoundRow{margin:0 0 12px}.recipientCardCover{inset:12px;width:calc(100% - 24px);height:calc(100% - 24px)}}
 @media(prefers-reduced-motion:reduce){.recipientCardCover,.recipientMessage{transition:none;animation:none}}
+
+
+/* Success Wishes refinement: clear optional school search, compact composition, and a keepsake opening. */
+.optionalField{margin-top:15px;border:1px solid #e1e9e0;border-radius:12px;background:#fbfcf9;padding:12px 13px 13px}
+.optionalFieldHeading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 8px}
+.optionalFieldHeading label{margin:0!important;display:inline;font-size:12px;font-weight:800;color:#234c3a}
+.optionalFieldHeading label span{color:#718076;font-weight:500}
+.optionalFieldHeading>small{font-size:10px;color:#738075}
+.optionalField>input{margin:0}
+.optionalField>.schoolSearchStatus{margin-top:7px}
+.messageIdeas{margin-top:10px;border:0;border-radius:0;padding:0}
+.messageIdeasHeading{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 7px}
+.messageIdeasHeading strong{font-size:11px;color:#294b39}
+.messageIdeasHeading small{font-size:10px;color:#738075}
+.messageIdeas>div:not(.messageIdeasHeading){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0}
+.messageIdeas>div button{min-height:38px;border-radius:9px;background:#f8faf6;color:#315740;padding:7px 9px;text-align:center;font-size:10px;line-height:1.3;font-weight:700}
+.messageIdeas>div button:hover{transform:translateY(-1px);box-shadow:0 3px 10px #31574016}
+.composer{grid-template-columns:minmax(0,.92fr) minmax(340px,1.08fr);gap:18px}
+.form,.live{padding:22px}
+.form label{margin-top:15px;gap:7px}
+.form textarea{min-height:104px}
+.formRow label{margin-top:15px}
+.actions{margin:16px 0 7px}
+.live{gap:10px}
+.live .art{max-width:520px}
+.recipient{align-items:start}
+.recipientCard{position:sticky;top:15px;isolation:isolate;overflow:hidden;perspective:1450px;aspect-ratio:3/4;width:100%;max-width:480px;margin:auto;padding:0;border-radius:18px;background:#f4f0e5;box-shadow:0 14px 38px #192e2b1f}
+.recipientBook{position:absolute;inset:18px;z-index:1;opacity:0;transform:translateY(10px) scale(.985);transform-origin:center;transition:opacity .32s ease,transform .48s cubic-bezier(.2,.72,.18,1);perspective:1450px}
+.recipientBookOpened{opacity:1;transform:translateY(0) scale(1)}
+.recipientBookArt{position:absolute;inset:0;overflow:hidden;border-radius:8px;background:#fff9ed;box-shadow:0 8px 24px #192e2b24}
+.recipientBookArt .art{width:100%;height:100%;object-fit:contain}
+.recipientCardCover{position:absolute;inset:0;width:100%;height:100%;z-index:2;border:8px solid #ffffff55;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:10%;text-align:center;background:linear-gradient(90deg,#d6bc7d 0 7px,transparent 7px),linear-gradient(145deg,#165b47,#123a36);color:#f8f1d8;box-shadow:inset 0 0 0 1px #ffffff55;transform-origin:left center;transform-style:preserve-3d;backface-visibility:hidden;transition:transform 1.05s cubic-bezier(.2,.72,.18,1),box-shadow 1.05s ease}
+.recipientCardCover:after{content:'';position:absolute;inset:0;border-radius:5px;background:linear-gradient(140deg,#fff9e9,#eadfc5);box-shadow:inset 0 0 0 8px #c9b78b,inset 0 0 0 10px #fff9e9;transform:rotateY(180deg);backface-visibility:visible}
+.recipientCardCover:before{content:'';position:absolute;inset:9px;border:1px solid currentColor;border-radius:5px;opacity:.35;pointer-events:none}
+.recipientCardCover>span{position:absolute;top:8%;left:10%;right:10%;display:flex;justify-content:space-between;gap:7px;font:800 clamp(8px,1.1vw,12px)/1.2 Arial,sans-serif;letter-spacing:1px}
+.recipientCardCover>span small{font-size:.8em}
+.recipientCardCover>b{font:normal clamp(76px,12vw,130px)/1 Georgia,serif;opacity:.74}
+.recipientCardCover>strong{font:italic 600 clamp(18px,2.2vw,27px)/1.25 Georgia,serif}
+.recipientCardCover>small{position:absolute;bottom:8%;font:700 10px/1.2 Arial,sans-serif;letter-spacing:1px;text-transform:uppercase;opacity:.78}
+.recipientCardCoverOpened{transform:rotateY(-158deg);pointer-events:none;box-shadow:inset 0 0 0 1px #ffffff55,-12px 5px 25px #192e2b34}
+.recipientEnvelope{position:absolute;inset:0;z-index:3;width:100%;height:100%;overflow:hidden;isolation:isolate;border:1px solid #ffffff45;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12%;text-align:center;cursor:pointer;color:var(--envelope-ink);background:linear-gradient(145deg,var(--envelope-top),var(--envelope-bottom));box-shadow:inset 0 0 0 9px #ffffff20,inset 0 0 0 10px #ffffff35,0 12px 30px #192e2b20;transition:opacity .34s ease .12s,transform .48s cubic-bezier(.2,.72,.18,1),visibility 0s linear .56s}
+.recipientEnvelope[data-theme="heritage"]{--envelope-top:#f7edce;--envelope-bottom:#cfb16b;--envelope-ink:#604823;--seal:#9c3e36}
+.recipientEnvelope[data-theme="botanical"]{--envelope-top:#e9efe2;--envelope-bottom:#9ebda1;--envelope-ink:#285843;--seal:#7d3f4b}
+.recipientEnvelope[data-theme="nightfall"]{--envelope-top:#344969;--envelope-bottom:#17253d;--envelope-ink:#fff4d5;--seal:#a84644}
+.recipientEnvelope[data-theme="sunrise"]{--envelope-top:#ffedc8;--envelope-bottom:#be8298;--envelope-ink:#613653;--seal:#93464c}
+.recipientEnvelope:before{content:'';position:absolute;inset:0;z-index:0;background:linear-gradient(32deg,transparent 49.6%,#ffffff38 50%,transparent 50.5%),linear-gradient(-32deg,transparent 49.6%,#00000013 50%,transparent 50.5%);clip-path:polygon(0 48%,50% 79%,100% 48%,100% 100%,0 100%)}
+.recipientEnvelopeBrand{position:absolute;z-index:3;top:10%;left:10%;right:10%;display:flex;align-items:center;justify-content:space-between;gap:7px;font:800 clamp(8px,1.1vw,12px)/1.2 Arial,sans-serif;letter-spacing:1px}
+.recipientEnvelopeBrand small{font-size:.8em}
+.recipientEnvelope>strong{position:relative;z-index:3;margin-top:28px;font:italic 600 clamp(20px,2.5vw,30px)/1.25 Georgia,serif;text-wrap:balance}
+.recipientEnvelopeSchool{position:relative;z-index:3;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 clamp(10px,1.2vw,13px)/1.4 system-ui,sans-serif;opacity:.8}
+.recipientEnvelopeFlap{position:absolute;inset:0 0 auto;height:57%;z-index:2;background:linear-gradient(145deg,#ffffff32,#00000008);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top center;transition:transform .45s cubic-bezier(.2,.72,.18,1);backface-visibility:hidden}
+.recipientEnvelopeFold{position:absolute;inset:auto 0 0;height:53%;z-index:1;background:linear-gradient(145deg,#ffffff22,#00000012);clip-path:polygon(0 100%,50% 0,100% 100%);pointer-events:none}
+.recipientEnvelopeSeal{position:relative;z-index:4;width:clamp(52px,8vw,76px);height:clamp(52px,8vw,76px);margin-top:10px;border:2px solid #e2c687;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 32% 27%,#e76e5e,var(--seal) 58%,#6d292b);color:#fff4d8;box-shadow:0 5px 12px #24161448,inset 0 0 0 3px #ffffff22,inset 0 0 0 5px #762c2c70;font:600 18px/1 Georgia,serif;letter-spacing:.5px}
+.recipientEnvelopeHint{position:absolute;bottom:8%;z-index:4;font:750 10px/1.2 Arial,sans-serif;letter-spacing:.8px;text-transform:uppercase;opacity:.78}
+.recipientEnvelopeOpened{opacity:0;visibility:hidden;transform:translateY(-6px) scale(.98);pointer-events:none}
+.recipientEnvelopeOpened .recipientEnvelopeFlap{transform:rotateX(180deg)}
+.recipientSparkles{position:absolute;inset:0;z-index:4;pointer-events:none;color:#e8bb58}
+.recipientSparkles span{position:absolute;font-size:clamp(13px,2vw,20px);text-shadow:0 1px 8px #f1d88d99;animation:recipient-sparkle .95s ease-out both}
+.recipientSparkles span:nth-child(1){left:8%;top:12%}.recipientSparkles span:nth-child(2){right:9%;top:21%;animation-delay:.08s}.recipientSparkles span:nth-child(3){right:7%;bottom:16%;animation-delay:.13s}.recipientSparkles span:nth-child(4){left:13%;bottom:24%;animation-delay:.05s}.recipientSparkles span:nth-child(5){left:49%;top:5%;animation-delay:.16s}.recipientSparkles span:nth-child(6){right:21%;bottom:8%;animation-delay:.1s}
+@keyframes recipient-sparkle{0%{opacity:0;transform:scale(.35) translateY(8px)}35%{opacity:.95;transform:scale(1.15) translateY(0)}100%{opacity:0;transform:scale(.8) translateY(-8px)}}
+.recipientMessage{font:400 clamp(18px,2vw,22px)/1.72 Georgia,'Times New Roman',serif;letter-spacing:.005em;white-space:pre-wrap;color:#253a34}
+.recipientFrom{font:600 15px/1.5 Georgia,'Times New Roman',serif;font-style:italic;letter-spacing:.01em;margin-top:22px}
+.recipientDetails h2{letter-spacing:-.6px}
+.recipientDetails .privacy{font-size:11px;line-height:1.55}
+@media(max-width:800px){.composer{grid-template-columns:1fr;gap:14px}.live{max-width:600px}.form,.live{padding:18px}}
+@media(max-width:700px){.recipientCard{position:relative;max-width:400px}.recipientBook{inset:12px}.recipientEnvelope{border-radius:14px}.recipientDetails{padding:21px}}
+@media(max-width:520px){.form,.live{padding:16px}.messageIdeas>div:not(.messageIdeasHeading){gap:5px}.messageIdeas>div button{min-height:38px;padding:6px 5px;font-size:10px}.optionalField{padding:11px}.optionalFieldHeading{align-items:flex-start;flex-direction:column;gap:2px}}
+@media(prefers-reduced-motion:reduce){.recipientEnvelope,.recipientEnvelopeFlap,.recipientBook,.recipientCardCover,.recipientSparkles span{transition:none;animation:none}.recipientSparkles{display:none}}

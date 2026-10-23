@@ -79,8 +79,9 @@ async function makeWish(context, { message, theme }) {
 
   await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
   await page.getByRole('textbox', { name: 'Exam year' }).fill('2026')
-  await page.locator('summary').filter({ hasText: 'School (optional)' }).click()
-  const schoolInput = page.getByRole('combobox', { name: 'School' })
+  const schoolInput = page.getByRole('combobox', { name: 'School (optional)' })
+  assert.equal(await schoolInput.isVisible(), true, 'The optional school search is visible without an extra tap')
+  assert.equal(await schoolInput.getAttribute('required'), null, 'School remains optional')
   await schoolInput.fill('Embakasi')
   await page.getByRole('option', { name: /Embakasi Garrison/ }).waitFor()
   await page.getByRole('option', { name: /Embakasi Girls Secondary School/i }).waitFor()
@@ -94,7 +95,12 @@ async function makeWish(context, { message, theme }) {
     { p_query: 'Gilgil Township', p_limit: 12 },
   ], 'Public Success Wishes search uses the safe full-directory projection and supports changing schools')
   await page.getByRole('textbox', { name: 'Your name' }).fill('Synthetic sender')
-  await page.getByRole('textbox', { name: 'Your wish' }).fill(message)
+  const wishInput = page.getByRole('textbox', { name: 'Your wish' })
+  const starterText = 'You have worked so hard to reach this moment. Walk in with courage; we believe in you.'
+  await page.getByRole('button', { name: 'Use wish starter: Trust your work' }).click()
+  assert.equal(await wishInput.inputValue(), starterText, 'A visible wish starter fills the editable message')
+  assert.equal(await wishInput.evaluate(element => document.activeElement === element), true, 'Choosing a starter moves focus into the message')
+  await wishInput.fill(message)
   await page.getByRole('button', { name: /Preview exact wish/ }).click()
   const card = page.locator('svg[aria-label*="Success Wishes card"]').last()
   await card.waitFor()
@@ -112,8 +118,8 @@ async function makeWish(context, { message, theme }) {
   return { invitation, page }
 }
 
-async function openCandidate(invitation, message, width, muteFirst = false) {
-  const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
+async function openCandidate(invitation, message, width, muteFirst = false, reducedMotion = false) {
+  const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: reducedMotion ? 'reduce' : 'no-preference' })
   const page = await context.newPage()
   const pageErrors = []
   page.on('pageerror', error => pageErrors.push(error.message))
@@ -122,14 +128,16 @@ async function openCandidate(invitation, message, width, muteFirst = false) {
   const claimResponse = await claim
   assert.equal(claimResponse.status(), 200, 'Candidate claims the private invitation successfully')
   assert.ok((await context.cookies(`${ROOT}/api/success-wishes/test-access`)).some(cookie => cookie.name === 'vsw_test_claim'), 'Private session cookie is stored for this wish')
-  const cover = page.getByRole('button', { name: /Open the private success wish for John Mwangi/ })
+  const cover = page.getByRole('button', { name: /Break the seal and open the private wish for John Mwangi/ })
   if (!(await cover.isVisible().catch(() => false))) {
     process.stdout.write(`Candidate page ${width}px: ${JSON.stringify({ main: await page.locator('main').innerText(), pageErrors })}\n`)
     await page.screenshot({ path: path.join(screenshots, `candidate-debug-${width}.png`), fullPage: true })
   }
   await cover.waitFor({ state: 'visible' })
   await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
-  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Wish text stays behind the closed card')
+  await page.screenshot({ path: path.join(screenshots, `candidate-sealed-${width}.png`), fullPage: true })
+  assert.equal(await page.locator('[class*="recipientEnvelopeSeal"]').innerText(), 'JM', 'Wax seal is personalized with candidate initials')
+  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Wish text stays behind the closed envelope and card')
   const sound = page.getByRole('button', { name: 'Sound on' })
   assert.equal(await sound.getAttribute('aria-pressed'), 'true', 'Signature sound starts on, but waits for a card tap')
   if (muteFirst) {
@@ -137,7 +145,13 @@ async function openCandidate(invitation, message, width, muteFirst = false) {
     assert.equal(await page.getByRole('button', { name: 'Sound off' }).getAttribute('aria-pressed'), 'false', 'One-touch mute is available')
   }
   await cover.click()
+  if (!reducedMotion) {
+    await page.waitForTimeout(120)
+    assert.equal(await page.getByRole('heading', { name: 'Your private invitation' }).count(), 1, 'The envelope opens before the card unfolds')
+    await page.waitForTimeout(500)
+  }
   await page.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
+  await page.waitForTimeout(reducedMotion ? 50 : 1100)
   assert.equal(await page.getByText(message, { exact: true }).count(), 1)
   assert.equal(await page.locator('dd').filter({ hasText: 'Gilgil Township' }).count(), 1, 'Optional school is shown as a descriptive label')
   await page.screenshot({ path: path.join(screenshots, `candidate-open-${width}.png`), fullPage: true })
@@ -145,10 +159,10 @@ async function openCandidate(invitation, message, width, muteFirst = false) {
   await page.reload({ waitUntil: 'networkidle' })
   const revisitResponse = await revisit
   assert.equal(revisitResponse.status(), 200, 'Active private session returns to the saved wish')
-  await page.getByRole('button', { name: /Open the private success wish for John Mwangi/ }).waitFor({ state: 'visible' })
+  await page.getByRole('button', { name: /Break the seal and open the private wish for John Mwangi/ }).waitFor({ state: 'visible' })
   await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Refresh returns to the closed-card reveal')
-  await page.getByRole('button', { name: /Open the private success wish for John Mwangi/ }).click()
+  await page.getByRole('button', { name: /Break the seal and open the private wish for John Mwangi/ }).click()
   await page.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 1, 'Candidate can return after refresh')
   return { context, page, width }
@@ -190,7 +204,7 @@ async function openCandidate(invitation, message, width, muteFirst = false) {
   assert.notEqual(senderA.invitation, senderB.invitation, 'Same-name, same-school and same-year candidates need unique invitations')
 
   const candidateA = await openCandidate(senderA.invitation, messageA, 1440)
-  const candidateB = await openCandidate(senderB.invitation, messageB, 390, true)
+  const candidateB = await openCandidate(senderB.invitation, messageB, 390, true, true)
   assert.equal(await candidateA.page.getByText(messageB, { exact: true }).count(), 0)
   assert.equal(await candidateB.page.getByText(messageA, { exact: true }).count(), 0)
   await candidateA.page.getByRole('button', { name: 'Sign out on this device' }).click()

@@ -22,9 +22,11 @@ export default function SuccessWishInvitationPage() {
   const [wish, setWish] = useState<Wish | null>(null)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(true)
+  const [envelopeOpened, setEnvelopeOpened] = useState(false)
   const [cardOpened, setCardOpened] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const stopSound = useRef<(() => void) | null>(null)
+  const revealTimer = useRef<number | null>(null)
   const receivedWishHeading = useRef<HTMLHeadingElement>(null)
   const invitationLoad = useRef<Promise<Wish> | null>(null)
 
@@ -61,12 +63,24 @@ export default function SuccessWishInvitationPage() {
     return () => { cancelled = true }
   }, [])
 
-  useEffect(() => () => { stopSound.current?.() }, [])
+  useEffect(() => () => {
+    stopSound.current?.()
+    if (revealTimer.current !== null) window.clearTimeout(revealTimer.current)
+  }, [])
   useEffect(() => { if (cardOpened) receivedWishHeading.current?.focus() }, [cardOpened])
 
   function openWish() {
-    setCardOpened(true)
+    if (envelopeOpened) return
+    setEnvelopeOpened(true)
     if (soundEnabled) stopSound.current = playWishRevealSound()
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCardOpened(true)
+      return
+    }
+    revealTimer.current = window.setTimeout(() => {
+      setCardOpened(true)
+      revealTimer.current = null
+    }, 560)
   }
 
   function toggleSound() {
@@ -81,7 +95,10 @@ export default function SuccessWishInvitationPage() {
     stopSound.current?.()
     stopSound.current = null
     await fetch('/api/success-wishes/test-access', { method: 'DELETE', cache: 'no-store' })
+    if (revealTimer.current !== null) window.clearTimeout(revealTimer.current)
+    revealTimer.current = null
     setWish(null)
+    setEnvelopeOpened(false)
     setCardOpened(false)
     setError('You are signed out. Use the private invitation again to open this wish.')
   }
@@ -95,15 +112,27 @@ export default function SuccessWishInvitationPage() {
       {error && !busy && <section className={styles.form} aria-live="polite"><h2>Invitation unavailable</h2><p>{error}</p><p>Check that the full private invitation link was copied. Names, school and exam year cannot recover access.</p><Link href="/success-wishes">Return to Success Wishes</Link></section>}
       {wish && !busy && <>
         <div className={styles.recipientSoundRow}>
-          <span>Open your card to read the wish.</span>
+          <span>Your wish is sealed. Tap to open it.</span>
           <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={16}/> : <VolumeX size={16}/>} Sound {soundEnabled ? 'on' : 'off'}</button>
         </div>
         <section className={styles.recipient} aria-labelledby="received-wish">
-        <div className={styles.recipientCard + (cardOpened ? ` ${styles.recipientCardOpened}` : '')}>
-          <div aria-hidden={!cardOpened}><CardArt template={wish.theme} values={wish}/></div>
-          <button className={styles.recipientCardCover} type="button" onClick={openWish} disabled={cardOpened} aria-hidden={cardOpened} tabIndex={cardOpened ? -1 : 0} aria-label={`Open the private success wish for ${wish.candidate}`}>
-            <span>VIBESCHOOL <small>SUCCESS WISHES</small></span><b aria-hidden="true">✧</b><strong>A special wish for {wish.candidate}</strong><small>Tap to open</small>
+        <div className={styles.recipientCard}>
+          <button type="button" className={styles.recipientEnvelope + (envelopeOpened ? ` ${styles.recipientEnvelopeOpened}` : '')} data-theme={wish.theme} onClick={openWish} disabled={envelopeOpened} aria-hidden={envelopeOpened} tabIndex={envelopeOpened ? -1 : 0} aria-label={`Break the seal and open the private wish for ${wish.candidate}`}>
+            <span className={styles.recipientEnvelopeBrand}>VIBESCHOOL <small>SUCCESS WISHES</small></span>
+            <strong>A note for {wish.candidate}</strong>
+            {wish.school && <small className={styles.recipientEnvelopeSchool}>{wish.school}</small>}
+            <span className={styles.recipientEnvelopeFlap} aria-hidden="true"/>
+            <span className={styles.recipientEnvelopeFold} aria-hidden="true"/>
+            <span className={styles.recipientEnvelopeSeal} aria-hidden="true">{wish.candidate.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part.charAt(0)).join('').toUpperCase() || '✧'}</span>
+            <span className={styles.recipientEnvelopeHint}>Tap to break the seal</span>
           </button>
+          <div className={styles.recipientBook + (cardOpened ? ` ${styles.recipientBookOpened}` : '')} aria-hidden={!cardOpened}>
+            <div className={styles.recipientBookArt}><CardArt template={wish.theme} values={wish}/></div>
+            <div className={styles.recipientCardCover + (cardOpened ? ` ${styles.recipientCardCoverOpened}` : '')} aria-hidden={cardOpened}>
+              <span>VIBESCHOOL <small>SUCCESS WISHES</small></span><b aria-hidden="true">✧</b><strong>A special wish for {wish.candidate}</strong><small>Opening your card</small>
+            </div>
+            {cardOpened && <div className={styles.recipientSparkles} aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span><span>✧</span><span>✦</span><span>✧</span></div>}
+          </div>
         </div>
         <div className={styles.recipientDetails}>
           <p className={styles.eyebrow}>TEXT WISH · FREE TO OPEN</p><h2 id="received-wish" ref={receivedWishHeading} tabIndex={cardOpened ? -1 : undefined}>{cardOpened ? `For ${wish.candidate}` : 'Your card is ready'}</h2>

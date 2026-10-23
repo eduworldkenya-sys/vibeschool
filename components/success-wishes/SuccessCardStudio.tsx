@@ -52,7 +52,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   const sender = values.sender.trim() || 'Your name'
   const message = values.message.trim()
   const recipientLines = wrapped(recipient, 26, 2)
-  const senderLines = wrapped('FROM ' + sender, 38, 2)
+  const senderLines = wrapped('With love, ' + sender, 34, 2)
   const schoolLines = wrapped(values.school || '', 52, 2)
   const messageLines = wrapped(message, 43, 6)
   const messageStartY = 850 - Math.max(messageLines.length - 1, 0) * 20
@@ -66,8 +66,13 @@ export function CardArt({ template, values, svgRef, preview = false }: {
           <stop offset="0%" stopColor={theme.top}/>
           <stop offset="100%" stopColor={theme.bottom}/>
         </radialGradient>
+        <pattern id={id + '-paper'} width="34" height="34" patternUnits="userSpaceOnUse">
+          <circle cx="4" cy="7" r="0.8" fill={theme.ink} opacity=".09"/><circle cx="25" cy="21" r="0.7" fill={theme.ink} opacity=".07"/>
+          <path d="M15 3h2M8 27h1M29 10h1" stroke={theme.ink} strokeWidth=".7" opacity=".06"/>
+        </pattern>
       </defs>
       <rect width="900" height="1200" rx="22" fill={'url(#' + id + ')'}/>
+      <rect width="900" height="1200" rx="22" fill={'url(#' + id + '-paper)'}/>
       <rect x="20" y="20" width="860" height="1160" rx="12" fill="none" stroke={theme.border} strokeWidth="4"/>
       <rect x="40" y="40" width="820" height="1120" rx="8" fill="none" stroke={theme.accent} strokeWidth="2" opacity=".45"/>
       {template === 'nightfall' && <g fill={theme.accent} opacity=".45">
@@ -87,7 +92,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
         <path d="M375 716 H525" stroke={theme.accent} strokeWidth="2" opacity=".55"/>
         {messageLines.map((line, i) => <text key={i} x="450" y={messageStartY + i * 40} fill={theme.ink} fontFamily="Georgia, serif" fontSize="32" textAnchor="middle">{line}</text>)}
       </g>}
-      {senderLines.map((line, i) => <text key={i} x="75" y={1090 + i * 31} fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="20" fontWeight="bold" letterSpacing="2">{line}</text>)}
+      {senderLines.map((line, i) => <text key={i} x="75" y={1090 + i * 31} fill={theme.ink} fontFamily="Georgia, serif" fontStyle="italic" fontSize="21" fontWeight="600" letterSpacing=".3">{line}</text>)}
       <text x="825" y="1110" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
     </svg>
   )
@@ -100,9 +105,9 @@ const versions = [
 ] as const
 
 const messageStarters = [
-  'You have worked so hard to reach this moment. Walk in with courage; we believe in you.',
-  'Whatever the results, we are proud of the person you are becoming. Keep going.',
-  'May your hard work meet a bright new beginning. Your future is full of possibility.',
+  { label: 'Trust your work', message: 'You have worked so hard to reach this moment. Walk in with courage; we believe in you.' },
+  { label: 'Proud of you', message: 'Whatever the results, we are proud of the person you are becoming. Keep going.' },
+  { label: 'Bright beginning', message: 'May your hard work meet a bright new beginning. Your future is full of possibility.' },
 ]
 
 type SchoolOption = {
@@ -141,6 +146,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [cardRevealed, setCardRevealed] = useState(false)
   const stopSound = useRef<(() => void) | null>(null)
+  const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear))
   useEffect(() => () => { stopSound.current?.() }, [])
@@ -260,17 +266,28 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
             <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" aria-describedby="exam-year-help"/><small id="exam-year-help">Printed on card. Not a sign-in code.</small></label>
           </div>
-          <details className={styles.optionalField}><summary>School (optional)</summary><label htmlFor={schoolInputId}>School<input id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search your school"/><small>Search VibeSchool&apos;s school list. It helps describe the recipient; it does not verify identity or deliver the wish.</small></label>
+          <div className={styles.optionalField}>
+            <div className={styles.optionalFieldHeading}><label htmlFor={schoolInputId}>School <span>(optional)</span></label><small>Help describe the recipient</small></div>
+            <input id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search VibeSchool&apos;s school list"/>
             {schoolSearchState === 'loading' && <p className={styles.schoolSearchStatus} role="status">Searching VibeSchool schools…</p>}
             {schoolSearchState === 'error' && <p className={styles.schoolSearchStatus} role="status">School search is unavailable right now. You can leave this optional field blank.</p>}
             {schoolSearchState === 'ready' && schoolOptions.length === 0 && <p className={styles.schoolSearchStatus} role="status">No matching school found. Try another name or leave this optional.</p>}
             {schoolOptions.length > 0 && <ul className={styles.schoolResults} id={schoolResultsId} role="listbox" aria-label="Matching VibeSchool schools">{schoolOptions.map(option => <li key={option.school_id}><button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id} onClick={() => { setSelectedSchool(option); setSchool(option.school_name); setSchoolOptions([]); setSchoolSearchState('idle') }}><strong>{option.school_name}</strong><small>{[option.sub_county, option.county].filter(Boolean).join(', ') || 'School in VibeSchool directory'}</small></button></li>)}</ul>}
             {selectedSchool && <p className={styles.schoolSearchStatus} role="status">Selected from VibeSchool&apos;s school list: {selectedSchool.school_name}{selectedSchool.sub_county || selectedSchool.county ? ` · ${[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}` : ''}</p>}
-          </details>
+          </div>
           <label>Your name<input autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/></label>
-          <label>Your wish<textarea rows={4} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
+          <label>Your wish<textarea ref={messageInputRef} rows={4} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
             placeholder="Write something only you would say…"/></label>
-          <details className={styles.messageIdeas}><summary>Need a first line?</summary><div>{messageStarters.map(starter => <button type="button" key={starter} onClick={() => setMessage(starter)}>{starter}</button>)}</div><small>Pick one, then make it your own.</small></details>
+          <div className={styles.messageIdeas}>
+            <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
+            <div>{messageStarters.map(starter => <button type="button" key={starter.label} aria-label={'Use wish starter: ' + starter.label} onClick={() => {
+              setMessage(starter.message)
+              window.requestAnimationFrame(() => {
+                messageInputRef.current?.focus()
+                messageInputRef.current?.setSelectionRange(starter.message.length, starter.message.length)
+              })
+            }}>{starter.label}</button>)}</div>
+          </div>
           <p className={styles.counter}>{message.length}/220 characters</p>
           <div className={styles.actions}>
             <button type="button" className={styles.primary} disabled={!ready} onClick={previewWish}>Preview exact wish <ChevronRight size={18}/></button>
