@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
-import { Check, ChevronRight, Volume2, VolumeX, X } from 'lucide-react'
+import { ChevronRight, Volume2, VolumeX, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import styles from './SuccessCardStudio.module.css'
@@ -366,12 +366,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [schoolSearchState, setSchoolSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const schoolInputId = useId()
   const schoolResultsId = useId()
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [status, setStatus] = useState('')
   const [previewed, setPreviewed] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const stopSound = useRef<(() => void) | null>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
@@ -429,29 +426,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
 
     return () => { active = false; window.clearTimeout(timer) }
   }, [school, selectedSchool])
-  async function saveTestWish() {
-    if (!ready || !previewed || busy || !testMode) return
-    setError(''); setStatus(''); setBusy(true)
-    try {
-      const response = await fetch('/api/success-wishes/test-orders', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
-        body: JSON.stringify({ candidate, sender, message, examYear, school, theme, version: 'text' }),
-      })
-      const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || 'The test wish could not be saved.')
-      const invitationUrl = `${window.location.origin}/success-wishes/invitation#token=${encodeURIComponent(payload.invitationToken)}`
-      setOrder({ id: payload.id, invitationUrl, expiresAt: payload.expiresAt })
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The test wish could not be saved. Please try again.')
-    } finally { setBusy(false) }
-  }
-
-  async function copyInvitation() {
-    if (!order) return
-    try { await navigator.clipboard.writeText(order.invitationUrl); setStatus('Private invitation copied. Share it directly with the intended candidate.') }
-    catch { setStatus(order.invitationUrl) }
-  }
-
   function previewWish() {
     setError('')
     if (!ready) { setError(selectedVersion !== 'text' && !mediaFile ? 'Add a voice or video message to continue.' : 'Add the candidate name, exam year, your name and a wish before previewing.'); return }
@@ -546,20 +520,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </div>
           {!ready && <p className={styles.hint}>Add candidate name, exam year, your name and a wish. The school field is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
-          {status && <p role="status" className={styles.status}>{status}</p>}
         </div>
         <div className={styles.live} id="wish-preview"><span>{previewed ? 'YOUR CARD PREVIEW' : 'CARD PREVIEW'}</span>
           <BookCard template={theme} values={values} soundEnabled={soundEnabled} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
           {previewed ? <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}. Your message appears just as you wrote it.</p>{mediaFile && <p>{mediaFile.name}</p>}<p className={styles.orderTotal}>Total <strong>KES {versions.find(version => version.id === selectedVersion)?.price}</strong></p>
             <button type="button" className={styles.primary} onClick={() => setCheckoutOpen(true)}>Continue to checkout <ChevronRight size={18}/></button>
-            {testMode && selectedVersion === 'text' ? <>
-              {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
-            </> : null}
-            {order && <div className={styles.orderConfirmation} role="status"><h3><Check size={18}/> Test wish saved</h3><p>No payment was taken. Copy the private invitation and share it directly with the intended candidate.</p>
-              <label>Private invitation<input readOnly value={order.invitationUrl} onFocus={e => e.currentTarget.select()}/></label>
-              <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={`/success-wishes/invitation#token=${encodeURIComponent(new URL(order.invitationUrl).hash.slice(7))}`}>Open invitation</Link></div>
-              <small>Reference {order.id} · Local retention until {new Date(order.expiresAt).toLocaleDateString()}</small>{status && <p role="status" className={styles.status}>{status}</p>}
-            </div>}
           </div> : <p>Choose a design, add your message, then tap the card to open it.</p>}</div>
       </section>
       <footer className={styles.footer}>
