@@ -55,6 +55,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   const senderLines = wrapped('FROM ' + sender, 38, 2)
   const schoolLines = wrapped(values.school || '', 52, 2)
   const messageLines = wrapped(message, 43, 6)
+  const messageStartY = 850 - Math.max(messageLines.length - 1, 0) * 20
   const ornaments: Record<Template, string> = { heritage: '✧', botanical: '✿', nightfall: '✦', sunrise: '✳' }
   return (
     <svg ref={svgRef} viewBox="0 0 900 1200" xmlns="http://www.w3.org/2000/svg" role="img"
@@ -84,7 +85,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
         <rect x="92" y="688" width="716" height="322" rx="18" fill={theme.ink} opacity=".055"/>
         <rect x="92" y="688" width="716" height="322" rx="18" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
         <path d="M375 716 H525" stroke={theme.accent} strokeWidth="2" opacity=".55"/>
-        {messageLines.map((line, i) => <text key={i} x="450" y={770 + i * 40} fill={theme.ink} fontFamily="Georgia, serif" fontSize="32" textAnchor="middle">{line}</text>)}
+        {messageLines.map((line, i) => <text key={i} x="450" y={messageStartY + i * 40} fill={theme.ink} fontFamily="Georgia, serif" fontSize="32" textAnchor="middle">{line}</text>)}
       </g>}
       {senderLines.map((line, i) => <text key={i} x="75" y={1090 + i * 31} fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="20" fontWeight="bold" letterSpacing="2">{line}</text>)}
       <text x="825" y="1110" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
