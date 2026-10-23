@@ -1,16 +1,16 @@
 /**
- * Validate database URLs used by isolated Daraja SANDBOX functions.
+ * Validate and normalize isolated Daraja SANDBOX database connection URLs.
  *
- * No connection is permitted to the production VibeSchool database or to
- * a different Supabase project. A single conventional SSL mode query
- * parameter is allowed: Supabase's platform URL can include sslmode=require.
- * Keep this guard independent of payment/provider credentials.
+ * Supabase's built-in SUPABASE_DB_URL can contain driver query options. Never
+ * forward those options to postgres.js: URL query parameters can override
+ * connection behavior, while hostname, username and db path MUST prove the
+ * correct isolated project. The caller explicitly requires TLS.
  */
 export type SandboxDbVerdict =
-  | {ok:true}
+  | {ok:true;connectionString:string}
   | {ok:false;reason:'invalid_url'|'invalid_project'|'invalid_protocol'|
     'wrong_database_host'|'wrong_database_user'|'missing_password'|
-    'wrong_database_name'|'unsupported_port'|'unsupported_parameters'|'url_fragment'}
+    'wrong_database_name'|'unsupported_port'|'url_fragment'}
 
 export function validateIsolatedSandboxDatabaseUrl(
   raw: string, projectRef: string,
@@ -28,7 +28,6 @@ export function validateIsolatedSandboxDatabaseUrl(
   const pooler=url.hostname.endsWith('.pooler.supabase.com')
   if (!direct && !pooler)
     return {ok:false,reason:'wrong_database_host'}
-
   if (url.username !== (direct ? 'postgres' : `postgres.${projectRef}`))
     return {ok:false,reason:'wrong_database_user'}
   if (!url.password) return {ok:false,reason:'missing_password'}
@@ -39,9 +38,9 @@ export function validateIsolatedSandboxDatabaseUrl(
     return {ok:false,reason:'unsupported_port'}
   if (url.hash) return {ok:false,reason:'url_fragment'}
 
-  const query=[...url.searchParams.entries()]
-  if (query.length!==0 && !(query.length===1 && query[0][0]==='sslmode'
-    && ['require','verify-full'].includes(query[0][1])))
-    return {ok:false,reason:'unsupported_parameters'}
-  return {ok:true}
+  // Strip ALL query parameters. Only the verified authority/database are passed
+  // to postgres.js. This prevents embedded host/user/SSL overrides. Callers
+  // enforce ssl:'require' instead of trusting a URL-provided sslmode.
+  url.search=''
+  return {ok:true,connectionString:url.toString()}
 }
