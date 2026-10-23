@@ -55,7 +55,7 @@ function config() {
     callbackUrl:sandboxCallbackUrl(env.SUPABASE_URL || ''),
     testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
   }
-  return {env,databaseUrl,settings}
+  return {env,databaseUrl:databaseGuard.connectionString,settings}
 }
 
 /** Produce only a sandbox callback URL for the exact isolated project. */
@@ -70,7 +70,7 @@ function sandboxCallbackUrl(projectUrl: string): string {
 Deno.serve(async(req)=>{
   let c:ReturnType<typeof config>
   try{c=config()}catch{return new Response('Sandbox unavailable',{status:503})}
-  const db=postgres(c.databaseUrl,{max:1,prepare:false,idle_timeout:5,connect_timeout:5})
+  const db=postgres(c.databaseUrl,{max:1,prepare:false,ssl:'require',idle_timeout:5,connect_timeout:5})
   try{
     const store:SandboxCallbackStore={
       async persistCallback({key,callback}){
