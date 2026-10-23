@@ -35,6 +35,15 @@ const PRODUCTS=new Set([
   'teacher_credits','learning_product','exam_access',
   'success_wish','school_subscription','premium_feature',
 ])
+/** Produce only a sandbox callback URL for the exact isolated project. */
+function sandboxCallbackUrl(projectUrl: string): string {
+  const configured=Deno.env.get('COMMERCE_DARAJA_SANDBOX_CALLBACK_URL')?.trim()
+  if(configured)return configured
+  const token=Deno.env.get('COMMERCE_DARAJA_SANDBOX_WEBHOOK_TOKEN')?.trim()||''
+  if(!/^[A-Za-z0-9_-]{32,200}$/.test(token))throw new Error('Sandbox webhook token not configured')
+  return projectUrl+'/functions/v1/unified-commerce-sandbox-callback?sandbox_token='+token
+}
+
 Deno.serve(async req=>{
   if(req.method!=='POST')return json({error:'Method not allowed'},405)
   const env={
@@ -75,7 +84,7 @@ Deno.serve(async req=>{
   try{phone=normalizeKenyanPhone(requestedPhone)}
   catch{return json({error:'Invalid test phone'},400)}
   const projectRef=env.COMMERCE_SANDBOX_PROJECT_REF||''
-  const databaseUrl=Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL')||''
+  const databaseUrl=(Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL') || Deno.env.get('SUPABASE_DB_URL') || '')
   let dbUrl:URL
   try{dbUrl=new URL(databaseUrl)}
   catch{return json({error:'Isolated sandbox database unavailable'},503)}
@@ -99,7 +108,7 @@ Deno.serve(async req=>{
       businessShortCode:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_SHORTCODE')?.trim() || '174379'),
       partyB:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_PARTY_B')?.trim() || '174379'),
       transactionType:'CustomerPayBillOnline',
-      callbackUrl:setting('COMMERCE_DARAJA_SANDBOX_CALLBACK_URL'),
+      callbackUrl:sandboxCallbackUrl(env.SUPABASE_URL || ''),
       testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
     }
   }catch{return json({error:'Sandbox provider not configured'},503)}
