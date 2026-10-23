@@ -163,16 +163,31 @@ begin
        where checkout_request_id=p_checkout)>1
      or (select count(distinct (merchant_request_id,result_code))
         from commerce_sandbox.provider_query_observations
-       where checkout_request_id=p_checkout)>1 then
+       where checkout_request_id=p_checkout and result_code is not null
+         and result_code<>4999)>1 then
     update commerce_sandbox.payment_attempts set state='reconciliation_required'
       where id=v_attempt.id;
     update commerce_sandbox.orders set state='reconciliation_required' where id=v_order.id;
     return 'conflicting_provider_evidence';
   end if;
 
+  -- Daraja 4999 is an in-progress observation, not a final provider
+  -- failure; retain immutable evidence but ignore it when selecting the
+  -- final result. A later 1037 (or success) can complete reconciliation.
+  if exists(select 1 from commerce_sandbox.provider_query_observations
+    where checkout_request_id=p_checkout
+      and merchant_request_id<>v_attempt.merchant_request_id) then
+    update commerce_sandbox.payment_attempts set state='reconciliation_required'
+      where id=v_attempt.id;
+    update commerce_sandbox.orders set state='reconciliation_required'
+      where id=v_order.id;
+    return 'query_identity_mismatch';
+  end if;
   select * into v_query from commerce_sandbox.provider_query_observations
-   where checkout_request_id=p_checkout order by observed_at desc limit 1;
-  if not found or v_query.result_code is null then return 'query_pending'; end if;
+   where checkout_request_id=p_checkout
+     and result_code is not null and result_code<>4999
+   order by observed_at desc limit 1;
+  if not found then return 'query_pending'; end if;
   select * into v_event from commerce_sandbox.provider_inbox
    where checkout_request_id=p_checkout order by created_at desc limit 1;
   if v_query.merchant_request_id<>v_attempt.merchant_request_id then
