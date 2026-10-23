@@ -10,6 +10,7 @@
  * Reuses the private disposable-schema contracts from qa/commerce.
  */
 import postgres from 'npm:postgres@3.4.5'
+import {validateIsolatedSandboxDatabaseUrl} from '../../../lib/commerce/unified/sandbox-db.ts'
 import {
   assertDarajaSandboxOnly,makeSandboxOrder,normalizeKenyanPhone,
   type ProductKind,
@@ -85,15 +86,9 @@ Deno.serve(async req=>{
   catch{return json({error:'Invalid test phone'},400)}
   const projectRef=env.COMMERCE_SANDBOX_PROJECT_REF||''
   const databaseUrl=(Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL') || Deno.env.get('SUPABASE_DB_URL') || '')
-  let dbUrl:URL
-  try{dbUrl=new URL(databaseUrl)}
-  catch{return json({error:'Isolated sandbox database unavailable'},503)}
-  const direct=dbUrl.hostname==='db.'+projectRef+'.supabase.co'
-  const pooler=dbUrl.hostname.endsWith('.pooler.supabase.com')
-    && dbUrl.username==='postgres.'+projectRef
-  if(!['postgres:','postgresql:'].includes(dbUrl.protocol)
-    ||(!direct&&!pooler)||!dbUrl.password||dbUrl.search||dbUrl.hash)
-    return json({error:'Refusing non-isolated database'},503)
+  const databaseGuard=validateIsolatedSandboxDatabaseUrl(databaseUrl,projectRef)
+  if(!databaseGuard.ok)
+    return json({error:'Refusing non-isolated database',reason:databaseGuard.reason},503)
   const setting=(name:string)=>{
     const value=Deno.env.get(name)?.trim()
     if(!value)throw new Error('Sandbox configuration incomplete')
