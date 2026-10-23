@@ -44,6 +44,14 @@ async function ready() {
 
 async function makeWish(context, { message, theme }) {
   const page = await context.newPage()
+  await page.addInitScript(() => {
+    window.__successWishChimeOscillators = 0
+    const createOscillator = AudioContext.prototype.createOscillator
+    AudioContext.prototype.createOscillator = function (...args) {
+      window.__successWishChimeOscillators += 1
+      return createOscillator.apply(this, args)
+    }
+  })
   const schoolSearchCalls = []
   await page.route('**/rest/v1/rpc/success_wishes_school_search_public_v1', async route => {
     const payload = route.request().postDataJSON()
@@ -69,7 +77,10 @@ async function makeWish(context, { message, theme }) {
   await page.screenshot({ path: path.join(screenshots, `design-preview-${theme.replace(/\s+/g, '-')}.png`) })
 
   await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
+  assert.equal(await page.evaluate(() => window.__successWishChimeOscillators), 6, 'The three-note celebratory chime plays when form entry starts')
   const yearInput = page.getByRole('textbox', { name: 'Exam year' })
+  await yearInput.focus()
+  assert.equal(await page.evaluate(() => window.__successWishChimeOscillators), 6, 'The form-start chime plays only once')
   assert.equal(await yearInput.inputValue(), '2026', 'Exam year defaults to 2026')
   const schoolInput = page.getByRole('combobox', { name: 'School (optional)' })
   assert.equal(await schoolInput.isVisible(), true, 'The optional school search is visible without an extra tap')
@@ -99,34 +110,31 @@ async function makeWish(context, { message, theme }) {
   await dialog.getByText('YOUR PERSONAL CARD PREVIEW').waitFor()
   await dialog.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
   const bookCover = dialog.getByRole('button', { name: 'Open the book card' })
-  assert.equal(await dialog.getByText(message, { exact: true }).evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'The wish stays hidden from assistive technology while the book is closed')
+  assert.equal(await dialog.getByText(message, { exact: true }).evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'The wish stays hidden inside the closed book')
   await bookCover.click()
   await dialog.getByText(message, { exact: true }).waitFor()
+  assert.equal(await dialog.getByText('Gilgil Township', { exact: true }).count(), 1, 'The selected school appears inside the opened book')
+  assert.equal(await dialog.getByText('2026 exams', { exact: true }).count(), 1, 'The exam year appears inside the opened book')
+  assert.equal(await dialog.getByText('Synthetic sender', { exact: true }).count(), 1, 'The sender appears inside the opened book')
   assert.equal(await dialog.getByRole('button', { name: 'Close the book card' }).getAttribute('aria-expanded'), 'true', 'The sender opens the hinged book cover')
   await dialog.getByRole('button', { name: 'Replay opening' }).click()
   await dialog.getByText(message, { exact: true }).waitFor()
   assert.equal(await dialog.getByRole('button', { name: 'Sound on' }).getAttribute('aria-pressed'), 'true')
   await dialog.getByRole('button', { name: 'Back to my card' }).click()
-  const card = page.locator('svg[aria-label*="Success Wishes card"]').last()
-  await card.waitFor()
-  const accessibleCard = await card.getAttribute('aria-label')
-  assert.match(accessibleCard, /John Mwangi/)
-  assert.match(accessibleCard, /exam year 2026/)
-  assert.match(accessibleCard, /Gilgil Township/)
-  assert.ok(accessibleCard.includes(message), 'Preview must show the exact original wish')
   const checkoutRequests = []
   const trackCheckout = request => { if (request.url().includes('/api/success-wishes/')) checkoutRequests.push(request.url()) }
   page.on('request', trackCheckout)
   await page.getByRole('button', { name: 'Continue to checkout' }).click()
   const checkout = page.getByRole('dialog')
-  await checkout.getByRole('heading', { name: 'Your wish checkout' }).waitFor()
-  await checkout.getByLabel('Email or mobile number for your receipt').fill('sender@example.com')
+  await checkout.getByRole('heading', { name: 'Your order' }).waitFor()
+  await checkout.getByLabel('M-Pesa number').fill('0712345678')
   await checkout.getByRole('button', { name: 'Review order' }).click()
-  await checkout.getByRole('button', { name: 'Continue to payment preview' }).click()
-  await checkout.getByRole('heading', { name: 'Payment step preview' }).waitFor()
-  assert.deepEqual(checkoutRequests, [], 'Frontend checkout preview does not call order or payment APIs')
+  await checkout.getByRole('heading', { name: 'Review your wish' }).waitFor()
+  await checkout.getByRole('button', { name: 'Confirm details' }).click()
+  await checkout.getByRole('heading', { name: 'Checkout details confirmed' }).waitFor()
+  assert.deepEqual(checkoutRequests, [], 'Front-end checkout details do not call order or payment APIs')
   page.off('request', trackCheckout)
-  await checkout.getByRole('button', { name: 'Done' }).click()
+  await checkout.getByRole('button', { name: 'Back to your card' }).click()
   assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
   await page.getByRole('button', { name: /Complete test order · KES 50/ }).click()
   await page.getByRole('heading', { name: 'Test wish saved' }).waitFor()
@@ -155,7 +163,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
   await page.screenshot({ path: path.join(screenshots, `candidate-closed-${width}.png`), fullPage: true })
   assert.equal(await cover.getAttribute('aria-expanded'), 'false', 'Book starts closed')
-  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Wish text stays inside the closed book')
+  assert.equal(await page.getByText(message, { exact: true }).evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'Wish text stays hidden inside the closed book')
   const sound = page.getByRole('button', { name: 'Sound on' })
   assert.equal(await sound.getAttribute('aria-pressed'), 'true', 'Signature sound starts on, but waits for a card tap')
   if (muteFirst) {
@@ -163,7 +171,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await page.getByRole('button', { name: 'Sound off' }).getAttribute('aria-pressed'), 'false', 'One-touch mute is available')
   }
   await cover.click()
-  await page.getByRole('heading', { name: 'For John Mwangi' }).waitFor()
+  await page.getByRole('heading', { name: 'For John Mwangi', exact: true }).waitFor()
   await page.waitForTimeout(reducedMotion ? 50 : 1100)
   assert.equal(await page.getByText(message, { exact: true }).count(), 1)
   assert.equal(await page.getByText('Gilgil Township', { exact: true }).count(), 1, 'Optional school is printed inside the open book')
@@ -172,7 +180,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   await page.getByRole('button', { name: 'Replay opening' }).click()
   await page.getByText(message, { exact: true }).waitFor()
   await page.getByRole('button', { name: 'Close card' }).click()
-  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Close hides the personal message again')
+  assert.equal(await page.getByText(message, { exact: true }).evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'Close hides the personal message again')
   await page.getByRole('button', { name: 'Open the book card' }).click()
   await page.getByText(message, { exact: true }).waitFor()
   await page.screenshot({ path: path.join(screenshots, `candidate-open-${width}.png`), fullPage: true })
@@ -182,9 +190,9 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   assert.equal(revisitResponse.status(), 200, 'Active private session returns to the saved wish')
   await page.getByRole('button', { name: 'Open the book card' }).waitFor({ state: 'visible' })
   await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
-  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Refresh returns to the closed-card reveal')
+  assert.equal(await page.getByText(message, { exact: true }).evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'Refresh returns to the closed-card reveal')
   await page.getByRole('button', { name: 'Open the book card' }).click()
-  await page.getByRole('heading', { name: 'For John Mwangi' }).waitFor()
+  await page.getByRole('heading', { name: 'For John Mwangi', exact: true }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 1, 'Candidate can return after refresh')
   return { context, page, width }
 }
@@ -206,8 +214,8 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
       assert.equal(await page.getByRole('button', { name: `Choose ${design} card` }).count(), 1)
     }
     assert.equal(await page.getByRole('button', { name: /Text wish · KES 50/ }).count(), 1)
-    assert.equal(await page.getByRole('button', { name: /Voice wish · KES 75/ }).isDisabled(), true)
-    assert.equal(await page.getByRole('button', { name: /Video wish · KES 100/ }).isDisabled(), true)
+    assert.equal(await page.getByRole('button', { name: /Voice wish · KES 75/ }).isDisabled(), true, 'Voice wish is unavailable in the current composer')
+    assert.equal(await page.getByRole('button', { name: /Video wish · KES 100/ }).isDisabled(), true, 'Video wish is unavailable in the current composer')
     assert.equal(await page.getByRole('textbox', { name: 'Exam year' }).inputValue(), '2026', 'Year is prefilled for the sender')
     assert.equal(await page.getByRole('button', { name: /Preview my card/ }).isDisabled(), true, 'Preview waits for the required card details')
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)

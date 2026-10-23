@@ -236,9 +236,16 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const stopSound = useRef<(() => void) | null>(null)
+  const formStartSoundPlayed = useRef(false)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear) && (selectedVersion === 'text' || mediaFile))
+  function playFormStartSound() {
+    if (!soundEnabled || formStartSoundPlayed.current) return
+    formStartSoundPlayed.current = true
+    stopSound.current?.()
+    stopSound.current = playWishRevealSound()
+  }
   useEffect(() => {
     let active = true
     fetch('/api/success-wishes/config', { cache: 'no-store' })
@@ -372,7 +379,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         <span className={styles.purchaseNote}>{versions.find(version => version.id === selectedVersion)?.name} · KES {versions.find(version => version.id === selectedVersion)?.price}</span>
       </section>
       <section className={styles.composer} aria-labelledby="personalise-card">
-        <div className={styles.form}><div className={styles.heading}><span>MAKE IT PERSONAL</span><h2 id="personalise-card">Your words make it theirs.</h2></div>
+        <div className={styles.form} onFocusCapture={event => {
+          if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) playFormStartSound()
+        }}><div className={styles.heading}><span>MAKE IT PERSONAL</span><h2 id="personalise-card">Your words make it theirs.</h2></div>
           <div className={styles.formRow}>
             <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
             <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026"/></label>
