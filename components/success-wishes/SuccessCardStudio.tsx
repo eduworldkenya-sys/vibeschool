@@ -148,12 +148,29 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   </div>
 }
 
-function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose }: { theme: Template; values: CardValues; version: typeof versions[number]['id']; price: number; mediaFileName: string; onClose: () => void }) {
+type LocalSimulationOrder = { orderId: string; key: string; state: string; amountKes: 50 }
+
+function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose, testMode = false }: {
+  theme: Template
+  values: CardValues
+  version: typeof versions[number]['id']
+  price: number
+  mediaFileName: string
+  onClose: () => void
+  testMode?: boolean
+}) {
   const [mpesaNumber, setMpesaNumber] = useState('')
   const [phoneError, setPhoneError] = useState('')
   const [review, setReview] = useState(false)
   const [detailsConfirmed, setDetailsConfirmed] = useState(false)
+  const [testOrder, setTestOrder] = useState<LocalSimulationOrder | null>(null)
+  const [testState, setTestState] = useState<'awaiting_test_result' | 'settled_simulated' | 'failed_simulated'>('awaiting_test_result')
+  const [testInvitation, setTestInvitation] = useState('')
+  const [testBusy, setTestBusy] = useState(false)
+  const [testError, setTestError] = useState('')
+  const [copyStatus, setCopyStatus] = useState('')
   const id = useId()
+
   function reviewCheckout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalized = mpesaNumber.replace(/[\s()-]/g, '')
@@ -164,21 +181,142 @@ function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose
     setPhoneError('')
     setReview(true)
   }
+
+  async function testRequest(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+    const response = await fetch('/api/success-wishes/test-checkout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store', body: JSON.stringify(body),
+    })
+    const data: Record<string, unknown> = await response.json()
+    if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'The local test checkout failed.')
+    if (data.mode !== 'local_simulation' || data.simulated !== true || data.realAccess !== false)
+      throw new Error('Unexpected test checkout response.')
+    return data
+  }
+
+  async function confirmCheckout() {
+    if (!testMode) { setDetailsConfirmed(true); return }
+    // Local test only: no real STK request, payment, entitlement or receipt.
+    if (version !== 'text' || price !== 50) {
+      setTestError('This simulated checkout covers the KES 50 text card only.')
+      return
+    }
+    if (testBusy) return
+    setTestBusy(true); setTestError('')
+    try {
+      const result = await testRequest({
+        action: 'start', candidate: values.candidate, sender: values.sender,
+        message: values.message, examYear: values.examYear || '2026',
+        school: values.school || '', theme, version, phone: mpesaNumber,
+      })
+      if (typeof result.orderId !== 'string' || typeof result.key !== 'string' ||
+          result.state !== 'awaiting_test_result' || result.amountKes !== 50)
+        throw new Error('Invalid test order confirmation.')
+      setTestOrder({ orderId: result.orderId, key: result.key,
+        state: result.state, amountKes: 50 })
+      setTestState('awaiting_test_result')
+      setTestInvitation('')
+      setDetailsConfirmed(true)
+    } catch (error) {
+      setTestError(error instanceof Error ? error.message : 'The test checkout could not start.')
+    } finally { setTestBusy(false) }
+  }
+
+  async function finishTest(outcome: 'success' | 'failure') {
+    if (!testMode || !testOrder || testBusy || testState !== 'awaiting_test_result') return
+    setTestBusy(true); setTestError('')
+    try {
+      const result = await testRequest({
+        action: 'resolve', orderId: testOrder.orderId,
+        key: testOrder.key, outcome,
+      })
+      if (outcome === 'success') {
+        if (result.state !== 'settled_simulated' || typeof result.invitationToken !== 'string')
+          throw new Error('Test invitation has not been released.')
+        const url = `${window.location.origin}/success-wishes/invitation#token=${encodeURIComponent(result.invitationToken)}`
+        setTestInvitation(url)
+        setTestState('settled_simulated')
+      } else {
+        if (result.state !== 'failed_simulated' || result.invitationToken !== null)
+          throw new Error('Test failure did not stay locked.')
+        setTestState('failed_simulated')
+      }
+    } catch (error) {
+      setTestError(error instanceof Error ? error.message : 'Unable to finish the test.')
+    } finally { setTestBusy(false) }
+  }
+
+  async function copyTestInvitation() {
+    if (!testInvitation) return
+    try { await navigator.clipboard.writeText(testInvitation); setCopyStatus('Private test link copied.') }
+    catch { setCopyStatus('Select and copy the private test link below.') }
+  }
+
   return <div className={styles.modalBackdrop} role="presentation" onKeyDown={event => { if (event.key === 'Escape') onClose() }} onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={id}>
       <button type="button" className={styles.modalClose} aria-label="Close checkout" onClick={onClose}><X size={20}/></button>
-      {detailsConfirmed ? <><p className={styles.eyebrow}>CHECKOUT</p><h2 id={id}>Checkout details confirmed</h2>
-        <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>M-Pesa number: {mpesaNumber}</span><span>Total · KES {price}</span></div></div>
-        <button type="button" className={styles.primary} onClick={onClose}>Back to your card</button>
-      </> : <><p className={styles.eyebrow}>CHECKOUT</p><h2 id={id}>{review ? 'Review your wish' : 'Your order'}</h2>
-        <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>For the {values.examYear || '2026'} exams</span><span>{values.school?.trim() || 'No school selected'}</span>{mediaFileName && <span>{mediaFileName}</span>}</div></div>
-        {!review ? <form onSubmit={reviewCheckout} noValidate><label className={styles.checkoutLabel} htmlFor={id + '-mpesa'}>M-Pesa number<input id={id + '-mpesa'} type="tel" inputMode="tel" autoComplete="tel" value={mpesaNumber} onChange={event => { setMpesaNumber(event.target.value); setPhoneError('') }} placeholder="07XX XXX XXX" maxLength={16} aria-describedby={id + '-phone-help'} required/></label>
-          <small id={id + '-phone-help'} className={styles.checkoutDisclosure}>Enter the number that should receive the payment prompt.</small>
+      {testMode && <p className={styles.eyebrow} role="status">LOCAL SIMULATION · NO M-PESA CHARGE</p>}
+      {detailsConfirmed ? <>
+        <p className={styles.eyebrow}>CHECKOUT</p>
+        <h2 id={id}>{testMode ? testState === 'settled_simulated' ? 'Test card unlocked' : testState === 'failed_simulated' ? 'Test payment unsuccessful' : 'Simulate the payment result' : 'Checkout details confirmed'}</h2>
+        <div className={styles.checkoutOrder}>
+          <CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/>
+          <div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong>
+            <span>M-Pesa number: {mpesaNumber}</span><span>Total · KES {price}</span>
+            {testOrder && <small>Local test order · {testOrder.orderId.slice(0, 8)}</small>}
+          </div>
+        </div>
+        {!testMode ? <button type="button" className={styles.primary} onClick={onClose}>Back to your card</button> :
+          testState === 'awaiting_test_result' ? <>
+            <p className={styles.checkoutFine}>Test only. Select a simulated outcome to verify whether the private card is released. No STK Push will be sent.</p>
+            <div className={styles.checkoutActions}>
+              <button type="button" className={styles.secondary} disabled={testBusy} onClick={() => void finishTest('failure')}>Simulate failure</button>
+              <button type="button" className={styles.primary} disabled={testBusy} onClick={() => void finishTest('success')}>{testBusy ? 'Processing test…' : 'Simulate success'} <ChevronRight size={18}/></button>
+            </div>
+          </> : testState === 'failed_simulated' ? <>
+            <p className={styles.checkoutFine} role="status">Simulated payment failed. No private invitation was created, and no access was granted.</p>
+            <button type="button" className={styles.secondary} onClick={() => { setTestOrder(null); setDetailsConfirmed(false); setReview(true); setTestError('') }}>Start a new test</button>
+          </> : <>
+            <p className={styles.checkoutFine} role="status">Simulated success only. One LOCAL TEST invitation was created. This is not a Safaricom payment or a real purchase.</p>
+            <label className={styles.checkoutLabel}>Private test invitation
+              <input readOnly value={testInvitation} onFocus={event => event.currentTarget.select()}/>
+            </label>
+            <div className={styles.checkoutActions}>
+              <button type="button" className={styles.secondary} onClick={() => void copyTestInvitation()}>Copy invitation</button>
+              <a className={styles.primary} href={testInvitation}>Open test card <ChevronRight size={18}/></a>
+            </div>
+            {copyStatus && <p role="status" className={styles.checkoutFine}>{copyStatus}</p>}
+          </>}
+        {testError && <p role="alert" className={styles.checkoutError}>{testError}</p>}
+      </> : <>
+        <p className={styles.eyebrow}>CHECKOUT</p>
+        <h2 id={id}>{review ? 'Review your wish' : 'Your order'}</h2>
+        <div className={styles.checkoutOrder}>
+          <CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/>
+          <div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong>
+            <span>For the {values.examYear || '2026'} exams</span>
+            <span>{values.school?.trim() || 'No school selected'}</span>
+            {mediaFileName && <span>{mediaFileName}</span>}
+          </div>
+        </div>
+        {!review ? <form onSubmit={reviewCheckout} noValidate>
+          <label className={styles.checkoutLabel} htmlFor={id + '-mpesa'}>M-Pesa number
+            <input id={id + '-mpesa'} type="tel" inputMode="tel" autoComplete="tel" value={mpesaNumber}
+              onChange={event => { setMpesaNumber(event.target.value); setPhoneError('') }}
+              placeholder="07XX XXX XXX" maxLength={16} aria-describedby={id + '-phone-help'} required/>
+          </label>
+          <small id={id + '-phone-help'} className={styles.checkoutDisclosure}>{testMode ? 'Used for the local test order only. No STK Push is sent.' : 'Enter the number that should receive the payment prompt.'}</small>
           {phoneError && <p role="alert" className={styles.checkoutError}>{phoneError}</p>}
           <div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
           <button type="submit" className={styles.primary}>Review order <ChevronRight size={18}/></button>
-        </form> : <><p className={styles.checkoutFine}>M-Pesa number: <strong>{mpesaNumber}</strong></p><div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
-          <div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={() => setReview(false)}>Edit details</button><button type="button" className={styles.primary} onClick={() => setDetailsConfirmed(true)}>Confirm details <ChevronRight size={18}/></button></div>
+        </form> : <>
+          <p className={styles.checkoutFine}>M-Pesa number: <strong>{mpesaNumber}</strong></p>
+          <div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
+          <div className={styles.checkoutActions}>
+            <button type="button" className={styles.secondary} disabled={testBusy} onClick={() => setReview(false)}>Edit details</button>
+            <button type="button" className={styles.primary} disabled={testBusy} onClick={() => void confirmCheckout()}>{testBusy ? 'Creating test order…' : testMode ? 'Start local test checkout' : 'Confirm details'} <ChevronRight size={18}/></button>
+          </div>
+          {testError && <p role="alert" className={styles.checkoutError}>{testError}</p>}
         </>}
       </>}
     </section>
@@ -437,6 +575,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         </div>
       </section>
     </div>}
-    {checkoutOpen && <CheckoutPreview theme={theme} values={values} version={selectedVersion} price={versions.find(version => version.id === selectedVersion)?.price || 50} mediaFileName={mediaFile?.name || ''} onClose={() => setCheckoutOpen(false)}/>}
+    {checkoutOpen && <CheckoutPreview theme={theme} values={values} version={selectedVersion} price={versions.find(version => version.id === selectedVersion)?.price || 50} mediaFileName={mediaFile?.name || ''} testMode={testMode} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }
