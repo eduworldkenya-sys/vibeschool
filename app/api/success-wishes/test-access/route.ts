@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     if (!result) return noStoreJson({ error: 'This invitation is invalid, expired, or revoked.' }, 404)
     const response = noStoreJson({ wish: result.wish })
     response.cookies.set(TEST_SESSION_COOKIE, result.session, {
-      httpOnly: true, sameSite: 'strict', secure: false, path: '/success-wishes',
+      httpOnly: true, sameSite: 'strict', secure: false, path: '/api/success-wishes',
       expires: new Date(Date.now() + 7 * 86400000),
     })
     return response
@@ -37,6 +37,6 @@ export async function DELETE(request: NextRequest) {
   const session = request.cookies.get(TEST_SESSION_COOKIE)?.value || ''
   await removeLocalTestSession(session)
   const response = noStoreJson({ signedOut: true })
-  response.cookies.set(TEST_SESSION_COOKIE, '', { httpOnly: true, sameSite: 'strict', secure: false, path: '/success-wishes', expires: new Date(0) })
+  response.cookies.set(TEST_SESSION_COOKIE, '', { httpOnly: true, sameSite: 'strict', secure: false, path: '/api/success-wishes', expires: new Date(0) })
   return response
 }
