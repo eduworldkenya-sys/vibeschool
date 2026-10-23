@@ -105,6 +105,20 @@ begin
     raise exception 'timeout attempt not claimed'; end if;
   perform commerce_sandbox.attach_stk(v_expired_attempt,
     'ws_CO_SYNTHETIC1037','merchant_SYNTHETIC1037');
+  -- An earlier 4999 is processing, not a failed payment. Preserve
+  -- its immutable observation while awaiting a terminal provider query.
+  insert into commerce_sandbox.provider_query_observations(
+    checkout_request_id,merchant_request_id,result_code
+  ) values('ws_CO_SYNTHETIC1037','merchant_SYNTHETIC1037',4999);
+  if commerce_sandbox.reconcile_sandbox('ws_CO_SYNTHETIC1037')<>'query_pending'
+    then raise exception '4999 prematurely closed payment'; end if;
+  insert into commerce_sandbox.provider_inbox(
+    checkout_request_id,merchant_request_id,provider_event_key,
+    result_code,paid_amount_kes,phone,provider_receipt
+  ) values ('ws_CO_SYNTHETIC1037','merchant_SYNTHETIC1037',
+    'event-synthetic-1037',1037,null,null,null);
+  if commerce_sandbox.reconcile_sandbox('ws_CO_SYNTHETIC1037')<>'query_pending'
+    then raise exception 'pending query with failure callback should wait'; end if;
   insert into commerce_sandbox.provider_query_observations(
     checkout_request_id,merchant_request_id,result_code
   ) values('ws_CO_SYNTHETIC1037','merchant_SYNTHETIC1037',1037);
