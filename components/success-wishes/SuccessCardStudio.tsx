@@ -75,14 +75,16 @@ export function CardArt({ template, values, svgRef, preview = false }: {
       </g>}
       <text x="75" y="104" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="22" fontWeight="bold" letterSpacing="4">VIBESCHOOL</text>
       <text x="825" y="104" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="18" fontWeight="bold" letterSpacing="3" textAnchor="end">SUCCESS WISHES</text>
-      <text x="450" y="390" fill={theme.accent} opacity=".28" fontSize="285" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
-      <text x="450" y="480" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="19" fontWeight="bold" letterSpacing="4" textAnchor="middle">TO A REMARKABLE CANDIDATE</text>
-      <text x="450" y="568" fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontSize={preview ? 56 : 61} textAnchor="middle" textLength="730" lengthAdjust="spacingAndGlyphs">{item.headline}</text>
-      {recipientLines.map((line, i) => <text key={i} x="450" y={640 + i * 46} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="36" textAnchor="middle">{line}</text>)}
-      {schoolLines.map((line, i) => <text key={i} x="450" y={730 + i * 28} fill={theme.ink} opacity=".9" fontFamily="Arial, sans-serif" fontSize="19" textAnchor="middle">{line}</text>)}
+      <text x="450" y="350" fill={theme.accent} opacity=".16" fontSize="155" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
+      <text x="450" y="412" fill={theme.ink} opacity=".72" fontFamily="Arial, sans-serif" fontSize="15" fontWeight="bold" letterSpacing="3" textAnchor="middle">TO A REMARKABLE CANDIDATE</text>
+      <text x="450" y="482" fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontSize={preview ? 36 : 40} textAnchor="middle" textLength="650" lengthAdjust="spacingAndGlyphs">{item.headline}</text>
+      {recipientLines.map((line, i) => <text key={i} x="450" y={558 + i * 46} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="40" textAnchor="middle">{line}</text>)}
+      {schoolLines.map((line, i) => <text key={i} x="450" y={630 + i * 27} fill={theme.ink} opacity=".82" fontFamily="Arial, sans-serif" fontSize="18" textAnchor="middle">{line}</text>)}
       {messageLines.length > 0 && <g>
-        <path d="M310 786 H590" stroke={theme.accent} strokeWidth="2" opacity=".6"/>
-        {messageLines.map((line, i) => <text key={i} x="450" y={834 + i * 34} fill={theme.ink} fontFamily="Georgia, serif" fontSize="27" textAnchor="middle">{line}</text>)}
+        <rect x="92" y="688" width="716" height="322" rx="18" fill={theme.ink} opacity=".055"/>
+        <rect x="92" y="688" width="716" height="322" rx="18" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
+        <path d="M375 716 H525" stroke={theme.accent} strokeWidth="2" opacity=".55"/>
+        {messageLines.map((line, i) => <text key={i} x="450" y={770 + i * 40} fill={theme.ink} fontFamily="Georgia, serif" fontSize="32" textAnchor="middle">{line}</text>)}
       </g>}
       {senderLines.map((line, i) => <text key={i} x="75" y={1090 + i * 31} fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="20" fontWeight="bold" letterSpacing="2">{line}</text>)}
       <text x="825" y="1110" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
