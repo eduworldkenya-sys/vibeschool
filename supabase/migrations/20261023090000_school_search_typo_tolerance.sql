@@ -98,7 +98,7 @@ canonical as (
         when lower(s.name) like q.raw||'%' then .92
         when lower(s.name) like '%'||q.raw||'%' then .78
         when q.n<>'' and coalesce(s.name_normalized,'') like '%'||q.n||'%' then .78
-        when not exact_search.has_exact and length(q.raw)>=4 then extensions.word_similarity(q.raw,coalesce(s.name_normalized,''))
+        when not exact_search.has_exact and length(q.raw)>=4 and length(q.raw)<=80 then extensions.word_similarity(q.raw,coalesce(s.name_normalized,''))
         else 0
       end,
       coalesce((select max(am.confidence) from alias_matches am where am.school_id=s.id),0)
@@ -118,7 +118,7 @@ canonical as (
       or s.knec_code=trim(p_query)
       or s.nemis_code=trim(p_query)
       or exists(select 1 from alias_matches am where am.school_id=s.id)
-      or (not exact_search.has_exact and length(q.raw)>=4 and q.raw OPERATOR(extensions.<%) coalesce(s.name_normalized,'')
+      or (not exact_search.has_exact and length(q.raw)>=4 and length(q.raw)<=80 and q.raw OPERATOR(extensions.<%) coalesce(s.name_normalized,'')
         and exists (
           select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
           where length(qt.token)>=4
@@ -128,7 +128,7 @@ canonical as (
           where length(qt.token)>=4
             and not exists (
               select 1 from regexp_split_to_table(coalesce(s.name_normalized,''),'[^a-z0-9]+') as nt(token)
-              where extensions.levenshtein_less_equal(qt.token,nt.token,1)<=1
+              where extensions.levenshtein_less_equal(lower(qt.token),lower(nt.token),1)<=1
             )
         ))
     )
@@ -156,7 +156,7 @@ directory as (
         when lower(d.name) like q.raw||'%' then .82
         when lower(d.name) like '%'||q.raw||'%' then .70
         when q.n<>'' and lower(regexp_replace(d.name,'[^a-zA-Z0-9]+','','g')) like '%'||q.n||'%' then .72
-        when not exact_search.has_exact and length(q.raw)>=4 then extensions.word_similarity(q.raw,d.name)
+        when not exact_search.has_exact and length(q.raw)>=4 and length(q.raw)<=80 then extensions.word_similarity(q.raw,d.name)
         else 0
       end
     )::real match_score
@@ -170,7 +170,7 @@ directory as (
       q.raw=''
       or lower(d.name) like '%'||q.raw||'%'
       or (q.n<>'' and lower(regexp_replace(d.name,'[^a-zA-Z0-9]+','','g')) like '%'||q.n||'%')
-      or (not exact_search.has_exact and length(q.raw)>=4 and q.raw OPERATOR(extensions.<%) d.name
+      or (not exact_search.has_exact and length(q.raw)>=4 and length(q.raw)<=80 and q.raw OPERATOR(extensions.<%) d.name
         and exists (
           select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
           where length(qt.token)>=4
@@ -180,7 +180,7 @@ directory as (
           where length(qt.token)>=4
             and not exists (
               select 1 from regexp_split_to_table(d.name,'[^a-z0-9]+') as nt(token)
-              where extensions.levenshtein_less_equal(qt.token,nt.token,1)<=1
+              where extensions.levenshtein_less_equal(lower(qt.token),lower(nt.token),1)<=1
             )
         ))
     )
@@ -251,7 +251,7 @@ exact_matches as materialized (
   from public.schools_directory d
   cross join q
   where length(q.query) >= 2
-    and lower(d.name) like '%' || q.query_lower || '%'
+    and d.name ilike '%' || q.query || '%'
   order by case when lower(d.name)=q.query_lower then 0 else 1 end, d.name asc
   limit least(greatest(coalesce(p_limit,12),1),12)
 ),
@@ -263,7 +263,7 @@ typo_matches as materialized (
     nullif(btrim(d.sub_county), '') as sub_county
   from public.schools_directory d
   cross join q
-  where length(q.query) >= 4
+  where length(q.query) >= 4 and length(q.query) <= 80
     and not exists(select 1 from exact_matches)
     and q.query_lower OPERATOR(extensions.<%) d.name
     and exists (
@@ -275,7 +275,7 @@ typo_matches as materialized (
       where length(qt.token)>=4
         and not exists (
           select 1 from regexp_split_to_table(d.name,'[^a-z0-9]+') as nt(token)
-          where extensions.levenshtein_less_equal(qt.token,nt.token,1)<=1
+          where extensions.levenshtein_less_equal(lower(qt.token),lower(nt.token),1)<=1
         )
     )
   order by extensions.word_similarity(q.query_lower,d.name) desc, d.name asc
