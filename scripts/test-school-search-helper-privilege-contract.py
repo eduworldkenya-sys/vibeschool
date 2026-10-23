@@ -29,6 +29,7 @@ assert 'not exact_search.has_exact' in typo_sql, 'shared fuzzy matches must be f
 assert 'not exists(select 1 from exact_matches)' in typo_sql, 'public fuzzy matches must be fallback-only'
 assert 'operator(extensions.<%)' not in typo_sql, 'do not depend on privileged pg_trgm thresholds'
 assert 'regexp_split_to_table' in typo_sql, 'validate close spelling per meaningful school-name token'
+assert "regexp_split_to_table(lower(d.name)" in typo_sql, 'case-fold directory tokens before distance checks'
 assert 'levenshtein_less_equal' in typo_sql, 'confirm close spellings with a one-edit word check'
 assert 'length(q.raw)<=80' in typo_sql, 'bound edit-distance work'
 assert 'security definer' in typo_sql and 'security invoker' in typo_sql, 'preserve each RPC security model'
