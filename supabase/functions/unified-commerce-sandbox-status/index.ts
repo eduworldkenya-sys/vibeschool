@@ -92,11 +92,11 @@ Deno.serve(async(req)=>{
       consumerKey:required('COMMERCE_DARAJA_SANDBOX_CONSUMER_KEY'),
       consumerSecret:required('COMMERCE_DARAJA_SANDBOX_CONSUMER_SECRET'),
       passkey:required('COMMERCE_DARAJA_SANDBOX_PASSKEY'),
-      businessShortCode:required('COMMERCE_DARAJA_SANDBOX_SHORTCODE'),
-      partyB:required('COMMERCE_DARAJA_SANDBOX_PARTY_B'),
+      businessShortCode:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_SHORTCODE')?.trim() || '174379'),
+      partyB:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_PARTY_B')?.trim() || '174379'),
       transactionType:'CustomerPayBillOnline',
       callbackUrl:required('COMMERCE_DARAJA_SANDBOX_CALLBACK_URL'),
-      testPhone:required('COMMERCE_DARAJA_SANDBOX_TEST_PHONE'),
+      testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
     }
     const attempt:SandboxAttempt={
       mode:'sandbox',orderId,checkoutRequestId:String(a.checkout_request_id),
