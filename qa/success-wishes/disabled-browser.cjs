@@ -83,7 +83,7 @@ async function makeWish(context, { message, theme }) {
   const schoolInput = page.getByRole('combobox', { name: 'School' })
   await schoolInput.fill('Embakasi')
   await page.getByRole('option', { name: /Embakasi Garrison/ }).waitFor()
-  await page.getByRole('option', { name: /Embakasi Girls Secondary School/ }).waitFor()
+  await page.getByRole('option', { name: /Embakasi Girls Secondary School/i }).waitFor()
   await page.getByRole('option', { name: /Embakasi Garrison/ }).click()
   assert.equal(await schoolInput.inputValue(), 'Embakasi Garrison', 'A directory school can be selected')
   await schoolInput.fill('Gilgil Township')
