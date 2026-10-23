@@ -178,7 +178,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   }
   await cover.click()
   await page.getByRole('button', { name: 'Close the book card' }).waitFor({ state: 'visible' })
-  await page.getByRole('heading', { name: 'For John Mwangi' }).waitFor()
+  await page.getByRole('heading', { name: 'For John Mwangi', exact: true }).waitFor()
   await page.waitForTimeout(reducedMotion ? 50 : 1100)
   assert.equal(await recipientWish.innerText(), message)
   assert.equal(await page.getByText('Gilgil Township', { exact: true }).count(), 1, 'Optional school is printed inside the open book')
@@ -200,7 +200,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   assert.equal(await recipientWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'Refresh returns to the closed-card reveal')
   await page.getByRole('button', { name: 'Open the envelope and reveal the success card' }).click()
   await page.getByRole('button', { name: 'Close the book card' }).waitFor({ state: 'visible' })
-  await page.getByRole('heading', { name: 'For John Mwangi' }).waitFor()
+  await page.getByRole('heading', { name: 'For John Mwangi', exact: true }).waitFor()
   assert.equal(await recipientWish.innerText(), message, 'Candidate can return after refresh')
   return { context, page, width }
 }
