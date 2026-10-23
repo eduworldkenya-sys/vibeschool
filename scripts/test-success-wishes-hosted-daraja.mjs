@@ -26,7 +26,7 @@ async function withCompiled(pathName, run) {
     const compiledPath = path.join(dir, 'module.cjs')
     await writeFile(compiledPath, compiled)
     process.chdir(dir)
-    await run(createRequire(import.meta.url)(compiled), dir)
+    await run(createRequire(import.meta.url)(compiledPath), dir)
   } finally { process.chdir(cwd); await rm(dir, { recursive: true, force: true }) }
 }
 
