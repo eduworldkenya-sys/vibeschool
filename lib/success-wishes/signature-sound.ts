@@ -50,8 +50,9 @@ export function playWishRevealSound(): () => void {
     }
 
     // A warm three-note signature, followed by a short, gentle piano-like phrase.
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     ;[523.25, 659.25, 783.99].forEach((frequency, index) => {
-      const onset = start + 0.25 + index * 0.28
+      const onset = start + (reducedMotion ? 0.08 : 0.55) + index * 0.24
       note(frequency, onset, 1.15, 0.12)
       note(frequency * 2, onset, 0.62, 0.018)
     })

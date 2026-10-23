@@ -99,7 +99,7 @@ export default function SuccessWishInvitationPage() {
         </div>
         <section className={styles.recipient} aria-labelledby="received-wish">
         <div className={styles.recipientCard + (cardOpened ? ` ${styles.recipientCardOpened}` : '')}>
-          <CardArt template={wish.theme} values={wish}/>
+          <div aria-hidden={!cardOpened}><CardArt template={wish.theme} values={wish}/></div>
           <button className={styles.recipientCardCover} type="button" onClick={openWish} disabled={cardOpened} aria-hidden={cardOpened} tabIndex={cardOpened ? -1 : 0} aria-label={`Open the private success wish for ${wish.candidate}`}>
             <span>VIBESCHOOL <small>SUCCESS WISHES</small></span><b aria-hidden="true">✧</b><strong>A special wish for {wish.candidate}</strong><small>Tap to open</small>
           </button>
