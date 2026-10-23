@@ -2,14 +2,14 @@
 
 import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
-import { Download, Share2 } from 'lucide-react'
+import { Check, ChevronRight, Volume2, VolumeX, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import styles from './SuccessCardStudio.module.css'
 
-type Template = 'heritage' | 'botanical' | 'nightfall' | 'sunrise'
-type CardValues = { candidate: string; sender: string; message: string; examYear?: string; school?: string }
+export type Template = 'heritage' | 'botanical' | 'nightfall' | 'sunrise'
+export type CardValues = { candidate: string; sender: string; message: string; examYear?: string; school?: string }
 export type CardDesignDraft = CardValues & { theme: Template }
-type CanonicalSchoolOption = { school_id: string; school_name: string; county: string | null; sub_county: string | null }
 const templates: { id: Template; name: string; subtitle: string; headline: string }[] = [
   { id: 'heritage', name: 'Golden Hour', subtitle: 'Warm & timeless', headline: 'The future is yours' },
   { id: 'botanical', name: 'New Beginnings', subtitle: 'Fresh & graceful', headline: 'Bloom into greatness' },
@@ -79,90 +79,73 @@ export function CardArt({ template, values, svgRef, preview = false }: {
       <text x="450" y="480" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="19" fontWeight="bold" letterSpacing="4" textAnchor="middle">TO A REMARKABLE CANDIDATE</text>
       <text x="450" y="568" fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontSize={preview ? 56 : 61} textAnchor="middle" textLength="730" lengthAdjust="spacingAndGlyphs">{item.headline}</text>
       {recipientLines.map((line, i) => <text key={i} x="450" y={640 + i * 46} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="36" textAnchor="middle">{line}</text>)}
-      {schoolLines.map((line, i) => <text key={i} x="450" y={730 + i * 28} fill={theme.ink} opacity=".9" fontFamily="Arial, sans-serif" fontSize="19" textAnchor="middle" textLength="700" lengthAdjust="spacingAndGlyphs">{line}</text>)}
+      {schoolLines.map((line, i) => <text key={i} x="450" y={730 + i * 28} fill={theme.ink} opacity=".9" fontFamily="Arial, sans-serif" fontSize="19" textAnchor="middle">{line}</text>)}
       {messageLines.length > 0 && <g>
         <path d="M310 786 H590" stroke={theme.accent} strokeWidth="2" opacity=".6"/>
         {messageLines.map((line, i) => <text key={i} x="450" y={834 + i * 34} fill={theme.ink} fontFamily="Georgia, serif" fontSize="27" textAnchor="middle">{line}</text>)}
       </g>}
       {senderLines.map((line, i) => <text key={i} x="75" y={1090 + i * 31} fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="20" fontWeight="bold" letterSpacing="2">{line}</text>)}
-      <text x="825" y="1110" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" letterSpacing="3" textAnchor="end">2026</text>
+      <text x="825" y="1110" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
     </svg>
   )
 }
 
-async function pngFromSvg(svg: SVGSVGElement): Promise<Blob> {
-  const clone = svg.cloneNode(true) as SVGSVGElement
-  clone.setAttribute('width', '900')
-  clone.setAttribute('height', '1200')
-  const xml = new XMLSerializer().serializeToString(clone)
-  const url = URL.createObjectURL(new Blob([xml], { type: 'image/svg+xml;charset=utf-8' }))
-  try {
-    const image = new Image()
-    await new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve()
-      image.onerror = () => reject(new Error('The card image could not be prepared.'))
-      image.src = url
-    })
-    const canvas = document.createElement('canvas')
-    canvas.width = 1800
-    canvas.height = 2400
-    const context = canvas.getContext('2d')
-    if (!context) throw new Error('Image export is unavailable in this browser.')
-    context.drawImage(image, 0, 0, canvas.width, canvas.height)
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('The image could not be saved.')), 'image/png')
-    })
-  } finally {
-    URL.revokeObjectURL(url)
-  }
+const versions = [
+  { id: 'text', name: 'Text Wish', price: 50, detail: 'Personalised card and written wish', available: true },
+  { id: 'voice', name: 'Voice Wish', price: 75, detail: 'Card, written wish and voice message', available: false },
+  { id: 'video', name: 'Video Wish', price: 100, detail: 'Card, written wish and video message', available: false },
+] as const
+
+const messageStarters = [
+  'You have worked so hard to reach this moment. Walk in with courage; we believe in you.',
+  'Whatever the results, we are proud of the person you are becoming. Keep going.',
+  'May your hard work meet a bright new beginning. Your future is full of possibility.',
+]
+
+type CanonicalSchoolOption = {
+  school_id: string
+  school_name: string
+  county: string | null
+  sub_county: string | null
 }
 
-function download(blob: Blob, name: string) {
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = name
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 30000)
-}
-
-export default function SuccessCardStudio({ initialDraft }: { initialDraft?: CardDesignDraft }) {
+export default function SuccessCardStudio({ initialDraft, testMode = false }: { initialDraft?: CardDesignDraft; testMode?: boolean }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
+  const [selectedVersion, setSelectedVersion] = useState<'text' | 'voice' | 'video'>('text')
+  const [designModal, setDesignModal] = useState<Template | null>(null)
   const [candidate, setCandidate] = useState(initialDraft?.candidate || '')
   const [sender, setSender] = useState(initialDraft?.sender || '')
   const [message, setMessage] = useState(initialDraft?.message || '')
   const [examYear, setExamYear] = useState(initialDraft?.examYear || '')
   const [school, setSchool] = useState(initialDraft?.school || '')
   const [selectedSchool, setSelectedSchool] = useState<CanonicalSchoolOption | null>(null)
-  const [schoolMatches, setSchoolMatches] = useState<CanonicalSchoolOption[]>([])
-  const [schoolSearching, setSchoolSearching] = useState(false)
-  const [schoolSearchComplete, setSchoolSearchComplete] = useState(false)
-  const [schoolSearchError, setSchoolSearchError] = useState('')
+  const [schoolOptions, setSchoolOptions] = useState<CanonicalSchoolOption[]>([])
+  const [schoolSearchState, setSchoolSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const schoolInputId = useId()
+  const schoolResultsId = useId()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
-  const svgRef = useRef<SVGSVGElement>(null)
+  const [previewed, setPreviewed] = useState(false)
+  const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [cardRevealed, setCardRevealed] = useState(false)
+  const stopSound = useRef<(() => void) | null>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear))
-
+  useEffect(() => () => { stopSound.current?.() }, [])
   useEffect(() => {
     const query = school.trim()
     if (query.length < 2 || selectedSchool?.school_name === query) {
-      setSchoolMatches([])
-      setSchoolSearching(false)
-      setSchoolSearchComplete(false)
-      setSchoolSearchError('')
+      setSchoolOptions([])
+      setSchoolSearchState('idle')
       return
     }
 
     let active = true
-    setSchoolSearchComplete(false)
+    setSchoolSearchState('loading')
     const timer = window.setTimeout(async () => {
-      setSchoolSearching(true)
-      setSchoolSearchError('')
-      const { data, error } = await supabase.rpc('schools_search_public_v2', {
+      const { data, error: searchError } = await supabase.rpc('schools_search_public_v2', {
         p_query: query,
         p_county: null,
         p_sub_county: null,
@@ -174,122 +157,159 @@ export default function SuccessCardStudio({ initialDraft }: { initialDraft?: Car
         p_limit: 12,
       })
       if (!active) return
-      setSchoolSearching(false)
-      if (error) {
-        setSchoolMatches([])
-        setSchoolSearchError('School search is temporarily unavailable. You can keep this as a label or leave it blank.')
-        setSchoolSearchComplete(true)
+      if (searchError) {
+        setSchoolOptions([])
+        setSchoolSearchState('error')
         return
       }
-      const rows = Array.isArray(data) ? data : []
-      const valid = rows.flatMap((value) => {
-        if (!value || typeof value !== 'object') return []
-        const row = value as Partial<CanonicalSchoolOption>
-        if (typeof row.school_id !== 'string' || typeof row.school_name !== 'string') return []
-        return [{
-          school_id: row.school_id,
-          school_name: row.school_name,
-          county: typeof row.county === 'string' ? row.county : null,
-          sub_county: typeof row.sub_county === 'string' ? row.sub_county : null,
-        }]
-      })
-      setSchoolMatches(valid)
-      setSchoolSearchComplete(true)
-    }, 220)
+      const options = (Array.isArray(data) ? data : []).filter((row): row is CanonicalSchoolOption =>
+        typeof row.school_id === 'string' && typeof row.school_name === 'string'
+      ).map(row => ({
+        school_id: row.school_id,
+        school_name: row.school_name,
+        county: typeof row.county === 'string' ? row.county : null,
+        sub_county: typeof row.sub_county === 'string' ? row.sub_county : null,
+      }))
+      setSchoolOptions(options)
+      setSchoolSearchState('ready')
+    }, 250)
 
-    return () => {
-      active = false
-      window.clearTimeout(timer)
-    }
+    return () => { active = false; window.clearTimeout(timer) }
   }, [school, selectedSchool])
-
-  async function exportCard(mode: 'download' | 'share') {
-    if (!ready || !svgRef.current || busy) return
+  async function saveTestWish() {
+    if (!ready || !previewed || busy || !testMode) return
     setError(''); setStatus(''); setBusy(true)
     try {
-      const png = await pngFromSvg(svgRef.current)
-      const fileName = 'vibeschool-success-wishes.png'
-      if (mode === 'share') {
-        const file = new File([png], fileName, { type: 'image/png' })
-        if (navigator.share && navigator.canShare?.({ files: [file] })) {
-          try {
-            await navigator.share({ files: [file], title: 'A Success Wish for ' + candidate.trim() })
-            setStatus('Your phone sharing options were opened.')
-          } catch (reason) {
-            if (reason instanceof Error && reason.name === 'AbortError') return
-            // Some phones reject native sharing after asynchronous image creation.
-            // Keep the card useful by falling back to a real downloadable image.
-            if (reason instanceof Error && (reason.name === 'NotAllowedError' || reason.name === 'InvalidStateError' || reason.name === 'TypeError')) {
-              download(png, fileName)
-              setStatus('Direct sharing was unavailable. Your PNG was downloaded so you can share it from your phone.')
-            } else throw reason
-          }
-        } else {
-          download(png, fileName)
-          setStatus('Your image was downloaded. Share it using WhatsApp or your preferred app.')
-        }
-      } else {
-        download(png, fileName)
-        setStatus('Your personalised PNG card has been downloaded.')
-      }
+      const response = await fetch('/api/success-wishes/test-orders', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+        body: JSON.stringify({ candidate, sender, message, examYear, school, theme, version: 'text' }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'The test wish could not be saved.')
+      const invitationUrl = `${window.location.origin}/success-wishes/invitation#token=${encodeURIComponent(payload.invitationToken)}`
+      setOrder({ id: payload.id, invitationUrl, expiresAt: payload.expiresAt })
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'The card could not be generated. Please try again.')
+      setError(reason instanceof Error ? reason.message : 'The test wish could not be saved. Please try again.')
     } finally { setBusy(false) }
   }
 
+  async function copyInvitation() {
+    if (!order) return
+    try { await navigator.clipboard.writeText(order.invitationUrl); setStatus('Private invitation copied. Share it directly with the intended candidate.') }
+    catch { setStatus(order.invitationUrl) }
+  }
+
+  function previewWish() {
+    setError('')
+    if (!ready) { setError('Add the candidate name, exam year, your name and a wish before previewing.'); return }
+    setPreviewed(true)
+    document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+
+  function showDesign(design: Template) {
+    setCardRevealed(false)
+    setDesignModal(design)
+  }
+
+  function closeDesign() {
+    setDesignModal(null)
+    setCardRevealed(false)
+  }
+
+  function openDesignCard() {
+    setCardRevealed(true)
+    if (soundEnabled) stopSound.current = playWishRevealSound()
+  }
+
+  function toggleSound() {
+    if (soundEnabled) {
+      stopSound.current?.()
+      stopSound.current = null
+    }
+    setSoundEnabled(!soundEnabled)
+  }
+
   return <div className={styles.page}>
-    <header className={styles.header}><Link href="/" className={styles.brand}>VibeSchool <span>/ Success Wishes</span></Link><span>Personal cards</span></header>
+    <header className={styles.header}><Link href="/" className={styles.brand}>VibeSchool <span>/ Success Wishes</span></Link><span>One wish · three versions</span></header>
     <main className={styles.main}>
       <div className={styles.intro}><p className={styles.eyebrow}>VIBESCHOOL SUCCESS WISHES</p><h1>A little encouragement. A card they&apos;ll remember.</h1>
-        <p>Choose a design, write from the heart and share a beautiful personalised card. Free to create.</p></div>
+        <p>Choose a design, add your words and preview it before checkout.</p></div>
+      <p className={styles.availabilityNotice} role="status">{testMode ? 'LOCAL TEST MODE · Synthetic Text Wish orders only. No payment is taken and no invitation is sent outside this test.' : 'Prices shown are test prices. Checkout is disabled until private delivery is ready.'}</p>
+      <section className={styles.pricePanel} aria-labelledby="versions-title">
+        <div className={styles.heading}><span>ONE WISH · THREE VERSIONS</span><h2 id="versions-title">Choose what to include</h2></div>
+        <div className={styles.versionGrid}>{versions.map(version => <article className={styles.versionCard + (version.available ? ' ' + styles.versionAvailable : '')} key={version.id}>
+          <div><h3>{version.name}</h3><p>{version.detail}</p></div><strong>KES {version.price}</strong>
+          {version.available ? <small>{testMode ? 'Text checkout is a local test only' : 'Text wish delivery is not available yet'}</small> : <small>Coming soon · not for sale</small>}
+        </article>)}</div>
+        <p className={styles.plainPrice}>One-time price per wish. The candidate pays nothing. School is an optional label.</p>
+      </section>
       <section aria-labelledby="choose-card" className={styles.section}>
-        <div className={styles.heading}><span>01 — CHOOSE YOUR CARD</span><h2 id="choose-card">Find their perfect wish</h2></div>
-        <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => setTheme(item.id)}
-          className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id}>
+        <div className={styles.heading}><span>01 — DESIGN</span><h2 id="choose-card">Pick a look</h2></div>
+        <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => showDesign(item.id)}
+          className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Preview ${item.name}; versions and prices`}>
           <CardArt template={item.id} values={{ candidate: candidate || 'Your candidate', sender, message: '', examYear: examYear || '2026', school }} preview/>
-          <span className={styles.optionCaption}><strong>{item.name}</strong><small>{item.subtitle}</small></span>
+          <span className={styles.optionCaption}><strong>{item.name}</strong><small>{item.subtitle} · View versions and prices</small></span>
         </button>)}</div>
       </section>
       <section className={styles.composer} aria-labelledby="personalise-card">
-        <div className={styles.form}><div className={styles.heading}><span>02 — MAKE IT PERSONAL</span><h2 id="personalise-card">Write your wish</h2></div>
-          <label>Candidate&apos;s name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
-          <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" aria-describedby="exam-year-help"/><small id="exam-year-help">The year is shown on the card. It is not an access code.</small></label>
-          <label htmlFor="success-wishes-school">School (optional)
-            <input id="success-wishes-school" role="combobox" aria-autocomplete="list" aria-expanded={schoolMatches.length > 0}
-              aria-controls="success-wishes-school-results" aria-describedby="success-wishes-school-help" autoComplete="off" maxLength={80}
-              value={school} onChange={e => { setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search VibeSchool schools"/>
-          </label>
-          <small id="success-wishes-school-help" className={styles.schoolHelp}>Search by school name. School is only a helpful card label, not candidate verification.</small>
-          {schoolSearching && <p className={styles.schoolStatus} role="status">Searching VibeSchool schools…</p>}
-          {schoolSearchError && <p className={styles.error} role="status">{schoolSearchError}</p>}
-          {schoolMatches.length > 0 && <div id="success-wishes-school-results" className={styles.schoolResults} role="listbox" aria-label="VibeSchool schools">
-            {schoolMatches.map(option => <button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id}
-              className={styles.schoolOption} key={option.school_id} onClick={() => { setSchool(option.school_name); setSelectedSchool(option); setSchoolMatches([]) }}>
-              <strong>{option.school_name}</strong>
-              <span>{[option.sub_county, option.county].filter(Boolean).join(' · ') || 'Location details not listed'}</span>
-            </button>)}
-          </div>}
-          {selectedSchool && <p className={styles.schoolStatus} role="status">Selected from VibeSchool schools: {[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(' · ') || selectedSchool.school_name}. This does not verify who can open a wish.</p>}
-          {schoolSearchComplete && !schoolSearching && !schoolSearchError && school.trim().length >= 2 && !selectedSchool && schoolMatches.length === 0 &&
-            <p className={styles.schoolStatus} role="status">No matching active school found. You can keep this as a label or leave it blank.</p>}
+        <div className={styles.form}><div className={styles.heading}><span>02 — TEXT WISH · KES 50</span><h2 id="personalise-card">Make it personal</h2></div>
+          <div className={styles.formRow}>
+            <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
+            <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" aria-describedby="exam-year-help"/><small id="exam-year-help">Printed on card. Not a sign-in code.</small></label>
+          </div>
+          <details className={styles.optionalField}><summary>School (optional)</summary><label htmlFor={schoolInputId}>School<input id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search your school"/><small>Search VibeSchool&apos;s school list. It helps describe the recipient; it does not verify identity or deliver the wish.</small></label>
+            {schoolSearchState === 'loading' && <p className={styles.schoolSearchStatus} role="status">Searching VibeSchool schools…</p>}
+            {schoolSearchState === 'error' && <p className={styles.schoolSearchStatus} role="status">School search is unavailable right now. You can leave this optional field blank.</p>}
+            {schoolSearchState === 'ready' && schoolOptions.length === 0 && <p className={styles.schoolSearchStatus} role="status">No matching school found. Try another name or leave this optional.</p>}
+            {schoolOptions.length > 0 && <ul className={styles.schoolResults} id={schoolResultsId} role="listbox" aria-label="Matching VibeSchool schools">{schoolOptions.map(option => <li key={option.school_id}><button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id} onClick={() => { setSelectedSchool(option); setSchool(option.school_name); setSchoolOptions([]); setSchoolSearchState('idle') }}><strong>{option.school_name}</strong><small>{[option.sub_county, option.county].filter(Boolean).join(', ') || 'School in VibeSchool directory'}</small></button></li>)}</ul>}
+            {selectedSchool && <p className={styles.schoolSearchStatus} role="status">Selected from VibeSchool&apos;s school list: {selectedSchool.school_name}{selectedSchool.sub_county || selectedSchool.county ? ` · ${[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}` : ''}</p>}
+          </details>
           <label>Your name<input autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/></label>
-          <label>Your personal wish<textarea rows={5} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
-            placeholder="You have worked so hard. Walk into your exams with courage and confidence. We believe in you!"/></label>
+          <label>Your wish<textarea rows={4} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
+            placeholder="Write something only you would say…"/></label>
+          <details className={styles.messageIdeas}><summary>Need a first line?</summary><div>{messageStarters.map(starter => <button type="button" key={starter} onClick={() => setMessage(starter)}>{starter}</button>)}</div><small>Pick one, then make it your own.</small></details>
           <p className={styles.counter}>{message.length}/220 characters</p>
           <div className={styles.actions}>
-            <button type="button" className={styles.primary} disabled={!ready || busy} onClick={() => void exportCard('download')}><Download size={18}/>{busy ? 'Preparing image…' : 'Download card'}</button>
-            <button type="button" className={styles.secondary} disabled={!ready || busy} onClick={() => void exportCard('share')}><Share2 size={18}/>Share card</button>
+            <button type="button" className={styles.primary} disabled={!ready} onClick={previewWish}>Preview exact wish <ChevronRight size={18}/></button>
           </div>
-          {!ready && <p className={styles.hint}>Enter the candidate&apos;s name, a four-digit exam year, your name and a wish to download or share your card.</p>}
+          {!ready && <p className={styles.hint}>Add candidate name, exam year, your name and a wish. The school field is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
-          <p className={styles.privacy}>This card is created on this device. VibeSchool has not saved it to a candidate inbox or delivered it. Download or share the PNG yourself; the school is optional and is not an access credential.</p>
+          <p className={styles.privacy}>Candidate name and exam year are not credentials. The school is optional and is not an access credential. Anyone holding a private link can open the wish; the link cannot prove who they are.</p>
         </div>
-        <div className={styles.live}><span>LIVE CARD PREVIEW</span><CardArt template={theme} values={values} svgRef={svgRef}/>
-          <p>Designed with your actual words. It becomes downloadable after you add a name and exam year.</p></div>
+        <div className={styles.live} id="wish-preview"><span>{previewed ? 'EXACT CANDIDATE PREVIEW' : 'CARD PREVIEW'}</span><CardArt template={theme} values={values}/>
+          {previewed ? <div className={styles.checkoutSummary}><h3>Text Wish · KES 50</h3><p>This preview shows the card and the exact written wish. No voice or video is included.</p><p className={styles.orderTotal}>Total <strong>KES 50</strong></p>
+            {testMode ? <><p className={styles.testNotice}>Local test checkout only. It saves synthetic test data; no payment is taken and no message is sent.</p>
+              {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
+            </> : <p className={styles.hint}>Checkout is unavailable until private delivery is ready. No payment can be made from this page.</p>}
+            {order && <div className={styles.orderConfirmation} role="status"><h3><Check size={18}/> Test wish saved</h3><p>No payment was taken. Copy the private invitation and share it directly with the intended candidate.</p>
+              <label>Private invitation<input readOnly value={order.invitationUrl} onFocus={e => e.currentTarget.select()}/></label>
+              <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={`/success-wishes/invitation#token=${encodeURIComponent(new URL(order.invitationUrl).hash.slice(7))}`}>Open invitation</Link></div>
+              <small>Reference {order.id} · Local retention until {new Date(order.expiresAt).toLocaleDateString()}</small>{status && <p role="status" className={styles.status}>{status}</p>}
+            </div>}
+          </div> : <p>Choose a design and write your wish. Review the exact card and total before the local test checkout.</p>}</div>
       </section>
-      <footer className={styles.footer}><p>Private VibeSchool delivery is being prepared. A candidate will need a private invitation to open a saved wish; name, school and exam year are not enough to identify or authenticate them.</p>
+      <footer className={styles.footer}><p>Local test only: synthetic data, no payment and no production delivery. This preview has not saved it to a candidate inbox or delivered it. Voice and Video remain unavailable until their full journey is verified.</p>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
+    {designModal && <div className={styles.modalBackdrop} role="presentation" onKeyDown={e => { if (e.key === 'Escape') closeDesign() }} onMouseDown={e => { if (e.target === e.currentTarget) closeDesign() }}>
+      <section className={styles.designModal} role="dialog" aria-modal="true" aria-labelledby="design-modal-title">
+        <button autoFocus className={styles.modalClose} type="button" aria-label="Close design preview" onClick={closeDesign}><X size={20}/></button>
+        <div className={styles.modalArt}>
+          <div className={styles.modalCardWrap}>
+            <div className={styles.modalCardArt} aria-hidden={!cardRevealed}><CardArt template={designModal} values={{ ...values, candidate: candidate || 'Your candidate', examYear: examYear || '2026' }}/></div>
+            <button type="button" className={styles.modalCardCover + (cardRevealed ? ' ' + styles.modalCardOpened : '')} style={{ background: `linear-gradient(145deg, ${palette[designModal].top}, ${palette[designModal].bottom})`, color: palette[designModal].ink }} aria-label={`Open ${templates.find(item => item.id === designModal)?.name} card`} aria-hidden={cardRevealed} tabIndex={cardRevealed ? -1 : 0} disabled={cardRevealed} onClick={openDesignCard}>
+              <span>VIBESCHOOL <small>SUCCESS WISHES</small></span><b aria-hidden="true">{designModal === 'heritage' ? '✧' : designModal === 'botanical' ? '✿' : designModal === 'nightfall' ? '✦' : '✳'}</b><strong>{templates.find(item => item.id === designModal)?.headline}</strong><small className={styles.tapToOpen}>Tap to open</small>
+            </button>
+          </div>
+        </div>
+        <div className={styles.modalInfo}><p className={styles.eyebrow}>CARD DESIGN</p><h2 id="design-modal-title">{templates.find(item => item.id === designModal)?.name}</h2><p>{templates.find(item => item.id === designModal)?.subtitle}</p>
+          <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>} Sound {soundEnabled ? 'on' : 'off'}</button>
+          <h3>Choose a version</h3>{versions.map(version => <button type="button" className={styles.modalVersion + (selectedVersion === version.id ? ' ' + styles.modalVersionSelected : '')} key={version.id} aria-pressed={selectedVersion === version.id} disabled={!version.available} onClick={() => setSelectedVersion(version.id)}><span><strong>{version.name}</strong><small>{version.available && testMode ? 'Available for local test only' : version.available ? 'Not available for checkout yet' : 'Coming soon · not for sale'}</small></span><b>KES {version.price}</b></button>)}
+          <p className={styles.hint}>This design is a choice within the same wish product; it does not change the price.</p>
+          <button type="button" className={styles.primary} onClick={() => { setTheme(designModal); setSelectedVersion('text'); closeDesign(); document.getElementById('personalise-card')?.scrollIntoView({ behavior: 'smooth' }) }}>Choose Text Wish · KES 50 <ChevronRight size={18}/></button>
+        </div>
+      </section>
+    </div>}
   </div>
 }
