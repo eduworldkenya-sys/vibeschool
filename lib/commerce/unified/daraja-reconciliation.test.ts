@@ -98,6 +98,24 @@ test('founder observed 1037: query accepted, payment EXPIRED, no simulated entit
   assert.equal(decision.attempt.state,'expired')
   assert.equal(canGrantLiveEntitlement(decision.attempt),false)
 })
+test('Daraja 4999 is pending; 1037 callback cannot be incorrectly treated as payment or conflicting final status',()=>{
+  const attempt:SandboxAttempt={
+    mode:'sandbox',orderId:'order_123456789',checkoutRequestId:checkout,
+    merchantRequestId:merchant,phone:'254712345678',expectedAmountKes:50,
+    state:'awaiting_customer',receipt:null,
+  }
+  const pending=parseDarajaSandboxQuery(rawQuery(4999),attempt)
+  assert.equal(pending.resultCode,4999)
+  assert.equal(pending.state,'pending')
+  const pendingDecision=reconcileVerifiedDarajaSandbox(
+    attempt,pending,parseDarajaSandboxCallback(callback(1037)))
+  assert.equal(pendingDecision.action,'quarantine')
+  assert.equal(canGrantLiveEntitlement(pendingDecision.attempt),false)
+  const final=parseDarajaSandboxQuery(rawQuery(1037),attempt)
+  assert.equal(final.state,'expired')
+  assert.equal(reconcileVerifiedDarajaSandbox(
+    attempt,final,parseDarajaSandboxCallback(callback(1037))).action,'fail')
+})
 test('cancelled or rejected STK remains unpaid',()=>{
   const attempt:SandboxAttempt={
     mode:'sandbox',orderId:'order_123456789',checkoutRequestId:checkout,
