@@ -3,9 +3,9 @@ import UnifiedSuccessWishes from '@/components/success-wishes/UnifiedSuccessWish
 
 export const metadata: Metadata = {
   title: 'Success Wishes | VibeSchool',
-  description: 'Create a personal wish, choose the candidate’s school and use the private Success Wishes inbox.',
+  description: 'Choose a Success Wishes design and version, personalise a wish, and preview it before checkout.',
 }
 
 export default function SuccessWishesPage() {
-  return <UnifiedSuccessWishes />
+  return <UnifiedSuccessWishes testMode={process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE === '1'} />
 }

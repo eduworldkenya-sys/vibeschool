@@ -85,3 +85,5 @@ PASTE_ME_*.sh
 .vibelearn-*-backups/
 # Vibeschool autonomous engineering runner runtime state
 .vibeschool-agent/
+.success-wishes-test-data.json
+.success-wishes-test-data.json.tmp
