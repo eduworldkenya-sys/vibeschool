@@ -99,7 +99,7 @@ async function makeWish(context, { message, theme }) {
   await dialog.getByText('YOUR PERSONAL CARD PREVIEW').waitFor()
   await dialog.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
   const bookCover = dialog.getByRole('button', { name: 'Open the book card' })
-  assert.equal(await dialog.getByText(message, { exact: true }).count(), 0, 'The wish stays inside the closed book')
+  assert.equal(await dialog.getByText(message, { exact: true }).evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'The wish stays hidden from assistive technology while the book is closed')
   await bookCover.click()
   await dialog.getByText(message, { exact: true }).waitFor()
   assert.equal(await dialog.getByRole('button', { name: 'Close the book card' }).getAttribute('aria-expanded'), 'true', 'The sender opens the hinged book cover')
