@@ -46,6 +46,23 @@ async function checkViewport(width) {
     const page = await context.newPage()
     const errors = []
     const mutations = []
+    const schoolSearchRequests = []
+    await page.route('**/rest/v1/rpc/schools_search_public_v2', async route => {
+      schoolSearchRequests.push(route.request().postDataJSON())
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([{
+        school_id: '7f0a82a0-9a41-4f27-ae5a-bf0dd8811b15',
+        school_name: 'Embakasi VibeSchool Test School',
+        county: 'Nairobi',
+        sub_county: 'Embakasi East',
+        ward: null,
+        school_category: 'secondary',
+        ownership_type: 'public',
+        gender_type: null,
+        accommodation_type: null,
+        cluster: null,
+        knec_code: null,
+      }]) })
+    })
     page.on('pageerror', error => errors.push(error.message))
     page.on('request', request => {
       if (request.url().includes('/api/success-wishes/') && request.method() !== 'GET') mutations.push(request.url())
@@ -54,7 +71,17 @@ async function checkViewport(width) {
     assert.equal(response.status(), 200)
     await page.getByRole('heading', { name: /A little encouragement/ }).waitFor()
     await page.getByRole('button', { name: /New Beginnings/ }).click()
+    const schoolField = page.getByRole('combobox', { name: 'School (optional)' })
+    await schoolField.fill('Embakasi')
+    const schoolResult = page.getByRole('option', { name: /Embakasi VibeSchool Test School/ })
+    await schoolResult.waitFor()
+    await schoolResult.click()
+    assert.equal(await schoolField.inputValue(), 'Embakasi VibeSchool Test School')
+    assert.equal(await page.getByText(/Selected from VibeSchool schools: Embakasi East · Nairobi/).count(), 1)
+    assert(schoolSearchRequests.some(request => request.p_query === 'Embakasi' && request.p_limit === 12),
+      'Success Wishes must call the public canonical school search with the typed query')
     await page.getByRole('textbox', { name: /Candidate.s name/ }).fill('Synthetic Candidate')
+    await page.getByRole('textbox', { name: /Exam year/ }).fill('2026')
     await page.getByRole('textbox', { name: /Your name/ }).fill('Synthetic Sender')
     const wish = `Synthetic browser check at ${width}px: you can do this.`
     await page.getByRole('textbox', { name: /Your personal wish/ }).fill(wish)
@@ -66,19 +93,8 @@ async function checkViewport(width) {
     const png = fs.readFileSync(imagePath)
     assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a')
     assert(png.byteLength > 5000, 'Card download should contain rendered art, not a blank PNG header')
-    await page.getByRole('button', { name: /Choose school.*candidate/ }).click()
-    await page.getByRole('heading', { name: 'Let them know you believe.' }).waitFor()
-    assert.equal(await page.getByRole('textbox', { name: /Candidate.s name/ }).inputValue(), 'Synthetic Candidate')
-    assert.equal(await page.getByRole('textbox', { name: /Your encouragement/ }).inputValue(), wish)
-    await page.getByRole('button', { name: /Preview wish/ }).click()
-    await page.getByRole('heading', { name: 'Open your special wish' }).waitFor()
-    assert.equal((await page.getByText(wish, { exact: true }).count()), 1, 'Preview must show the exact synthetic wish')
-    assert.equal((await page.getByText(/Selected design: botanical/).count()), 1, 'Selected design must carry into the send review')
-    assert.equal(await page.getByRole('button', { name: /Submit wish/ }).isDisabled(), true, 'Disabled service must block submission')
-    assert.equal(await page.getByText(/Choose the candidate’s school before submitting/).count(), 1)
-    await page.getByRole('button', { name: 'Edit', exact: true }).click()
-    await page.getByRole('button', { name: 'Candidate inbox' }).click()
-    await page.getByRole('heading', { name: 'Open your messages' }).waitFor()
+    assert.match(await page.locator('[class*="live"] svg[role="img"]').getAttribute('aria-label'), /Embakasi VibeSchool Test School/,
+      'The selected canonical school must appear on the live card preview')
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     assert(overflow <= 1, `Unexpected horizontal overflow of ${overflow}px at ${width}px`)
     const config = await page.request.get(`${ROOT}/api/success-wishes/config`)

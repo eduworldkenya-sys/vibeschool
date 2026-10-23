@@ -1,13 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Download, Share2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
 import styles from './SuccessCardStudio.module.css'
 
 type Template = 'heritage' | 'botanical' | 'nightfall' | 'sunrise'
 type CardValues = { candidate: string; sender: string; message: string; examYear?: string; school?: string }
 export type CardDesignDraft = CardValues & { theme: Template }
+type CanonicalSchoolOption = { school_id: string; school_name: string; county: string | null; sub_county: string | null }
 const templates: { id: Template; name: string; subtitle: string; headline: string }[] = [
   { id: 'heritage', name: 'Golden Hour', subtitle: 'Warm & timeless', headline: 'The future is yours' },
   { id: 'botanical', name: 'New Beginnings', subtitle: 'Fresh & graceful', headline: 'Bloom into greatness' },
@@ -133,12 +135,74 @@ export default function SuccessCardStudio({ initialDraft }: { initialDraft?: Car
   const [message, setMessage] = useState(initialDraft?.message || '')
   const [examYear, setExamYear] = useState(initialDraft?.examYear || '')
   const [school, setSchool] = useState(initialDraft?.school || '')
+  const [selectedSchool, setSelectedSchool] = useState<CanonicalSchoolOption | null>(null)
+  const [schoolMatches, setSchoolMatches] = useState<CanonicalSchoolOption[]>([])
+  const [schoolSearching, setSchoolSearching] = useState(false)
+  const [schoolSearchComplete, setSchoolSearchComplete] = useState(false)
+  const [schoolSearchError, setSchoolSearchError] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const svgRef = useRef<SVGSVGElement>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear))
+
+  useEffect(() => {
+    const query = school.trim()
+    if (query.length < 2 || selectedSchool?.school_name === query) {
+      setSchoolMatches([])
+      setSchoolSearching(false)
+      setSchoolSearchComplete(false)
+      setSchoolSearchError('')
+      return
+    }
+
+    let active = true
+    setSchoolSearchComplete(false)
+    const timer = window.setTimeout(async () => {
+      setSchoolSearching(true)
+      setSchoolSearchError('')
+      const { data, error } = await supabase.rpc('schools_search_public_v2', {
+        p_query: query,
+        p_county: null,
+        p_sub_county: null,
+        p_ward: null,
+        p_school_category: null,
+        p_ownership_type: null,
+        p_gender_type: null,
+        p_accommodation_type: null,
+        p_limit: 12,
+      })
+      if (!active) return
+      setSchoolSearching(false)
+      if (error) {
+        setSchoolMatches([])
+        setSchoolSearchError('School search is temporarily unavailable. You can keep this as a label or leave it blank.')
+        setSchoolSearchComplete(true)
+        return
+      }
+      const rows = Array.isArray(data) ? data : []
+      const valid = rows.flatMap((value) => {
+        if (!value || typeof value !== 'object') return []
+        const row = value as Partial<CanonicalSchoolOption>
+        if (typeof row.school_id !== 'string' || typeof row.school_name !== 'string') return []
+        return [{
+          school_id: row.school_id,
+          school_name: row.school_name,
+          county: typeof row.county === 'string' ? row.county : null,
+          sub_county: typeof row.sub_county === 'string' ? row.sub_county : null,
+        }]
+      })
+      setSchoolMatches(valid)
+      setSchoolSearchComplete(true)
+    }, 220)
+
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [school, selectedSchool])
+
   async function exportCard(mode: 'download' | 'share') {
     if (!ready || !svgRef.current || busy) return
     setError(''); setStatus(''); setBusy(true)
@@ -190,7 +254,24 @@ export default function SuccessCardStudio({ initialDraft }: { initialDraft?: Car
         <div className={styles.form}><div className={styles.heading}><span>02 — MAKE IT PERSONAL</span><h2 id="personalise-card">Write your wish</h2></div>
           <label>Candidate&apos;s name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
           <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" aria-describedby="exam-year-help"/><small id="exam-year-help">The year is shown on the card. It is not an access code.</small></label>
-          <label>School (optional)<input autoComplete="off" maxLength={80} value={school} onChange={e => setSchool(e.target.value)} placeholder="Add a school name if helpful"/><small>A label for the recipient; it does not verify who can open a wish.</small></label>
+          <label htmlFor="success-wishes-school">School (optional)
+            <input id="success-wishes-school" role="combobox" aria-autocomplete="list" aria-expanded={schoolMatches.length > 0}
+              aria-controls="success-wishes-school-results" aria-describedby="success-wishes-school-help" autoComplete="off" maxLength={80}
+              value={school} onChange={e => { setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search VibeSchool schools"/>
+          </label>
+          <small id="success-wishes-school-help" className={styles.schoolHelp}>Search by school name. School is only a helpful card label, not candidate verification.</small>
+          {schoolSearching && <p className={styles.schoolStatus} role="status">Searching VibeSchool schools…</p>}
+          {schoolSearchError && <p className={styles.error} role="status">{schoolSearchError}</p>}
+          {schoolMatches.length > 0 && <div id="success-wishes-school-results" className={styles.schoolResults} role="listbox" aria-label="VibeSchool schools">
+            {schoolMatches.map(option => <button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id}
+              className={styles.schoolOption} key={option.school_id} onClick={() => { setSchool(option.school_name); setSelectedSchool(option); setSchoolMatches([]) }}>
+              <strong>{option.school_name}</strong>
+              <span>{[option.sub_county, option.county].filter(Boolean).join(' · ') || 'Location details not listed'}</span>
+            </button>)}
+          </div>}
+          {selectedSchool && <p className={styles.schoolStatus} role="status">Selected from VibeSchool schools: {[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(' · ') || selectedSchool.school_name}. This does not verify who can open a wish.</p>}
+          {schoolSearchComplete && !schoolSearching && !schoolSearchError && school.trim().length >= 2 && !selectedSchool && schoolMatches.length === 0 &&
+            <p className={styles.schoolStatus} role="status">No matching active school found. You can keep this as a label or leave it blank.</p>}
           <label>Your name<input autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/></label>
           <label>Your personal wish<textarea rows={5} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
             placeholder="You have worked so hard. Walk into your exams with courage and confidence. We believe in you!"/></label>

@@ -17,6 +17,12 @@
 .form input,.form textarea{display:block;width:100%;padding:12px 14px;border:1px solid #d4ddd3;border-radius:10px;background:#fff;color:#192e2b;font:400 14px/1.5 system-ui,sans-serif}
 .form textarea{resize:vertical;min-height:125px}
 .form input:focus,.form textarea:focus{outline:3px solid #c8e1d1;outline-offset:1px}
+.schoolHelp{display:block;margin-top:7px;color:#65756b;font-size:11px;line-height:1.55}
+.schoolStatus{margin:8px 0 0;color:#65756b;font-size:11px;line-height:1.55}
+.schoolResults{display:grid;gap:6px;margin-top:8px;border:1px solid #dfe7df;border-radius:11px;padding:6px;background:#fff;max-height:230px;overflow:auto}
+.schoolOption{display:grid;gap:4px;width:100%;padding:10px 11px;border:0;border-radius:8px;background:#fff;text-align:left;color:#192e2b;cursor:pointer}
+.schoolOption:hover,.schoolOption[aria-selected="true"]{background:#f1f7f2}
+.schoolOption strong{font-size:12px}.schoolOption span{font-size:11px;color:#65756b}
 .counter{text-align:right;font-size:11px;color:#6b786c;margin-top:5px}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 8px}
 .primary,.secondary{min-height:48px;padding:12px 17px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:9px;font-size:13px;font-weight:800;cursor:pointer}
