@@ -88,6 +88,8 @@ Source now implemented on PR #790:
 
 ### Safe manual commissioning prerequisites (isolated Supabase project ONLY)
 
+> **2026-10-23 additional simulator defaults:** This isolated test project's deployed function code also defaults the public simulator values `COMMERCE_DARAJA_SANDBOX_SHORTCODE=174379`, `COMMERCE_DARAJA_SANDBOX_PARTY_B=174379` and `COMMERCE_DARAJA_SANDBOX_TEST_PHONE=254708374149`. The values can still be overridden in Edge Function Secrets for an explicitly approved alternative simulator. **Do not put the real Till number or a real payer phone into this sandbox.** The Daraja passkey and other private values are NOT defaulted and must be added securely in Supabase Secrets.
+
 > **2026-10-23 isolated test-project convenience:** The deployed checkout, callback, and status Edge Functions now contain only the four *non-secret* sandbox default values: `COMMERCE_SANDBOX_PROJECT_REF=ufqjgyzspavamdpkdxmc`, `COMMERCE_SANDBOX_ISOLATED_PROJECT=true`, `COMMERCE_DARAJA_SANDBOX_ENABLED=true`, and `MPESA_ENV=sandbox`. You no longer need to enter those four manually in Edge Function Secrets. Explicit environment overrides still work; actual `SUPABASE_URL` must exactly match the isolated project (production refuses), and the rest of the sensitive credentials/tokens are **still required** in the Edge Function Secrets UI. These defaults do **not** appear in the Supabase Custom Secrets list. Live payment initiation remains OFF.
 
 The separate existing test project `ufqjgyzspavamdpkdxmc` now contains the private commerce test schema and three isolated sandbox-only Edge Functions. No real Daraja payment has been initiated by these functions; secrets have NOT been provisioned.
