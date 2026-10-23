@@ -107,7 +107,7 @@ Deno.serve(async req=>{
       testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
     }
   }catch{return json({error:'Sandbox provider not configured'},503)}
-  const db=postgres(databaseUrl,{max:1,prepare:false,idle_timeout:5,connect_timeout:5})
+  const db=postgres(databaseGuard.connectionString,{max:1,prepare:false,ssl:'require',idle_timeout:5,connect_timeout:5})
   let attemptId:string|null=null
   try{
     // The database chooses the price; user-supplied amount is never read.
