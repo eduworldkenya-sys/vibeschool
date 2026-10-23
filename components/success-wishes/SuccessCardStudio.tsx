@@ -148,7 +148,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   </div>
 }
 
-function CheckoutPreview({ theme, values, onClose }: { theme: Template; values: CardValues; onClose: () => void }) {
+function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose }: { theme: Template; values: CardValues; version: typeof versions[number]['id']; price: number; mediaFileName: string; onClose: () => void }) {
   const [contact, setContact] = useState('')
   const [method, setMethod] = useState<'mpesa' | 'card'>('mpesa')
   const [review, setReview] = useState(false)
@@ -157,30 +157,27 @@ function CheckoutPreview({ theme, values, onClose }: { theme: Template; values: 
   return <div className={styles.modalBackdrop} role="presentation" onKeyDown={event => { if (event.key === 'Escape') onClose() }} onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={id}>
       <button type="button" className={styles.modalClose} aria-label="Close checkout" onClick={onClose}><X size={20}/></button>
-      {readyToPay ? <><p className={styles.eyebrow}>CHECKOUT PREVIEW</p><h2 id={id}>Payment step preview</h2>
-        <p className={styles.checkoutFine}>The payment connection is being finalized. This front-end preview has not sent a payment request or saved an order.</p>
-        <div className={styles.orderTotal}>Text Wish for {values.candidate.trim()} <strong>KES 50</strong></div>
-        <button type="button" className={styles.primary} onClick={onClose}>Done</button>
-      </> : <><p className={styles.eyebrow}>CHECKOUT PREVIEW</p><h2 id={id}>{review ? 'Review your wish' : 'Your wish checkout'}</h2>
-        <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>Text Wish · {values.candidate.trim()}</strong><span>Written card · {values.examYear || '2026'} exams</span><span>{values.school?.trim() || 'No school selected'}</span></div></div>
+      {readyToPay ? <><p className={styles.eyebrow}>ORDER</p><h2 id={id}>Your wish is ready</h2>
+        <div className={styles.orderTotal}>{versions.find(item => item.id === version)?.name} for {values.candidate.trim()} <strong>KES {price}</strong></div>
+        <button type="button" className={styles.primary} onClick={onClose}>Back to your card</button>
+      </> : <><p className={styles.eyebrow}>CHECKOUT</p><h2 id={id}>{review ? 'Review your wish' : 'Your order'}</h2>
+        <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>For the {values.examYear || '2026'} exams</span><span>{values.school?.trim() || 'No school selected'}</span>{mediaFileName && <span>{mediaFileName}</span>}</div></div>
         {!review ? <><label className={styles.checkoutLabel}>Email or mobile number for your receipt<input autoComplete="email" value={contact} onChange={event => setContact(event.target.value)} placeholder="name@example.com or 07…"/></label>
           <fieldset className={styles.paymentChoices}><legend>Preferred payment method</legend><label><input type="radio" name={'payment-' + id} checked={method === 'mpesa'} onChange={() => setMethod('mpesa')}/> M-Pesa</label><label><input type="radio" name={'payment-' + id} checked={method === 'card'} onChange={() => setMethod('card')}/> Debit or credit card</label></fieldset>
-          <div className={styles.orderTotal}>Total <strong>KES 50</strong></div>
+          <div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
           <button type="button" className={styles.primary} disabled={!contact.trim()} onClick={() => setReview(true)}>Review order <ChevronRight size={18}/></button>
-        </> : <><p className={styles.checkoutFine}>Receipt contact: {contact} · Payment: {method === 'mpesa' ? 'M-Pesa' : 'Debit or credit card'}</p><div className={styles.orderTotal}>Total <strong>KES 50</strong></div>
-          <p className={styles.checkoutFine}>This is a front-end checkout preview. No payment request or order will be sent.</p>
-          <div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={() => setReview(false)}>Edit details</button><button type="button" className={styles.primary} onClick={() => setReadyToPay(true)}>Continue to payment preview</button></div>
+        </> : <><p className={styles.checkoutFine}>Receipt contact: {contact} · Payment: {method === 'mpesa' ? 'M-Pesa' : 'Debit or credit card'}</p><div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
+          <div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={() => setReview(false)}>Edit details</button><button type="button" className={styles.primary} onClick={() => setReadyToPay(true)}>Continue · KES {price}</button></div>
         </>}
-        <small className={styles.checkoutDisclosure}>Checkout screen preview · no payment is processed in this frontend.</small>
       </>}
     </section>
   </div>
 }
 
 const versions = [
-  { id: 'text', name: 'Text Wish', price: 50, detail: 'Personalised card and written wish', available: true },
-  { id: 'voice', name: 'Voice Wish', price: 75, detail: 'Card, written wish and voice message', available: false },
-  { id: 'video', name: 'Video Wish', price: 100, detail: 'Card, written wish and video message', available: false },
+  { id: 'text', name: 'Text Wish', price: 50, detail: 'Personalised card and written wish' },
+  { id: 'voice', name: 'Voice Wish', price: 75, detail: 'Card, written wish and voice message' },
+  { id: 'video', name: 'Video Wish', price: 100, detail: 'Card, written wish and video message' },
 ] as const
 
 const messageStarters = [
@@ -206,6 +203,8 @@ type DirectorySchoolOption = {
 export default function SuccessCardStudio({ initialDraft, testMode = false }: { initialDraft?: CardDesignDraft; testMode?: boolean }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
   const [selectedVersion, setSelectedVersion] = useState<'text' | 'voice' | 'video'>('text')
+  const [mediaFile, setMediaFile] = useState<File | null>(null)
+  const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
   const [designModal, setDesignModal] = useState<Template | null>(null)
   const [candidate, setCandidate] = useState(initialDraft?.candidate || '')
   const [sender, setSender] = useState(initialDraft?.sender || '')
@@ -227,7 +226,13 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const stopSound = useRef<(() => void) | null>(null)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school }
-  const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear))
+  const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear) && (selectedVersion === 'text' || mediaFile))
+  useEffect(() => {
+    if (!mediaFile) { setMediaPreviewUrl(''); return }
+    const url = URL.createObjectURL(mediaFile)
+    setMediaPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [mediaFile])
   useEffect(() => () => {
     stopSound.current?.()
   }, [])
@@ -291,7 +296,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
 
   function previewWish() {
     setError('')
-    if (!ready) { setError('Add the candidate name, exam year, your name and a wish before previewing.'); return }
+    if (!ready) { setError(selectedVersion !== 'text' && !mediaFile ? 'Add a voice or video message to continue.' : 'Add the candidate name, exam year, your name and a wish before previewing.'); return }
     setPreviewed(true)
     showDesign(theme)
   }
@@ -325,7 +330,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     <main className={styles.main}>
       <section className={styles.intro}>
         <p className={styles.eyebrow}>VIBESCHOOL SUCCESS WISHES</p>
-        <h1>Wish Them Good Luck<br/>&amp; <em>Success.</em></h1>
+        <h1>Wish Students Good Luck<br/>&amp; <em>Success.</em></h1>
         <p>Create a beautiful personalised success card for someone preparing for their exams. Send your encouragement from anywhere in the world.</p>
         <button type="button" className={styles.heroCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Explore Success Cards <ChevronRight size={16}/></button>
         <small className={styles.heroNote}>Choose a design · add your words · preview the card</small>
@@ -340,22 +345,21 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       </section>
       <section className={styles.pricingStrip} aria-label="Wish versions and prices">
         <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
-          {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} disabled={!version.available} onClick={() => setSelectedVersion(version.id)}>
-            {version.name.replace(' Wish', '')} wish · KES {version.price}{!version.available && ' · Coming soon'}
+          {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null) }}>
+            {version.name.replace(' Wish', '')} wish · KES {version.price}
           </button>)}
         </div>
-        <span className={styles.purchaseNote}>{testMode ? 'Local test only · no payment is taken' : 'Text Wish · KES 50 · M-Pesa payment'}</span>
+        <span className={styles.purchaseNote}>{versions.find(version => version.id === selectedVersion)?.name} · KES {versions.find(version => version.id === selectedVersion)?.price}</span>
       </section>
-      <p className={styles.availabilityNotice} role="status">{testMode ? 'LOCAL TEST MODE · Synthetic Text Wish orders only. No payment is taken and no invitation is sent outside this test.' : 'Your card stays private in this preview. Secure M-Pesa payment and delivery will be available when merchant and delivery setup are complete.'}</p>
       <section className={styles.composer} aria-labelledby="personalise-card">
         <div className={styles.form}><div className={styles.heading}><span>MAKE IT PERSONAL</span><h2 id="personalise-card">Your words make it theirs.</h2></div>
           <div className={styles.formRow}>
             <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
-            <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" aria-describedby="exam-year-help"/><small id="exam-year-help">Printed on card. Not a sign-in code.</small></label>
+            <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026"/></label>
           </div>
           <div className={styles.optionalField}>
-            <div className={styles.optionalFieldHeading}><label htmlFor={schoolInputId}>School (optional)</label><small>Help describe the recipient</small></div>
-            <input id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search VibeSchool&apos;s school list"/>
+            <div className={styles.optionalFieldHeading}><label htmlFor={schoolInputId}>School (optional)</label></div>
+            <input id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search school, e.g. Gilgil Township"/>
             {schoolSearchState === 'loading' && <p className={styles.schoolSearchStatus} role="status">Searching VibeSchool schools…</p>}
             {schoolSearchState === 'error' && <p className={styles.schoolSearchStatus} role="status">School search is unavailable right now. You can leave this optional field blank.</p>}
             {schoolSearchState === 'ready' && schoolOptions.length === 0 && <p className={styles.schoolSearchStatus} role="status">No matching school found. Try another name or leave this optional.</p>}
@@ -365,6 +369,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <label>Your name<input autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/></label>
           <label>Your wish<textarea ref={messageInputRef} rows={6} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
             placeholder="Write something only you would say…"/></label>
+          {selectedVersion !== 'text' && <label className={styles.mediaField}>{selectedVersion === 'voice' ? 'Add a voice message' : 'Add a video message'}<input type="file" accept={selectedVersion === 'voice' ? 'audio/*' : 'video/*'} capture={selectedVersion === 'voice' ? 'user' : 'environment'} onChange={event => setMediaFile(event.target.files?.[0] || null)}/>
+            {mediaPreviewUrl && (selectedVersion === 'voice' ? <audio className={styles.mediaPlayer} controls src={mediaPreviewUrl}/> : <video className={styles.mediaPlayer} controls playsInline src={mediaPreviewUrl}/>)}
+          </label>}
           <div className={styles.messageIdeas}>
             <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
             <div>{messageStarters.map(starter => <button type="button" key={starter.label} aria-label={'Use wish starter: ' + starter.label} onClick={() => {
@@ -382,23 +389,22 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           {!ready && <p className={styles.hint}>Add candidate name, exam year, your name and a wish. The school field is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
-          <p className={styles.privacy}>Candidate name and exam year are not credentials. The school is optional and is not an access credential. Anyone holding a private link can open the wish; the link cannot prove who they are.</p>
         </div>
-        <div className={styles.live} id="wish-preview"><span>{previewed ? 'YOUR CARD PREVIEW' : 'LIVE CARD PREVIEW'}</span><CardArt template={theme} values={values}/>
+        <div className={styles.live} id="wish-preview"><span>{previewed ? 'YOUR CARD PREVIEW' : 'CARD PREVIEW'}</span>
           <BookCard template={theme} values={values} soundEnabled={soundEnabled} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
-          {previewed ? <div className={styles.checkoutSummary}><h3>Text Wish <span>KES 50</span></h3><p>Your personalised card and written wish. Your message is shown exactly as you wrote it.</p><p className={styles.orderTotal}>Total <strong>KES 50</strong></p>
-            <button type="button" className={styles.primary} onClick={() => setCheckoutOpen(true)}>Continue to checkout <ChevronRight size={18}/></button>
-            {testMode ? <><p className={styles.testNotice}>Local test checkout only. It saves synthetic test data; no payment is taken and no message is sent.</p>
+          {previewed ? <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}. Your message appears just as you wrote it.</p>{mediaFile && <p>{mediaFile.name}</p>}<p className={styles.orderTotal}>Total <strong>KES {versions.find(version => version.id === selectedVersion)?.price}</strong></p>
+            <button type="button" className={styles.primary} onClick={() => setCheckoutOpen(true)}>Send this wish <ChevronRight size={18}/></button>
+            {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
-            </> : <div className={styles.paymentNote}><strong>M-Pesa secure checkout</strong><p>Payment and private delivery are being prepared. No charge is made while you preview your card.</p></div>}
+            </> : null}
             {order && <div className={styles.orderConfirmation} role="status"><h3><Check size={18}/> Test wish saved</h3><p>No payment was taken. Copy the private invitation and share it directly with the intended candidate.</p>
               <label>Private invitation<input readOnly value={order.invitationUrl} onFocus={e => e.currentTarget.select()}/></label>
               <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={`/success-wishes/invitation#token=${encodeURIComponent(new URL(order.invitationUrl).hash.slice(7))}`}>Open invitation</Link></div>
               <small>Reference {order.id} · Local retention until {new Date(order.expiresAt).toLocaleDateString()}</small>{status && <p role="status" className={styles.status}>{status}</p>}
             </div>}
-          </div> : <p>Your card updates as you write. Preview your finished card and personal message when you’re ready.</p>}</div>
+          </div> : <p>Choose a design, add your message, then tap the card to open it.</p>}</div>
       </section>
-      <footer className={styles.footer}><p>{testMode ? 'Local test only: synthetic data, no payment and no production delivery.' : 'Your preview stays private in this browser. M-Pesa checkout and delivery are coming soon. Voice and Video will be offered when their full journey is ready.'}</p>
+      <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
     {designModal && <div className={styles.modalBackdrop} role="presentation" onKeyDown={e => { if (e.key === 'Escape') closeDesign() }} onMouseDown={e => { if (e.target === e.currentTarget) closeDesign() }}>
@@ -411,6 +417,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         </div>
       </section>
     </div>}
-    {checkoutOpen && <CheckoutPreview theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
+    {checkoutOpen && <CheckoutPreview theme={theme} values={values} version={selectedVersion} price={versions.find(version => version.id === selectedVersion)?.price || 50} mediaFileName={mediaFile?.name || ''} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }

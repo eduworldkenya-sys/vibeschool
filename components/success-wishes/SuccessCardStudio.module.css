@@ -118,6 +118,37 @@
 .messageIdeasHeading small{font-size:10px;color:#738075}
 .messageIdeas>div:not(.messageIdeasHeading){display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0}
 .messageIdeas>div button{min-height:38px;border-radius:9px;background:#f8faf6;color:#315740;padding:7px 9px;text-align:center;font-size:10px;line-height:1.3;font-weight:700}
+
+/* Clearer sender flow: one book preview, readable controls and no competing card render. */
+.intro h1{max-width:800px}
+.pricingStrip{padding:14px 17px;margin:16px 0 24px;font-size:14px}
+.priceChoices{gap:9px}
+.priceChoice{min-height:42px;padding:9px 14px;font-size:13px;cursor:pointer}
+.purchaseNote{font-size:14px}
+.composer{grid-template-columns:minmax(330px,.82fr) minmax(460px,1.18fr);gap:22px}
+.form,.live{padding:24px}
+.heading h2{font-size:29px;margin-bottom:17px}
+.form label{font-size:15px}
+.form input,.form textarea{font-size:17px}
+.optionalFieldHeading label{font-size:14px}
+.optionalField>input{min-height:50px}
+.schoolResults strong{font-size:15px}
+.schoolResults small{font-size:13px}
+.live{align-content:start;min-width:0}
+.live>span{font-size:13px}
+.bookPreview{max-width:680px;margin:10px auto 0;padding-top:10px;border-top:0}
+.bookStage{height:clamp(360px,35vw,460px)}
+.bookActions{margin-top:18px}
+.checkoutSummary{max-width:680px;margin:10px auto 0;padding-top:16px}
+.checkoutSummary h3{font-size:21px}
+.checkoutSummary>p{font-size:15px}
+.checkoutSummary>.primary{min-height:50px;padding:0 22px;font-size:15px}
+.mediaField{margin-top:14px!important;padding:14px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.025)}
+.mediaField input{min-height:48px;cursor:pointer}
+.mediaPlayer{display:block;width:100%;max-height:240px;margin-top:10px;border-radius:9px;background:#090d15}
+.footer{padding-top:17px}
+@media(max-width:850px){.composer{grid-template-columns:1fr}.bookPreview{max-width:680px}.bookStage{height:clamp(340px,70vw,430px)}}
+@media(max-width:560px){.form,.live{padding:17px}.heading h2{font-size:24px}.pricingStrip{gap:12px}.priceChoices{width:100%}.priceChoice{font-size:12px;flex:1}.purchaseNote{align-self:flex-end}.bookStage{height:clamp(320px,88vw,380px)}.checkoutSummary h3{font-size:18px}}
 .messageIdeas>div button:hover{transform:translateY(-1px);box-shadow:0 3px 10px #31574016}
 .composer{grid-template-columns:minmax(0,.92fr) minmax(340px,1.08fr);gap:18px}
 .form,.live{padding:22px}
