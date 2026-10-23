@@ -49,7 +49,10 @@ async function makeWish(context, { message, theme }) {
   await page.getByRole('heading', { name: /A little encouragement/ }).waitFor()
   await page.getByRole('button', { name: new RegExp(`Preview ${theme}; versions and prices`, 'i') }).click()
   const dialog = page.getByRole('dialog')
-  await dialog.getByRole('button', { name: new RegExp(`Open ${theme} card`, 'i') }).click()
+  const cardCover = dialog.locator(`button[aria-label="Open ${theme} card"]`)
+  await cardCover.waitFor({ state: 'visible' })
+  assert.equal(await cardCover.isDisabled(), false)
+  await cardCover.click()
   assert.equal(await dialog.getByRole('button', { name: 'Sound on' }).getAttribute('aria-pressed'), 'true')
   await dialog.getByRole('button', { name: /Choose Text Wish/ }).click()
 
