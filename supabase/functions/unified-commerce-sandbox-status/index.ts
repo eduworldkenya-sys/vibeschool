@@ -9,6 +9,7 @@
  * customers or deploy to primary VibeSchool Supabase. No real entitlements.
  */
 import postgres from 'npm:postgres@3.4.5'
+import {validateIsolatedSandboxDatabaseUrl} from '../../../lib/commerce/unified/sandbox-db.ts'
 import {
   assertDarajaSandboxOnly,type SandboxAttempt,
 } from '../../../lib/commerce/unified/sandbox.ts'
@@ -61,14 +62,9 @@ Deno.serve(async(req)=>{
   }catch{return json({error:'Invalid order id'},400)}
   const ref=env.COMMERCE_SANDBOX_PROJECT_REF||''
   const databaseUrl=(Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL') || Deno.env.get('SUPABASE_DB_URL') || '')
-  let parsed:URL
-  try{parsed=new URL(databaseUrl)}
-  catch{return json({error:'Sandbox database not configured'},503)}
-  const allowedHost=parsed.hostname==='db.'+ref+'.supabase.co'
-    ||parsed.hostname.endsWith('.pooler.supabase.com')&&parsed.username==='postgres.'+ref
-  if(!allowedHost||!['postgres:','postgresql:'].includes(parsed.protocol)
-    ||!parsed.password||parsed.hash||parsed.search)
-    return json({error:'Refusing non-isolated database'},503)
+  const databaseGuard=validateIsolatedSandboxDatabaseUrl(databaseUrl,ref)
+  if(!databaseGuard.ok)
+    return json({error:'Refusing non-isolated database',reason:databaseGuard.reason},503)
   const db=postgres(databaseUrl,{max:1,prepare:false,idle_timeout:5,connect_timeout:5})
   try{
     const rows=await db`select o.id as order_id,o.state as order_state,
