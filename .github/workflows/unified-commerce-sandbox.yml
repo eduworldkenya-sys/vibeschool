@@ -8,6 +8,9 @@ on:
       - 'supabase/functions/unified-commerce-sandbox-*/**'
       - 'qa/commerce/unified-sandbox-*.sql'
       - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
+      - 'app/api/success-wishes/test-daraja/route.ts'
+      - 'lib/success-wishes/hosted-daraja-test.ts'
+      - 'scripts/test-success-wishes-hosted-daraja.mjs'
       - 'app/api/success-wishes/test-checkout/route.ts'
       - 'components/success-wishes/SuccessCardStudio.tsx'
       - 'lib/success-wishes/local-test-store.ts'
@@ -21,6 +24,9 @@ on:
       - 'scripts/commerce/hosted-daraja-sandbox-proof*'
       - 'qa/commerce/unified-sandbox-*.sql'
       - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
+      - 'app/api/success-wishes/test-daraja/route.ts'
+      - 'lib/success-wishes/hosted-daraja-test.ts'
+      - 'scripts/test-success-wishes-hosted-daraja.mjs'
       - 'app/api/success-wishes/test-checkout/route.ts'
       - 'components/success-wishes/SuccessCardStudio.tsx'
       - 'lib/success-wishes/local-test-store.ts'
@@ -54,6 +60,8 @@ jobs:
         run: node --test scripts/commerce/hosted-daraja-sandbox-proof.test.mjs
       - name: Test localhost-only checkout failure, success and no real charges
         run: node --test scripts/test-success-wishes-local-checkout.mjs
+      - name: Test operator-only Daraja STK bridge with mocked transport
+        run: node --test scripts/test-success-wishes-hosted-daraja.mjs
       - name: Typecheck whole repository
         run: npm run typecheck
 
