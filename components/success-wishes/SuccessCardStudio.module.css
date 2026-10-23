@@ -48,6 +48,12 @@
 .optionalField summary:after,.messageIdeas summary:after{content:'+';margin-left:auto;font-size:17px;font-weight:500}
 .optionalField[open] summary:after,.messageIdeas[open] summary:after{content:'−'}
 .optionalField label{margin-top:5px!important}
+.schoolSearchStatus{margin:7px 0 0;color:#65756b;font-size:11px;line-height:1.5}
+.schoolResults{list-style:none;margin:6px 0 0;padding:4px;border:1px solid #d4ddd3;border-radius:10px;background:#fff;max-height:220px;overflow:auto}
+.schoolResults li+li{border-top:1px solid #edf1ec}
+.schoolResults button{width:100%;display:grid;gap:4px;padding:10px;border:0;border-radius:7px;background:#fff;color:#192e2b;text-align:left;cursor:pointer}
+.schoolResults button:hover,.schoolResults button[aria-selected=true]{background:#f1f7f0}
+.schoolResults strong{font-size:12px}.schoolResults small{font-size:10px;color:#65756b}
 .messageIdeas>div{display:grid;gap:6px;margin:4px 0 7px}
 .messageIdeas>div button{border:1px solid #e0e9df;border-radius:8px;background:#f8faf6;color:#405b49;padding:9px 10px;text-align:left;font-family:inherit;font-size:11px;line-height:1.45;cursor:pointer}
 .messageIdeas>div button:hover{border-color:#80a58b;background:#f1f7f0}

@@ -44,6 +44,13 @@ async function ready() {
 
 async function makeWish(context, { message, theme }) {
   const page = await context.newPage()
+  const schoolSearchCalls = []
+  await page.route('**/rest/v1/rpc/schools_search_public_v2', async route => {
+    schoolSearchCalls.push(route.request().postDataJSON())
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
+      { school_id: 'synthetic-gilgil-school-id', school_name: 'Gilgil Township High School', county: 'Nakuru', sub_county: 'Gilgil' },
+    ]) })
+  })
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
   assert.equal(response.status(), 200)
   await page.getByRole('heading', { name: /A little encouragement/ }).waitFor()
@@ -64,7 +71,14 @@ async function makeWish(context, { message, theme }) {
   await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
   await page.getByRole('textbox', { name: 'Exam year' }).fill('2026')
   await page.locator('summary').filter({ hasText: 'School (optional)' }).click()
-  await page.getByRole('textbox', { name: 'School' }).fill('Gilgil Township')
+  await page.getByRole('combobox', { name: 'School' }).fill('Gilgil Township')
+  await page.getByRole('option', { name: /Gilgil Township High School/ }).click()
+  await page.getByRole('status').filter({ hasText: 'Selected from VibeSchool' }).waitFor()
+  assert.deepEqual(schoolSearchCalls, [{
+    p_query: 'Gilgil Township', p_county: null, p_sub_county: null, p_ward: null,
+    p_school_category: null, p_ownership_type: null, p_gender_type: null,
+    p_accommodation_type: null, p_limit: 12,
+  }], 'School selection uses the canonical public school directory RPC')
   await page.getByRole('textbox', { name: 'Your name' }).fill('Synthetic sender')
   await page.getByRole('textbox', { name: 'Your wish' }).fill(message)
   await page.getByRole('button', { name: /Preview exact wish/ }).click()
@@ -73,7 +87,7 @@ async function makeWish(context, { message, theme }) {
   const accessibleCard = await card.getAttribute('aria-label')
   assert.match(accessibleCard, /John Mwangi/)
   assert.match(accessibleCard, /exam year 2026/)
-  assert.match(accessibleCard, /Gilgil Township/)
+  assert.match(accessibleCard, /Gilgil Township High School/)
   assert.ok(accessibleCard.includes(message), 'Preview must show the exact original wish')
   assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
   await page.getByRole('button', { name: /Complete test order · KES 50/ }).click()
