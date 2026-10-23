@@ -25,7 +25,7 @@ export function hostedSandboxConfig(env: NodeJS.ProcessEnv) {
   if (env.NODE_ENV !== 'development' ||
       env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE !== '1' ||
       env.VIBESCHOOL_DARAJA_HOSTED_TEST_ENABLED !== '1' ||
-      env.VERCEL_ENV === 'production' ||
+      !!env.VERCEL_ENV ||
       env.MPESA_ENV !== 'sandbox' ||
       (env.COMMERCE_SANDBOX_PROJECT_REF && env.COMMERCE_SANDBOX_PROJECT_REF !== 'ufqjgyzspavamdpkdxmc') ||
       (env.COMMERCE_SANDBOX_TEST_PHONE && env.COMMERCE_SANDBOX_TEST_PHONE !== SANDBOX_TEST_PHONE) ||
