@@ -125,7 +125,7 @@ canonical as (
           select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
           where length(qt.token)>=4
             and not exists (
-              select 1 from regexp_split_to_table(coalesce(s.name_normalized,''),'[^a-z0-9]+') as nt(token)
+              select 1 from regexp_split_to_table(lower(coalesce(s.name_normalized,'')),'[^a-z0-9]+') as nt(token)
               where extensions.levenshtein_less_equal(lower(qt.token),lower(nt.token),1)<=1
             )
         ))
@@ -176,7 +176,7 @@ directory as (
           select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
           where length(qt.token)>=4
             and not exists (
-              select 1 from regexp_split_to_table(d.name,'[^a-z0-9]+') as nt(token)
+              select 1 from regexp_split_to_table(lower(d.name),'[^a-z0-9]+') as nt(token)
               where extensions.levenshtein_less_equal(lower(qt.token),lower(nt.token),1)<=1
             )
         ))
@@ -269,7 +269,7 @@ typo_matches as materialized (
       select 1 from regexp_split_to_table(q.query_lower,'[^a-z0-9]+') as qt(token)
       where length(qt.token)>=4
         and not exists (
-          select 1 from regexp_split_to_table(d.name,'[^a-z0-9]+') as nt(token)
+          select 1 from regexp_split_to_table(lower(d.name),'[^a-z0-9]+') as nt(token)
           where extensions.levenshtein_less_equal(lower(qt.token),lower(nt.token),1)<=1
         )
     )
