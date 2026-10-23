@@ -16,6 +16,7 @@
  * at a separate sandbox project with both host and database project guards.
  */
 import postgres from 'npm:postgres@3.4.5'
+import {validateIsolatedSandboxDatabaseUrl} from '../../../lib/commerce/unified/sandbox-db.ts'
 import {
   handleDarajaSandboxCallback,type SandboxCallbackStore,
 } from '../../../lib/commerce/unified/callback-ingress.ts'
@@ -36,14 +37,9 @@ function config() {
   }
   const ref=env.COMMERCE_SANDBOX_PROJECT_REF||''
   const databaseUrl=(Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL') || Deno.env.get('SUPABASE_DB_URL') || '')
-  let database:URL
-  try {database=new URL(databaseUrl)} catch {throw new Error('Sandbox database URL is not configured')}
-  const direct=database.hostname==='db.'+ref+'.supabase.co'
-  const pooler=database.hostname.endsWith('.pooler.supabase.com')
-    && database.username==='postgres.'+ref
-  if(database.protocol!=='postgresql:'&&database.protocol!=='postgres:'
-    ||(!direct&&!pooler)||!!database.hash||!!database.search
-    || !database.password)throw new Error('Refusing database connection outside isolated Supabase project')
+  const databaseGuard=validateIsolatedSandboxDatabaseUrl(databaseUrl,ref)
+  if(!databaseGuard.ok)
+    throw new Error('Refusing database connection outside isolated Supabase project: '+databaseGuard.reason)
   const required=(key:string)=>{
     const value=Deno.env.get(key)||''
     if(!value)throw new Error('Missing sandbox provider configuration: '+key)
