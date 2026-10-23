@@ -51,14 +51,14 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   const recipient = values.candidate.trim() || 'Candidate name'
   const sender = values.sender.trim() || 'Your name'
   const message = values.message.trim()
-  const recipientLines = wrapped(recipient, 26, 2)
-  const senderLines = wrapped('With love, ' + sender, 34, 2)
-  const schoolLines = wrapped(values.school || '', 52, 2)
-  const messageLines = wrapped(message, 43, 6)
-  const messageStartY = 850 - Math.max(messageLines.length - 1, 0) * 20
+  const recipientLines = wrapped(recipient, 30, 2)
+  const senderLines = wrapped('With love, ' + sender, 42, 1)
+  const schoolLines = wrapped(values.school || '', 56, 1)
+  const messageLines = wrapped(message, 56, 5)
+  const messageStartY = 510 - Math.max(messageLines.length - 1, 0) * 22
   const ornaments: Record<Template, string> = { heritage: '✧', botanical: '✿', nightfall: '✦', sunrise: '✳' }
   return (
-    <svg ref={svgRef} viewBox="0 0 900 1200" xmlns="http://www.w3.org/2000/svg" role="img"
+    <svg ref={svgRef} viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg" role="img"
       aria-label={`${item.name} Success Wishes card for ${recipient}, exam year ${values.examYear || 'not selected'}${values.school ? ', ' + values.school : ''}. Message: ${message || 'No message yet'}`} className={styles.art}
       preserveAspectRatio="xMidYMid meet">
       <defs>
@@ -71,29 +71,28 @@ export function CardArt({ template, values, svgRef, preview = false }: {
           <path d="M15 3h2M8 27h1M29 10h1" stroke={theme.ink} strokeWidth=".7" opacity=".06"/>
         </pattern>
       </defs>
-      <rect width="900" height="1200" rx="22" fill={'url(#' + id + ')'}/>
-      <rect width="900" height="1200" rx="22" fill={'url(#' + id + '-paper)'}/>
-      <rect x="20" y="20" width="860" height="1160" rx="12" fill="none" stroke={theme.border} strokeWidth="4"/>
-      <rect x="40" y="40" width="820" height="1120" rx="8" fill="none" stroke={theme.accent} strokeWidth="2" opacity=".45"/>
+      <rect width="1200" height="760" rx="22" fill={'url(#' + id + ')'}/>
+      <rect width="1200" height="760" rx="22" fill={'url(#' + id + '-paper)'}/>
+      <rect x="20" y="20" width="1160" height="720" rx="12" fill="none" stroke={theme.border} strokeWidth="4"/>
+      <rect x="40" y="40" width="1120" height="680" rx="8" fill="none" stroke={theme.accent} strokeWidth="2" opacity=".45"/>
       {template === 'nightfall' && <g fill={theme.accent} opacity=".45">
-        <circle cx="150" cy="275" r="4"/><circle cx="680" cy="320" r="5"/><circle cx="740" cy="220" r="3"/>
-        <circle cx="290" cy="410" r="3"/><circle cx="540" cy="285" r="4"/>
+        <circle cx="170" cy="180" r="4"/><circle cx="990" cy="195" r="5"/><circle cx="740" cy="145" r="3"/>
+        <circle cx="290" cy="315" r="3"/><circle cx="540" cy="165" r="4"/>
       </g>}
-      <text x="75" y="104" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="22" fontWeight="bold" letterSpacing="4">VIBESCHOOL</text>
-      <text x="825" y="104" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="18" fontWeight="bold" letterSpacing="3" textAnchor="end">SUCCESS WISHES</text>
-      <text x="450" y="350" fill={theme.accent} opacity=".16" fontSize="155" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
-      <text x="450" y="412" fill={theme.ink} opacity=".72" fontFamily="Arial, sans-serif" fontSize="15" fontWeight="bold" letterSpacing="3" textAnchor="middle">TO A REMARKABLE CANDIDATE</text>
-      <text x="450" y="482" fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontSize={preview ? 36 : 40} textAnchor="middle" textLength="650" lengthAdjust="spacingAndGlyphs">{item.headline}</text>
-      {recipientLines.map((line, i) => <text key={i} x="450" y={558 + i * 46} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="40" textAnchor="middle">{line}</text>)}
-      {schoolLines.map((line, i) => <text key={i} x="450" y={630 + i * 27} fill={theme.ink} opacity=".82" fontFamily="Arial, sans-serif" fontSize="18" textAnchor="middle">{line}</text>)}
+      <text x="75" y="92" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="19" fontWeight="bold" letterSpacing="4">VIBESCHOOL</text>
+      <text x="1125" y="92" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="16" fontWeight="bold" letterSpacing="3" textAnchor="end">SUCCESS WISHES</text>
+      <text x="600" y="178" fill={theme.accent} opacity=".14" fontSize="118" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
+      <text x="600" y="242" fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontSize={preview ? 34 : 38} textAnchor="middle" textLength="760" lengthAdjust="spacingAndGlyphs">{item.headline}</text>
+      {recipientLines.map((line, i) => <text key={i} x="600" y={307 + i * 40} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="34" textAnchor="middle">{line}</text>)}
+      {schoolLines.map((line, i) => <text key={i} x="600" y={381 + i * 24} fill={theme.ink} opacity=".82" fontFamily="Arial, sans-serif" fontSize="17" textAnchor="middle">{line}</text>)}
       {messageLines.length > 0 && <g>
-        <rect x="92" y="688" width="716" height="322" rx="18" fill={theme.ink} opacity=".055"/>
-        <rect x="92" y="688" width="716" height="322" rx="18" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
-        <path d="M375 716 H525" stroke={theme.accent} strokeWidth="2" opacity=".55"/>
-        {messageLines.map((line, i) => <text key={i} x="450" y={messageStartY + i * 40} fill={theme.ink} fontFamily="Georgia, serif" fontSize="32" textAnchor="middle">{line}</text>)}
+        <rect x="92" y="407" width="1016" height="232" rx="18" fill={theme.ink} opacity=".055"/>
+        <rect x="92" y="407" width="1016" height="232" rx="18" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
+        <path d="M525 427 H675" stroke={theme.accent} strokeWidth="2" opacity=".55"/>
+        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * 43} fill={theme.ink} fontFamily="Georgia, serif" fontSize="31" textAnchor="middle">{line}</text>)}
       </g>}
-      {senderLines.map((line, i) => <text key={i} x="75" y={1090 + i * 31} fill={theme.ink} fontFamily="Georgia, serif" fontStyle="italic" fontSize="21" fontWeight="600" letterSpacing=".3">{line}</text>)}
-      <text x="825" y="1110" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="24" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
+      {senderLines.map((line, i) => <text key={i} x="75" y={685 + i * 25} fill={theme.ink} fontFamily="Georgia, serif" fontStyle="italic" fontSize="20" fontWeight="600" letterSpacing=".3">{line}</text>)}
+      <text x="1125" y="685" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="21" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
     </svg>
   )
 }
@@ -212,7 +211,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     setError('')
     if (!ready) { setError('Add the candidate name, exam year, your name and a wish before previewing.'); return }
     setPreviewed(true)
-    document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    showDesign(theme)
   }
 
   function showDesign(design: Template) {
@@ -239,29 +238,40 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   }
 
   return <div className={styles.page}>
-    <header className={styles.header}><Link href="/" className={styles.brand}>VibeSchool <span>/ Success Wishes</span></Link><span>One wish · three versions</span></header>
+    <header className={styles.header}>
+      <Link href="/" className={styles.brand}><span className={styles.brandMark}>V</span><span className={styles.brandText}>VIBESCHOOL<small>SUCCESS WISHES</small></span></Link>
+      <div className={styles.headerActions}>
+        <button type="button" className={styles.headerSound} aria-label={soundEnabled ? 'Mute card opening sound' : 'Turn card opening sound on'} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={17}/> : <VolumeX size={17}/>}</button>
+        <button type="button" className={styles.headerCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Choose a card <ChevronRight size={15}/></button>
+      </div>
+    </header>
     <main className={styles.main}>
-      <div className={styles.intro}><p className={styles.eyebrow}>VIBESCHOOL SUCCESS WISHES</p><h1>A little encouragement. A card they&apos;ll remember.</h1>
-        <p>Choose a design, add your words and preview it before checkout.</p></div>
-      <p className={styles.availabilityNotice} role="status">{testMode ? 'LOCAL TEST MODE · Synthetic Text Wish orders only. No payment is taken and no invitation is sent outside this test.' : 'Prices shown are test prices. Checkout is disabled until private delivery is ready.'}</p>
-      <section className={styles.pricePanel} aria-labelledby="versions-title">
-        <div className={styles.heading}><span>ONE WISH · THREE VERSIONS</span><h2 id="versions-title">Choose what to include</h2></div>
-        <div className={styles.versionGrid}>{versions.map(version => <article className={styles.versionCard + (version.available ? ' ' + styles.versionAvailable : '')} key={version.id}>
-          <div><h3>{version.name}</h3><p>{version.detail}</p></div><strong>KES {version.price}</strong>
-          {version.available ? <small>{testMode ? 'Text checkout is a local test only' : 'Text wish delivery is not available yet'}</small> : <small>Coming soon · not for sale</small>}
-        </article>)}</div>
-        <p className={styles.plainPrice}>One-time price per wish. The candidate pays nothing. School is an optional label.</p>
+      <section className={styles.intro}>
+        <p className={styles.eyebrow}>FOR EVERY EXAM CANDIDATE</p>
+        <h1>Send them into exams<br/>with <em>confidence.</em></h1>
+        <p>A beautiful, personal success wish for someone who has worked hard to reach this moment.</p>
+        <button type="button" className={styles.heroCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Explore success cards <ChevronRight size={16}/></button>
+        <small className={styles.heroNote}>Choose a design · add your words · preview the card</small>
       </section>
-      <section aria-labelledby="choose-card" className={styles.section}>
-        <div className={styles.heading}><span>01 — DESIGN</span><h2 id="choose-card">Pick a look</h2></div>
-        <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => showDesign(item.id)}
-          className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Preview ${item.name}; versions and prices`}>
+      <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
+        <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>CHOOSE THEIR CARD</span><h2 id="choose-card-title">Choose a success card design</h2></div><small>Select a design to preview it</small></div>
+        <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => setTheme(item.id)}
+          className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Choose ${item.name} card`}>
           <CardArt template={item.id} values={{ candidate: candidate || 'Your candidate', sender, message: '', examYear: examYear || '2026', school }} preview/>
-          <span className={styles.optionCaption}><strong>{item.name}</strong><small>{item.subtitle} · View versions and prices</small></span>
+          <span className={styles.optionCaption}><strong>{item.name}</strong><small>{item.subtitle}</small></span>
         </button>)}</div>
       </section>
+      <section className={styles.pricingStrip} aria-label="Wish versions and prices">
+        <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
+          {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} disabled={!version.available} onClick={() => setSelectedVersion(version.id)}>
+            {version.name.replace(' Wish', '')} wish · KES {version.price}{!version.available && ' · Coming soon'}
+          </button>)}
+        </div>
+        <span className={styles.purchaseNote}>{testMode ? 'Local test only · no payment is taken' : 'Checkout is unavailable · no payment or delivery'}</span>
+      </section>
+      <p className={styles.availabilityNotice} role="status">{testMode ? 'LOCAL TEST MODE · Synthetic Text Wish orders only. No payment is taken and no invitation is sent outside this test.' : 'This card preview stays in your browser. It is not saved to a candidate inbox or delivered.'}</p>
       <section className={styles.composer} aria-labelledby="personalise-card">
-        <div className={styles.form}><div className={styles.heading}><span>02 — TEXT WISH · KES 50</span><h2 id="personalise-card">Make it personal</h2></div>
+        <div className={styles.form}><div className={styles.heading}><span>MAKE IT PERSONAL</span><h2 id="personalise-card">Your words make it theirs.</h2></div>
           <div className={styles.formRow}>
             <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
             <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026" aria-describedby="exam-year-help"/><small id="exam-year-help">Printed on card. Not a sign-in code.</small></label>
@@ -290,7 +300,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </div>
           <p className={styles.counter}>{message.length}/220 characters</p>
           <div className={styles.actions}>
-            <button type="button" className={styles.primary} disabled={!ready} onClick={previewWish}>Preview exact wish <ChevronRight size={18}/></button>
+            <button type="button" className={styles.primary} disabled={!ready} onClick={previewWish}>See recipient view <ChevronRight size={18}/></button>
           </div>
           {!ready && <p className={styles.hint}>Add candidate name, exam year, your name and a wish. The school field is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
@@ -323,11 +333,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             </button>
           </div>
         </div>
-        <div className={styles.modalInfo}><p className={styles.eyebrow}>CARD DESIGN</p><h2 id="design-modal-title">{templates.find(item => item.id === designModal)?.name}</h2><p>{templates.find(item => item.id === designModal)?.subtitle}</p>
+        <div className={styles.modalInfo}><p className={styles.eyebrow}>FOR THE RECIPIENT</p><h2 id="design-modal-title">A wish for {candidate.trim() || 'your candidate'}</h2><p>Tap the card to open the personal wish.</p>
           <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>} Sound {soundEnabled ? 'on' : 'off'}</button>
-          <h3>Choose a version</h3>{versions.map(version => <button type="button" className={styles.modalVersion + (selectedVersion === version.id ? ' ' + styles.modalVersionSelected : '')} key={version.id} aria-pressed={selectedVersion === version.id} disabled={!version.available} onClick={() => setSelectedVersion(version.id)}><span><strong>{version.name}</strong><small>{version.available && testMode ? 'Available for local test only' : version.available ? 'Not available for checkout yet' : 'Coming soon · not for sale'}</small></span><b>KES {version.price}</b></button>)}
-          <p className={styles.hint}>This design is a choice within the same wish product; it does not change the price.</p>
-          <button type="button" className={styles.primary} onClick={() => { setTheme(designModal); setSelectedVersion('text'); closeDesign(); document.getElementById('personalise-card')?.scrollIntoView({ behavior: 'smooth' }) }}>Choose Text Wish · KES 50 <ChevronRight size={18}/></button>
+          <button type="button" className={styles.primary} onClick={closeDesign}>Close recipient view</button>
         </div>
       </section>
     </div>}
