@@ -45,11 +45,20 @@ async function ready() {
 async function makeWish(context, { message, theme }) {
   const page = await context.newPage()
   const schoolSearchCalls = []
-  await page.route('**/rest/v1/rpc/schools_search_public_v2', async route => {
-    schoolSearchCalls.push(route.request().postDataJSON())
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([
-      { school_id: 'synthetic-gilgil-school-id', school_name: 'Gilgil Township High School', county: 'Nakuru', sub_county: 'Gilgil' },
-    ]) })
+  await page.route('**/rest/v1/rpc/success_wishes_school_search_public_v1', async route => {
+    const payload = route.request().postDataJSON()
+    schoolSearchCalls.push(payload)
+    const query = payload.p_query.toLowerCase()
+    const results = query.includes('embakasi')
+      ? [
+          { directory_id: 'directory-embakasi-garrison', school_name: 'Embakasi Garrison', county: 'Nairobi', sub_county: 'Embakasi East' },
+          { directory_id: 'directory-embakasi-girls', school_name: 'EMBAKASI GIRLS SECONDARY SCHOOL', county: 'Nairobi', sub_county: null },
+        ]
+      : [
+          { directory_id: 'directory-gilgil-township', school_name: 'Gilgil Township', county: 'Nakuru', sub_county: 'Gilgil' },
+          { directory_id: 'directory-gilgil-hills', school_name: 'Gilgil Hills Academy', county: 'Nakuru', sub_county: 'Gilgil' },
+        ]
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(results) })
   })
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
   assert.equal(response.status(), 200)
@@ -71,14 +80,19 @@ async function makeWish(context, { message, theme }) {
   await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
   await page.getByRole('textbox', { name: 'Exam year' }).fill('2026')
   await page.locator('summary').filter({ hasText: 'School (optional)' }).click()
-  await page.getByRole('combobox', { name: 'School' }).fill('Gilgil Township')
-  await page.getByRole('option', { name: /Gilgil Township High School/ }).click()
+  const schoolInput = page.getByRole('combobox', { name: 'School' })
+  await schoolInput.fill('Embakasi')
+  await page.getByRole('option', { name: /Embakasi Garrison/ }).waitFor()
+  await page.getByRole('option', { name: /Embakasi Girls Secondary School/i }).waitFor()
+  await page.getByRole('option', { name: /Embakasi Garrison/ }).click()
+  assert.equal(await schoolInput.inputValue(), 'Embakasi Garrison', 'A directory school can be selected')
+  await schoolInput.fill('Gilgil Township')
+  await page.getByRole('option', { name: /^Gilgil Township/ }).click()
   await page.getByRole('status').filter({ hasText: 'Selected from VibeSchool' }).waitFor()
-  assert.deepEqual(schoolSearchCalls, [{
-    p_query: 'Gilgil Township', p_county: null, p_sub_county: null, p_ward: null,
-    p_school_category: null, p_ownership_type: null, p_gender_type: null,
-    p_accommodation_type: null, p_limit: 12,
-  }], 'School selection uses the canonical public school directory RPC')
+  assert.deepEqual(schoolSearchCalls, [
+    { p_query: 'Embakasi', p_limit: 12 },
+    { p_query: 'Gilgil Township', p_limit: 12 },
+  ], 'Public Success Wishes search uses the safe full-directory projection and supports changing schools')
   await page.getByRole('textbox', { name: 'Your name' }).fill('Synthetic sender')
   await page.getByRole('textbox', { name: 'Your wish' }).fill(message)
   await page.getByRole('button', { name: /Preview exact wish/ }).click()
@@ -87,7 +101,7 @@ async function makeWish(context, { message, theme }) {
   const accessibleCard = await card.getAttribute('aria-label')
   assert.match(accessibleCard, /John Mwangi/)
   assert.match(accessibleCard, /exam year 2026/)
-  assert.match(accessibleCard, /Gilgil Township High School/)
+  assert.match(accessibleCard, /Gilgil Township/)
   assert.ok(accessibleCard.includes(message), 'Preview must show the exact original wish')
   assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
   await page.getByRole('button', { name: /Complete test order · KES 50/ }).click()
