@@ -44,6 +44,14 @@ async function ready() {
 
 async function makeWish(context, { message, theme }) {
   const page = await context.newPage()
+  await page.addInitScript(() => {
+    window.__successWishChimeOscillators = 0
+    const createOscillator = AudioContext.prototype.createOscillator
+    AudioContext.prototype.createOscillator = function (...args) {
+      window.__successWishChimeOscillators += 1
+      return createOscillator.apply(this, args)
+    }
+  })
   const schoolSearchCalls = []
   await page.route('**/rest/v1/rpc/success_wishes_school_search_public_v1', async route => {
     const payload = route.request().postDataJSON()
@@ -69,7 +77,10 @@ async function makeWish(context, { message, theme }) {
   await page.screenshot({ path: path.join(screenshots, `design-preview-${theme.replace(/\s+/g, '-')}.png`) })
 
   await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
+  assert.equal(await page.evaluate(() => window.__successWishChimeOscillators), 6, 'The three-note celebratory chime plays when form entry starts')
   const yearInput = page.getByRole('textbox', { name: 'Exam year' })
+  await yearInput.focus()
+  assert.equal(await page.evaluate(() => window.__successWishChimeOscillators), 6, 'The form-start chime plays only once')
   assert.equal(await yearInput.inputValue(), '2026', 'Exam year defaults to 2026')
   const schoolInput = page.getByRole('combobox', { name: 'School (optional)' })
   assert.equal(await schoolInput.isVisible(), true, 'The optional school search is visible without an extra tap')
