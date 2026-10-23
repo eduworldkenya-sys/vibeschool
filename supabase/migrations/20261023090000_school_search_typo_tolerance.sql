@@ -117,7 +117,7 @@ canonical as (
       or s.knec_code=trim(p_query)
       or s.nemis_code=trim(p_query)
       or exists(select 1 from alias_matches am where am.school_id=s.id)
-      or (not exact_search.has_exact and length(q.raw)>=4 and length(q.raw)<=80         and exists (
+      or (not exact_search.has_exact and length(q.raw)>=4 and length(q.raw)<=80 and exists (
           select 1 from regexp_split_to_table(q.raw,'[^a-z0-9]+') as qt(token)
           where length(qt.token)>=4
         )
@@ -261,7 +261,7 @@ typo_matches as materialized (
   cross join q
   where length(q.query) >= 4 and length(q.query) <= 80
     and not exists(select 1 from exact_matches)
-        and exists (
+    and exists (
       select 1 from regexp_split_to_table(q.query_lower,'[^a-z0-9]+') as qt(token)
       where length(qt.token)>=4
     )
