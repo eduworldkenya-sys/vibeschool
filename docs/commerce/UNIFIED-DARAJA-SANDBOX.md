@@ -120,3 +120,38 @@ Safaricom M-Pesa Express callbacks are not inherently signed with an application
 - New schema: `commerce_sandbox`; seven forced-RLS tables, intentionally no public RLS policies or grants. Supabase advisor notes these private tables as informational `rls_enabled_no_policy`.
 - Staging contains two **synthetic** orders in the private schema only: one KES 50 `settled_simulated` with exactly one simulated entitlement, and one KES 300 timeout result 1037 with zero entitlements.
 - The connected Supabase tool cannot set or view Edge Function secrets; the founder must use the test project's Dashboard to store credentials securely. Do not send keys or passkeys in chat.
+
+
+## Hosted provider proof runner — 2026-10-23
+
+A guarded operator-only runner is included at `scripts/commerce/hosted-daraja-sandbox-proof.mjs`. It always uses the existing isolated project `ufqjgyzspavamdpkdxmc` and **never** calls the production Supabase project.
+
+Run offline contract tests (mocked HTTP, no Daraja traffic, no secrets):
+
+```sh
+node --test scripts/commerce/hosted-daraja-sandbox-proof.test.mjs
+```
+
+After completing the **sandbox-only** secret checklist above in the isolated Supabase project's Edge Function Secrets screen, set the *separate* operator token and approved **simulator** phone securely in your terminal environment (do not paste these values into chat or GitHub). Then explicitly execute:
+
+```sh
+node scripts/commerce/hosted-daraja-sandbox-proof.mjs --execute
+```
+
+Acceptance: a fresh KES 50 `success_wish` order (not a reused synthetic record), one actual Daraja SANDBOX STK acknowledgement, independently queried status, authentic callback persistence, and precisely one `simulated_entitlements` row for that order. The runner polls only the status endpoint and **never retries STK Push**, even after failures. A successful run reports a simulated entitlement with `real_access:false`. It does not constitute proof of real money, live card delivery, refunds, or production merchant readiness.
+
+To independently confirm its order after success (use the printed UUID; run on the **isolated** project only):
+
+```sql
+select o.id, o.product_kind, o.amount_kes, o.state,
+       (select count(*) from commerce_sandbox.provider_inbox p
+         join commerce_sandbox.payment_attempts a
+           on a.checkout_request_id=p.checkout_request_id
+         where a.order_id=o.id) as callback_count,
+       (select count(*) from commerce_sandbox.simulated_entitlements e
+         where e.order_id=o.id) as simulated_grants
+  from commerce_sandbox.orders o
+ where o.id='<UUID printed by the hosted proof runner>'::uuid;
+```
+
+A real provider proof must report `callback_count >= 1`, `simulated_grants = 1` and `state = settled_simulated`. If any one is missing, the proof has **not** passed. Never substitute previous synthetic rows for this fresh provider-issued order. Keep real payment initiation OFF.
