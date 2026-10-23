@@ -102,8 +102,8 @@ const messageStarters = [
   'May your hard work meet a bright new beginning. Your future is full of possibility.',
 ]
 
-type CanonicalSchoolOption = {
-  school_id: string
+type DirectorySchoolOption = {
+  directory_id: string
   school_name: string
   county: string | null
   sub_county: string | null
@@ -145,15 +145,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     let active = true
     setSchoolSearchState('loading')
     const timer = window.setTimeout(async () => {
-      const { data, error: searchError } = await supabase.rpc('schools_search_public_v2', {
+      const { data, error: searchError } = await supabase.rpc('success_wishes_school_search_public_v1', {
         p_query: query,
-        p_county: null,
-        p_sub_county: null,
-        p_ward: null,
-        p_school_category: null,
-        p_ownership_type: null,
-        p_gender_type: null,
-        p_accommodation_type: null,
         p_limit: 12,
       })
       if (!active) return
@@ -162,10 +155,10 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         setSchoolSearchState('error')
         return
       }
-      const options = (Array.isArray(data) ? data : []).filter((row): row is CanonicalSchoolOption =>
-        typeof row.school_id === 'string' && typeof row.school_name === 'string'
+      const options = (Array.isArray(data) ? data : []).filter((row): row is DirectorySchoolOption =>
+        typeof row.directory_id === 'string' && typeof row.school_name === 'string'
       ).map(row => ({
-        school_id: row.school_id,
+        school_id: row.directory_id,
         school_name: row.school_name,
         county: typeof row.county === 'string' ? row.county : null,
         sub_county: typeof row.sub_county === 'string' ? row.sub_county : null,
