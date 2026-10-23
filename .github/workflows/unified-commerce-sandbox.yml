@@ -8,6 +8,11 @@ on:
       - 'supabase/functions/unified-commerce-sandbox-*/**'
       - 'qa/commerce/unified-sandbox-*.sql'
       - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
+      - 'app/api/success-wishes/test-checkout/route.ts'
+      - 'components/success-wishes/SuccessCardStudio.tsx'
+      - 'lib/success-wishes/local-test-store.ts'
+      - 'scripts/test-success-wishes-local-checkout.mjs'
+      - 'qa/commerce/hosted-success-evidence.sql'
       - '.github/workflows/unified-commerce-sandbox.yml'
   push:
     branches: [main]
@@ -16,6 +21,11 @@ on:
       - 'scripts/commerce/hosted-daraja-sandbox-proof*'
       - 'qa/commerce/unified-sandbox-*.sql'
       - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
+      - 'app/api/success-wishes/test-checkout/route.ts'
+      - 'components/success-wishes/SuccessCardStudio.tsx'
+      - 'lib/success-wishes/local-test-store.ts'
+      - 'scripts/test-success-wishes-local-checkout.mjs'
+      - 'qa/commerce/hosted-success-evidence.sql'
       - '.github/workflows/unified-commerce-sandbox.yml'
 
 permissions:
@@ -42,6 +52,8 @@ jobs:
         run: node --import ./scripts/register-typescript.mjs --test lib/commerce/unified/*.test.ts
       - name: Verify hosted proof runner safety with local fake network only
         run: node --test scripts/commerce/hosted-daraja-sandbox-proof.test.mjs
+      - name: Test localhost-only checkout failure, success and no real charges
+        run: node --test scripts/test-success-wishes-local-checkout.mjs
       - name: Typecheck whole repository
         run: npm run typecheck
 
