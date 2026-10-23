@@ -62,7 +62,7 @@ async function makeWish(context, { message, theme }) {
   })
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
   assert.equal(response.status(), 200)
-  await page.getByRole('heading', { name: /Wish Them Good Luck.*Success/ }).waitFor()
+  await page.getByRole('heading', { name: /Wish Students Good Luck.*Success/ }).waitFor()
   const designButton = page.getByRole('button', { name: `Choose ${theme} card` })
   await designButton.click()
   assert.equal(await designButton.getAttribute('aria-pressed'), 'true', 'Choosing a design updates the selected card immediately')
@@ -201,7 +201,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     page.on('pageerror', error => errors.push(error.message))
     const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
     assert.equal(response.status(), 200)
-    await page.getByRole('heading', { name: /Wish Them Good Luck.*Success/ }).waitFor()
+    await page.getByRole('heading', { name: /Wish Students Good Luck.*Success/ }).waitFor()
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
       assert.equal(await page.getByRole('button', { name: `Choose ${design} card` }).count(), 1)
     }
