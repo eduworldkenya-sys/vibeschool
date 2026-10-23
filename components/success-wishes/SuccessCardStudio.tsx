@@ -142,7 +142,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
           <span className={styles.bookEyebrow}>{item.name}</span>
           <h3>{item.headline}</h3>
           <strong>{values.candidate.trim() || 'Candidate name'}</strong>
-          <p>{values.message.trim() || 'Your personal message will appear here.'}</p>
+          <p data-testid="success-card-message-preview">{values.message.trim() || 'Your personal message will appear here.'}</p>
           <span className={styles.bookSignoff}>With every good wish, {values.sender.trim() || 'Your name'}</span>
         </div>
       </div>
