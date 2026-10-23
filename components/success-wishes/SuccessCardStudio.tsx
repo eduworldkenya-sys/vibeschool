@@ -102,6 +102,13 @@ const messageStarters = [
   'May your hard work meet a bright new beginning. Your future is full of possibility.',
 ]
 
+type SchoolOption = {
+  school_id: string
+  school_name: string
+  county: string | null
+  sub_county: string | null
+}
+
 type DirectorySchoolOption = {
   directory_id: string
   school_name: string
@@ -118,8 +125,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [message, setMessage] = useState(initialDraft?.message || '')
   const [examYear, setExamYear] = useState(initialDraft?.examYear || '')
   const [school, setSchool] = useState(initialDraft?.school || '')
-  const [selectedSchool, setSelectedSchool] = useState<CanonicalSchoolOption | null>(null)
-  const [schoolOptions, setSchoolOptions] = useState<CanonicalSchoolOption[]>([])
+  const [selectedSchool, setSelectedSchool] = useState<SchoolOption | null>(null)
+  const [schoolOptions, setSchoolOptions] = useState<SchoolOption[]>([])
   const [schoolSearchState, setSchoolSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const schoolInputId = useId()
   const schoolResultsId = useId()
