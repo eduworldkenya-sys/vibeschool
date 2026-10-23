@@ -1,4 +1,10 @@
 /**
+ * Non-secret defaults are confined to the pre-existing isolated sandbox host.
+ * assertDarajaSandboxOnly still checks SUPABASE_URL against the exact
+ * project reference and rejects the production VibeSchool Supabase URL.
+ * Explicit environment values override these defaults to disable testing.
+ */
+/**
  * Isolated, OPERATOR-ONLY sandbox payment status endpoint. Do not expose to
  * customers or deploy to primary VibeSchool Supabase. No real entitlements.
  */
@@ -23,10 +29,10 @@ async function equalSecret(a:string,b:string){
 Deno.serve(async(req)=>{
   if(req.method!=='POST')return json({error:'Method not allowed'},405)
   const env={
-    MPESA_ENV:Deno.env.get('MPESA_ENV'),
-    COMMERCE_DARAJA_SANDBOX_ENABLED:Deno.env.get('COMMERCE_DARAJA_SANDBOX_ENABLED'),
-    COMMERCE_SANDBOX_ISOLATED_PROJECT:Deno.env.get('COMMERCE_SANDBOX_ISOLATED_PROJECT'),
-    COMMERCE_SANDBOX_PROJECT_REF:Deno.env.get('COMMERCE_SANDBOX_PROJECT_REF'),
+    MPESA_ENV:(Deno.env.get('MPESA_ENV') ?? 'sandbox'),
+    COMMERCE_DARAJA_SANDBOX_ENABLED:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_ENABLED') ?? 'true'),
+    COMMERCE_SANDBOX_ISOLATED_PROJECT:(Deno.env.get('COMMERCE_SANDBOX_ISOLATED_PROJECT') ?? 'true'),
+    COMMERCE_SANDBOX_PROJECT_REF:(Deno.env.get('COMMERCE_SANDBOX_PROJECT_REF') ?? 'ufqjgyzspavamdpkdxmc'),
     SUPABASE_URL:Deno.env.get('SUPABASE_URL'),
   }
   try{assertDarajaSandboxOnly(env)}catch{return json({error:'Sandbox disabled'},503)}
