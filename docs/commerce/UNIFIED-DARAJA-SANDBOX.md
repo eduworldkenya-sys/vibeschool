@@ -87,6 +87,9 @@ Source now implemented on PR #790:
 - CI runs Node sandbox tests, disposable PostgreSQL assertions, joined Node/Postgres synthetic checkout and isolated Edge Function typechecks. All HTTP responses and test provider credentials are fake.
 
 ### Safe manual commissioning prerequisites (isolated Supabase project ONLY)
+
+> **2026-10-23 isolated test-project convenience:** The deployed checkout, callback, and status Edge Functions now contain only the four *non-secret* sandbox default values: `COMMERCE_SANDBOX_PROJECT_REF=ufqjgyzspavamdpkdxmc`, `COMMERCE_SANDBOX_ISOLATED_PROJECT=true`, `COMMERCE_DARAJA_SANDBOX_ENABLED=true`, and `MPESA_ENV=sandbox`. You no longer need to enter those four manually in Edge Function Secrets. Explicit environment overrides still work; actual `SUPABASE_URL` must exactly match the isolated project (production refuses), and the rest of the sensitive credentials/tokens are **still required** in the Edge Function Secrets UI. These defaults do **not** appear in the Supabase Custom Secrets list. Live payment initiation remains OFF.
+
 The separate existing test project `ufqjgyzspavamdpkdxmc` now contains the private commerce test schema and three isolated sandbox-only Edge Functions. No real Daraja payment has been initiated by these functions; secrets have NOT been provisioned.
 
 Only in a separate Supabase project (never `yauqsxggtuxuykcbrtzf`):
