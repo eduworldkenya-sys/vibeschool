@@ -146,19 +146,22 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
           <span className={styles.bookSignoff}>With every good wish, {values.sender.trim() || 'Your name'}</span>
         </div>
       </div>
-      <button type="button" className={styles.bookCover + (envelopeOpened ? ' ' + styles.bookCoverVisible : '') + (open ? ' ' + styles.bookCoverOpened : '')}
+      <div aria-hidden="true" className={styles.bookCover + (envelopeOpened ? ' ' + styles.bookCoverVisible : '') + (open ? ' ' + styles.bookCoverOpened : '')}
         style={{ '--book-top': palette[template].top, '--book-bottom': palette[template].bottom, '--book-ink': palette[template].ink, '--book-accent': palette[template].accent } as React.CSSProperties}
-        onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>
+      >
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">{template === 'botanical' ? '✿' : template === 'nightfall' ? '✦' : template === 'sunrise' ? '✳' : '✧'}</b>
         <strong>{item.headline}</strong><small>{values.candidate.trim() || 'A wish for someone special'}</small><small>{values.examYear || '2026'}</small>
         <em>{open ? 'Tap to close' : 'Tap to open'}</em>
-      </button>
+      </div>
       {!envelopeOpened && <button type="button" className={styles.bookEnvelope} onClick={openEnvelope} aria-label="Open the envelope and reveal the success card">
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">✉</b><strong>A little encouragement for {values.candidate.trim() || 'someone special'}</strong><small>{values.school?.trim() || `${values.examYear || '2026'} exams`}</small><em>Tap to open</em>
       </button>}
       {envelopeOpened && <div className={styles.bookEnvelope + ' ' + styles.bookEnvelopeOpened} aria-hidden="true"><span>VIBESCHOOL · SUCCESS WISHES</span><b>✉</b><strong>A little encouragement</strong><em>Opened</em></div>}
     </div>
-    {open && <div className={styles.bookActions}><button type="button" className={styles.secondary} onClick={replay}>Replay opening</button></div>}
+    {envelopeOpened && <div className={styles.bookActions}>
+      <button type="button" className={styles.secondary} onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>{open ? 'Close card' : 'Open card'}</button>
+      {open && <button type="button" className={styles.primary} onClick={replay}>Replay opening</button>}
+    </div>}
   </div>
 }
 

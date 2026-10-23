@@ -389,6 +389,8 @@
 .bookEnvelopeOpened{opacity:0;visibility:hidden;transform:translateY(-8px) scale(.97);pointer-events:none}
 .bookEnvelope:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
 .bookActions{margin:12px 0 0}
+.bookCover{cursor:default}
+.bookActions .primary,.bookActions .secondary{min-height:40px}
 .bookActions .secondary{min-height:40px;background:transparent;color:var(--gold2);border-color:var(--line)}
 .checkoutSummary{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .checkoutSummary h3{margin:0;color:var(--cream)}
