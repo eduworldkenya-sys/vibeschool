@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'lib/commerce/unified/**'
+      - 'scripts/commerce/hosted-daraja-sandbox-proof*'
       - 'supabase/functions/unified-commerce-sandbox-*/**'
       - 'qa/commerce/unified-sandbox-*.sql'
       - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
@@ -12,6 +13,7 @@ on:
     branches: [main]
     paths:
       - 'lib/commerce/unified/**'
+      - 'scripts/commerce/hosted-daraja-sandbox-proof*'
       - 'qa/commerce/unified-sandbox-*.sql'
       - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
       - '.github/workflows/unified-commerce-sandbox.yml'
@@ -38,6 +40,8 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run sandbox contracts with injected transport (no real network)
         run: node --import ./scripts/register-typescript.mjs --test lib/commerce/unified/*.test.ts
+      - name: Verify hosted proof runner safety with local fake network only
+        run: node --test scripts/commerce/hosted-daraja-sandbox-proof.test.mjs
       - name: Typecheck whole repository
         run: npm run typecheck
 
