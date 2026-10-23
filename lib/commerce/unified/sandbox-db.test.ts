@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {validateIsolatedSandboxDatabaseUrl as validate} from './sandbox-db.ts'
+import {validateIsolatedSandboxDatabaseUrl as validate} from './sandbox-db'
 
 const testRef='ufqjgyzspavamdpkdxmc'
 const db=`postgresql://postgres:dummy-secret@db.${testRef}.supabase.co:5432/postgres`
