@@ -358,3 +358,6 @@
 .senderEnvelope:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
 @media(max-width:560px){.intro>p:not(.eyebrow){font-size:14px}.optionCaption strong{font-size:13px}.optionCaption small{font-size:11px}.form textarea{min-height:132px}.formRow label{font-size:12px}.formRow label small{font-size:11px}.messageIdeas>div button{font-size:11px}.modalCardCover .tapToOpen,.senderEnvelopeHint{font-size:11px}.headerCta{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.senderEnvelope,.senderEnvelopeFlap,.modalCardCover{transition:none}}
+.checkoutModal form>.primary{margin-top:14px;width:100%;font-size:15px}
+.checkoutLabel input:focus{outline:3px solid #d7c487;outline-offset:1px;border-color:#a78a4c}
+.checkoutError{margin:9px 0 0;color:#a53e31;font-size:13px;line-height:1.5}

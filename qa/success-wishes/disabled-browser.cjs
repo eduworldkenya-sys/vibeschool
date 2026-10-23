@@ -62,7 +62,7 @@ async function makeWish(context, { message, theme }) {
   })
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
   assert.equal(response.status(), 200)
-  await page.getByRole('heading', { name: /Wish Them Good Luck.*Success/ }).waitFor()
+  await page.getByRole('heading', { name: /Wish Students Good Luck.*Success/ }).waitFor()
   const designButton = page.getByRole('button', { name: `Choose ${theme} card` })
   await designButton.click()
   assert.equal(await designButton.getAttribute('aria-pressed'), 'true', 'Choosing a design updates the selected card immediately')
@@ -99,7 +99,7 @@ async function makeWish(context, { message, theme }) {
   await dialog.getByText('YOUR PERSONAL CARD PREVIEW').waitFor()
   await dialog.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
   const bookCover = dialog.getByRole('button', { name: 'Open the book card' })
-  assert.equal(await dialog.getByText(message, { exact: true }).count(), 0, 'The wish stays inside the closed book')
+  assert.equal(await dialog.getByText(message, { exact: true }).evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'The wish stays hidden from assistive technology while the book is closed')
   await bookCover.click()
   await dialog.getByText(message, { exact: true }).waitFor()
   assert.equal(await dialog.getByRole('button', { name: 'Close the book card' }).getAttribute('aria-expanded'), 'true', 'The sender opens the hinged book cover')
@@ -201,7 +201,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     page.on('pageerror', error => errors.push(error.message))
     const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
     assert.equal(response.status(), 200)
-    await page.getByRole('heading', { name: /Wish Them Good Luck.*Success/ }).waitFor()
+    await page.getByRole('heading', { name: /Wish Students Good Luck.*Success/ }).waitFor()
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
       assert.equal(await page.getByRole('button', { name: `Choose ${design} card` }).count(), 1)
     }
