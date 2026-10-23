@@ -110,7 +110,7 @@ async function openCandidate(invitation, message, width, muteFirst = false) {
   await cover.click()
   await page.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 1)
-  assert.equal(await page.getByText('Gilgil Township', { exact: true }).count(), 1)
+  assert.equal(await page.locator('dd').filter({ hasText: 'Gilgil Township' }).count(), 1, 'Optional school is shown as a descriptive label')
   await page.screenshot({ path: path.join(screenshots, `candidate-open-${width}.png`), fullPage: true })
   const revisit = page.waitForResponse(response => response.url().includes('/api/success-wishes/test-access') && response.request().method() === 'GET')
   await page.reload({ waitUntil: 'networkidle' })
