@@ -143,12 +143,18 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [previewed, setPreviewed] = useState(false)
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
+  const [envelopeOpened, setEnvelopeOpened] = useState(false)
+  const [bookReady, setBookReady] = useState(false)
   const [cardRevealed, setCardRevealed] = useState(false)
   const stopSound = useRef<(() => void) | null>(null)
+  const revealTimers = useRef<number[]>([])
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear))
-  useEffect(() => () => { stopSound.current?.() }, [])
+  useEffect(() => () => {
+    stopSound.current?.()
+    revealTimers.current.forEach(timer => window.clearTimeout(timer))
+  }, [])
   useEffect(() => {
     const query = school.trim()
     if (query.length < 2 || selectedSchool?.school_name === query) {
@@ -215,18 +221,33 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   }
 
   function showDesign(design: Template) {
+    revealTimers.current.forEach(timer => window.clearTimeout(timer))
+    revealTimers.current = []
+    setEnvelopeOpened(false)
+    setBookReady(false)
     setCardRevealed(false)
     setDesignModal(design)
   }
 
   function closeDesign() {
+    revealTimers.current.forEach(timer => window.clearTimeout(timer))
+    revealTimers.current = []
     setDesignModal(null)
+    setEnvelopeOpened(false)
+    setBookReady(false)
     setCardRevealed(false)
   }
 
   function openDesignCard() {
-    setCardRevealed(true)
-    if (soundEnabled) stopSound.current = playWishRevealSound()
+    if (envelopeOpened) return
+    setEnvelopeOpened(true)
+    revealTimers.current = [
+      window.setTimeout(() => setBookReady(true), 460),
+      window.setTimeout(() => {
+        setCardRevealed(true)
+        if (soundEnabled) stopSound.current = playWishRevealSound()
+      }, 560),
+    ]
   }
 
   function toggleSound() {
@@ -247,14 +268,14 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     </header>
     <main className={styles.main}>
       <section className={styles.intro}>
-        <p className={styles.eyebrow}>FOR EVERY EXAM CANDIDATE</p>
-        <h1>Send them into exams<br/>with <em>confidence.</em></h1>
-        <p>A beautiful, personal success wish for someone who has worked hard to reach this moment.</p>
-        <button type="button" className={styles.heroCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Explore success cards <ChevronRight size={16}/></button>
+        <p className={styles.eyebrow}>VIBESCHOOL SUCCESS WISHES</p>
+        <h1>Wish Them Good Luck<br/>&amp; <em>Success.</em></h1>
+        <p>Create a beautiful personalised success card for someone preparing for their exams. Send your encouragement from anywhere in the world.</p>
+        <button type="button" className={styles.heroCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Explore Success Cards <ChevronRight size={16}/></button>
         <small className={styles.heroNote}>Choose a design · add your words · preview the card</small>
       </section>
       <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
-        <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>CHOOSE THEIR CARD</span><h2 id="choose-card-title">Choose a success card design</h2></div><small>Select a design to preview it</small></div>
+        <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>FOUR DESIGNS, MADE PERSONAL</span><h2 id="choose-card-title">Choose a success card design</h2></div><small>Select a design to preview it</small></div>
         <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => setTheme(item.id)}
           className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Choose ${item.name} card`}>
           <CardArt template={item.id} values={{ candidate: candidate || 'Your candidate', sender, message: '', examYear: examYear || '2026', school }} preview/>
@@ -267,9 +288,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {version.name.replace(' Wish', '')} wish · KES {version.price}{!version.available && ' · Coming soon'}
           </button>)}
         </div>
-        <span className={styles.purchaseNote}>{testMode ? 'Local test only · no payment is taken' : 'Checkout is unavailable · no payment or delivery'}</span>
+        <span className={styles.purchaseNote}>{testMode ? 'Local test only · no payment is taken' : 'Text Wish · KES 50 · M-Pesa payment'}</span>
       </section>
-      <p className={styles.availabilityNotice} role="status">{testMode ? 'LOCAL TEST MODE · Synthetic Text Wish orders only. No payment is taken and no invitation is sent outside this test.' : 'This card preview stays in your browser. It is not saved to a candidate inbox or delivered.'}</p>
+      <p className={styles.availabilityNotice} role="status">{testMode ? 'LOCAL TEST MODE · Synthetic Text Wish orders only. No payment is taken and no invitation is sent outside this test.' : 'Your card stays private in this preview. Secure M-Pesa payment and delivery will be available when merchant and delivery setup are complete.'}</p>
       <section className={styles.composer} aria-labelledby="personalise-card">
         <div className={styles.form}><div className={styles.heading}><span>MAKE IT PERSONAL</span><h2 id="personalise-card">Your words make it theirs.</h2></div>
           <div className={styles.formRow}>
@@ -286,7 +307,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {selectedSchool && <p className={styles.schoolSearchStatus} role="status">Selected from VibeSchool&apos;s school list: {selectedSchool.school_name}{selectedSchool.sub_county || selectedSchool.county ? ` · ${[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}` : ''}</p>}
           </div>
           <label>Your name<input autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/></label>
-          <label>Your wish<textarea ref={messageInputRef} rows={4} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
+          <label>Your wish<textarea ref={messageInputRef} rows={6} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
             placeholder="Write something only you would say…"/></label>
           <div className={styles.messageIdeas}>
             <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
@@ -300,26 +321,26 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </div>
           <p className={styles.counter}>{message.length}/220 characters</p>
           <div className={styles.actions}>
-            <button type="button" className={styles.primary} disabled={!ready} onClick={previewWish}>See recipient view <ChevronRight size={18}/></button>
+            <button type="button" className={styles.primary} disabled={!ready} onClick={previewWish}>Preview my card <ChevronRight size={18}/></button>
           </div>
           {!ready && <p className={styles.hint}>Add candidate name, exam year, your name and a wish. The school field is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
           <p className={styles.privacy}>Candidate name and exam year are not credentials. The school is optional and is not an access credential. Anyone holding a private link can open the wish; the link cannot prove who they are.</p>
         </div>
-        <div className={styles.live} id="wish-preview"><span>{previewed ? 'EXACT CANDIDATE PREVIEW' : 'CARD PREVIEW'}</span><CardArt template={theme} values={values}/>
-          {previewed ? <div className={styles.checkoutSummary}><h3>Text Wish · KES 50</h3><p>This preview shows the card and the exact written wish. No voice or video is included.</p><p className={styles.orderTotal}>Total <strong>KES 50</strong></p>
+        <div className={styles.live} id="wish-preview"><span>{previewed ? 'YOUR CARD PREVIEW' : 'LIVE CARD PREVIEW'}</span><CardArt template={theme} values={values}/>
+          {previewed ? <div className={styles.checkoutSummary}><h3>Text Wish <span>KES 50</span></h3><p>Your personalised card and written wish. Your message is shown exactly as you wrote it.</p><p className={styles.orderTotal}>Total <strong>KES 50</strong></p>
             {testMode ? <><p className={styles.testNotice}>Local test checkout only. It saves synthetic test data; no payment is taken and no message is sent.</p>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
-            </> : <p className={styles.hint}>Checkout is unavailable until private delivery is ready. No payment can be made from this page.</p>}
+            </> : <div className={styles.paymentNote}><strong>M-Pesa secure checkout</strong><p>Payment and private delivery are being prepared. No charge is made while you preview your card.</p></div>}
             {order && <div className={styles.orderConfirmation} role="status"><h3><Check size={18}/> Test wish saved</h3><p>No payment was taken. Copy the private invitation and share it directly with the intended candidate.</p>
               <label>Private invitation<input readOnly value={order.invitationUrl} onFocus={e => e.currentTarget.select()}/></label>
               <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={`/success-wishes/invitation#token=${encodeURIComponent(new URL(order.invitationUrl).hash.slice(7))}`}>Open invitation</Link></div>
               <small>Reference {order.id} · Local retention until {new Date(order.expiresAt).toLocaleDateString()}</small>{status && <p role="status" className={styles.status}>{status}</p>}
             </div>}
-          </div> : <p>Choose a design and write your wish. Review the exact card and total before the local test checkout.</p>}</div>
+          </div> : <p>Your card updates as you write. Preview your finished card and personal message when you’re ready.</p>}</div>
       </section>
-      <footer className={styles.footer}><p>Local test only: synthetic data, no payment and no production delivery. This preview has not saved it to a candidate inbox or delivered it. Voice and Video remain unavailable until their full journey is verified.</p>
+      <footer className={styles.footer}><p>{testMode ? 'Local test only: synthetic data, no payment and no production delivery.' : 'Your preview stays private in this browser. M-Pesa checkout and delivery are coming soon. Voice and Video will be offered when their full journey is ready.'}</p>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
     {designModal && <div className={styles.modalBackdrop} role="presentation" onKeyDown={e => { if (e.key === 'Escape') closeDesign() }} onMouseDown={e => { if (e.target === e.currentTarget) closeDesign() }}>
@@ -328,14 +349,22 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         <div className={styles.modalArt}>
           <div className={styles.modalCardWrap}>
             <div className={styles.modalCardArt} aria-hidden={!cardRevealed}><CardArt template={designModal} values={{ ...values, candidate: candidate || 'Your candidate', examYear: examYear || '2026' }}/></div>
-            <button type="button" className={styles.modalCardCover + (cardRevealed ? ' ' + styles.modalCardOpened : '')} style={{ background: `linear-gradient(145deg, ${palette[designModal].top}, ${palette[designModal].bottom})`, color: palette[designModal].ink }} aria-label={`Open ${templates.find(item => item.id === designModal)?.name} card`} aria-hidden={cardRevealed} tabIndex={cardRevealed ? -1 : 0} disabled={cardRevealed} onClick={openDesignCard}>
-              <span>VIBESCHOOL <small>SUCCESS WISHES</small></span><b aria-hidden="true">{designModal === 'heritage' ? '✧' : designModal === 'botanical' ? '✿' : designModal === 'nightfall' ? '✦' : '✳'}</b><strong>{templates.find(item => item.id === designModal)?.headline}</strong><small className={styles.tapToOpen}>Tap to open</small>
+            <div className={styles.modalCardCover + (cardRevealed ? ' ' + styles.modalCardOpened : '') + (bookReady ? ' ' + styles.modalBookReady : '')} style={{ background: `linear-gradient(145deg, ${palette[designModal].top}, ${palette[designModal].bottom})`, color: palette[designModal].ink }} aria-hidden="true">
+            <span>VIBESCHOOL <small>SUCCESS WISHES</small></span><b aria-hidden="true">{designModal === 'heritage' ? '✧' : designModal === 'botanical' ? '✿' : designModal === 'nightfall' ? '✦' : '✳'}</b><strong>{templates.find(item => item.id === designModal)?.headline}</strong><small className={styles.tapToOpen}>Tap to open your card</small>
+            </div>
+            <button type="button" className={styles.senderEnvelope + (envelopeOpened ? ' ' + styles.senderEnvelopeOpened : '')} data-theme={designModal} onClick={openDesignCard} disabled={envelopeOpened} aria-label={`Open your card for ${candidate.trim() || 'your candidate'}`} aria-hidden={envelopeOpened} tabIndex={envelopeOpened ? -1 : 0}>
+              <span className={styles.senderEnvelopeBrand}>VIBESCHOOL <small>SUCCESS WISHES</small></span>
+              <strong>For {candidate.trim() || 'your candidate'}</strong>
+              {school.trim() && <small className={styles.senderEnvelopeSchool}>{school}</small>}
+              <span className={styles.senderEnvelopeSeal} aria-hidden="true">✦</span>
+              <small className={styles.senderEnvelopeHint}>Tap to open your card</small>
+              <span className={styles.senderEnvelopeFlap} aria-hidden="true"/><span className={styles.senderEnvelopeFold} aria-hidden="true"/>
             </button>
           </div>
         </div>
-        <div className={styles.modalInfo}><p className={styles.eyebrow}>FOR THE RECIPIENT</p><h2 id="design-modal-title">A wish for {candidate.trim() || 'your candidate'}</h2><p>Tap the card to open the personal wish.</p>
+        <div className={styles.modalInfo}><p className={styles.eyebrow}>YOUR PERSONAL CARD PREVIEW</p><h2 id="design-modal-title">A wish for {candidate.trim() || 'your candidate'}</h2><p>Review the card you created. Tap to open it and read your message as it will appear.</p>
           <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>} Sound {soundEnabled ? 'on' : 'off'}</button>
-          <button type="button" className={styles.primary} onClick={closeDesign}>Close recipient view</button>
+          <button type="button" className={styles.primary} onClick={closeDesign}>Back to my card</button>
         </div>
       </section>
     </div>}

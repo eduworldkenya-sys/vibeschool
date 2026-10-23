@@ -258,3 +258,66 @@
 .modalCardWrap{width:min(100%,620px,68dvh);aspect-ratio:1200/760}
 @media(max-width:850px){.header{padding:0 15px}.main{padding:0 15px 35px}.composer{grid-template-columns:1fr;gap:13px}.live{order:-1;position:static;max-width:none}.live .art{max-width:100%}.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.header{height:64px;padding:0 15px}.brandMark{width:33px;height:33px}.headerCta{padding:0 12px;font-size:10px}.headerSound{width:34px;min-height:34px}.intro{padding:26px 0 20px}.intro h1{font-size:39px}.intro>p:not(.eyebrow){font-size:12px}.sectionHeading h2{font-size:21px}.sectionHeading>small{display:none}.gallery{gap:9px}.option{padding:6px}.option.active{padding:6px}.optionCaption{display:block}.optionCaption strong{display:block;font-size:12px}.optionCaption small{display:block;margin-top:3px;font-size:8px}.pricingStrip{align-items:flex-start;flex-direction:column}.purchaseNote{white-space:normal}.form,.live{padding:14px}.heading h2{font-size:23px}.formRow{gap:7px}.form textarea{min-height:76px}.live .art{max-width:100%}.messageIdeas>div:not(.messageIdeasHeading){gap:5px}.messageIdeas>div button{font-size:8px;padding:6px 4px}.availabilityNotice{text-align:left}.modalCardWrap{width:min(100%,57dvh)}.designModal{padding:15px}}
+
+/* Sender-focused preview and readable type sizes for the approved studio. */
+.eyebrow,.sectionHeading .eyebrow{font-size:11px}
+.intro>p:not(.eyebrow){font-size:15px;line-height:1.7}
+.heroNote{font-size:12px}
+.sectionHeading>small{font-size:12px}
+.optionCaption strong{font-size:15px}
+.optionCaption small{font-size:12px}
+.pricingStrip{font-size:12px}
+.priceChoice{min-height:38px;padding:8px 12px;font-size:11px}
+.purchaseNote{font-size:12px}
+.availabilityNotice{font-size:12px;line-height:1.65}
+.form label{font-size:12px}
+.form input,.form textarea{font-size:15px;line-height:1.6}
+.form textarea{min-height:142px}
+.form textarea::placeholder{color:#929bab}
+.formRow label{font-size:12px}
+.formRow label small{font-size:12px;line-height:1.5;color:#a8b1bf}
+.optionalFieldHeading label{font-size:12px}
+.optionalFieldHeading>small,.schoolSearchStatus{font-size:12px;line-height:1.55}
+.schoolResults strong{font-size:14px}
+.schoolResults small{font-size:12px}
+.messageIdeasHeading strong{font-size:12px;font-weight:650}
+.messageIdeasHeading small{font-size:12px}
+.messageIdeas>div button{min-height:40px;font-size:11px}
+.counter{font-size:12px}
+.heading>span,.live>span{font-size:11px}
+.hint,.privacy,.status,.error{font-size:12px}
+.live>p{font-size:13px;line-height:1.6}
+.checkoutSummary h3{display:flex;align-items:center;justify-content:space-between;font-size:18px}
+.checkoutSummary>p{font-size:14px;line-height:1.65}
+.paymentNote{margin-top:12px;padding:15px 16px;border:1px solid rgba(216,180,94,.24);border-radius:12px;background:rgba(216,180,94,.07)}
+.paymentNote strong{font-size:14px;color:var(--gold2)}
+.paymentNote p{margin:6px 0 0;color:#c0c6d0;font-size:13px;line-height:1.6}
+.footer{font-size:12px;line-height:1.65}
+.modalInfo>p{font-size:15px;line-height:1.7}
+.modalCardCover>span{font-size:clamp(10px,1.1vw,13px)}
+.modalCardCover .tapToOpen{font-size:12px}
+.soundToggle{font-size:13px;min-height:40px}
+.brandText small{font-size:9px}
+.headerCta{font-size:12px}
+.modalCardCover{z-index:2;opacity:0;visibility:hidden;transition:transform 1.05s cubic-bezier(.2,.72,.18,1),opacity .22s ease,visibility 0s linear .27s}
+.modalBookReady{opacity:1;visibility:visible;transition:transform 1.05s cubic-bezier(.2,.72,.18,1),opacity .22s ease}
+.modalCardOpened{transition:transform 1.05s cubic-bezier(.2,.72,.18,1),opacity .3s ease,visibility 0s linear 0s}
+.senderEnvelope{position:absolute;inset:0;z-index:3;overflow:hidden;isolation:isolate;border:1px solid #ffffff45;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:11px;padding:12%;text-align:center;cursor:pointer;color:var(--sender-envelope-ink);background:linear-gradient(145deg,var(--sender-envelope-top),var(--sender-envelope-bottom));box-shadow:inset 0 0 0 9px #ffffff20,inset 0 0 0 10px #ffffff35,0 12px 30px #192e2b30;transition:opacity .36s ease .12s,transform .3s ease,visibility 0s linear .48s}
+.senderEnvelope[data-theme="heritage"]{--sender-envelope-top:#f7edce;--sender-envelope-bottom:#cfb16b;--sender-envelope-ink:#604823;--sender-envelope-seal:#9c3e36}
+.senderEnvelope[data-theme="botanical"]{--sender-envelope-top:#e9efe2;--sender-envelope-bottom:#9ebda1;--sender-envelope-ink:#285843;--sender-envelope-seal:#7d3f4b}
+.senderEnvelope[data-theme="nightfall"]{--sender-envelope-top:#344969;--sender-envelope-bottom:#17253d;--sender-envelope-ink:#fff4d5;--sender-envelope-seal:#a84644}
+.senderEnvelope[data-theme="sunrise"]{--sender-envelope-top:#ffedc8;--sender-envelope-bottom:#be8298;--sender-envelope-ink:#613653;--sender-envelope-seal:#93464c}
+.senderEnvelope:before{content:'';position:absolute;inset:0;z-index:0;background:linear-gradient(32deg,transparent 49.6%,#ffffff38 50%,transparent 50.5%),linear-gradient(-32deg,transparent 49.6%,#00000013 50%,transparent 50.5%);clip-path:polygon(0 48%,50% 79%,100% 48%,100% 100%,0 100%)}
+.senderEnvelopeBrand{position:absolute;z-index:3;top:10%;left:10%;right:10%;display:flex;justify-content:space-between;gap:7px;font:800 clamp(9px,1.2vw,13px)/1.2 Arial,sans-serif;letter-spacing:1px}
+.senderEnvelopeBrand small{font-size:.8em}
+.senderEnvelope>strong{position:relative;z-index:3;margin-top:25px;font:italic 600 clamp(20px,2.5vw,30px)/1.25 Georgia,serif;text-wrap:balance}
+.senderEnvelopeSchool{position:relative;z-index:3;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 clamp(11px,1.2vw,14px)/1.4 system-ui,sans-serif;opacity:.82}
+.senderEnvelopeSeal{position:relative;z-index:4;width:clamp(54px,8vw,78px);height:clamp(54px,8vw,78px);margin-top:9px;border:2px solid #e2c687;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 32% 27%,#e76e5e,var(--sender-envelope-seal) 58%,#6d292b);color:#fff4d8;box-shadow:0 5px 12px #24161448,inset 0 0 0 3px #ffffff22,inset 0 0 0 5px #762c2c70;font:600 20px/1 Georgia,serif}
+.senderEnvelopeHint{position:absolute;bottom:8%;z-index:4;font:750 12px/1.2 Arial,sans-serif;letter-spacing:.8px;text-transform:uppercase;opacity:.82}
+.senderEnvelopeFlap{position:absolute;inset:0 0 auto;height:57%;z-index:2;background:linear-gradient(145deg,#ffffff32,#00000008);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top center;transition:transform .44s cubic-bezier(.2,.72,.18,1);backface-visibility:hidden}
+.senderEnvelopeFold{position:absolute;inset:auto 0 0;height:53%;z-index:1;background:linear-gradient(145deg,#ffffff22,#00000012);clip-path:polygon(0 100%,50% 0,100% 100%);pointer-events:none}
+.senderEnvelopeOpened{opacity:0;visibility:hidden;transform:translateY(-6px) scale(.98);pointer-events:none}
+.senderEnvelopeOpened .senderEnvelopeFlap{transform:rotateX(180deg)}
+.senderEnvelope:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
+@media(max-width:560px){.intro>p:not(.eyebrow){font-size:14px}.optionCaption strong{font-size:13px}.optionCaption small{font-size:11px}.form textarea{min-height:132px}.formRow label{font-size:12px}.formRow label small{font-size:11px}.messageIdeas>div button{font-size:11px}.modalCardCover .tapToOpen,.senderEnvelopeHint{font-size:11px}.headerCta{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.senderEnvelope,.senderEnvelopeFlap,.modalCardCover{transition:none}}
