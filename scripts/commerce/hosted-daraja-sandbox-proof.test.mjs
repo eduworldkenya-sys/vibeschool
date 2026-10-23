@@ -58,6 +58,7 @@ test('proof sends exactly one checkout and only retries status', async () => {
     if(url.endsWith('/unified-commerce-sandbox-checkout')) {
       checkoutCount++
       assert.equal(data.product_kind,'success_wish')
+      assert.equal(data.item_reference,'sandbox-success-wish')
       assert.equal(data.phone,env.COMMERCE_SANDBOX_TEST_PHONE)
       assert.equal(data.amount,undefined)
       return Response.json({
