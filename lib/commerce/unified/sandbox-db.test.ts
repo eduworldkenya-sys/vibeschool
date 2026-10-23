@@ -23,7 +23,7 @@ test('rejects any other Supabase project or unsafe hostname',()=>{
 
 test('rejects missing password, wrong db name, unsupported parameters and wrong role',()=>{
   assert.deepEqual(validate(db.replace('dummy-secret',''),testRef),{ok:false,reason:'missing_password'})
-  assert.deepEqual(validate(db.replace('/postgres','/test'),testRef),{ok:false,reason:'wrong_database_name'})
+  assert.deepEqual(validate(db.replace(':5432/postgres',':5432/test'),testRef),{ok:false,reason:'wrong_database_name'})
   assert.deepEqual(validate(db+'?sslmode=disable',testRef),{ok:false,reason:'unsupported_parameters'})
   assert.deepEqual(validate(db+'?sslmode=require&foo=bar',testRef),{ok:false,reason:'unsupported_parameters'})
   assert.deepEqual(validate(db+'?sslmode=require&sslmode=require',testRef),{ok:false,reason:'unsupported_parameters'})
