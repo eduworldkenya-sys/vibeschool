@@ -52,17 +52,18 @@
 .messageIdeas>div button{border:1px solid #e0e9df;border-radius:8px;background:#f8faf6;color:#405b49;padding:9px 10px;text-align:left;font-family:inherit;font-size:11px;line-height:1.45;cursor:pointer}
 .messageIdeas>div button:hover{border-color:#80a58b;background:#f1f7f0}
 .modalArt{position:relative;display:grid;place-items:center}
-.modalCardWrap{position:relative;width:min(100%,460px,52dvh);aspect-ratio:3/4;margin:auto;border-radius:8px;box-shadow:0 8px 26px #192e2b24;perspective:1100px}
+.modalCardWrap{position:relative;width:min(100%,460px,52dvh);aspect-ratio:3/4;margin:auto;border-radius:8px;box-shadow:0 8px 26px #192e2b24;perspective:1450px}
 .modalCardArt{position:absolute;inset:0;overflow:hidden;border-radius:8px}
 .modalCardArt .art{width:100%;height:100%;object-fit:contain}
-.modalCardCover{position:absolute;inset:0;width:100%;height:100%;border:8px solid #ffffff55;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10%;text-align:center;font-family:Georgia,serif;cursor:pointer;transform-origin:left center;backface-visibility:hidden;transition:transform .68s cubic-bezier(.2,.75,.25,1),opacity .3s ease;box-shadow:inset 0 0 0 1px #ffffff55}
+.modalCardCover{position:absolute;inset:0;width:100%;height:100%;border:8px solid #ffffff55;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:10%;text-align:center;font-family:Georgia,serif;cursor:pointer;transform-origin:left center;transform-style:preserve-3d;backface-visibility:hidden;transition:transform 1.05s cubic-bezier(.2,.72,.18,1),opacity .3s ease;box-shadow:inset 0 0 0 1px #ffffff55}
+.modalCardCover:after{content:'';position:absolute;inset:0;border-radius:2px;background:linear-gradient(140deg,#fff9e9,#eadfc5);box-shadow:inset 0 0 0 8px #c9b78b,inset 0 0 0 10px #fff9e9;transform:rotateY(180deg);backface-visibility:visible}
 .modalCardCover:before{content:'';position:absolute;inset:9px;border:1px solid currentColor;border-radius:3px;opacity:.35;pointer-events:none}
 .modalCardCover>span{position:absolute;top:8%;left:10%;right:10%;display:flex;justify-content:space-between;gap:7px;font:800 clamp(7px,1vw,11px)/1.2 Arial,sans-serif;letter-spacing:1px}
 .modalCardCover>span small{font-size:.8em}
 .modalCardCover>b{font:normal clamp(70px,11vw,125px)/1 Georgia,serif;opacity:.72}
 .modalCardCover>strong{font:italic 600 clamp(19px,2.4vw,28px)/1.2 Georgia,serif}
 .modalCardCover .tapToOpen{position:absolute;bottom:8%;font:700 10px/1.2 Arial,sans-serif;letter-spacing:.8px;text-transform:uppercase;opacity:.75}
-.modalCardOpened{transform:rotateY(-98deg);opacity:0;pointer-events:none}
+.modalCardOpened{transform:rotateY(-158deg);opacity:1;pointer-events:none}
 .soundToggle{display:inline-flex;align-items:center;gap:6px;min-height:36px;margin:5px 0 2px;padding:6px 11px;border:1px solid #d9e3d8;border-radius:999px;background:#fff;color:#315f48;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer}
 .modalInfo h3{margin-top:15px}
 .modalVersion{width:100%;background:#fff;color:#192e2b;text-align:left;font:inherit;cursor:pointer}
@@ -74,3 +75,19 @@
 @media(max-width:700px){.modalCardWrap{width:min(100%,42dvh)}.modalInfo h3{margin-top:13px}.modalArt{padding:12px}}
 @media(max-width:520px){.formRow{grid-template-columns:minmax(0,1fr) 112px;gap:9px}.formRow label{font-size:11px}.messageIdeas>div button{font-size:10px}.modalCardWrap{width:min(100%,40dvh)}}
 @media(prefers-reduced-motion:reduce){.modalCardCover,.designModal{transition:none;animation:none}}
+.recipientSoundRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-14px 0 14px;color:#62746f;font-size:12px}
+.recipientCard{position:relative;overflow:hidden;perspective:1450px}
+.recipientCardCover{position:absolute;inset:18px;width:calc(100% - 36px);height:calc(100% - 36px);border:8px solid #ffffff55;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:10%;text-align:center;background:linear-gradient(145deg,#165b47,#123a36);color:#f8f1d8;cursor:pointer;box-shadow:inset 0 0 0 1px #ffffff55;transition:transform 1.05s cubic-bezier(.2,.72,.18,1),box-shadow 1.05s ease;transform-origin:left center;transform-style:preserve-3d;backface-visibility:hidden}
+.recipientCardCover:after{content:'';position:absolute;inset:0;border-radius:5px;background:linear-gradient(140deg,#fff9e9,#eadfc5);box-shadow:inset 0 0 0 8px #c9b78b,inset 0 0 0 10px #fff9e9;transform:rotateY(180deg);backface-visibility:visible}
+.recipientCardCover:before{content:'';position:absolute;inset:9px;border:1px solid currentColor;border-radius:5px;opacity:.35;pointer-events:none}
+.recipientCardCover>span{position:absolute;top:8%;left:10%;right:10%;display:flex;justify-content:space-between;gap:7px;font:800 clamp(8px,1.1vw,12px)/1.2 Arial,sans-serif;letter-spacing:1px}
+.recipientCardCover>span small{font-size:.8em}
+.recipientCardCover>b{font:normal clamp(76px,12vw,130px)/1 Georgia,serif;opacity:.74}
+.recipientCardCover>strong{font:italic 600 clamp(18px,2.2vw,27px)/1.25 Georgia,serif}
+.recipientCardCover>small{position:absolute;bottom:8%;font:700 10px/1.2 Arial,sans-serif;letter-spacing:1px;text-transform:uppercase;opacity:.78}
+.recipientCardOpened .recipientCardCover{transform:rotateY(-158deg);pointer-events:none;box-shadow:inset 0 0 0 1px #ffffff55,-12px 5px 25px #192e2b34}
+.recipientPrompt{font:400 17px/1.6 Georgia,serif;color:#62746f}
+.recipientMessage{animation:wish-message-appears .65s ease-out both}
+@keyframes wish-message-appears{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:700px){.recipientSoundRow{margin:0 0 12px}.recipientCardCover{inset:12px;width:calc(100% - 24px);height:calc(100% - 24px)}}
+@media(prefers-reduced-motion:reduce){.recipientCardCover,.recipientMessage{transition:none;animation:none}}

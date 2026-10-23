@@ -79,17 +79,29 @@ async function makeWish(context, { message, theme }) {
   return { invitation, page }
 }
 
-async function openCandidate(invitation, message) {
-  const context = await browser.newContext({ viewport: { width: 390, height: 850 } })
+async function openCandidate(invitation, message, width, muteFirst = false) {
+  const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
   const page = await context.newPage()
   await page.goto(invitation, { waitUntil: 'domcontentloaded', timeout: 90000 })
+  await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
+  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Wish text stays behind the closed card')
+  const sound = page.getByRole('button', { name: 'Sound on' })
+  assert.equal(await sound.getAttribute('aria-pressed'), 'true', 'Signature sound starts on, but waits for a card tap')
+  if (muteFirst) {
+    await sound.click()
+    assert.equal(await page.getByRole('button', { name: 'Sound off' }).getAttribute('aria-pressed'), 'false', 'One-touch mute is available')
+  }
+  await page.getByRole('button', { name: /Open the private success wish for John Mwangi/ }).click()
   await page.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 1)
   assert.equal(await page.getByText('Gilgil Township', { exact: true }).count(), 1)
   await page.reload({ waitUntil: 'domcontentloaded' })
+  await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
+  assert.equal(await page.getByText(message, { exact: true }).count(), 0, 'Refresh returns to the closed-card reveal')
+  await page.getByRole('button', { name: /Open the private success wish for John Mwangi/ }).click()
   await page.getByRole('heading', { name: 'A wish for John Mwangi' }).waitFor()
   assert.equal(await page.getByText(message, { exact: true }).count(), 1, 'Candidate can return after refresh')
-  return { context, page }
+  return { context, page, width }
 }
 
 ;(async () => {
@@ -127,8 +139,8 @@ async function openCandidate(invitation, message) {
   const senderB = await makeWish(await browser.newContext({ viewport: { width: 390, height: 850 } }), { message: messageB, theme: 'Golden Hour' })
   assert.notEqual(senderA.invitation, senderB.invitation, 'Same-name, same-school and same-year candidates need unique invitations')
 
-  const candidateA = await openCandidate(senderA.invitation, messageA)
-  const candidateB = await openCandidate(senderB.invitation, messageB)
+  const candidateA = await openCandidate(senderA.invitation, messageA, 1440)
+  const candidateB = await openCandidate(senderB.invitation, messageB, 390, true)
   assert.equal(await candidateA.page.getByText(messageB, { exact: true }).count(), 0)
   assert.equal(await candidateB.page.getByText(messageA, { exact: true }).count(), 0)
   await candidateA.page.getByRole('button', { name: 'Sign out on this device' }).click()
@@ -147,7 +159,7 @@ async function openCandidate(invitation, message) {
   const oldPilot = await fetch(`${ROOT}/success-wishes/pilot`, { redirect: 'manual' })
   assert.equal(oldPilot.status, 307)
   assert.equal(oldPilot.headers.get('location'), '/success-wishes')
-  console.log(JSON.stringify({ suite: 'success-wishes-unified-ecommerce-browser', widths, duplicateNameCandidates: true, separatePrivateInvitations: true, exactMessageAndRefresh: true, wrongInvitationRejected: true, signOutVerified: true, productionPaymentAndSending: false }, null, 2))
+  console.log(JSON.stringify({ suite: 'success-wishes-unified-ecommerce-browser', senderWidths: widths, candidateWidths: [candidateA.width, candidateB.width], signatureSoundTapGated: true, muteVerified: true, duplicateNameCandidates: true, separatePrivateInvitations: true, exactMessageAndRefresh: true, wrongInvitationRejected: true, signOutVerified: true, productionPaymentAndSending: false }, null, 2))
 })().catch(error => {
   console.error(error)
   process.exitCode = 1

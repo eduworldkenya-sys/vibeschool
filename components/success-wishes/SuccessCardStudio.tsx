@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Check, ChevronRight, Volume2, VolumeX, X } from 'lucide-react'
+import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import styles from './SuccessCardStudio.module.css'
 
 export type Template = 'heritage' | 'botanical' | 'nightfall' | 'sunrise'
@@ -100,33 +101,6 @@ const messageStarters = [
   'May your hard work meet a bright new beginning. Your future is full of possibility.',
 ]
 
-function playCelebration() {
-  if (typeof window === 'undefined') return
-  const AudioContextConstructor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-  if (!AudioContextConstructor) return
-  try {
-    const context = new AudioContextConstructor()
-    const start = context.currentTime
-    ;[659.25, 783.99, 987.77, 1318.51].forEach((frequency, index) => {
-      const oscillator = context.createOscillator()
-      const gain = context.createGain()
-      const noteStart = start + index * 0.115
-      oscillator.type = 'sine'
-      oscillator.frequency.setValueAtTime(frequency, noteStart)
-      gain.gain.setValueAtTime(0.0001, noteStart)
-      gain.gain.exponentialRampToValueAtTime(0.075, noteStart + 0.025)
-      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.42)
-      oscillator.connect(gain)
-      gain.connect(context.destination)
-      oscillator.start(noteStart)
-      oscillator.stop(noteStart + 0.44)
-    })
-    window.setTimeout(() => { void context.close() }, 1100)
-  } catch {
-    // Audio is an enhancement; card opening still works when it is unavailable.
-  }
-}
-
 export default function SuccessCardStudio({ initialDraft, testMode = false }: { initialDraft?: CardDesignDraft; testMode?: boolean }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
   const [selectedVersion, setSelectedVersion] = useState<'text' | 'voice' | 'video'>('text')
@@ -143,8 +117,10 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [cardRevealed, setCardRevealed] = useState(false)
+  const stopSound = useRef<(() => void) | null>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear))
+  useEffect(() => () => { stopSound.current?.() }, [])
   async function saveTestWish() {
     if (!ready || !previewed || busy || !testMode) return
     setError(''); setStatus(''); setBusy(true)
@@ -187,7 +163,15 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
 
   function openDesignCard() {
     setCardRevealed(true)
-    if (soundEnabled) playCelebration()
+    if (soundEnabled) stopSound.current = playWishRevealSound()
+  }
+
+  function toggleSound() {
+    if (soundEnabled) {
+      stopSound.current?.()
+      stopSound.current = null
+    }
+    setSoundEnabled(!soundEnabled)
   }
 
   return <div className={styles.page}>
@@ -259,7 +243,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </div>
         </div>
         <div className={styles.modalInfo}><p className={styles.eyebrow}>CARD DESIGN</p><h2 id="design-modal-title">{templates.find(item => item.id === designModal)?.name}</h2><p>{templates.find(item => item.id === designModal)?.subtitle}</p>
-          <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={() => setSoundEnabled(enabled => !enabled)}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>} Sound {soundEnabled ? 'on' : 'off'}</button>
+          <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>} Sound {soundEnabled ? 'on' : 'off'}</button>
           <h3>Choose a version</h3>{versions.map(version => <button type="button" className={styles.modalVersion + (selectedVersion === version.id ? ' ' + styles.modalVersionSelected : '')} key={version.id} aria-pressed={selectedVersion === version.id} disabled={!version.available} onClick={() => setSelectedVersion(version.id)}><span><strong>{version.name}</strong><small>{version.available && testMode ? 'Available for local test only' : version.available ? 'Not available for checkout yet' : 'Coming soon · not for sale'}</small></span><b>KES {version.price}</b></button>)}
           <p className={styles.hint}>This design is a choice within the same wish product; it does not change the price.</p>
           <button type="button" className={styles.primary} onClick={() => { setTheme(designModal); setSelectedVersion('text'); closeDesign(); document.getElementById('personalise-card')?.scrollIntoView({ behavior: 'smooth' }) }}>Choose Text Wish · KES 50 <ChevronRight size={18}/></button>
