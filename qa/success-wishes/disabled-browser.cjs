@@ -213,8 +213,8 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
       assert.equal(await page.getByRole('button', { name: `Choose ${design} card` }).count(), 1)
     }
     assert.equal(await page.getByRole('button', { name: /Text wish · KES 50/ }).count(), 1)
-    assert.equal(await page.getByRole('button', { name: /Voice wish · KES 75/ }).isDisabled(), false, 'Voice wish can be selected in the front-end composer')
-    assert.equal(await page.getByRole('button', { name: /Video wish · KES 100/ }).isDisabled(), false, 'Video wish can be selected in the front-end composer')
+    assert.equal(await page.getByRole('button', { name: /Voice wish · KES 75/ }).isDisabled(), true, 'Voice wish is unavailable in the current composer')
+    assert.equal(await page.getByRole('button', { name: /Video wish · KES 100/ }).isDisabled(), true, 'Video wish is unavailable in the current composer')
     assert.equal(await page.getByRole('textbox', { name: 'Exam year' }).inputValue(), '2026', 'Year is prefilled for the sender')
     assert.equal(await page.getByRole('button', { name: /Preview my card/ }).isDisabled(), true, 'Preview waits for the required card details')
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
