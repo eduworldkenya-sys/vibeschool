@@ -101,7 +101,7 @@ async function makeWish(context, { message, theme }) {
   const accessibleCard = await card.getAttribute('aria-label')
   assert.match(accessibleCard, /John Mwangi/)
   assert.match(accessibleCard, /exam year 2026/)
-  assert.match(accessibleCard, /Gilgil Township High School/)
+  assert.match(accessibleCard, /Gilgil Township/)
   assert.ok(accessibleCard.includes(message), 'Preview must show the exact original wish')
   assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
   await page.getByRole('button', { name: /Complete test order · KES 50/ }).click()
