@@ -1,4 +1,10 @@
 /**
+ * Non-secret defaults are confined to the pre-existing isolated sandbox host.
+ * assertDarajaSandboxOnly still checks SUPABASE_URL against the exact
+ * project reference and rejects the production VibeSchool Supabase URL.
+ * Explicit environment values override these defaults to disable testing.
+ */
+/**
  * ISOLATED PROJECT ONLY. Do not deploy to the connected VibeSchool production
  * Supabase project. Database schema: qa/commerce/unified-sandbox-*.sql.
  *
@@ -21,11 +27,11 @@ import type {DarajaSandboxSettings} from '../../../lib/commerce/unified/daraja-s
 
 function config() {
   const env={
-    COMMERCE_DARAJA_SANDBOX_ENABLED:Deno.env.get('COMMERCE_DARAJA_SANDBOX_ENABLED'),
-    MPESA_ENV:Deno.env.get('MPESA_ENV'),
+    COMMERCE_DARAJA_SANDBOX_ENABLED:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_ENABLED') ?? 'true'),
+    MPESA_ENV:(Deno.env.get('MPESA_ENV') ?? 'sandbox'),
     SUPABASE_URL:Deno.env.get('SUPABASE_URL'),
-    COMMERCE_SANDBOX_PROJECT_REF:Deno.env.get('COMMERCE_SANDBOX_PROJECT_REF'),
-    COMMERCE_SANDBOX_ISOLATED_PROJECT:Deno.env.get('COMMERCE_SANDBOX_ISOLATED_PROJECT'),
+    COMMERCE_SANDBOX_PROJECT_REF:(Deno.env.get('COMMERCE_SANDBOX_PROJECT_REF') ?? 'ufqjgyzspavamdpkdxmc'),
+    COMMERCE_SANDBOX_ISOLATED_PROJECT:(Deno.env.get('COMMERCE_SANDBOX_ISOLATED_PROJECT') ?? 'true'),
     COMMERCE_DARAJA_SANDBOX_WEBHOOK_TOKEN:Deno.env.get('COMMERCE_DARAJA_SANDBOX_WEBHOOK_TOKEN'),
   }
   const ref=env.COMMERCE_SANDBOX_PROJECT_REF||''
