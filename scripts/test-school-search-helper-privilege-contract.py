@@ -24,10 +24,11 @@ typo_sql = (ROOT / 'supabase/migrations/20261023090000_school_search_typo_tolera
 assert 'public.search_school_directory' in typo_sql
 assert 'public.success_wishes_school_search_public_v1' in typo_sql
 assert 'create extension if not exists fuzzystrmatch with schema extensions' in typo_sql
-assert "pg_trgm.word_similarity_threshold = '0.30'" in typo_sql
+assert 'set pg_trgm.' not in typo_sql, 'search RPCs must not set unavailable extension GUCs'
 assert 'not exact_search.has_exact' in typo_sql, 'shared fuzzy matches must be fallback-only'
 assert 'not exists(select 1 from exact_matches)' in typo_sql, 'public fuzzy matches must be fallback-only'
-assert 'operator(extensions.<%)' in typo_sql, 'use indexed word-similarity trigram prefilter'
+assert 'operator(extensions.<%)' not in typo_sql, 'do not depend on privileged pg_trgm thresholds'
+assert 'regexp_split_to_table' in typo_sql, 'validate close spelling per meaningful school-name token'
 assert 'levenshtein_less_equal' in typo_sql, 'confirm close spellings with a one-edit word check'
 assert 'length(q.raw)<=80' in typo_sql, 'bound edit-distance work'
 assert 'security definer' in typo_sql and 'security invoker' in typo_sql, 'preserve each RPC security model'
