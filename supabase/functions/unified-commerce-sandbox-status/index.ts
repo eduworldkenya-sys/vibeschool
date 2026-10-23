@@ -88,12 +88,27 @@ Deno.serve(async(req)=>{
       ||!['awaiting_customer','reconciliation_required'].includes(a.attempt_state))
       return json({mode:'sandbox',order_id:orderId,state:a.attempt_state||a.order_state,
         simulated_access:false,real_access:false})
+    // This read-only evidence is safe even if the provider status query is
+    // unavailable. Callback/observation records are immutable and never
+    // establish a successful payment by themselves.
+    const evidence=await db`select
+      (select result_code from commerce_sandbox.provider_inbox
+        where checkout_request_id=${a.checkout_request_id}
+        order by created_at desc limit 1) as callback_code,
+      (select result_code from commerce_sandbox.provider_query_observations
+        where checkout_request_id=${a.checkout_request_id}
+        order by observed_at desc limit 1) as last_query_code`
+    const observations={
+      callback_result_code:evidence[0]?.callback_code??null,
+      last_query_result_code:evidence[0]?.last_query_code??null,
+    }
     const required=(name:string)=>{
       const value=Deno.env.get(name)
       if(!value)throw new Error('Sandbox provider not configured')
       return value
     }
-    const settings:DarajaSandboxSettings={
+    let settings:DarajaSandboxSettings
+    try {settings={
       consumerKey:required('COMMERCE_DARAJA_SANDBOX_CONSUMER_KEY'),
       consumerSecret:required('COMMERCE_DARAJA_SANDBOX_CONSUMER_SECRET'),
       passkey:required('COMMERCE_DARAJA_SANDBOX_PASSKEY'),
@@ -102,6 +117,10 @@ Deno.serve(async(req)=>{
       transactionType:'CustomerPayBillOnline',
       callbackUrl:sandboxCallbackUrl(env.SUPABASE_URL || ''),
       testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
+    }} catch {
+      return json({mode:'sandbox',order_id:orderId,
+        state:'reconciliation_required',failure_stage:'provider_configuration',
+        ...observations,simulated_access:false,real_access:false},503)
     }
     const attempt:SandboxAttempt={
       mode:'sandbox',orderId,checkoutRequestId:String(a.checkout_request_id),
@@ -109,13 +128,45 @@ Deno.serve(async(req)=>{
       expectedAmountKes:Number(a.amount_kes),
       phone:String(a.phone),state:a.attempt_state,receipt:a.provider_receipt,
     }
-    const provider=await queryUniversalDarajaSandboxStk({attempt,settings,env})
-    await db`insert into commerce_sandbox.provider_query_observations(
-      checkout_request_id,merchant_request_id,result_code
-    ) values(${provider.checkoutRequestId},${provider.merchantRequestId},
-      ${provider.resultCode}) on conflict do nothing`
-    const verdict=await db`select commerce_sandbox.reconcile_sandbox(
-      ${attempt.checkoutRequestId}) as state`
+    let provider:Awaited<ReturnType<typeof queryUniversalDarajaSandboxStk>>
+    try {provider=await queryUniversalDarajaSandboxStk({attempt,settings,env})}
+    catch (e) {
+      // Expose only a fixed public diagnostic code, never provider response
+      // bodies, credentials or callback secrets.
+      const message=e instanceof Error?e.message:''
+      const failure_code=message.includes('identity or acknowledgement mismatch')
+        ?'provider_identity_mismatch'
+        :message.includes('query uncertain')?'provider_transport_unavailable'
+        :message.includes('query failed')?'provider_http_failure'
+        :message.includes('Malformed Daraja response')||
+          message.includes('Invalid Daraja final result')?'provider_response_invalid'
+        :message.includes('OAuth')||message.includes('credentials')
+          ?'provider_auth_or_configuration'
+        :'provider_query_unknown'
+      return json({mode:'sandbox',order_id:orderId,
+        state:'reconciliation_required',failure_stage:'provider_query',
+        failure_code,...observations,
+        simulated_access:false,real_access:false,
+        message:'No new STK request was sent. Provider status could not be verified.'},409)
+    }
+    try {
+      await db`insert into commerce_sandbox.provider_query_observations(
+        checkout_request_id,merchant_request_id,result_code
+      ) values(${provider.checkoutRequestId},${provider.merchantRequestId},
+        ${provider.resultCode}) on conflict do nothing`
+    } catch {
+      return json({mode:'sandbox',order_id:orderId,
+        state:'reconciliation_required',failure_stage:'persist_provider_observation',
+        provider_result_code:provider.resultCode,
+        ...observations,simulated_access:false,real_access:false},503)
+    }
+    let verdict:Record<string,unknown>[]
+    try {verdict=await db`select commerce_sandbox.reconcile_sandbox(
+        ${attempt.checkoutRequestId}) as state`}
+    catch {return json({mode:'sandbox',order_id:orderId,
+      state:'reconciliation_required',failure_stage:'database_reconciliation',
+      provider_result_code:provider.resultCode,
+      ...observations,simulated_access:false,real_access:false},503)}
     const stored=await db`select state from commerce_sandbox.orders
       where id=${orderId}::uuid`
     const realAccess=false
