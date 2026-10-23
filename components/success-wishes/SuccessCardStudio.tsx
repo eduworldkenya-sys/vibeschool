@@ -214,6 +214,7 @@ type DirectorySchoolOption = {
 export default function SuccessCardStudio({ initialDraft, testMode = false }: { initialDraft?: CardDesignDraft; testMode?: boolean }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
   const [selectedVersion, setSelectedVersion] = useState<'text' | 'voice' | 'video'>('text')
+  const [mediaEnabled, setMediaEnabled] = useState(false)
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
   const [designModal, setDesignModal] = useState<Template | null>(null)
@@ -238,6 +239,14 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear) && (selectedVersion === 'text' || mediaFile))
+  useEffect(() => {
+    let active = true
+    fetch('/api/success-wishes/config', { cache: 'no-store' })
+      .then(response => response.ok ? response.json() : null)
+      .then(config => { if (active) setMediaEnabled(config?.mediaEnabled === true) })
+      .catch(() => { if (active) setMediaEnabled(false) })
+    return () => { active = false }
+  }, [])
   useEffect(() => {
     if (!mediaFile) { setMediaPreviewUrl(''); return }
     const url = URL.createObjectURL(mediaFile)
@@ -356,7 +365,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       </section>
       <section className={styles.pricingStrip} aria-label="Wish versions and prices">
         <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
-          {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null) }}>
+          {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} disabled={version.id !== 'text' && !mediaEnabled} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null) }}>
             {version.name.replace(' Wish', '')} wish · KES {version.price}
           </button>)}
         </div>
