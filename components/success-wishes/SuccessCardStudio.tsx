@@ -99,9 +99,19 @@ export function CardArt({ template, values, svgRef, preview = false }: {
 
 export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(false)
+  const [envelopeOpened, setEnvelopeOpened] = useState(false)
   const replayTimer = useRef<number | null>(null)
   const item = templates.find(t => t.id === template) || templates[0]
-  function toggle() {
+  function openEnvelope() {
+    if (envelopeOpened) return
+    setEnvelopeOpened(true)
+    if (soundEnabled) onOpen()
+    replayTimer.current = window.setTimeout(() => {
+      setOpen(true)
+      onOpenedChange?.(true)
+    }, 460)
+  }
+  function toggleCard() {
     if (replayTimer.current) window.clearTimeout(replayTimer.current)
     if (!open && soundEnabled) onOpen()
     onOpenedChange?.(!open)
@@ -136,15 +146,19 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
           <span className={styles.bookSignoff}>With every good wish, {values.sender.trim() || 'Your name'}</span>
         </div>
       </div>
-      <button type="button" className={styles.bookCover + (open ? ' ' + styles.bookCoverOpened : '')}
+      <button type="button" className={styles.bookCover + (envelopeOpened ? ' ' + styles.bookCoverVisible : '') + (open ? ' ' + styles.bookCoverOpened : '')}
         style={{ '--book-top': palette[template].top, '--book-bottom': palette[template].bottom, '--book-ink': palette[template].ink, '--book-accent': palette[template].accent } as React.CSSProperties}
-        onClick={toggle} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>
+        onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">{template === 'botanical' ? '✿' : template === 'nightfall' ? '✦' : template === 'sunrise' ? '✳' : '✧'}</b>
         <strong>{item.headline}</strong><small>{values.candidate.trim() || 'A wish for someone special'}</small><small>{values.examYear || '2026'}</small>
         <em>{open ? 'Tap to close' : 'Tap to open'}</em>
       </button>
+      {!envelopeOpened && <button type="button" className={styles.bookEnvelope} onClick={openEnvelope} aria-label="Open the envelope and reveal the success card">
+        <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">✉</b><strong>A little encouragement for {values.candidate.trim() || 'someone special'}</strong><small>{values.school?.trim() || `${values.examYear || '2026'} exams`}</small><em>Tap to open</em>
+      </button>}
+      {envelopeOpened && <div className={styles.bookEnvelope + ' ' + styles.bookEnvelopeOpened} aria-hidden="true"><span>VIBESCHOOL · SUCCESS WISHES</span><b>✉</b><strong>A little encouragement</strong><em>Opened</em></div>}
     </div>
-    {open && <div className={styles.bookActions}><button type="button" className={styles.secondary} onClick={toggle}>Close card</button><button type="button" className={styles.primary} onClick={replay}>Replay opening</button></div>}
+    {open && <div className={styles.bookActions}><button type="button" className={styles.secondary} onClick={replay}>Replay opening</button></div>}
   </div>
 }
 
@@ -167,18 +181,20 @@ function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose
   return <div className={styles.modalBackdrop} role="presentation" onKeyDown={event => { if (event.key === 'Escape') onClose() }} onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={id}>
       <button type="button" className={styles.modalClose} aria-label="Close checkout" onClick={onClose}><X size={20}/></button>
-      {detailsConfirmed ? <><p className={styles.eyebrow}>CHECKOUT</p><h2 id={id}>Checkout details confirmed</h2>
+      {detailsConfirmed ? <><p className={styles.eyebrow}>M-PESA CHECKOUT</p><h2 id={id}>Your details are ready</h2>
+        <p className={styles.checkoutNotice}>No payment prompt has been sent and your wish has not been submitted.</p>
         <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>M-Pesa number: {mpesaNumber}</span><span>Total · KES {price}</span></div></div>
         <button type="button" className={styles.primary} onClick={onClose}>Back to your card</button>
       </> : <><p className={styles.eyebrow}>CHECKOUT</p><h2 id={id}>{review ? 'Review your wish' : 'Your order'}</h2>
         <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>For the {values.examYear || '2026'} exams</span><span>{values.school?.trim() || 'No school selected'}</span>{mediaFileName && <span>{mediaFileName}</span>}</div></div>
-        {!review ? <form onSubmit={reviewCheckout} noValidate><label className={styles.checkoutLabel} htmlFor={id + '-mpesa'}>M-Pesa number<input id={id + '-mpesa'} type="tel" inputMode="tel" autoComplete="tel" value={mpesaNumber} onChange={event => { setMpesaNumber(event.target.value); setPhoneError('') }} placeholder="07XX XXX XXX" maxLength={16} aria-describedby={id + '-phone-help'} required/></label>
-          <small id={id + '-phone-help'} className={styles.checkoutDisclosure}>Enter the number that should receive the payment prompt.</small>
+        {!review ? <form onSubmit={reviewCheckout} noValidate><fieldset className={styles.numberPicker}><legend>Choose a number prefix</legend>{['07', '01', '+254'].map(prefix => <button type="button" key={prefix} aria-pressed={mpesaNumber.startsWith(prefix)} onClick={() => { setMpesaNumber(prefix); setPhoneError('') }}>{prefix}</button>)}</fieldset><label className={styles.checkoutLabel} htmlFor={id + '-mpesa'}>M-Pesa number<input id={id + '-mpesa'} type="tel" inputMode="tel" autoComplete="tel" value={mpesaNumber} onChange={event => { setMpesaNumber(event.target.value); setPhoneError('') }} placeholder="07XX XXX XXX" maxLength={16} aria-describedby={id + '-phone-help'} required/></label>
+          <small id={id + '-phone-help'} className={styles.checkoutDisclosure}>Choose the number for this review. No payment prompt is sent here.</small>
           {phoneError && <p role="alert" className={styles.checkoutError}>{phoneError}</p>}
           <div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
           <button type="submit" className={styles.primary}>Review order <ChevronRight size={18}/></button>
         </form> : <><p className={styles.checkoutFine}>M-Pesa number: <strong>{mpesaNumber}</strong></p><div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
-          <div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={() => setReview(false)}>Edit details</button><button type="button" className={styles.primary} onClick={() => setDetailsConfirmed(true)}>Confirm details <ChevronRight size={18}/></button></div>
+          <p className={styles.checkoutNotice}>Review only. This page has not started a payment or sent your wish.</p>
+          <div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={() => setReview(false)}>Edit number</button><button type="button" className={styles.primary} onClick={() => setDetailsConfirmed(true)}>Finish review <ChevronRight size={18}/></button></div>
         </>}
       </>}
     </section>
@@ -186,9 +202,9 @@ function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose
 }
 
 const versions = [
-  { id: 'text', name: 'Text Wish', price: 50, detail: 'Personalised card and written wish' },
-  { id: 'voice', name: 'Voice Wish', price: 75, detail: 'Card, written wish and voice message' },
-  { id: 'video', name: 'Video Wish', price: 100, detail: 'Card, written wish and video message' },
+  { id: 'text', name: 'Text Wish', price: 50, detail: 'A personalised success card with your message, exactly as you wrote it.' },
+  { id: 'voice', name: 'Voice Wish', price: 75, detail: 'Choose a voice message or record your own.' },
+  { id: 'video', name: 'Video Wish', price: 100, detail: 'Record a video message.' },
 ] as const
 
 const messageStarters = [
@@ -217,7 +233,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [mediaEnabled, setMediaEnabled] = useState(false)
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
-  const [designModal, setDesignModal] = useState<Template | null>(null)
   const [candidate, setCandidate] = useState(initialDraft?.candidate || '')
   const [sender, setSender] = useState(initialDraft?.sender || '')
   const [message, setMessage] = useState(initialDraft?.message || '')
@@ -231,7 +246,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
-  const [previewed, setPreviewed] = useState(false)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
@@ -240,12 +254,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear) && (selectedVersion === 'text' || mediaFile))
-  function playFormStartSound() {
-    if (!soundEnabled || formStartSoundPlayed.current) return
-    formStartSoundPlayed.current = true
-    stopSound.current?.()
-    stopSound.current = playWishRevealSound()
-  }
   useEffect(() => {
     let active = true
     fetch('/api/success-wishes/config', { cache: 'no-store' })
@@ -299,7 +307,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     return () => { active = false; window.clearTimeout(timer) }
   }, [school, selectedSchool])
   async function saveTestWish() {
-    if (!ready || !previewed || busy || !testMode) return
+    if (!ready || busy || !testMode) return
     setError(''); setStatus(''); setBusy(true)
     try {
       const response = await fetch('/api/success-wishes/test-orders', {
@@ -321,21 +329,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     catch { setStatus(order.invitationUrl) }
   }
 
-  function previewWish() {
-    setError('')
-    if (!ready) { setError(selectedVersion !== 'text' && !mediaFile ? 'Add a voice or video message to continue.' : 'Add the candidate name, exam year, your name and a wish before previewing.'); return }
-    setPreviewed(true)
-    showDesign(theme)
-  }
-
-  function showDesign(design: Template) {
-    setDesignModal(design)
-  }
-
-  function closeDesign() {
+  function playFormStartSound() {
+    if (!soundEnabled || formStartSoundPlayed.current) return
+    formStartSoundPlayed.current = true
     stopSound.current?.()
-    stopSound.current = null
-    setDesignModal(null)
+    stopSound.current = playWishRevealSound()
   }
 
   function toggleSound() {
@@ -351,19 +349,18 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <Link href="/" className={styles.brand}><span className={styles.brandMark}>V</span><span className={styles.brandText}>VIBESCHOOL<small>SUCCESS WISHES</small></span></Link>
       <div className={styles.headerActions}>
         <button type="button" className={styles.headerSound} aria-label={soundEnabled ? 'Mute card opening sound' : 'Turn card opening sound on'} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={17}/> : <VolumeX size={17}/>}</button>
-        <button type="button" className={styles.headerCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Choose a card <ChevronRight size={15}/></button>
       </div>
     </header>
     <main className={styles.main}>
       <section className={styles.intro}>
-        <p className={styles.eyebrow}>VIBESCHOOL SUCCESS WISHES</p>
-        <h1>Wish Students Good Luck<br/>&amp; <em>Success.</em></h1>
-        <p>Create a beautiful personalised success card for someone preparing for their exams. Send your encouragement from anywhere in the world.</p>
+        <p className={styles.eyebrow}>DIGITAL SUCCESS CARDS</p>
+        <h1>Wish students good luck <em>&amp; success.</em></h1>
+        <p>A personalised card with your words, made to encourage someone before their exams.</p>
         <button type="button" className={styles.heroCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Explore Success Cards <ChevronRight size={16}/></button>
-        <small className={styles.heroNote}>Choose a design · add your words · preview the card</small>
+        <small className={styles.heroNote}>Choose a card · write your wish · send encouragement</small>
       </section>
       <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
-        <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>FOUR DESIGNS, MADE PERSONAL</span><h2 id="choose-card-title">Choose a success card design</h2></div><small>Select a design to preview it</small></div>
+        <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>MAKE IT PERSONAL</span><h2 id="choose-card-title">Choose a card design</h2></div><small>Tap a card to choose it</small></div>
         <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => setTheme(item.id)}
           className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Choose ${item.name} card`}>
           <CardArt template={item.id} values={{ candidate: candidate || 'Your candidate', sender, message: '', examYear: examYear || '2026', school }} preview/>
@@ -381,7 +378,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <section className={styles.composer} aria-labelledby="personalise-card">
         <div className={styles.form} onFocusCapture={event => {
           if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) playFormStartSound()
-        }}><div className={styles.heading}><span>MAKE IT PERSONAL</span><h2 id="personalise-card">Your words make it theirs.</h2></div>
+        }}><div className={styles.heading}><span>DIGITAL SUCCESS CARD</span><h2 id="personalise-card">Write a wish they’ll remember.</h2></div>
           <div className={styles.formRow}>
             <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
             <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026"/></label>
@@ -398,8 +395,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <label>Your name<input autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/></label>
           <label>Your wish<textarea ref={messageInputRef} rows={6} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
             placeholder="Write something only you would say…"/></label>
-          {selectedVersion !== 'text' && <label className={styles.mediaField}>{selectedVersion === 'voice' ? 'Add a voice message' : 'Add a video message'}<input type="file" accept={selectedVersion === 'voice' ? 'audio/*' : 'video/*'} capture={selectedVersion === 'voice' ? 'user' : 'environment'} onChange={event => setMediaFile(event.target.files?.[0] || null)}/>
+          {selectedVersion !== 'text' && <label className={styles.mediaField}>{selectedVersion === 'voice' ? 'Record or choose your voice message' : 'Record or choose your video message'}<input type="file" accept={selectedVersion === 'voice' ? 'audio/*' : 'video/*'} capture={selectedVersion === 'voice' ? 'user' : 'environment'} onChange={event => setMediaFile(event.target.files?.[0] || null)}/>
             {mediaPreviewUrl && (selectedVersion === 'voice' ? <audio className={styles.mediaPlayer} controls src={mediaPreviewUrl}/> : <video className={styles.mediaPlayer} controls playsInline src={mediaPreviewUrl}/>)}
+            <small className={styles.mediaDisclosure}>Recording preview only. This page does not deliver media.</small>
           </label>}
           <div className={styles.messageIdeas}>
             <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
@@ -412,17 +410,17 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             }}>{starter.label}</button>)}</div>
           </div>
           <p className={styles.counter}>{message.length}/220 characters</p>
-          <div className={styles.actions}>
-            <button type="button" className={styles.primary} disabled={!ready} onClick={previewWish}>Preview my card <ChevronRight size={18}/></button>
-          </div>
-          {!ready && <p className={styles.hint}>Add candidate name, exam year, your name and a wish. The school field is optional.</p>}
+          {!ready && <p className={styles.hint}>Add the candidate’s name, your name and a wish. School is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
+          <div className={styles.sendRow}>
+            <p className={styles.orderTotal}>Total <strong>KES {versions.find(version => version.id === selectedVersion)?.price}</strong></p>
+            <button type="button" className={styles.primary} disabled={!ready} onClick={() => setCheckoutOpen(true)}>Send this wish <ChevronRight size={18}/></button>
+          </div>
         </div>
-        <div className={styles.live} id="wish-preview"><span>{previewed ? 'YOUR CARD PREVIEW' : 'CARD PREVIEW'}</span>
+        <div className={styles.live} id="wish-preview"><span>LIVE CARD PREVIEW</span>
           <BookCard template={theme} values={values} soundEnabled={soundEnabled} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
-          {previewed ? <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}. Your message appears just as you wrote it.</p>{mediaFile && <p>{mediaFile.name}</p>}<p className={styles.orderTotal}>Total <strong>KES {versions.find(version => version.id === selectedVersion)?.price}</strong></p>
-            <button type="button" className={styles.primary} onClick={() => setCheckoutOpen(true)}>Continue to checkout <ChevronRight size={18}/></button>
+          <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
             {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
             </> : null}
@@ -431,21 +429,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
               <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={`/success-wishes/invitation#token=${encodeURIComponent(new URL(order.invitationUrl).hash.slice(7))}`}>Open invitation</Link></div>
               <small>Reference {order.id} · Local retention until {new Date(order.expiresAt).toLocaleDateString()}</small>{status && <p role="status" className={styles.status}>{status}</p>}
             </div>}
-          </div> : <p>Choose a design, add your message, then tap the card to open it.</p>}</div>
+          </div></div>
       </section>
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {designModal && <div className={styles.modalBackdrop} role="presentation" onKeyDown={e => { if (e.key === 'Escape') closeDesign() }} onMouseDown={e => { if (e.target === e.currentTarget) closeDesign() }}>
-      <section className={styles.designModal} role="dialog" aria-modal="true" aria-labelledby="design-modal-title">
-        <button autoFocus className={styles.modalClose} type="button" aria-label="Close design preview" onClick={closeDesign}><X size={20}/></button>
-        <div className={styles.modalArt}><BookCard template={designModal} values={values} soundEnabled={soundEnabled} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/></div>
-        <div className={styles.modalInfo}><p className={styles.eyebrow}>YOUR PERSONAL CARD PREVIEW</p><h2 id="design-modal-title">A wish for {candidate.trim() || 'your candidate'}</h2><p>Review the card you created. Tap to open it and read your message as it will appear.</p>
-          <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={15}/> : <VolumeX size={15}/>} Sound {soundEnabled ? 'on' : 'off'}</button>
-          <button type="button" className={styles.primary} onClick={closeDesign}>Back to my card</button>
-        </div>
-      </section>
-    </div>}
     {checkoutOpen && <CheckoutPreview theme={theme} values={values} version={selectedVersion} price={versions.find(version => version.id === selectedVersion)?.price || 50} mediaFileName={mediaFile?.name || ''} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }

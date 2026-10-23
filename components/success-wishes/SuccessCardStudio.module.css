@@ -361,3 +361,51 @@
 .checkoutModal form>.primary{margin-top:14px;width:100%;font-size:15px}
 .checkoutLabel input:focus{outline:3px solid #d7c487;outline-offset:1px;border-color:#a78a4c}
 .checkoutError{margin:9px 0 0;color:#a53e31;font-size:13px;line-height:1.5}
+
+/* Success Wishes digital card journey refinements. */
+.intro h1{max-width:920px;text-wrap:balance}
+.composer{grid-template-columns:minmax(340px,.86fr) minmax(430px,1.14fr);align-items:start}
+.live{order:0;min-width:0}
+.form{order:0}
+.sendRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;padding-top:15px;border-top:1px solid rgba(255,255,255,.1)}
+.sendRow .orderTotal{margin:0;font-size:14px;white-space:nowrap}
+.sendRow .orderTotal strong{color:var(--gold2);font-size:19px}
+.sendRow .primary{min-width:176px;min-height:48px;font-size:14px;font-weight:800}
+.mediaDisclosure{display:block;color:#a8b1bf;font-size:12px;line-height:1.5}
+.availabilityNotice{display:none}
+.bookPreview{border-color:var(--line)}
+.bookStage{isolation:isolate;overflow:hidden;border-radius:12px;background:#101724;box-shadow:0 17px 42px rgba(0,0,0,.32)}
+.bookSpread{z-index:0}
+.bookCover{z-index:1;opacity:0;visibility:hidden;pointer-events:none}
+.bookCoverVisible{opacity:1;visibility:visible;pointer-events:auto}
+.bookEnvelope{position:absolute;inset:0;z-index:3;width:100%;height:100%;overflow:hidden;isolation:isolate;border:1px solid rgba(255,255,255,.32);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12%;text-align:center;cursor:pointer;color:var(--envelope-ink);background:linear-gradient(145deg,var(--envelope-top),var(--envelope-bottom));box-shadow:inset 0 0 0 9px rgba(255,255,255,.12),inset 0 0 0 10px rgba(255,255,255,.24),0 12px 30px rgba(0,0,0,.3);transition:opacity .42s ease .08s,transform .44s cubic-bezier(.2,.72,.18,1),visibility 0s linear .5s}
+.bookEnvelope{--envelope-top:#f7edce;--envelope-bottom:#cfb16b;--envelope-ink:#604823}
+.bookEnvelope:before{content:'';position:absolute;inset:0;z-index:0;background:linear-gradient(32deg,transparent 49.6%,#ffffff38 50%,transparent 50.5%),linear-gradient(-32deg,transparent 49.6%,#00000013 50%,transparent 50.5%);clip-path:polygon(0 48%,50% 79%,100% 48%,100% 100%,0 100%)}
+.bookEnvelope>span{position:absolute;top:10%;left:10%;right:10%;display:flex;justify-content:space-between;gap:7px;font:800 clamp(9px,1.2vw,13px)/1.2 Arial,sans-serif;letter-spacing:1px}
+.bookEnvelope>b{position:relative;z-index:2;margin-top:20px;width:clamp(52px,8vw,76px);height:clamp(52px,8vw,76px);border:2px solid #e2c687;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 32% 27%,#e76e5e,#9c3e36 58%,#6d292b);color:#fff4d8;font:600 22px Georgia,serif;box-shadow:0 5px 12px #24161448}
+.bookEnvelope>strong{position:relative;z-index:2;max-width:92%;font:italic 600 clamp(19px,2.4vw,28px)/1.25 Georgia,serif;text-wrap:balance}
+.bookEnvelope>small,.bookEnvelope>em{position:relative;z-index:2;font:750 11px/1.4 Arial,sans-serif;letter-spacing:.7px;text-transform:uppercase;opacity:.78}
+.bookEnvelope>em{position:absolute;bottom:9%;font-style:normal}
+.bookEnvelopeOpened{opacity:0;visibility:hidden;transform:translateY(-8px) scale(.97);pointer-events:none}
+.bookEnvelope:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
+.bookActions{margin:12px 0 0}
+.bookActions .secondary{min-height:40px;background:transparent;color:var(--gold2);border-color:var(--line)}
+.checkoutSummary{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.checkoutSummary h3{margin:0;color:var(--cream)}
+.checkoutSummary>p{margin:8px 0 0;color:#bac1cc}
+.checkoutModal{background:linear-gradient(145deg,#192131,#111722);border:1px solid var(--line);color:var(--cream)}
+.checkoutModal h2{color:var(--cream);font-weight:500}
+.checkoutOrder{border-color:var(--line)}
+.checkoutOrder span,.checkoutFine,.checkoutDisclosure{color:#bac1cc}
+.checkoutLabel{color:#eee7d9}
+.checkoutLabel input{border-color:#394558;background:#0d1420;color:#f8f3e8}
+.checkoutDisclosure{display:block}
+.checkoutNotice{margin:10px 0;color:#efdaa0;font-size:13px;line-height:1.55}
+.numberPicker{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 4px;padding:10px;border:1px solid var(--line);border-radius:10px}
+.numberPicker legend{padding:0 5px;color:#bac1cc;font-size:12px}
+.numberPicker button{min-width:54px;min-height:38px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.04);color:var(--cream);font-size:13px}
+.numberPicker button[aria-pressed=true]{border-color:var(--gold);color:var(--gold2);background:rgba(216,180,94,.1)}
+.checkoutModal .secondary{border-color:var(--line);background:transparent;color:var(--cream)}
+@media(max-width:850px){.composer{grid-template-columns:1fr}.form{order:0}.live{order:1;max-width:none}.live .bookPreview{max-width:600px}.sendRow{position:sticky;bottom:8px;z-index:5;padding:12px;border:1px solid var(--line);border-radius:13px;background:rgba(17,23,34,.96);backdrop-filter:blur(10px);box-shadow:0 8px 26px #0006}}
+@media(max-width:560px){.intro h1{font-size:clamp(34px,10vw,42px)}.sendRow{margin-inline:-2px;gap:8px}.sendRow .orderTotal{font-size:12px}.sendRow .orderTotal strong{font-size:17px}.sendRow .primary{min-width:0;min-height:46px;padding-inline:14px;font-size:12px}.bookStage{height:clamp(290px,82vw,350px)}.bookEnvelope>span{font-size:9px}.bookEnvelope>strong{font-size:21px}.checkoutModal{padding:24px 18px}}
+@media(prefers-reduced-motion:reduce){.bookEnvelope,.bookCover,.bookSpread{transition:none}}
