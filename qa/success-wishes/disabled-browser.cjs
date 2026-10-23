@@ -127,19 +127,22 @@ async function makeWish(context, { message, theme }) {
     if (request.url().includes('/api/success-wishes/test-checkout')) checkoutRequests.push(request.url())
   }
   page.on('request', trackCheckout)
-  await page.getByRole('button', { name: 'Continue to checkout' }).click()
+  await page.getByRole('button', { name: 'Send this wish' }).click()
   const checkout = page.getByRole('dialog')
   await checkout.getByRole('heading', { name: 'Your order' }).waitFor()
+  await checkout.getByRole('button', { name: '07', exact: true }).click()
+  await checkout.getByRole('button', { name: 'Review order' }).click()
+  await checkout.getByRole('alert').filter({ hasText: 'Enter a valid Kenyan M-Pesa number.' }).waitFor()
   await checkout.getByLabel('M-Pesa number').fill('0712345678')
   await checkout.getByRole('button', { name: 'Review order' }).click()
   await checkout.getByRole('heading', { name: 'Review your wish' }).waitFor()
   await checkout.getByRole('button', { name: 'Start local test checkout' }).click()
   await checkout.getByRole('heading', { name: 'Simulate the payment result' }).waitFor()
-  assert.equal(checkoutRequests.length, 1, 'Local test checkout creates one guarded order')
+  assert.equal(checkoutRequests.length, 1, 'One local checkout request; no M-Pesa STK Push')
   await checkout.getByRole('button', { name: 'Simulate failure' }).click()
   await checkout.getByRole('heading', { name: 'Test payment unsuccessful' }).waitFor()
   assert.equal(await checkout.getByLabel('Private test invitation').count(), 0,
-    'A failed simulated payment cannot release the private invitation')
+    'A failed simulated payment must not release a private invitation')
 
   await checkout.getByRole('button', { name: 'Start a new test' }).click()
   await checkout.getByRole('button', { name: 'Start local test checkout' }).click()
@@ -150,7 +153,7 @@ async function makeWish(context, { message, theme }) {
   assert.equal(new URL(invitation).origin, ROOT)
   assert.match(await checkout.innerText(), /Simulated success only/)
   assert.equal(checkoutRequests.length, 4,
-    'Two start requests, one failed resolution, and one successful resolution are all local')
+    'Two start requests and two simulated outcomes, using the local API only')
   page.off('request', trackCheckout)
   await checkout.getByRole('button', { name: 'Close checkout' }).click()
   return { invitation, page }
