@@ -498,3 +498,25 @@
 .senderPlayback strong{color:var(--gold2);font-size:13px;font-weight:700}
 .senderPlayback audio,.senderPlayback video{display:block;width:100%;max-width:100%;max-height:260px;border-radius:10px;background:#05070c}
 .mediaDisclosure{margin:12px 0 0;font-size:12px;line-height:1.55;color:#d6c7a3}
+
+/* Keep the hinge at the centre of the spread throughout the opening. */
+.bookCover{left:50%;transition:transform .8s cubic-bezier(.2,.72,.18,1)}
+.bookCoverOpened{left:50%;transform:rotateY(-180deg)}
+.bookSurface{position:absolute;inset:0;z-index:3;width:100%;border:0;border-radius:9px;background:transparent;cursor:pointer}
+.bookSurface:focus-visible{outline:3px solid var(--gold2);outline-offset:4px}
+.miniPreview{display:none}
+.composer,#wish-preview{scroll-margin-top:16px}
+@media(max-width:850px){
+  .miniPreview{position:sticky;top:8px;z-index:8;order:-1;display:flex;align-items:center;gap:10px;width:100%;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:#111722;color:var(--cream);text-align:left;box-shadow:0 6px 20px #0005}
+  .miniArtwork{display:block;flex:0 0 85px;overflow:hidden;border-radius:5px}
+  .miniArtwork .art{display:block;width:100%;height:auto}
+  .miniCopy{display:grid;gap:3px;min-width:0;flex:1}
+  .miniCopy strong,.miniCopy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .miniCopy strong{font-size:13px;color:var(--gold2)}
+  .miniCopy small{font-size:11px}
+  .miniCopy>span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;font:13px/1.35 Georgia,serif}
+  #wish-preview{scroll-margin-top:140px}
+}
+@media(prefers-reduced-motion:reduce){.bookCover{transition:none}}
+
+.bookIsOpen .bookSurface{width:50%}
