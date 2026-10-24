@@ -215,7 +215,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     const page = await context.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
-    const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
+    const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
     assert.equal(response.status(), 200)
     await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
@@ -279,7 +279,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
       }
     }
   })
-  await recordPage.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded' })
+  await recordPage.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle' })
   await recordPage.getByRole('button', { name: /Voice Wish · KES 75/ }).click()
   await recordPage.getByRole('button', { name: 'Record voice' }).click()
   await recordPage.getByRole('button', { name: /Stop recording/ }).waitFor()
