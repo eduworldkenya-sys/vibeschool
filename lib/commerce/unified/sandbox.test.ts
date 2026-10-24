@@ -142,6 +142,38 @@ test('transport calls sandbox OAuth then STK; till vs PayBill fields', async () 
     assert.equal(calls[1].body?.Amount, 300)
   }
 })
+test('separately approved simulator PartyA and STK recipient never become interchangeable', async () => {
+  const recipient = '254700111222'
+  const calls: Array<Record<string, unknown>> = []
+  const fetcher = (async (url: RequestInfo | URL, init?: RequestInit) => {
+    if (String(url).includes('/oauth/')) return Response.json({access_token:'sandbox-access-token'})
+    calls.push(JSON.parse(String(init?.body)) as Record<string, unknown>)
+    return Response.json({
+      ResponseCode:'0',CheckoutRequestID:'ws_CO_1234567',MerchantRequestID:'merchant_12345',
+    })
+  }) as typeof fetch
+  const approved = {...settings, testPhone:'254712345678', stkRecipientPhone:recipient}
+  const result = await sendUniversalDarajaSandboxStk({
+    order:order(), phone:recipient, settings:approved, env,
+    fetcher, hasReservedAttempt:async()=>true,
+  })
+  assert.equal(result.phone,recipient)
+  assert.equal(calls.length,1)
+  assert.equal(calls[0].PartyA,'254712345678')
+  assert.equal(calls[0].PhoneNumber,recipient)
+  assert.equal(calls[0].PartyB,'174379')
+  // No other phone may be selected by the client, including PartyA itself.
+  await assert.rejects(sendUniversalDarajaSandboxStk({
+    order:order(),phone:'254712345678',settings:approved,env,
+    fetcher,hasReservedAttempt:async()=>true,
+  }),/approved sandbox STK recipient/)
+  await assert.rejects(sendUniversalDarajaSandboxStk({
+    order:order(),phone:'254700111223',settings:approved,env,
+    fetcher,hasReservedAttempt:async()=>true,
+  }),/approved sandbox STK recipient/)
+  assert.equal(calls.length,1)
+})
+
 test('provider request never starts if env, phone, callback or reservation are unsafe', async () => {
   let fetchCount = 0
   const fetcher = (async () => { fetchCount++; throw new Error('unexpected fetch') }) as typeof fetch
