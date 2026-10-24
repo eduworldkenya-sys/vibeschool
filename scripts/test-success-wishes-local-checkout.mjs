@@ -80,5 +80,6 @@ test('production cannot call simulated checkout from browser', async () => {
   assert.match(component, /No payment prompt has been sent and your wish has not been submitted/)
   assert.match(component, /Review only\. This page has not started a payment or sent your wish/)
   assert.doesNotMatch(component, /fetch\(['"]\/api\/success-wishes\/test-checkout/)
-  assert.doesNotMatch(component, /Complete test order · KES 50/)
+  assert.match(component, /testMode && selectedVersion === 'text'/)
+  assert.match(component, /Test wish saved/)
 })
