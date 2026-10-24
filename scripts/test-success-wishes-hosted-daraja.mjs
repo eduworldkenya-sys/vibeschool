@@ -170,8 +170,9 @@ test('the operator token is never returned to the browser and the route has loca
   assert.match(route, /hostedSandboxConfig\(process\.env\)/)
   assert.match(route, /claimHostedSandboxSend\(orderId, key\)/)
   assert.match(route, /markHostedSandboxUncertain\(orderId, key\)/)
-  assert.match(component, /Daraja sandbox STK/)
-  assert.match(component, /Send one sandbox STK/)
-  assert.match(component, /Check payment status/)
+  // Main's public sender UI remains review-only; the operator routes are not exposed.
+  assert.match(component, /No payment prompt has been sent and your wish has not been submitted/)
+  assert.doesNotMatch(component, /Send one sandbox STK/)
+  assert.doesNotMatch(component, /Check payment status/)
   assert.doesNotMatch(component, /COMMERCE_SANDBOX_OPERATOR_TOKEN/)
 })
