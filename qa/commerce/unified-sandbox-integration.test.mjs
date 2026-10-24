@@ -66,7 +66,7 @@ test('synthetic guest checkout persists one paid-simulated wish and no real enti
   const attemptId=sql(`select commerce_sandbox.reserve_attempt(
     '${orderId}','254700111222');`)
   assert.equal(attemptId,sql(`select commerce_sandbox.reserve_attempt(
-    '${orderId}','254712345678');`))
+    '${orderId}','254700111222');`))
 
   const order=makeSandboxOrder({
     orderId:'order_'+orderId.replaceAll('-',''),
