@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
 import { Check, ChevronRight, Volume2, VolumeX, X } from 'lucide-react'
+import SenderMediaCapture from './SenderMediaCapture'
 import { supabase } from '@/lib/supabase'
 import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import styles from './SuccessCardStudio.module.css'
@@ -101,7 +102,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   )
 }
 
-export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void }) {
+export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, mediaKind = 'text', mediaSrc = '' }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string }) {
   const [open, setOpen] = useState(false)
   const [envelopeOpened, setEnvelopeOpened] = useState(false)
   const replayTimer = useRef<number | null>(null)
@@ -157,6 +158,12 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     {envelopeOpened && <div className={styles.bookActions}>
       <button type="button" className={styles.secondary} onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>{open ? 'Close card' : 'Open card'}</button>
     </div>}
+    {open && mediaSrc && mediaKind !== 'text' && <section className={styles.senderPlayback} aria-label="Sender recording preview">
+      <strong>{mediaKind === 'voice' ? 'Listen to your voice wish' : 'Watch your video wish'}</strong>
+      {mediaKind === 'voice'
+        ? <audio controls preload="metadata" src={mediaSrc} aria-label="Preview your recorded voice wish"/>
+        : <video controls playsInline preload="metadata" src={mediaSrc} aria-label="Preview your recorded video wish"/>}
+    </section>}
   </div>
 }
 
@@ -231,6 +238,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [mediaEnabled, setMediaEnabled] = useState(false)
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
+  const [previewSession, setPreviewSession] = useState(0)
   const [candidate, setCandidate] = useState(initialDraft?.candidate || '')
   const [sender, setSender] = useState(initialDraft?.sender || '')
   const [message, setMessage] = useState(initialDraft?.message || '')
@@ -366,7 +374,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       </section>
       <section className={styles.pricingStrip} aria-label="Wish versions and prices">
         <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
-          {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} disabled={version.id !== 'text' && !mediaEnabled} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null) }}>
+          {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null); setPreviewSession(current => current + 1) }}>
             {version.name} · KES {version.price}
           </button>)}
         </div>
@@ -391,10 +399,13 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <label>Your name<input autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/></label>
           <label>Your wish<textarea ref={messageInputRef} rows={6} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
             placeholder="Write something only you would say…"/></label>
-          {selectedVersion !== 'text' && <label className={styles.mediaField}>{selectedVersion === 'voice' ? 'Record or choose your voice message' : 'Record or choose your video message'}<input type="file" accept={selectedVersion === 'voice' ? 'audio/*' : 'video/*'} capture={selectedVersion === 'voice' ? 'user' : 'environment'} onChange={event => setMediaFile(event.target.files?.[0] || null)}/>
-            {mediaPreviewUrl && (selectedVersion === 'voice' ? <audio className={styles.mediaPlayer} controls src={mediaPreviewUrl}/> : <video className={styles.mediaPlayer} controls playsInline src={mediaPreviewUrl}/>)}
-            <small className={styles.mediaDisclosure}>Recording preview only. This page does not deliver media.</small>
-          </label>}
+          {selectedVersion !== 'text' && <>
+            <SenderMediaCapture key={selectedVersion} kind={selectedVersion} file={mediaFile} onChange={setMediaFile}/>
+            {mediaPreviewUrl && <div className={styles.localMediaReview}>
+              {selectedVersion === 'voice' ? <audio className={styles.mediaPlayer} controls preload="metadata" src={mediaPreviewUrl} aria-label="Listen to your recorded voice message"/> : <video className={styles.mediaPlayer} controls playsInline preload="metadata" src={mediaPreviewUrl} aria-label="Watch your recorded video message"/>}
+            </div>}
+            {!mediaEnabled && <p className={styles.mediaDisclosure} role="status">You can record and preview here. Voice and video delivery is not active.</p>}
+          </>}
           <div className={styles.messageIdeas}>
             <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
             <div>{messageStarters.map(starter => <button type="button" key={starter.label} aria-label={'Use wish starter: ' + starter.label} onClick={() => {
@@ -411,11 +422,16 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
             <p className={styles.orderTotal}>Total <strong>KES {versions.find(version => version.id === selectedVersion)?.price}</strong></p>
-            <button type="button" className={styles.primary} disabled={!ready} onClick={() => setCheckoutOpen(true)}>Send this wish <ChevronRight size={18}/></button>
+            <button type="button" className={styles.primary} disabled={!ready} onClick={() => {
+              if (selectedVersion !== 'text' && !mediaEnabled) {
+                setPreviewSession(current => current + 1)
+                window.requestAnimationFrame(() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+              } else setCheckoutOpen(true)
+            }}>{selectedVersion !== 'text' && !mediaEnabled ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>
           </div>
         </div>
-        <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW</span>
-          <BookCard template={theme} values={values} soundEnabled={soundEnabled} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
+        <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
+          <BookCard key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
           <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
             {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
