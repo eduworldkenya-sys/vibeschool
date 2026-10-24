@@ -211,6 +211,7 @@ function SandboxDarajaCheckout({ theme, values, onClose }: {
   theme: Template; values: CardValues; onClose: () => void
 }) {
   const [available, setAvailable] = useState<boolean | null>(null)
+  const [phoneLast4, setPhoneLast4] = useState('')
   const [busy, setBusy] = useState(false)
   const [order, setOrder] = useState<{ orderId: string; key: string } | null>(null)
   const [stage, setStage] = useState('ready')
@@ -224,9 +225,13 @@ function SandboxDarajaCheckout({ theme, values, onClose }: {
     fetch('/api/success-wishes/test-daraja', { cache: 'no-store' })
       .then(async response => response.ok ? response.json() : null)
       .then(data => {
-        if (active) setAvailable(data?.available === true &&
-          data?.mode === 'daraja_sandbox' && data?.simulatedOnly === true &&
-          data?.realAccess === false && data?.amountKes === 50)
+        if (active) {
+          const valid = data?.available === true && data?.mode === 'daraja_sandbox' &&
+            data?.simulatedOnly === true && data?.realAccess === false &&
+            data?.amountKes === 50 && /^\d{4}$/.test(data?.phoneLast4 || '')
+          setAvailable(valid)
+          if (valid) setPhoneLast4(data.phoneLast4)
+        }
       })
       .catch(() => { if (active) setAvailable(false) })
     return () => { active = false }
@@ -251,7 +256,7 @@ function SandboxDarajaCheckout({ theme, values, onClose }: {
       const data = await request('prepare', {
         candidate: values.candidate, sender: values.sender, message: values.message,
         examYear: values.examYear || '2026', school: values.school || '',
-        theme, version: 'text', phone: '254708374149',
+        theme, version: 'text',
       })
       if (data.state !== 'prepared' || typeof data.orderId !== 'string' ||
         typeof data.key !== 'string') throw new Error('Test order could not be verified.')
@@ -334,7 +339,7 @@ function SandboxDarajaCheckout({ theme, values, onClose }: {
       <div className={styles.checkoutOrder}>
         <CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/>
         <div><strong>Text Wish · {values.candidate.trim()}</strong>
-          <span>Sandbox test number: 254708374149</span>
+          <span>Approved test recipient: {phoneLast4 ? '•••• ' + phoneLast4 : 'Checking…'}</span>
           <span>Total · KES 50 (simulated)</span></div>
       </div>
       <p className={styles.checkoutDisclosure}>Only an approved Safaricom sandbox test number is allowed. This cannot charge a customer or deliver a real paid wish.</p>
