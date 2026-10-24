@@ -40,12 +40,17 @@ test('hosted sandbox requires localhost dev flag, sandbox provider and private t
       COMMERCE_SANDBOX_TEST_PHONE: '254708374149',
       COMMERCE_SANDBOX_PROJECT_REF: 'ufqjgyzspavamdpkdxmc',
     }
-    assert.ok(lib.hostedSandboxConfig(valid))
+    assert.equal(lib.hostedSandboxConfig(valid)?.approvedPhone, '254708374149')
+    assert.equal(lib.hostedSandboxConfig({
+      ...valid, COMMERCE_SANDBOX_TEST_PHONE: '254712345678',
+    })?.approvedPhone, '254712345678',
+    'A separately approved sandbox recipient is accepted from server-only config')
     for (const veto of [
       { NODE_ENV: 'production' }, { VERCEL_ENV: 'preview' },
       { VERCEL_ENV: 'production' }, { MPESA_ENV: 'production' },
       { COMMERCE_SANDBOX_PROJECT_REF: 'yauqsxggtuxuykcbrtzf' },
-      { COMMERCE_SANDBOX_TEST_PHONE: '254700000000' },
+      { COMMERCE_SANDBOX_TEST_PHONE: '0712345678' },
+      { COMMERCE_SANDBOX_TEST_PHONE: '254000000000' },
       { VIBESCHOOL_DARAJA_HOSTED_TEST_ENABLED: '0' },
       { VIBESCHOOL_SUCCESS_WISHES_TEST_MODE: '0' },
       { COMMERCE_SANDBOX_OPERATOR_TOKEN: 'weak' },
@@ -89,6 +94,25 @@ test('one STK POST uses pinned test product/phone and no browser secrets', async
       guestReference: 'guest_test_123',
     }, { token }, mock), /Unsupported/)
     assert.equal(calls, 1)
+    const customPhone = '254712345678'
+    const customMock = async (url, opts) => {
+      assert.equal(url, lib.SANDBOX_ORIGIN + '/unified-commerce-sandbox-checkout')
+      assert.equal(JSON.parse(opts.body).phone, customPhone)
+      return new Response(JSON.stringify({
+        mode: 'sandbox', order_id: goodOrderId,
+        checkout_request_id: checkoutId, amount_kes: 50,
+        state: 'awaiting_customer',
+      }), { status: 202 })
+    }
+    const custom = await lib.initiateHostedSandboxStk({
+      localOrderId: goodOrderId, phone: customPhone,
+      guestReference: 'guest_browser_' + goodOrderId.replaceAll('-', ''),
+    }, { token, approvedPhone: customPhone }, customMock)
+    assert.equal(custom.state, 'awaiting_customer')
+    await assert.rejects(lib.initiateHostedSandboxStk({
+      localOrderId: goodOrderId, phone: '254708374149',
+      guestReference: 'guest_browser_' + goodOrderId.replaceAll('-', ''),
+    }, { token, approvedPhone: customPhone }, customMock), /Unsupported/)
   })
 })
 
