@@ -1,17 +1,22 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, GraduationCap, Heart, LockKeyhole, Mic, Play, RotateCcw, Sparkles, Video } from 'lucide-react'
 import styles from './WishCardExperience.module.css'
+import WishEnvelope from './WishEnvelope'
 
 type Props = {
   recipient?: string; school?: string; sender?: string
   text?: string | null; kind?: 'text' | 'voice' | 'video'
   mediaUrl?: string | null; busy?: boolean; onPlay?: () => void
+  ceremony?: boolean
 }
 
 // Pure presentation: real inbox API controls consent, identity and private playback.
-export default function WishCardExperience({recipient, school, sender, text, kind = 'text', mediaUrl, busy = false, onPlay}: Props) {
+export default function WishCardExperience({recipient, school, sender, text, kind = 'text', mediaUrl, busy = false, onPlay, ceremony = true}: Props) {
   const [step, setStep] = useState(0)
+  const [opened, setOpened] = useState(!ceremony)
+  const cover = useRef<HTMLElement>(null)
+  const fromCeremony = useRef(false)
   const who = recipient || 'You'
   const from = sender || 'Someone special'
   const schoolName = school
@@ -20,6 +25,10 @@ export default function WishCardExperience({recipient, school, sender, text, kin
   const next = () => setStep(value => Math.min(3, value + 1))
   const screenStyle = (index: number, variant: string) => [styles.phone, variant, step === index ? styles.current : styles.notCurrent].join(' ')
 
+  useEffect(() => {
+    if (opened && fromCeremony.current) cover.current?.focus({ preventScroll: true })
+  }, [opened])
+
   return <section className={styles.experience} aria-label="Private success card">
     <div className={styles.topline}>
       <div><span className={styles.overline}><Sparkles size={14} aria-hidden="true"/>JUST FOR YOU</span>
@@ -27,8 +36,9 @@ export default function WishCardExperience({recipient, school, sender, text, kin
         <p>A message from someone cheering you on.</p></div>
       <span className={styles.privacy}><LockKeyhole size={14} aria-hidden="true"/>Private view</span>
     </div>
+    {!opened ? <WishEnvelope recipient={who} sender={from} onOpened={() => { fromCeremony.current = true; setOpened(true) }}/> : <>
     <div className={styles.screenGrid}>
-      <article className={screenStyle(0, styles.cover)} aria-label="Cover — 1 of 4">
+      <article ref={cover} tabIndex={-1} className={screenStyle(0, styles.cover)} aria-label="Cover — 1 of 4">
         <div className={styles.phoneTop}><span><GraduationCap size={16} aria-hidden="true"/> VibeSchool</span><span>FOR YOU</span></div>
         <div className={styles.coverArtwork} aria-hidden="true"><span className={styles.halo}/><span className={styles.figureHead}/><span className={styles.figureBody}/><Sparkles className={styles.coverStar} size={25}/></div>
         <div className={styles.coverCopy}><span className={styles.cheer}>Your future is bright</span><div className={styles.coverTitle}>ALL THE<br/><em>BEST!</em></div><span className={styles.recipient}>{who}</span>{schoolName && <span className={styles.schoolName}>{schoolName}</span>}</div>
@@ -69,5 +79,6 @@ export default function WishCardExperience({recipient, school, sender, text, kin
     <nav className={styles.navigation} aria-label="Card pages"><button type="button" className={styles.back} onClick={() => setStep(value => Math.max(0, value - 1))} disabled={step === 0}><ArrowLeft size={16} aria-hidden="true"/> Back</button>
       <div className={styles.steps}>{screens.map((screen, index) => <button type="button" key={screen} className={[styles.dot, step === index ? styles.activeDot : ''].join(' ')} aria-current={step === index ? 'step' : undefined} aria-label={'Show ' + screen} onClick={() => setStep(index)}>{index < step ? <Check size={12} aria-hidden="true"/> : index + 1}</button>)}</div>
       <button type="button" className={styles.forward} onClick={step === 3 ? () => setStep(0) : next}>{step === 3 ? 'Replay' : 'Next'} <ArrowRight size={16} aria-hidden="true"/></button></nav>
+    </>}
   </section>
 }
