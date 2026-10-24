@@ -117,15 +117,6 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     onOpenedChange?.(!open)
     setOpen(value => !value)
   }
-  function replay() {
-    if (replayTimer.current) window.clearTimeout(replayTimer.current)
-    setOpen(false)
-    replayTimer.current = window.setTimeout(() => {
-      if (soundEnabled) onOpen()
-      setOpen(true)
-      onOpenedChange?.(true)
-    }, 180)
-  }
   useEffect(() => () => { if (replayTimer.current) window.clearTimeout(replayTimer.current) }, [])
   return <div className={styles.bookPreview}>
     <div className={styles.bookStage + (open ? ' ' + styles.bookIsOpen : '')}>
@@ -160,7 +151,6 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     </div>
     {envelopeOpened && <div className={styles.bookActions}>
       <button type="button" className={styles.secondary} onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>{open ? 'Close card' : 'Open card'}</button>
-      {open && <button type="button" className={styles.primary} onClick={replay}>Replay opening</button>}
     </div>}
   </div>
 }
