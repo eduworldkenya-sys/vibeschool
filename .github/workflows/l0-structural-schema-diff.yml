@@ -1,0 +1,225 @@
+name: L0 Production vs Rebuild Structural Schema Diff
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - ".github/workflows/l0-structural-schema-diff.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: l0-structural-schema-diff-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  structural-diff:
+    name: Object-level production vs local rebuild diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production-migration-repair
+    env:
+      EXPECTED_PROJECT_REF: yauqsxggtuxuykcbrtzf
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .l0-schema-diff/catalog .l0-schema-diff/logs
+          : > .l0-schema-diff/exit_codes.env
+          {
+            echo "run_id=${{ github.run_id }}"
+            echo "sha=${{ github.sha }}"
+            echo "ref=${{ github.ref }}"
+            echo "project_ref=$EXPECTED_PROJECT_REF"
+            echo "mode=READ_ONLY_PRODUCTION"
+          } > .l0-schema-diff/context.txt
+
+      - name: Upload telemetry heartbeat
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: l0-heartbeat-${{ github.run_id }}
+          path: .l0-schema-diff/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Install Supabase CLI
+        shell: bash
+        run: |
+          set +e
+          npm install --global supabase@latest > .l0-schema-diff/logs/cli-install.log 2>&1
+          status=$?
+          echo "CLI_INSTALL_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          if command -v supabase >/dev/null 2>&1; then
+            supabase --version > .l0-schema-diff/logs/cli-version.log 2>&1
+            version_status=$?
+            echo "CLI_VERSION_EXIT=$version_status" >> .l0-schema-diff/exit_codes.env
+          else
+            echo "supabase CLI unavailable after installation" > .l0-schema-diff/logs/cli-version.log
+          fi
+          exit 0
+
+      - name: Link exact production project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          set +e
+          supabase link --project-ref "$EXPECTED_PROJECT_REF" > .l0-schema-diff/logs/link.log 2>&1
+          status=$?
+          echo "LINK_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          echo "Production link exit code: $status"
+          exit 0
+
+      - name: Start isolated local Supabase
+        shell: bash
+        run: |
+          set +e
+          supabase start \
+            -x studio,imgproxy,inbucket,edge-runtime,logflare,vector,supavisor \
+            > .l0-schema-diff/logs/supabase-start.log 2>&1
+          status=$?
+          echo "SUPABASE_START_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          echo "Local Supabase start exit code: $status"
+          exit 0
+
+      - name: Rebuild local database from repository migrations
+        shell: bash
+        run: |
+          set +e
+          supabase db reset --local --no-seed \
+            > .l0-schema-diff/logs/local-rebuild.log 2>&1
+          status=$?
+          echo "$status" > .l0-schema-diff/local-rebuild.exit-code
+          echo "LOCAL_REBUILD_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          echo "Local rebuild exit code: $status"
+          exit 0
+
+      - name: Capture local object inventory
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          supabase db dump --local --schema public \
+            -f .l0-schema-diff/local-public-schema.sql \
+            > .l0-schema-diff/logs/local-dump.log 2>&1
+          status=$?
+          echo "LOCAL_DUMP_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          echo "Local schema dump exit code: $status"
+          exit 0
+
+      - name: Capture production object inventory
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          set +e
+          supabase db dump --linked --schema public \
+            -f .l0-schema-diff/production-public-schema.sql \
+            > .l0-schema-diff/logs/production-dump.log 2>&1
+          status=$?
+          echo "PRODUCTION_DUMP_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          echo "Production schema dump exit code: $status"
+          exit 0
+
+      - name: Generate object-level structural diff with Migra
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          set +e
+          supabase db diff \
+            --linked \
+            --use-migra \
+            --schema public \
+            --output .l0-schema-diff/production-vs-rebuild-migra.sql \
+            > .l0-schema-diff/logs/migra-run.log 2>&1
+          status=$?
+          echo "$status" > .l0-schema-diff/migra.exit-code
+          echo "MIGRA_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          echo "Migra diff exit code: $status"
+          exit 0
+
+      - name: Produce evidence counts and file-integrity checks
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          root = Path('.l0-schema-diff')
+          for label in ('local', 'production'):
+              path = root / f'{label}-public-schema.sql'
+              if not path.exists():
+                  (root / f'{label}-inventory.status').write_text('MISSING\n', encoding='utf-8')
+                  continue
+              text = path.read_text(encoding='utf-8', errors='replace')
+              counts = {
+                  'tables': len(re.findall(r'^CREATE TABLE ', text, re.M)),
+                  'functions': len(re.findall(r'^CREATE FUNCTION ', text, re.M)),
+                  'policies': len(re.findall(r'^CREATE POLICY ', text, re.M)),
+                  'indexes': len(re.findall(r'^CREATE (?:UNIQUE )?INDEX ', text, re.M)),
+                  'triggers': len(re.findall(r'^CREATE TRIGGER ', text, re.M)),
+                  'views': len(re.findall(r'^CREATE VIEW ', text, re.M)),
+              }
+              (root / f'{label}-object-counts.txt').write_text(
+                  '\n'.join(f'{k}={v}' for k, v in counts.items()) + '\n',
+                  encoding='utf-8',
+              )
+              (root / f'{label}-inventory.status').write_text('PRESENT\n', encoding='utf-8')
+
+          diff = root / 'production-vs-rebuild-migra.sql'
+          if diff.exists():
+              (root / 'migra-size.txt').write_text(str(diff.stat().st_size) + '\n', encoding='utf-8')
+          else:
+              (root / 'migra-size.txt').write_text('MISSING\n', encoding='utf-8')
+          PY
+          status=$?
+          echo "EVIDENCE_CHECK_EXIT=$status" >> .l0-schema-diff/exit_codes.env
+          exit 0
+
+      - name: Capture Supabase diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          supabase status > .l0-schema-diff/logs/supabase-status.txt 2>&1
+          docker ps -a > .l0-schema-diff/logs/docker-ps.txt 2>&1
+          for container in $(docker ps -a --format '{{.Names}}' | grep '^supabase_' || true); do
+            docker logs "$container" > ".l0-schema-diff/logs/${container}.log" 2>&1 || true
+          done
+          exit 0
+
+      - name: Hash immutable evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum .l0-schema-diff/* .l0-schema-diff/logs/* > .l0-schema-diff/evidence.sha256 || true
+
+      - name: Upload immutable structural diff evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: l0-structural-schema-diff-${{ github.run_id }}
+          path: .l0-schema-diff/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Destroy isolated local database
+        if: always()
+        shell: bash
+        run: |
+          supabase stop --no-backup > /dev/null 2>&1 || true
