@@ -142,6 +142,43 @@ node --test scripts/commerce/hosted-daraja-sandbox-proof.test.mjs
 
 After completing the **sandbox-only** secret checklist above in the isolated Supabase project's Edge Function Secrets screen, set the *separate* operator token and approved **simulator** phone securely in your terminal environment (do not paste these values into chat or GitHub). Then explicitly execute:
 
+A previously acknowledged checkout can be inspected *without any new STK*
+using `--status-only`, for example the observed October 24 expired order:
+
+```powershell
+node scripts/commerce/hosted-daraja-sandbox-proof.mjs --status-only 7ac68783-577a-42c3-86ca-fc20e61a0a53
+```
+
+This is one authenticated **status** call only; it cannot create an order,
+and it requires the same private operator token and simulator phone variables
+as the proof runner. **Do not use `--execute` to check an existing order.**
+
+The status endpoint may temporarily return HTTP 409 with
+`reconciliation_required` even though Safaricom already delivered a callback.
+The proof runner now retries **status-only** within the original bounded poll
+window, but only for same-order, non-live, explicitly recoverable provider-query
+or database-reconciliation errors. Mismatched identities, real-access flags,
+unauthorized responses and malformed data still fail closed. After 30 status
+checks without independent verification, the test remains unconfirmed and
+must not be restarted automatically.
+
+Verified local operator evidence from 2026-10-24: one new KES 50 sandbox
+STK acknowledgement, callback `ResultCode=1037`, then a subsequent
+status-only reconciliation returning `expired` with **zero** simulated
+access grants. This establishes a working callback/failure path, not a
+provider-confirmed successful purchase.
+
+Safaricom's official M-Pesa Express documentation describes successful
+payment as callback `ResultCode=0` with receipt metadata; a successful STK
+**acknowledgement alone is not a settlement**. For a success scenario, use
+the signed-in Safaricom Daraja **M-Pesa Express simulator/test data**, verify
+the specific scenario it supports, and collect a matching provider callback
+plus independent STK Query for the *same* order before accepting success.
+The static sandbox test number does not guarantee a response or a success
+outcome. Never fabricate a receipt, manually mark a sandbox payment as paid,
+or enable real production charges as a workaround.
+
+
 ```sh
 node scripts/commerce/hosted-daraja-sandbox-proof.mjs --execute
 ```
