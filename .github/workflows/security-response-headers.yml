@@ -1,0 +1,30 @@
+name: Browser Security Header Contract
+
+on:
+  pull_request:
+    paths:
+      - 'next.config.js'
+      - 'scripts/test-security-response-headers.mjs'
+      - '.github/workflows/security-response-headers.yml'
+      - 'package.json'
+  push:
+    branches: [main]
+    paths:
+      - 'next.config.js'
+      - 'scripts/test-security-response-headers.mjs'
+      - '.github/workflows/security-response-headers.yml'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  static-security-headers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify response header and no-store contract
+        run: node scripts/test-security-response-headers.mjs
