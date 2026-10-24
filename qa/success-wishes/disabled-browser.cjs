@@ -122,24 +122,24 @@ async function makeWish(context, { message, theme }) {
   bookToggle = page.getByRole('button', { name: 'Open the book card' })
   await bookToggle.click()
   assert.equal(await liveWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'false', 'The same control opens the book again')
-  const checkoutRequests = []
-  const trackCheckout = request => { if (request.url().includes('/api/success-wishes/')) checkoutRequests.push(request.url()) }
+  // This test runs localhost with test mode on, but deliberately without hosted
+  // provider credentials or the Daraja feature flag. The sandbox checkout must
+  // fail closed, without an STK or order POST.
+  const checkoutPosts = []
+  const trackCheckout = request => {
+    if (request.url().includes('/api/success-wishes/test-daraja') && request.method() === 'POST')
+      checkoutPosts.push(request.url())
+  }
   page.on('request', trackCheckout)
   await page.getByRole('button', { name: 'Send this wish' }).click()
   const checkout = page.getByRole('dialog')
-  await checkout.getByRole('heading', { name: 'Your order' }).waitFor()
-  await checkout.getByRole('button', { name: '07', exact: true }).click()
-  await checkout.getByRole('button', { name: 'Review order' }).click()
-  await checkout.getByRole('alert').filter({ hasText: 'Enter a valid Kenyan M-Pesa number.' }).waitFor()
-  await checkout.getByLabel('M-Pesa number').fill('0712345678')
-  await checkout.getByRole('button', { name: 'Review order' }).click()
-  await checkout.getByRole('heading', { name: 'Review your wish' }).waitFor()
-  await checkout.getByRole('button', { name: 'Finish review' }).click()
-  await checkout.getByRole('heading', { name: 'Your details are ready' }).waitFor()
-  assert.match(await checkout.innerText(), /No payment prompt has been sent/)
-  assert.deepEqual(checkoutRequests, [], 'Front-end checkout review does not call order or payment APIs')
+  await checkout.getByRole('heading', { name: 'Test M-Pesa checkout' }).waitFor()
+  await checkout.getByRole('alert').filter({ hasText: 'Sandbox test is unavailable.' }).waitFor()
+  assert.equal(await checkout.getByRole('button', { name: 'Send one sandbox STK' }).count(), 0,
+    'An unconfigured test environment cannot initiate even a sandbox STK')
+  assert.deepEqual(checkoutPosts, [], 'Fail-closed checkout does not submit payment or order requests')
   page.off('request', trackCheckout)
-  await checkout.getByRole('button', { name: 'Back to your card' }).click()
+  await checkout.getByRole('button', { name: 'Close test checkout' }).click()
   assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
   await page.getByRole('button', { name: /Complete test order · KES 50/ }).click()
   await page.getByRole('heading', { name: 'Test wish saved' }).waitFor()
