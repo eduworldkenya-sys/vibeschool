@@ -260,3 +260,53 @@ Remaining certification: actual Safaricom success `ResultCode: 0` with a
 matching real sandbox callback/query and receipt; a browser UI walkthrough
 with the founder's approved test environment; and separate, explicitly
 authorised production commissioning. Keep live initiation OFF.
+
+## Stage 3 — separate STK prompt recipient (2026-10-24)
+
+Daraja M-Pesa Express supports a `PartyA` sender and separate
+`PhoneNumber` STK prompt recipient. The signed-in portal simulator returned
+an acknowledgement for `PartyA=254708374149` with a separately controlled
+recipient number, and the operator provided an SMS indicating a KES 1 sandbox
+confirmation. **This was not a VibeSchool order, and the confirmation SMS
+alone does not certify the VibeSchool checkout.**
+
+The isolated checkout adapter now supports:
+
+- `COMMERCE_DARAJA_SANDBOX_TEST_PHONE`: trusted simulator `PartyA`
+  (defaults to `254708374149`); **do not change it to the recipient**.
+- `COMMERCE_DARAJA_SANDBOX_STK_RECIPIENT_PHONE`: optional, private,
+  separately approved `PhoneNumber` receiving the STK prompt.
+  **Set this only in the isolated Supabase Edge Function Secrets**.
+  Without this secret, `PhoneNumber` defaults to the test `PartyA`,
+  maintaining the prior fail-closed behavior.
+- `COMMERCE_SANDBOX_TEST_PHONE`: operator CLI environment variable.
+  With a separate recipient configured, set it privately to the **same
+  approved recipient**, not the simulator `PartyA`. The CLI never
+  exposes the operator token in its output.
+
+The checkout validates the requested recipient against that exact server-side
+allowlist **before creating an order**. It reserves the payment attempt
+with the recipient phone, so a genuine success callback must independently
+prove the correct amount, recipient phone, receipt and provider IDs. An
+unapproved number is rejected. The sandbox callback and query still jointly
+decide settlement; **one simulated grant**, **zero real grants**.
+
+The recipient's choice was established by a user-controlled Daraja simulator
+test. No further STK should be sent automatically. After merging and
+deploying the checkout function **only** to
+`ufqjgyzspavamdpkdxmc`, save the approved recipient secret privately
+on that test project, then run **one** authorized fresh KES 50 test using
+`node scripts/commerce/hosted-daraja-sandbox-proof.mjs --execute`.
+Confirm the request on the approved phone, then inspect the returned order.
+Do not use the previous simulator receipt to settle a VibeSchool order.
+
+### Guardrails
+
+- This is explicitly a sandbox-only behavior; the production payment
+  switch remains OFF and no live/customer M-Pesa routing is enabled.
+- `PartyA` and `PhoneNumber` may differ **only for this isolated
+  developer test scenario**. Production merchant configurations must
+  follow Safaricom onboarding rules and the actual payer/consent flow.
+- Do not log/upload payment credentials, operator tokens, callback tokens,
+  personal PINs, or a full STK push payload with credentials.
+
