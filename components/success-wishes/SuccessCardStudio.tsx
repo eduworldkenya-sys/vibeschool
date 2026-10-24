@@ -55,8 +55,8 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   const recipientLines = wrapped(recipient, 30, 2)
   const senderLines = wrapped('With love, ' + sender, 42, 1)
   const schoolLines = wrapped(values.school || '', 56, 1)
-  const messageLines = wrapped(message, 44, 4)
-  const messageStartY = 556 - Math.max(messageLines.length - 1, 0) * 21
+  const messageLines = wrapped(message, 53, 5)
+  const messageStartY = 557 - Math.max(messageLines.length - 1, 0) * 17
   const ornaments: Record<Template, string> = { heritage: '✧', botanical: '✿', nightfall: '✦', sunrise: '✳' }
   return (
     <svg ref={svgRef} viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg" role="img"
@@ -90,7 +90,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
       {messageLines.length > 0 ? <g>
         <rect x="96" y="461" width="1008" height="178" rx="16" fill={theme.ink} opacity=".055"/>
         <rect x="96" y="461" width="1008" height="178" rx="16" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
-        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * 41} fill={theme.ink} fontFamily="Georgia, serif" fontSize="33" textAnchor="middle">{line}</text>)}
+        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * 36} fill={theme.ink} fontFamily="Georgia, serif" fontSize="33" textAnchor="middle">{line}</text>)}
       </g> : <g>
         <path d="M425 531 H775" stroke={theme.accent} strokeWidth="2" opacity=".42"/>
         <text x="600" y="575" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="25" letterSpacing="5" opacity=".8" textAnchor="middle">GOOD LUCK IN YOUR EXAMS</text>
