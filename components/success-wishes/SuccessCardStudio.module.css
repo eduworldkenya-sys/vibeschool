@@ -498,3 +498,23 @@
 .senderPlayback strong{color:var(--gold2);font-size:13px;font-weight:700}
 .senderPlayback audio,.senderPlayback video{display:block;width:100%;max-width:100%;max-height:260px;border-radius:10px;background:#05070c}
 .mediaDisclosure{margin:12px 0 0;font-size:12px;line-height:1.55;color:#d6c7a3}
+
+/* Keep editing and the live result together without taking over the phone screen. */
+.mobilePreview{display:none}
+.composer,.live{scroll-margin-top:20px}
+.bookCover{left:50%;width:50%;transition:transform .7s cubic-bezier(.2,.72,.18,1)}
+.bookCoverOpened{left:50%;width:50%;transform:rotateY(-180deg)}
+.formRow{padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
+.form input,.form textarea{font-size:16px}
+@media(max-width:850px){
+  .mobilePreview{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;order:-1;padding:9px;border:1px solid var(--line);border-radius:12px;background:#151c29;box-shadow:0 6px 20px #0004}
+  .mobilePreview>.art{width:88px;height:auto;aspect-ratio:1200/760;flex-shrink:0;border-radius:6px}
+  .mobilePreview>div{min-width:0;flex:1}
+  .mobilePreview span{font-size:9px;letter-spacing:1px;color:var(--gold2)}
+  .mobilePreview strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--cream)}
+  .mobilePreview p{margin:3px 0 0;font-size:12px;color:#bac1cc;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+  .mobilePreview button{display:flex;align-items:center;min-height:44px;flex-shrink:0;padding:6px;border:0;background:transparent;color:var(--gold2);font-size:11px}
+  .form input,.form textarea{scroll-margin-top:112px}
+  .live{scroll-margin-top:108px}
+}
+@media(prefers-reduced-motion:reduce){.bookCover{transition:none}}
