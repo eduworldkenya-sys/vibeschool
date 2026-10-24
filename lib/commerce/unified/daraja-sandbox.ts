@@ -16,8 +16,10 @@ export type DarajaSandboxSettings = {
   partyB: string
   transactionType: 'CustomerPayBillOnline' | 'CustomerBuyGoodsOnline'
   callbackUrl: string
-  /** Explicit simulator number from Daraja test credentials; never real customers. */
+  /** Sandbox PartyA/test sender from the Daraja simulator. */
   testPhone: string
+  /** Optional separately approved STK prompt recipient, isolated sandbox only. */
+  stkRecipientPhone?: string
 }
 
 type Fetcher = typeof fetch
@@ -43,7 +45,9 @@ function validated(settings: DarajaSandboxSettings) {
     || !/^[A-Za-z0-9_-]{32,200}$/.test(callback.searchParams.get('sandbox_token') || '')) {
     throw new Error('Sandbox callback must be a dedicated HTTPS Supabase endpoint')
   }
-  return { ...settings, testPhone: normalizeKenyanPhone(settings.testPhone) }
+  const sender = normalizeKenyanPhone(settings.testPhone)
+  const recipient = normalizeKenyanPhone(settings.stkRecipientPhone || settings.testPhone)
+  return { ...settings, testPhone: sender, stkRecipientPhone: recipient }
 }
 
 async function providerJson(fetcher: Fetcher, path: string, init: RequestInit) {
@@ -84,7 +88,10 @@ export async function sendUniversalDarajaSandboxStk(input: {
     throw new Error('Invalid sandbox order')
   }
   const phone = normalizeKenyanPhone(input.phone)
-  if (phone !== settings.testPhone) throw new Error('Only the approved sandbox test phone is allowed')
+  // The ledger stores the actual prompt recipient for receipt/phone matching.
+  // Daraja sandbox may use a predefined PartyA and a distinct PhoneNumber.
+  if (phone !== settings.stkRecipientPhone)
+    throw new Error('Only the approved sandbox STK recipient is allowed')
   if (await input.hasReservedAttempt() !== true) {
     throw new Error('A durable sandbox attempt must be reserved before transport')
   }
@@ -109,7 +116,7 @@ export async function sendUniversalDarajaSandboxStk(input: {
     body: JSON.stringify({
       BusinessShortCode: settings.businessShortCode, Password: password, Timestamp: timestamp,
       TransactionType: settings.transactionType, Amount: input.order.amountKes,
-      PartyA: phone, PartyB: settings.partyB, PhoneNumber: phone,
+      PartyA: settings.testPhone, PartyB: settings.partyB, PhoneNumber: phone,
       CallBackURL: settings.callbackUrl, AccountReference: accountReference,
       TransactionDesc: 'VibeSchool',
     }),
