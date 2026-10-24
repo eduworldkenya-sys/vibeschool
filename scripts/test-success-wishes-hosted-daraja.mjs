@@ -172,8 +172,8 @@ test('the operator token is never returned to the browser and the route has loca
   assert.match(route, /markHostedSandboxUncertain\(orderId, key\)/)
   // Public checkout stays review-only. Only testMode on localhost mounts the sandbox checkout.
   assert.match(component, /No payment prompt has been sent and your wish has not been submitted/)
-  assert.match(component, /checkoutOpen && \\(testMode && selectedVersion === 'text'/)
-  assert.match(component, /function SandboxDarajaCheckout\\(/)
+  assert.match(component, /checkoutOpen && \(testMode && selectedVersion === 'text'/)
+  assert.match(component, /function SandboxDarajaCheckout\(/)
   assert.match(component, /Send one sandbox STK/)
   assert.match(component, /Check payment status/)
   assert.doesNotMatch(component, /COMMERCE_SANDBOX_OPERATOR_TOKEN/)
