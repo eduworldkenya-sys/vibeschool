@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useId, useRef, useState } from 'react'
-import { ChevronRight, Volume2, VolumeX, X } from 'lucide-react'
+import { Check, ChevronRight, Volume2, VolumeX, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import styles from './SuccessCardStudio.module.css'
@@ -51,11 +51,12 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   const recipient = values.candidate.trim() || 'Candidate name'
   const sender = values.sender.trim() || 'Your name'
   const message = values.message.trim()
+  const headlineLines = wrapped(item.headline, 26, 2)
   const recipientLines = wrapped(recipient, 30, 2)
   const senderLines = wrapped('With love, ' + sender, 42, 1)
   const schoolLines = wrapped(values.school || '', 56, 1)
-  const messageLines = wrapped(message, 56, 5)
-  const messageStartY = 510 - Math.max(messageLines.length - 1, 0) * 22
+  const messageLines = wrapped(message, 53, 5)
+  const messageStartY = 557 - Math.max(messageLines.length - 1, 0) * 17
   const ornaments: Record<Template, string> = { heritage: '✧', botanical: '✿', nightfall: '✦', sunrise: '✳' }
   return (
     <svg ref={svgRef} viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg" role="img"
@@ -81,15 +82,18 @@ export function CardArt({ template, values, svgRef, preview = false }: {
       </g>}
       <text x="75" y="92" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="19" fontWeight="bold" letterSpacing="4">VIBESCHOOL</text>
       <text x="1125" y="92" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="16" fontWeight="bold" letterSpacing="3" textAnchor="end">SUCCESS WISHES</text>
-      <text x="600" y="178" fill={theme.accent} opacity=".14" fontSize="118" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
-      <text x="600" y="242" fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontSize={preview ? 34 : 38} textAnchor="middle" textLength="760" lengthAdjust="spacingAndGlyphs">{item.headline}</text>
-      {recipientLines.map((line, i) => <text key={i} x="600" y={307 + i * 40} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="34" textAnchor="middle">{line}</text>)}
-      {schoolLines.map((line, i) => <text key={i} x="600" y={381 + i * 24} fill={theme.ink} opacity=".82" fontFamily="Arial, sans-serif" fontSize="17" textAnchor="middle">{line}</text>)}
-      {messageLines.length > 0 && <g>
-        <rect x="92" y="407" width="1016" height="232" rx="18" fill={theme.ink} opacity=".055"/>
-        <rect x="92" y="407" width="1016" height="232" rx="18" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
-        <path d="M525 427 H675" stroke={theme.accent} strokeWidth="2" opacity=".55"/>
-        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * 43} fill={theme.ink} fontFamily="Georgia, serif" fontSize="31" textAnchor="middle">{line}</text>)}
+      <text x="600" y="183" fill={theme.accent} opacity=".24" fontSize="125" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
+      {headlineLines.map((line, i) => <text key={i} x="600" y={270 + i * 65 - (headlineLines.length - 1) * 28} fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontWeight="600" fontSize={preview ? 63 : 65} textAnchor="middle">{line}</text>)}
+      <path d="M490 313 H710" stroke={theme.accent} strokeWidth="2.5" opacity=".65"/>
+      {recipientLines.map((line, i) => <text key={i} x="600" y={370 + i * 40} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="600" fontSize="39" textAnchor="middle">{line}</text>)}
+      {schoolLines.map((line, i) => <text key={i} x="600" y={(recipientLines.length > 1 ? 444 : 428) + i * 24} fill={theme.ink} opacity=".85" fontFamily="Arial, sans-serif" fontSize="23" textAnchor="middle">{line}</text>)}
+      {messageLines.length > 0 ? <g>
+        <rect x="96" y="461" width="1008" height="178" rx="16" fill={theme.ink} opacity=".055"/>
+        <rect x="96" y="461" width="1008" height="178" rx="16" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
+        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * 36} fill={theme.ink} fontFamily="Georgia, serif" fontSize="33" textAnchor="middle">{line}</text>)}
+      </g> : <g>
+        <path d="M425 531 H775" stroke={theme.accent} strokeWidth="2" opacity=".42"/>
+        <text x="600" y="575" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="25" letterSpacing="5" opacity=".8" textAnchor="middle">GOOD LUCK IN YOUR EXAMS</text>
       </g>}
       {senderLines.map((line, i) => <text key={i} x="75" y={685 + i * 25} fill={theme.ink} fontFamily="Georgia, serif" fontStyle="italic" fontSize="20" fontWeight="600" letterSpacing=".3">{line}</text>)}
       <text x="1125" y="685" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="21" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
@@ -119,7 +123,8 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   }
   useEffect(() => () => { if (replayTimer.current) window.clearTimeout(replayTimer.current) }, [])
   return <div className={styles.bookPreview}>
-    <div className={styles.bookStage + (open ? ' ' + styles.bookIsOpen : '')}>
+    <div className={styles.bookStage + (open ? ' ' + styles.bookIsOpen : '')}
+        style={{ '--book-top': palette[template].top, '--book-bottom': palette[template].bottom, '--book-ink': palette[template].ink, '--book-accent': palette[template].accent } as React.CSSProperties}>
       <div className={styles.bookSpread} aria-hidden={!open}>
         <div className={styles.bookPage}>
           <span className={styles.bookEyebrow}>WITH LOVE</span>
@@ -155,113 +160,12 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   </div>
 }
 
-type LocalSimulationOrder = { orderId: string; key: string; state: string; amountKes: 50 }
-
-function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose, testMode = false }: {
-  theme: Template
-  values: CardValues
-  version: typeof versions[number]['id']
-  price: number
-  mediaFileName: string
-  onClose: () => void
-  testMode?: boolean
-}) {
+function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose }: { theme: Template; values: CardValues; version: typeof versions[number]['id']; price: number; mediaFileName: string; onClose: () => void }) {
   const [mpesaNumber, setMpesaNumber] = useState('')
   const [phoneError, setPhoneError] = useState('')
   const [review, setReview] = useState(false)
   const [detailsConfirmed, setDetailsConfirmed] = useState(false)
-  const [testOrder, setTestOrder] = useState<LocalSimulationOrder | null>(null)
-  const [hostedAvailable, setHostedAvailable] = useState(false)
-  const [sandboxMode, setSandboxMode] = useState<'local' | 'daraja'>('local')
-  const [hostedState, setHostedState] = useState<'prepared' | 'submitting' |
-    'awaiting_customer' | 'outcome_unknown' | 'reconciliation_required' |
-    'settled_simulated' | 'failed' | 'expired' | 'cancelled'>('prepared')
-  const [hostedMessage, setHostedMessage] = useState('')
-  const [testState, setTestState] = useState<'awaiting_test_result' | 'settled_simulated' | 'failed_simulated'>('awaiting_test_result')
-  const [testInvitation, setTestInvitation] = useState('')
-  const [testBusy, setTestBusy] = useState(false)
-  const [testError, setTestError] = useState('')
-  const [copyStatus, setCopyStatus] = useState('')
   const id = useId()
-
-  useEffect(() => {
-    if (!testMode) return
-    let active = true
-    fetch('/api/success-wishes/test-daraja', { cache: 'no-store' })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (active && data?.available === true && data?.realAccess === false) setHostedAvailable(true) })
-      .catch(() => undefined)
-    return () => { active = false }
-  }, [testMode])
-
-  async function hostedRequest(body: Record<string, unknown>) {
-    const response = await fetch('/api/success-wishes/test-daraja', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body), cache: 'no-store',
-    })
-    const data: Record<string, unknown> = await response.json()
-    if (data.mode !== 'daraja_sandbox' || data.realAccess !== false)
-      throw new Error('Unverified hosted sandbox response.')
-    if (!response.ok) {
-      const error = new Error(typeof data.error === 'string' ? data.error : 'Sandbox status uncertain.')
-      return { error, data, ok: false as const }
-    }
-    return { data, ok: true as const }
-  }
-
-  async function sendHostedStk() {
-    if (!testOrder || !hostedAvailable || testBusy || hostedState !== 'prepared') return
-    setTestBusy(true); setTestError(''); setHostedState('submitting')
-    try {
-      const result = await hostedRequest({
-        action: 'start', orderId: testOrder.orderId, key: testOrder.key,
-      })
-      if (!result.ok || result.data.state !== 'awaiting_customer') {
-        setHostedState('outcome_unknown')
-        setTestError(result.ok ? 'Provider acknowledgement was not verified.' : result.error.message)
-        return
-      }
-      setHostedState('awaiting_customer')
-      setHostedMessage('Safaricom accepted the sandbox STK request. Payment has not been confirmed.')
-    } catch {
-      setHostedState('outcome_unknown')
-      setTestError('Provider response was lost. Do not send another STK; reconcile this order.')
-    } finally { setTestBusy(false) }
-  }
-
-  async function checkHostedStatus() {
-    if (!testOrder || !hostedAvailable || testBusy ||
-        !['awaiting_customer', 'reconciliation_required', 'outcome_unknown'].includes(hostedState)) return
-    setTestBusy(true); setTestError('')
-    try {
-      const result = await hostedRequest({
-        action: 'status', orderId: testOrder.orderId, key: testOrder.key,
-      })
-      if (!result.ok) {
-        setHostedState('reconciliation_required')
-        setTestError(result.error.message)
-        return
-      }
-      const data = result.data
-      if (data.state === 'settled_simulated') {
-        if (typeof data.invitationToken !== 'string' || !data.invitationToken) {
-          throw new Error('Simulated payment settled, but private test link was not issued.')
-        }
-        setTestInvitation(`${window.location.origin}/success-wishes/invitation#token=${encodeURIComponent(data.invitationToken)}`)
-        setHostedState('settled_simulated')
-        setHostedMessage('Daraja sandbox returned a simulated settlement. No real payment or entitlement.')
-      } else if (['expired', 'cancelled', 'failed'].includes(String(data.state))) {
-        setHostedState(data.state as 'expired' | 'cancelled' | 'failed')
-        setHostedMessage('Safaricom sandbox did not complete this payment. The card remains locked.')
-      } else {
-        const uncertain = data.state === 'outcome_unknown' || data.state === 'reconciliation_required'
-        setHostedState(uncertain ? data.state as 'outcome_unknown' | 'reconciliation_required' : 'awaiting_customer')
-        setHostedMessage(typeof data.message === 'string' ? data.message : 'Still awaiting confirmed Safaricom sandbox settlement.')
-      }
-    } catch (e) { setTestError(e instanceof Error ? e.message : 'Could not verify status.') }
-    finally { setTestBusy(false) }
-  }
-
   function reviewCheckout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalized = mpesaNumber.replace(/[\s()-]/g, '')
@@ -272,178 +176,23 @@ function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose
     setPhoneError('')
     setReview(true)
   }
-
-  async function testRequest(body: Record<string, unknown>): Promise<Record<string, unknown>> {
-    const response = await fetch('/api/success-wishes/test-checkout', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store', body: JSON.stringify(body),
-    })
-    const data: Record<string, unknown> = await response.json()
-    if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'The local test checkout failed.')
-    if (data.mode !== 'local_simulation' || data.simulated !== true || data.realAccess !== false)
-      throw new Error('Unexpected test checkout response.')
-    return data
-  }
-
-  async function confirmCheckout() {
-    if (!testMode) { setDetailsConfirmed(true); return }
-    // Local test only: no real STK request, payment, entitlement or receipt.
-    if (version !== 'text' || price !== 50) {
-      setTestError('This simulated checkout covers the KES 50 text card only.')
-      return
-    }
-    if (testBusy) return
-    setTestBusy(true); setTestError('')
-    try {
-      const details = {
-        candidate: values.candidate, sender: values.sender,
-        message: values.message, examYear: values.examYear || '2026',
-        school: values.school || '', theme, version, phone: mpesaNumber,
-      }
-      const result = sandboxMode === 'daraja'
-        ? await hostedRequest({ action: 'prepare', ...details })
-        : { ok: true as const, data: await testRequest({ action: 'start', ...details }) }
-      if (!result.ok) throw result.error
-      const data = result.data
-      if (typeof data.orderId !== 'string' || typeof data.key !== 'string' ||
-          data.state !== (sandboxMode === 'daraja' ? 'prepared' : 'awaiting_test_result') ||
-          data.amountKes !== 50)
-        throw new Error('Invalid test order confirmation.')
-      setTestOrder({ orderId: data.orderId, key: data.key,
-        state: String(data.state), amountKes: 50 })
-      setTestState('awaiting_test_result')
-      setHostedState('prepared')
-      setTestInvitation('')
-      setDetailsConfirmed(true)
-    } catch (error) {
-      setTestError(error instanceof Error ? error.message : 'The test checkout could not start.')
-    } finally { setTestBusy(false) }
-  }
-
-  async function finishTest(outcome: 'success' | 'failure') {
-    if (!testMode || !testOrder || testBusy || testState !== 'awaiting_test_result') return
-    setTestBusy(true); setTestError('')
-    try {
-      const result = await testRequest({
-        action: 'resolve', orderId: testOrder.orderId,
-        key: testOrder.key, outcome,
-      })
-      if (outcome === 'success') {
-        if (result.state !== 'settled_simulated' || typeof result.invitationToken !== 'string')
-          throw new Error('Test invitation has not been released.')
-        const url = `${window.location.origin}/success-wishes/invitation#token=${encodeURIComponent(result.invitationToken)}`
-        setTestInvitation(url)
-        setTestState('settled_simulated')
-      } else {
-        if (result.state !== 'failed_simulated' || result.invitationToken !== null)
-          throw new Error('Test failure did not stay locked.')
-        setTestState('failed_simulated')
-      }
-    } catch (error) {
-      setTestError(error instanceof Error ? error.message : 'Unable to finish the test.')
-    } finally { setTestBusy(false) }
-  }
-
-  async function copyTestInvitation() {
-    if (!testInvitation) return
-    try { await navigator.clipboard.writeText(testInvitation); setCopyStatus('Private test link copied.') }
-    catch { setCopyStatus('Select and copy the private test link below.') }
-  }
-
   return <div className={styles.modalBackdrop} role="presentation" onKeyDown={event => { if (event.key === 'Escape') onClose() }} onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={id}>
       <button type="button" className={styles.modalClose} aria-label="Close checkout" onClick={onClose}><X size={20}/></button>
-      {testMode && <p className={styles.eyebrow} role="status">{sandboxMode === 'daraja' ? 'DARAJA SANDBOX TEST · NOT REAL MONEY' : 'LOCAL SIMULATION · NO M-PESA CHARGE'}</p>}
-      {detailsConfirmed ? <>
-        <p className={styles.eyebrow}>CHECKOUT</p>
-        <h2 id={id}>{!testMode ? 'Your details are ready' : sandboxMode === 'daraja' ?
-          hostedState === 'settled_simulated' ? 'Sandbox test card unlocked' :
-          ['failed', 'expired', 'cancelled'].includes(hostedState) ? 'Sandbox payment unsuccessful' :
-          hostedState === 'prepared' ? 'Ready for sandbox STK' : 'Check sandbox payment' :
-          testState === 'settled_simulated' ? 'Test card unlocked' :
-          testState === 'failed_simulated' ? 'Test payment unsuccessful' : 'Simulate the payment result'}</h2>
-        {!testMode && <p className={styles.checkoutNotice}>No payment prompt has been sent and your wish has not been submitted.</p>}
-        <div className={styles.checkoutOrder}>
-          <CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/>
-          <div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong>
-            <span>M-Pesa number: {mpesaNumber}</span><span>Total · KES {price}</span>
-            {testOrder && <small>Local test order · {testOrder.orderId.slice(0, 8)}</small>}
-          </div>
-        </div>
-        {!testMode ? <button type="button" className={styles.primary} onClick={onClose}>Back to your card</button> :
-          sandboxMode === 'daraja' ? <>
-            <p className={styles.checkoutFine}>Isolated Safaricom sandbox only · KES 50 test order · no real access. Sending STK is a separate one-time action.</p>
-            {hostedState === 'prepared' ? <button type="button" className={styles.primary} disabled={testBusy} onClick={() => void sendHostedStk()}>{testBusy ? 'Sending one test STK…' : 'Send one sandbox STK'} <ChevronRight size={18}/></button> :
-            ['awaiting_customer', 'reconciliation_required', 'outcome_unknown'].includes(hostedState) ?
-              <button type="button" className={styles.primary} disabled={testBusy} onClick={() => void checkHostedStatus()}>{testBusy ? 'Checking…' : 'Check payment status'}</button> :
-            hostedState === 'settled_simulated' ? <>
-              <p className={styles.checkoutFine}>Sandbox simulated settlement verified by the isolated provider-status endpoint. This does not grant real customer access.</p>
-              <label className={styles.checkoutLabel}>Private local test invitation
-                <input readOnly value={testInvitation} onFocus={event => event.currentTarget.select()}/>
-              </label>
-              <div className={styles.checkoutActions}>
-                <button type="button" className={styles.secondary} onClick={() => void copyTestInvitation()}>Copy invitation</button>
-                <a className={styles.primary} href={testInvitation}>Open test card <ChevronRight size={18}/></a>
-              </div>
-            </> : <p className={styles.checkoutFine} role="status">This sandbox attempt did not settle. No card access was granted.</p>}
-            {hostedMessage && <p className={styles.checkoutFine} role="status">{hostedMessage}</p>}
-          </> :
-          testState === 'awaiting_test_result' ? <>
-            <p className={styles.checkoutFine}>Test only. Select a simulated outcome to verify whether the private card is released. No STK Push will be sent.</p>
-            <div className={styles.checkoutActions}>
-              <button type="button" className={styles.secondary} disabled={testBusy} onClick={() => void finishTest('failure')}>Simulate failure</button>
-              <button type="button" className={styles.primary} disabled={testBusy} onClick={() => void finishTest('success')}>{testBusy ? 'Processing test…' : 'Simulate success'} <ChevronRight size={18}/></button>
-            </div>
-          </> : testState === 'failed_simulated' ? <>
-            <p className={styles.checkoutFine} role="status">Simulated payment failed. No private invitation was created, and no access was granted.</p>
-            <button type="button" className={styles.secondary} onClick={() => { setTestOrder(null); setDetailsConfirmed(false); setReview(true); setTestError('') }}>Start a new test</button>
-          </> : <>
-            <p className={styles.checkoutFine} role="status">Simulated success only. One LOCAL TEST invitation was created. This is not a Safaricom payment or a real purchase.</p>
-            <label className={styles.checkoutLabel}>Private test invitation
-              <input readOnly value={testInvitation} onFocus={event => event.currentTarget.select()}/>
-            </label>
-            <div className={styles.checkoutActions}>
-              <button type="button" className={styles.secondary} onClick={() => void copyTestInvitation()}>Copy invitation</button>
-              <a className={styles.primary} href={testInvitation}>Open test card <ChevronRight size={18}/></a>
-            </div>
-            {copyStatus && <p role="status" className={styles.checkoutFine}>{copyStatus}</p>}
-          </>}
-        {testError && <p role="alert" className={styles.checkoutError}>{testError}</p>}
-      </> : <>
-        <p className={styles.eyebrow}>CHECKOUT</p>
-        <h2 id={id}>{review ? 'Review your wish' : 'Your order'}</h2>
-        <div className={styles.checkoutOrder}>
-          <CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/>
-          <div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong>
-            <span>For the {values.examYear || '2026'} exams</span>
-            <span>{values.school?.trim() || 'No school selected'}</span>
-            {mediaFileName && <span>{mediaFileName}</span>}
-          </div>
-        </div>
-        {!review ? <form onSubmit={reviewCheckout} noValidate>
-          {testMode && hostedAvailable && <div className={styles.checkoutActions} role="group" aria-label="Payment test mode">
-            <button type="button" className={sandboxMode === 'local' ? styles.primary : styles.secondary} aria-pressed={sandboxMode === 'local'} onClick={() => setSandboxMode('local')}>Local simulation</button>
-            <button type="button" className={sandboxMode === 'daraja' ? styles.primary : styles.secondary} aria-pressed={sandboxMode === 'daraja'} onClick={() => { setSandboxMode('daraja'); setMpesaNumber('254708374149'); setPhoneError('') }}>Daraja sandbox STK</button>
-          </div>}
-          <fieldset className={styles.numberPicker}><legend>Choose a number prefix</legend>{['07', '01', '+254'].map(prefix => <button type="button" key={prefix} aria-pressed={mpesaNumber.startsWith(prefix)} onClick={() => { setMpesaNumber(prefix); setPhoneError('') }}>{prefix}</button>)}</fieldset>
-          <label className={styles.checkoutLabel} htmlFor={id + '-mpesa'}>M-Pesa number
-            <input id={id + '-mpesa'} type="tel" inputMode="tel" autoComplete="tel" value={mpesaNumber}
-              onChange={event => { setMpesaNumber(event.target.value); setPhoneError('') }}
-              placeholder="07XX XXX XXX" maxLength={16} aria-describedby={id + '-phone-help'} required/>
-          </label>
-          <small id={id + '-phone-help'} className={styles.checkoutDisclosure}>{testMode ? sandboxMode === 'daraja' ? 'Safaricom sandbox number only (254708374149). A test STK can be sent once after confirmation.' : 'Used for the local test order only. No STK Push is sent.' : 'Choose the number for this review. No payment prompt is sent here.'}</small>
+      {detailsConfirmed ? <><p className={styles.eyebrow}>M-PESA CHECKOUT</p><h2 id={id}>Your details are ready</h2>
+        <p className={styles.checkoutNotice}>No payment prompt has been sent and your wish has not been submitted.</p>
+        <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>M-Pesa number: {mpesaNumber}</span><span>Total · KES {price}</span></div></div>
+        <button type="button" className={styles.primary} onClick={onClose}>Back to your card</button>
+      </> : <><p className={styles.eyebrow}>CHECKOUT</p><h2 id={id}>{review ? 'Review your wish' : 'Your order'}</h2>
+        <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>For the {values.examYear || '2026'} exams</span><span>{values.school?.trim() || 'No school selected'}</span>{mediaFileName && <span>{mediaFileName}</span>}</div></div>
+        {!review ? <form onSubmit={reviewCheckout} noValidate><fieldset className={styles.numberPicker}><legend>Choose a number prefix</legend>{['07', '01', '+254'].map(prefix => <button type="button" key={prefix} aria-pressed={mpesaNumber.startsWith(prefix)} onClick={() => { setMpesaNumber(prefix); setPhoneError('') }}>{prefix}</button>)}</fieldset><label className={styles.checkoutLabel} htmlFor={id + '-mpesa'}>M-Pesa number<input id={id + '-mpesa'} type="tel" inputMode="tel" autoComplete="tel" value={mpesaNumber} onChange={event => { setMpesaNumber(event.target.value); setPhoneError('') }} placeholder="07XX XXX XXX" maxLength={16} aria-describedby={id + '-phone-help'} required/></label>
+          <small id={id + '-phone-help'} className={styles.checkoutDisclosure}>Choose the number for this review. No payment prompt is sent here.</small>
           {phoneError && <p role="alert" className={styles.checkoutError}>{phoneError}</p>}
           <div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
           <button type="submit" className={styles.primary}>Review order <ChevronRight size={18}/></button>
-        </form> : <>
-          <p className={styles.checkoutFine}>M-Pesa number: <strong>{mpesaNumber}</strong></p>
-          <div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
-          {!testMode && <p className={styles.checkoutNotice}>Review only. This page has not started a payment or sent your wish.</p>}
-          <div className={styles.checkoutActions}>
-            <button type="button" className={styles.secondary} disabled={testBusy} onClick={() => setReview(false)}>Edit number</button>
-            <button type="button" className={styles.primary} disabled={testBusy} onClick={() => void confirmCheckout()}>{testBusy ? 'Creating test order…' : testMode ? sandboxMode === 'daraja' ? 'Prepare sandbox test' : 'Start local test checkout' : 'Finish review'} <ChevronRight size={18}/></button>
-          </div>
-          {testError && <p role="alert" className={styles.checkoutError}>{testError}</p>}
+        </form> : <><p className={styles.checkoutFine}>M-Pesa number: <strong>{mpesaNumber}</strong></p><div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
+          <p className={styles.checkoutNotice}>Review only. This page has not started a payment or sent your wish.</p>
+          <div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={() => setReview(false)}>Edit number</button><button type="button" className={styles.primary} onClick={() => setDetailsConfirmed(true)}>Finish review <ChevronRight size={18}/></button></div>
         </>}
       </>}
     </section>
@@ -492,8 +241,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [schoolSearchState, setSchoolSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const schoolInputId = useId()
   const schoolResultsId = useId()
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [status, setStatus] = useState('')
   const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const stopSound = useRef<(() => void) | null>(null)
   const formStartSoundPlayed = useRef(false)
@@ -552,6 +304,29 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
 
     return () => { active = false; window.clearTimeout(timer) }
   }, [school, selectedSchool])
+  async function saveTestWish() {
+    if (!ready || busy || !testMode) return
+    setError(''); setStatus(''); setBusy(true)
+    try {
+      const response = await fetch('/api/success-wishes/test-orders', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+        body: JSON.stringify({ candidate, sender, message, examYear, school, theme, version: 'text' }),
+      })
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'The test wish could not be saved.')
+      const invitationUrl = `${window.location.origin}/success-wishes/invitation#token=${encodeURIComponent(payload.invitationToken)}`
+      setOrder({ id: payload.id, invitationUrl, expiresAt: payload.expiresAt })
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'The test wish could not be saved. Please try again.')
+    } finally { setBusy(false) }
+  }
+
+  async function copyInvitation() {
+    if (!order) return
+    try { await navigator.clipboard.writeText(order.invitationUrl); setStatus('Private invitation copied. Share it directly with the intended candidate.') }
+    catch { setStatus(order.invitationUrl) }
+  }
+
   function playFormStartSound() {
     if (!soundEnabled || formStartSoundPlayed.current) return
     formStartSoundPlayed.current = true
@@ -578,25 +353,23 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <section className={styles.intro}>
         <p className={styles.eyebrow}>DIGITAL SUCCESS CARDS</p>
         <h1>Wish students good luck <em>&amp; success.</em></h1>
-        <p>A personalised card with your words, made to encourage someone before their exams.</p>
+        <p>A personal wish, beautifully made for someone special.</p>
         <button type="button" className={styles.heroCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Explore Success Cards <ChevronRight size={16}/></button>
-        <small className={styles.heroNote}>Choose a card · write your wish · send encouragement</small>
       </section>
       <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
-        <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>MAKE IT PERSONAL</span><h2 id="choose-card-title">Choose a card design</h2></div><small>Tap a card to choose it</small></div>
+        <div className={styles.sectionHeading}><div><h2 id="choose-card-title">Choose a success card design</h2></div></div>
         <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => setTheme(item.id)}
           className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Choose ${item.name} card`}>
           <CardArt template={item.id} values={{ candidate: candidate || 'Your candidate', sender, message: '', examYear: examYear || '2026', school }} preview/>
-          <span className={styles.optionCaption}><strong>{item.name}</strong><small>{item.subtitle}</small></span>
+          <span className={styles.optionCaption}><strong>{item.name}</strong></span>
         </button>)}</div>
       </section>
       <section className={styles.pricingStrip} aria-label="Wish versions and prices">
         <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
           {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} disabled={version.id !== 'text' && !mediaEnabled} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null) }}>
-            {version.name.replace(' Wish', '')} wish · KES {version.price}
+            {version.name} · KES {version.price}
           </button>)}
         </div>
-        <span className={styles.purchaseNote}>{versions.find(version => version.id === selectedVersion)?.name} · KES {versions.find(version => version.id === selectedVersion)?.price}</span>
       </section>
       <section className={styles.composer} aria-labelledby="personalise-card">
         <div className={styles.form} onFocusCapture={event => {
@@ -635,19 +408,28 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <p className={styles.counter}>{message.length}/220 characters</p>
           {!ready && <p className={styles.hint}>Add the candidate’s name, your name and a wish. School is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
+          {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
             <p className={styles.orderTotal}>Total <strong>KES {versions.find(version => version.id === selectedVersion)?.price}</strong></p>
             <button type="button" className={styles.primary} disabled={!ready} onClick={() => setCheckoutOpen(true)}>Send this wish <ChevronRight size={18}/></button>
           </div>
         </div>
-        <div className={styles.live} id="wish-preview"><span>LIVE CARD PREVIEW</span>
+        <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW</span>
           <BookCard template={theme} values={values} soundEnabled={soundEnabled} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
           <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
+            {testMode && selectedVersion === 'text' ? <>
+              {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
+            </> : null}
+            {order && <div className={styles.orderConfirmation} role="status"><h3><Check size={18}/> Test wish saved</h3><p>No payment was taken. Copy the private invitation and share it directly with the intended candidate.</p>
+              <label>Private invitation<input readOnly value={order.invitationUrl} onFocus={e => e.currentTarget.select()}/></label>
+              <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={`/success-wishes/invitation#token=${encodeURIComponent(new URL(order.invitationUrl).hash.slice(7))}`}>Open invitation</Link></div>
+              <small>Reference {order.id} · Local retention until {new Date(order.expiresAt).toLocaleDateString()}</small>{status && <p role="status" className={styles.status}>{status}</p>}
+            </div>}
           </div></div>
       </section>
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {checkoutOpen && <CheckoutPreview theme={theme} values={values} version={selectedVersion} price={versions.find(version => version.id === selectedVersion)?.price || 50} mediaFileName={mediaFile?.name || ''} testMode={testMode} onClose={() => setCheckoutOpen(false)}/>}
+    {checkoutOpen && <CheckoutPreview theme={theme} values={values} version={selectedVersion} price={versions.find(version => version.id === selectedVersion)?.price || 50} mediaFileName={mediaFile?.name || ''} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }

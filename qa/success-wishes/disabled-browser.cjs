@@ -123,9 +123,7 @@ async function makeWish(context, { message, theme }) {
   await bookToggle.click()
   assert.equal(await liveWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'false', 'The same control opens the book again')
   const checkoutRequests = []
-  const trackCheckout = request => {
-    if (request.url().includes('/api/success-wishes/test-checkout')) checkoutRequests.push(request.url())
-  }
+  const trackCheckout = request => { if (request.url().includes('/api/success-wishes/')) checkoutRequests.push(request.url()) }
   page.on('request', trackCheckout)
   await page.getByRole('button', { name: 'Send this wish' }).click()
   const checkout = page.getByRole('dialog')
@@ -136,26 +134,18 @@ async function makeWish(context, { message, theme }) {
   await checkout.getByLabel('M-Pesa number').fill('0712345678')
   await checkout.getByRole('button', { name: 'Review order' }).click()
   await checkout.getByRole('heading', { name: 'Review your wish' }).waitFor()
-  await checkout.getByRole('button', { name: 'Start local test checkout' }).click()
-  await checkout.getByRole('heading', { name: 'Simulate the payment result' }).waitFor()
-  assert.equal(checkoutRequests.length, 1, 'One local checkout request; no M-Pesa STK Push')
-  await checkout.getByRole('button', { name: 'Simulate failure' }).click()
-  await checkout.getByRole('heading', { name: 'Test payment unsuccessful' }).waitFor()
-  assert.equal(await checkout.getByLabel('Private test invitation').count(), 0,
-    'A failed simulated payment must not release a private invitation')
-
-  await checkout.getByRole('button', { name: 'Start a new test' }).click()
-  await checkout.getByRole('button', { name: 'Start local test checkout' }).click()
-  await checkout.getByRole('heading', { name: 'Simulate the payment result' }).waitFor()
-  await checkout.getByRole('button', { name: 'Simulate success' }).click()
-  await checkout.getByRole('heading', { name: 'Test card unlocked' }).waitFor()
-  const invitation = await checkout.getByLabel('Private test invitation').inputValue()
-  assert.equal(new URL(invitation).origin, ROOT)
-  assert.match(await checkout.innerText(), /Simulated success only/)
-  assert.equal(checkoutRequests.length, 4,
-    'Two start requests and two simulated outcomes, using the local API only')
+  await checkout.getByRole('button', { name: 'Finish review' }).click()
+  await checkout.getByRole('heading', { name: 'Your details are ready' }).waitFor()
+  assert.match(await checkout.innerText(), /No payment prompt has been sent/)
+  assert.deepEqual(checkoutRequests, [], 'Front-end checkout review does not call order or payment APIs')
   page.off('request', trackCheckout)
-  await checkout.getByRole('button', { name: 'Close checkout' }).click()
+  await checkout.getByRole('button', { name: 'Back to your card' }).click()
+  assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
+  await page.getByRole('button', { name: /Complete test order · KES 50/ }).click()
+  await page.getByRole('heading', { name: 'Test wish saved' }).waitFor()
+  const invitation = await page.getByLabel('Private invitation').inputValue()
+  assert.equal(new URL(invitation).origin, ROOT)
+  assert.match(await page.locator('main').innerText(), /No payment was taken/)
   return { invitation, page }
 }
 
@@ -231,9 +221,14 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
       assert.equal(await page.getByRole('button', { name: `Choose ${design} card` }).count(), 1)
     }
-    assert.equal(await page.getByRole('button', { name: /Text wish · KES 50/ }).count(), 1)
-    assert.equal(await page.getByRole('button', { name: /Voice wish · KES 75/ }).isDisabled(), true)
-    assert.equal(await page.getByRole('button', { name: /Video wish · KES 100/ }).isDisabled(), true)
+    const gallery = page.locator('section[aria-labelledby="choose-card-title"]')
+    assert.equal(await gallery.getByRole('heading', { name: 'Choose a success card design' }).count(), 1)
+    assert.equal(await gallery.locator('svg text[textLength], svg text[lengthAdjust]').count(), 0, 'Card lettering must never be stretched to fit')
+    assert.equal(await gallery.getByText('Tap a card to choose it').count(), 0, 'Design selection needs no extra instructions')
+    assert.equal(await page.locator('section[aria-label="Wish versions and prices"]').locator('[class*="purchaseNote"]').count(), 0, 'Do not duplicate price totals in the selector')
+    assert.equal(await page.getByRole('button', { name: /Text Wish · KES 50/ }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: /Voice Wish · KES 75/ }).isDisabled(), true)
+    assert.equal(await page.getByRole('button', { name: /Video Wish · KES 100/ }).isDisabled(), true)
     assert.equal(await page.getByRole('textbox', { name: 'Exam year' }).inputValue(), '2026', 'Year is prefilled for the sender')
     assert.equal(await page.getByRole('button', { name: 'Send this wish' }).isDisabled(), true, 'Send waits for the required card details')
     assert.equal(await page.getByRole('button', { name: /Preview my card/ }).count(), 0, 'The live preview needs no second preview button')
