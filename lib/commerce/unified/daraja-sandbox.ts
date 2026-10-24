@@ -6,7 +6,7 @@
 import {
   assertDarajaSandboxOnly, normalizeKenyanPhone, recordSandboxAcknowledgement,
   type SandboxOrder, type SandboxAttempt,
-} from './sandbox'
+} from './sandbox.ts'
 
 export type DarajaSandboxSettings = {
   consumerKey: string
