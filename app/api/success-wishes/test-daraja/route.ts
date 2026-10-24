@@ -5,7 +5,7 @@ import {
   markHostedSandboxUncertain, readLocalTestCheckout, startLocalTestCheckout,
 } from '@/lib/success-wishes/local-test-store'
 import {
-  SANDBOX_TEST_PHONE, classifyHostedSandboxStatus, hostedSandboxConfig,
+  classifyHostedSandboxStatus, hostedSandboxConfig,
   initiateHostedSandboxStk, queryHostedSandboxStk,
 } from '@/lib/success-wishes/hosted-daraja-test'
 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   if (result.blocked) return result.blocked
   return noStoreJson({
     available: true, mode: 'daraja_sandbox',
-    amountKes: 50, phoneLast4: SANDBOX_TEST_PHONE.slice(-4),
+    amountKes: 50, phoneLast4: result.config!.approvedPhone.slice(-4),
     simulatedOnly: true, realAccess: false,
   })
 }
@@ -71,14 +71,16 @@ export async function POST(request: NextRequest) {
     const theme = clean(data.theme, 20)
     const phone = clean(data.phone, 25).replace(/[\s()+-]/g, '')
       .replace(/^0/, '254')
+    // Optional incoming phone is only a consistency check, never checkout authority.
     if (!candidate || !sender || !message || !/^20\d{2}$/.test(examYear) ||
       !themes.has(theme) || data.version !== 'text' ||
-      phone !== SANDBOX_TEST_PHONE || data.amountKes !== undefined ||
+      (data.phone !== undefined && phone !== config.approvedPhone) ||
+      data.amountKes !== undefined ||
       data.amount_kes !== undefined || data.price !== undefined)
       return noStoreJson({ error: 'Use the approved KES 50 text card and sandbox test phone.' }, 400)
     const local = await startLocalTestCheckout({
       candidate, sender, message, examYear, school, theme,
-      phoneLast4: SANDBOX_TEST_PHONE.slice(-4),
+      phoneLast4: config.approvedPhone.slice(-4),
     }, 'daraja')
     return noStoreJson({
       mode: 'daraja_sandbox', simulated: true, realAccess: false,
@@ -93,6 +95,9 @@ export async function POST(request: NextRequest) {
     return noStoreJson({ error: 'Unknown or expired sandbox test order.' }, 404)
 
   if (data.action === 'start') {
+    // Fail closed if the operator changes the configured recipient mid-order.
+    if (local.phoneLast4 !== config.approvedPhone.slice(-4))
+      return noStoreJson({ error: 'Sandbox recipient changed; this order cannot be sent.' }, 409)
     if (!await claimHostedSandboxSend(orderId, key))
       return noStoreJson({
         error: 'Sandbox STK already started or outcome uncertain. Do not retry.',
@@ -100,7 +105,7 @@ export async function POST(request: NextRequest) {
       }, 409)
     try {
       const hosted = await initiateHostedSandboxStk({
-        localOrderId: orderId, phone: SANDBOX_TEST_PHONE,
+        localOrderId: orderId, phone: config.approvedPhone,
         guestReference: 'guest_browser_' + orderId.replace(/-/g, ''),
       }, config)
       if (!await attachHostedSandboxOrder(
