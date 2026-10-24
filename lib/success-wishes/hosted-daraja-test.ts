@@ -28,11 +28,13 @@ export function hostedSandboxConfig(env: NodeJS.ProcessEnv) {
       !!env.VERCEL_ENV ||
       env.MPESA_ENV !== 'sandbox' ||
       (env.COMMERCE_SANDBOX_PROJECT_REF && env.COMMERCE_SANDBOX_PROJECT_REF !== 'ufqjgyzspavamdpkdxmc') ||
-      (env.COMMERCE_SANDBOX_TEST_PHONE && env.COMMERCE_SANDBOX_TEST_PHONE !== SANDBOX_TEST_PHONE) ||
-      env.NEXT_PUBLIC_COMMERCE_SANDBOX_OPERATOR_TOKEN) return null
+       env.NEXT_PUBLIC_COMMERCE_SANDBOX_OPERATOR_TOKEN) return null
   const token = env.COMMERCE_SANDBOX_OPERATOR_TOKEN || ''
-  if (token.length < 32 || token.length > 256 || !/^[\x21-\x7e]+$/.test(token)) return null
-  return { token }
+  const approvedPhone = env.COMMERCE_SANDBOX_TEST_PHONE || SANDBOX_TEST_PHONE
+  if (token.length < 32 || token.length > 256 || !/^[\x21-\x7e]+$/.test(token) ||
+      !/^254[17]\d{8}$/.test(approvedPhone)) return null
+  // Only the server chooses this recipient. Its full value stays out of browser responses.
+  return { token, approvedPhone }
 }
 
 function safeStatus(result: unknown): result is HostedStatus {
@@ -62,16 +64,18 @@ async function callHosted(path: 'checkout' | 'status', body: object,
 
 export async function initiateHostedSandboxStk(
   args: { localOrderId: string; phone: string; guestReference: string },
-  config: { token: string }, fetcher: typeof fetch = fetch
+  config: { token: string; approvedPhone?: string }, fetcher: typeof fetch = fetch
 ) {
-  if (!UUID.test(args.localOrderId) || args.phone !== SANDBOX_TEST_PHONE ||
+  const approvedPhone = config.approvedPhone || SANDBOX_TEST_PHONE
+  if (!UUID.test(args.localOrderId) ||
+    !/^254[17]\d{8}$/.test(approvedPhone) || args.phone !== approvedPhone ||
     !/^[a-zA-Z0-9_:-]{6,100}$/.test(args.guestReference))
     throw new Error('Unsupported sandbox test checkout')
   const nonce = args.localOrderId.replace(/-/g, '')
   const data = await callHosted('checkout', {
     product_kind: 'success_wish', item_reference: 'sandbox-success-wish',
     owner_type: 'guest', owner_reference: args.guestReference,
-    idempotency_key: 'browser_test_' + nonce, phone: SANDBOX_TEST_PHONE,
+    idempotency_key: 'browser_test_' + nonce, phone: approvedPhone,
   }, config.token, fetcher) as Record<string, unknown>
   if (data.mode !== 'sandbox' || data.amount_kes !== 50 ||
     data.state !== 'awaiting_customer' || !UUID.test(String(data.order_id || '')) ||
