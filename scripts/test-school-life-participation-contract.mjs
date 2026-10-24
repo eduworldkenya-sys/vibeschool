@@ -32,7 +32,11 @@ assert.ok(ui.includes("Save selected") && ui.includes("End selected"), "Bulk add
 assert.ok(ui.includes("Add participation") && ui.includes("Update"), "Single learner fast edit exposed");
 assert.ok(ui.includes("void reload()") && ui.includes("await reload()"), "Local state refreshes after writes");
 assert.ok(profile.includes("teacher_school_life_snapshot") && profile.includes("SchoolLifeParticipation"), "Learner profile shows same canonical data");
-assert.ok(learnerLayout.includes("LearnerSchoolLifeStrip"), "Learner profile route includes school life strip");
+const learnerProfilePage = fs.readFileSync("app/teacher/classhub/[id]/student/[studentId]/page.tsx", "utf8");
+const relatedRecords = fs.readFileSync("components/teacher/LearnerRelatedRecords.tsx", "utf8");
+assert.ok(!learnerLayout.includes("LearnerSchoolLifeStrip"), "No duplicate school-life strip above learner identity");
+assert.ok(learnerProfilePage.includes('setPanel("activities")') && learnerProfilePage.includes("<LearnerRelatedRecords"), "Profile opens school-life activities in place");
+assert.ok(relatedRecords.includes("<SchoolLifeParticipation"), "Activity edits still use canonical participation workflow");
 assert.ok(classPage.includes("openActivitiesForSelection") && classPage.includes("activities"), "ClassHub selected learners pass to bulk editor");
 assert.ok(manager.includes("SchoolLifeParticipation"), "Teacher manager reuses same editor");
 console.log("PASS: school life read/write authority, history, bulk workflow and profile projections");

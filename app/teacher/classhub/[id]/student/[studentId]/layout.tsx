@@ -1,15 +1,7 @@
-"use client";
-
 import type { ReactNode } from "react";
-import { useParams, usePathname } from "next/navigation";
-import LearnerSchoolLifeStrip from "@/components/teacher/LearnerSchoolLifeStrip";
 
+// The learner identity must lead the profile. School-life tools live inside
+// the Overview section instead of injecting a banner above the learner name.
 export default function LearnerProfileLayout({ children }: { children: ReactNode }) {
-  const { id: classId, studentId } = useParams<{ id: string; studentId: string }>();
-  const pathname = usePathname();
-  const profilePath = `/teacher/classhub/${classId}/student/${studentId}`;
-  return <>
-    {(pathname === profilePath || pathname === profilePath + "/") && <LearnerSchoolLifeStrip classId={classId} studentId={studentId}/>}
-    {children}
-  </>;
+  return <>{children}</>;
 }

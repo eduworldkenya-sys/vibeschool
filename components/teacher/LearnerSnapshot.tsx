@@ -1,15 +1,62 @@
-'use client'
+"use client";
 
-import { useMemo } from 'react'
+type Score = { assessment_id: string; subject_id: string | null; percentage: number | null; assessment_title: string; released_at: string | null };
 
-type Score = { assessment_id: string; subject_id: string | null; percentage: number | null; assessment_title: string; released_at: string | null }
-export default function LearnerSnapshot({ scores, subjects, attendance, work, followUps, onProgress, onAttendance, onWork, onSupport }: {
-  scores: Score[]; subjects: { id: string; name: string }[]; attendance: { present: number; records: number }; work: { submitted: number; assigned: number }; followUps: number
-  onProgress: () => void; onAttendance: () => void; onWork: () => void; onSupport: () => void
-}) {
-  const groups = useMemo(() => subjects.map(subject => ({ ...subject, scores: scores.filter(row => row.subject_id === subject.id && row.percentage !== null && row.released_at).sort((a,b) => a.released_at!.localeCompare(b.released_at!)).slice(-5) })).filter(group => group.scores.length), [subjects, scores])
-  return <div className="studio-profile-focus">
-    <button className="studio-profile-learning" onClick={onProgress}><div className="studio-matrix-heading"><h2>Learning snapshot</h2><span aria-hidden="true">→</span></div>{groups.length ? <div className="studio-score-groups">{groups.slice(0,3).map(group => <div key={group.id}><small>{group.name}</small><div className="studio-score-bars">{group.scores.map(row => <span key={row.assessment_id} style={{ height: `${Math.max(3, Math.min(100, row.percentage!))}%` }} title={`${row.assessment_title}: ${row.percentage}% · ${row.released_at}`}><span className="sr-only">{row.assessment_title}: {row.percentage}%</span></span>)}</div><strong>{group.scores.at(-1)?.percentage}% latest</strong></div>)}</div> : <div className="studio-snapshot-empty"><p>No released subject scores yet</p></div>}<small>View learner assessment records</small></button>
-    <div className="studio-profile-stats"><button onClick={onAttendance}><strong>{attendance.records ? `${attendance.present} / ${attendance.records}` : '—'}</strong><span>Sessions present</span></button><button onClick={onWork}><strong>{work.submitted} / {work.assigned}</strong><span>Work submitted</span></button><button onClick={onSupport}><strong>{followUps}</strong><span>Active follow-ups</span></button></div>
-  </div>
+type Props = {
+  scores: Score[];
+  subjects: { id: string; name: string }[];
+  attendance: { present: number; records: number };
+  work: { submitted: number; assigned: number };
+  followUps: number;
+  overdue: number;
+  assessmentRecords: number;
+  releasedScores: number;
+  onProgress: () => void;
+  onAttendance: () => void;
+  onWork: () => void;
+  onSupport: () => void;
+};
+
+export default function LearnerSnapshot({
+  scores, subjects, attendance, work, followUps, overdue,
+  assessmentRecords, releasedScores, onProgress, onAttendance, onWork, onSupport,
+}: Props) {
+  const latest = scores
+    .filter(row => row.released_at && row.percentage != null)
+    .sort((a, b) => (b.released_at ?? "").localeCompare(a.released_at ?? ""))[0];
+  const latestSubject = latest ? subjects.find(subject => subject.id === latest.subject_id)?.name : null;
+  return (
+    <section className="studio-learner-summary" aria-label="Learner record summary">
+      <div className="studio-learner-summary-grid">
+        <button type="button" onClick={onAttendance}>
+          <span>Attendance</span>
+          <strong>{attendance.records ? `${attendance.present} / ${attendance.records}` : "—"}</strong>
+          <small>{attendance.records ? "Sessions present" : "No sessions recorded"}</small>
+        </button>
+        <button type="button" onClick={onWork}>
+          <span>Work</span>
+          <strong>{work.submitted} / {work.assigned}</strong>
+          <small>{overdue ? `${overdue} overdue` : "No overdue work recorded"}</small>
+        </button>
+        <button type="button" onClick={onProgress}>
+          <span>Results</span>
+          <strong>{releasedScores} released</strong>
+          <small>{assessmentRecords} assessment record{assessmentRecords === 1 ? "" : "s"}</small>
+        </button>
+        <button type="button" onClick={onSupport}>
+          <span>Follow-ups</span>
+          <strong>{followUps}</strong>
+          <small>{followUps ? "Recorded follow-ups" : "No follow-up recorded"}</small>
+        </button>
+      </div>
+      <p className="studio-learner-summary-context">
+        {assessmentRecords} assessment record{assessmentRecords === 1 ? "" : "s"} · {releasedScores
+          ? `${releasedScores} released subject score${releasedScores === 1 ? "" : "s"}`
+          : "No released subject scores"}
+        {latest && latestSubject ? ` · Latest: ${latestSubject} ${Math.round(latest.percentage!)}%` : ""}
+        {overdue ? ` · ${overdue} overdue task${overdue === 1 ? "" : "s"}` : ""}
+        {!followUps ? " · No follow-up recorded" : ""}
+      </p>
+    </section>
+  );
 }
