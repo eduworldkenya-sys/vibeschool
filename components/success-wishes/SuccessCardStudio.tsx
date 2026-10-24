@@ -212,6 +212,158 @@ function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose
   </div>
 }
 
+/* Explicit local-only UI. Production checkout never mounts this component. */
+function SandboxDarajaCheckout({ theme, values, onClose }: {
+  theme: Template; values: CardValues; onClose: () => void
+}) {
+  const [available, setAvailable] = useState<boolean | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [order, setOrder] = useState<{ orderId: string; key: string } | null>(null)
+  const [stage, setStage] = useState('ready')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [invitationUrl, setInvitationUrl] = useState('')
+  const dialogId = useId()
+
+  useEffect(() => {
+    let active = true
+    fetch('/api/success-wishes/test-daraja', { cache: 'no-store' })
+      .then(async response => response.ok ? response.json() : null)
+      .then(data => {
+        if (active) setAvailable(data?.available === true &&
+          data?.mode === 'daraja_sandbox' && data?.simulatedOnly === true &&
+          data?.realAccess === false && data?.amountKes === 50)
+      })
+      .catch(() => { if (active) setAvailable(false) })
+    return () => { active = false }
+  }, [])
+
+  async function request(action: string, details: object) {
+    const response = await fetch('/api/success-wishes/test-daraja', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store', body: JSON.stringify({ action, ...details }),
+    })
+    const data = await response.json() as Record<string, unknown>
+    if (!response.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Sandbox request failed.')
+    if (data.mode !== 'daraja_sandbox' || data.realAccess !== false || data.simulated !== true)
+      throw new Error('Unexpected sandbox response; no payment status accepted.')
+    return data
+  }
+
+  async function prepare() {
+    if (busy || available !== true || order) return
+    setBusy(true); setError(''); setMessage('')
+    try {
+      const data = await request('prepare', {
+        candidate: values.candidate, sender: values.sender, message: values.message,
+        examYear: values.examYear || '2026', school: values.school || '',
+        theme, version: 'text', phone: '254708374149',
+      })
+      if (data.state !== 'prepared' || typeof data.orderId !== 'string' ||
+        typeof data.key !== 'string') throw new Error('Test order could not be verified.')
+      setOrder({ orderId: data.orderId, key: data.key })
+      setStage('prepared')
+      setMessage('Test order prepared. No STK request has been sent.')
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Could not prepare test checkout.')
+    } finally { setBusy(false) }
+  }
+
+  async function sendOnce() {
+    if (busy || !order || stage !== 'prepared') return
+    // Fail closed on any network ambiguity: never allow a second STK from this UI.
+    setStage('outcome_unknown'); setBusy(true); setError(''); setMessage('')
+    try {
+      const data = await request('start', order)
+      if (data.state !== 'awaiting_customer') throw new Error('STK result uncertain.')
+      setStage('awaiting_customer')
+      setMessage('One sandbox STK request sent. Check its outcome below; do not send again.')
+    } catch (reason) {
+      setError((reason instanceof Error ? reason.message : 'STK result uncertain.') +
+        ' Do not send another STK. Use status check or operator reconciliation.')
+    } finally { setBusy(false) }
+  }
+
+  async function checkStatus() {
+    if (busy || !order || stage === 'prepared' || stage === 'settled_simulated' ||
+      ['failed', 'expired', 'cancelled'].includes(stage)) return
+    setBusy(true); setError('')
+    try {
+      const data = await request('status', order)
+      if (typeof data.state !== 'string') throw new Error('Missing payment status.')
+      const next = data.state
+      if (next === 'settled_simulated' && typeof data.invitationToken === 'string' &&
+          data.invitationToken.length >= 40) {
+        setInvitationUrl(window.location.origin + '/success-wishes/invitation#token=' +
+          encodeURIComponent(data.invitationToken))
+        setStage('settled_simulated')
+        setMessage('Sandbox settlement verified. Only a local test invitation was created.')
+      } else if (['expired', 'cancelled', 'failed'].includes(next)) {
+        setStage(next)
+        setMessage('Sandbox test ' + next + '. No invitation was released.')
+      } else {
+        // A resolved order never returns its one-time invitation token again.
+        // Do not claim success merely from its settled state.
+        if (next === 'settled_simulated') {
+          setStage('settled_simulated')
+          setMessage('Sandbox test already settled. The one-time invitation was issued earlier.')
+        } else {
+          setStage(next === 'reconciliation_required' ? next :
+            stage === 'outcome_unknown' ? 'outcome_unknown' : 'awaiting_customer')
+          setMessage(typeof data.message === 'string' ? data.message :
+            'Payment not yet verified. Check status again; never resend STK.')
+        }
+      }
+    } catch (reason) {
+      setError((reason instanceof Error ? reason.message : 'Status unavailable.') +
+        ' Check status again later; do not resend STK.')
+    } finally { setBusy(false) }
+  }
+
+  async function copyInvitation() {
+    if (!invitationUrl) return
+    try {
+      await navigator.clipboard.writeText(invitationUrl)
+      setMessage('Local test invitation copied.')
+    } catch { setMessage('Select and copy the invitation link below.') }
+  }
+
+  const canCheck = Boolean(order) && stage !== 'prepared' &&
+    stage !== 'settled_simulated' && !['failed', 'expired', 'cancelled'].includes(stage)
+  return <div className={styles.modalBackdrop} role="presentation"
+    onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}
+    onKeyDown={event => { if (event.key === 'Escape') onClose() }}>
+    <section className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={dialogId}>
+      <button type="button" className={styles.modalClose} aria-label="Close test checkout" onClick={onClose}><X size={20}/></button>
+      <p className={styles.eyebrow}>DARAJA SANDBOX · LOCAL TEST</p>
+      <h2 id={dialogId}>Test M-Pesa checkout</h2>
+      <div className={styles.checkoutOrder}>
+        <CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/>
+        <div><strong>Text Wish · {values.candidate.trim()}</strong>
+          <span>Sandbox test number: 254708374149</span>
+          <span>Total · KES 50 (simulated)</span></div>
+      </div>
+      <p className={styles.checkoutDisclosure}>Only an approved Safaricom sandbox test number is allowed. This cannot charge a customer or deliver a real paid wish.</p>
+      {available === null && <p role="status">Checking sandbox configuration…</p>}
+      {available === false && <p role="alert" className={styles.checkoutError}>Sandbox test is unavailable. Check localhost test flags and the private server-side operator token.</p>}
+      {available === true && !order && <button type="button" className={styles.primary} disabled={busy}
+        onClick={() => void prepare()}>{busy ? 'Preparing test…' : 'Prepare test checkout'}</button>}
+      {available === true && stage === 'prepared' && <button type="button" className={styles.primary}
+        disabled={busy} onClick={() => void sendOnce()}>{busy ? 'Sending…' : 'Send one sandbox STK'}</button>}
+      {available === true && canCheck && <button type="button" className={styles.primary}
+        disabled={busy} onClick={() => void checkStatus()}>{busy ? 'Checking…' : 'Check payment status'}</button>}
+      {invitationUrl && <div className={styles.orderConfirmation} role="status">
+        <h3><Check size={18}/> Local test wish ready</h3>
+        <label>Private test invitation<input readOnly value={invitationUrl} onFocus={event => event.currentTarget.select()}/></label>
+        <div className={styles.actions}><button type="button" className={styles.primary}
+          onClick={() => void copyInvitation()}>Copy test invitation</button>
+          <Link className={styles.secondary} href={invitationUrl}>Open test invitation</Link></div>
+      </div>}
+      {message && <p role="status" className={styles.checkoutNotice}>{message}</p>}
+      {error && <p role="alert" className={styles.checkoutError}>{error}</p>}
+    </section>
+  </div>
+}
 const versions = [
   { id: 'text', name: 'Text Wish', price: 50, detail: 'A personalised success card with your message, exactly as you wrote it.' },
   { id: 'voice', name: 'Voice Wish', price: 75, detail: 'Choose a voice message or record your own.' },
@@ -461,6 +613,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {checkoutOpen && <CheckoutPreview theme={theme} values={values} version={selectedVersion} price={versions.find(version => version.id === selectedVersion)?.price || 50} mediaFileName={mediaFile?.name || ''} onClose={() => setCheckoutOpen(false)}/>}
+    {checkoutOpen && (testMode && selectedVersion === 'text' ?
+      <SandboxDarajaCheckout theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/> :
+      <CheckoutPreview theme={theme} values={values} version={selectedVersion} price={versions.find(version => version.id === selectedVersion)?.price || 50} mediaFileName={mediaFile?.name || ''} onClose={() => setCheckoutOpen(false)}/>)}
   </div>
 }
