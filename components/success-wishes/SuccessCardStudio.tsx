@@ -51,11 +51,12 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   const recipient = values.candidate.trim() || 'Candidate name'
   const sender = values.sender.trim() || 'Your name'
   const message = values.message.trim()
+  const headlineLines = wrapped(item.headline, 26, 2)
   const recipientLines = wrapped(recipient, 30, 2)
   const senderLines = wrapped('With love, ' + sender, 42, 1)
   const schoolLines = wrapped(values.school || '', 56, 1)
-  const messageLines = wrapped(message, 56, 5)
-  const messageStartY = 510 - Math.max(messageLines.length - 1, 0) * 22
+  const messageLines = wrapped(message, 53, 5)
+  const messageStartY = 557 - Math.max(messageLines.length - 1, 0) * 17
   const ornaments: Record<Template, string> = { heritage: '✧', botanical: '✿', nightfall: '✦', sunrise: '✳' }
   return (
     <svg ref={svgRef} viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg" role="img"
@@ -81,15 +82,18 @@ export function CardArt({ template, values, svgRef, preview = false }: {
       </g>}
       <text x="75" y="92" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="19" fontWeight="bold" letterSpacing="4">VIBESCHOOL</text>
       <text x="1125" y="92" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="16" fontWeight="bold" letterSpacing="3" textAnchor="end">SUCCESS WISHES</text>
-      <text x="600" y="178" fill={theme.accent} opacity=".14" fontSize="118" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
-      <text x="600" y="242" fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontSize={preview ? 34 : 38} textAnchor="middle" textLength="760" lengthAdjust="spacingAndGlyphs">{item.headline}</text>
-      {recipientLines.map((line, i) => <text key={i} x="600" y={307 + i * 40} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="bold" fontSize="34" textAnchor="middle">{line}</text>)}
-      {schoolLines.map((line, i) => <text key={i} x="600" y={381 + i * 24} fill={theme.ink} opacity=".82" fontFamily="Arial, sans-serif" fontSize="17" textAnchor="middle">{line}</text>)}
-      {messageLines.length > 0 && <g>
-        <rect x="92" y="407" width="1016" height="232" rx="18" fill={theme.ink} opacity=".055"/>
-        <rect x="92" y="407" width="1016" height="232" rx="18" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
-        <path d="M525 427 H675" stroke={theme.accent} strokeWidth="2" opacity=".55"/>
-        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * 43} fill={theme.ink} fontFamily="Georgia, serif" fontSize="31" textAnchor="middle">{line}</text>)}
+      <text x="600" y="183" fill={theme.accent} opacity=".24" fontSize="125" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
+      {headlineLines.map((line, i) => <text key={i} x="600" y={270 + i * 65 - (headlineLines.length - 1) * 28} fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontWeight="600" fontSize={preview ? 63 : 65} textAnchor="middle">{line}</text>)}
+      <path d="M490 313 H710" stroke={theme.accent} strokeWidth="2.5" opacity=".65"/>
+      {recipientLines.map((line, i) => <text key={i} x="600" y={370 + i * 40} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="600" fontSize="39" textAnchor="middle">{line}</text>)}
+      {schoolLines.map((line, i) => <text key={i} x="600" y={(recipientLines.length > 1 ? 444 : 428) + i * 24} fill={theme.ink} opacity=".85" fontFamily="Arial, sans-serif" fontSize="23" textAnchor="middle">{line}</text>)}
+      {messageLines.length > 0 ? <g>
+        <rect x="96" y="461" width="1008" height="178" rx="16" fill={theme.ink} opacity=".055"/>
+        <rect x="96" y="461" width="1008" height="178" rx="16" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
+        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * 36} fill={theme.ink} fontFamily="Georgia, serif" fontSize="33" textAnchor="middle">{line}</text>)}
+      </g> : <g>
+        <path d="M425 531 H775" stroke={theme.accent} strokeWidth="2" opacity=".42"/>
+        <text x="600" y="575" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="25" letterSpacing="5" opacity=".8" textAnchor="middle">GOOD LUCK IN YOUR EXAMS</text>
       </g>}
       {senderLines.map((line, i) => <text key={i} x="75" y={685 + i * 25} fill={theme.ink} fontFamily="Georgia, serif" fontStyle="italic" fontSize="20" fontWeight="600" letterSpacing=".3">{line}</text>)}
       <text x="1125" y="685" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="21" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
@@ -119,7 +123,8 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   }
   useEffect(() => () => { if (replayTimer.current) window.clearTimeout(replayTimer.current) }, [])
   return <div className={styles.bookPreview}>
-    <div className={styles.bookStage + (open ? ' ' + styles.bookIsOpen : '')}>
+    <div className={styles.bookStage + (open ? ' ' + styles.bookIsOpen : '')}
+        style={{ '--book-top': palette[template].top, '--book-bottom': palette[template].bottom, '--book-ink': palette[template].ink, '--book-accent': palette[template].accent } as React.CSSProperties}>
       <div className={styles.bookSpread} aria-hidden={!open}>
         <div className={styles.bookPage}>
           <span className={styles.bookEyebrow}>WITH LOVE</span>
@@ -348,25 +353,23 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <section className={styles.intro}>
         <p className={styles.eyebrow}>DIGITAL SUCCESS CARDS</p>
         <h1>Wish students good luck <em>&amp; success.</em></h1>
-        <p>A personalised card with your words, made to encourage someone before their exams.</p>
+        <p>A personal wish, beautifully made for someone special.</p>
         <button type="button" className={styles.heroCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Explore Success Cards <ChevronRight size={16}/></button>
-        <small className={styles.heroNote}>Choose a card · write your wish · send encouragement</small>
       </section>
       <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
-        <div className={styles.sectionHeading}><div><span className={styles.eyebrow}>MAKE IT PERSONAL</span><h2 id="choose-card-title">Choose a card design</h2></div><small>Tap a card to choose it</small></div>
+        <div className={styles.sectionHeading}><div><h2 id="choose-card-title">Choose a success card design</h2></div></div>
         <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => setTheme(item.id)}
           className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Choose ${item.name} card`}>
           <CardArt template={item.id} values={{ candidate: candidate || 'Your candidate', sender, message: '', examYear: examYear || '2026', school }} preview/>
-          <span className={styles.optionCaption}><strong>{item.name}</strong><small>{item.subtitle}</small></span>
+          <span className={styles.optionCaption}><strong>{item.name}</strong></span>
         </button>)}</div>
       </section>
       <section className={styles.pricingStrip} aria-label="Wish versions and prices">
         <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
           {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} disabled={version.id !== 'text' && !mediaEnabled} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null) }}>
-            {version.name.replace(' Wish', '')} wish · KES {version.price}
+            {version.name} · KES {version.price}
           </button>)}
         </div>
-        <span className={styles.purchaseNote}>{versions.find(version => version.id === selectedVersion)?.name} · KES {versions.find(version => version.id === selectedVersion)?.price}</span>
       </section>
       <section className={styles.composer} aria-labelledby="personalise-card">
         <div className={styles.form} onFocusCapture={event => {
@@ -411,7 +414,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             <button type="button" className={styles.primary} disabled={!ready} onClick={() => setCheckoutOpen(true)}>Send this wish <ChevronRight size={18}/></button>
           </div>
         </div>
-        <div className={styles.live} id="wish-preview"><span>LIVE CARD PREVIEW</span>
+        <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW</span>
           <BookCard template={theme} values={values} soundEnabled={soundEnabled} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
           <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
             {testMode && selectedVersion === 'text' ? <>

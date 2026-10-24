@@ -221,9 +221,14 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
       assert.equal(await page.getByRole('button', { name: `Choose ${design} card` }).count(), 1)
     }
-    assert.equal(await page.getByRole('button', { name: /Text wish · KES 50/ }).count(), 1)
-    assert.equal(await page.getByRole('button', { name: /Voice wish · KES 75/ }).isDisabled(), true)
-    assert.equal(await page.getByRole('button', { name: /Video wish · KES 100/ }).isDisabled(), true)
+    const gallery = page.locator('section[aria-labelledby="choose-card-title"]')
+    assert.equal(await gallery.getByRole('heading', { name: 'Choose a success card design' }).count(), 1)
+    assert.equal(await gallery.locator('svg text[textLength], svg text[lengthAdjust]').count(), 0, 'Card lettering must never be stretched to fit')
+    assert.equal(await gallery.getByText('Tap a card to choose it').count(), 0, 'Design selection needs no extra instructions')
+    assert.equal(await page.locator('section[aria-label="Wish versions and prices"]').locator('[class*="purchaseNote"]').count(), 0, 'Do not duplicate price totals in the selector')
+    assert.equal(await page.getByRole('button', { name: /Text Wish · KES 50/ }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: /Voice Wish · KES 75/ }).isDisabled(), true)
+    assert.equal(await page.getByRole('button', { name: /Video Wish · KES 100/ }).isDisabled(), true)
     assert.equal(await page.getByRole('textbox', { name: 'Exam year' }).inputValue(), '2026', 'Year is prefilled for the sender')
     assert.equal(await page.getByRole('button', { name: 'Send this wish' }).isDisabled(), true, 'Send waits for the required card details')
     assert.equal(await page.getByRole('button', { name: /Preview my card/ }).count(), 0, 'The live preview needs no second preview button')
