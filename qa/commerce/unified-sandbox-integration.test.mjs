@@ -34,15 +34,16 @@ const settings={
   partyB:'174379',transactionType:'CustomerPayBillOnline',
   callbackUrl:'https://isolated-fake.supabase.co/functions/v1/unified-commerce-sandbox-callback?sandbox_token=fixturesandboxtoken12345678901234567890123456789',
   testPhone:'254712345678',
+  stkRecipientPhone:'254700111222',
 }
 const checkout='ws_CO_SYNTHETIC_HTTP_123'
 const merchant='merchant_SYNTHETIC_HTTP_123'
 const receipt='SIMULATEDHTTPE2E1'
 const fetchCalls=[]
-const fetcher=async(url)=>{
+const fetcher=async(url,init)=>{
   const path=String(url)
   assert.ok(path.startsWith('https://sandbox.safaricom.co.ke/'))
-  fetchCalls.push(path)
+  fetchCalls.push({url:path,body:init?.body ? JSON.parse(String(init.body)) : null})
   const value=path.includes('/oauth/')
     ? {access_token:'fixture-token-not-a-real-token'}
     : path.includes('/stkpushquery/')
@@ -63,7 +64,7 @@ test('synthetic guest checkout persists one paid-simulated wish and no real enti
   assert.equal(orderId,again)
   assert.equal(sql(`select amount_kes from commerce_sandbox.orders where id='${orderId}'`),'50')
   const attemptId=sql(`select commerce_sandbox.reserve_attempt(
-    '${orderId}','254712345678');`)
+    '${orderId}','254700111222');`)
   assert.equal(attemptId,sql(`select commerce_sandbox.reserve_attempt(
     '${orderId}','254712345678');`))
 
@@ -75,20 +76,25 @@ test('synthetic guest checkout persists one paid-simulated wish and no real enti
     idempotencyKey:key,
   })
   const result=await sendUniversalDarajaSandboxStk({
-    order,phone:'0712345678',settings,env,fetcher,
+    order,phone:'0700111222',settings,env,fetcher,
     hasReservedAttempt:async()=>sql(`select commerce_sandbox.claim_stk_send('${attemptId}');`)==='t',
     now:()=>new Date('2026-10-22T11:00:00Z'),
   })
   assert.equal(sql(`select commerce_sandbox.claim_stk_send('${attemptId}');`),'f')
   assert.equal(result.state,'awaiting_customer')
   assert.equal(result.receipt,null)
+  assert.equal(result.phone,'254700111222')
+  const stkBody=fetchCalls.find(call=>call.url.includes('/stkpush/v1/processrequest'))?.body
+  assert.equal(stkBody?.PartyA,'254712345678')
+  assert.equal(stkBody?.PhoneNumber,'254700111222')
+  assert.equal(stkBody?.Amount,50)
 
   // The callback may be received before STK provider IDs have been attached.
   const payload={Body:{stkCallback:{
     CheckoutRequestID:checkout,MerchantRequestID:merchant,ResultCode:0,
     ResultDesc:'Completed',CallbackMetadata:{Item:[
       {Name:'Amount',Value:50},{Name:'MpesaReceiptNumber',Value:receipt},
-      {Name:'PhoneNumber',Value:254712345678},
+      {Name:'PhoneNumber',Value:254700111222},
     ]},
   }}}
   const cb=parseDarajaSandboxCallback(payload)
