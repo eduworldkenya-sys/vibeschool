@@ -1,17 +1,8 @@
 {
-  "version": 5,
+  "version": 6,
   "mandatoryForAllAgents": true,
-  "ownership": {
-    "owner": "vibeschool-cyborg-executor",
-    "policy": "All registered engineering skills are subordinate modules governed, selected, sequenced, evaluated and certified only through the Cyborg executor."
-  },
-  "orchestrator": {
-    "id": "vibeschool-cyborg-executor",
-    "path": "docs/ai-governance/CYBORG_EXECUTOR.md",
-    "mandatory": true,
-    "authoritativeSkillOwner": true,
-    "purpose": "Canonical vendor-neutral owner and execution orchestrator of the VibeSchool engineering skill system."
-  },
+  "ownership": {"owner":"vibeschool-cyborg-executor","policy":"All registered engineering skills are subordinate modules governed, selected, sequenced, evaluated and certified only through the Cyborg executor."},
+  "orchestrator": {"id":"vibeschool-cyborg-executor","path":"docs/ai-governance/CYBORG_EXECUTOR.md","mandatory":true,"authoritativeSkillOwner":true,"purpose":"Canonical vendor-neutral owner and execution orchestrator of the VibeSchool engineering skill system."},
   "core": [
     {"id":"repo-truth-first","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Inspect current code, types, tests, migrations, workflows, PR state and CI before changing anything."},
     {"id":"contract-integrity","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Validate fixtures, mocks, payloads, interfaces, DB schemas, RPCs and API shapes against current canonical definitions; forbid stale remembered shapes."},
@@ -19,6 +10,7 @@
     {"id":"exact-head-pr-certification-guardrail","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Enforce isolated-branch delivery, exact-head CI, freshness checks, exact verified-head merge and post-merge verification; stale evidence cannot authorize merge or certification."},
     {"id":"activation-authority-guardrail","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Keep runtime, schedulers, automatic publishing, payments and consequential authority default-denied unless explicitly commissioned; coding or merge authority never implies activation authority."},
     {"id":"evidence-status-guardrail","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Bind IMPLEMENTED, VERIFIED, CERTIFIED, MERGE READY, MERGED, POST-MERGE VERIFIED and PRODUCTION READY claims to fresh evidence appropriate to their exact scope and SHA."},
+    {"id":"pr-convergence-loop","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Make pull-request delivery self-healing by default: start from fresh main, preflight before CI, detect conflicts/base movement/migration collisions, diagnose exact failed checks, repair the canonical cause, preserve one PR, re-certify every moved head, merge only the verified SHA, verify resulting main, and convert preventable failures into durable regression learning."},
     {"id":"preflight-before-ci","owner":"vibeschool-cyborg-executor","activation":"always","purpose":"Require narrow tests, typecheck, lint, relevant build and changed-file validation before claiming ready for CI."},
     {"id":"test-the-test","owner":"vibeschool-cyborg-executor","activation":"triggered","purpose":"Prove new tests fail when protected behavior is deliberately broken; reject decorative tests."},
     {"id":"ci-failure-repair-loop","owner":"vibeschool-cyborg-executor","activation":"triggered","purpose":"Fetch the exact failed job/log, classify root cause, repair the canonical cause, rerun and repeat until green or genuinely blocked."},
