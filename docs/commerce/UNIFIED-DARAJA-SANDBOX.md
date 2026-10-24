@@ -163,3 +163,63 @@ select o.id, o.product_kind, o.amount_kes, o.state,
 ```
 
 A real provider proof must report `callback_count >= 1`, `simulated_grants = 1` and `state = settled_simulated`. If any one is missing, the proof has **not** passed. Never substitute previous synthetic rows for this fresh provider-issued order. Keep real payment initiation OFF.
+
+
+## Localhost browser commissioning (sandbox STK; not live payment)
+
+The Success Wishes checkout has two explicit **development-only** modes. The default
+mode performs a local synthetic success/failure test; the optional **Daraja sandbox
+STK** mode sends one provider test request through the existing isolated Supabase
+checkout Edge Function and checks status through its separate status Edge Function.
+
+Requirements: run `next dev` on `localhost` or `127.0.0.1`, with the existing
+Success Wishes local test feature enabled. In your **private local development
+environment**, supply:
+
+```dotenv
+VIBESCHOOL_SUCCESS_WISHES_TEST_MODE=1
+VIBESCHOOL_DARAJA_HOSTED_TEST_ENABLED=1
+MPESA_ENV=sandbox
+COMMERCE_SANDBOX_PROJECT_REF=ufqjgyzspavamdpkdxmc
+COMMERCE_SANDBOX_TEST_PHONE=254708374149
+COMMERCE_SANDBOX_OPERATOR_TOKEN=<rotated isolated-project operator token, private server only>
+```
+
+Also supply the ordinary development Supabase public settings needed by the app.
+Never use a `NEXT_PUBLIC_` prefix for the operator token; do not commit or
+paste private credentials. Hosted commissioning is automatically denied in
+production builds and on **all Vercel deployments**, including previews.
+
+From `/success-wishes`, create a KES 50 **Text Wish**, open checkout,
+select **Daraja sandbox STK**, and use the fixed approved test phone. Prepare
+the order, then explicitly select **Send one sandbox STK**. The browser talks
+only to `/api/success-wishes/test-daraja`; the route keeps the operator token
+server-side and calls the pinned test project. **Check payment status** calls
+only the isolated provider-status endpoint; it never starts another STK.
+
+On a provider-confirmed **sandbox simulated** settlement, one **local
+test invitation** may be released for recipient-journey QA. This is not a
+receipt for real money, a real entitlement, a production order, or verified
+customer delivery. Expired or failed tests issue no invitation. If submission
+is uncertain, **do not retry**: the original test order stays blocked for
+operator reconciliation.
+
+Run all network-free contracts:
+
+```sh
+node --test scripts/test-success-wishes-local-checkout.mjs
+node --test scripts/test-success-wishes-hosted-daraja.mjs
+node --test scripts/test-success-wishes-hosted-http.mjs
+```
+
+The last command starts a localhost Next.js development server and intercepts
+the *two pinned* isolated provider endpoints using a synthetic CI fixture.
+**It does not contact Safaricom or Supabase.** It also verifies one-time
+submission and the private test invitation through the real Next.js routes.
+Do not run it if there is existing `.success-wishes-test-data.json` because
+the test intentionally expects an empty test store.
+
+Remaining certification: actual Safaricom success `ResultCode: 0` with a
+matching real sandbox callback/query and receipt; a browser UI walkthrough
+with the founder's approved test environment; and separate, explicitly
+authorised production commissioning. Keep live initiation OFF.
