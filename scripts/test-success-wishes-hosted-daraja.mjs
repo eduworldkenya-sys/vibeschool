@@ -176,3 +176,21 @@ test('the operator token is never returned to the browser and the route has loca
   assert.doesNotMatch(component, /Check payment status/)
   assert.doesNotMatch(component, /COMMERCE_SANDBOX_OPERATOR_TOKEN/)
 })
+
+test('Success Wishes test-mode checkout uses explicit prepare, one STK send and status-only polling', async () => {
+  const ui = await readFile(path.join(root, 'components/success-wishes/SuccessCardStudio.tsx'), 'utf8')
+  assert.match(ui, /checkoutOpen && \(testMode && selectedVersion === 'text'/)
+  assert.match(ui, /<CheckoutPreview theme=\{theme\}/,
+    'Normal non-test checkout must remain available')
+  assert.match(ui, /function SandboxDarajaCheckout\(/)
+  assert.match(ui, /request\('prepare',/)
+  assert.match(ui, /request\('start', order\)/)
+  assert.match(ui, /request\('status', order\)/)
+  assert.match(ui, /stage !== 'prepared'/,
+    'Block repeated STK submissions after the first attempt')
+  assert.match(ui, /setStage\('outcome_unknown'\); setBusy\(true\)/,
+    'Network ambiguity must not enable an STK retry')
+  assert.match(ui, /data\.state !== 'awaiting_customer'/)
+  assert.match(ui, /data\.state === 'settled_simulated'|next === 'settled_simulated'/)
+  assert.match(ui, /Local test wish ready/)
+})
