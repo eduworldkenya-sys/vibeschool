@@ -102,7 +102,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   )
 }
 
-export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, mediaKind = 'text', mediaSrc = '' }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string }) {
+export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, mediaKind = 'text', mediaSrc = '', editing = 0 }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string; editing?: number }) {
   const [open, setOpen] = useState(false)
   const [envelopeOpened, setEnvelopeOpened] = useState(false)
   const replayTimer = useRef<number | null>(null)
@@ -116,6 +116,12 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       onOpenedChange?.(true)
     }, 460)
   }
+  useEffect(() => {
+    if (!editing) return
+    if (replayTimer.current) window.clearTimeout(replayTimer.current)
+    setEnvelopeOpened(true)
+    setOpen(true)
+  }, [editing])
   function toggleCard() {
     if (replayTimer.current) window.clearTimeout(replayTimer.current)
     if (!open && soundEnabled) onOpen()
@@ -148,16 +154,13 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       >
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">{template === 'botanical' ? '✿' : template === 'nightfall' ? '✦' : template === 'sunrise' ? '✳' : '✧'}</b>
         <strong>{item.headline}</strong><small>{values.candidate.trim() || 'A wish for someone special'}</small><small>{values.examYear || '2026'}</small>
-        <em>{open ? 'Tap to close' : 'Tap to open'}</em>
       </div>
       {!envelopeOpened && <button type="button" className={styles.bookEnvelope} onClick={openEnvelope} aria-label="Open the envelope and reveal the success card">
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">✉</b><strong>A little encouragement for {values.candidate.trim() || 'someone special'}</strong><small>{values.school?.trim() || `${values.examYear || '2026'} exams`}</small><em>Tap to open</em>
       </button>}
+      {envelopeOpened && <button type="button" className={styles.bookSurface} onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Show card cover' : 'Show card message'}/> }
       {envelopeOpened && <div className={styles.bookEnvelope + ' ' + styles.bookEnvelopeOpened} aria-hidden="true"><span>VIBESCHOOL · SUCCESS WISHES</span><b>✉</b><strong>A little encouragement</strong><em>Opened</em></div>}
     </div>
-    {envelopeOpened && <div className={styles.bookActions}>
-      <button type="button" className={styles.secondary} onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>{open ? 'Close card' : 'Open card'}</button>
-    </div>}
     {open && mediaSrc && mediaKind !== 'text' && <section className={styles.senderPlayback} aria-label="Sender recording preview">
       <strong>{mediaKind === 'voice' ? 'Listen to your voice wish' : 'Watch your video wish'}</strong>
       {mediaKind === 'voice'
@@ -239,6 +242,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
   const [previewSession, setPreviewSession] = useState(0)
+  const [editingPreview, setEditingPreview] = useState(0)
   const [candidate, setCandidate] = useState(initialDraft?.candidate || '')
   const [sender, setSender] = useState(initialDraft?.sender || '')
   const [message, setMessage] = useState(initialDraft?.message || '')
@@ -366,7 +370,10 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       </section>
       <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
         <div className={styles.sectionHeading}><div><h2 id="choose-card-title">Choose a success card design</h2></div></div>
-        <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => setTheme(item.id)}
+        <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => {
+          setTheme(item.id)
+          document.getElementById('wish-composer')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+        }}
           className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Choose ${item.name} card`}>
           <CardArt template={item.id} values={{ candidate: candidate || 'Your candidate', sender, message: '', examYear: examYear || '2026', school }} preview/>
           <span className={styles.optionCaption}><strong>{item.name}</strong></span>
@@ -379,9 +386,17 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </button>)}
         </div>
       </section>
-      <section className={styles.composer} aria-labelledby="personalise-card">
+      <section id="wish-composer" className={styles.composer} aria-labelledby="personalise-card">
+        <button type="button" className={styles.miniPreview} onClick={() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })} aria-label="See full card preview">
+          <span className={styles.miniArtwork} aria-hidden="true"><CardArt template={theme} values={values} preview/></span>
+          <span className={styles.miniCopy}><strong>{candidate.trim() || 'Your candidate'}</strong><small>{school.trim() || `${examYear || '2026'} exams`}</small><span>{message.trim() || 'Your wish appears here as you type.'}</span><small>From {sender.trim() || 'your name'}</small></span>
+          <ChevronRight size={16} aria-hidden="true"/>
+        </button>
         <div className={styles.form} onFocusCapture={event => {
-          if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) playFormStartSound()
+          if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+            setEditingPreview(value => value + 1)
+            playFormStartSound()
+          }
         }}><div className={styles.heading}><span>DIGITAL SUCCESS CARD</span><h2 id="personalise-card">Write a wish they’ll remember.</h2></div>
           <div className={styles.formRow}>
             <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
@@ -431,7 +446,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </div>
         </div>
         <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
-          <BookCard key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
+          <BookCard key={previewSession} editing={editingPreview} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
           <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
             {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
