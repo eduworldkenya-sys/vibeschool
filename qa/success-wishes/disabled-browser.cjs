@@ -235,7 +235,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     await page.locator('input[type="file"][accept^="audio"]').setInputFiles({
       name: 'private-voice.wav', mimeType: 'audio/wav', buffer: Buffer.from('RIFFsynthetic-preview-file'),
     })
-    assert.equal(await page.getByText('private-voice.wav').count(), 1, 'Sender file is locally selected')
+    assert.equal(await page.locator('[aria-label="Add a voice wish"]').getByText('private-voice.wav').count(), 1, 'Sender file is locally selected')
     assert.equal(await page.getByRole('button', { name: 'Remove selected recording' }).count(), 1)
     assert.equal(await page.getByRole('button', { name: 'Preview your wish' }).isDisabled(), true, 'Unfinished media wish cannot create a checkout')
     await page.getByRole('button', { name: /Video Wish · KES 100/ }).click()
@@ -244,7 +244,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     await page.locator('input[type="file"][accept^="video"]').setInputFiles({
       name: 'private-video.mp4', mimeType: 'video/mp4', buffer: Buffer.from('synthetic-video-preview-file'),
     })
-    assert.equal(await page.getByText('private-video.mp4').count(), 1, 'Video file is locally selected')
+    assert.equal(await page.locator('[aria-label="Add a video wish"]').getByText('private-video.mp4').count(), 1, 'Video file is locally selected')
     await page.getByRole('button', { name: /Text Wish · KES 50/ }).click()
     assert.equal(await page.getByRole('textbox', { name: 'Exam year' }).inputValue(), '2026', 'Year is prefilled for the sender')
     assert.equal(await page.getByRole('button', { name: 'Send this wish' }).isDisabled(), true, 'Send waits for the required card details')
@@ -284,7 +284,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   await recordPage.getByRole('button', { name: 'Record voice' }).click()
   await recordPage.getByRole('button', { name: /Stop recording/ }).waitFor()
   await recordPage.getByRole('button', { name: /Stop recording/ }).click()
-  await recordPage.getByText('success-wish-voice.webm').waitFor()
+  await recordPage.locator('[aria-label="Add a voice wish"]').getByText('success-wish-voice.webm').waitFor()
   await recordPage.getByRole('button', { name: 'Remove selected recording' }).click()
   assert.equal(await recordPage.getByRole('button', { name: 'Remove selected recording' }).count(), 0, 'Sender can remove a recording')
   await recordContext.close()
