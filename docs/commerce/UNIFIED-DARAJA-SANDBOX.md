@@ -218,7 +218,7 @@ VIBESCHOOL_SUCCESS_WISHES_TEST_MODE=1
 VIBESCHOOL_DARAJA_HOSTED_TEST_ENABLED=1
 MPESA_ENV=sandbox
 COMMERCE_SANDBOX_PROJECT_REF=ufqjgyzspavamdpkdxmc
-COMMERCE_SANDBOX_TEST_PHONE=254708374149
+COMMERCE_SANDBOX_TEST_PHONE=<approved test recipient in 2547... or 2541... format>
 COMMERCE_SANDBOX_OPERATOR_TOKEN=<rotated isolated-project operator token, private server only>
 ```
 
@@ -227,9 +227,18 @@ Never use a `NEXT_PUBLIC_` prefix for the operator token; do not commit or
 paste private credentials. Hosted commissioning is automatically denied in
 production builds and on **all Vercel deployments**, including previews.
 
-From `/success-wishes`, create a KES 50 **Text Wish**, open checkout,
-select **Daraja sandbox STK**, and use the fixed approved test phone. Prepare
-the order, then explicitly select **Send one sandbox STK**. The browser talks
+For the optional separately approved test recipient, set
+`COMMERCE_DARAJA_SANDBOX_STK_RECIPIENT_PHONE` in the **isolated Supabase
+project's Edge Function Secrets**, and set the same number as server-only
+`COMMERCE_SANDBOX_TEST_PHONE` in local `.env.local`. Both must refer to the
+number you explicitly consented to test. Leave Daraja's simulator `PartyA`
+(`COMMERCE_DARAJA_SANDBOX_TEST_PHONE`) at its documented test default.
+The operator token must also match the isolated Supabase secret. The browser
+sees only the last four digits of the approved recipient.
+
+From `/success-wishes`, create a KES 50 **Text Wish** and open the
+local test checkout. Prepare the order, then explicitly select **Send one
+sandbox STK**. The browser talks
 only to `/api/success-wishes/test-daraja`; the route keeps the operator token
 server-side and calls the pinned test project. **Check payment status** calls
 only the isolated provider-status endpoint; it never starts another STK.
