@@ -146,7 +146,7 @@ export default function SenderMediaCapture({ kind, file, onChange }: {
         {kind === 'voice' ? <FileAudio size={17}/> : <FileVideo size={17}/>}
         Choose {kind === 'voice' ? 'audio' : 'video'} file
       </button>
-      <input ref={chooser} type="file" className={styles.fileInput} aria-label={`Choose ${kind === 'voice' ? 'audio' : 'video'} file`}
+      <input ref={chooser} type="file" className={styles.fileInput} aria-label={`Upload ${kind === 'voice' ? 'audio' : 'video'} file from device`}
         accept={kind === 'voice' ? 'audio/*,.m4a' : 'video/*'} onChange={event => {
           chooseFile(event.currentTarget.files?.[0] || null)
           event.currentTarget.value = ''
