@@ -1,0 +1,137 @@
+name: Universal Commerce Daraja Sandbox Contracts
+
+on:
+  pull_request:
+    paths:
+      - 'lib/commerce/unified/**'
+      - 'scripts/commerce/hosted-daraja-sandbox-proof*'
+      - 'supabase/functions/unified-commerce-sandbox-*/**'
+      - 'qa/commerce/unified-sandbox-*.sql'
+      - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
+      - 'app/api/success-wishes/test-daraja/route.ts'
+      - 'lib/success-wishes/hosted-daraja-test.ts'
+      - 'scripts/test-success-wishes-hosted-daraja.mjs'
+      - 'scripts/test-success-wishes-hosted-http.mjs'
+      - 'scripts/commerce/mock-hosted-daraja-http.cjs'
+      - 'app/api/success-wishes/test-checkout/route.ts'
+      - 'components/success-wishes/SuccessCardStudio.tsx'
+      - 'lib/success-wishes/local-test-store.ts'
+      - 'scripts/test-success-wishes-local-checkout.mjs'
+      - 'qa/commerce/hosted-success-evidence.sql'
+      - '.github/workflows/unified-commerce-sandbox.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'lib/commerce/unified/**'
+      - 'scripts/commerce/hosted-daraja-sandbox-proof*'
+      - 'qa/commerce/unified-sandbox-*.sql'
+      - 'docs/commerce/UNIFIED-DARAJA-SANDBOX.md'
+      - 'app/api/success-wishes/test-daraja/route.ts'
+      - 'lib/success-wishes/hosted-daraja-test.ts'
+      - 'scripts/test-success-wishes-hosted-daraja.mjs'
+      - 'scripts/test-success-wishes-hosted-http.mjs'
+      - 'scripts/commerce/mock-hosted-daraja-http.cjs'
+      - 'app/api/success-wishes/test-checkout/route.ts'
+      - 'components/success-wishes/SuccessCardStudio.tsx'
+      - 'lib/success-wishes/local-test-store.ts'
+      - 'scripts/test-success-wishes-local-checkout.mjs'
+      - 'qa/commerce/hosted-success-evidence.sql'
+      - '.github/workflows/unified-commerce-sandbox.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  sandbox-contracts:
+    name: Universal Commerce Sandbox Contracts (no credentials)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies, without install scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run sandbox contracts with injected transport (no real network)
+        run: node --import ./scripts/register-typescript.mjs --test lib/commerce/unified/*.test.ts
+      - name: Verify hosted proof runner safety with local fake network only
+        run: node --test scripts/commerce/hosted-daraja-sandbox-proof.test.mjs
+      - name: Test localhost-only checkout failure, success and no real charges
+        run: node --test scripts/test-success-wishes-local-checkout.mjs
+      - name: Test operator-only Daraja STK bridge with mocked transport
+        run: node --test scripts/test-success-wishes-hosted-daraja.mjs
+      - name: Test guarded hosted checkout over actual Next.js HTTP (fake provider only)
+        run: node --test scripts/test-success-wishes-hosted-http.mjs
+      - name: Typecheck whole repository
+        run: npm run typecheck
+
+  disposable-postgres:
+    name: Universal Commerce Disposable PostgreSQL Contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-fixture-only
+          POSTGRES_DB: commerce_sandbox_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d commerce_sandbox_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout exact PR revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Build temporary sandbox-only schema and assert invariants
+        env:
+          PGPASSWORD: disposable-fixture-only
+        run: |
+          set -euo pipefail
+          export PGHOST=127.0.0.1 PGPORT=5432 PGUSER=postgres PGDATABASE=commerce_sandbox_test
+          psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-lifecycle.sql
+          psql -v ON_ERROR_STOP=1 -f qa/commerce/unified-sandbox-lifecycle-assertions.sql
+      - name: Run Node and PostgreSQL joined synthetic STK / callback / query / simulated delivery
+        env:
+          PGPASSWORD: disposable-fixture-only
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGDATABASE: commerce_sandbox_test
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --import ./scripts/register-typescript.mjs --test qa/commerce/unified-sandbox-integration.test.mjs
+
+  edge-typecheck:
+    name: Typecheck isolated sandbox Edge Functions (no deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact PR revision
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Deno 2
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check isolated sandbox HTTP handlers
+        run: |
+          deno check --node-modules-dir=auto supabase/functions/unified-commerce-sandbox-checkout/index.ts
+          deno check --node-modules-dir=auto supabase/functions/unified-commerce-sandbox-callback/index.ts
+          deno check --node-modules-dir=auto supabase/functions/unified-commerce-sandbox-status/index.ts

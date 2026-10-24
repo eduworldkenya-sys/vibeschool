@@ -1,0 +1,184 @@
+/**
+ * Non-secret defaults are confined to the pre-existing isolated sandbox host.
+ * assertDarajaSandboxOnly still checks SUPABASE_URL against the exact
+ * project reference and rejects the production VibeSchool Supabase URL.
+ * Explicit environment values override these defaults to disable testing.
+ */
+/**
+ * Isolated, OPERATOR-ONLY sandbox payment status endpoint. Do not expose to
+ * customers or deploy to primary VibeSchool Supabase. No real entitlements.
+ */
+import postgres from 'npm:postgres@3.4.5'
+import {validateIsolatedSandboxDatabaseUrl} from '../../../lib/commerce/unified/sandbox-db.ts'
+import {
+  assertDarajaSandboxOnly,type SandboxAttempt,
+} from '../../../lib/commerce/unified/sandbox.ts'
+import {queryUniversalDarajaSandboxStk} from '../../../lib/commerce/unified/daraja-reconciliation.ts'
+import type {DarajaSandboxSettings} from '../../../lib/commerce/unified/daraja-sandbox.ts'
+
+const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{
+  status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'},
+})
+async function equalSecret(a:string,b:string){
+  if(a.length<32||b.length<32||a.length>256||b.length>256)return false
+  const digest=async(s:string)=>new Uint8Array(await crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(s)))
+  const x=await digest(a),y=await digest(b);let diff=0
+  for(let i=0;i<x.length;i++)diff|=x[i]^y[i]
+  return diff===0
+}
+/** Produce only a sandbox callback URL for the exact isolated project. */
+function sandboxCallbackUrl(projectUrl: string): string {
+  const configured=Deno.env.get('COMMERCE_DARAJA_SANDBOX_CALLBACK_URL')?.trim()
+  if(configured)return configured
+  const token=Deno.env.get('COMMERCE_DARAJA_SANDBOX_WEBHOOK_TOKEN')?.trim()||''
+  if(!/^[A-Za-z0-9_-]{32,200}$/.test(token))throw new Error('Sandbox webhook token not configured')
+  return projectUrl+'/functions/v1/unified-commerce-sandbox-callback?sandbox_token='+token
+}
+
+Deno.serve(async(req)=>{
+  if(req.method!=='POST')return json({error:'Method not allowed'},405)
+  const env={
+    MPESA_ENV:(Deno.env.get('MPESA_ENV') ?? 'sandbox'),
+    COMMERCE_DARAJA_SANDBOX_ENABLED:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_ENABLED') ?? 'true'),
+    COMMERCE_SANDBOX_ISOLATED_PROJECT:(Deno.env.get('COMMERCE_SANDBOX_ISOLATED_PROJECT') ?? 'true'),
+    COMMERCE_SANDBOX_PROJECT_REF:(Deno.env.get('COMMERCE_SANDBOX_PROJECT_REF') ?? 'ufqjgyzspavamdpkdxmc'),
+    SUPABASE_URL:Deno.env.get('SUPABASE_URL'),
+  }
+  try{assertDarajaSandboxOnly(env)}catch{return json({error:'Sandbox disabled'},503)}
+  const authorization=req.headers.get('authorization')||''
+  const secret=Deno.env.get('COMMERCE_SANDBOX_OPERATOR_TOKEN')||''
+  if(!authorization.startsWith('Bearer ')||!await equalSecret(authorization.slice(7),secret))
+    return json({error:'Unauthorized'},401)
+  if(Number(req.headers.get('content-length')||0)>1024)return json({error:'Too large'},413)
+  let orderId:string
+  try{
+    const raw=await req.text()
+    if(raw.length>1024)throw Error('Too large')
+    const body=JSON.parse(raw)
+    orderId=body?.order_id
+    if(typeof orderId!=='string'||!/^[0-9a-f-]{36}$/i.test(orderId))
+      throw Error('Invalid order')
+  }catch{return json({error:'Invalid order id'},400)}
+  const ref=env.COMMERCE_SANDBOX_PROJECT_REF||''
+  const databaseUrl=(Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL') || Deno.env.get('SUPABASE_DB_URL') || '')
+  const databaseGuard=validateIsolatedSandboxDatabaseUrl(databaseUrl,ref)
+  if(!databaseGuard.ok)
+    return json({error:'Refusing non-isolated database',reason:databaseGuard.reason},503)
+  const db=postgres(databaseGuard.connectionString,{max:1,prepare:false,ssl:'require',idle_timeout:5,connect_timeout:5})
+  try{
+    const rows=await db`select o.id as order_id,o.state as order_state,
+      a.checkout_request_id,a.merchant_request_id,a.amount_kes,a.phone,
+      a.state as attempt_state,a.provider_receipt
+      from commerce_sandbox.orders o
+      left join lateral (
+        select * from commerce_sandbox.payment_attempts
+        where order_id=o.id order by created_at desc limit 1
+      ) a on true
+      where o.id=${orderId}::uuid`
+    if(!rows.length)return json({error:'Unknown sandbox order'},404)
+    const a=rows[0]
+    if(a.order_state==='settled_simulated'){
+      const access=await db`select count(*)::integer as n
+        from commerce_sandbox.simulated_entitlements where order_id=${orderId}::uuid`
+      return json({mode:'sandbox',order_id:orderId,state:'settled_simulated',
+        simulated_access:access[0]?.n===1,real_access:false})
+    }
+    if(!a.checkout_request_id||!a.merchant_request_id
+      ||!['awaiting_customer','reconciliation_required'].includes(a.attempt_state))
+      return json({mode:'sandbox',order_id:orderId,state:a.attempt_state||a.order_state,
+        simulated_access:false,real_access:false})
+    // This read-only evidence is safe even if the provider status query is
+    // unavailable. Callback/observation records are immutable and never
+    // establish a successful payment by themselves.
+    const evidence=await db`select
+      (select result_code from commerce_sandbox.provider_inbox
+        where checkout_request_id=${a.checkout_request_id}
+        order by created_at desc limit 1) as callback_code,
+      (select result_code from commerce_sandbox.provider_query_observations
+        where checkout_request_id=${a.checkout_request_id}
+        order by observed_at desc limit 1) as last_query_code`
+    const observations={
+      callback_result_code:evidence[0]?.callback_code??null,
+      last_query_result_code:evidence[0]?.last_query_code??null,
+    }
+    const required=(name:string)=>{
+      const value=Deno.env.get(name)
+      if(!value)throw new Error('Sandbox provider not configured')
+      return value
+    }
+    let settings:DarajaSandboxSettings
+    try {settings={
+      consumerKey:required('COMMERCE_DARAJA_SANDBOX_CONSUMER_KEY'),
+      consumerSecret:required('COMMERCE_DARAJA_SANDBOX_CONSUMER_SECRET'),
+      passkey:required('COMMERCE_DARAJA_SANDBOX_PASSKEY'),
+      businessShortCode:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_SHORTCODE')?.trim() || '174379'),
+      partyB:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_PARTY_B')?.trim() || '174379'),
+      transactionType:'CustomerPayBillOnline',
+      callbackUrl:sandboxCallbackUrl(env.SUPABASE_URL || ''),
+      testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
+    }} catch {
+      return json({mode:'sandbox',order_id:orderId,
+        state:'reconciliation_required',failure_stage:'provider_configuration',
+        ...observations,simulated_access:false,real_access:false},503)
+    }
+    const attempt:SandboxAttempt={
+      mode:'sandbox',orderId,checkoutRequestId:String(a.checkout_request_id),
+      merchantRequestId:String(a.merchant_request_id),
+      expectedAmountKes:Number(a.amount_kes),
+      phone:String(a.phone),state:a.attempt_state,receipt:a.provider_receipt,
+    }
+    let provider:Awaited<ReturnType<typeof queryUniversalDarajaSandboxStk>>
+    try {provider=await queryUniversalDarajaSandboxStk({attempt,settings,env})}
+    catch (e) {
+      // Expose only a fixed public diagnostic code, never provider response
+      // bodies, credentials or callback secrets.
+      const message=e instanceof Error?e.message:''
+      const failure_code=message.includes('identity or acknowledgement mismatch')
+        ?'provider_identity_mismatch'
+        :message.includes('query uncertain')?'provider_transport_unavailable'
+        :message.includes('query failed')?'provider_http_failure'
+        :message.includes('Malformed Daraja response')||
+          message.includes('Invalid Daraja final result')?'provider_response_invalid'
+        :message.includes('OAuth')||message.includes('credentials')
+          ?'provider_auth_or_configuration'
+        :'provider_query_unknown'
+      return json({mode:'sandbox',order_id:orderId,
+        state:'reconciliation_required',failure_stage:'provider_query',
+        failure_code,...observations,
+        simulated_access:false,real_access:false,
+        message:'No new STK request was sent. Provider status could not be verified.'},409)
+    }
+    try {
+      await db`insert into commerce_sandbox.provider_query_observations(
+        checkout_request_id,merchant_request_id,result_code
+      ) values(${provider.checkoutRequestId},${provider.merchantRequestId},
+        ${provider.resultCode}) on conflict do nothing`
+    } catch {
+      return json({mode:'sandbox',order_id:orderId,
+        state:'reconciliation_required',failure_stage:'persist_provider_observation',
+        provider_result_code:provider.resultCode,
+        ...observations,simulated_access:false,real_access:false},503)
+    }
+    let verdict:Record<string,unknown>[]
+    try {verdict=await db`select commerce_sandbox.reconcile_sandbox(
+        ${attempt.checkoutRequestId}) as state`}
+    catch {return json({mode:'sandbox',order_id:orderId,
+      state:'reconciliation_required',failure_stage:'database_reconciliation',
+      provider_result_code:provider.resultCode,
+      ...observations,simulated_access:false,real_access:false},503)}
+    const stored=await db`select state from commerce_sandbox.orders
+      where id=${orderId}::uuid`
+    const realAccess=false
+    const simulated=stored[0]?.state==='settled_simulated'
+    return json({mode:'sandbox',order_id:orderId,
+      state:stored[0]?.state||'reconciliation_required',
+      processing_verdict:verdict[0]?.state,
+      provider_result_code:provider.resultCode,
+      simulated_access:simulated,real_access:realAccess})
+  }catch{
+    return json({mode:'sandbox',order_id:orderId,state:'reconciliation_required',
+      simulated_access:false,real_access:false,
+      message:'Provider outcome uncertain; original STK request was not retried'},409)
+  }finally{await db.end({timeout:2}).catch(()=>undefined)}
+})

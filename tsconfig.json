@@ -15,6 +15,7 @@
     "noImplicitReturns": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "downlevelIteration": true,
     "esModuleInterop": true,
     "module": "esnext",
