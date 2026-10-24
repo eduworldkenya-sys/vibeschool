@@ -84,6 +84,16 @@ Deno.serve(async req=>{
   let phone:string
   try{phone=normalizeKenyanPhone(requestedPhone)}
   catch{return json({error:'Invalid test phone'},400)}
+  // Never accept arbitrary customer phones: the recipient must be explicitly
+  // approved as an isolated sandbox Edge Function secret. Backward-compatible
+  // default remains the simulator test number if no override is configured.
+  const simulatorPhone=Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'
+  const configuredRecipient=Deno.env.get('COMMERCE_DARAJA_SANDBOX_STK_RECIPIENT_PHONE')?.trim() || simulatorPhone
+  let approvedRecipient:string
+  try{approvedRecipient=normalizeKenyanPhone(configuredRecipient)}
+  catch{return json({error:'Invalid sandbox recipient configuration'},503)}
+  if(phone!==approvedRecipient)
+    return json({error:'Only the explicitly approved sandbox STK recipient is allowed'},400)
   const projectRef=env.COMMERCE_SANDBOX_PROJECT_REF||''
   const databaseUrl=(Deno.env.get('COMMERCE_SANDBOX_DATABASE_URL') || Deno.env.get('SUPABASE_DB_URL') || '')
   const databaseGuard=validateIsolatedSandboxDatabaseUrl(databaseUrl,projectRef)
@@ -104,7 +114,8 @@ Deno.serve(async req=>{
       partyB:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_PARTY_B')?.trim() || '174379'),
       transactionType:'CustomerPayBillOnline',
       callbackUrl:sandboxCallbackUrl(env.SUPABASE_URL || ''),
-      testPhone:(Deno.env.get('COMMERCE_DARAJA_SANDBOX_TEST_PHONE')?.trim() || '254708374149'),
+      testPhone:simulatorPhone,
+      stkRecipientPhone:approvedRecipient,
     }
   }catch{return json({error:'Sandbox provider not configured'},503)}
   const db=postgres(databaseGuard.connectionString,{max:1,prepare:false,ssl:'require',idle_timeout:5,connect_timeout:5})
