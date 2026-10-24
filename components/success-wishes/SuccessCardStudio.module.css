@@ -508,7 +508,7 @@
 .form input,.form textarea{font-size:16px}
 @media(max-width:850px){
   .mobilePreview{display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;order:-1;padding:9px;border:1px solid var(--line);border-radius:12px;background:#151c29;box-shadow:0 6px 20px #0004}
-  .mobilePreview>.art{width:88px;height:auto;flex-shrink:0;border-radius:6px}
+  .mobilePreview>.art{width:88px;height:auto;aspect-ratio:1200/760;flex-shrink:0;border-radius:6px}
   .mobilePreview>div{min-width:0;flex:1}
   .mobilePreview span{font-size:9px;letter-spacing:1px;color:var(--gold2)}
   .mobilePreview strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--cream)}

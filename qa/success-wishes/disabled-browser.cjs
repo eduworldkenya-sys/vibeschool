@@ -44,6 +44,7 @@ async function ready() {
 
 async function makeWish(context, { message, theme }) {
   const page = await context.newPage()
+  page.setDefaultTimeout(15000)
   await page.addInitScript(() => {
     window.__successWishChimeOscillators = 0
     const createOscillator = AudioContext.prototype.createOscillator
@@ -74,6 +75,9 @@ async function makeWish(context, { message, theme }) {
   const designButton = page.getByRole('button', { name: `Choose ${theme} card` })
   await designButton.click()
   assert.equal(await designButton.getAttribute('aria-pressed'), 'true', 'Choosing a design updates the selected card immediately')
+  await page.waitForFunction(() => Math.abs(document.getElementById('wish-composer').getBoundingClientRect().top - 20) < 3)
+  const mini = page.locator('[aria-label="Live card preview"]')
+  assert.equal(await mini.isVisible(), page.viewportSize().width <= 850, 'Mini preview appears only on mobile/tablet layouts')
   await page.screenshot({ path: path.join(screenshots, `design-preview-${theme.replace(/\s+/g, '-')}.png`) })
 
   await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
@@ -105,23 +109,26 @@ async function makeWish(context, { message, theme }) {
   assert.equal(await wishInput.evaluate(element => document.activeElement === element), true, 'Choosing a starter moves focus into the message')
   await wishInput.fill(message)
   const liveWish = page.getByTestId('success-card-message-preview')
-  assert.equal(await liveWish.innerText(), message, 'The live book preview updates with the exact wish while staying hidden until opened')
-  assert.equal(await liveWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true')
-  const envelope = page.getByRole('button', { name: 'Open the envelope and reveal the success card' })
-  await envelope.click()
-  let bookToggle = page.getByRole('button', { name: 'Close the book card' })
-  await bookToggle.waitFor({ state: 'visible' })
-  assert.equal(await bookToggle.getAttribute('aria-expanded'), 'true', 'Opening the envelope unfolds the card like a book')
-  assert.equal(await bookToggle.count(), 1, 'One visible control closes the unfolded card')
-  assert.equal(await liveWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'false', 'The personal wish appears when the book opens')
+  assert.equal(await liveWish.innerText(), message, 'Sender preview updates with the exact wish while typing')
+  assert.equal(await liveWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'false', 'Editing automatically opens the sender preview')
+  assert.equal(await page.getByRole('button', { name: /^(Open|Close) the book card$/ }).count(), 0, 'Sender preview has no redundant Open/Close controls')
   assert.equal(await page.getByRole('button', { name: 'Replay opening' }).count(), 0, 'The completed card opening has no replay control')
   await liveWish.waitFor({ state: 'visible' })
-  await bookToggle.click()
-  assert.equal(await page.getByRole('button', { name: 'Open the book card' }).getAttribute('aria-expanded'), 'false', 'The card cover toggles closed')
-  assert.equal(await liveWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'The live preview closes again')
-  bookToggle = page.getByRole('button', { name: 'Open the book card' })
-  await bookToggle.click()
-  assert.equal(await liveWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'false', 'The same control opens the book again')
+  if (page.viewportSize().width <= 850) {
+    await wishInput.focus()
+    await page.evaluate(() => window.scrollBy(0, 160))
+    const miniBounds = await mini.boundingBox()
+    assert(miniBounds.y >= -1 && miniBounds.y < 5, 'Mini preview stays at the top while editing')
+    assert(miniBounds.height < 110, 'Mini preview leaves room for fields and keyboard')
+    assert.equal(await mini.locator('strong').innerText(), 'John Mwangi')
+    assert.equal(await mini.locator('p').innerText(), message)
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Typing creates no horizontal overflow')
+    await mini.getByRole('button', { name: 'View card' }).click()
+    await page.waitForFunction(() => {
+      const top = document.getElementById('wish-preview').getBoundingClientRect().top
+      return top >= 0 && top < innerHeight - 150
+    })
+  }
   const checkoutRequests = []
   const trackCheckout = request => { if (request.url().includes('/api/success-wishes/')) checkoutRequests.push(request.url()) }
   page.on('request', trackCheckout)

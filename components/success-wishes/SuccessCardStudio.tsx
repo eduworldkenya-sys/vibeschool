@@ -102,7 +102,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   )
 }
 
-export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, mediaKind = 'text', mediaSrc = '', autoOpen = false }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string; autoOpen?: boolean }) {
+export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, mediaKind = 'text', mediaSrc = '', autoOpen = false, senderPreview = false }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string; autoOpen?: boolean; senderPreview?: boolean }) {
   const [open, setOpen] = useState(false)
   const [envelopeOpened, setEnvelopeOpened] = useState(false)
   const replayTimer = useRef<number | null>(null)
@@ -115,6 +115,12 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       setOpen(true)
       onOpenedChange?.(true)
     }, 460)
+  }
+  function toggleCard() {
+    if (replayTimer.current) window.clearTimeout(replayTimer.current)
+    if (!open && soundEnabled) onOpen()
+    onOpenedChange?.(!open)
+    setOpen(value => !value)
   }
   useEffect(() => {
     if (!autoOpen) return
@@ -149,13 +155,15 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       >
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">{template === 'botanical' ? '✿' : template === 'nightfall' ? '✦' : template === 'sunrise' ? '✳' : '✧'}</b>
         <strong>{item.headline}</strong><small>{values.candidate.trim() || 'A wish for someone special'}</small><small>{values.examYear || '2026'}</small>
-
       </div>
       {!envelopeOpened && <button type="button" className={styles.bookEnvelope} onClick={openEnvelope} aria-label="Open the envelope and reveal the success card">
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">✉</b><strong>A little encouragement for {values.candidate.trim() || 'someone special'}</strong><small>{values.school?.trim() || `${values.examYear || '2026'} exams`}</small><em>Tap to open</em>
       </button>}
       {envelopeOpened && <div className={styles.bookEnvelope + ' ' + styles.bookEnvelopeOpened} aria-hidden="true"><span>VIBESCHOOL · SUCCESS WISHES</span><b>✉</b><strong>A little encouragement</strong><em>Opened</em></div>}
     </div>
+    {!senderPreview && envelopeOpened && <div className={styles.bookActions}>
+      <button type="button" className={styles.secondary} onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>{open ? 'Close card' : 'Open card'}</button>
+    </div>}
     {open && mediaSrc && mediaKind !== 'text' && <section className={styles.senderPlayback} aria-label="Sender recording preview">
       <strong>{mediaKind === 'voice' ? 'Listen to your voice wish' : 'Watch your video wish'}</strong>
       {mediaKind === 'voice'
@@ -438,7 +446,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </div>
         </div>
         <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
-          <BookCard autoOpen={previewEditing} key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
+          <BookCard senderPreview autoOpen={previewEditing} key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
           <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
             {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
