@@ -19,6 +19,21 @@ export const FUNCTION_ORIGIN =
   `https://${PROJECT_REF}.supabase.co/functions/v1`
 const INTERVAL_MS = 5000
 const MAX_POLLS = 30
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// A temporary 409 STATUS response is not settlement or definitive failure.
+// Never apply this exception to checkout, different orders or unsafe evidence.
+export function isPendingReconciliation409(httpStatus, reply, orderId) {
+  return httpStatus === 409 &&
+    reply?.mode === 'sandbox' && reply?.order_id === orderId &&
+    UUID.test(orderId) &&
+    reply?.state === 'reconciliation_required' &&
+    reply?.simulated_access === false && reply?.real_access === false &&
+    ['provider_query', 'persist_provider_observation',
+      'database_reconciliation'].includes(reply?.failure_stage) &&
+    !['provider_identity_mismatch', 'provider_auth_or_configuration',
+      'provider_response_invalid'].includes(reply?.failure_code)
+}
 
 export function validateProofEnvironment(env) {
   if (env.COMMERCE_SANDBOX_PROJECT_REF &&
@@ -66,6 +81,9 @@ async function apiPost(endpoint, body, token, fetcher) {
   try { reply = await response.json() }
   catch { throw new Error(`${endpoint}: malformed JSON response`) }
   if (!response.ok) {
+    if (endpoint === 'unified-commerce-sandbox-status' &&
+        isPendingReconciliation409(response.status, reply, body.order_id))
+      return { ...reply, status_check_pending: true }
     const safeState = typeof reply?.state === 'string'
       ? reply.state : `HTTP ${response.status}`
     throw new Error(`${endpoint}: ${safeState} (${response.status})`)
@@ -110,6 +128,10 @@ export async function runHostedProof(options) {
     }, token, fetcher)
     if (status.order_id !== orderId)
       throw new Error('Status response references the wrong order')
+    if (status.status_check_pending) {
+      log(`Temporary reconciliation error for order ${orderId}; checking STATUS only, no new STK`)
+      continue
+    }
     const verdict = classifyProofStatus(status)
     if (verdict === 'passed') {
       log(`PASS: fresh KES 50 sandbox order ${orderId} settled with exactly one SIMULATED access grant; no real access`)
@@ -123,12 +145,46 @@ export async function runHostedProof(options) {
   throw new Error(`Sandbox STK outcome not confirmed after ${MAX_POLLS} status checks; order ${orderId} needs reconciliation. Do not retry the checkout.`)
 }
 
+/** Query an existing order exactly once; never call checkout or initiate STK. */
+export async function checkHostedExistingOrder(options) {
+  const { token } = validateProofEnvironment(options.env)
+  const orderId = options.orderId
+  if (typeof orderId !== 'string' || !UUID.test(orderId))
+    throw new Error('Supply a valid existing sandbox order UUID')
+  const fetcher = options.fetcher || fetch
+  const status = await apiPost('unified-commerce-sandbox-status', {
+    order_id: orderId,
+  }, token, fetcher)
+  if (status.order_id !== orderId)
+    throw new Error('Status response references the wrong order')
+  const verdict = status.status_check_pending ? 'waiting' : classifyProofStatus(status)
+  if (verdict === 'invalid')
+    throw new Error('Invalid or contradictory hosted sandbox status')
+  return { orderId, verdict, status }
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) ===
     (await import('node:path')).resolve(process.argv[1])) {
-  if (!process.argv.includes('--execute')) {
+  const statusOnly = process.argv.indexOf('--status-only')
+  if (statusOnly !== -1) {
+    // Prevent accidental checkout from mixed flags or invalid arguments.
+    if (process.argv.includes('--execute') || statusOnly !== process.argv.length - 2) {
+      console.error('Use --status-only <existing-order-uuid> without --execute')
+      process.exitCode = 1
+    } else {
+      checkHostedExistingOrder({ env: process.env, orderId: process.argv[statusOnly + 1] })
+        .then(({ orderId, verdict, status }) => {
+          console.log(`STATUS ONLY: order ${orderId}: ${verdict}; state=${status.state}; provider_result_code=${status.provider_result_code ?? 'unknown'}; simulated_access=${status.simulated_access}; real_access=${status.real_access}; no STK sent`)
+        }).catch(error => {
+          console.error('STATUS ERROR:', error.message)
+          process.exitCode = 1
+        })
+    }
+  } else if (!process.argv.includes('--execute')) {
     console.log('Operator-only hosted sandbox proof. No request made.')
     console.log('Set COMMERCE_SANDBOX_OPERATOR_TOKEN and COMMERCE_SANDBOX_TEST_PHONE privately.')
-    console.log('Then run: node scripts/commerce/hosted-daraja-sandbox-proof.mjs --execute')
+    console.log('Inspect existing order: node scripts/commerce/hosted-daraja-sandbox-proof.mjs --status-only <uuid>')
+    console.log('New STK only: node scripts/commerce/hosted-daraja-sandbox-proof.mjs --execute')
   } else {
     runHostedProof({ env: process.env }).catch(error => {
       console.error('FAIL:', error.message)
