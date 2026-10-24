@@ -414,6 +414,8 @@
 
 
 /* Premium Success Wishes composition — preserve the existing four designs and book interaction. */
+/* Calm studio background: remove the distracting dotted grid. */
+.page{background:radial-gradient(ellipse at 18% 0%,rgba(184,139,51,.11),transparent 37rem),radial-gradient(ellipse at 95% 70%,rgba(36,57,84,.16),transparent 42rem),#0d111b;background-size:auto}
 .intro{padding:19px 0 18px}
 .intro h1{max-width:930px;font-size:clamp(35px,4.2vw,51px);line-height:1.12;margin:7px auto 8px}
 .intro>p:not(.eyebrow){margin:0 auto 13px;font-size:14px;line-height:1.5}
