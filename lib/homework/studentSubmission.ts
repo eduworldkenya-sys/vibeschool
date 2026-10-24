@@ -7,7 +7,7 @@ export interface StudentHomeworkAnswerInput {
 
 export interface StudentHomeworkSubmissionResult {
   submissionId: string
-  status: 'draft' | 'received'
+  status: 'draft' | 'received' | 'returned'
   revisionNumber: number
   updatedAt?: string
   submittedAt?: string
@@ -34,7 +34,7 @@ function parseResult(data: unknown): StudentHomeworkSubmissionResult {
   if (typeof submissionId !== 'string' || !submissionId) {
     throw new Error('Homework submission identity is missing.')
   }
-  if (status !== 'draft' && status !== 'received') {
+  if (status !== 'draft' && status !== 'received' && status !== 'returned') {
     throw new Error('Homework submission status is invalid.')
   }
   if (typeof revisionNumber !== 'number' || !Number.isInteger(revisionNumber)) {
@@ -78,7 +78,7 @@ async function callSubmissionRpc(
   // Submission and task execution authority land in additive migrations. This
   // narrow cast avoids coupling the client to generated RPC types between
   // schema regeneration cycles.
-  const client = supabase as unknown as RpcClient
+  const client: RpcClient = { rpc: (fn, args) => supabase.rpc(fn, args) }
 
   const { data, error } = await client.rpc(name, {
     p_homework_id: input.homeworkId,
