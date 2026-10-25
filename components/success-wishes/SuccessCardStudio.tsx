@@ -263,7 +263,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const stopSound = useRef<(() => void) | null>(null)
-  const formStartSoundPlayed = useRef(false)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school }
   const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear) && (selectedVersion === 'text' || mediaFile))
@@ -342,13 +341,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     catch { setStatus(order.invitationUrl) }
   }
 
-  function playFormStartSound() {
-    if (!soundEnabled || formStartSoundPlayed.current) return
-    formStartSoundPlayed.current = true
-    stopSound.current?.()
-    stopSound.current = playWishRevealSound()
-  }
-
   function toggleSound() {
     if (soundEnabled) {
       stopSound.current?.()
@@ -396,7 +388,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <button type="button" onClick={() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>View card <ChevronRight size={15}/></button>
         </div>
         <div className={styles.form} onFocusCapture={event => {
-          if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) { setPreviewEditing(true); playFormStartSound() }
+          if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) { setPreviewEditing(true) }
         }}><div className={styles.heading}><span>DIGITAL SUCCESS CARD</span><h2 id="personalise-card">Write a wish they’ll remember.</h2></div>
           <div className={styles.formRow}>
             <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
