@@ -178,7 +178,42 @@ function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose
   const [phoneError, setPhoneError] = useState('')
   const [review, setReview] = useState(false)
   const [detailsConfirmed, setDetailsConfirmed] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState('')
+  const [sentMessage, setSentMessage] = useState('')
   const id = useId()
+  async function sendWish() {
+    if (sending) return
+    setSending(true)
+    setSendError('')
+    try {
+      const response = await fetch('/api/success-wishes/cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        body: JSON.stringify({
+          senderName: values.sender,
+          candidateName: values.candidate,
+          examYear: values.examYear,
+          schoolAddress: values.school,
+          theme,
+          message: values.message,
+          version,
+          mpesaNumber,
+        }),
+      })
+      const payload = await response.json().catch(() => ({}))
+      if (!response.ok) {
+        throw new Error(typeof payload.error === 'string' ? payload.error : 'Your wish could not be sent. Please try again.')
+      }
+      setSentMessage(typeof payload.customerMessage === 'string' ? payload.customerMessage : 'Check your phone to confirm the M-Pesa payment.')
+      setDetailsConfirmed(true)
+    } catch (reason) {
+      setSendError(reason instanceof Error ? reason.message : 'Your wish could not be sent. Please try again.')
+    } finally {
+      setSending(false)
+    }
+  }
   function reviewCheckout(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalized = mpesaNumber.replace(/[\s()-]/g, '')
@@ -192,20 +227,20 @@ function CheckoutPreview({ theme, values, version, price, mediaFileName, onClose
   return <div className={styles.modalBackdrop} role="presentation" onKeyDown={event => { if (event.key === 'Escape') onClose() }} onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={id}>
       <button type="button" className={styles.modalClose} aria-label="Close checkout" onClick={onClose}><X size={20}/></button>
-      {detailsConfirmed ? <><p className={styles.eyebrow}>M-PESA CHECKOUT</p><h2 id={id}>Your details are ready</h2>
-        <p className={styles.checkoutNotice}>No payment prompt has been sent and your wish has not been submitted.</p>
+      {detailsConfirmed ? <><p className={styles.eyebrow}>M-PESA CHECKOUT</p><h2 id={id}>Check your phone</h2>
+        <p className={styles.checkoutNotice}>{sentMessage} Your card is sent once the payment is confirmed.</p>
         <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>M-Pesa number: {mpesaNumber}</span><span>Total · KES {price}</span></div></div>
         <button type="button" className={styles.primary} onClick={onClose}>Back to your card</button>
       </> : <><p className={styles.eyebrow}>CHECKOUT</p><h2 id={id}>{review ? 'Review your wish' : 'Your order'}</h2>
         <div className={styles.checkoutOrder}><CardArt template={theme} values={{ ...values, examYear: values.examYear || '2026' }} preview/><div><strong>{versions.find(item => item.id === version)?.name} · {values.candidate.trim()}</strong><span>For the {values.examYear || '2026'} exams</span><span>{values.school?.trim() || 'No school selected'}</span>{mediaFileName && <span>{mediaFileName}</span>}</div></div>
         {!review ? <form onSubmit={reviewCheckout} noValidate><fieldset className={styles.numberPicker}><legend>Choose a number prefix</legend>{['07', '01', '+254'].map(prefix => <button type="button" key={prefix} aria-pressed={mpesaNumber.startsWith(prefix)} onClick={() => { setMpesaNumber(prefix); setPhoneError('') }}>{prefix}</button>)}</fieldset><label className={styles.checkoutLabel} htmlFor={id + '-mpesa'}>M-Pesa number<input id={id + '-mpesa'} type="tel" inputMode="tel" autoComplete="tel" value={mpesaNumber} onChange={event => { setMpesaNumber(event.target.value); setPhoneError('') }} placeholder="07XX XXX XXX" maxLength={16} aria-describedby={id + '-phone-help'} required/></label>
-          <small id={id + '-phone-help'} className={styles.checkoutDisclosure}>Choose the number for this review. No payment prompt is sent here.</small>
+          <small id={id + '-phone-help'} className={styles.checkoutDisclosure}>An M-Pesa prompt will be sent to this number.</small>
           {phoneError && <p role="alert" className={styles.checkoutError}>{phoneError}</p>}
           <div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
           <button type="submit" className={styles.primary}>Review order <ChevronRight size={18}/></button>
         </form> : <><p className={styles.checkoutFine}>M-Pesa number: <strong>{mpesaNumber}</strong></p><div className={styles.orderTotal}>Total <strong>KES {price}</strong></div>
-          <p className={styles.checkoutNotice}>Review only. This page has not started a payment or sent your wish.</p>
-          <div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={() => setReview(false)}>Edit number</button><button type="button" className={styles.primary} onClick={() => setDetailsConfirmed(true)}>Finish review <ChevronRight size={18}/></button></div>
+          {sendError && <p role="alert" className={styles.checkoutError}>{sendError}</p>}
+          <div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={() => setReview(false)} disabled={sending}>Edit number</button><button type="button" className={styles.primary} onClick={() => void sendWish()} disabled={sending}>{sending ? 'Sending…' : 'Pay with M-Pesa'} <ChevronRight size={18}/></button></div>
         </>}
       </>}
     </section>
