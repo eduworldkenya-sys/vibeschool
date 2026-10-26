@@ -9,7 +9,16 @@ type Fetcher = typeof fetch
 type Json = Record<string,unknown>
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const CHECKOUT=/^[A-Za-z0-9_-]{6,160}$/
-const ALLOWED=['MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_SHORTCODE','MPESA_PASSKEY','SUCCESS_WISHES_MPESA_CALLBACK_URL'] as const
+// Guest wishes must not inherit generic M-Pesa keys shared by other VibeSchool products.
+const REQUIRED=[
+  'SUCCESS_WISHES_MPESA_CONSUMER_KEY','SUCCESS_WISHES_MPESA_CONSUMER_SECRET',
+  'SUCCESS_WISHES_MPESA_SHORTCODE','SUCCESS_WISHES_MPESA_PASSKEY',
+  'SUCCESS_WISHES_MPESA_PARTY_B','SUCCESS_WISHES_MPESA_TRANSACTION_TYPE',
+  'SUCCESS_WISHES_MPESA_ENV','SUCCESS_WISHES_MPESA_CALLBACK_URL',
+] as const
+const PRODUCTION_SHORTCODE='961580'
+const PRODUCTION_TILL='949529'
+const PRODUCTION_CALLBACK_HOST='yauqsxggtuxuykcbrtzf.supabase.co'
 
 function object(value:unknown):Json {
   if (!value||typeof value!=='object'||Array.isArray(value)) throw new Error('Invalid M-Pesa provider response.')
@@ -17,19 +26,34 @@ function object(value:unknown):Json {
 }
 function config(env:Env) {
   if (env.SUCCESS_WISHES_MPESA_TRANSPORT_ENABLED!=='true') throw new Error('Guest M-Pesa transport is disabled.')
-  if (env.MPESA_ENV!=='sandbox'&&env.MPESA_ENV!=='production') throw new Error('M-Pesa environment not configured.')
-  for(const key of ALLOWED) if(!env[key]?.trim()) throw new Error('Guest M-Pesa provider configuration incomplete.')
-  if(!/^\d{5,7}$/.test(env.MPESA_SHORTCODE!)) throw new Error('Invalid M-Pesa shortcode.')
+  for(const key of REQUIRED) if(!env[key]?.trim()) throw new Error('Guest M-Pesa provider configuration incomplete.')
+  const environment=env.SUCCESS_WISHES_MPESA_ENV!.trim()
+  if(environment!=='sandbox'&&environment!=='production')throw new Error('M-Pesa environment not configured.')
+  const shortcode=env.SUCCESS_WISHES_MPESA_SHORTCODE!.trim()
+  const partyB=env.SUCCESS_WISHES_MPESA_PARTY_B!.trim()
+  const transactionType=env.SUCCESS_WISHES_MPESA_TRANSACTION_TYPE!.trim()
+  if(!/^\d{5,7}$/.test(shortcode)||!/^\d{5,7}$/.test(partyB))
+    throw new Error('Invalid M-Pesa merchant number.')
+  if(environment==='production' &&
+    (shortcode!==PRODUCTION_SHORTCODE||partyB!==PRODUCTION_TILL||transactionType!=='CustomerBuyGoodsOnline'))
+    throw new Error('Production M-Pesa merchant configuration mismatch.')
+  // Safaricom's sandbox STK test merchant is Paybill-style. It must never be mixed
+  // with production Buy Goods credentials or with a real receiving Till.
+  if(environment==='sandbox' &&
+    (shortcode!=='174379'||partyB!=='174379'||transactionType!=='CustomerPayBillOnline'))
+    throw new Error('Sandbox M-Pesa merchant configuration mismatch.')
   const callback=new URL(env.SUCCESS_WISHES_MPESA_CALLBACK_URL!)
   if(callback.protocol!=='https:'||!callback.hostname.endsWith('.supabase.co')
-    ||callback.username||callback.password||callback.port||callback.hash
-    ||callback.pathname!=='/functions/v1/success-wishes-mpesa-callback')
-    throw new Error('M-Pesa callback must be a dedicated HTTPS Supabase endpoint.')
+    ||callback.username||callback.password||callback.port||callback.hash||callback.search
+    ||callback.pathname!=='/functions/v1/success-wishes-mpesa-callback'
+    ||(environment==='production'&&callback.hostname!==PRODUCTION_CALLBACK_HOST))
+    throw new Error('M-Pesa callback must be the dedicated HTTPS Supabase endpoint.')
   return {
-    host:env.MPESA_ENV==='sandbox'?'https://sandbox.safaricom.co.ke':'https://api.safaricom.co.ke',
-    consumerKey:env.MPESA_CONSUMER_KEY!.trim(),
-    consumerSecret:env.MPESA_CONSUMER_SECRET!.trim(),
-    shortcode:env.MPESA_SHORTCODE!.trim(),passkey:env.MPESA_PASSKEY!.trim(),
+    host:environment==='sandbox'?'https://sandbox.safaricom.co.ke':'https://api.safaricom.co.ke',
+    consumerKey:env.SUCCESS_WISHES_MPESA_CONSUMER_KEY!.trim(),
+    consumerSecret:env.SUCCESS_WISHES_MPESA_CONSUMER_SECRET!.trim(),
+    shortcode,partyB,transactionType,
+    passkey:env.SUCCESS_WISHES_MPESA_PASSKEY!.trim(),
     callback:callback.href,
   }
 }
@@ -92,8 +116,8 @@ export function createGuestMpesaTransport(options:{
         headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},
         body:JSON.stringify({
           BusinessShortCode:settings.shortcode,Password:password,Timestamp:timestamp,
-          TransactionType:'CustomerPayBillOnline',Amount:attempt.amountKes,
-          PartyA:phone,PartyB:settings.shortcode,PhoneNumber:phone,
+          TransactionType:settings.transactionType,Amount:attempt.amountKes,
+          PartyA:phone,PartyB:settings.partyB,PhoneNumber:phone,
           CallBackURL:settings.callback,AccountReference:'VW'+attempt.id.replace(/-/g,'').slice(0,10),
           TransactionDesc:'Success Wish',
         }),
