@@ -104,7 +104,7 @@ export default function SuccessWishInvitationPage() {
       await requestCard(mode.current === 'production' ? PAID_API : TEST_API, { method: 'DELETE' })
       setWish(null)
       setCardOpened(false)
-      setError('Signed out on this device. Open your private link again to read this card.')
+      setError('You are signed out. Use your private invitation again to open this wish.')
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Could not sign out. Try again.')
     }
@@ -112,7 +112,7 @@ export default function SuccessWishInvitationPage() {
   return <div className={styles.page}>
     <header className={styles.header}><Link href="/" className={styles.brand}>VibeSchool <span>/ Success Wishes</span></Link><span>Private wish</span></header>
     <main className={styles.main}>
-      <div className={styles.intro}><p className={styles.eyebrow}>A PRIVATE SUCCESS WISH</p><h1>{wish && cardOpened ? `A wish for ${wish.candidate}` : 'A little encouragement, just for you'}</h1>
+      <div className={styles.intro}><p className={styles.eyebrow}>A PRIVATE SUCCESS WISH</p><h1>{wish && cardOpened ? `A wish for ${wish.candidate}` : 'Your private invitation'}</h1>
         <p>Your gift is free to open. Keep your private link or access code safe; it grants access to this card.</p></div>
       {busy && <p role="status" className={styles.status}>Finding your private invitation…</p>}
       {error && !busy && <section className={styles.form} aria-live="polite">
