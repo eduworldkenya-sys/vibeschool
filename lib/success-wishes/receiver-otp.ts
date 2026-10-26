@@ -17,12 +17,13 @@ export function inboxCookie(req: NextRequest, age: number) {
   return { httpOnly: true as const, sameSite: 'strict' as const,
     secure: req.nextUrl.protocol === 'https:', path: '/api/success-wishes/receiver', maxAge: age }
 }
-export async function issueOtp(db: DB, receiverId: string, phone: string) {
+export type OtpPurpose = 'recovery' | 'consent_adult' | 'consent_guardian'
+export async function issueOtp(db: DB, receiverId: string, phone: string, purpose: OtpPurpose = 'recovery') {
   await limit('receiver-otp:global', 1000, 86400)
   await limit('receiver-otp:' + hashedPhoneRateKey(phone), 5, 86400)
   const otp = newOtp()
   const { data: challenge, error } = await db.from('success_wish_receiver_challenges').insert({
-    receiver_id: receiverId, code_hash: otpDigest(receiverId, otp),
+    receiver_id: receiverId, purpose, code_hash: otpDigest(receiverId, otp),
     expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
   }).select('id').single()
   if (error || !challenge) throw new WishError(503, 'Could not begin phone verification.')
@@ -39,12 +40,12 @@ export async function issueOtp(db: DB, receiverId: string, phone: string) {
   }
   return challenge.id as string
 }
-export async function consumeOtp(db: DB, receiverId: string, challengeId: unknown, code: unknown) {
+export async function consumeOtp(db: DB, receiverId: string, challengeId: unknown, code: unknown, purpose: OtpPurpose = 'recovery') {
   if (typeof challengeId !== 'string' || !UUID.test(challengeId) || typeof code !== 'string' || !/^\d{6}$/.test(code))
     throw new WishError(401, 'Check the verification code and try again.')
   await limit('receiver-otp-verify:' + receiverId, 18, 900)
   const { data, error } = await db.rpc('success_wish_consume_receiver_challenge', {
-    p_challenge: challengeId, p_receiver: receiverId, p_digest: otpDigest(receiverId, code),
+    p_challenge: challengeId, p_receiver: receiverId, p_digest: otpDigest(receiverId, code), p_purpose: purpose,
   })
   if (error) throw new WishError(503, 'Could not verify your code.')
   if (data !== true) throw new WishError(401, 'Incorrect or expired code.')
