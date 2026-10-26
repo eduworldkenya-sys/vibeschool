@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 // Next.js route exports only GET and runtime settings; never sends an STK prompt.
 const handler = createPaymentReadinessHandler({
   verifyOperator: verifiedFounderOperator,
-  providerFetch: (...args) => fetch(...args),
+  providerFetch: (input, init) => fetch(input, init),
   env: process.env,
 })
 export async function GET(req: Request) { return handler(req) }
