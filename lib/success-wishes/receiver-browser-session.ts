@@ -1,16 +1,17 @@
 'use client'
 import { useEffect } from 'react'
 const CHANNEL = 'vibeschool-receiver-logout'
+const TAB_ID = Math.random().toString(36).slice(2)
 /** Only a non-sensitive logout signal crosses tabs; never identities or credentials. */
 export function broadcastReceiverLogout() {
-  try { const channel = new BroadcastChannel(CHANNEL); channel.postMessage('clear'); channel.close() } catch { /* storage fallback */ }
+  try { const channel = new BroadcastChannel(CHANNEL); channel.postMessage({type:'clear',source:TAB_ID}); channel.close() } catch { /* storage fallback */ }
   try { localStorage.setItem(CHANNEL, String(Date.now())) } catch { /* restricted storage */ }
 }
 export function useReceiverSessionSafety(verifyOnReturn = true) {
   useEffect(() => {
     const clear = () => window.location.replace('/success-wishes/open?notice=device-cleared')
     let channel: BroadcastChannel | undefined
-    try { channel = new BroadcastChannel(CHANNEL); channel.onmessage = event => { if (event.data === 'clear') clear() } } catch { /* storage fallback */ }
+    try { channel = new BroadcastChannel(CHANNEL); channel.onmessage = event => { if (event.data?.type === 'clear' && event.data?.source !== TAB_ID) clear() } } catch { /* storage fallback */ }
     const storage = (event: StorageEvent) => { if (event.key === CHANNEL) clear() }
     const visibility = () => {
       if (!verifyOnReturn || document.visibilityState !== 'visible') return

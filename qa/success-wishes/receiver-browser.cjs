@@ -27,8 +27,8 @@ async function ready() {
   }
   throw Error('Receiver test server did not start')
 }
-function setupMocks(page) {
-  const state={verified:false,opened:false,verifiedCalls:0,wrongCardReveals:0}
+function setupMocks(page, existing) {
+  const state=existing||{verified:false,opened:false,verifiedCalls:0,wrongCardReveals:0}
   const card=(id)=>({id,candidate:'Synthetic Candidate',school:'Synthetic School',examYear:'2026',
     theme:id===CARD_A?'heritage':'nightfall',sender:id===CARD_A?null:'Aunt',
     opened:id===CARD_B,consentRequired:id===CARD_A&&!state.verified,createdAt:'2026-10-26T08:00:00.000Z'})
@@ -48,6 +48,7 @@ function setupMocks(page) {
         }else if(!state.verified && data.cardId===CARD_A){
           status=403;payload={error:'Consent must be verified.'}
         }else{
+          if(state.revealPause)await state.revealPause
           state.opened=true
           payload={card:{...card(data.cardId),consentRequired:false,opened:true,
             sender:data.cardId===CARD_A?'Mum':'Aunt',message:'You are capable of wonderful things.'}}
@@ -137,6 +138,26 @@ async function run() {
     console.log('Receiver controlled browser pass:',width)
     await ctx.close()
   }
+  // A slow reveal must never repopulate private content after sign-out.
+  const ctx=await browser.newContext({viewport:{width:390,height:840},reducedMotion:'reduce'})
+  const first=await ctx.newPage(),second=await ctx.newPage()
+  const state=setupMocks(first);state.verified=true
+  setupMocks(second,state)
+  await first.goto(ROOT+'/success-wishes/invitation?card='+CARD_A,{waitUntil:'networkidle'})
+  await second.goto(ROOT+'/success-wishes/invitation?card='+CARD_A,{waitUntil:'networkidle'})
+  let release;state.revealPause=new Promise(resolve=>{release=resolve})
+  await first.getByRole('button',{name:'Open the envelope and reveal the success card'}).click()
+  await first.getByRole('button',{name:'Sign out on this device'}).click()
+  await first.getByText('You are signed out. Use your private invitation again to open this wish.').waitFor()
+  await second.waitForURL('**/success-wishes/open?notice=device-cleared')
+  const lateResponse=first.waitForResponse(r=>r.url().endsWith('/receiver/card')&&r.request().method()==='PUT')
+  release();state.revealPause=null
+  await (await lateResponse).finished()
+  await first.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
+  await first.getByText('You are signed out. Use your private invitation again to open this wish.').waitFor()
+  assert.equal(await first.getByText('You are capable of wonderful things.').count(),0)
+  console.log('Receiver controlled browser pass: delayed reveal + logout + second-tab purge')
+  await ctx.close()
 }
 run().catch(error=>{console.error(error);process.exitCode=1}).finally(async()=>{
   await browser?.close()
