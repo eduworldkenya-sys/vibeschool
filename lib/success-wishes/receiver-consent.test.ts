@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { registeredConsentRoute, verifyConsentDeclaration } from './receiver-consent'
+import { registeredConsentRoute, registeredWithdrawalRoute, verifyConsentDeclaration } from './receiver-consent'
 
 const base = { phone_e164: '+254712345678', guardian_phone_e164: null as string | null,
   consent_route: null as 'adult' | 'guardian' | null, consent_status: 'pending' }
@@ -27,4 +27,17 @@ test('cannot bootstrap unassigned identity, revoked recipient, or select recipie
   assert.deepEqual(registeredConsentRoute({ ...base,consent_status:'verified' }),
     { phone: base.phone_e164, purpose: 'recovery', consentRole: 'verified' })
   assert.doesNotThrow(() => verifyConsentDeclaration('verified','verified',undefined))
+})
+
+test('withdrawal always uses pre-registered adult or guardian authority, never the requester phone', () => {
+  assert.deepEqual(registeredWithdrawalRoute({ ...base, consent_status: 'verified', consent_route: 'adult' }),
+    { phone: base.phone_e164, purpose: 'consent_adult', consentRole: 'adult' })
+  assert.deepEqual(registeredWithdrawalRoute({ ...base, consent_status: 'verified',
+    consent_route: 'guardian', guardian_phone_e164: '+254733222111' }),
+    { phone: '+254733222111', purpose: 'consent_guardian', consentRole: 'guardian' })
+  assert.throws(() => registeredWithdrawalRoute({ ...base, consent_status: 'verified',
+    consent_route: 'guardian' }), /support/)
+  assert.throws(() => registeredWithdrawalRoute({ ...base, consent_route: 'adult' }), /verified/)
+  assert.throws(() => registeredWithdrawalRoute({ ...base, consent_status: 'revoked',
+    consent_route: 'guardian', guardian_phone_e164: '+254733222111' }), /verified/)
 })
