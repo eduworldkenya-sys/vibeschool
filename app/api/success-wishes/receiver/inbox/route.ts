@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
-import { receiverDatabase, RECEIVER_COOKIE, SESSION_AGE, sessionDigest, verifiedCard } from '@/lib/success-wishes/receiver'
+import { receiverDatabase, RECEIVER_COOKIE, SESSION_AGE, sessionDigest, settledCardIds, verifiedCard } from '@/lib/success-wishes/receiver'
 import { inboxCookie, inboxDigest, inboxSession, INBOX_COOKIE } from '@/lib/success-wishes/receiver-otp'
 import { failure, json, reply, sameOrigin } from '@/lib/success-wishes/server'
 
@@ -12,11 +12,12 @@ export async function GET(req: NextRequest) {
   try {
     const { db, receiver } = await inboxSession(req)
     const { data, error } = await db.from('success_wish_cards')
-      .select('id,theme,sender_name,sender_reveal_early,opened_at,created_at,expires_at')
+      .select('id,payment_attempt_id,theme,sender_name,sender_reveal_early,opened_at,created_at,expires_at')
       .eq('receiver_id', receiver.id).is('revoked_at', null).is('hidden_at', null).gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false }).limit(100)
     if (error) throw error
-    const cards = (data || []).map(card => ({
+    const paidIds = await settledCardIds(db, data || [])
+    const cards = (data || []).filter(card => paidIds.has(card.id)).map(card => ({
       id: card.id, theme: card.theme, sender: card.opened_at || card.sender_reveal_early ? card.sender_name : null,
       opened: !!card.opened_at, createdAt: card.created_at,
     }))
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
       expires_at: new Date(Date.now() + age * 1000).toISOString(),
     })
     if (error) throw error
-    const response = reply({ ok: true, url: '/success-wishes/invitation' })
+    const response = reply({ ok: true, url: '/success-wishes/invitation?card=' + card.id })
     response.cookies.set(RECEIVER_COOKIE, session, { httpOnly: true, sameSite: 'strict',
       secure: req.nextUrl.protocol === 'https:', path: '/api/success-wishes/receiver', maxAge: age })
     return response
