@@ -425,8 +425,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
             <div>{messageStarters.map(starter => <button type="button" key={starter.label} aria-label={'Use wish starter: ' + starter.label} onClick={() => {
               setMessage(starter.message)
+              // Keep focus inside the user gesture so mobile keyboards open reliably.
+              messageInputRef.current?.focus()
               window.requestAnimationFrame(() => {
-                messageInputRef.current?.focus()
                 messageInputRef.current?.setSelectionRange(starter.message.length, starter.message.length)
               })
             }}>{starter.label}</button>)}</div>
