@@ -33,14 +33,17 @@ export async function POST(req: NextRequest) {
 }
 export async function GET(req: NextRequest) {
   try {
-    const { card, recipient } = await cardSession(req)
+    const { card, recipient } = await cardSession(req, req.nextUrl.searchParams.get('card') || undefined)
     return reply({ card: envelope(card, recipient) })
   } catch (error) { return failure(error) }
 }
 export async function PUT(req: NextRequest) {
   try {
-    sameOrigin(req)
-    const { db, card, recipient } = await cardSession(req)
+    const body = await json(req) as { cardId?: unknown }
+    const { db, card, recipient } = await cardSession(req, body?.cardId)
+    if (body?.cardId !== card.id) throw new WishError(400, 'Select the card you intend to open.')
+    if (recipient.consent_status !== 'verified')
+      throw new WishError(403, 'Recipient verification and consent are required to read this wish.')
     if (!card.opened_at) {
       const { error } = await db.from('success_wish_cards')
         .update({ opened_at: new Date().toISOString() }).eq('id', card.id).is('opened_at', null)
