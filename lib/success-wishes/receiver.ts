@@ -70,6 +70,10 @@ export async function cardSession(req: NextRequest, expectedCardId?: unknown) {
     throw new WishError(401, 'Your card session has ended. Reopen your private link.')
   if (expectedCardId !== undefined && expectedCardId !== active.card_id)
     throw new WishError(409, 'Another card was opened on this device. Return to your inbox or reopen this card link.')
+  const { data: access, error: accessError } = await db.from('success_wish_card_access')
+    .select('revoked_at,expires_at').eq('card_id', active.card_id).maybeSingle()
+  if (accessError || !access || access.revoked_at || Date.parse(access.expires_at) <= Date.now())
+    throw new WishError(401, 'This card access has ended. Ask the sender for help.')
   const result = await verifiedCard(db, active.card_id, true)
   return { db, ...result }
 }

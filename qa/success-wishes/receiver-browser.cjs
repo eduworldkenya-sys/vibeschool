@@ -71,7 +71,7 @@ function setupMocks(page) {
       else payload={ok:true}
     } else if(url.pathname.endsWith('/recover')){
       if(method==='POST')payload={challengeId:CHALLENGE,expiresInSeconds:300}
-      else if(method==='PATCH')payload=data.code==='123456'?{ok:true,inboxUrl:'/success-wishes/inbox'}:{error:'Invalid code'}
+      else if(method==='PATCH'){status=data.code==='123456'?200:401;payload=status===200?{ok:true,inboxUrl:'/success-wishes/inbox'}:{error:'Incorrect or expired code'}}
     } else {status=404;payload={error:'Unknown controlled route'}}
     await route.fulfill({status:status===200?200:status,contentType:'application/json',
       headers:{'Cache-Control':'no-store'},body:JSON.stringify(payload)})
@@ -85,7 +85,7 @@ async function assertNoOverflow(page,label){
 async function run() {
   await ready()
   browser=await chromium.launch({headless:true})
-  for(const width of [320,390,768,1280]){
+  for(const width of [320,360,390,412,768,1280]){
     const ctx=await browser.newContext({viewport:{width,height:840},reducedMotion:'reduce'})
     const page=await ctx.newPage();page.setDefaultTimeout(20000)
     const state=setupMocks(page)
@@ -101,7 +101,7 @@ async function run() {
     await page.getByRole('button',{name:'Send verification SMS'}).click()
     await page.getByRole('text', {name:/The parent or guardian must check/}).waitFor().catch(()=>{})
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('123456')
-    await page.getByRole('checkbox').check()
+    await page.getByRole('checkbox',{name:/I confirm I am the authorised/}).check()
     await page.getByRole('button',{name:'Verify and open inbox'}).click()
     await page.getByRole('heading',{name:'Your private inbox is ready'}).waitFor()
     assert.equal(state.verified,true,'Guardian approval must be completed')
@@ -126,6 +126,10 @@ async function run() {
     await page.getByRole('textbox',{name:'Registered Kenyan phone number'}).fill('0712345678')
     await page.getByRole('textbox',{name:'Student recovery code'}).fill('B'.repeat(32))
     await page.getByRole('button',{name:'Send verification SMS'}).click()
+    await page.getByRole('textbox',{name:'SMS verification code'}).fill('000000')
+    await page.getByRole('button',{name:'Open My Success Wishes'}).click()
+    await page.getByRole('alert').filter({hasText:'Incorrect or expired code'}).waitFor()
+    assert.match(page.url(),/\/recover$/)
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('123456')
     await page.getByRole('button',{name:'Open My Success Wishes'}).click()
     await page.getByRole('heading',{name:'My Success Wishes'}).waitFor()

@@ -132,6 +132,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/school-provisioning-fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026143000_success_wishes_school_minor_provisioning.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/school-provisioning-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026143001_success_wishes_receiver_access_hardening.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-hardening-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety

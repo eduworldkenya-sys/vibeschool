@@ -90,13 +90,22 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   )
 }
 
-export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, mediaKind = 'text', mediaSrc = '', autoOpen = false, senderPreview = false }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string; autoOpen?: boolean; senderPreview?: boolean }) {
+export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, beforeOpen, mediaKind = 'text', mediaSrc = '', autoOpen = false, senderPreview = false }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; beforeOpen?: () => Promise<boolean>; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string; autoOpen?: boolean; senderPreview?: boolean }) {
   const [open, setOpen] = useState(false)
   const [envelopeOpened, setEnvelopeOpened] = useState(false)
+  const [opening, setOpening] = useState(false)
+  const openingRef = useRef(false)
+  async function readyToOpen() {
+    if (openingRef.current) return false
+    openingRef.current = true; setOpening(true)
+    try { return beforeOpen ? await beforeOpen() : true }
+    catch { return false }
+    finally { openingRef.current = false; setOpening(false) }
+  }
   const replayTimer = useRef<number | null>(null)
   const item = templates.find(t => t.id === template) || templates[0]
-  function openEnvelope() {
-    if (envelopeOpened) return
+  async function openEnvelope() {
+    if (envelopeOpened || !(await readyToOpen())) return
     setEnvelopeOpened(true)
     if (soundEnabled) onOpen()
     replayTimer.current = window.setTimeout(() => {
@@ -104,7 +113,8 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       onOpenedChange?.(true)
     }, 460)
   }
-  function toggleCard() {
+  async function toggleCard() {
+    if (!open && !(await readyToOpen())) return
     if (replayTimer.current) window.clearTimeout(replayTimer.current)
     if (!open && soundEnabled) onOpen()
     onOpenedChange?.(!open)
@@ -144,13 +154,13 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">{template === 'botanical' ? '✿' : template === 'nightfall' ? '✦' : template === 'sunrise' ? '✳' : '✧'}</b>
         <strong>{item.headline}</strong><small>{values.candidate.trim() || 'A wish for someone special'}</small><small>{values.examYear || '2026'}</small>
       </div>
-      {!envelopeOpened && <button type="button" className={styles.bookEnvelope} onClick={openEnvelope} aria-label="Open the envelope and reveal the success card">
+      {!envelopeOpened && <button type="button" className={styles.bookEnvelope} disabled={opening} aria-busy={opening} onClick={() => void openEnvelope()} aria-label="Open the envelope and reveal the success card">
         <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">✉</b><strong>A little encouragement for {values.candidate.trim() || 'someone special'}</strong><small>{values.school?.trim() || `${values.examYear || '2026'} exams`}</small><em>Tap to open</em>
       </button>}
       {envelopeOpened && <div className={styles.bookEnvelope + ' ' + styles.bookEnvelopeOpened} aria-hidden="true"><span>VIBESCHOOL · SUCCESS WISHES</span><b>✉</b><strong>A little encouragement</strong><em>Opened</em></div>}
     </div>
     {!senderPreview && envelopeOpened && <div className={styles.bookActions}>
-      <button type="button" className={styles.secondary} onClick={toggleCard} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>{open ? 'Close card' : 'Open card'}</button>
+      <button type="button" className={styles.secondary} disabled={opening} onClick={() => void toggleCard()} aria-expanded={open} aria-label={open ? 'Close the book card' : 'Open the book card'}>{open ? 'Close card' : 'Open card'}</button>
     </div>}
     {open && mediaSrc && mediaKind !== 'text' && <section className={styles.senderPlayback} aria-label="Sender recording preview">
       <strong>{mediaKind === 'voice' ? 'Listen to your voice wish' : 'Watch your video wish'}</strong>

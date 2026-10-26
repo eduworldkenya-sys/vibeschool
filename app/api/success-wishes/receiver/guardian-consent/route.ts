@@ -4,8 +4,8 @@ import { WishError, uuid } from '@/lib/success-wishes/contracts'
 import { confirmedGuardianPhone } from '@/lib/success-wishes/receiver-provisioning'
 import { requireGuardianWithdrawalAuthority } from '@/lib/success-wishes/guardian-withdrawal'
 import { receiverDatabase } from '@/lib/success-wishes/receiver'
-import { consumeOtp, issueOtp } from '@/lib/success-wishes/receiver-otp'
-import { failure, json, limit, reply } from '@/lib/success-wishes/server'
+import { issueOtp, recordConsent } from '@/lib/success-wishes/receiver-otp'
+import { failure, json, takeAttempt, reply, revocationDatabase } from '@/lib/success-wishes/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -25,7 +25,7 @@ type Person = {
  * know the guardian's credentials. Never use phone/profile data from a request.
  */
 async function guardian(req: NextRequest) {
-  const db = receiverDatabase() // public feature remains OFF until commissioned
+  const db = revocationDatabase() // Rights do not depend on public receiver activation.
   const userDb = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -64,7 +64,7 @@ async function verifiedRecipient(db: Db, guardianId: string, phone: string, rece
 export async function GET(req: NextRequest) {
   try {
     const {db,id,phone}=await guardian(req)
-    await limit('guardian-consent-list:'+id,30,900)
+    await takeAttempt(db, 'guardian-consent-list:'+id,30,900)
     const {data:links,error:linkError}=await db.from('parent_student_links')
       .select('id,parent_id,student_id,school_id,relationship,is_primary,receives_alerts')
       .eq('parent_id',id).eq('is_primary',true).eq('receives_alerts',true).limit(50)
@@ -98,24 +98,14 @@ export async function POST(req: NextRequest) {
       throw new WishError(400,'Choose a consent action.')
     const receiverId=uuid(body.receiverId)
     const {db,id,phone}=await guardian(req)
-    await limit('guardian-consent-change:'+id+':'+receiverId,12,86400)
+    await takeAttempt(db, 'guardian-consent-change:'+id+':'+receiverId,12,86400)
     const verified=await verifiedRecipient(db,id,phone,receiverId)
     if(body.action==='begin'){
-      const challengeId=await issueOtp(db,verified.receiverId,verified.phone,'consent_guardian')
+      const challengeId=await issueOtp(db,verified.receiverId,verified.phone,'withdraw_guardian')
       return reply({challengeId,expiresInSeconds:300,
         message:'A fresh consent withdrawal code was submitted to your verified guardian phone.'})
     }
-    await consumeOtp(db,verified.receiverId,body.challengeId,body.code,'consent_guardian')
-    const {data:revoked,error:revokeError}=await db.from('success_wish_receivers')
-      .update({consent_status:'revoked'})
-      .eq('id',verified.receiverId).eq('consent_status','verified')
-      .eq('consent_route','guardian').eq('guardian_phone_e164',verified.phone)
-      .select('id').maybeSingle()
-    if(revokeError||!revoked)throw new WishError(409,'Consent withdrawal could not be completed.')
-    // Access immediately fails at central receiver checks. Clear tokens too.
-    const {error:sessionError}=await db.from('success_wish_receiver_sessions')
-      .delete().eq('receiver_id',verified.receiverId)
-    if(sessionError)console.error('Success Wishes: guardian withdrawal session cleanup failed')
+    await recordConsent(db, verified.receiverId, body.challengeId, body.code, 'withdraw', 'guardian')
     return reply({ok:true,revoked:true,
       message:'Guardian consent withdrawn. The student inbox and private cards are now unavailable.'})
   }catch(error){return failure(error)}

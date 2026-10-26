@@ -5,9 +5,9 @@ import { hashSecret } from './security'
 import { receiverEnabled } from './receiver'
 
 type Env = Record<string, string | undefined>
-export function receiverSmsReady(env: Env = process.env) {
+export function receiverSmsReady(env: Env = process.env, withdrawalOnly = false) {
   const mode = env.SUCCESS_WISHES_AT_MODE
-  return receiverEnabled(env) && env.SUCCESS_WISHES_RECEIVER_SMS_ENABLED === 'true'
+  return (withdrawalOnly || receiverEnabled(env)) && env.SUCCESS_WISHES_RECEIVER_SMS_ENABLED === 'true'
     && !!env.SUCCESS_WISHES_AT_USERNAME?.trim() && !!env.SUCCESS_WISHES_AT_API_KEY?.trim()
     && (mode === 'live' || (mode === 'sandbox' && env.VERCEL_ENV === 'preview'))
     && (env.SUCCESS_WISHES_VERIFICATION_SECRET?.length || 0) >= 32
@@ -27,8 +27,8 @@ export function matchesDigest(expected: string, supplied: string) {
   return timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(supplied, 'hex'))
 }
 export function newOtp() { return randomInt(0, 1000000).toString().padStart(6, '0') }
-export async function sendReceiverSms(phone: string, message: string, env: Env = process.env) {
-  if (!receiverSmsReady(env)) throw new WishError(503, 'Recovery SMS is not available yet.')
+export async function sendReceiverSms(phone: string, message: string, env: Env = process.env, withdrawalOnly = false) {
+  if (!receiverSmsReady(env, withdrawalOnly)) throw new WishError(503, 'Recovery SMS is not available yet.')
   if (message.length > 320) throw new Error('SMS exceeds approved length budget.')
   const number = senderPhone(phone)
   const endpoint = env.SUCCESS_WISHES_AT_MODE === 'sandbox'

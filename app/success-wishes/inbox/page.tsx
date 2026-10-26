@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import { broadcastReceiverLogout, useReceiverSessionSafety } from '@/lib/success-wishes/receiver-browser-session'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import styles from '../Receiver.module.css'
@@ -10,6 +11,7 @@ const API='/api/success-wishes/receiver/inbox'
 export default function SuccessWishesInboxPage(){
   const router=useRouter()
   const [data,setData]=useState<Inbox|null>(null)
+  useReceiverSessionSafety(!!data)
   const [error,setError]=useState('')
   const [busy,setBusy]=useState<string|null>(null)
   const [filter,setFilter]=useState<'all'|'unopened'>('all')
@@ -33,8 +35,9 @@ export default function SuccessWishesInboxPage(){
     try{
       const r=await fetch(API,{method:'DELETE'})
       if(!r.ok)throw Error('Could not sign out.')
+      setData(null); broadcastReceiverLogout()
       router.replace('/success-wishes/recover')
-    }catch(e){setError(e instanceof Error?e.message:'Could not sign out.');setBusy(null)}
+    }catch(e){setData(null);broadcastReceiverLogout();setError('This device was cleared, but server sign-out could not be confirmed. Close this tab and contact support.');setBusy(null)}
   }
   const cards=(data?.cards||[]).filter(c=>filter==='all'||!c.opened)
   return <div className={styles.page}>
@@ -44,7 +47,7 @@ export default function SuccessWishesInboxPage(){
         <p>{data?`Every kind word, saved for ${data.recipient.name}.`:'All your personal encouragement in one place.'}</p>
       </section>
       {error && <div className={styles.panel} role="alert"><p className={styles.error}>{error}</p>
-        {!data&&<div className={styles.actions}><Link className={styles.primary} href="/success-wishes/recover">Find My Wishes</Link><Link href="/success-wishes/invitation" className={styles.secondary}>Open card link</Link></div>}
+        {!data&&<div className={styles.actions}><Link className={styles.primary} href="/success-wishes/recover">Find My Wishes</Link><Link href="/success-wishes/open" className={styles.secondary}>Open card link</Link></div>}
       </div>}
       {!data&&!error&&<div className={styles.panel} role="status">Opening your private inbox…</div>}
       {data&&<>
@@ -56,7 +59,7 @@ export default function SuccessWishesInboxPage(){
           <Link className={styles.secondary} href="/success-wishes/settings">Safety &amp; settings</Link></nav>
         <div className={styles.tabs}><button className={styles.tab} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All ({data.count})</button>
           <button className={styles.tab} aria-pressed={filter==='unopened'} onClick={()=>setFilter('unopened')}>Unopened ({data.unopened})</button></div>
-        {cards.length?<div className={styles.gifts}>{cards.map(card=><button key={card.id} type="button" className={styles.gift}
+        {cards.length?<div className={styles.gifts}>{cards.map(card=><button key={card.id} type="button" className={styles.gift} data-theme={card.theme}
           disabled={busy!==null} onClick={()=>void openCard(card.id)} aria-label={`Open ${card.opened?'previously opened':'unopened'} private wish`}>
           <span>VIBESCHOOL · SUCCESS WISHES</span><b aria-hidden="true">✉</b>
           <strong>{card.opened?'A message to remember':'Someone special has a wish for you'}</strong>

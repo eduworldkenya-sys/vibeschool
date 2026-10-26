@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { WishError } from './contracts'
-import { limit } from './server'
+import { takeAttempt } from './server'
 import { receiverDatabase } from './receiver'
 import { hashSecret } from './security'
 import { hashedPhoneRateKey, newOtp, otpDigest, recoveryDigest, sendReceiverSms } from './receiver-sms'
@@ -17,10 +17,11 @@ export function inboxCookie(req: NextRequest, age: number) {
   return { httpOnly: true as const, sameSite: 'strict' as const,
     secure: req.nextUrl.protocol === 'https:', path: '/api/success-wishes/receiver', maxAge: age }
 }
-export type OtpPurpose = 'recovery' | 'consent_adult' | 'consent_guardian'
+export type OtpPurpose = 'recovery' | 'consent_adult' | 'consent_guardian' | 'withdraw_adult' | 'withdraw_guardian'
 export async function issueOtp(db: DB, receiverId: string, phone: string, purpose: OtpPurpose = 'recovery') {
-  await limit('receiver-otp:global', 1000, 86400)
-  await limit('receiver-otp:' + hashedPhoneRateKey(phone), 5, 86400)
+  await takeAttempt(db, 'receiver-otp-cooldown:' + receiverId, 1, 60)
+  await takeAttempt(db, 'receiver-otp:global', 1000, 86400)
+  await takeAttempt(db, 'receiver-otp:' + hashedPhoneRateKey(phone), 5, 86400)
   const otp = newOtp()
   const { data: challenge, error } = await db.from('success_wish_receiver_challenges').insert({
     receiver_id: receiverId, purpose, code_hash: otpDigest(receiverId, otp),
@@ -28,10 +29,11 @@ export async function issueOtp(db: DB, receiverId: string, phone: string, purpos
   }).select('id').single()
   if (error || !challenge) throw new WishError(503, 'Could not begin phone verification.')
   const { data: delivery, error: deliveryError } = await db.from('success_wish_sms_deliveries')
-    .insert({ receiver_id: receiverId, purpose: 'recovery', status: 'queued' }).select('id').single()
+    .insert({ receiver_id: receiverId, purpose, status: 'queued' }).select('id').single()
   if (deliveryError || !delivery) throw new WishError(503, 'Could not queue verification SMS.')
   try {
-    const result = await sendReceiverSms(phone, 'VibeSchool: Your private Success Wishes verification code is ' + otp + '. Expires in 5 minutes. Do not share it.')
+    const action = purpose.startsWith('withdraw_') ? 'WITHDRAW consent and close the inbox' : purpose.startsWith('consent_') ? 'APPROVE receiving and storing wishes' : 'OPEN your private inbox'
+    const result = await sendReceiverSms(phone, 'VibeSchool: Code ' + otp + ' to ' + action + '. Expires in 5 minutes. Do not share it.', process.env, purpose.startsWith('withdraw_'))
     await db.from('success_wish_sms_deliveries').update({ status: 'accepted', provider_id: result.providerId, updated_at: new Date().toISOString() }).eq('id', delivery.id)
   } catch (error) {
     await db.from('success_wish_sms_deliveries').update({ status: 'failed', failure_code: 'submission_failed', updated_at: new Date().toISOString() }).eq('id', delivery.id)
@@ -43,7 +45,7 @@ export async function issueOtp(db: DB, receiverId: string, phone: string, purpos
 export async function consumeOtp(db: DB, receiverId: string, challengeId: unknown, code: unknown, purpose: OtpPurpose = 'recovery') {
   if (typeof challengeId !== 'string' || !UUID.test(challengeId) || typeof code !== 'string' || !/^\d{6}$/.test(code))
     throw new WishError(401, 'Check the verification code and try again.')
-  await limit('receiver-otp-verify:' + receiverId, 18, 900)
+  await takeAttempt(db, 'receiver-otp-verify:' + receiverId, 18, 900)
   const { data, error } = await db.rpc('success_wish_consume_receiver_challenge', {
     p_challenge: challengeId, p_receiver: receiverId, p_digest: otpDigest(receiverId, code), p_purpose: purpose,
   })
@@ -73,12 +75,32 @@ export async function inboxSession(req: NextRequest) {
   if (!receiver || receiver.consent_status !== 'verified') throw new WishError(401, 'This private inbox is unavailable.')
   return { db, receiver }
 }
-export async function enrolRecovery(db: DB, receiverId: string) {
+export async function enrolRecovery(db: DB, receiverId: string, replaceLostCode = false) {
   const recoverySecret = randomBytes(16).toString('hex').toUpperCase()
-  const { data, error } = await db.from('success_wish_receivers')
+  let update = db.from('success_wish_receivers')
     .update({ recovery_secret_hash: recoveryDigest(receiverId, recoverySecret) })
-    .eq('id', receiverId).select('id').maybeSingle()
+    .eq('id', receiverId).eq('consent_status', 'verified')
+  if (!replaceLostCode) update = update.is('recovery_secret_hash', null)
+  const { data, error } = await update.select('id').maybeSingle()
   if (error) throw new WishError(503, 'Could not configure recovery.')
-  if (!data) throw new WishError(409, 'The private receiver could not be found.')
+  if (!data) {
+    const { data: existing, error: lookupError } = await db.from('success_wish_receivers')
+      .select('id,recovery_secret_hash').eq('id', receiverId).eq('consent_status', 'verified').maybeSingle()
+    if (lookupError || !existing?.recovery_secret_hash) throw new WishError(409, 'Recovery setup could not be confirmed. Verify again.')
+    return null
+  }
   return recoverySecret
+}
+
+export const RECEIVER_NOTICE_VERSION = 'receiver-2026-10-26-v1'
+export async function recordConsent(db: DB, receiverId: string, challengeId: unknown, code: unknown, action: 'grant'|'withdraw', role: 'adult'|'guardian') {
+  if (typeof challengeId !== 'string' || !UUID.test(challengeId) || typeof code !== 'string' || !/^\d{6}$/.test(code))
+    throw new WishError(401, 'Check the verification code and try again.')
+  await takeAttempt(db, 'receiver-otp-verify:' + receiverId, 18, 900)
+  const { data, error } = await db.rpc('success_wish_record_receiver_consent', {
+    p_receiver: receiverId, p_challenge: challengeId, p_digest: otpDigest(receiverId, code),
+    p_action: action, p_role: role, p_notice: RECEIVER_NOTICE_VERSION,
+  })
+  if (error) throw new WishError(503, 'Could not record your consent choice. Please try again.')
+  if (data !== true) throw new WishError(401, 'Incorrect, expired or already used code. Request a new code.')
 }

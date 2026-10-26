@@ -31,10 +31,10 @@ test('cannot bootstrap unassigned identity, revoked recipient, or select recipie
 
 test('withdrawal always uses pre-registered adult or guardian authority, never the requester phone', () => {
   assert.deepEqual(registeredWithdrawalRoute({ ...base, consent_status: 'verified', consent_route: 'adult' }),
-    { phone: base.phone_e164, purpose: 'consent_adult', consentRole: 'adult' })
+    { phone: base.phone_e164, purpose: 'withdraw_adult', consentRole: 'adult' })
   assert.deepEqual(registeredWithdrawalRoute({ ...base, consent_status: 'verified',
     consent_route: 'guardian', guardian_phone_e164: '+254733222111' }),
-    { phone: '+254733222111', purpose: 'consent_guardian', consentRole: 'guardian' })
+    { phone: '+254733222111', purpose: 'withdraw_guardian', consentRole: 'guardian' })
   assert.throws(() => registeredWithdrawalRoute({ ...base, consent_status: 'verified',
     consent_route: 'guardian' }), /support/)
   assert.throws(() => registeredWithdrawalRoute({ ...base, consent_route: 'adult' }), /verified/)
