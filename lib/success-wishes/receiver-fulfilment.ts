@@ -29,6 +29,14 @@ export async function issueReceiverWishFromVerifiedOrder(input: Gift) {
   if (receiverError || recipient?.consent_status !== 'verified') {
     throw new WishError(409, 'Receiver identity and consent must be verified before delivery.')
   }
+  const baseUrl = process.env.SUCCESS_WISHES_PUBLIC_BASE_URL?.trim()
+  if (!baseUrl) throw new WishError(503, 'Public invitation address is not commissioned.')
+  let publicBase: URL
+  try { publicBase = new URL(baseUrl) }
+  catch { throw new WishError(503, 'Public invitation address is invalid.') }
+  if (publicBase.protocol !== 'https:' || publicBase.username || publicBase.password || publicBase.search
+    || publicBase.hash || publicBase.pathname !== '/')
+    throw new WishError(503, 'A secure production invitation address is required.')
   const { data, error } = await db.rpc('success_wish_issue_verified_paid_card', {
     p_payment_attempt_id: input.paymentAttemptId,
     p_receiver_id: input.receiverId,
@@ -46,14 +54,6 @@ export async function issueReceiverWishFromVerifiedOrder(input: Gift) {
   }
   if (!issued.link_secret || !issued.access_code) throw new WishError(503, 'Card access issuance failed.')
 
-  const baseUrl = process.env.SUCCESS_WISHES_PUBLIC_BASE_URL?.trim()
-  if (!baseUrl) throw new WishError(503, 'Public invitation address is not commissioned.')
-  let publicBase: URL
-  try { publicBase = new URL(baseUrl) }
-  catch { throw new WishError(503, 'Public invitation address is invalid.') }
-  if (publicBase.protocol !== 'https:' || publicBase.username || publicBase.password || publicBase.search
-    || publicBase.hash || publicBase.pathname !== '/')
-    throw new WishError(503, 'A secure production invitation address is required.')
   const invitationUrl = publicBase.origin + '/success-wishes/invitation#token=' + issued.link_secret
   const backupCode = issued.access_code
 
