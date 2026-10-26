@@ -23,11 +23,11 @@ Guest cards extend the canonical receiver cards/access/session/inbox tables with
 
 ## Production and release state
 
-Last verified production state: zero receivers, zero verified recipients, shared initiation OFF, and no `success_wish_guest_orders` table. Supabase migration deployment returned `McpServerError: Invalid or expired requestState`; a read afterward confirmed no schema was applied. No live STK/charge was initiated.
+The Supabase connection refresh resolved the earlier expired-request errors. Migration `20261026184056_success_wishes_guest_checkout` is now applied in production. Both dedicated Edge Functions are ACTIVE at version 1: checkout requires JWT plus exact service credential; callback requires its per-attempt capability. HTTP denial checks return 401 for an unauthenticated checkout request and 403 for a callback without a valid capability. RLS is enabled; anon cannot SELECT orders or execute payment claims; authenticated cannot UPDATE orders; service_role can execute claims. Both `initiation_enabled` and `success_wishes_enabled` remain false. Production contains zero guest orders and zero verified recipients. No live STK/charge was initiated.
 
 Current checkout deliberately requires an already verified recipient request. General guest recipient onboarding is a separate, genuine dependency. No test student, guardian relationship, consent or recipient identity was fabricated to bypass it.
 
-Release remains NOT CERTIFIED pending exact-head CI, independent financial/security review, working Supabase write/deployment access, production migration/functions and hosting verification, a real verified recipient, and a designated controlled M-Pesa test phone. Production credential acceptance alone is not proof of passkey/STK/settlement success. No payment or receiver flags have been enabled by this implementation.
+The original candidate `9b280107` passed all 25 GitHub workflows. Release remains NOT CERTIFIED pending checks for the migration-lineage update, independent financial/security review, frontend integration/hosting verification, a real verified recipient, and a designated controlled M-Pesa test phone. Backend schema and dedicated functions are deployed; this does not activate checkout or prove payment settlement. Production credential acceptance alone is not proof of passkey/STK/settlement success. No payment or receiver flags have been enabled by this implementation.
 
 ## Recovery and rollback
 
