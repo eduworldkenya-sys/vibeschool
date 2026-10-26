@@ -16,7 +16,7 @@ export default function OpenSuccessWishCode(){
         body:JSON.stringify({code:code.trim().toUpperCase()})})
       const data=await r.json()
       if(!r.ok)throw Error(data.error||'The card access code is invalid.')
-      router.push('/success-wishes/invitation')
+      router.push('/success-wishes/invitation?card=' + data.card.id)
     }catch(e){setError(e instanceof Error?e.message:'Unable to open this private card.')}finally{setBusy(false)}
   }
   return <div className={styles.page}><header className={styles.top}><Link href="/success-wishes" className={styles.brand}>VIBESCHOOL / SUCCESS WISHES</Link><span className={styles.muted}>Private access</span></header>
