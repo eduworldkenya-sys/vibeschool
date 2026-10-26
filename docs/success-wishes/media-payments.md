@@ -37,3 +37,42 @@ No payment initiation, paid media upload, credentials provisioning or production
 
 Run `node --import ./scripts/register-typescript.mjs --test lib/success-wishes/media.test.ts`.
 These tests inject provider responses. They prove adapter validation and request contracts, not a live upload, actual playback, account permissions or billing correctness.
+
+### Dedicated Success Wishes merchant routing (prepared, NOT enabled)
+
+The merchant has confirmed that production shortcode `961580` is linked to their receiving
+Buy Goods Till `949529`. For this guest-wish adapter, production sends
+`BusinessShortCode=961580`, `PartyB=949529`, and
+`TransactionType=CustomerBuyGoodsOnline`. It fails closed on a different
+merchant destination or on mixed sandbox/production settings. The sandbox test
+pair is `174379` / `174379` with `CustomerPayBillOnline`.
+
+To protect other VibeSchool modules, the adapter **never reads shared** `MPESA_*`
+variables. When a canonical order and verified callback implementation exist,
+set the following **only in the server hosting this Next.js transport (Vercel)**:
+
+- `SUCCESS_WISHES_MPESA_ENV` — `production` after certification
+- `SUCCESS_WISHES_MPESA_CONSUMER_KEY` — matching production app key (secret)
+- `SUCCESS_WISHES_MPESA_CONSUMER_SECRET` — matching production app secret
+- `SUCCESS_WISHES_MPESA_PASSKEY` — matching production STK passkey
+- `SUCCESS_WISHES_MPESA_SHORTCODE` — `961580`
+- `SUCCESS_WISHES_MPESA_PARTY_B` — `949529`
+- `SUCCESS_WISHES_MPESA_TRANSACTION_TYPE` — `CustomerBuyGoodsOnline`
+- `SUCCESS_WISHES_MPESA_CALLBACK_URL` —
+  `https://yauqsxggtuxuykcbrtzf.supabase.co/functions/v1/success-wishes-mpesa-callback`
+
+Leave `SUCCESS_WISHES_MPESA_TRANSPORT_ENABLED` unset/false for now. The
+callback endpoint above is a required target, **not proof it is deployed**.
+The transport itself is not called by checkout yet. The public API currently
+reports `paymentsEnabled:false`; both this and the shared runtime kill switch
+must remain off until real provider callback verification, canonical guest
+purchase storage, idempotency, reconciliation, refunds and private-link delivery
+are end-to-end tested.
+
+**Readiness checker caveat:** The existing Supabase Edge Function
+`success-wishes-payment-readiness` reads `MPESA_*` Supabase project secrets,
+not the dedicated Vercel `SUCCESS_WISHES_MPESA_*` values above; its result is
+not a go/no-go signal for the Next.js guest transport. Reconcile or replace
+the checker before production certification.
+
+Official provider API: https://developer.safaricom.co.ke/apis/MpesaExpressSimulate
