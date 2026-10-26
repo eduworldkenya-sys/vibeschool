@@ -16,6 +16,7 @@ on:
       - 'supabase/migrations/*_success_wishes_media_voice_validation.sql'
       - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
+      - 'supabase/migrations/*_success_wishes_receiver_*.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
       - 'qa/success-wishes/**'
@@ -36,6 +37,7 @@ on:
       - 'supabase/migrations/*_success_wishes_media_voice_validation.sql'
       - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
+      - 'supabase/migrations/*_success_wishes_receiver_*.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
       - 'qa/success-wishes/**'
@@ -114,6 +116,13 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/voice-validation-assertions.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261021125239_success_wishes_durable_media_reservations.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/media-reservation-assertions.sql
+          # New paid receiver system, using synthetic commerce records ONLY.
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-commerce-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026111500_success_wishes_receiver_foundation.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026112000_success_wishes_receiver_recovery.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026114500_success_wishes_receiver_safety.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-rls-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-settlement-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety
