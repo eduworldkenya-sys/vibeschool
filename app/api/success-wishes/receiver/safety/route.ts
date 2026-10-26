@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
-import { inboxSession } from '@/lib/success-wishes/receiver-otp'
+import { consumeOtp, inboxCookie, inboxSession, INBOX_COOKIE, issueOtp } from '@/lib/success-wishes/receiver-otp'
+import { registeredWithdrawalRoute } from '@/lib/success-wishes/receiver-consent'
 import { failure, json, limit, reply } from '@/lib/success-wishes/server'
 
 export const runtime = 'nodejs'
@@ -18,9 +19,43 @@ export async function GET(req: NextRequest) {
 }
 export async function POST(req: NextRequest) {
   try {
-    const body = await json(req) as { action?: unknown; cardId?: unknown; reason?: unknown }
+    const body = await json(req) as { action?: unknown; cardId?: unknown; reason?: unknown; challengeId?: unknown; code?: unknown }
     const { db, receiver } = await inboxSession(req)
     await limit('receiver-safety:' + receiver.id, 20, 86400)
+    if (body?.action === 'begin_withdrawal' || body?.action === 'confirm_withdrawal') {
+      // Only an existing verified inbox can request this. The OTP destination is trusted
+      // server-side data; never accept an alternative guardian number from a caller.
+      const { data: person, error: personError } = await db.from('success_wish_receivers')
+        .select('phone_e164,guardian_phone_e164,consent_route,consent_status')
+        .eq('id', receiver.id).maybeSingle()
+      if (personError || !person) throw new WishError(409, 'Your consent authority could not be checked.')
+      const route = registeredWithdrawalRoute(person)
+      if (body.action === 'begin_withdrawal') {
+        const challengeId = await issueOtp(db, receiver.id, route.phone, route.purpose)
+        return reply({ challengeId, expiresInSeconds: 300, consentRole: route.consentRole,
+          message: route.consentRole === 'guardian'
+            ? 'A withdrawal code was sent to the registered guardian phone.'
+            : 'A withdrawal code was sent to the registered adult phone.' })
+      }
+      await consumeOtp(db, receiver.id, body.challengeId, body.code, route.purpose)
+      // This status is checked on every inbox and private card read; changing it
+      // immediately denies all outstanding cookies and private links.
+      const { data: changed, error: consentError } = await db.from('success_wish_receivers')
+        .update({ consent_status: 'revoked' })
+        .eq('id', receiver.id).eq('consent_status', 'verified')
+        .select('id').maybeSingle()
+      if (consentError || !changed)
+        throw new WishError(409, 'Consent could not be withdrawn. Please contact support.')
+      // Sessions are already unusable because every protected read checks revocation.
+      // Remove the stored session tokens as an additional defence in depth.
+      const { error: sessionError } = await db.from('success_wish_receiver_sessions')
+        .delete().eq('receiver_id', receiver.id)
+      if (sessionError) console.error('Success Wishes: session cleanup failed after consent revocation')
+      const response = reply({ ok: true, revoked: true,
+        message: 'Consent was withdrawn. The private inbox and wishes are no longer accessible.' })
+      response.cookies.set(INBOX_COOKIE, '', inboxCookie(req, 0))
+      return response
+    }
     if (body?.action === 'delete_data' || body?.action === 'access_data') {
       const kind = body.action === 'delete_data' ? 'deletion' : 'access'
       const { data: active, error: loadError } = await db.from('success_wish_data_requests')
