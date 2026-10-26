@@ -1,11 +1,11 @@
-// Read-only, operator-only production Daraja OAuth diagnostic.
-// This route never creates a charge, STK prompt, card or payment state.
-// Production credentials are isolated to Vercel and never returned to callers.
-import { createHash, timingSafeEqual } from 'node:crypto'
+// Protected production Daraja OAuth preflight: no STK, settlement or card mutation.
+import { verifiedFounderOperator } from '@/lib/success-wishes/mpesa-operator'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+type Config = Record<string, string | undefined>
+type Fetcher = typeof fetch
 const NAMES = [
   'SUCCESS_WISHES_MPESA_CONSUMER_KEY',
   'SUCCESS_WISHES_MPESA_CONSUMER_SECRET',
@@ -30,82 +30,76 @@ function reply(body: Record<string, unknown>, status: number) {
   })
 }
 
-function authorized(req: Request) {
-  // Deliberately do NOT accept an anon key, an ordinary user JWT, a cookie,
-  // or an arbitrary token claiming role=service_role without exact secret equality.
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const provided = req.headers.get('authorization')
-  if (!key || !provided?.startsWith('Bearer ')) return false
-  const expectedDigest = createHash('sha256').update('Bearer ' + key).digest()
-  const suppliedDigest = createHash('sha256').update(provided).digest()
-  return timingSafeEqual(expectedDigest, suppliedDigest)
-}
+export function createPaymentReadinessHandler(options: {
+  verifyOperator: (req: Request) => Promise<boolean>
+  providerFetch: Fetcher
+  env: Config
+}) {
+  return async (req: Request): Promise<Response> => {
+    // Only a signed-in, active HQ founder can request this diagnostic.
+    if (!await options.verifyOperator(req)) return reply({ error: 'Forbidden' }, 403)
 
-export async function GET(req: Request) {
-  if (!authorized(req)) return reply({ error: 'Unauthorized' }, 401)
-
-  const configured = Object.fromEntries(
-    NAMES.map(name => [name, Boolean(process.env[name]?.trim())]),
-  )
-  const destination = {
-    environment: process.env.SUCCESS_WISHES_MPESA_ENV?.trim() || null,
-    shortcode: process.env.SUCCESS_WISHES_MPESA_SHORTCODE?.trim() || null,
-    till: process.env.SUCCESS_WISHES_MPESA_PARTY_B?.trim() || null,
-    transactionType: process.env.SUCCESS_WISHES_MPESA_TRANSACTION_TYPE?.trim() || null,
-  }
-  const callback = process.env.SUCCESS_WISHES_MPESA_CALLBACK_URL?.trim()
-  if (
-    Object.values(configured).some(ready => !ready) ||
-    destination.environment !== 'production' ||
-    destination.shortcode !== '961580' ||
-    destination.till !== '949529' ||
-    destination.transactionType !== 'CustomerBuyGoodsOnline' ||
-    callback !== CALLBACK
-  ) {
-    return reply({
-      configured,
-      destination,
-      callbackConfigured: callback === CALLBACK,
-      oauthVerified: false,
-      reason: 'configuration_incomplete_or_destination_mismatch',
-    }, 503)
-  }
-
-  // OAuth only: no STK request, no state mutations, no card issuance.
-  try {
-    const client = process.env.SUCCESS_WISHES_MPESA_CONSUMER_KEY!.trim()
-    const secret = process.env.SUCCESS_WISHES_MPESA_CONSUMER_SECRET!.trim()
-    const response = await fetch(
-      'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
-      {
-        method: 'GET',
-        headers: { Authorization: 'Basic ' + Buffer.from(client + ':' + secret).toString('base64') },
-        cache: 'no-store',
-        redirect: 'error',
-        signal: AbortSignal.timeout(12000),
-      },
+    const env = options.env
+    const configured = Object.fromEntries(
+      NAMES.map(name => [name, Boolean(env[name]?.trim())]),
     )
-    // Never return or log a provider-issued access token or a secret.
-    const content: unknown = await response.json()
-    const token = content && typeof content === 'object' && 'access_token' in content
-      ? (content as Record<string, unknown>).access_token : null
-    const oauthVerified = response.ok && typeof token === 'string' && token.length > 8
-    return reply({
-      configured,
-      destination,
-      callbackConfigured: true,
-      oauthVerified,
-      providerHttpStatus: response.status,
-      passkeyVerified: false,
-    }, oauthVerified ? 200 : 503)
-  } catch {
-    return reply({
-      configured,
-      destination,
-      callbackConfigured: true,
-      oauthVerified: false,
-      reason: 'provider_unreachable_or_invalid_response',
-      passkeyVerified: false,
-    }, 503)
+    const destination = {
+      environment: env.SUCCESS_WISHES_MPESA_ENV?.trim() || null,
+      shortcode: env.SUCCESS_WISHES_MPESA_SHORTCODE?.trim() || null,
+      till: env.SUCCESS_WISHES_MPESA_PARTY_B?.trim() || null,
+      transactionType: env.SUCCESS_WISHES_MPESA_TRANSACTION_TYPE?.trim() || null,
+    }
+    const callback = env.SUCCESS_WISHES_MPESA_CALLBACK_URL?.trim()
+    if (
+      Object.values(configured).some(ready => !ready) ||
+      destination.environment !== 'production' ||
+      destination.shortcode !== '961580' ||
+      destination.till !== '949529' ||
+      destination.transactionType !== 'CustomerBuyGoodsOnline' ||
+      callback !== CALLBACK
+    ) {
+      return reply({
+        configured,
+        destination,
+        callbackConfigured: callback === CALLBACK,
+        oauthVerified: false,
+        reason: 'configuration_incomplete_or_destination_mismatch',
+      }, 503)
+    }
+
+    try {
+      const client = env.SUCCESS_WISHES_MPESA_CONSUMER_KEY!.trim()
+      const secret = env.SUCCESS_WISHES_MPESA_CONSUMER_SECRET!.trim()
+      const response = await options.providerFetch(
+        'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+        {
+          method: 'GET',
+          headers: { Authorization: 'Basic ' + Buffer.from(client + ':' + secret).toString('base64') },
+          cache: 'no-store',
+          redirect: 'error',
+          signal: AbortSignal.timeout(12000),
+        },
+      )
+      const content: unknown = await response.json()
+      const token = content && typeof content === 'object' && 'access_token' in content
+        ? (content as Record<string, unknown>).access_token : null
+      const oauthVerified = response.ok && typeof token === 'string' && token.length > 8
+      return reply({
+        configured, destination, callbackConfigured: true, oauthVerified,
+        providerHttpStatus: response.status, passkeyVerified: false,
+      }, oauthVerified ? 200 : 503)
+    } catch {
+      return reply({
+        configured, destination, callbackConfigured: true, oauthVerified: false,
+        reason: 'provider_unreachable_or_invalid_response', passkeyVerified: false,
+      }, 503)
+    }
   }
 }
+
+const handler = createPaymentReadinessHandler({
+  verifyOperator: verifiedFounderOperator,
+  providerFetch: (...args) => fetch(...args),
+  env: process.env,
+})
+export async function GET(req: Request) { return handler(req) }
