@@ -147,6 +147,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Verify disabled service at four browser sizes
         run: node qa/success-wishes/disabled-browser.cjs
+      - name: Exercise sealed recipient, guardian approval, multi-wish inbox and recovery at four widths
+        run: node qa/success-wishes/receiver-browser.cjs
       - name: Publish synthetic-only browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
