@@ -24,8 +24,8 @@ begin
       or not has_table_privilege('service_role',relation_name,'INSERT')
     then raise exception 'Receiver relation % missing service access', relation_name; end if;
   end loop;
-  if has_function_privilege('anon','public.success_wish_consume_receiver_challenge(uuid,uuid,text)','EXECUTE')
-    or has_function_privilege('authenticated','public.success_wish_consume_receiver_challenge(uuid,uuid,text)','EXECUTE')
+  if has_function_privilege('anon','public.success_wish_consume_receiver_challenge(uuid,uuid,text,text)','EXECUTE')
+    or has_function_privilege('authenticated','public.success_wish_consume_receiver_challenge(uuid,uuid,text,text)','EXECUTE')
   then raise exception 'OTP consumption function was exposed'; end if;
   if has_function_privilege('anon','public.success_wish_assert_real_settlement()','EXECUTE')
     or has_function_privilege('authenticated','public.success_wish_assert_real_settlement()','EXECUTE')
