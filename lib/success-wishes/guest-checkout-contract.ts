@@ -47,7 +47,9 @@ export function guestTextWishQuote(input: unknown): GuestTextWishQuote {
   if (!/^20\d{2}$/.test(examYear)) throw new WishError(400, 'Enter a valid exam year.')
   const school = b.school === undefined || b.school === null || b.school === ''
     ? '' : field(b.school, 1, 80)
-  const payerPhone = normalizeSafaricomPhone(field(b.payerPhone, 9, 20))
+  let payerPhone:string
+  try{payerPhone=normalizeSafaricomPhone(field(b.payerPhone,9,20))}
+  catch{throw new WishError(400,'Enter a valid Kenyan M-Pesa number.')}
   const idempotencyKey = field(b.idempotencyKey, 64, 64)
   if (!/^[a-f0-9]{64}$/.test(idempotencyKey))
     throw new WishError(400, 'The order reference is invalid. Start a new checkout.')
