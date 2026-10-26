@@ -14,9 +14,9 @@ This release repairs the receiver access, consent, recovery and support boundary
 
 ## Database and release order
 
-Apply `20261026143001_success_wishes_receiver_access_hardening.sql` after the six existing receiver migrations, before deploying code that calls the new consent/privacy RPCs. It adds two private audit tables and service-only functions, widens purpose constraints, and preserves direct client denials. It enables no public capability and sends no SMS.
+Apply `20261026183710_success_wishes_receiver_access_hardening.sql` after the six existing receiver migrations, before deploying code that calls the new consent/privacy RPCs. It adds two private audit tables and service-only functions, widens purpose constraints, and preserves direct client denials. It enables no public capability and sends no SMS.
 
-The migration was initially created by `supabase migration new` and sequenced after existing version 20261026143000; it was restored after a scratch workspace reset. Do not edit already-applied historical migrations.
+The migration was initially created by `supabase migration new`, restored after a scratch reset, and then named to match version 20261026183710 assigned by the production Supabase migration tool. The SQL content is unchanged from the tested candidate. Production verification confirmed both audit tables have RLS, no anon/authenticated SELECT, no service-role UPDATE/DELETE, and both new RPCs deny anon/authenticated EXECUTE. Do not edit already-applied historical migrations.
 
 Rollback: keep public access disabled. The additive tables/functions may remain; do not remove evidence or restore the previous partial logout/bearer disclosure behaviour merely to roll back UI. Withdrawal OTPs created under the new purposes cannot be redeemed by old code. Use a forward repair if required.
 
