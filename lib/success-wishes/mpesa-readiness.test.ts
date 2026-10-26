@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { createPaymentReadinessHandler } from '../../app/api/success-wishes/mpesa-readiness/route'
+import { createPaymentReadinessHandler } from './mpesa-readiness'
 
 const good: Record<string, string> = {
   SUCCESS_WISHES_MPESA_CONSUMER_KEY: 'consumer',
