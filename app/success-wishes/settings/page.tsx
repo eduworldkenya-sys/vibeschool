@@ -72,7 +72,7 @@ export default function SuccessWishSafety(){
         </select></label><label>Why are you reporting this wish? (optional until you report)<textarea maxLength={500} value={reason} onChange={e=>setReason(e.target.value)} placeholder="Describe unwanted or inappropriate content…"/></label>
         <div className={styles.actions}><button disabled={busy||!selected} className={styles.secondary} type="button" onClick={()=>void act('hide')}>Hide from inbox</button>
           <button disabled={busy||!selected||reason.trim().length<10} className={styles.primary} type="button" onClick={()=>void act('report')}>Submit private report</button></div></div>
-      </section>
+      </section>}
       {!consentRevoked&&<section className={styles.panel}><h2>Your data and privacy</h2><p>Request a review of your stored information or its deletion. These requests are reviewed and do not immediately erase payment or legal records.</p>
         <div className={styles.actions}><button disabled={busy} className={styles.secondary} type="button" onClick={()=>void act('access_data')}>Request my data</button>
           <button disabled={busy} className={styles.secondary} type="button" onClick={()=>{if(window.confirm('Request deletion of your Success Wishes data?'))void act('delete_data')}}>Request deletion</button></div>
@@ -84,7 +84,7 @@ export default function SuccessWishSafety(){
         {withdrawChallenge ? <div className={styles.form}>
           <label>Verification code
             <input inputMode="numeric" autoComplete="one-time-code" maxLength={6}
-              value={withdrawCode} onChange={e=>setWithdrawCode(e.target.value.replace(/\\D/g,''))}
+              value={withdrawCode} onChange={e=>setWithdrawCode(e.target.value.replace(/\D/g,''))}
               placeholder="6-digit code" />
           </label>
           <div className={styles.actions}>
