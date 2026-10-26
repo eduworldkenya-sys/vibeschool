@@ -145,6 +145,8 @@ export default function SuccessWishInvitationPage() {
             <div className={styles.actions}>
               <button type="button" className={styles.secondary} onClick={() => void signOut()}>Sign out on this device</button>
               <Link href="/success-wishes">Send a wish</Link>
+              {mode.current === 'production' && <Link href="/success-wishes/verify">Save to My Success Wishes</Link>}
+              <Link href="/success-wishes/inbox">My Success Wishes</Link>
             </div>
             <p className={styles.hint}>Wish reference: {wish.id}</p>
           </div>
