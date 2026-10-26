@@ -61,6 +61,8 @@ export default function SuccessWishInvitationPage() {
           // Synthetic local pilot stays available in development; never fall back to test data in production.
           if (process.env.NODE_ENV !== 'development') throw paidError
           const pilot = await requestCard(TEST_API, privateInit)
+          // Remove synthetic test tokens only after development access succeeds; refresh then uses the session GET.
+          if (token) window.history.replaceState(null, '', window.location.pathname)
           return { wish: pilot.wish as Wish, mode: 'development' as Mode }
         }
       })()
