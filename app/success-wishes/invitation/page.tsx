@@ -8,11 +8,11 @@ import { Volume2, VolumeX } from 'lucide-react'
 import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 
 type Wish = {
-  id: string; candidate: string; sender: string; message: string
+  id: string; candidate: string; sender: string; message: string; consentRequired?: boolean
   examYear: string; school: string; theme: Template; expiresAt?: string
 }
 type PrivateCard = {
-  id: string; candidate: string; sender: string | null; message?: string
+  id: string; candidate: string; sender: string | null; message?: string; consentRequired?: boolean
   examYear: string; school: string; theme: Template
 }
 type Mode = 'production' | 'development'
@@ -20,7 +20,8 @@ const PAID_API = '/api/success-wishes/receiver/card'
 const TEST_API = '/api/success-wishes/test-access'
 function fromPrivateCard(card: PrivateCard): Wish {
   return { id: card.id, candidate: card.candidate, sender: card.sender || '',
-    message: card.message || '', examYear: card.examYear, school: card.school, theme: card.theme }
+    message: card.message || '', examYear: card.examYear, school: card.school, theme: card.theme,
+    consentRequired: card.consentRequired === true }
 }
 async function requestCard(url: string, init?: RequestInit) {
   const response = await fetch(url, { cache: 'no-store', ...init })
@@ -45,13 +46,17 @@ export default function SuccessWishInvitationPage() {
     let cancelled = false
     if (!invitationLoad.current) {
       const token = new URLSearchParams(window.location.hash.slice(1)).get('token')
-      if (token) window.history.replaceState(null, '', window.location.pathname)
+      const expectedId = new URLSearchParams(window.location.search).get('card')
       invitationLoad.current = (async () => {
         const privateInit = token ? { method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }) } : undefined
+        const privateUrl = token || !expectedId ? PAID_API : PAID_API + '?card=' + encodeURIComponent(expectedId)
         try {
-          const payload = await requestCard(PAID_API, privateInit)
-          return { wish: fromPrivateCard(payload.card as PrivateCard), mode: 'production' as Mode }
+          const payload = await requestCard(privateUrl, privateInit)
+          const paidCard = payload.card as PrivateCard
+          if (expectedId && paidCard.id !== expectedId) throw new Error('Another private card is active. Reopen this card link.')
+          if (token) window.history.replaceState(null, '', '/success-wishes/invitation?card=' + encodeURIComponent(paidCard.id))
+          return { wish: fromPrivateCard(paidCard), mode: 'production' as Mode }
         } catch (paidError) {
           // Synthetic local pilot stays available in development; never fall back to test data in production.
           if (process.env.NODE_ENV !== 'development') throw paidError
@@ -82,12 +87,17 @@ export default function SuccessWishInvitationPage() {
   }
   async function revealCard(isOpen: boolean) {
     if (!isOpen) { setCardOpened(false); return }
+    if (wish?.consentRequired) {
+      setError('Verify recipient consent before revealing your personal message.')
+      return
+    }
     if (mode.current === 'development') { setCardOpened(true); return }
     if (revealInFlight.current) return
     revealInFlight.current = true
     setRevealing(true)
     try {
-      const payload = await requestCard(PAID_API, { method: 'PUT' })
+      const payload = await requestCard(PAID_API, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cardId: wish?.id }) })
       setWish(fromPrivateCard(payload.card as PrivateCard))
       setCardOpened(true)
     } catch (reason) {
@@ -129,8 +139,12 @@ export default function SuccessWishInvitationPage() {
         </div>
         <section className={styles.recipient} aria-labelledby="received-wish">
           <div className={styles.recipientCard}>
-            <BookCard template={wish.theme} values={wish} soundEnabled={soundEnabled}
-              onOpen={playOpeningSound} onOpenedChange={opened => { void revealCard(opened) }}/>
+            {wish.consentRequired ? <div role="status" className={styles.form}>
+              <h2>Your private card is sealed</h2>
+              <p>Verify the registered phone and, for a student under 18, have the authorised parent or guardian approve access. Your message and sender remain private until then.</p>
+              <Link href="/success-wishes/verify">Verify to open this card</Link>
+            </div> : <BookCard template={wish.theme} values={wish} soundEnabled={soundEnabled}
+              onOpen={playOpeningSound} onOpenedChange={opened => { void revealCard(opened) }}/>}
             {revealing && <p role="status" className={styles.status}>Revealing your personal message…</p>}
           </div>
           <div className={styles.recipientDetails}>
@@ -145,7 +159,7 @@ export default function SuccessWishInvitationPage() {
             <div className={styles.actions}>
               <button type="button" className={styles.secondary} onClick={() => void signOut()}>Sign out on this device</button>
               <Link href="/success-wishes">Send a wish</Link>
-              {mode.current === 'production' && <Link href="/success-wishes/verify">Save to My Success Wishes</Link>}
+              {mode.current === 'production' && !wish.consentRequired && <Link href="/success-wishes/verify">Save to My Success Wishes</Link>}
               <Link href="/success-wishes/inbox">My Success Wishes</Link>
             </div>
             <p className={styles.hint}>Wish reference: {wish.id}</p>
