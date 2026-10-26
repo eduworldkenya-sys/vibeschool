@@ -122,8 +122,10 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026112000_success_wishes_receiver_recovery.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026114500_success_wishes_receiver_safety.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026120500_success_wishes_verified_fulfillment.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026130000_success_wishes_receiver_consent.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-rls-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-settlement-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-consent-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety
