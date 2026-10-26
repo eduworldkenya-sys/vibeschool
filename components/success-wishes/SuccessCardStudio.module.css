@@ -518,3 +518,16 @@
   .live{scroll-margin-top:108px}
 }
 @media(prefers-reduced-motion:reduce){.bookCover{transition:none}}
+
+/* Sender recovery and field feedback; shared card typography must preserve full names. */
+.draftStatus{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 16px}
+.draftStatus p{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
+.draftStatus button{flex-shrink:0;font-size:12px;padding:8px 10px}
+.fieldError{font-size:12px;line-height:1.4;color:#ffb4ab}
+.bookPage strong,.bookMessagePage h3,.bookCover>strong{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:420px){.draftStatus{align-items:flex-start;flex-direction:column}}
+
+.bookPage{min-height:0;overflow-y:auto;justify-content:safe center}
+.bookPage>*{flex-shrink:0}
+.composer>*{min-width:0;max-width:100%}
+@media(max-width:850px){.composer{grid-template-columns:minmax(0,1fr)}}
