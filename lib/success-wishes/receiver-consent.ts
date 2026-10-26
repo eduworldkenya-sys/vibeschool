@@ -30,3 +30,19 @@ export function verifyConsentDeclaration(expected: ConsentMode, suppliedRole: un
   if (expected !== 'verified' && accepted !== true)
     throw new WishError(400, 'The recipient or authorised guardian must affirm consent.')
 }
+
+/**
+ * Withdrawal needs fresh proof from the trusted contact who originally granted consent.
+ * A student-facing inbox session must not redirect a guardian challenge to the student's phone.
+ */
+export function registeredWithdrawalRoute(person: ConsentPerson): {
+  phone: string; purpose: 'consent_adult' | 'consent_guardian'; consentRole: 'adult' | 'guardian'
+} {
+  if (person.consent_status !== 'verified')
+    throw new WishError(409, 'Only an active verified recipient can withdraw consent here.')
+  if (person.consent_route === 'guardian' && person.guardian_phone_e164)
+    return { phone: person.guardian_phone_e164, purpose: 'consent_guardian', consentRole: 'guardian' }
+  if (person.consent_route === 'adult')
+    return { phone: person.phone_e164, purpose: 'consent_adult', consentRole: 'adult' }
+  throw new WishError(409, 'Contact support to review the registered consent authority.')
+}

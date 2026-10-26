@@ -13,6 +13,9 @@ export default function SuccessWishSafety(){
   const [status,setStatus]=useState('')
   const [error,setError]=useState('')
   const [busy,setBusy]=useState(false)
+  const [withdrawChallenge,setWithdrawChallenge]=useState('')
+  const [withdrawCode,setWithdrawCode]=useState('')
+  const [consentRevoked,setConsentRevoked]=useState(false)
   useEffect(()=>{
     let mounted=true
     void Promise.all([
@@ -39,21 +42,60 @@ export default function SuccessWishSafety(){
       }
     }catch(e){setError(e instanceof Error?e.message:'Could not save your request.')}finally{setBusy(false)}
   }
+  async function withdraw(action: 'begin_withdrawal'|'confirm_withdrawal') {
+    setBusy(true);setError('');setStatus('')
+    try {
+      const r=await fetch(manage,{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action,challengeId:withdrawChallenge,code:withdrawCode})})
+      const p=await r.json()
+      if(!r.ok)throw Error(p.error||'We could not complete your consent request.')
+      if(action==='begin_withdrawal') {
+        setWithdrawChallenge(p.challengeId)
+        setStatus(p.message||'Enter the code sent to the registered consent contact.')
+      } else {
+        setConsentRevoked(true)
+        setWithdrawChallenge('')
+        setWithdrawCode('')
+        setCards([])
+        setStatus(p.message||'Consent withdrawn. Your private inbox has been closed.')
+      }
+    } catch(e) { setError(e instanceof Error?e.message:'Consent could not be updated.') }
+    finally { setBusy(false) }
+  }
   return <div className={styles.page}><header className={styles.top}><Link href="/success-wishes/inbox" className={styles.brand}>VIBESCHOOL / SUCCESS WISHES</Link><span className={styles.muted}>Safety &amp; privacy</span></header>
     <main className={styles.wrap}><div className={styles.hero}><p className={styles.eyebrow}>YOUR PRIVATE SPACE</p><h1>Keep your wishes safe.</h1><p>Only the verified receiver can manage their private inbox. You can report unwanted content, hide a wish or request a review of your data.</p></div>
       {error&&<p className={styles.error} role="alert">{error}</p>}
       {status&&<div className={styles.notice} role="status">{status}</div>}
-      <section className={styles.panel}><h2>Manage a wish</h2><p>Choose a card without opening it. The sender’s identity stays a surprise until the card is opened.</p>
+      {!consentRevoked&&<section className={styles.panel}><h2>Manage a wish</h2><p>Choose a card without opening it. The sender’s identity stays a surprise until the card is opened.</p>
         <div className={styles.form}><label>Choose a received card<select value={selected} onChange={e=>setSelected(e.target.value)}>
           <option value="">Select a wish…</option>{cards.map((c,i)=><option key={c.id} value={c.id}>{c.opened?(c.sender||'Opened wish'):'Unopened surprise'} · {new Date(c.createdAt).toLocaleDateString('en-KE')} · #{i+1}</option>)}
         </select></label><label>Why are you reporting this wish? (optional until you report)<textarea maxLength={500} value={reason} onChange={e=>setReason(e.target.value)} placeholder="Describe unwanted or inappropriate content…"/></label>
         <div className={styles.actions}><button disabled={busy||!selected} className={styles.secondary} type="button" onClick={()=>void act('hide')}>Hide from inbox</button>
           <button disabled={busy||!selected||reason.trim().length<10} className={styles.primary} type="button" onClick={()=>void act('report')}>Submit private report</button></div></div>
-      </section>
-      <section className={styles.panel}><h2>Your data and privacy</h2><p>Request a review of your stored information or its deletion. These requests are reviewed and do not immediately erase payment or legal records.</p>
+      </section>}
+      {!consentRevoked&&<section className={styles.panel}><h2>Your data and privacy</h2><p>Request a review of your stored information or its deletion. These requests are reviewed and do not immediately erase payment or legal records.</p>
         <div className={styles.actions}><button disabled={busy} className={styles.secondary} type="button" onClick={()=>void act('access_data')}>Request my data</button>
           <button disabled={busy} className={styles.secondary} type="button" onClick={()=>{if(window.confirm('Request deletion of your Success Wishes data?'))void act('delete_data')}}>Request deletion</button></div>
         {requests.length>0&&<div className={styles.notice}><strong>Recent requests</strong>{requests.map(r=><p key={r.id}>{r.kind==='deletion'?'Data deletion':'Data access'} · {r.status} · {new Date(r.created_at).toLocaleDateString('en-KE')}</p>)}</div>}
-      </section><div className={styles.links}><Link href="/success-wishes/inbox">Return to My Success Wishes</Link><Link href="/success-wishes/recover">Recovery options</Link></div>
+      </section>}
+      {!consentRevoked&&<section className={styles.panel}>
+        <h2>Withdraw consent</h2>
+        <p>Withdraw access to your Success Wishes inbox and cards. To protect students, we send a new code to the previously registered adult or guardian phone. This does not delete legal or payment records, and restoration requires a separate verification process.</p>
+        {withdrawChallenge ? <div className={styles.form}>
+          <label>Verification code
+            <input inputMode="numeric" autoComplete="one-time-code" maxLength={6}
+              value={withdrawCode} onChange={e=>setWithdrawCode(e.target.value.replace(/\D/g,''))}
+              placeholder="6-digit code" />
+          </label>
+          <div className={styles.actions}>
+            <button type="button" className={styles.secondary} disabled={busy}
+              onClick={()=>void withdraw('begin_withdrawal')}>Send a new code</button>
+            <button type="button" className={styles.primary} disabled={busy||!/^[0-9]{6}$/.test(withdrawCode)}
+              onClick={()=>{if(window.confirm('Withdraw consent and close access to all received wishes?'))void withdraw('confirm_withdrawal')}}>Confirm withdrawal</button>
+          </div>
+        </div> : <button type="button" className={styles.secondary} disabled={busy}
+          onClick={()=>void withdraw('begin_withdrawal')}>Send withdrawal verification code</button>}
+      </section>}
+      <div className={styles.links}><Link href="/success-wishes/inbox">Return to My Success Wishes</Link><Link href="/success-wishes/recover">Recovery options</Link></div>
     </main></div>
 }
