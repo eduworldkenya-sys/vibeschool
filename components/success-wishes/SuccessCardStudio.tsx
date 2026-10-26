@@ -1,14 +1,17 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Check, ChevronRight, Volume2, VolumeX, X } from 'lucide-react'
 import SenderMediaCapture from './SenderMediaCapture'
+import { useSenderDraft } from './useSenderDraft'
+import type { SenderDraft } from '@/lib/success-wishes/sender-draft'
+import { wrapCardText } from '@/lib/success-wishes/card-text'
 import { supabase } from '@/lib/supabase'
 import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import styles from './SuccessCardStudio.module.css'
 
-export type Template = 'heritage' | 'botanical' | 'nightfall' | 'sunrise'
+export type Template = SenderDraft['theme']
 export type CardValues = { candidate: string; sender: string; message: string; examYear?: string; school?: string }
 export type CardDesignDraft = CardValues & { theme: Template }
 const templates: { id: Template; name: string; subtitle: string; headline: string }[] = [
@@ -24,25 +27,6 @@ const palette: Record<Template, { top: string; bottom: string; ink: string; acce
   sunrise: { top: '#ffe9bc', bottom: '#ac829c', ink: '#613653', accent: '#ffedc4', border: '#eab8a0' },
 }
 
-function wrapped(text: string, maxChars: number, maxLines: number): string[] {
-  const words = text.trim().split(/\s+/).filter(Boolean)
-  const lines: string[] = []
-  let line = ''
-  for (const word of words) {
-    // Break unusually long tokens rather than clipping the card image.
-    const parts = word.match(new RegExp('.{1,' + maxChars + '}', 'g')) || [word]
-    for (const part of parts) {
-      if (line && (line + ' ' + part).length > maxChars) {
-        lines.push(line); line = part
-      } else {
-        line = line ? line + ' ' + part : part
-      }
-    }
-  }
-  if (line) lines.push(line)
-  return lines.slice(0, maxLines)
-}
-
 export function CardArt({ template, values, svgRef, preview = false }: {
   template: Template; values: CardValues; svgRef?: React.Ref<SVGSVGElement>; preview?: boolean
 }) {
@@ -52,12 +36,16 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   const recipient = values.candidate.trim() || 'Candidate name'
   const sender = values.sender.trim() || 'Your name'
   const message = values.message.trim()
-  const headlineLines = wrapped(item.headline, 26, 2)
-  const recipientLines = wrapped(recipient, 30, 2)
-  const senderLines = wrapped('With love, ' + sender, 42, 1)
-  const schoolLines = wrapped(values.school || '', 56, 1)
-  const messageLines = wrapped(message, 53, 5)
-  const messageStartY = 557 - Math.max(messageLines.length - 1, 0) * 17
+  const headlineLines = wrapCardText(item.headline, 26)
+  const recipientLines = wrapCardText(recipient, 30)
+  const senderLines = wrapCardText('With love, ' + sender, 42)
+  const schoolLines = wrapCardText(values.school || '', 56)
+  const messageLines = wrapCardText(message, 53)
+  const messageLineHeight = Math.min(36, 150 / Math.max(messageLines.length, 1))
+  const messageFontSize = Math.min(33, messageLineHeight * .9, 960 / Math.max(1, ...messageLines.map(line => Array.from(line).length)))
+  const recipientFontSize = Math.min(39, 1000 / Math.max(1, ...recipientLines.map(line => Array.from(line).length)))
+  const schoolFontSize = Math.min(21, 1000 / Math.max(1, ...schoolLines.map(line => Array.from(line).length)))
+  const messageStartY = 550 - Math.max(messageLines.length - 1, 0) * messageLineHeight / 2
   const ornaments: Record<Template, string> = { heritage: '✧', botanical: '✿', nightfall: '✦', sunrise: '✳' }
   return (
     <svg ref={svgRef} viewBox="0 0 1200 760" xmlns="http://www.w3.org/2000/svg" role="img"
@@ -86,17 +74,17 @@ export function CardArt({ template, values, svgRef, preview = false }: {
       <text x="600" y="183" fill={theme.accent} opacity=".24" fontSize="125" fontFamily="Georgia, serif" textAnchor="middle">{ornaments[template]}</text>
       {headlineLines.map((line, i) => <text key={i} x="600" y={270 + i * 65 - (headlineLines.length - 1) * 28} fill={theme.ink} fontFamily="Georgia, serif" fontStyle={template === 'heritage' || template === 'botanical' ? 'italic' : 'normal'} fontWeight="600" fontSize={preview ? 63 : 65} textAnchor="middle">{line}</text>)}
       <path d="M490 313 H710" stroke={theme.accent} strokeWidth="2.5" opacity=".65"/>
-      {recipientLines.map((line, i) => <text key={i} x="600" y={370 + i * 40} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="600" fontSize="39" textAnchor="middle">{line}</text>)}
-      {schoolLines.map((line, i) => <text key={i} x="600" y={(recipientLines.length > 1 ? 444 : 428) + i * 24} fill={theme.ink} opacity=".85" fontFamily="Arial, sans-serif" fontSize="23" textAnchor="middle">{line}</text>)}
+      {recipientLines.map((line, i) => <text key={i} x="600" y={370 + i * 40} fill={theme.ink} fontFamily="Arial, sans-serif" fontWeight="600" fontSize={recipientFontSize} textAnchor="middle">{line}</text>)}
+      {schoolLines.map((line, i) => <text key={i} x="600" y={(recipientLines.length > 1 ? 444 : 428) + i * 24} fill={theme.ink} opacity=".85" fontFamily="Arial, sans-serif" fontSize={schoolFontSize} textAnchor="middle">{line}</text>)}
       {messageLines.length > 0 ? <g>
         <rect x="96" y="461" width="1008" height="178" rx="16" fill={theme.ink} opacity=".055"/>
         <rect x="96" y="461" width="1008" height="178" rx="16" fill="none" stroke={theme.accent} strokeWidth="1.5" opacity=".32"/>
-        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * 36} fill={theme.ink} fontFamily="Georgia, serif" fontSize="33" textAnchor="middle">{line}</text>)}
+        {messageLines.map((line, i) => <text key={i} x="600" y={messageStartY + i * messageLineHeight} fill={theme.ink} fontFamily="Georgia, serif" fontSize={messageFontSize} textAnchor="middle">{line}</text>)}
       </g> : <g>
         <path d="M425 531 H775" stroke={theme.accent} strokeWidth="2" opacity=".42"/>
         <text x="600" y="575" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="25" letterSpacing="5" opacity=".8" textAnchor="middle">GOOD LUCK IN YOUR EXAMS</text>
       </g>}
-      {senderLines.map((line, i) => <text key={i} x="75" y={685 + i * 25} fill={theme.ink} fontFamily="Georgia, serif" fontStyle="italic" fontSize="20" fontWeight="600" letterSpacing=".3">{line}</text>)}
+      {senderLines.map((line, i) => <text key={i} x="75" y={665 + i * 22} fill={theme.ink} fontFamily="Georgia, serif" fontStyle="italic" fontSize="20" fontWeight="600" letterSpacing=".3">{line}</text>)}
       <text x="1125" y="685" fill={theme.ink} fontFamily="Arial, sans-serif" fontSize="21" fontWeight="bold" letterSpacing="3" textAnchor="end">{values.examYear || '2026'}</text>
     </svg>
   )
@@ -134,7 +122,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     <div className={styles.bookStage + (open ? ' ' + styles.bookIsOpen : '')}
         style={{ '--book-top': palette[template].top, '--book-bottom': palette[template].bottom, '--book-ink': palette[template].ink, '--book-accent': palette[template].accent } as React.CSSProperties}>
       <div className={styles.bookSpread} aria-hidden={!open}>
-        <div className={styles.bookPage}>
+        <div className={styles.bookPage} role="group" aria-label="Card details" tabIndex={open ? 0 : -1}>
           <span className={styles.bookEyebrow}>WITH LOVE</span>
           <strong>{values.sender.trim() || 'Your name'}</strong>
           <span>For {values.candidate.trim() || 'your candidate'}</span>
@@ -142,7 +130,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
           <span>{values.examYear || '2026'} exams</span>
           <span className={styles.bookOrnament}>✧</span>
         </div>
-        <div className={styles.bookPage + ' ' + styles.bookMessagePage}>
+        <div className={styles.bookPage + ' ' + styles.bookMessagePage} role="group" aria-label="Personal wish" tabIndex={open ? 0 : -1}>
           <span className={styles.bookEyebrow}>{item.name}</span>
           <h3>{item.headline}</h3>
           <strong>{values.candidate.trim() || 'Candidate name'}</strong>
@@ -266,7 +254,26 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const formStartSoundPlayed = useRef(false)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school }
-  const ready = Boolean(candidate.trim() && sender.trim() && message.trim() && /^20\d{2}$/.test(examYear) && (selectedVersion === 'text' || mediaFile))
+  const fieldErrors = {
+    candidate: candidate.trim() ? '' : 'Enter the candidate’s name.',
+    sender: sender.trim() ? '' : 'Enter your name.',
+    message: message.trim() ? '' : 'Write a wish or choose a starter below.',
+    examYear: /^20\d{2}$/.test(examYear) ? '' : 'Enter a four-digit exam year, such as 2026.',
+  }
+  const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const ready = Boolean(!Object.values(fieldErrors).some(Boolean) && (selectedVersion === 'text' || mediaFile))
+  const restoreDraft = useCallback((draft: SenderDraft) => {
+    setTheme(draft.theme); setCandidate(draft.candidate); setSender(draft.sender)
+    setMessage(draft.message); setExamYear(draft.examYear); setSchool(draft.school)
+    setSelectedSchool(null)
+  }, [])
+  const draftStatus = useSenderDraft({ theme, candidate, sender, message, examYear, school }, Boolean(initialDraft), restoreDraft)
+  function clearDraft() {
+    if (!window.confirm('Clear this wish and start again?')) return
+    restoreDraft({ theme: 'heritage', candidate: '', sender: '', message: '', examYear: '2026', school: '' })
+    setSelectedVersion('text'); setMediaFile(null); setTouched({}); setError(''); setStatus(''); setOrder(null)
+    setPreviewEditing(false); setPreviewSession(current => current + 1)
+  }
   useEffect(() => {
     let active = true
     fetch('/api/success-wishes/config', { cache: 'no-store' })
@@ -385,7 +392,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <section className={styles.pricingStrip} aria-label="Wish versions and prices">
         <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
           {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null); setPreviewSession(current => current + 1) }}>
-            {version.name} · KES {version.price}
+            {version.name} · {version.id !== 'text' && !mediaEnabled ? 'Preview only' : `KES ${version.price}`}
           </button>)}
         </div>
       </section>
@@ -398,9 +405,13 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         <div className={styles.form} onFocusCapture={event => {
           if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) { setPreviewEditing(true); playFormStartSound() }
         }}><div className={styles.heading}><span>DIGITAL SUCCESS CARD</span><h2 id="personalise-card">Write a wish they’ll remember.</h2></div>
+          <div className={styles.draftStatus}>
+            <p role="status">{draftStatus.unavailable ? 'Draft recovery is unavailable in this browser. Keep this tab open while editing.' : draftStatus.saved ? `${draftStatus.restored ? 'Draft restored. ' : ''}Saved in this tab for up to 24 hours. Recordings are not saved.` : 'Text details are saved in this tab while you edit.'}</p>
+            {draftStatus.saved && <button type="button" className={styles.secondary} onClick={clearDraft}>Clear draft</button>}
+          </div>
           <div className={styles.formRow}>
-            <label>Candidate name<input autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/></label>
-            <label>Exam year<input inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026"/></label>
+            <label>Candidate name<input aria-label="Candidate name" aria-invalid={touched.candidate && Boolean(fieldErrors.candidate)} aria-describedby={touched.candidate && fieldErrors.candidate ? schoolInputId + '-candidate-error' : undefined} onBlur={() => setTouched(current => ({ ...current, candidate: true }))} autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/>{touched.candidate && fieldErrors.candidate && <small id={schoolInputId + '-candidate-error'} className={styles.fieldError}>{fieldErrors.candidate}</small>}</label>
+            <label>Exam year<input aria-label="Exam year" aria-invalid={touched.examYear && Boolean(fieldErrors.examYear)} aria-describedby={touched.examYear && fieldErrors.examYear ? schoolInputId + '-year-error' : undefined} onBlur={() => setTouched(current => ({ ...current, examYear: true }))} inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026"/>{touched.examYear && fieldErrors.examYear && <small id={schoolInputId + '-year-error'} className={styles.fieldError}>{fieldErrors.examYear}</small>}</label>
           </div>
           <div className={styles.optionalField}>
             <div className={styles.optionalFieldHeading}><label htmlFor={schoolInputId}>School (optional)</label></div>
@@ -411,9 +422,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {schoolOptions.length > 0 && <ul className={styles.schoolResults} id={schoolResultsId} role="listbox" aria-label="Matching VibeSchool schools">{schoolOptions.map(option => <li key={option.school_id}><button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id} onClick={() => { setSelectedSchool(option); setSchool(option.school_name); setSchoolOptions([]); setSchoolSearchState('idle') }}><strong>{option.school_name}</strong><small>{[option.sub_county, option.county].filter(Boolean).join(', ') || 'School in VibeSchool directory'}</small></button></li>)}</ul>}
             {selectedSchool && <p className={styles.schoolSearchStatus} role="status">Selected from VibeSchool&apos;s school list: {selectedSchool.school_name}{selectedSchool.sub_county || selectedSchool.county ? ` · ${[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}` : ''}</p>}
           </div>
-          <label>Your name<input autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/></label>
-          <label>Your wish<textarea ref={messageInputRef} rows={6} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
-            placeholder="Write something only you would say…"/></label>
+          <label>Your name<input aria-label="Your name" aria-invalid={touched.sender && Boolean(fieldErrors.sender)} aria-describedby={touched.sender && fieldErrors.sender ? schoolInputId + '-sender-error' : undefined} onBlur={() => setTouched(current => ({ ...current, sender: true }))} autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/>{touched.sender && fieldErrors.sender && <small id={schoolInputId + '-sender-error'} className={styles.fieldError}>{fieldErrors.sender}</small>}</label>
+          <label>Your wish<textarea aria-label="Your wish" aria-invalid={touched.message && Boolean(fieldErrors.message)} aria-describedby={touched.message && fieldErrors.message ? schoolInputId + '-message-error' : undefined} onBlur={() => setTouched(current => ({ ...current, message: true }))} ref={messageInputRef} rows={6} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
+            placeholder="Write something only you would say…"/>{touched.message && fieldErrors.message && <small id={schoolInputId + '-message-error'} className={styles.fieldError}>{fieldErrors.message}</small>}</label>
           {selectedVersion !== 'text' && <>
             <SenderMediaCapture key={selectedVersion} kind={selectedVersion} file={mediaFile} onChange={setMediaFile}/>
             {mediaPreviewUrl && <div className={styles.localMediaReview}>
@@ -433,11 +444,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             }}>{starter.label}</button>)}</div>
           </div>
           <p className={styles.counter}>{message.length}/220 characters</p>
-          {!ready && <p className={styles.hint}>Add the candidate’s name, your name and a wish. School is optional.</p>}
+          {!ready && <p className={styles.hint}>{Object.values(fieldErrors).filter(Boolean).join(' ')} {selectedVersion !== 'text' && !mediaFile ? 'Record or choose a file to preview. ' : ''}School is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
-            <p className={styles.orderTotal}>Total <strong>KES {versions.find(version => version.id === selectedVersion)?.price}</strong></p>
+            <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' && !mediaEnabled ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</strong></p>
             <button type="button" className={styles.primary} disabled={!ready} onClick={() => {
               if (selectedVersion !== 'text' && !mediaEnabled) {
                 setPreviewSession(current => current + 1)
@@ -448,7 +459,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         </div>
         <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
           <BookCard senderPreview autoOpen={previewEditing} key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
-          <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>KES {versions.find(version => version.id === selectedVersion)?.price}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
+          <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>{selectedVersion !== 'text' && !mediaEnabled ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
             {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
             </> : null}
