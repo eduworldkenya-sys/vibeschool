@@ -142,7 +142,7 @@ export default function SuccessWishInvitationPage() {
             {wish.consentRequired ? <div role="status" className={styles.form}>
               <h2>Your private card is sealed</h2>
               <p>Verify the registered phone and, for a student under 18, have the authorised parent or guardian approve access. Your message and sender remain private until then.</p>
-              <Link href="/success-wishes/verify">Verify to open this card</Link>
+              <Link href={"/success-wishes/verify?card=" + encodeURIComponent(wish.id)}>Verify to open this card</Link>
             </div> : <BookCard template={wish.theme} values={wish} soundEnabled={soundEnabled}
               onOpen={playOpeningSound} onOpenedChange={opened => { void revealCard(opened) }}/>}
             {revealing && <p role="status" className={styles.status}>Revealing your personal message…</p>}
@@ -159,7 +159,7 @@ export default function SuccessWishInvitationPage() {
             <div className={styles.actions}>
               <button type="button" className={styles.secondary} onClick={() => void signOut()}>Sign out on this device</button>
               <Link href="/success-wishes">Send a wish</Link>
-              {mode.current === 'production' && !wish.consentRequired && <Link href="/success-wishes/verify">Save to My Success Wishes</Link>}
+              {mode.current === 'production' && !wish.consentRequired && <Link href={"/success-wishes/verify?card=" + encodeURIComponent(wish.id)}>Save to My Success Wishes</Link>}
               <Link href="/success-wishes/inbox">My Success Wishes</Link>
             </div>
             <p className={styles.hint}>Wish reference: {wish.id}</p>
