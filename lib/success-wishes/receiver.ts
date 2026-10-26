@@ -32,25 +32,25 @@ type Card = {
 type Receiver = { display_name: string; school_label: string; consent_status: string }
 async function requirePaid(db: DB, card: Card) {
   const { data: attempt, error } = await db.from('commerce_payment_attempts')
-    .select('state,provider_receipt,provider_result_code,settled_at,order_id,expected_amount_kes')
+    .select('provider,state,provider_receipt,provider_result_code,settled_at,callback_received_at,order_id,expected_amount_kes')
     .eq('id', card.payment_attempt_id).maybeSingle()
-  if (error || !attempt || attempt.state !== 'settled' || !attempt.provider_receipt
-    || attempt.provider_result_code !== 0 || !attempt.settled_at || attempt.expected_amount_kes !== 50) {
+  if (error || !attempt || attempt.provider !== 'mpesa' || attempt.state !== 'settled' || !attempt.provider_receipt
+    || attempt.provider_result_code !== 0 || !attempt.settled_at || !attempt.callback_received_at || attempt.expected_amount_kes !== 50) {
     throw new WishError(404, 'This private card is unavailable.')
   }
   const { data: order, error: orderError } = await db.from('learning_product_orders')
-    .select('status,refunded_at,product_snapshot').eq('id', attempt.order_id).maybeSingle()
-  if (orderError || order?.status !== 'paid' || order.refunded_at
+    .select('status,refunded_at,product_snapshot,amount_kes').eq('id', attempt.order_id).maybeSingle()
+  if (orderError || order?.status !== 'paid' || order.refunded_at || order.amount_kes !== 50
     || order.product_snapshot?.kind !== 'success_wish_text') throw new WishError(404, 'This private card is unavailable.')
 }
-export async function verifiedCard(db: DB, id: string) {
+export async function verifiedCard(db: DB, id: string, allowPending = false) {
   const { data, error } = await db.from('success_wish_cards').select('*').eq('id', id).maybeSingle()
   const card = data as Card | null
   if (error || !card || card.revoked_at || Date.parse(card.expires_at) <= Date.now())
     throw new WishError(404, 'This private card has expired or is unavailable.')
   const { data: recipient, error: rerror } = await db.from('success_wish_receivers')
     .select('display_name,school_label,consent_status').eq('id', card.receiver_id).maybeSingle()
-  if (rerror || !recipient || recipient.consent_status !== 'verified')
+  if (rerror || !recipient || (recipient.consent_status !== 'verified' && !(allowPending && recipient.consent_status === 'pending')))
     throw new WishError(404, 'This private card is unavailable.')
   await requirePaid(db, card)
   return { card, recipient: recipient as Receiver }
@@ -58,9 +58,9 @@ export async function verifiedCard(db: DB, id: string) {
 export function envelope(card: Card, recipient: Receiver) {
   return { id: card.id, candidate: recipient.display_name, school: recipient.school_label,
     examYear: card.exam_year, theme: card.theme, sender: card.sender_reveal_early ? card.sender_name : null,
-    opened: !!card.opened_at, createdAt: card.created_at }
+    opened: !!card.opened_at, consentRequired: recipient.consent_status !== 'verified', createdAt: card.created_at }
 }
-export async function cardSession(req: NextRequest) {
+export async function cardSession(req: NextRequest, expectedCardId?: unknown) {
   const secret = req.cookies.get(RECEIVER_COOKIE)?.value || ''
   if (!/^[a-f0-9]{64}$/.test(secret)) throw new WishError(401, 'Open your private link or enter your card code.')
   const db = receiverDatabase()
@@ -68,7 +68,9 @@ export async function cardSession(req: NextRequest) {
     .select('card_id,expires_at').eq('token_hash', sessionDigest(secret)).maybeSingle()
   if (error || !active || Date.parse(active.expires_at) <= Date.now())
     throw new WishError(401, 'Your card session has ended. Reopen your private link.')
-  const result = await verifiedCard(db, active.card_id)
+  if (expectedCardId !== undefined && expectedCardId !== active.card_id)
+    throw new WishError(409, 'Another card was opened on this device. Return to your inbox or reopen this card link.')
+  const result = await verifiedCard(db, active.card_id, true)
   return { db, ...result }
 }
 export async function cardAccess(req: NextRequest, secret: string, kind: 'link'|'code') {
@@ -85,6 +87,26 @@ export async function cardAccess(req: NextRequest, secret: string, kind: 'link'|
     .select('card_id,revoked_at,expires_at').eq(column, digest).maybeSingle()
   if (error || !access || access.revoked_at || Date.parse(access.expires_at) <= Date.now())
     throw new WishError(404, 'This card link or access code is invalid, expired or revoked.')
-  return { db, ...(await verifiedCard(db, access.card_id)) }
+  return { db, ...(await verifiedCard(db, access.card_id, true)) }
 }
 export { SESSION_AGE }
+
+/** Batch-check gift eligibility before listing private inbox cards. Never show refunded or simulated gifts. */
+export async function settledCardIds(db: DB, cards: Pick<Card, 'id' | 'payment_attempt_id'>[]) {
+  if (!cards.length) return new Set<string>()
+  const { data: attempts, error: aerr } = await db.from('commerce_payment_attempts')
+    .select('id,order_id,provider,state,provider_receipt,provider_result_code,settled_at,callback_received_at,expected_amount_kes')
+    .in('id', cards.map(card => card.payment_attempt_id))
+  if (aerr) throw new WishError(503, 'Could not verify your received wishes.')
+  const eligible = (attempts || []).filter(a => a.provider === 'mpesa' && a.state === 'settled'
+    && a.provider_receipt && a.provider_result_code === 0 && a.settled_at && a.callback_received_at
+    && a.expected_amount_kes === 50)
+  if (!eligible.length) return new Set<string>()
+  const { data: orders, error: oerr } = await db.from('learning_product_orders')
+    .select('id,status,refunded_at,amount_kes,product_snapshot').in('id', eligible.map(a => a.order_id))
+  if (oerr) throw new WishError(503, 'Could not verify your received wishes.')
+  const validOrders = new Set((orders || []).filter(o => o.status === 'paid' && !o.refunded_at
+    && o.amount_kes === 50 && o.product_snapshot?.kind === 'success_wish_text').map(o => o.id))
+  const validAttempts = new Set(eligible.filter(a => validOrders.has(a.order_id)).map(a => a.id))
+  return new Set(cards.filter(c => validAttempts.has(c.payment_attempt_id)).map(c => c.id))
+}
