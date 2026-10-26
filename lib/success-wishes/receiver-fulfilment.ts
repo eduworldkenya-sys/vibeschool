@@ -26,8 +26,8 @@ export async function issueReceiverWishFromVerifiedOrder(input: Gift) {
   const db = receiverDatabase()
   const { data: recipient, error: receiverError } = await db.from('success_wish_receivers')
     .select('phone_e164,consent_status').eq('id', input.receiverId).maybeSingle()
-  if (receiverError || recipient?.consent_status !== 'verified') {
-    throw new WishError(409, 'Receiver identity and consent must be verified before delivery.')
+  if (receiverError || !recipient || !['pending', 'verified'].includes(recipient.consent_status)) {
+    throw new WishError(409, 'Receiver identity must be provisioned and not revoked before sealed delivery.')
   }
   const baseUrl = process.env.SUCCESS_WISHES_PUBLIC_BASE_URL?.trim()
   if (!baseUrl) throw new WishError(503, 'Public invitation address is not commissioned.')
