@@ -77,7 +77,8 @@ export async function enrolRecovery(db: DB, receiverId: string) {
   const recoverySecret = randomBytes(16).toString('hex').toUpperCase()
   const { data, error } = await db.from('success_wish_receivers')
     .update({ recovery_secret_hash: recoveryDigest(receiverId, recoverySecret) })
-    .eq('id', receiverId).is('recovery_secret_hash', null).select('id').maybeSingle()
+    .eq('id', receiverId).select('id').maybeSingle()
   if (error) throw new WishError(503, 'Could not configure recovery.')
-  return data ? recoverySecret : null
+  if (!data) throw new WishError(409, 'The private receiver could not be found.')
+  return recoverySecret
 }
