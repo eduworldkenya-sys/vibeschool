@@ -108,6 +108,9 @@ async function run() {
     await assertNoOverflow(page,'guardian verification at '+width)
     await page.getByRole('link',{name:'Open My Success Wishes'}).click()
     await page.getByRole('heading',{name:'My Success Wishes'}).waitFor()
+    // Heading renders before the async inbox GET finishes; count() alone races hydration.
+    // Wait for the server-backed cards, not only the static page heading.
+    await page.waitForFunction(() => document.querySelectorAll('button[aria-label^="Open"]').length===2)
     assert.equal(await page.locator('button[aria-label^="Open"]').count(),2,'Two gifts share one inbox')
     await assertNoOverflow(page,'two-gift inbox at '+width)
     const gifts=page.locator('button[aria-label^="Open"]')

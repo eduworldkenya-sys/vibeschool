@@ -96,6 +96,6 @@ export default function SuccessWishSafety(){
         </div> : <button type="button" className={styles.secondary} disabled={busy}
           onClick={()=>void withdraw('begin_withdrawal')}>Send withdrawal verification code</button>}
       </section>}
-      <div className={styles.links}><Link href="/success-wishes/inbox">Return to My Success Wishes</Link><Link href="/success-wishes/recover">Recovery options</Link></div>
+      <div className={styles.links}><Link href="/success-wishes/inbox">Return to My Success Wishes</Link><Link href="/success-wishes/recover">Recovery options</Link><Link href="/success-wishes/guardian-consent">Guardian consent withdrawal</Link></div>
     </main></div>
 }
