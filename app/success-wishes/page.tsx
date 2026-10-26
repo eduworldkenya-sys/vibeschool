@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import UnifiedSuccessWishes from '@/components/success-wishes/UnifiedSuccessWishes'
+import SuccessCardStudio from '@/components/success-wishes/SuccessCardStudio'
 
 export const metadata: Metadata = {
   title: 'Success Wishes | VibeSchool',
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function SuccessWishesPage() {
-  return <UnifiedSuccessWishes testMode={process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE === '1'} />
+  return <SuccessCardStudio testMode={process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE === '1'} />
 }
