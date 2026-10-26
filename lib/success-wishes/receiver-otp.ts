@@ -1,13 +1,14 @@
 import { randomBytes } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { WishError } from './contracts'
-import { database, limit } from './server'
+import { limit } from './server'
+import { receiverDatabase } from './receiver'
 import { hashSecret } from './security'
 import { hashedPhoneRateKey, newOtp, otpDigest, recoveryDigest, sendReceiverSms } from './receiver-sms'
 
 export const INBOX_COOKIE = 'vs_wishes_receiver'
 export const INBOX_AGE_SECONDS = 24 * 60 * 60
-type DB = ReturnType<typeof database>
+type DB = ReturnType<typeof receiverDatabase>
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
 export function inboxDigest(secret: string) {
   return hashSecret('success-wishes:receiver-inbox:' + secret)
@@ -60,7 +61,7 @@ export async function createInboxSession(db: DB, req: NextRequest, receiverId: s
 export async function inboxSession(req: NextRequest) {
   const token = req.cookies.get(INBOX_COOKIE)?.value || ''
   if (!/^[a-f0-9]{64}$/.test(token)) throw new WishError(401, 'Verify your phone to open My Success Wishes.')
-  const db = database()
+  const db = receiverDatabase()
   const { data, error } = await db.from('success_wish_receiver_sessions')
     .select('receiver_id,expires_at').eq('token_hash', inboxDigest(token)).maybeSingle()
   if (error || !data || Date.parse(data.expires_at) <= Date.now())
