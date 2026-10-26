@@ -24,13 +24,18 @@ export function sessionDigest(secret: string) {
 }
 type DB = ReturnType<typeof database>
 type Card = {
-  id: string; receiver_id: string; payment_attempt_id: string
+  id: string; receiver_id: string; payment_attempt_id: string|null; guest_order_id?:string|null
   theme: 'heritage'|'botanical'|'nightfall'|'sunrise'
   sender_name: string; sender_reveal_early: boolean; message: string
   exam_year: string; opened_at: string|null; revoked_at: string|null; expires_at: string; created_at: string
 }
 type Receiver = { display_name: string; school_label: string; consent_status: string }
 async function requirePaid(db: DB, card: Card) {
+  if(card.guest_order_id){
+    const {data:o,error}=await db.from('success_wish_guest_orders').select('state,provider_receipt,provider_verified_at,settled_at,refunded_at,amount_kes,receiver_id,card').eq('id',card.guest_order_id).maybeSingle()
+    if(error||!o||o.state!=='settled'||!o.provider_receipt||!o.provider_verified_at||!o.settled_at||o.refunded_at||o.amount_kes!==50||o.receiver_id!==card.receiver_id||o.card?.kind!=='success_wish_text')throw new WishError(404,'This private card is unavailable.')
+    return o.card
+  }
   const { data: attempt, error } = await db.from('commerce_payment_attempts')
     .select('provider,state,provider_receipt,provider_result_code,settled_at,callback_received_at,order_id,expected_amount_kes')
     .eq('id', card.payment_attempt_id).maybeSingle()
@@ -42,6 +47,7 @@ async function requirePaid(db: DB, card: Card) {
     .select('status,refunded_at,product_snapshot,amount_kes').eq('id', attempt.order_id).maybeSingle()
   if (orderError || order?.status !== 'paid' || order.refunded_at || order.amount_kes !== 50
     || order.product_snapshot?.kind !== 'success_wish_text') throw new WishError(404, 'This private card is unavailable.')
+  return null
 }
 export async function verifiedCard(db: DB, id: string, allowPending = false) {
   const { data, error } = await db.from('success_wish_cards').select('*').eq('id', id).maybeSingle()
@@ -52,7 +58,8 @@ export async function verifiedCard(db: DB, id: string, allowPending = false) {
     .select('display_name,school_label,consent_status').eq('id', card.receiver_id).maybeSingle()
   if (rerror || !recipient || (recipient.consent_status !== 'verified' && !(allowPending && recipient.consent_status === 'pending')))
     throw new WishError(404, 'This private card is unavailable.')
-  await requirePaid(db, card)
+  const saved=await requirePaid(db, card)
+  if(saved){recipient.display_name=saved.candidate;recipient.school_label=saved.school}
   return { card, recipient: recipient as Receiver }
 }
 export function envelope(card: Card, recipient: Receiver) {
@@ -92,21 +99,30 @@ export async function cardAccess(req: NextRequest, secret: string, kind: 'link'|
 export { SESSION_AGE }
 
 /** Batch-check gift eligibility before listing private inbox cards. Never show refunded or simulated gifts. */
-export async function settledCardIds(db: DB, cards: Pick<Card, 'id' | 'payment_attempt_id'>[]) {
+export async function settledCardIds(db: DB, cards: Pick<Card, 'id' | 'payment_attempt_id' | 'guest_order_id'>[]) {
   if (!cards.length) return new Set<string>()
+  const guestIds=cards.flatMap(c=>c.guest_order_id?[c.guest_order_id]:[]),validGuest=new Set<string>()
+  if(guestIds.length){
+    const {data,error}=await db.from('success_wish_guest_orders').select('id,state,provider_receipt,provider_verified_at,settled_at,refunded_at,amount_kes').in('id',guestIds)
+    if(error)throw new WishError(503,'Could not verify your received wishes.')
+    const eligible=new Set((data||[]).filter(o=>o.state==='settled'&&o.provider_receipt&&o.provider_verified_at&&o.settled_at&&!o.refunded_at&&o.amount_kes===50).map(o=>o.id))
+    for(const c of cards)if(c.guest_order_id&&eligible.has(c.guest_order_id))validGuest.add(c.id)
+  }
+  const commerceCards=cards.filter(c=>c.payment_attempt_id)
+  if(!commerceCards.length)return validGuest
   const { data: attempts, error: aerr } = await db.from('commerce_payment_attempts')
     .select('id,order_id,provider,state,provider_receipt,provider_result_code,settled_at,callback_received_at,expected_amount_kes')
-    .in('id', cards.map(card => card.payment_attempt_id))
+    .in('id', commerceCards.map(card => card.payment_attempt_id))
   if (aerr) throw new WishError(503, 'Could not verify your received wishes.')
   const eligible = (attempts || []).filter(a => a.provider === 'mpesa' && a.state === 'settled'
     && a.provider_receipt && a.provider_result_code === 0 && a.settled_at && a.callback_received_at
     && a.expected_amount_kes === 50)
-  if (!eligible.length) return new Set<string>()
+  if (!eligible.length) return validGuest
   const { data: orders, error: oerr } = await db.from('learning_product_orders')
     .select('id,status,refunded_at,amount_kes,product_snapshot').in('id', eligible.map(a => a.order_id))
   if (oerr) throw new WishError(503, 'Could not verify your received wishes.')
   const validOrders = new Set((orders || []).filter(o => o.status === 'paid' && !o.refunded_at
     && o.amount_kes === 50 && o.product_snapshot?.kind === 'success_wish_text').map(o => o.id))
   const validAttempts = new Set(eligible.filter(a => validOrders.has(a.order_id)).map(a => a.id))
-  return new Set(cards.filter(c => validAttempts.has(c.payment_attempt_id)).map(c => c.id))
+  return new Set([...validGuest,...commerceCards.filter(c => validAttempts.has(c.payment_attempt_id)).map(c => c.id)])
 }
