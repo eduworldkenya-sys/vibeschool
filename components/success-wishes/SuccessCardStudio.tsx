@@ -192,7 +192,6 @@ type DirectorySchoolOption = {
 export default function SuccessCardStudio({ initialDraft, testMode = false }: { initialDraft?: CardDesignDraft; testMode?: boolean }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
   const [selectedVersion, setSelectedVersion] = useState<'text' | 'voice' | 'video'>('text')
-  const [mediaEnabled, setMediaEnabled] = useState(false)
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
   const [previewSession, setPreviewSession] = useState(0)
@@ -261,14 +260,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     setSelectedVersion('text'); setMediaFile(null); setTouched({}); setError(''); setStatus(''); setOrder(null)
     setPreviewEditing(false); setPreviewSession(current => current + 1)
   }
-  useEffect(() => {
-    let active = true
-    fetch('/api/success-wishes/config', { cache: 'no-store' })
-      .then(response => response.ok ? response.json() : null)
-      .then(config => { if (active) setMediaEnabled(config?.mediaEnabled === true) })
-      .catch(() => { if (active) setMediaEnabled(false) })
-    return () => { active = false }
-  }, [])
   useEffect(() => {
     if (!mediaFile) { setMediaPreviewUrl(''); return }
     const url = URL.createObjectURL(mediaFile)
@@ -380,7 +371,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <section className={styles.pricingStrip} aria-label="Wish versions and prices">
         <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
           {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null); setPreviewSession(current => current + 1) }}>
-            {version.name} · {version.id !== 'text' && !mediaEnabled ? 'Preview only' : `KES ${version.price}`}
+            {version.name} · {version.id !== 'text' ? 'Preview only' : `KES ${version.price}`}
           </button>)}
         </div>
       </section>
@@ -418,7 +409,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {mediaPreviewUrl && <div className={styles.localMediaReview}>
               {selectedVersion === 'voice' ? <audio className={styles.mediaPlayer} controls preload="metadata" src={mediaPreviewUrl} aria-label="Listen to your recorded voice message"/> : <video className={styles.mediaPlayer} controls playsInline preload="metadata" src={mediaPreviewUrl} aria-label="Watch your recorded video message"/>}
             </div>}
-            {!mediaEnabled && <p className={styles.mediaDisclosure} role="status">You can record and preview here. Voice and video delivery is not active.</p>}
+            {<p className={styles.mediaDisclosure} role="status">You can record and preview here. Voice and video delivery is not active.</p>}
           </>}
           <div className={styles.messageIdeas}>
             <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
@@ -436,18 +427,18 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
-            <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' && !mediaEnabled ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</strong></p>
+            <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</strong></p>
             <button type="button" className={styles.primary} disabled={!ready} onClick={() => {
-              if (selectedVersion !== 'text' && !mediaEnabled) {
+              if (selectedVersion !== 'text') {
                 setPreviewSession(current => current + 1)
                 window.requestAnimationFrame(() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
               } else setCheckoutOpen(true)
-            }}>{selectedVersion !== 'text' && !mediaEnabled ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>
+            }}>{selectedVersion !== 'text' ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>
           </div>
         </div>
         <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
           <BookCard senderPreview autoOpen={previewEditing} key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
-          <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>{selectedVersion !== 'text' && !mediaEnabled ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
+          <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>{selectedVersion !== 'text' ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
             {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
             </> : null}

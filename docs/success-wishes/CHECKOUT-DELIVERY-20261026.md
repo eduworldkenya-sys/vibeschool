@@ -1,0 +1,38 @@
+# KSh 50 frontend checkout delivery record
+
+## Goal and implementation
+
+Four existing text cards → exact preview → durable guest order → explicit KSh 50 STK confirmation to Till 949529 (shortcode 961580) → independent provider settlement verification → exact private card link and backup code → recovery.
+
+The review-only modal is replaced by `WishCheckout`. Review makes no payment request. Order creation and STK confirmation are separate actions. A 256-bit private order key is saved before the first request; only its domain-separated hash is persisted in the database. Refresh and duplicate clicks restore the same order. Pending/uncertain orders cannot send a second prompt. Card access is reproducible from the private sender key even if the first fulfillment response is lost.
+
+The server sets KSh 50, validates all four designs and card fields, and binds the immutable order to a verified recipient's private wish request. Arbitrary names, a directory school result, a phone number or a client-supplied UUID are not recipient verification. The recipient's school is optional in the product; when a request contains one, the exact preview must agree with it.
+
+Service-only orders use RLS, explicit grants and transactional single-claim initiation. Both shared initiation and the dedicated default-OFF `success_wishes_enabled` switch apply. The callback authenticates a per-attempt capability, stores the first event and cannot settle money. An authenticated query to Safaricom must independently confirm the matching checkout/merchant result. SQL additionally requires matching amount, phone, receipt and query evidence before allowing the settled state or issuing a card. Uncertain responses require reconciliation, never automatic repayment. Refunded orders cannot issue/open cards.
+
+Guest cards extend the canonical receiver cards/access/session/inbox tables without inventing a purchaser profile or weakening existing registered-commerce checks. Only text wishes are purchasable; voice/video remain previews. Delivery in this checkout is sender copy/share of the private link, not an assertion that SMS was delivered.
+
+## Verified locally on the recovered implementation
+
+- All 101 Success Wishes tests pass, including new request-link validation, cross-origin and disabled-route denials, wrong amount/phone/receipt/reference rejection, callback capability checks, provider-query settlement, idempotency and ambiguous STK handling.
+- Full TypeScript check passes. Changed-file lint passes without warnings.
+- Clean Next.js production build passes with dummy public configuration. Initial build was invalidated by a development process sharing `.next`; browser verification now uses an isolated copied workspace and a clean production build was rerun successfully.
+- Disposable PostgreSQL/PGlite reconstruction and committed SQL assertions pass: default OFF, public privilege denial, one STK claim, immutable card, denied unpaid issuance, denied settlement without matching provider evidence, idempotent issuance, tamper denial and refund denial.
+- Chromium checkout at 320/360/390/412/768/1280 pixels passes review-without-charge, saved order, single payment action despite duplicate clicks, waiting state, refresh without another prompt, synthetic receipt and exact private link/code.
+- These browser/provider/SQL payment records are explicitly synthetic; they are not evidence of a live Safaricom payment or carrier delivery.
+
+## Production and release state
+
+Last verified production state: zero receivers, zero verified recipients, shared initiation OFF, and no `success_wish_guest_orders` table. Supabase migration deployment returned `McpServerError: Invalid or expired requestState`; a read afterward confirmed no schema was applied. No live STK/charge was initiated.
+
+Current checkout deliberately requires an already verified recipient request. General guest recipient onboarding is a separate, genuine dependency. No test student, guardian relationship, consent or recipient identity was fabricated to bypass it.
+
+Release remains NOT CERTIFIED pending exact-head CI, independent financial/security review, working Supabase write/deployment access, production migration/functions and hosting verification, a real verified recipient, and a designated controlled M-Pesa test phone. Production credential acceptance alone is not proof of passkey/STK/settlement success. No payment or receiver flags have been enabled by this implementation.
+
+## Recovery and rollback
+
+Set `mpesa_runtime_control.success_wishes_enabled=false` to stop new guest STKs. Keep reconciliation and already-paid card access available. Do not delete orders/callback evidence/cards or rewrite migration history. Never resend an STK for a submitting/reconciliation-required order; reconcile the provider record and process any necessary refund through the authorised financial process.
+
+## Durable source checkpoints
+
+Frontend checkpoint `54e8c390b6c49be64e146bd390eb8c868ced11c7` and backend checkpoint `3e14c7778ac5ccb4ea6e43217784baeec1551ff1` were saved to GitHub before further verification. Final candidate includes the subsequent tests and fixes. Earlier local work lost during runtime reset was reconstructed and reverified; its old test claims were not used as proof for this candidate.
