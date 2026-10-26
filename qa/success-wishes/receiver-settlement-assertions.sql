@@ -51,3 +51,47 @@ begin
     raise exception 'Duplicate callback could issue a duplicate card';
   exception when unique_violation then null; end;
 end $$;
+
+-- Verify the trusted issuance function returns secrets once and only stores their digests.
+insert into public.learning_product_orders(id,amount_kes,status,product_snapshot)
+values ('30000000-0000-4000-8000-000000000004',50,'paid','{"kind":"success_wish_text"}');
+insert into public.commerce_payment_attempts
+ (id,order_id,provider,state,provider_result_code,provider_receipt,settled_at,callback_received_at,expected_amount_kes)
+values ('40000000-0000-4000-8000-000000000004','30000000-0000-4000-8000-000000000004',
+ 'mpesa','settled',0,'TEST-RECEIPT-ISSUER',now(),now(),50);
+do $$
+declare first_issued record;
+declare again record;
+declare stored record;
+begin
+  select * into first_issued from public.success_wish_issue_verified_paid_card(
+    '40000000-0000-4000-8000-000000000004','50000000-0000-4000-8000-000000000002',
+    'botanical','Dad','I am so proud of your hard work.','2026',false
+  );
+  if not first_issued.newly_issued or first_issued.issued_card_id is null
+    or first_issued.link_secret !~ '^[a-f0-9]{64}$'
+    or first_issued.access_code !~ '^[0-9A-F]{32}$'
+  then raise exception 'Real paid issue did not return guarded high-entropy credentials'; end if;
+
+  select link_hash,code_hash into stored
+  from public.success_wish_card_access where card_id=first_issued.issued_card_id;
+  if stored.link_hash <> encode(extensions.digest('success-wishes:paid-link:' || first_issued.link_secret,'sha256'),'hex')
+    or stored.code_hash <> encode(extensions.digest('success-wishes:paid-code:' || first_issued.access_code,'sha256'),'hex')
+  then raise exception 'Card capability digests did not match issued credentials'; end if;
+
+  select * into again from public.success_wish_issue_verified_paid_card(
+    '40000000-0000-4000-8000-000000000004','50000000-0000-4000-8000-000000000002',
+    'botanical','Dad','I am so proud of your hard work.','2026',false
+  );
+  if again.issued_card_id <> first_issued.issued_card_id
+    or again.newly_issued or again.link_secret is not null or again.access_code is not null
+  then raise exception 'Repeated real settlement issued another gift or exposed prior code'; end if;
+
+  begin
+    perform * from public.success_wish_issue_verified_paid_card(
+      '40000000-0000-4000-8000-000000000004','50000000-0000-4000-8000-000000000001',
+      'botanical','Dad','Wrong receiver','2026',false
+    );
+    raise exception 'Duplicate payment was rebound to a different student';
+  exception when check_violation then null; end;
+end $$;
