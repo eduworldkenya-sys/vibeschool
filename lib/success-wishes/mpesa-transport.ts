@@ -18,6 +18,7 @@ const REQUIRED=[
 ] as const
 const PRODUCTION_SHORTCODE='961580'
 const PRODUCTION_TILL='949529'
+const TEXT_WISH_PRICE_KES=50
 const PRODUCTION_CALLBACK_HOST='yauqsxggtuxuykcbrtzf.supabase.co'
 
 function object(value:unknown):Json {
@@ -97,7 +98,7 @@ export function createGuestMpesaTransport(options:{
     async sendStk(attempt:ClaimedWishAttempt,canonicalClaimAndKillSwitch:()=>Promise<boolean>):Promise<StkAcknowledgement> {
       const settings=config(env)
       if(!UUID.test(attempt.id)||attempt.state!=='submitting'
-        ||!Number.isSafeInteger(attempt.amountKes)||attempt.amountKes<1||attempt.amountKes>100000)
+        ||attempt.amountKes!==TEXT_WISH_PRICE_KES)
         throw new Error('Invalid locked guest payment attempt.')
       const phone=normalizeSafaricomPhone(attempt.phone)
       if(await canonicalClaimAndKillSwitch()!==true)throw new Error('Canonical M-Pesa initiation is disabled.')
