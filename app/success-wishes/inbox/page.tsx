@@ -52,7 +52,8 @@ export default function SuccessWishesInboxPage(){
           <div className={styles.stat}><strong>{data.unopened}</strong><span>Unopened surprises</span></div></div>
         {data.recipient.school&&<p className={styles.muted}>{data.recipient.school}</p>}
         <nav className={styles.actions}><Link className={styles.primary} href="/success-wishes/request">Ask for a Wish</Link>
-          <Link className={styles.secondary} href="/success-wishes/recover">Recovery options</Link></nav>
+          <Link className={styles.secondary} href="/success-wishes/recover">Recovery options</Link>
+          <Link className={styles.secondary} href="/success-wishes/settings">Safety &amp; settings</Link></nav>
         <div className={styles.tabs}><button className={styles.tab} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All ({data.count})</button>
           <button className={styles.tab} aria-pressed={filter==='unopened'} onClick={()=>setFilter('unopened')}>Unopened ({data.unopened})</button></div>
         {cards.length?<div className={styles.gifts}>{cards.map(card=><button key={card.id} type="button" className={styles.gift}
