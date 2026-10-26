@@ -1,5 +1,21 @@
 -- Success Wishes receiver foundation. No checkout, provider credential, SMS or public grant is activated.
 -- A separate commerce migration must explicitly classify real gift orders as success_wish_text.
+-- access: service-only public.success_wish_receivers
+-- authorization-test: public.success_wish_receivers
+-- access: service-only public.success_wish_cards
+-- authorization-test: public.success_wish_cards
+-- access: service-only public.success_wish_card_access
+-- authorization-test: public.success_wish_card_access
+-- access: service-only public.success_wish_card_sessions
+-- authorization-test: public.success_wish_card_sessions
+-- access: service-only public.success_wish_sms_deliveries
+-- authorization-test: public.success_wish_sms_deliveries
+-- access: service-only public.success_wish_receiver_challenges
+-- authorization-test: public.success_wish_receiver_challenges
+-- access: service-only public.success_wish_receiver_sessions
+-- authorization-test: public.success_wish_receiver_sessions
+-- access: service-only public.success_wish_requests
+-- authorization-test: public.success_wish_requests
 create table if not exists public.success_wish_receivers (
   id uuid primary key default gen_random_uuid(),
   student_id uuid references public.students(id) on delete set null,
@@ -103,15 +119,27 @@ drop trigger if exists success_wish_paid_insert on public.success_wish_cards;
 create trigger success_wish_paid_insert before insert or update of payment_attempt_id on public.success_wish_cards
 for each row execute function public.success_wish_assert_real_settlement();
 -- No user-facing PostgREST access; all access passes through guarded Node handlers.
-do $$
-declare name text;
-begin
-  foreach name in array array[
-    'success_wish_receivers','success_wish_cards','success_wish_card_access','success_wish_card_sessions',
-    'success_wish_sms_deliveries','success_wish_receiver_challenges','success_wish_receiver_sessions','success_wish_requests'
-  ] loop
-    execute format('alter table public.%I enable row level security',name);
-    execute format('revoke all on public.%I from public, anon, authenticated',name);
-    execute format('grant select,insert,update,delete on public.%I to service_role',name);
-  end loop;
-end $$;
+alter table public.success_wish_receivers enable row level security;
+alter table public.success_wish_cards enable row level security;
+alter table public.success_wish_card_access enable row level security;
+alter table public.success_wish_card_sessions enable row level security;
+alter table public.success_wish_sms_deliveries enable row level security;
+alter table public.success_wish_receiver_challenges enable row level security;
+alter table public.success_wish_receiver_sessions enable row level security;
+alter table public.success_wish_requests enable row level security;
+revoke all on public.success_wish_receivers from public, anon, authenticated;
+revoke all on public.success_wish_cards from public, anon, authenticated;
+revoke all on public.success_wish_card_access from public, anon, authenticated;
+revoke all on public.success_wish_card_sessions from public, anon, authenticated;
+revoke all on public.success_wish_sms_deliveries from public, anon, authenticated;
+revoke all on public.success_wish_receiver_challenges from public, anon, authenticated;
+revoke all on public.success_wish_receiver_sessions from public, anon, authenticated;
+revoke all on public.success_wish_requests from public, anon, authenticated;
+grant select,insert,update,delete on public.success_wish_receivers to service_role;
+grant select,insert,update,delete on public.success_wish_cards to service_role;
+grant select,insert,update,delete on public.success_wish_card_access to service_role;
+grant select,insert,update,delete on public.success_wish_card_sessions to service_role;
+grant select,insert,update,delete on public.success_wish_sms_deliveries to service_role;
+grant select,insert,update,delete on public.success_wish_receiver_challenges to service_role;
+grant select,insert,update,delete on public.success_wish_receiver_sessions to service_role;
+grant select,insert,update,delete on public.success_wish_requests to service_role;
