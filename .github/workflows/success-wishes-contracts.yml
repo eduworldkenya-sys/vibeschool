@@ -17,6 +17,7 @@ on:
       - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'supabase/migrations/*_success_wishes_receiver_*.sql'
+      - 'supabase/migrations/*_success_wishes_school_minor_provisioning.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
       - 'qa/success-wishes/**'
@@ -38,6 +39,7 @@ on:
       - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'supabase/migrations/*_success_wishes_receiver_*.sql'
+      - 'supabase/migrations/*_success_wishes_school_minor_provisioning.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
       - 'qa/success-wishes/**'
@@ -126,6 +128,10 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-rls-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-settlement-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-consent-assertions.sql
+          # School-onboarding fixture is synthetic and independent of real school records.
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/school-provisioning-fixture.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026143000_success_wishes_school_minor_provisioning.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/school-provisioning-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety
