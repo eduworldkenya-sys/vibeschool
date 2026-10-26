@@ -25,7 +25,7 @@ export default function SuccessWishesInboxPage(){
       const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cardId:id})})
       const p=await r.json()
       if(!r.ok)throw Error(p.error||'Could not open this card.')
-      router.push('/success-wishes/invitation')
+      router.push(p.url)
     }catch(e){setError(e instanceof Error?e.message:'Could not open this card.')}finally{setBusy(null)}
   }
   async function signOut(){
