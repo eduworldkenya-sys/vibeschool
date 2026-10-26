@@ -68,7 +68,7 @@ test('only four text cards and valid input lengths are eligible for a locked ord
     {message:'Hidden\u0001character'},
   ]
   for (const edit of edits) {
-    assert.throws(()=>guestTextWishQuote({...payload,...edit}),undefined,JSON.stringify(edit))
+    assert.throws(()=>guestTextWishQuote({...payload,...edit}),WishError,JSON.stringify(edit))
   }
 })
 
