@@ -121,6 +121,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026111500_success_wishes_receiver_foundation.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026112000_success_wishes_receiver_recovery.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026114500_success_wishes_receiver_safety.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026120500_success_wishes_verified_fulfillment.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-rls-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-settlement-assertions.sql
 
