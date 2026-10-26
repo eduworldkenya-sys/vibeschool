@@ -1,13 +1,12 @@
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
 import { cardSession } from '@/lib/success-wishes/receiver'
-import { consumeOtp, createInboxSession, enrolRecovery, INBOX_COOKIE, issueOtp, OtpPurpose } from '@/lib/success-wishes/receiver-otp'
+import { consumeOtp, createInboxSession, enrolRecovery, INBOX_COOKIE, issueOtp } from '@/lib/success-wishes/receiver-otp'
 import { failure, json, reply } from '@/lib/success-wishes/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-type ConsentReceiver = { phone_e164: string; guardian_phone_e164: string | null
-  consent_route: 'adult' | 'guardian' | null; consent_status: string }
+import { registeredConsentRoute, verifyConsentDeclaration, ConsentPerson } from '@/lib/success-wishes/receiver-consent'
 
 async function recipient(req: NextRequest, cardId: unknown) {
   const { db, card } = await cardSession(req, cardId)
@@ -16,23 +15,14 @@ async function recipient(req: NextRequest, cardId: unknown) {
     .eq('id', card.receiver_id).single()
   if (error || !data || data.consent_status === 'revoked')
     throw new WishError(404, 'The intended recipient is unavailable.')
-  return { db, card, person: data as ConsentReceiver }
-}
-function challengeFor(person: ConsentReceiver): { phone: string; purpose: OtpPurpose; consentRole: string } {
-  if (person.consent_status === 'verified')
-    return { phone: person.phone_e164, purpose: 'recovery', consentRole: 'verified' }
-  if (person.consent_route === 'adult')
-    return { phone: person.phone_e164, purpose: 'consent_adult', consentRole: 'adult' }
-  if (person.consent_route === 'guardian' && person.guardian_phone_e164)
-    return { phone: person.guardian_phone_e164, purpose: 'consent_guardian', consentRole: 'guardian' }
-  throw new WishError(409, 'A trusted guardian contact or adult identity must be configured before this recipient can open their wish.')
+  return { db, card, person: data as ConsentPerson }
 }
 export async function POST(req: NextRequest) {
   try {
     const body = await json(req) as { cardId?: unknown }
     const { db, card, person } = await recipient(req, body?.cardId)
     if (body?.cardId !== card.id) throw new WishError(400, 'Select your private card first.')
-    const { phone, purpose, consentRole } = challengeFor(person)
+    const { phone, purpose, consentRole } = registeredConsentRoute(person)
     const challengeId = await issueOtp(db, card.receiver_id, phone, purpose)
     return reply({ challengeId, expiresInSeconds: 300, consentRole,
       message: consentRole === 'guardian'
@@ -46,10 +36,8 @@ export async function PATCH(req: NextRequest) {
       code?: unknown; consentRole?: unknown; consentAcknowledged?: unknown }
     const { db, card, person } = await recipient(req, body?.cardId)
     if (body?.cardId !== card.id) throw new WishError(400, 'Select your private card first.')
-    const { purpose, consentRole } = challengeFor(person)
-    if (body?.consentRole !== consentRole) throw new WishError(409, 'Your verification route has changed. Request a new code.')
-    if (consentRole !== 'verified' && body?.consentAcknowledged !== true)
-      throw new WishError(400, 'The recipient or authorised guardian must affirm consent.')
+    const { purpose, consentRole } = registeredConsentRoute(person)
+    verifyConsentDeclaration(consentRole, body?.consentRole, body?.consentAcknowledged)
     await consumeOtp(db, card.receiver_id, body?.challengeId, body?.code, purpose)
     if (consentRole !== 'verified') {
       const { data: changed, error } = await db.from('success_wish_receivers').update({
