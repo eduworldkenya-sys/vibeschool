@@ -14,7 +14,7 @@ const env={
   SUCCESS_WISHES_MPESA_PASSKEY:'passkey',
   SUCCESS_WISHES_MPESA_CALLBACK_URL:'https://example.supabase.co/functions/v1/success-wishes-mpesa-callback',
 }
-const attempt={id,phone:'0712345678',amountKes:100,state:'submitting' as const}
+const attempt={id,phone:'0712345678',amountKes:50,state:'submitting' as const}
 const now=()=>new Date('2026-10-21T09:15:00.000Z')
 
 test('M-Pesa guest transport is default off and rejects missing or unsafe configuration',async()=>{
@@ -46,6 +46,7 @@ test('provider is never called unless canonical payment claim and kill switch ag
     {...attempt,state:'created' as const},
     {...attempt,amountKes:0},
     {...attempt,amountKes:1.3},
+    {...attempt,amountKes:51},
     {...attempt,phone:'not a phone'},
   ]) await assert.rejects(transport.sendStk(invalid as typeof attempt,async()=>true))
   assert.equal(calls,0)
@@ -64,7 +65,7 @@ test('sends exact sandbox STK with server-controlled callback and returns awaiti
     }
     assert.equal(init?.method,'POST')
     const body=JSON.parse(String(init?.body))
-    assert.equal(body.Amount,100)
+    assert.equal(body.Amount,50)
     assert.equal(body.BusinessShortCode,'174379')
     assert.equal(body.PartyB,'174379')
     assert.equal(body.TransactionType,'CustomerPayBillOnline')
@@ -130,7 +131,7 @@ test('production Buy Goods STK routes to the approved Till; acknowledgment never
     assert.equal(body.BusinessShortCode,'961580')
     assert.equal(body.PartyB,'949529')
     assert.equal(body.TransactionType,'CustomerBuyGoodsOnline')
-    assert.equal(body.Amount,100)
+    assert.equal(body.Amount,50)
     assert.equal(body.CallBackURL,productionEnv.SUCCESS_WISHES_MPESA_CALLBACK_URL)
     return Response.json({
       ResponseCode:'0',CheckoutRequestID:'checkout_1234',
