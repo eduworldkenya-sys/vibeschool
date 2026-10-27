@@ -24,6 +24,7 @@ export function PublicFooter() {
         <div><h2 className={styles.columnTitle}>Families</h2><div className={styles.linkList}><Link href="/product">Parent experience</Link><Link href="/schools">Find a school</Link><Link href="/blog">Education news & guides</Link><Link href="/pathways">Future choices</Link><TrackedLink href="/login/global?role=parent" event="public_auth_signin">Parent sign in</TrackedLink></div></div>
         <div><h2 className={styles.columnTitle}>VibeSchool</h2><div className={styles.linkList}><Link href="/about">About</Link><Link href="/institutions">Institutions & government</Link><Link href="/institutions/constituency-pilot">Constituency pilot</Link><Link href="/trust">Trust Centre</Link><Link href="/contact">Contact</Link><Link href="/careers">Careers</Link></div></div>
       </div>
+      <nav className={styles.legalLinks} aria-label="Success Wishes links"><Link href="/success-wishes">Success Wishes</Link><Link href="/success-wishes/open">Receive a Wish</Link><Link href="/success-wishes/inbox">My Inbox</Link><Link href="/success-wishes/recover">Recover Access</Link></nav>
       <div className={styles.footerBottom}><span>© 2026 VibeSchool · Kenya</span><div className={styles.legalLinks}><Link href="/trust">Trust</Link><Link href="/legal/privacy">Privacy</Link><Link href="/legal/terms">Terms</Link><Link href="/legal/aup">Acceptable Use</Link></div></div>
     </div>
   </footer>

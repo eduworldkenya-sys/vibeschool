@@ -1,0 +1,588 @@
+.receiver-theme {
+  font-family: "Receiver Plus Jakarta Sans", sans-serif;
+  background: #0a0d14;
+  color: #e2e8f0;
+  min-height: 100dvh;
+  color-scheme: dark;
+  --gold: #d4af37;
+  overflow-x: clip;
+}
+.receiver-theme *,
+.receiver-theme *::before,
+.receiver-theme *::after {
+  box-sizing: border-box;
+  border-style: solid;
+  border-width: 0;
+}
+.receiver-theme button,
+.receiver-theme input,
+.receiver-theme textarea,
+.receiver-theme select {
+  font: inherit;
+}
+.receiver-theme button,
+.receiver-theme a {
+  touch-action: manipulation;
+}
+.receiver-theme button {
+  cursor: pointer;
+}
+.receiver-theme button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+.receiver-theme a {
+  text-decoration: none;
+  color: inherit;
+}
+.receiver-theme svg {
+  flex-shrink: 0;
+}
+.receiver-theme .font-cinzel {
+  font-family: "Receiver Cinzel", Georgia, serif;
+}
+.receiver-theme .font-alex {
+  font-family: "Receiver Alex Brush", cursive;
+}
+.receiver-theme .font-vibes {
+  font-family: "Receiver Great Vibes", cursive;
+}
+.receiver-theme .text-gold-gradient {
+  background: linear-gradient(135deg, #fff5c0, #d4af37, #aa7c11);
+  background-clip: text;
+  color: transparent;
+}
+.receiver-theme .glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+}
+.receiver-theme :is(input, select, textarea) {
+  font-size: 16px;
+  min-height: 44px;
+}
+.receiver-theme :is(button, a, input, textarea, select, summary):focus-visible {
+  outline: 3px solid #f3e5ab;
+  outline-offset: 3px;
+}
+.receiver-theme main {
+  min-width: 0;
+}
+.receiver-app {
+  display: flex;
+  min-height: 100dvh;
+}
+.receiver-content {
+  flex: 1;
+  min-width: 0;
+  background: #0a0d14;
+}
+.receiver-brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+.receiver-brand b {
+  font-family: "Receiver Cinzel", Georgia, serif;
+  font-size: 14px;
+  letter-spacing: 1.2px;
+  color: #d4af37;
+}
+.receiver-brand small {
+  display: block;
+  color: #94a3b8;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  margin-top: 3px;
+}
+.receiver-logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid #d4af37;
+  background: linear-gradient(135deg, #0f5257, #0a0d14, #800020);
+  color: #d4af37;
+}
+.receiver-sidebar {
+  width: 288px;
+  padding: 24px;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #d4af3733;
+  background: #0f172abf;
+  flex-shrink: 0;
+}
+.receiver-sidebar > .receiver-brand {
+  padding-bottom: 26px;
+  border-bottom: 1px solid #1e293b;
+  margin-bottom: 26px;
+}
+.receiver-sidebar nav,
+.receiver-drawer nav {
+  display: grid;
+  gap: 7px;
+}
+.receiver-sidebar nav a,
+.receiver-drawer nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #b6c1d1;
+}
+.receiver-sidebar nav a:hover,
+.receiver-drawer nav a:hover {
+  background: #1e293b66;
+  color: #f3e5ab;
+}
+.receiver-sidebar nav a[aria-current="page"],
+.receiver-drawer nav a[aria-current="page"] {
+  background: #1e293bcc;
+  border-color: #d4af374d;
+  color: #d4af37;
+}
+.receiver-sidebar nav a em {
+  margin-left: auto;
+  background: #d4af37;
+  color: #0a0d14;
+  padding: 2px 7px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-style: normal;
+}
+.receiver-summary {
+  background: #0f172acc;
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 28px;
+  font-size: 12px;
+  color: #a7b4c8;
+}
+.receiver-summary > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.receiver-summary svg {
+  color: #00a896;
+}
+.receiver-summary p {
+  font-size: 11px;
+  line-height: 1.7;
+  margin-top: 12px;
+}
+.receiver-progress {
+  height: 6px;
+  background: #1e293b;
+  border-radius: 8px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+.receiver-progress i {
+  height: 100%;
+  display: block;
+  background: linear-gradient(90deg, #d4af37, #00a896);
+}
+.receiver-profile {
+  margin-top: auto;
+  padding-top: 24px;
+  display: grid;
+  gap: 10px;
+  font-size: 12px;
+}
+.receiver-profile small {
+  color: #94a3b8;
+}
+.receiver-profile > button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  background: transparent;
+  color: #cbd5e1;
+  min-height: 44px;
+}
+.receiver-sound {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0f172a99;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 12px;
+  color: #cbd5e1;
+  width: 100%;
+  min-height: 44px;
+}
+.receiver-sound svg {
+  color: #d4af37;
+}
+.receiver-sound b {
+  margin-left: auto;
+  color: #00a896;
+  font-size: 10px;
+}
+.receiver-mobile-header,
+.receiver-bottom {
+  display: none;
+}
+.receiver-drawer {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  background: transparent;
+  padding: 0;
+  color: #e2e8f0;
+}
+.receiver-drawer::backdrop {
+  background: #000b;
+  backdrop-filter: blur(4px);
+}
+.receiver-drawer > div {
+  height: 100%;
+  width: min(320px, 88vw);
+  padding: 24px;
+  background: #0a0d14;
+  border-right: 1px solid #d4af374d;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.receiver-drawer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #1e293b;
+  padding-bottom: 20px;
+}
+.receiver-drawer button {
+  background: transparent;
+  color: #cbd5e1;
+  min-height: 44px;
+  min-width: 44px;
+}
+.receiver-drawer .receiver-sound {
+  margin-top: auto;
+  border: 1px solid #1e293b;
+}
+.receiver-drawer-name {
+  color: #d4af37;
+  font-family: "Receiver Cinzel", Georgia, serif;
+}
+.receiver-envelope {
+  background: rgba(15, 23, 42, 0.75);
+  border: 2px solid #d4af3766;
+  border-radius: 24px;
+  padding: 32px;
+  width: 100%;
+  max-width: 512px;
+  margin: auto;
+  text-align: center;
+  box-shadow: 0 25px 50px #0004;
+  overflow-wrap: anywhere;
+}
+.receiver-envelope h3 {
+  font-size: 24px;
+  margin: 14px 0 8px;
+}
+.receiver-envelope > p {
+  font-size: 13px;
+  color: #cbd5e1;
+}
+.receiver-envelope-icon {
+  display: inline-flex;
+  padding: 12px;
+  border-radius: 16px;
+  background: #d4af3722;
+  color: #d4af37;
+  border: 1px solid #d4af3744;
+}
+.receiver-wax {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 112px;
+  height: 112px;
+  margin: 30px auto 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #a51c30, #800020, #4a0012);
+  border: 2px solid #d4af37;
+  color: #d4af37;
+  box-shadow:
+    0 4px 20px #80002099,
+    inset 0 2px 4px #ffffff4d;
+  transition: transform 0.2s;
+}
+.receiver-wax:hover {
+  transform: scale(1.05);
+}
+.receiver-wax:active {
+  transform: scale(0.92);
+}
+.receiver-wax span {
+  font-family: "Receiver Cinzel", Georgia, serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff5c0;
+  letter-spacing: 1px;
+}
+.receiver-envelope .receiver-seal-hint {
+  font-size: 11px;
+  color: #94a3b8;
+}
+.receiver-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #1e293b;
+  color: #d4af37;
+  font-size: 11px;
+  text-align: left;
+}
+.receiver-card-heading span {
+  margin-left: auto;
+  color: #94a3b8;
+  font-size: 10px;
+}
+.receiver-personal-message {
+  font-family: "Receiver Great Vibes", cursive;
+  font-size: 32px;
+  line-height: 1.65;
+  color: #f1f5f9;
+  margin: 22px 0;
+  white-space: pre-wrap;
+}
+.receiver-signature {
+  font-family: "Receiver Alex Brush", cursive;
+  font-size: 30px;
+  color: #d4af37;
+  margin-top: 20px;
+}
+.receiver-card-for {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 5px;
+}
+.receiver-close-card {
+  min-height: 44px;
+  padding: 10px 16px;
+  margin-top: 18px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  color: #cbd5e1;
+  background: #0f172a;
+}
+.receiver-copy-fallback {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  user-select: all;
+  color: #f3e5ab;
+}
+.receiver-site .receiver-sender-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  background: #0a0d14;
+  color: #f3e5ab;
+  padding: 10px;
+  font-size: 13px;
+  font-family: var(--font-jakarta), sans-serif;
+}
+.receiver-sender-links a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+@media (max-width: 767px) {
+  .receiver-sidebar {
+    display: none;
+  }
+  .receiver-app {
+    padding-top: 64px;
+    padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+  .receiver-mobile-header {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #0a0d14ee;
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid #d4af3733;
+    height: 64px;
+  }
+  .receiver-mobile-header > .receiver-brand {
+    flex: 1;
+  }
+  .receiver-mobile-header .receiver-logo {
+    width: 32px;
+    height: 32px;
+  }
+  .receiver-mobile-header .receiver-brand b {
+    font-size: 12px;
+  }
+  .receiver-mobile-header .receiver-brand small {
+    font-size: 9px;
+  }
+  .receiver-mobile-header > button {
+    display: grid;
+    place-items: center;
+    min-width: 40px;
+    min-height: 40px;
+    background: #0f172a99;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    color: #cbd5e1;
+  }
+  .receiver-bottom {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    background: #0a0d14ee;
+    backdrop-filter: blur(20px);
+    border-top: 1px solid #d4af3740;
+    padding: 8px 2px calc(8px + env(safe-area-inset-bottom));
+  }
+  .receiver-bottom > a,
+  .receiver-bottom > button {
+    width: 20%;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: #94a3b8;
+    font-size: 10px;
+    background: transparent;
+  }
+  .receiver-bottom svg {
+    width: 20px;
+    height: 20px;
+  }
+  .receiver-bottom [aria-current="page"] {
+    color: #d4af37;
+  }
+  .receiver-bottom .receiver-request {
+    margin-top: -24px;
+    color: #d4af37;
+    font-weight: 700;
+  }
+  .receiver-request i {
+    display: grid;
+    place-items: center;
+    padding: 12px;
+    background: linear-gradient(135deg, #d4af37, #00a896, #800020);
+    color: #0a0d14;
+    border-radius: 50%;
+    box-shadow: 0 4px 20px #d4af3744;
+  }
+  .receiver-content main {
+    padding: 24px 16px;
+    max-width: 100%;
+  }
+  .receiver-envelope {
+    padding: 24px 18px;
+  }
+  .receiver-personal-message {
+    font-size: 29px;
+  }
+  .receiver-theme .glass-panel {
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .receiver-theme * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+.receiver-inbox-monogram {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #d4af3722;
+  border: 1px solid #d4af3766;
+  color: #d4af37;
+  font-size: 13px;
+  font-weight: 700;
+}
+.receiver-inbox-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: #00a89622;
+  border: 1px solid #00a89655;
+  color: #00a896;
+}
+.receiver-inbox-sealed {
+  background: #f59e0b22;
+  border-color: #f59e0b55;
+  color: #fbbf24;
+}
+.receiver-inbox-theme {
+  font-family: "Receiver Cinzel", Georgia, serif;
+  color: #d4af37;
+  font-size: 12px;
+  padding-top: 12px;
+}
+.receiver-inbox-teaser {
+  color: #b6c1d1;
+  font-style: italic;
+  font-size: 12px;
+  line-height: 1.7;
+  padding-bottom: 10px;
+}
+.receiver-theme .receiver-content::before {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #d4af37;
+  box-shadow:
+    12vw 12vh #d4af3766,
+    75vw 24vh #00a89666,
+    55vw 70vh #d4af3766,
+    87vw 84vh #d4af3766,
+    35vw 42vh #00a89666;
+  opacity: 0.55;
+}
+.receiver-private-badge{display:inline-flex;align-items:center;gap:6px;color:#00A896;background:#00A89619;border:1px solid #00A89644;border-radius:20px;padding:7px 10px;font-size:11px;font-weight:600;white-space:nowrap}
+.receiver-signout-state{padding:32px;color:#cbd5e1}.receiver-signout-state a{display:inline-flex;min-height:44px;align-items:center;color:#D4AF37}
+.receiver-envelope[data-card-open=true]{animation:receiver-unseal .65s ease-out}
+@keyframes receiver-unseal{from{opacity:0;transform:scale(.96) translateY(8px)}to{opacity:1;transform:none}}

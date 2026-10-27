@@ -1,23 +1,23 @@
 [
   {
-    "missionId": "CYBORG-20261026180717-45595f",
-    "runId": "5a539019-6002-4335-8abc-2beef6baa3db",
+    "missionId": "CYBORG-20261027154108-75d6dd",
+    "runId": "8e9b69ff-11a6-4669-8db6-2d0f20ea7389",
     "paths": [
-      "app/api/success-wishes/receiver/verify",
-      "app/success-wishes/verify",
-      "lib/success-wishes/receiver-setup.ts",
-      "lib/success-wishes/receiver-setup.test.ts",
-      "docs/success-wishes/CHECKOUT-DELIVERY-20261026.md",
-      "supabase/migrations/20261027000000_success_wishes_adult_setup.sql",
-      "supabase/migrations/20261027035447_success_wishes_adult_setup.sql",
-      ".github/workflows/success-wishes-contracts.yml",
-      "qa/success-wishes/receiver-setup-assertions.sql",
-      "qa/success-wishes/checkout-browser.cjs",
-      "app/success-wishes/verify/page.tsx",
-      "lib/success-wishes/guest-checkout-route.test.ts",
-      "qa/success-wishes/receiver-browser.cjs"
+      "components/success-wishes/BookCard.tsx",
+      "components/success-wishes/BookCard.module.css",
+      "components/success-wishes/card-themes.ts",
+      "components/success-wishes/SuccessCardStudio.tsx",
+      "components/success-wishes/SuccessCardStudio.module.css",
+      "components/success-wishes/ReceiverEnvelope.tsx",
+      "app/legal",
+      "app/evidence",
+      "app/pathways/schools",
+      "config/public-content-governance.json",
+      "qa/success-wishes",
+      "app/success-wishes/recover/page.tsx",
+      "components/success-wishes/SenderMediaCapture.module.css"
     ],
-    "acquiredAt": "2026-10-27T03:54:05.011Z",
-    "releasedAt": null
+    "acquiredAt": "2026-10-27T15:41:24.346Z",
+    "releasedAt": "2026-10-27T16:08:45.634Z"
   }
 ]

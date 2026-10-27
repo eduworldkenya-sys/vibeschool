@@ -161,6 +161,7 @@ export default function PathwaysSchoolsPage(){
     <header style={S.top}><Link href="/pathways" style={S.back}>← Pathways</Link><Link href="/" style={S.brand}>VibeSchool</Link></header>
     <p style={S.kicker}>SENIOR SCHOOL DISCOVERY</p>
     <h1 style={S.h1}>Explore schools with clear evidence boundaries.</h1>
+    <p style={S.body}>Directory inclusion does not guarantee admission, placement or a current pathway offering. Review each offering’s source and date, then confirm current details with the school or the relevant official education service before making a decision.</p>
     <p style={S.lead}>Start typing a school name and VibeSchool will suggest matching canonical schools. A pathway badge appears only when VibeSchool has a current, source-backed verified offering.</p>
 
     <form onSubmit={submit} style={S.form} aria-label="Search senior schools">
