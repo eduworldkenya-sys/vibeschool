@@ -395,7 +395,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) { setPreviewEditing(true); playFormStartSound() }
         }}><div className={styles.heading}><span>DIGITAL SUCCESS CARD</span><h2 id="personalise-card">Write a wish they’ll remember.</h2></div>
           <div className={styles.draftStatus}>
-            <p role="status">{draftStatus.unavailable ? 'Draft recovery is unavailable in this browser. Keep this tab open while editing.' : draftStatus.saved ? `${draftStatus.restored ? 'Draft restored. ' : ''}Saved in this tab for up to 24 hours. Recordings are not saved.` : 'Text details are saved in this tab while you edit.'}</p>
+            <p role="status">{draftStatus.unavailable ? 'Draft saving is unavailable in this browser. Copy your message before leaving.' : !draftStatus.hydrated ? 'Checking for a saved wish in this tab…' : draftStatus.saved ? `${draftStatus.restored ? 'Draft restored. ' : ''}Saved in this tab for up to 24 hours. Recordings are not saved.` : 'Your text wish is saved in this tab as you type. Recordings are not saved.'}</p>
             {draftStatus.saved && <button type="button" className={styles.secondary} onClick={clearDraft}>Clear draft</button>}
           </div>
           <div className={styles.formRow}>
