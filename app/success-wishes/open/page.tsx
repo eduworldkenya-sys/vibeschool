@@ -28,6 +28,6 @@ export default function OpenSuccessWishCode(){
           {error&&<p className={styles.error} role="alert">{error}</p>}
           <button type="submit" disabled={busy} className={styles.primary}>{busy?'Checking…':'Open my card'}</button>
         </form><details className={styles.help}><summary>Where is my code?</summary><p>Use the card access code in your SMS or ask the sender. It opens one card; verify your phone separately for your inbox. Sign out on shared phones.</p></details></section></div>
-      <div className={styles.links}><Link href="/success-wishes/recover">Find My Wishes</Link></div>
+      <div className={styles.links}><Link href="/success-wishes/recover">Find My Wishes</Link><Link href="/success-wishes/demo">Try demo inbox — no code</Link></div>
     </main></div>
 }
