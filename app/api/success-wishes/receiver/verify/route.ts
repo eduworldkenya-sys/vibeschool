@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
 import { requireAdultSetup, setupDigest } from '@/lib/success-wishes/receiver-setup'
 import { cardSession, receiverDatabase } from '@/lib/success-wishes/receiver'
-import { consumeOtp, createInboxSession, enrolRecovery, INBOX_COOKIE, issueOtp } from '@/lib/success-wishes/receiver-otp'
+import { consumeOtp, createInboxSession, enrolRecovery, INBOX_COOKIE, issueOtp, recordConsent } from '@/lib/success-wishes/receiver-otp'
 import { failure, json, reply } from '@/lib/success-wishes/server'
 
 export const runtime = 'nodejs'
@@ -45,19 +45,13 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await json(req) as { cardId?: unknown; setupToken?: unknown; challengeId?: unknown
-      code?: unknown; consentRole?: unknown; consentAcknowledged?: unknown }
+      code?: unknown; consentRole?: unknown; consentAcknowledged?: unknown; replaceLostRecoveryCode?: unknown }
     const { db, receiverId, person } = await recipient(req, body?.cardId, body?.setupToken)
     const { purpose, consentRole } = registeredConsentRoute(person)
     verifyConsentDeclaration(consentRole, body?.consentRole, body?.consentAcknowledged)
-    await consumeOtp(db, receiverId, body?.challengeId, body?.code, purpose)
-    if (consentRole !== 'verified') {
-      const { data: changed, error } = await db.from('success_wish_receivers').update({
-        consent_status: 'verified', consent_verified_at: new Date().toISOString(),
-      }).eq('id', receiverId).eq('consent_status', 'pending')
-        .eq('consent_route', consentRole).select('id').maybeSingle()
-      if (error || !changed) throw new WishError(409, 'Recipient consent could not be recorded. Restart verification.')
-    }
-    const recoveryCode = await enrolRecovery(db, receiverId)
+    if (consentRole === 'verified') await consumeOtp(db, receiverId, body?.challengeId, body?.code, purpose)
+    else await recordConsent(db, receiverId, body?.challengeId, body?.code, 'grant', consentRole)
+    const recoveryCode = await enrolRecovery(db, receiverId, body.replaceLostRecoveryCode === true)
     const session = await createInboxSession(db, req, receiverId)
     const response = reply({ ok: true, recoveryCode, inboxUrl: '/success-wishes/inbox' })
     response.cookies.set(INBOX_COOKIE, session.token, session.options)

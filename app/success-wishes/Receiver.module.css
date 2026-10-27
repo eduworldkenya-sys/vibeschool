@@ -25,9 +25,9 @@
 .notice{background:#f2f7f1;border:1px solid #d4e4d7;border-radius:12px;padding:1rem;line-height:1.55}
 .gifts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
 .gift{position:relative;text-align:left;border:1px solid #dedfd5;border-radius:16px;background:linear-gradient(145deg,#eee1bf,#fbf6e9);padding:1.15rem;min-height:210px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;cursor:pointer;color:#3a3b2f;overflow:hidden}
-.gift:nth-child(4n+2){background:linear-gradient(140deg,#d9e6d6,#f5f9f2)}
-.gift:nth-child(4n+3){background:linear-gradient(140deg,#213d5c,#14253e);color:#fff}
-.gift:nth-child(4n+4){background:linear-gradient(140deg,#f4cfb5,#f5dce5)}
+.gift[data-theme=botanical]{background:linear-gradient(140deg,#d9e6d6,#f5f9f2)}
+.gift[data-theme=nightfall]{background:linear-gradient(140deg,#213d5c,#14253e);color:#fff}
+.gift[data-theme=sunrise]{background:linear-gradient(140deg,#f4cfb5,#f5dce5)}
 .gift:focus-visible{outline:3px solid #1c7955;outline-offset:2px}
 .gift span{font-size:.68rem;letter-spacing:.12em;font-weight:750}
 .gift b{font-size:2rem;align-self:center;opacity:.82}.gift strong{font-family:Georgia,serif;font-size:1.16rem;line-height:1.3}

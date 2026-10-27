@@ -17,6 +17,8 @@ export default function GuardianConsent() {
   const [code,setCode]=useState('')
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
+  const [loading,setLoading]=useState(true)
+  const [loadError,setLoadError]=useState('')
   const [notice,setNotice]=useState('')
   const [revoked,setRevoked]=useState(false)
   useEffect(()=>{
@@ -26,7 +28,8 @@ export default function GuardianConsent() {
       if(!r.ok)throw new Error(body.error||'Could not load linked students.')
       return body
     }).then(body=>{if(active)setRecipients(body.recipients||[])})
-      .catch(e=>{if(active)setError(e instanceof Error?e.message:'Could not load guardian consent.')})
+      .catch(e=>{if(active)setLoadError(e instanceof Error?e.message:'Could not load guardian consent.')})
+      .finally(()=>{if(active)setLoading(false)})
     return ()=>{active=false}
   },[])
   async function submit(action:'begin'|'confirm'){
@@ -63,12 +66,12 @@ export default function GuardianConsent() {
         <h1>Stop access to a student’s wishes.</h1>
         <p>Already linked to your child’s school record? Sign in with that guardian account to withdraw your consent, even if the student has lost access to their inbox. We send a fresh code to your previously verified phone.</p>
       </div>
-      {error&&<p className={styles.error} role="alert">{error}</p>}
+      {(error||loadError)&&<p className={styles.error} role="alert">{error||loadError}</p>}
       {notice&&<div className={styles.notice} role="status">{notice}</div>}
       {!revoked&&<section className={styles.panel}>
         <h2>Withdraw guardian consent</h2>
         <p>This closes access to all cards in the student’s private inbox. It does not automatically erase records subject to legal retention, and reactivation requires a separate review.</p>
-        {recipients.length===0?<p>No active, school-verified students were found for this guardian account. If you need help withdrawing consent, contact VibeSchool support through your school.</p>:<div className={styles.form}>
+        {loading?<p role="status">Checking your linked students…</p>:loadError?<p>We could not check your guardian account. Sign in or contact support.</p>:recipients.length===0?<p>No active, school-verified students were found for this guardian account. If you need help withdrawing consent, contact VibeSchool support through your school.</p>:<div className={styles.form}>
           <label>Choose student
             <select value={receiverId} onChange={e=>{setReceiverId(e.target.value);setChallengeId('');setCode('');setNotice('')}}>
               <option value="">Select a student</option>
@@ -92,7 +95,7 @@ export default function GuardianConsent() {
       </section>}
       <div className={styles.links}>
         <Link href="/success-wishes">Back to Success Wishes</Link>
-        <Link href="/success-wishes/settings">Student privacy settings</Link>
+        <Link href="/login">Sign in as guardian</Link><Link href="/contact">Get help without an account or student inbox</Link><Link href="/success-wishes/settings">Student privacy settings</Link>
       </div>
     </main>
   </div>

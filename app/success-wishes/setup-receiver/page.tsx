@@ -108,7 +108,7 @@ export default function ReceiverSchoolSetup() {
             onClick={()=>void register()}>{busy?'Verifying…':'Register recipient'}</button>
         </div>
       </section>}
-      <div className={styles.links}><Link href="/success-wishes">Back to Success Wishes</Link></div>
+      <div className={styles.links}><Link href="/success-wishes/privacy-review">Receiver privacy queue</Link><Link href="/success-wishes">Back to Success Wishes</Link></div>
     </main>
   </div>
 }
