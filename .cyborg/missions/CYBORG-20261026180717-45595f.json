@@ -32,7 +32,8 @@
       "qa/success-wishes/receiver-setup-assertions.sql",
       "qa/success-wishes/checkout-browser.cjs",
       "app/success-wishes/verify/page.tsx",
-      "lib/success-wishes/guest-checkout-route.test.ts"
+      "lib/success-wishes/guest-checkout-route.test.ts",
+      "qa/success-wishes/receiver-browser.cjs"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -358,7 +359,7 @@
   "state": "BLOCKED_EXTERNAL",
   "learningClosure": false,
   "createdAt": "2026-10-26T18:07:17.359Z",
-  "updatedAt": "2026-10-27T09:19:38.978Z",
+  "updatedAt": "2026-10-27T09:25:11.418Z",
   "journalPath": ".cyborg/journal/CYBORG-20261026180717-45595f.ndjson",
   "activation": {
     "runtime": false,
@@ -367,7 +368,7 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "46a7066dc0396511f2822b48f7737b9dd0a18c02d9c616d9b5d8534d3a9f7cf2",
+  "lastJournalHash": "6228c3a1ae5aefec089c22c9d0163526fed17bd1f3c5587cbfacadbf0ff5e1fb",
   "blocker": {
     "type": "BLOCKED_EXTERNAL",
     "reason": "Real-user commissioning remains blocked on a verified recipient, live SMS and controlled KSh 50 settlement proof; nonactivating checkout reconciliation proceeds to exact-head CI.",
