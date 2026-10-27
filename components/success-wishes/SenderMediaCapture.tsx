@@ -135,7 +135,7 @@ export default function SenderMediaCapture({ kind, file, onChange }: {
   }
 
   const mediaLabel = kind === 'voice' ? 'voice' : 'video'
-  return <div className={styles.capture} aria-label={`Add a ${mediaLabel} wish`}>
+  return <div className={styles.capture} data-recording={recording ? 'true' : undefined} aria-label={`Add a ${mediaLabel} wish`}>
     <span className={styles.heading}>Add your {mediaLabel} message</span>
     <div className={styles.controls}>
       <button type="button" className={styles.record} disabled={requesting} onClick={() => recording ? stopRecording() : void startRecording()}>
@@ -158,6 +158,6 @@ export default function SenderMediaCapture({ kind, file, onChange }: {
       <button type="button" onClick={() => { onChange(null); setError('') }} aria-label="Remove selected recording"><Trash2 size={16}/> Remove</button>
     </div>}
     {error && <p role="alert" className={styles.error}>{error}</p>}
-    <small className={styles.note}>Maximum 60 seconds when recording · 25 MB per file. Preview stays on this device.</small>
+    <small className={styles.note}>Local preview only — recordings are not saved with your text draft or delivered to the recipient. Maximum 60 seconds · 25 MB per file.</small>
   </div>
 }

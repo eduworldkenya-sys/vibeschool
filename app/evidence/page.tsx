@@ -24,6 +24,7 @@ const ledger = [
   ['School readiness self-assessment', 'Available', 'Eight-question browser-local self-assessment. It is not represented as an external audit or certification.'],
   ['Real-school outcome evidence', 'Validation', 'No verified pilot outcome is published until a measured pilot passes the evidence release gate.'],
   ['End-to-end role authorization certification', 'Validation', 'Authorization hardening exists, but learner → teacher → family → school certification is still treated as an explicit validation gate.'],
+  ['Success Wishes release verification', 'Validation', 'Automated browser fixtures check card presentation and recovery without sending real SMS or taking money. These checks are not evidence of successful live payment, real-device acceptance or school adoption.'],
   ['Public institutional pricing', 'Planned', 'A value-based commercial model will be published only after pilot scope, support cost and value evidence are strong enough to defend it.'],
 ] as const
 

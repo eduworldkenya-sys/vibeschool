@@ -80,12 +80,9 @@
 @media(max-width:800px){.composer{grid-template-columns:1fr;gap:18px}}
 @media(max-width:700px){.modalCardWrap{width:min(100%,42dvh)}.modalInfo h3{margin-top:13px}.modalArt{padding:12px}}
 @media(max-width:520px){.formRow{grid-template-columns:minmax(0,1fr) 112px;gap:9px}.formRow label{font-size:11px}.messageIdeas>div button{font-size:10px}.modalCardWrap{width:min(100%,40dvh)}}
-.form label{font-size:15px;line-height:1.45}.form input,.form textarea{font-size:16px;line-height:1.55}.form label small,.schoolSearchStatus,.form .hint,.form .privacy,.counter,.messageIdeas>small,.optionalField summary span{font-size:13px;line-height:1.55}.optionCaption strong{font-size:14px}.optionCaption small{font-size:12px;line-height:1.4}.versionCard p,.versionCard small,.plainPrice{font-size:13px;line-height:1.55}.checkoutSummary>p,.checkoutFine,.checkoutDisclosure{font-size:14px;line-height:1.6}
-.bookPreview{width:100%;max-width:560px;margin:24px auto 0;padding-top:19px;border-top:1px solid #e0e7df}.bookStage{position:relative;width:100%;height:clamp(300px,39vw,390px);perspective:1500px;isolation:isolate;overflow:visible}.bookSpread{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;border-radius:9px;background:#fff9e9;box-shadow:0 10px 30px #192e2b20;transition:opacity .4s ease}.bookStage:not(.bookIsOpen) .bookSpread{opacity:0}.bookPage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;min-width:0;padding:clamp(18px,4vw,36px);color:#263c32;text-align:center;font-family:Georgia,'Times New Roman',serif;background:linear-gradient(135deg,#fffdf6,#f6eedc);border:1px solid #e8ddc2;border-radius:9px 0 0 9px}.bookPage+ .bookPage{border-radius:0 9px 9px 0;background:linear-gradient(225deg,#fffdf6,#f7f0e3)}.bookPage:after{content:'';position:absolute;inset:12px;border:1px solid #b99c5d55;pointer-events:none}.bookPage strong{font-size:clamp(16px,2vw,20px);line-height:1.35}.bookPage>span:not(.bookEyebrow):not(.bookOrnament):not(.bookSignoff){font-size:clamp(14px,1.6vw,17px);line-height:1.4;overflow-wrap:anywhere}.bookEyebrow{font:800 11px/1.2 Arial,sans-serif;letter-spacing:1.4px;color:#8b7546}.bookOrnament{font-size:44px;color:#ad9053}.bookMessagePage h3{font:italic 600 clamp(19px,2.7vw,27px)/1.2 Georgia,serif;margin:0}.bookMessagePage p{width:100%;max-height:42%;overflow:auto;margin:0;color:#263c32;font:400 clamp(16px,2.2vw,20px)/1.55 Georgia,serif;white-space:pre-wrap;overflow-wrap:anywhere}.bookSignoff{font:600 13px/1.4 Georgia,serif;overflow-wrap:anywhere}.bookCover{--book-top:#fbf2d0;--book-bottom:#d1bb84;--book-ink:#624928;--book-accent:#b4954d;position:absolute;z-index:2;left:25%;top:0;width:50%;height:100%;border:1px solid #ffffff66;border-radius:9px;background:linear-gradient(145deg,var(--book-top),var(--book-bottom));color:var(--book-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(10px,2vw,19px);padding:22px;text-align:center;font-family:Georgia,serif;transform-origin:left center;transform-style:preserve-3d;backface-visibility:hidden;cursor:pointer;box-shadow:inset 0 0 0 8px #fff7,inset 0 0 0 10px #b99c5d88,0 6px 20px #192e2b22;transition:transform 1.05s cubic-bezier(.2,.72,.18,1),left 1.05s cubic-bezier(.2,.72,.18,1),width 1.05s cubic-bezier(.2,.72,.18,1)}.bookCover:before{content:'';position:absolute;left:0;top:0;bottom:0;width:10px;background:linear-gradient(90deg,#8b7240aa,#fff7,#8b724088);border-radius:9px 0 0 9px}.bookCover:after{content:'';position:absolute;inset:0;border:1px solid #ffffff77;border-radius:8px;pointer-events:none}.bookCover>span,.bookCover>em{font:800 11px/1.3 Arial,sans-serif;letter-spacing:1.1px}.bookCover>b{font:normal clamp(54px,9vw,86px)/1 Georgia,serif;color:var(--book-accent);opacity:.8}.bookCover>strong{font:italic 600 clamp(19px,2.5vw,26px)/1.25 Georgia,serif}.bookCover>small{font:600 15px/1.4 Georgia,serif;overflow-wrap:anywhere}.bookCover>em{position:absolute;bottom:22px;font-style:normal;text-transform:uppercase;opacity:.8}.bookCoverOpened{left:0;width:50%;transform:rotateY(-165deg);box-shadow:inset 0 0 0 1px #ffffff66,-10px 4px 20px #192e2b24}.bookActions{display:flex;justify-content:center;gap:10px;margin-top:14px}.bookActions button{font-size:14px}.checkoutModal{position:relative;background:#fff;border-radius:20px;max-width:500px;width:min(100%,500px);max-height:92dvh;overflow:auto;padding:30px;color:#192e2b;box-shadow:0 18px 60px #0c211d55}.checkoutModal h2{font:600 31px/1.15 Georgia,serif;margin:7px 0 16px}.checkoutOrder{display:grid;grid-template-columns:80px 1fr;gap:13px;align-items:center;padding:13px 0;border-block:1px solid #e6ece5}.checkoutOrder .art{width:80px;height:106px}.checkoutOrder>div{display:grid;gap:6px}.checkoutOrder strong{font-size:15px}.checkoutOrder span{font-size:13px;color:#62746f}.checkoutLabel{display:grid;gap:8px;margin-top:17px;font-size:14px;font-weight:700}.checkoutLabel input{width:100%;min-height:48px;padding:11px 13px;border:1px solid #cbd9ce;border-radius:9px;font:400 16px/1.4 system-ui,sans-serif}.paymentChoices{display:flex;flex-wrap:wrap;gap:10px 18px;margin:17px 0;padding:13px;border:1px solid #dfe7df;border-radius:10px}.paymentChoices legend{padding:0 5px;font-size:14px;font-weight:700}.paymentChoices label{display:flex;align-items:center;gap:7px;font-size:14px}.paymentChoices input{accent-color:#14684d;width:18px;height:18px}.checkoutModal>.primary{margin-top:14px;width:100%;font-size:15px}.checkoutDisclosure{display:block;margin-top:14px;color:#65756b}.checkoutActions{display:flex;gap:10px;flex-wrap:wrap}.checkoutActions button{flex:1;min-height:48px;font-size:14px}.checkoutFine{color:#62746f}
-@media(max-width:700px){.bookStage{height:clamp(290px,82vw,350px)}.bookPage{gap:10px;padding:15px}.bookPage:after{inset:8px}.bookEyebrow{font-size:10px}.bookCover{padding:17px 12px}.bookCover>span,.bookCover>em{font-size:9px;letter-spacing:.7px}.bookCover>small{font-size:13px}.checkoutModal{padding:25px 19px}}
-@media(max-width:520px){.formRow label{font-size:14px}.bookStage{height:300px}.bookPage{gap:9px;padding:13px 11px}.bookPage strong{font-size:15px}.bookPage>span:not(.bookEyebrow):not(.bookOrnament):not(.bookSignoff){font-size:13px}.bookMessagePage p{font-size:16px;line-height:1.45}.bookEyebrow{font-size:9px;letter-spacing:.8px}.bookSignoff{font-size:11px}.bookCover>strong{font-size:18px}.bookCover>small{font-size:12px}.bookActions{flex-direction:column}.bookActions button{width:100%}.checkoutOrder{grid-template-columns:64px 1fr}.checkoutOrder .art{width:64px;height:86px}}
-@media(prefers-reduced-motion:reduce){.bookCover,.bookSpread{transition:none}}
-.bookSpread{transition:opacity .48s ease .22s}.bookSpread:before{content:'';position:absolute;z-index:1;top:0;bottom:0;left:50%;width:18px;transform:translateX(-50%);background:linear-gradient(90deg,#382c1718,#fff9 46%,#382c1718);pointer-events:none}
+.form label{font-size:15px;line-height:1.45}.form input,.form textarea{font-size:16px;line-height:1.55}.form label small,.schoolSearchStatus,.form .hint,.form .privacy,.counter,.messageIdeas>small,.optionalField summary span{font-size:13px;line-height:1.55}.optionCaption strong{font-size:14px}.optionCaption small{font-size:12px;line-height:1.4}.versionCard p,.versionCard small,.plainPrice{font-size:13px;line-height:1.55}.checkoutSummary>p,.checkoutFine,.checkoutDisclosure{font-size:14px;line-height:1.6}.checkoutModal{position:relative;background:#fff;border-radius:20px;max-width:500px;width:min(100%,500px);max-height:92dvh;overflow:auto;padding:30px;color:#192e2b;box-shadow:0 18px 60px #0c211d55}.checkoutModal h2{font:600 31px/1.15 Georgia,serif;margin:7px 0 16px}.checkoutOrder{display:grid;grid-template-columns:80px 1fr;gap:13px;align-items:center;padding:13px 0;border-block:1px solid #e6ece5}.checkoutOrder .art{width:80px;height:106px}.checkoutOrder>div{display:grid;gap:6px}.checkoutOrder strong{font-size:15px}.checkoutOrder span{font-size:13px;color:#62746f}.checkoutLabel{display:grid;gap:8px;margin-top:17px;font-size:14px;font-weight:700}.checkoutLabel input{width:100%;min-height:48px;padding:11px 13px;border:1px solid #cbd9ce;border-radius:9px;font:400 16px/1.4 system-ui,sans-serif}.paymentChoices{display:flex;flex-wrap:wrap;gap:10px 18px;margin:17px 0;padding:13px;border:1px solid #dfe7df;border-radius:10px}.paymentChoices legend{padding:0 5px;font-size:14px;font-weight:700}.paymentChoices label{display:flex;align-items:center;gap:7px;font-size:14px}.paymentChoices input{accent-color:#14684d;width:18px;height:18px}.checkoutModal>.primary{margin-top:14px;width:100%;font-size:15px}.checkoutDisclosure{display:block;margin-top:14px;color:#65756b}.checkoutActions{display:flex;gap:10px;flex-wrap:wrap}.checkoutActions button{flex:1;min-height:48px;font-size:14px}.checkoutFine{color:#62746f}
+@media(max-width:700px){.checkoutModal{padding:25px 19px}}
+@media(max-width:520px){.formRow label{font-size:14px}.checkoutOrder{grid-template-columns:64px 1fr}.checkoutOrder .art{width:64px;height:86px}}
 @media(prefers-reduced-motion:reduce){.modalCardCover,.designModal{transition:none;animation:none}}
 .recipientSoundRow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-14px 0 14px;color:#62746f;font-size:12px}
 .recipientCard{position:relative;overflow:visible;perspective:1450px}
@@ -136,9 +133,6 @@
 .schoolResults small{font-size:13px}
 .live{align-content:start;min-width:0}
 .live>span{font-size:13px}
-.bookPreview{max-width:680px;margin:10px auto 0;padding-top:10px;border-top:0}
-.bookStage{height:clamp(360px,35vw,460px)}
-.bookActions{margin-top:18px}
 .checkoutSummary{max-width:680px;margin:10px auto 0;padding-top:16px}
 .checkoutSummary h3{font-size:21px}
 .checkoutSummary>p{font-size:15px}
@@ -147,8 +141,8 @@
 .mediaField input{min-height:48px;cursor:pointer}
 .mediaPlayer{display:block;width:100%;max-height:240px;margin-top:10px;border-radius:9px;background:#090d15}
 .footer{padding-top:17px}
-@media(max-width:850px){.composer{grid-template-columns:1fr}.bookPreview{max-width:680px}.bookStage{height:clamp(340px,70vw,430px)}}
-@media(max-width:560px){.form,.live{padding:17px}.heading h2{font-size:24px}.pricingStrip{gap:12px}.priceChoices{width:100%}.priceChoice{font-size:12px;flex:1}.purchaseNote{align-self:flex-end}.bookStage{height:clamp(320px,88vw,380px)}.checkoutSummary h3{font-size:18px}}
+@media(max-width:850px){.composer{grid-template-columns:1fr}}
+@media(max-width:560px){.form,.live{padding:17px}.heading h2{font-size:24px}.pricingStrip{gap:12px}.priceChoices{width:100%}.priceChoice{font-size:12px;flex:1}.purchaseNote{align-self:flex-end}.checkoutSummary h3{font-size:18px}}
 .messageIdeas>div button:hover{transform:translateY(-1px);box-shadow:0 3px 10px #31574016}
 .composer{grid-template-columns:minmax(0,.92fr) minmax(340px,1.08fr);gap:18px}
 .form,.live{padding:22px}
@@ -373,25 +367,6 @@
 .sendRow .primary{min-width:176px;min-height:48px;font-size:14px;font-weight:800}
 .mediaDisclosure{display:block;color:#a8b1bf;font-size:12px;line-height:1.5}
 .availabilityNotice{display:none}
-.bookPreview{border-color:var(--line)}
-.bookStage{isolation:isolate;overflow:hidden;border-radius:12px;background:#101724;box-shadow:0 17px 42px rgba(0,0,0,.32)}
-.bookSpread{z-index:0}
-.bookCover{z-index:1;opacity:0;visibility:hidden;pointer-events:none}
-.bookCoverVisible{opacity:1;visibility:visible;pointer-events:auto}
-.bookEnvelope{position:absolute;inset:0;z-index:3;width:100%;height:100%;overflow:hidden;isolation:isolate;border:1px solid rgba(255,255,255,.32);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12%;text-align:center;cursor:pointer;color:var(--envelope-ink);background:linear-gradient(145deg,var(--envelope-top),var(--envelope-bottom));box-shadow:inset 0 0 0 9px rgba(255,255,255,.12),inset 0 0 0 10px rgba(255,255,255,.24),0 12px 30px rgba(0,0,0,.3);transition:opacity .42s ease .08s,transform .44s cubic-bezier(.2,.72,.18,1),visibility 0s linear .5s}
-.bookEnvelope{--envelope-top:#f7edce;--envelope-bottom:#cfb16b;--envelope-ink:#604823}
-.bookEnvelope:before{content:'';position:absolute;inset:0;z-index:0;background:linear-gradient(32deg,transparent 49.6%,#ffffff38 50%,transparent 50.5%),linear-gradient(-32deg,transparent 49.6%,#00000013 50%,transparent 50.5%);clip-path:polygon(0 48%,50% 79%,100% 48%,100% 100%,0 100%)}
-.bookEnvelope>span{position:absolute;top:10%;left:10%;right:10%;display:flex;justify-content:space-between;gap:7px;font:800 clamp(9px,1.2vw,13px)/1.2 Arial,sans-serif;letter-spacing:1px}
-.bookEnvelope>b{position:relative;z-index:2;margin-top:20px;width:clamp(52px,8vw,76px);height:clamp(52px,8vw,76px);border:2px solid #e2c687;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 32% 27%,#e76e5e,#9c3e36 58%,#6d292b);color:#fff4d8;font:600 22px Georgia,serif;box-shadow:0 5px 12px #24161448}
-.bookEnvelope>strong{position:relative;z-index:2;max-width:92%;font:italic 600 clamp(19px,2.4vw,28px)/1.25 Georgia,serif;text-wrap:balance}
-.bookEnvelope>small,.bookEnvelope>em{position:relative;z-index:2;font:750 11px/1.4 Arial,sans-serif;letter-spacing:.7px;text-transform:uppercase;opacity:.78}
-.bookEnvelope>em{position:absolute;bottom:9%;font-style:normal}
-.bookEnvelopeOpened{opacity:0;visibility:hidden;transform:translateY(-8px) scale(.97);pointer-events:none}
-.bookEnvelope:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
-.bookActions{margin:12px 0 0}
-.bookCover{cursor:default}
-.bookActions .primary,.bookActions .secondary{min-height:40px}
-.bookActions .secondary{min-height:40px;background:transparent;color:var(--gold2);border-color:var(--line)}
 .checkoutSummary{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
 .checkoutSummary h3{margin:0;color:var(--cream)}
 .checkoutSummary>p{margin:8px 0 0;color:#bac1cc}
@@ -408,9 +383,8 @@
 .numberPicker button{min-width:54px;min-height:38px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.04);color:var(--cream);font-size:13px}
 .numberPicker button[aria-pressed=true]{border-color:var(--gold);color:var(--gold2);background:rgba(216,180,94,.1)}
 .checkoutModal .secondary{border-color:var(--line);background:transparent;color:var(--cream)}
-@media(max-width:850px){.composer{grid-template-columns:1fr}.form{order:0}.live{order:1;max-width:none}.live .bookPreview{max-width:600px}.sendRow{position:sticky;bottom:8px;z-index:5;padding:12px;border:1px solid var(--line);border-radius:13px;background:rgba(17,23,34,.96);backdrop-filter:blur(10px);box-shadow:0 8px 26px #0006}}
-@media(max-width:560px){.intro h1{font-size:clamp(34px,10vw,42px)}.sendRow{margin-inline:-2px;gap:8px}.sendRow .orderTotal{font-size:12px}.sendRow .orderTotal strong{font-size:17px}.sendRow .primary{min-width:0;min-height:46px;padding-inline:14px;font-size:12px}.bookStage{height:clamp(290px,82vw,350px)}.bookEnvelope>span{font-size:9px}.bookEnvelope>strong{font-size:21px}.checkoutModal{padding:24px 18px}}
-@media(prefers-reduced-motion:reduce){.bookEnvelope,.bookCover,.bookSpread{transition:none}}
+@media(max-width:850px){.composer{grid-template-columns:1fr}.form{order:0}.live{order:1;max-width:none}.sendRow{position:sticky;bottom:8px;z-index:5;padding:12px;border:1px solid var(--line);border-radius:13px;background:rgba(17,23,34,.96);backdrop-filter:blur(10px);box-shadow:0 8px 26px #0006}}
+@media(max-width:560px){.intro h1{font-size:clamp(34px,10vw,42px)}.sendRow{margin-inline:-2px;gap:8px}.sendRow .orderTotal{font-size:12px}.sendRow .orderTotal strong{font-size:17px}.sendRow .primary{min-width:0;min-height:46px;padding-inline:14px;font-size:12px}.checkoutModal{padding:24px 18px}}
 
 
 /* Premium Success Wishes composition — preserve the existing four designs and book interaction. */
@@ -444,17 +418,6 @@
 .messageIdeas>div button{min-height:37px}
 .live{position:sticky;top:16px;gap:8px;align-self:start}
 .live>span{font-size:12px}
-.bookPreview{width:100%;max-width:560px;margin:5px auto 0;padding:0}
-.bookStage{height:clamp(275px,29vw,365px)}
-.bookPage{gap:9px;padding:18px}
-.bookPage:after{inset:11px;border-color:var(--book-accent)}
-.bookStage .bookPage,.bookStage .bookPage+.bookPage{background:linear-gradient(145deg,var(--book-top),var(--book-bottom));color:var(--book-ink);border-color:var(--book-accent)}
-.bookStage .bookEyebrow,.bookStage .bookMessagePage p,.bookStage .bookSignoff,.bookStage .bookOrnament{color:var(--book-ink)}
-.bookStage .bookEnvelope{--envelope-top:var(--book-top);--envelope-bottom:var(--book-bottom);--envelope-ink:var(--book-ink)}
-.bookEnvelope{gap:9px}
-.bookEnvelope>b{margin-top:6px}
-.bookEnvelope>strong{font-size:clamp(19px,2.15vw,25px)}
-.bookCover{gap:9px}
 .checkoutSummary{margin-top:6px;padding-top:11px}
 .checkoutSummary h3{font-size:18px}
 .checkoutSummary>p{font-size:13px}
@@ -465,7 +428,6 @@
   .composer{grid-template-columns:1fr}
   .live{position:static;order:1;max-width:none}
   .form{order:0}
-  .bookStage{height:clamp(300px,61vw,380px)}
 }
 @media (max-width:560px){
   .intro{padding:17px 0 17px}
@@ -480,9 +442,6 @@
   .priceChoices{gap:6px}
   .priceChoice{flex:1 1 auto;font-size:11px;min-height:40px;padding:8px 10px}
   .form,.live{padding:15px}
-  .bookStage{height:clamp(270px,83vw,340px)}
-  .bookPage{gap:7px;padding:11px}
-  .bookMessagePage p{font-size:15px}
   .checkoutOrder{grid-template-columns:minmax(85px,35%) 1fr}
 }
 @media (prefers-reduced-motion:reduce){
@@ -502,8 +461,6 @@
 /* Keep editing and the live result together without taking over the phone screen. */
 .mobilePreview{display:none}
 .composer,.live{scroll-margin-top:20px}
-.bookCover{left:50%;width:50%;transition:transform .7s cubic-bezier(.2,.72,.18,1)}
-.bookCoverOpened{left:50%;width:50%;transform:rotateY(-180deg)}
 .formRow{padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025)}
 .form input,.form textarea{font-size:16px}
 @media(max-width:850px){
@@ -517,17 +474,12 @@
   .form input,.form textarea{scroll-margin-top:112px}
   .live{scroll-margin-top:108px}
 }
-@media(prefers-reduced-motion:reduce){.bookCover{transition:none}}
 
 /* Sender recovery and field feedback; shared card typography must preserve full names. */
 .draftStatus{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 16px}
 .draftStatus p{margin:0;font-size:12px;line-height:1.5;color:var(--muted)}
 .draftStatus button{flex-shrink:0;font-size:12px;padding:8px 10px}
 .fieldError{font-size:12px;line-height:1.4;color:#ffb4ab}
-.bookPage strong,.bookMessagePage h3,.bookCover>strong{max-width:100%;overflow-wrap:anywhere}
 @media(max-width:420px){.draftStatus{align-items:flex-start;flex-direction:column}}
-
-.bookPage{min-height:0;overflow-y:auto;justify-content:safe center}
-.bookPage>*{flex-shrink:0}
 .composer>*{min-width:0;max-width:100%}
 @media(max-width:850px){.composer{grid-template-columns:minmax(0,1fr)}}

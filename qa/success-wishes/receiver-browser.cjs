@@ -34,7 +34,7 @@ async function ready() {
 function setupMocks(page, existing) {
   const state=existing||{verified:false,opened:false,verifiedCalls:0,wrongCardReveals:0}
   const card=(id)=>({id,candidate:'Synthetic Candidate',school:'Synthetic School',examYear:'2026',
-    theme:id===CARD_A?'heritage':'nightfall',sender:id===CARD_A?null:'Aunt',
+    theme:id===CARD_A?(state.theme||'heritage'):'nightfall',sender:id===CARD_A?null:'Aunt',
     opened:id===CARD_B,consentRequired:id===CARD_A&&!state.verified,createdAt:'2026-10-26T08:00:00.000Z'})
   page.route('**/api/success-wishes/receiver/**',async route=>{
     const request=route.request();const url=new URL(request.url());const method=request.method()
@@ -69,7 +69,7 @@ function setupMocks(page, existing) {
     } else if(url.pathname.endsWith('/inbox')){
       if(method==='GET')payload={recipient:{name:'Synthetic Candidate',school:'Synthetic School'},
         count:2,unopened:1,cards:[
-          {id:CARD_A,theme:'heritage',sender:state.opened?'Mum':null,opened:state.opened,createdAt:'2026-10-26T08:00:00.000Z'},
+          {id:CARD_A,theme:state.theme||'heritage',sender:state.opened?'Mum':null,opened:state.opened,createdAt:'2026-10-26T08:00:00.000Z'},
           {id:CARD_B,theme:'nightfall',sender:'Aunt',opened:true,createdAt:'2026-10-25T08:00:00.000Z'},
         ]}
       else if(method==='POST')payload={ok:true,url:'/success-wishes/invitation?card='+data.cardId}
@@ -92,11 +92,13 @@ async function assertNoOverflow(page,label){
 async function run() {
   await ready()
   browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||chromium.executablePath()})
+  let themeIndex=0
   for(const width of [320,360,390,412,768,1280]){
     const ctx=await browser.newContext({viewport:{width,height:840},reducedMotion:'reduce'})
     const page=await ctx.newPage();page.setDefaultTimeout(20000)
     page.on('pageerror', error=>console.error('Receiver page error:',error.message))
     const state=setupMocks(page)
+    state.theme=['heritage','botanical','nightfall','sunrise'][themeIndex++%4]
     await page.goto(ROOT+'/success-wishes/invitation#token='+'a'.repeat(64),{waitUntil:'networkidle'})
     await page.getByRole('heading',{name:'A little joy, just for you.'}).waitFor()
     await page.getByText('Sealed with encouragement',{exact:true}).waitFor()
@@ -142,6 +144,9 @@ async function run() {
     await page.getByRole('button',{name:'Open the envelope and reveal the success card'}).click()
     await page.getByText(PRIVATE_MESSAGE).first().waitFor({state:'visible'})
     await page.getByRole('button',{name:'Close the book card'}).waitFor()
+    assert.equal(await page.locator('[data-receiver-view]').getAttribute('data-theme'),state.theme,'Recipient retains the sender theme')
+    const expectedPalette={heritage:'#fbf2d0',botanical:'#f3f2e9',nightfall:'#314a75',sunrise:'#ffe9bc'}
+    assert.equal(await page.locator('[data-receiver-view]').evaluate(el=>getComputedStyle(el).getPropertyValue('--book-top').trim()),expectedPalette[state.theme],'Receiver uses the canonical sender palette')
     if(width<=640){
       const message=page.getByText(PRIVATE_MESSAGE,{exact:true})
       assert(await message.evaluate(el=>el.scrollHeight<=el.clientHeight+1),'Receiver message must not be cropped into a tiny mobile scroll area')
@@ -155,7 +160,9 @@ async function run() {
     await page.goto(ROOT+'/success-wishes/recover',{waitUntil:'networkidle'})
     await page.getByRole('textbox',{name:'Registered Kenyan phone number'}).fill('0712345678')
     await page.getByRole('textbox',{name:'Student recovery code'}).fill('B'.repeat(32))
+    const recoveryPost=page.waitForResponse(response=>response.url().endsWith('/api/success-wishes/receiver/recover')&&response.request().method()==='POST')
     await page.getByRole('button',{name:'Send my code'}).click()
+    assert.equal((await recoveryPost).status(),200,'Recovery uses the client API, never a native GET navigation')
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('000000')
     await page.getByRole('button',{name:'Open my inbox'}).click()
     await page.getByRole('alert').filter({hasText:'Incorrect or expired code'}).waitFor()
@@ -167,6 +174,14 @@ async function run() {
     console.log('Receiver controlled browser pass:',width)
     await ctx.close()
   }
+  // Reproduce the pre-hydration boundary deterministically without timing guesses.
+  const noJs=await browser.newContext({javaScriptEnabled:false,viewport:{width:320,height:840}})
+  const unready=await noJs.newPage()
+  await unready.goto(ROOT+'/success-wishes/recover',{waitUntil:'domcontentloaded'})
+  assert.equal(await unready.getByRole('textbox',{name:'Registered Kenyan phone number'}).isDisabled(),true,'Recovery must not accept input before handlers attach')
+  assert.equal(await unready.getByRole('button',{name:'Send my code'}).isDisabled(),true,'An unhydrated recovery form cannot submit a native GET')
+  await noJs.close()
+  console.log('Receiver controlled browser pass: pre-hydration recovery guard')
   // A slow reveal must never repopulate private content after sign-out.
   const ctx=await browser.newContext({viewport:{width:390,height:840},reducedMotion:'reduce'})
   const first=await ctx.newPage(),second=await ctx.newPage()

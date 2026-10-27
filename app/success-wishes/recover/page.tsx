@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -20,6 +20,8 @@ const API = '/api/success-wishes/receiver/recover'
 
 export default function RecoverWishes() {
   const router = useRouter()
+  const [clientReady, setClientReady] = useState(false)
+  useEffect(() => setClientReady(true), [])
   const [phone, setPhone] = useState('')
   const [recoveryCode, setRecoveryCode] = useState('')
   const [challengeId, setChallengeId] = useState('')
@@ -91,6 +93,7 @@ export default function RecoverWishes() {
             <ShieldCheck className="w-4 h-4 text-[#00A896]" />
           </div>
 
+          {!clientReady && <p role="status">Preparing secure recovery…</p>}
           <form
             onSubmit={(e) => {
               e.preventDefault()
@@ -107,7 +110,7 @@ export default function RecoverWishes() {
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input id="recover-field-1"
+                    <input disabled={!clientReady} id="recover-field-1"
                       type="tel"
                       autoComplete="tel"
                       inputMode="tel"
@@ -127,7 +130,7 @@ export default function RecoverWishes() {
                   </label>
                   <div className="relative">
                     <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                    <input id="recover-field-2"
+                    <input disabled={!clientReady} id="recover-field-2"
                       type="text"
                       autoComplete="off"
                       required
@@ -149,7 +152,7 @@ export default function RecoverWishes() {
                   <label htmlFor="recover-field-3" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     SMS Verification Code
                   </label>
-                  <input id="recover-field-3"
+                  <input disabled={!clientReady} id="recover-field-3"
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"
@@ -179,7 +182,7 @@ export default function RecoverWishes() {
 
             <button
               type="submit"
-              disabled={busy || (!!challengeId && otp.length !== 6)}
+              disabled={!clientReady || busy || (!!challengeId && otp.length !== 6)}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-[#D4AF37]/20 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center space-x-2"
             >
               {busy ? (

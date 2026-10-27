@@ -109,10 +109,22 @@ async function makeWish(context, { message, theme }) {
   assert.equal(await wishInput.evaluate(element => document.activeElement === element), true, 'Choosing a starter moves focus into the message')
   await wishInput.fill(message)
   const liveWish = page.getByTestId('success-card-message-preview')
-  assert.equal(await liveWish.innerText(), message, 'Sender preview updates with the exact wish while typing')
-  assert.equal(await liveWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'false', 'Editing automatically opens the sender preview')
-  assert.equal(await page.getByRole('button', { name: /^(Open|Close) the book card$/ }).count(), 0, 'Sender preview has no redundant Open/Close controls')
-  assert.equal(await page.getByRole('button', { name: 'Replay opening' }).count(), 0, 'The completed card opening has no replay control')
+  assert.equal(await liveWish.count(), 0, 'Typing never opens the gift automatically')
+  await page.getByRole('button', { name: 'Open the envelope and reveal the success card' }).click()
+  await liveWish.waitFor({ state: 'visible' })
+  assert.equal(await liveWish.innerText(), message, 'Intentional sender preview contains the exact wish')
+  const book = page.locator('[data-book-phase]')
+  assert.equal(await book.getAttribute('data-book-phase'), 'opened')
+  const expectedPalette = await book.evaluate(el => getComputedStyle(el).getPropertyValue('--book-top').trim())
+  assert(expectedPalette, 'The selected canonical palette is applied')
+  await page.getByRole('button', { name: 'Replay opening', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('[data-book-phase]')?.dataset.bookPhase === 'closing' || document.querySelector('[data-book-phase]')?.dataset.bookPhase === 'sealed')
+  await page.waitForFunction(() => document.querySelector('[data-book-phase]')?.dataset.bookPhase === 'opened')
+  assert.equal(await liveWish.innerText(), message, 'Replay reopens with the same exact message')
+  await page.getByRole('button', { name: 'Close the book card' }).click()
+  await page.getByRole('button', { name: 'Open the book card' }).waitFor()
+  assert.equal(await liveWish.count(), 0, 'Closing removes private text from the DOM')
+  await page.getByRole('button', { name: 'Open the book card' }).click()
   await liveWish.waitFor({ state: 'visible' })
   if (page.viewportSize().width <= 850) {
     await wishInput.focus()
@@ -216,7 +228,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   await ready()
   browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || chromium.executablePath() })
   const widths = []
-  for (const width of [360, 390, 768, 1440]) {
+  for (const width of [320, 360, 390, 412, 560, 768, 1440]) {
     const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
     const page = await context.newPage()
     const errors = []
@@ -280,6 +292,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await page.getByRole('button', { name: 'Send this wish' }).isEnabled(), true)
     await page.waitForFunction(() => JSON.parse(sessionStorage.getItem('vibeschool:success-wishes:sender-draft:v1'))?.draft.examYear === '2027')
     await page.reload({ waitUntil: 'networkidle' })
+    await page.getByRole('status').filter({ hasText: 'Draft restored.' }).waitFor()
     assert.equal(await candidateInput.inputValue(), longCandidate, 'Refresh restores candidate')
     assert.equal(await senderInput.inputValue(), longSender, 'Refresh restores sender')
     assert.equal(await schoolInput.inputValue(), longSchool, 'Refresh restores school')
@@ -287,6 +300,9 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await yearInput.inputValue(), '2027')
     assert.equal(await page.getByRole('button', { name: 'Choose Bright Star card' }).getAttribute('aria-pressed'), 'true')
     await wishInput.focus()
+    assert.equal(await page.getByTestId('success-card-message-preview').count(), 0, 'Restoring a draft does not open the gift')
+    await page.getByRole('button', { name: 'Open the envelope and reveal the success card' }).click()
+    await page.getByTestId('success-card-message-preview').waitFor({ state: 'visible' })
     assert.equal(await page.getByTestId('success-card-message-preview').innerText(), longWish)
     const textFromArt = await page.locator('[aria-label="Live card preview"] svg text').allTextContents()
     const joinedArt = textFromArt.join('').replace(/\s/g, '')
@@ -297,6 +313,12 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
       await page.getByRole('button', { name: `Choose ${design} card` }).click()
       assert.equal(await wishInput.inputValue(), longWish)
+      const sealed = page.getByRole('button', { name: 'Open the envelope and reveal the success card' })
+      if (await sealed.count()) await sealed.click()
+      await page.getByTestId('success-card-message-preview').waitFor({ state: 'visible' })
+      assert.equal(await page.getByTestId('success-card-message-preview').innerText(), longWish)
+      const palette = { 'Golden Hour': '#fbf2d0', 'New Beginnings': '#f3f2e9', 'Bright Star': '#314a75', 'Above & Beyond': '#ffe9bc' }
+      assert.equal(await page.locator('[data-book-phase]').evaluate(el => getComputedStyle(el).getPropertyValue('--book-top').trim()), palette[design])
       const bounds = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth,
         offenders: [...document.querySelectorAll('body *')].filter(element => element.getBoundingClientRect().right > innerWidth + 1)
           .slice(-8).map(element => ({ tag: element.tagName, class: element.getAttribute('class'), right: element.getBoundingClientRect().right })) }))
