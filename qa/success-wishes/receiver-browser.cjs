@@ -16,10 +16,16 @@ const CARD_A = '11111111-1111-4111-8111-111111111111'
 const CARD_B = '22222222-2222-4222-8222-222222222222'
 const CHALLENGE = '33333333-3333-4333-8333-333333333333'
 const serverLog = fs.openSync(path.join(os.tmpdir(),'success-wishes-receiver-browser.log'),'w')
-const server = spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--port',String(PORT)],{
-  env:{...process.env,NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',
+const serverEnv={...process.env,NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',
     NEXT_PUBLIC_SUPABASE_ANON_KEY:'public-test-key',SUCCESS_WISHES_ENABLED:'false',
-    SUCCESS_WISHES_RECEIVER_ENABLED:'false'},
+    SUCCESS_WISHES_RECEIVER_ENABLED:'false',NEXT_TELEMETRY_DISABLED:'1'}
+// Dev CSS does not exercise Next's production minifier. The original receiver
+// passed dev journeys while production collapsed nested utilities onto its root.
+execFileSync(process.execPath,['node_modules/next/dist/bin/next','build'],{
+  env:serverEnv,stdio:['ignore',serverLog,serverLog],timeout:600000,
+})
+const server = spawn(process.execPath,['node_modules/next/dist/bin/next','start','--port',String(PORT)],{
+  env:serverEnv,
   stdio:['ignore',serverLog,serverLog],
 })
 let browser
@@ -92,6 +98,22 @@ async function assertNoOverflow(page,label){
 async function run() {
   await ready()
   browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||chromium.executablePath()})
+  for(const width of [320,390,560,1280]){
+    const context=await browser.newContext({viewport:{width,height:840},reducedMotion:'no-preference'})
+    const page=await context.newPage();page.setDefaultTimeout(20000)
+    setupMocks(page)
+    await page.goto(ROOT+'/success-wishes/open',{waitUntil:'networkidle'})
+    assert.deepEqual(await page.locator('.receiver-theme').evaluate(el=>{
+      const style=getComputedStyle(el)
+      return {pointer:style.pointerEvents,animation:style.animationName,transform:style.transform}
+    }),{pointer:'auto',animation:'none',transform:'none'},'Receiver root must remain tappable and stationary in minified production CSS')
+    await page.getByRole('textbox',{name:'Card Access Code',exact:true}).fill('TEST-INVALID-CODE')
+    await page.getByRole('button',{name:'Open My Card',exact:true}).click()
+    await page.getByRole('alert').filter({hasText:'This card link or access code is invalid.'}).waitFor()
+    await page.getByRole('link',{name:'Try Demo Inbox — No Code Required',exact:true}).click()
+    await page.getByRole('heading',{name:'Your little collection of joy.'}).waitFor()
+    await context.close()
+  }
   let themeIndex=0
   for(const width of [320,360,390,412,768,1280]){
     const ctx=await browser.newContext({viewport:{width,height:840},reducedMotion:'reduce'})
