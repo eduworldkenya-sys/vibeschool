@@ -1,38 +1,19 @@
 [
   {
-    "missionId": "CYBORG-20261011060017-a545fa",
-    "runId": "373dcf6b-9dd1-47ed-ba52-e976ba93d9cf",
+    "missionId": "CYBORG-20261026180717-45595f",
+    "runId": "5a539019-6002-4335-8abc-2beef6baa3db",
     "paths": [
-      "supabase/migrations",
-      "supabase/tests",
-      "app/teacher",
-      "components/teacher",
-      "lib/teaching",
-      "lib/teacher",
-      "lib/timetable",
-      "lib/pulse",
-      "lib/assessment",
-      "lib/vibelearn",
-      "scripts",
-      "docs/engineering/teacher-os",
-      "tests",
-      "e2e",
-      ".github/workflows/learner-school-life.yml"
+      "app/api/success-wishes/receiver/verify",
+      "app/success-wishes/verify",
+      "lib/success-wishes/receiver-setup.ts",
+      "lib/success-wishes/receiver-setup.test.ts",
+      "docs/success-wishes/CHECKOUT-DELIVERY-20261026.md",
+      "supabase/migrations/20261027000000_success_wishes_adult_setup.sql",
+      "supabase/migrations/20261027035447_success_wishes_adult_setup.sql",
+      ".github/workflows/success-wishes-contracts.yml",
+      "qa/success-wishes/receiver-setup-assertions.sql"
     ],
-    "acquiredAt": "2026-10-11T15:01:12.413Z",
-    "releasedAt": null
-  },
-  {
-    "missionId": "CYBORG-20261020141741-b19d92",
-    "runId": "cdbcffd7-785e-4ca3-add2-bff59f901a74",
-    "paths": [
-      "app/success-wishes",
-      "app/api/success-wishes",
-      "lib/success-wishes",
-      "components/success-wishes",
-      "docs/success-wishes"
-    ],
-    "acquiredAt": "2026-10-20T14:18:17.415Z",
+    "acquiredAt": "2026-10-27T03:54:05.011Z",
     "releasedAt": null
   }
 ]
