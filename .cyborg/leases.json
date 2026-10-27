@@ -11,7 +11,8 @@
       "supabase/migrations/20261027000000_success_wishes_adult_setup.sql",
       "supabase/migrations/20261027035447_success_wishes_adult_setup.sql",
       ".github/workflows/success-wishes-contracts.yml",
-      "qa/success-wishes/receiver-setup-assertions.sql"
+      "qa/success-wishes/receiver-setup-assertions.sql",
+      "qa/success-wishes/checkout-browser.cjs"
     ],
     "acquiredAt": "2026-10-27T03:54:05.011Z",
     "releasedAt": null

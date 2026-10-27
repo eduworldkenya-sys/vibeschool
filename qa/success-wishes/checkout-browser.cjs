@@ -43,5 +43,23 @@ fs.mkdirSync(artifacts,{recursive:true})
    assert.equal(await m.getByLabel('Private card link',{exact:true}).inputValue(),stored.invitationUrl);assert.equal(await m.getByLabel('Backup card code').inputValue(),stored.backupCode)
    await page.screenshot({path:artifacts+'/checkout-'+width+'.png'});await context.close();console.log('PASS checkout width '+width+': review, saved order, single payment action, refresh recovery, receipt, exact link/code')
   }
+  // Recipient setup must be usable before any card/order exists.
+  const setupContext=await browser.newContext({viewport:{width:390,height:900}}),setupPage=await setupContext.newPage()
+  const setupToken='d'.repeat(64),setupCalls=[]
+  await setupPage.route('**/api/success-wishes/receiver/verify',async route=>{
+   const body=route.request().postDataJSON();setupCalls.push(body)
+   assert.equal(body.setupToken,setupToken);assert.equal(Object.hasOwn(body,'phone'),false)
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(route.request().method()==='POST'?{challengeId:'11111111-1111-4111-8111-111111111111',consentRole:'adult'}:{ok:true,recoveryCode:'SYNTHETIC-RECOVERY-ONLY'})})
+  })
+  await setupPage.goto(root+'/success-wishes/verify#setup='+setupToken,{waitUntil:'networkidle'})
+  assert.equal(setupCalls.length,0)
+  await setupPage.getByRole('button',{name:'Send verification SMS',exact:true}).click()
+  await setupPage.getByLabel('SMS verification code',{exact:true}).fill('123456')
+  assert.equal(await setupPage.getByRole('button',{name:'Verify and open inbox',exact:true}).isDisabled(),true)
+  await setupPage.getByRole('checkbox').check()
+  await setupPage.getByRole('button',{name:'Verify and open inbox',exact:true}).click()
+  await setupPage.getByRole('heading',{name:'Your private inbox is ready'}).waitFor()
+  assert.equal(setupCalls.length,2);assert.equal(setupCalls[1].consentRole,'adult');assert.equal(setupCalls[1].consentAcknowledged,true)
+  await setupContext.close();console.log('PASS pre-payment adult setup: no card required, private capability, affirmative consent, inbox recovery')
  }finally{await browser?.close();server?.kill('SIGTERM');if(server)fs.rmSync(testRoot,{recursive:true,force:true})}
 })().catch(e=>{console.error(e);process.exitCode=1})
