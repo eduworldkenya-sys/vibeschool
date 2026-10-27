@@ -1,0 +1,20 @@
+Command: NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co NEXT_PUBLIC_SUPABASE_ANON_KEY=public-test-key npm run build
+Exit code: 0
+├ ○ /trust                                               1.5 kB          105 kB
+├ ○ /trust/child-safety                                  1.5 kB          105 kB
+├ ○ /trust/responsible-ai                                1.5 kB          105 kB
+├ ○ /trust/schools                                       1.68 kB         105 kB
+├ ○ /trust/security                                      1.5 kB          105 kB
+└ ○ /welcome                                             200 B          98.1 kB
++ First Load JS shared by all                            89.1 kB
+  ├ chunks/2117-071754aa26bd830d.js                      32.2 kB
+  ├ chunks/fd9d1056-d3d7fa5dd75a54e0.js                  54 kB
+  └ other shared chunks (total)                          3 kB
+
+
+ƒ Middleware                                             85.7 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses getStaticProps)
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -17,6 +17,9 @@ on:
       - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'supabase/migrations/*_success_wishes_receiver_*.sql'
+      - 'supabase/migrations/*_success_wishes_guest_checkout.sql'
+      - 'supabase/functions/success-wishes-checkout/**'
+      - 'supabase/functions/success-wishes-mpesa-callback/**'
       - 'supabase/migrations/*_success_wishes_school_minor_provisioning.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
@@ -39,6 +42,9 @@ on:
       - 'supabase/migrations/*_success_wishes_durable_media_reservations.sql'
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'supabase/migrations/*_success_wishes_receiver_*.sql'
+      - 'supabase/migrations/*_success_wishes_guest_checkout.sql'
+      - 'supabase/functions/success-wishes-checkout/**'
+      - 'supabase/functions/success-wishes-mpesa-callback/**'
       - 'supabase/migrations/*_success_wishes_school_minor_provisioning.sql'
       - 'app/hq/success-wishes/**'
       - 'components/hq/HQShell.tsx'
@@ -128,6 +134,11 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-rls-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-settlement-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-consent-assertions.sql
+          psql -v ON_ERROR_STOP=1 -c 'create table public.mpesa_runtime_control(singleton boolean primary key, initiation_enabled boolean not null default false); insert into public.mpesa_runtime_control values(true,false);'
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026184056_success_wishes_guest_checkout.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/guest-checkout-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261027035447_success_wishes_adult_setup.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-setup-assertions.sql
           # School-onboarding fixture is synthetic and independent of real school records.
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/school-provisioning-fixture.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026143000_success_wishes_school_minor_provisioning.sql
@@ -158,6 +169,8 @@ jobs:
         run: node qa/success-wishes/disabled-browser.cjs
       - name: Exercise sealed recipient, guardian approval, multi-wish inbox and recovery at six widths
         run: node qa/success-wishes/receiver-browser.cjs
+      - name: Verify guest checkout UI without contacting Safaricom
+        run: node qa/success-wishes/checkout-browser.cjs
       - name: Publish synthetic-only browser screenshots
         if: always()
         uses: actions/upload-artifact@v4

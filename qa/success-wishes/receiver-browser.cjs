@@ -106,7 +106,7 @@ async function run() {
     assert((await page.getByText('Sealed with encouragement',{exact:true}).boundingBox()).y<600,'The gift is visible on arrival')
     await page.getByRole('link',{name:'Verify & open my gift'}).click()
     await page.getByRole('button',{name:'Send my code'}).click()
-    await page.getByText('Ask your guardian for the six-digit SMS code. Valid for five minutes.').waitFor()
+    await page.getByText('Your guardian must enter the six-digit SMS code from their registered phone. Valid for five minutes.').waitFor()
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('123456')
     await page.getByRole('checkbox',{name:/I confirm I am the authorised/}).check()
     await page.getByRole('button',{name:'Verify & open inbox'}).click()

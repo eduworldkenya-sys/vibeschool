@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     const { db, receiver } = await inboxSession(req)
     const { data, error } = await db.from('success_wish_cards')
-      .select('id,payment_attempt_id,theme,sender_name,sender_reveal_early,opened_at,created_at,expires_at')
+      .select('id,payment_attempt_id,guest_order_id,theme,sender_name,sender_reveal_early,opened_at,created_at,expires_at')
       .eq('receiver_id', receiver.id).is('revoked_at', null).is('hidden_at', null).gt('expires_at', new Date().toISOString())
       .order('created_at', { ascending: false }).limit(100)
     if (error) throw error
