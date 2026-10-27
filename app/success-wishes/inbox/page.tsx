@@ -48,7 +48,7 @@ export default function SuccessWishesInboxPage(){
         <p>{data?`Every kind word, saved for ${data.recipient.name}.`:'Every wish, kept close.'}</p>
       </section>
       {error && <div className={styles.panel} role="alert"><p className={styles.error}>{error}</p>
-        {!data&&<div className={styles.actions}><Link className={styles.primary} href="/success-wishes/recover">Find My Wishes</Link><Link href="/success-wishes/open" className={styles.secondary}>Open card link</Link></div>}
+        {!data&&<div className={styles.actions}><Link className={styles.primary} href="/success-wishes/recover">Find My Wishes</Link><Link href="/success-wishes/open" className={styles.secondary}>Open card link</Link><Link href="/success-wishes/demo" className={styles.secondary}>Try demo inbox</Link></div>}
       </div>}
       {!data&&!error&&<div className={styles.panel} role="status">Opening your private inbox…</div>}
       {data&&<>
