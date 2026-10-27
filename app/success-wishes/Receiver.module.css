@@ -1,655 +1,356 @@
-.page {
-  --gold: #d8b45e;
-  --gold2: #efd79e;
-  --cream: #f5efdf;
-  --muted: #b0b9c7;
-  --line: rgba(216, 180, 94, 0.2);
-  min-height: 100dvh;
-  background:
-    radial-gradient(
-      ellipse at 18% 0%,
-      rgba(184, 139, 51, 0.11),
-      transparent 37rem
-    ),
-    radial-gradient(
-      ellipse at 95% 70%,
-      rgba(36, 57, 84, 0.16),
-      transparent 42rem
-    ),
-    #0d111b;
-  color: var(--cream);
-  font-family: var(--font-jakarta), system-ui, sans-serif;
-  color-scheme: dark;
-  padding-bottom: 2rem;
-}
-.page * {
-  box-sizing: border-box;
-}
-.top {
-  max-width: 1080px;
-  margin: auto;
-  padding: 22px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid var(--line);
-}
-.brand {
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  font-size: 12px;
-  color: var(--cream);
-  text-decoration: none;
-}
-.muted {
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--muted);
-}
-.wrap {
-  max-width: 920px;
-  margin: auto;
-  padding: 28px 24px 48px;
-}
-.hero {
-  padding: 8px 0 20px;
-}
-.eyebrow {
-  color: var(--gold);
-  letter-spacing: 0.19em;
-  text-transform: uppercase;
-  font-size: 10px;
-  font-weight: 800;
-  margin: 0 0 10px;
-}
-.hero h1 {
-  font:
-    400 clamp(32px, 6vw, 52px)/1.12 Georgia,
-    serif;
-  letter-spacing: -0.025em;
-  margin: 0 0 12px;
-  color: var(--cream);
-  text-wrap: balance;
-}
-.hero p {
-  max-width: 540px;
-  line-height: 1.6;
-  color: var(--muted);
-  font-size: 14px;
-  margin: 0;
-}
-.hero .eyebrow {
-  color: var(--gold);
-  font-size: 10px;
-  margin-bottom: 10px;
-}
-.stats {
-  display: flex;
-  gap: 24px;
-  margin: 14px 0;
-  flex-wrap: wrap;
-}
-.stat {
-  padding: 8px 0;
-  min-width: 100px;
-}
-.stat strong {
-  color: var(--cream);
-  font:
-    400 30px Georgia,
-    serif;
-  margin-right: 8px;
-}
-.stat span {
-  font-size: 12px;
-  color: var(--muted);
-}
-.actions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin: 18px 0;
-}
-.primary,
-.secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 10px;
-  padding: 12px 19px;
-  text-decoration: none;
-  font-weight: 750;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 14px;
-  line-height: 1.35;
-  min-height: 48px;
-  max-width: 100%;
-  text-align: center;
-  transition:
-    background 0.18s,
-    transform 0.18s;
-}
-.primary {
-  border: 1px solid var(--gold);
-  background: linear-gradient(135deg, #eed79c, #d8b45e);
-  color: #201a0f;
-}
-.primary:hover {
-  background: #f1d99c;
-  transform: translateY(-1px);
-}
-.secondary {
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid #465064;
-  color: var(--cream);
-}
-.secondary:hover {
-  background: #263043;
-}
-.primary:disabled,
-.secondary:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-}
-.panel {
-  background: linear-gradient(
-    145deg,
-    rgba(23, 30, 44, 0.98),
-    rgba(15, 20, 31, 0.98)
-  );
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 24px;
-  margin: 16px 0;
-  box-shadow: 0 15px 45px #0002;
-}
-.panel h2 {
-  font:
-    400 25px/1.2 Georgia,
-    serif;
-  margin: 0 0 12px;
-  color: var(--cream);
-}
-.panel p {
-  color: var(--muted);
-  line-height: 1.6;
-  font-size: 14px;
-}
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-top: 22px;
-}
-.form label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 650;
-}
-.form input,
-.form select,
-.form textarea {
-  border: 1px solid #445169;
-  border-radius: 10px;
-  padding: 13px;
-  background: #0d1420;
-  color: #f8f3e8;
-  font-family: inherit;
-  font-size: 16px;
-  line-height: 1.5;
-  width: 100%;
-  min-width: 0;
-  min-height: 48px;
-}
-.form input::placeholder,
-.form textarea::placeholder {
-  color: #919bad;
-}
-.form textarea {
-  min-height: 125px;
-  resize: vertical;
-}
-.page :is(input, textarea, select, button, a, summary):focus-visible {
-  outline: 3px solid #e9c978;
-  outline-offset: 4px;
-}
-.error {
-  color: #ffc1ba !important;
-  background: #391f28;
-  border: 1px solid #a35b65;
-  padding: 14px;
-  border-radius: 10px;
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-.notice {
-  background: #202a29;
-  border: 1px solid #536858;
-  border-radius: 12px;
-  padding: 16px;
-  line-height: 1.6;
-  color: #dfebdf;
-}
-.gifts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-}
-.gift {
-  position: relative;
-  text-align: left;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: #151c29;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  cursor: pointer;
-  color: var(--cream);
-  min-width: 0;
-  transition:
-    transform 0.2s,
-    border-color 0.2s;
-}
-.gift:hover {
-  transform: translateY(-3px);
-  border-color: var(--gold);
-}
-.gift:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-.gift strong {
-  font:
-    400 20px/1.3 Georgia,
-    serif;
-}
-.gift small {
-  font-size: 12px;
-  color: var(--muted);
-}
-.giftMeta {
-  padding: 0 4px 7px;
-  display: grid;
-  gap: 7px;
-}
-.giftAction {
-  color: #efd79e;
-  font-size: 13px;
-  font-weight: 750;
-}
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin: 22px 0;
-  flex-wrap: wrap;
-}
-.tab {
-  background: transparent;
-  border: 1px solid #465064;
-  border-radius: 100px;
-  min-height: 44px;
-  padding: 10px 18px;
-  cursor: pointer;
-  color: var(--muted);
-  font: inherit;
-  font-size: 13px;
-}
-.tab[aria-pressed="true"] {
-  background: #d8b45e1a;
-  border-color: var(--gold);
-  color: #f0d797;
-}
-.links {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 24px;
-  align-items: center;
-}
-.links a {
-  color: #dbcbab;
-  font-size: 13px;
-  text-underline-offset: 5px;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-}
-.code {
-  display: block;
-  padding: 16px;
-  background: #0d1420;
-  border: 1px solid #445169;
-  border-radius: 10px;
-  overflow-wrap: anywhere;
-  font-family: monospace;
-  line-height: 1.7;
-  color: #efd79e;
-  margin: 14px 0;
-}
-.consentCheck {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: flex-start;
-  gap: 12px;
-  line-height: 1.6;
-  background: #d8b45e09;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 16px;
-  color: #e4dccb;
-}
-.consentCheck input[type="checkbox"] {
-  width: 20px !important;
-  min-height: 20px;
-  height: 20px;
-  flex: 0 0 auto;
-  margin-top: 2px;
-  accent-color: var(--gold);
-}
-.giftCover {
-  --cover-top: #fbf2d0;
-  --cover-bottom: #d1bb84;
-  --cover-ink: #624928;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  aspect-ratio: 1200/760;
-  width: 100%;
-  border-radius: 12px;
-  padding: 28px;
-  color: var(--cover-ink);
-  background: radial-gradient(
-    ellipse at 20% 0%,
-    var(--cover-top),
-    var(--cover-bottom)
-  );
-  box-shadow:
-    inset 0 0 0 8px #fff2,
-    0 20px 50px #0004;
-  overflow: hidden;
-  text-align: center;
-}
-.giftCover:before {
-  content: "";
-  position: absolute;
-  inset: 14px;
-  border: 1px solid currentColor;
-  opacity: 0.35;
-  border-radius: 4px;
-  pointer-events: none;
-}
-.giftCover[data-theme="botanical"] {
-  --cover-top: #f3f2e9;
-  --cover-bottom: #c4d6bf;
-  --cover-ink: #285b49;
-}
-.giftCover[data-theme="nightfall"] {
-  --cover-top: #314a75;
-  --cover-bottom: #111b36;
-  --cover-ink: #fff6dc;
-}
-.giftCover[data-theme="sunrise"] {
-  --cover-top: #ffe9bc;
-  --cover-bottom: #ac829c;
-  --cover-ink: #613653;
-}
-.giftCover > span {
-  font-size: 9px;
-  letter-spacing: 0.17em;
-  font-weight: 800;
-}
-.giftCover > b {
-  font:
-    400 clamp(28px, 5vw, 46px)/1 Georgia,
-    serif;
-  opacity: 0.65;
-}
-.giftCover > strong {
-  font:
-    italic 500 clamp(20px, 3.8vw, 32px)/1.2 Georgia,
-    serif;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-.giftCover > small {
-  font-size: 12px;
-  color: inherit;
-}
-.giftSeal {
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border-top: 1px solid currentColor;
-  padding-top: 10px;
-  opacity: 0.8;
-}
-.entryGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  align-items: center;
-}
-.entryGrid .panel {
-  margin: 0;
-}
-.help {
-  margin-top: 20px;
-  border-top: 1px solid var(--line);
-  padding-top: 14px;
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.6;
-}
-.help summary {
-  cursor: pointer;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  color: #e0c994;
-  font-weight: 700;
-}
-.help p {
-  margin: 8px 0;
-}
-.giftStage {
-  max-width: 650px;
-  margin: 0 auto;
-}
-.giftStage > div {
-  margin-top: 0;
-}
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 0 auto 14px;
-  max-width: 650px;
-}
-.toolbar p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-.invitation {
-  text-align: center;
-  max-width: 760px;
-}
-.invitation .hero p {
-  margin-inline: auto;
-}
-.invitation .actions,
-.invitation .links {
-  justify-content: center;
-}
-.invitation .help {
-  text-align: left;
-  max-width: 650px;
-  margin-inline: auto;
-}
-.invitation .panel {
-  text-align: left;
-}
-.cardFooter {
-  max-width: 650px;
-  margin: 18px auto 0;
-}
-.cardFooter h2 {
-  font:
-    400 26px Georgia,
-    serif;
-  margin: 0 0 8px;
-}
-.cardFooter p {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.5;
-}
-.reference {
-  overflow-wrap: anywhere;
-  font-size: 11px;
-  color: var(--muted);
-}
-@media (min-width: 1000px) {
-  .gifts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  .giftCover {
-    min-height: 185px;
-    padding: 22px;
-  }
-  .entryGrid .giftCover {
-    min-height: 250px;
-  }
-}
-@media (max-width: 640px) {
-  .top {
-    padding: 18px 16px;
-    align-items: flex-start;
-  }
-  .brand {
-    font-size: 10px;
-    line-height: 1.6;
-  }
-  .top .muted {
-    font-size: 10px;
-    white-space: nowrap;
-  }
-  .wrap {
-    padding: 22px 16px 32px;
-  }
-  .hero {
-    padding: 4px 0 20px;
-  }
-  .hero h1 {
-    font-size: 35px;
-  }
-  .panel {
-    padding: 20px;
-  }
-  .entryGrid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 20px;
-  }
-  .entryGrid > .giftCover {
-    max-width: 400px;
-    margin: auto;
-    max-height: 210px;
-    aspect-ratio: 1.8;
-  }
-  .gifts {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
-  }
-  .giftCover {
-    padding: 24px;
-    gap: 10px;
-  }
-  .actions .primary {
-    flex: 1;
-  }
-  .toolbar {
-    margin-bottom: 12px;
-  }
-  .toolbar p {
-    font-size: 11px;
-  }
-  .invitation .hero {
-    padding-bottom: 16px;
-  }
-  .invitation .hero h1 {
-    font-size: 32px;
-  }
-  .stat strong {
-    font-size: 26px;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .primary,
-  .secondary,
-  .gift {
-    transition: none;
-  }
-  .primary:hover,
-  .gift:hover {
-    transform: none;
-  }
+'use client'
+
+import { useEffect, useState, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import {
+  Crown,
+  Scroll,
+  Sparkles,
+  ShieldCheck,
+  ArrowLeft,
+  ArrowRight,
+  Share2,
+  Mic,
+  Play,
+  Pause,
+  Lock,
+  KeyRound,
+  CheckCircle2
+} from 'lucide-react'
+import { useReceiverSessionSafety } from '@/lib/success-wishes/receiver-browser-session'
+
+type CardDetail = {
+  id: string
+  theme: string
+  sender: string | null
+  message: string
+  createdAt: string
+  audioUrl?: string | null
+  highFives?: number
 }
 
-/* Let the private message breathe on phones; sender previews retain their spread. */
-@media (max-width: 640px) {
-  .giftStage [data-receiver-view][data-card-open="true"] > div:first-child {
-    height: auto;
-    min-height: 300px;
+const API = '/api/success-wishes/receiver/open'
+
+export default function SuccessWishesOpenPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const cardId = searchParams.get('id')
+
+  useReceiverSessionSafety(true)
+
+  const [card, setCard] = useState<CardDetail | null>(null)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
+  const [highFives, setHighFives] = useState(12)
+  const [isPlayingVoice, setIsPlayingVoice] = useState(false)
+  const [soundEnabled, setSoundEnabled] = useState(true)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+
+  // Fetch Card details on load
+  useEffect(() => {
+    if (!cardId) {
+      setError('No card ID specified in URL link.')
+      setLoading(false)
+      return
+    }
+
+    let active = true
+    fetch(`${API}?id=${cardId}`, { cache: 'no-store' })
+      .then(async (r) => {
+        const p = await r.json()
+        if (!r.ok) throw new Error(p.error || 'Could not load this wish card.')
+        return p as CardDetail
+      })
+      .then((p) => {
+        if (active) {
+          setCard(p)
+          if (p.highFives) setHighFives(p.highFives)
+        }
+      })
+      .catch((e) => {
+        if (active) setError(e.message)
+      })
+      .finally(() => {
+        if (active) setLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [cardId])
+
+  // Synthesizer Audio Chimes
+  function playChime(type: 'seal' | 'highfive' = 'seal') {
+    if (!soundEnabled) return
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext ||
+          (window as unknown as { webkitAudioContext: typeof AudioContext })
+            .webkitAudioContext)()
+      }
+      const ctx = audioCtxRef.current
+      if (ctx.state === 'suspended') ctx.resume()
+
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+
+      if (type === 'seal') {
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime)
+        osc.frequency.exponentialRampToValueAtTime(1046.5, ctx.currentTime + 0.4)
+        gain.gain.setValueAtTime(0.3, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.5)
+      } else {
+        osc.type = 'triangle'
+        osc.frequency.setValueAtTime(440, ctx.currentTime)
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2)
+        gain.gain.setValueAtTime(0.2, ctx.currentTime)
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.3)
+      }
+    } catch {
+      // AudioContext policy fallback
+    }
   }
-  .giftStage [data-receiver-view][data-card-open="true"] [aria-hidden="false"] {
-    position: relative;
-    grid-template-columns: minmax(0, 1fr);
+
+  function breakWaxSeal() {
+    playChime('seal')
+    setIsOpen(true)
   }
-  .giftStage [data-receiver-view][data-card-open="true"] [role="group"] {
-    padding: 24px;
-    overflow: visible;
-    border-radius: 0;
-    gap: 12px;
+
+  function triggerHighFive() {
+    setHighFives((prev) => prev + 1)
+    playChime('highfive')
   }
-  .giftStage
-    [data-receiver-view][data-card-open="true"]
-    [aria-label="Card details"] {
-    padding-block: 22px;
+
+  function toggleVoicePlayback() {
+    setIsPlayingVoice(!isPlayingVoice)
   }
-  .giftStage
-    [data-receiver-view][data-card-open="true"]
-    [aria-label="Card details"]
-    > span:last-child {
-    display: none;
+
+  function shareCard() {
+    if (navigator.share) {
+      navigator.share({
+        title: 'Success Wish Card | VibeSchool',
+        url: window.location.href
+      }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+      alert('Card link copied to clipboard!')
+    }
   }
-  .giftStage [data-receiver-view] [aria-label="Personal wish"] p {
-    max-height: none;
-    overflow: visible;
-    font-size: 19px;
-    line-height: 1.65;
-  }
-  .giftStage [data-receiver-view] [aria-label="Personal wish"] h3 {
-    font-size: 26px;
-  }
-}
-@media (max-width: 640px) {
-  .giftStage [data-receiver-view][data-card-open="true"] [aria-hidden="false"]::before {
-    display: none;
-  }
+
+  return (
+    <div className="min-h-screen bg-[#0A0D14] text-slate-200 antialiased selection:bg-[#D4AF37] selection:text-black flex flex-col justify-between">
+      
+      {/* TOP HEADER */}
+      <header className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-5 flex items-center justify-between border-b border-[#D4AF37]/20">
+        <Link
+          href="/success-wishes/inbox"
+          className="font-extrabold tracking-wider text-xs text-slate-200 hover:text-[#D4AF37] transition-colors flex items-center gap-2"
+        >
+          <Crown className="w-4 h-4 text-[#D4AF37]" />
+          <span>VIBESCHOOL / SUCCESS WISHES</span>
+        </Link>
+        <span className="text-xs text-slate-400">Encrypted Keepsake Card</span>
+      </header>
+
+      {/* MAIN CONTAINER */}
+      <main className="max-w-3xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-1 flex flex-col justify-center">
+        
+        {/* Loading State */}
+        {loading && (
+          <div className="glass-panel rounded-3xl p-12 text-center text-slate-400 text-sm space-y-3 animate-pulse border border-[#D4AF37]/30">
+            <Scroll className="w-8 h-8 text-[#D4AF37] mx-auto animate-bounce" />
+            <p>Unsealing encrypted envelope...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {!loading && error && (
+          <div className="glass-panel rounded-3xl p-8 text-center space-y-4 border border-red-500/30">
+            <div className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto">
+              <Lock className="w-6 h-6" />
+            </div>
+            <h2 className="font-cinzel text-xl font-bold text-slate-100">Access Restricted</h2>
+            <p className="text-xs sm:text-sm text-red-300 max-w-md mx-auto">{error}</p>
+            <div className="pt-4 flex flex-wrap justify-center gap-3">
+              <Link
+                href="/success-wishes/inbox"
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-slate-950 font-bold text-xs"
+              >
+                Go to Inbox
+              </Link>
+              <Link
+                href="/success-wishes/recover"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 text-xs"
+              >
+                Verify Phone Number
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Success Card Loaded */}
+        {!loading && card && (
+          <div className="space-y-6">
+            
+            {/* Top Navigation Bar */}
+            <div className="flex items-center justify-between">
+              <Link
+                href="/success-wishes/inbox"
+                className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-300 hover:text-[#D4AF37] px-3.5 py-2 rounded-xl bg-slate-900/80 border border-slate-800 active:scale-95 transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Return to Inbox</span>
+              </Link>
+              <span className="text-xs text-[#00A896] font-semibold flex items-center gap-1.5 bg-[#00A896]/10 px-3 py-1.5 rounded-full border border-[#00A896]/30">
+                <ShieldCheck className="w-3.5 h-3.5" /> Authenticated Vault Card
+              </span>
+            </div>
+
+            {/* Unboxing Stage */}
+            <div className="relative min-h-[440px] sm:min-h-[500px] flex items-center justify-center">
+              
+              {/* STAGE A: SEALED ENVELOPE */}
+              {!isOpen && (
+                <div className="w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-10 text-center border-2 border-[#D4AF37]/40 shadow-2xl relative overflow-hidden transition-all duration-500">
+                  <div className="absolute top-0 right-0 w-36 h-36 bg-[#D4AF37]/10 rounded-full blur-3xl pointer-events-none"></div>
+                  <div className="absolute bottom-0 left-0 w-36 h-36 bg-[#800020]/25 rounded-full blur-3xl pointer-events-none"></div>
+
+                  <div className="space-y-3 mb-6">
+                    <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-[#D4AF37]/20 to-transparent border border-[#D4AF37]/30 text-[#D4AF37]">
+                      <Scroll className="w-7 h-7" />
+                    </div>
+                    <h3 className="font-cinzel text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#FFF5C0] via-[#D4AF37] to-[#AA7C11] bg-clip-text text-transparent">
+                      {card.sender || 'Someone Special'}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-slate-300 font-medium capitalize">
+                      {card.theme.replace('-', ' ')} Envelope
+                    </p>
+                  </div>
+
+                  {/* Wax Seal Tap Target */}
+                  <div className="my-8 flex flex-col items-center justify-center">
+                    <button
+                      onClick={breakWaxSeal}
+                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-full flex flex-col items-center justify-center transform hover:scale-105 active:scale-95 transition-all cursor-pointer group shadow-2xl bg-radial from-[#A51C30] via-[#800020] to-[#4A0012] border-2 border-[#D4AF37]"
+                      style={{
+                        boxShadow:
+                          '0 4px 20px rgba(128, 0, 32, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.6)'
+                      }}
+                    >
+                      <Crown className="w-8 h-8 text-[#D4AF37] group-hover:rotate-12 transition-transform" />
+                      <span className="font-cinzel text-[9px] font-extrabold text-[#FFF5C0] tracking-widest uppercase mt-1">
+                        TAP SEAL
+                      </span>
+                    </button>
+                    <p className="text-[11px] text-slate-400 mt-4 animate-pulse">
+                      Tap wax seal to break & reveal wish
+                    </p>
+                  </div>
+
+                  <div className="text-[10px] text-slate-500 uppercase tracking-widest">
+                    VibeSchool Verified Signature Token · #{card.id.slice(0, 8).toUpperCase()}
+                  </div>
+                </div>
+              )}
+
+              {/* STAGE B: UNBOXED CARD & PLAYER */}
+              {isOpen && (
+                <div className="w-full max-w-lg glass-panel rounded-3xl p-6 sm:p-8 border-2 border-[#D4AF37]/60 shadow-2xl space-y-6 relative overflow-hidden animate-in fade-in zoom-in duration-500">
+                  <div className="flex justify-between items-center pb-4 border-b border-slate-800">
+                    <div className="flex items-center space-x-2">
+                      <Sparkles className="w-4 h-4 text-[#D4AF37]" />
+                      <span className="font-cinzel text-xs font-bold text-[#D4AF37]">
+                        KEEPSAKE BLESSING
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400">Class of 2026</span>
+                  </div>
+
+                  {/* Voice Note Player (if audio attached) */}
+                  {card.audioUrl && (
+                    <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between space-x-3">
+                      <button
+                        onClick={toggleVoicePlayback}
+                        className="w-10 h-10 rounded-full bg-[#00A896] text-slate-950 flex items-center justify-center font-bold active:scale-90 transition-transform"
+                      >
+                        {isPlayingVoice ? (
+                          <Pause className="w-5 h-5 fill-current" />
+                        ) : (
+                          <Play className="w-5 h-5 fill-current ml-0.5" />
+                        )}
+                      </button>
+                      <div className="flex-1">
+                        <p className="text-[10px] text-slate-400 font-medium">Voice Blessing Note</p>
+                        <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
+                          <div
+                            className={`bg-[#00A896] h-full transition-all ${
+                              isPlayingVoice ? 'w-full duration-[30s]' : 'w-0'
+                            }`}
+                          ></div>
+                        </div>
+                      </div>
+                      <Mic className="w-4 h-4 text-[#00A896]" />
+                    </div>
+                  )}
+
+                  {/* Wish Message */}
+                  <div className="space-y-4 text-center py-2">
+                    <p className="font-vibes text-2xl sm:text-3xl text-slate-100 leading-relaxed px-2">
+                      &ldquo;{card.message}&rdquo;
+                    </p>
+                    <div className="pt-4">
+                      <p className="font-alex text-2xl text-[#D4AF37]">
+                        {card.sender || 'Someone Special'}
+                      </p>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">
+                        Verified VibeSchool Well-Wisher
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Toolbar */}
+                  <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                    <button
+                      onClick={triggerHighFive}
+                      className="flex-1 py-2.5 px-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-[#D4AF37]/40 text-xs text-slate-200 font-semibold active:scale-95 transition-all flex items-center justify-center space-x-2"
+                    >
+                      <span>👏 High Five</span>
+                      <span className="bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full text-[10px] font-bold">
+                        {highFives}
+                      </span>
+                    </button>
+                    <button
+                      onClick={shareCard}
+                      className="py-2.5 px-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-[#D4AF37]/40 text-xs text-slate-200 font-semibold active:scale-95 transition-all flex items-center space-x-2"
+                    >
+                      <Share2 className="w-4 h-4 text-[#00A896]" />
+                      <span>Share</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+          </div>
+        )}
+
+      </main>
+
+      {/* FOOTER */}
+      <footer className="max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 border-t border-[#D4AF37]/15 text-center text-xs text-slate-500">
+        VibeSchool Secure Receiver Protocol · All Wishes Encrypted &amp; Protected
+      </footer>
+
+    </div>
+  )
 }
