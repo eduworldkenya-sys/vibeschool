@@ -1,23 +1,18 @@
 [
   {
-    "missionId": "CYBORG-20261026180717-45595f",
-    "runId": "5a539019-6002-4335-8abc-2beef6baa3db",
+    "missionId": "CYBORG-20261027112450-0fbfb4",
+    "runId": "4b43e5f7-5810-4b46-8484-989579c867a6",
     "paths": [
-      "app/api/success-wishes/receiver/verify",
-      "app/success-wishes/verify",
-      "lib/success-wishes/receiver-setup.ts",
-      "lib/success-wishes/receiver-setup.test.ts",
-      "docs/success-wishes/CHECKOUT-DELIVERY-20261026.md",
-      "supabase/migrations/20261027000000_success_wishes_adult_setup.sql",
-      "supabase/migrations/20261027035447_success_wishes_adult_setup.sql",
-      ".github/workflows/success-wishes-contracts.yml",
-      "qa/success-wishes/receiver-setup-assertions.sql",
-      "qa/success-wishes/checkout-browser.cjs",
-      "app/success-wishes/verify/page.tsx",
-      "lib/success-wishes/guest-checkout-route.test.ts",
-      "qa/success-wishes/receiver-browser.cjs"
+      "app/success-wishes",
+      "components/success-wishes/ReceiverShell.tsx",
+      "components/success-wishes/ReceiverEnvelope.tsx",
+      "components/public/PublicHeader.tsx",
+      "components/public/PublicFooter.tsx",
+      "qa/success-wishes",
+      "docs/success-wishes/RECEIVER-HARMONISATION.md",
+      "public/fonts/success-wishes"
     ],
-    "acquiredAt": "2026-10-27T03:54:05.011Z",
+    "acquiredAt": "2026-10-27T11:25:10.068Z",
     "releasedAt": null
   }
 ]

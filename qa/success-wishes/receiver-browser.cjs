@@ -1,7 +1,8 @@
 'use strict'
 // Controlled mock-provider browser journey: no real customers, SMS or money.
 const assert = require('node:assert/strict')
-const { spawn } = require('node:child_process')
+const { spawn, execFileSync } = require('node:child_process')
+execFileSync(process.execPath,['qa/success-wishes/build-receiver-theme.mjs','--check'],{stdio:'inherit'})
 const { chromium } = require('playwright')
 const fs = require('node:fs')
 const os = require('node:os')
@@ -72,6 +73,7 @@ function setupMocks(page, existing) {
           {id:CARD_B,theme:'nightfall',sender:'Aunt',opened:true,createdAt:'2026-10-25T08:00:00.000Z'},
         ]}
       else if(method==='POST')payload={ok:true,url:'/success-wishes/invitation?card='+data.cardId}
+      else if(method==='DELETE' && state.logoutFailure){status=503;payload={error:'Synthetic revocation outage'}}
       else payload={ok:true}
     } else if(url.pathname.endsWith('/recover')){
       if(method==='POST')payload={challengeId:CHALLENGE,expiresInSeconds:300}
@@ -85,7 +87,7 @@ function setupMocks(page, existing) {
 async function assertNoOverflow(page,label){
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true,
     label+' must not overflow horizontally')
-  assert.equal(await page.locator('main').evaluate(el=>getComputedStyle(el.parentElement).backgroundColor),'rgb(13, 17, 27)',label+' uses the sender dark palette')
+  assert.equal(await page.locator('main').evaluate(el=>getComputedStyle(el.parentElement).backgroundColor),'rgb(10, 13, 20)',label+' uses the sender dark palette')
 }
 async function run() {
   await ready()
@@ -93,6 +95,7 @@ async function run() {
   for(const width of [320,360,390,412,768,1280]){
     const ctx=await browser.newContext({viewport:{width,height:840},reducedMotion:'reduce'})
     const page=await ctx.newPage();page.setDefaultTimeout(20000)
+    page.on('pageerror', error=>console.error('Receiver page error:',error.message))
     const state=setupMocks(page)
     await page.goto(ROOT+'/success-wishes/invitation#token='+'a'.repeat(64),{waitUntil:'networkidle'})
     await page.getByRole('heading',{name:'A little joy, just for you.'}).waitFor()
@@ -114,14 +117,27 @@ async function run() {
     assert.equal(state.verified,true,'Guardian approval must be completed')
     await assertNoOverflow(page,'guardian verification at '+width)
     await page.getByRole('link',{name:'Open my inbox'}).click()
-    await page.getByRole('heading',{name:'Your little collection of joy.'}).waitFor()
+    await page.getByRole('heading',{name:'Wish Vault Inbox'}).waitFor()
     // Heading renders before the async inbox GET finishes; count() alone races hydration.
     // Wait for the server-backed cards, not only the static page heading.
-    await page.waitForFunction(() => document.querySelectorAll('button[aria-label^="Open"]').length===2)
-    assert.equal(await page.locator('button[aria-label^="Open"]').count(),2,'Two gifts share one inbox')
+    await page.waitForFunction(() => document.querySelectorAll('button[aria-label^="Open"][aria-label$="private wish"]').length===2)
+    assert.equal(await page.locator('button[aria-label^="Open"][aria-label$="private wish"]').count(),2,'Two gifts share one inbox')
     await assertNoOverflow(page,'two-gift inbox at '+width)
+    assert.equal(await page.locator('.receiver-bottom:visible').count(),width<768?1:0,'Exactly one mobile bottom bar')
+    assert.equal(await page.locator('.receiver-sidebar:visible').count(),width>=768?1:0,'Desktop sidebar follows breakpoint')
+    assert.match(await page.locator('.receiver-theme').evaluate(el=>getComputedStyle(el).fontFamily),/Receiver Plus Jakarta Sans/,'Reference font is applied')
+    if(width<768){
+      await page.getByRole('button',{name:'Open receiver menu',exact:true}).first().click()
+      await page.getByRole('dialog',{name:'Receiver navigation menu'}).waitFor({state:'visible'})
+      await page.keyboard.press('Escape')
+      await page.getByRole('dialog',{name:'Receiver navigation menu'}).waitFor({state:'hidden'})
+    }
+    await page.getByRole('textbox',{name:'Search wishes by sender or theme'}).fill('no-such-sender')
+    await page.getByRole('heading',{name:'No matching wishes'}).waitFor()
+    await page.getByRole('textbox',{name:'Search wishes by sender or theme'}).fill('')
+
     await page.screenshot({path:path.join(screenshots,`receiver-inbox-${width}.png`),fullPage:true})
-    const gifts=page.locator('button[aria-label^="Open"]')
+    const gifts=page.locator('button[aria-label^="Open"][aria-label$="private wish"]')
     await gifts.first().click()
     await page.getByRole('button',{name:'Open the envelope and reveal the success card'}).click()
     await page.getByText(PRIVATE_MESSAGE).first().waitFor({state:'visible'})
@@ -146,7 +162,7 @@ async function run() {
     assert.match(page.url(),/\/recover$/)
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('123456')
     await page.getByRole('button',{name:'Open my inbox'}).click()
-    await page.getByRole('heading',{name:'Your little collection of joy.'}).waitFor()
+    await page.getByRole('heading',{name:'Wish Vault Inbox'}).waitFor()
     await assertNoOverflow(page,'recovered inbox at '+width)
     console.log('Receiver controlled browser pass:',width)
     await ctx.close()
@@ -172,6 +188,18 @@ async function run() {
   assert.equal(await first.getByText(PRIVATE_MESSAGE).count(),0)
   console.log('Receiver controlled browser pass: delayed reveal + logout + second-tab purge')
   await ctx.close()
+  const logoutContext=await browser.newContext({viewport:{width:1280,height:840}})
+  const logoutPage=await logoutContext.newPage()
+  const logoutState=setupMocks(logoutPage);logoutState.verified=true;logoutState.logoutFailure=true
+  await logoutPage.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'})
+  await logoutPage.locator('button[aria-label$="private wish"]').first().waitFor()
+  await logoutPage.locator('.receiver-sidebar').getByRole('button',{name:'Sign out',exact:true}).click()
+  await logoutPage.getByRole('alert').filter({hasText:'Sign-out could not be confirmed'}).waitFor()
+  assert.equal(await logoutPage.getByText('Aunt',{exact:true}).count(),0,'Failed server sign-out must not leave private inbox contents visible')
+  await logoutPage.getByText('This device has been cleared.',{exact:true}).waitFor()
+  await logoutContext.close()
+  console.log('Receiver controlled browser pass: sidebar sign-out outage clears private content')
+
 }
 run().catch(error=>{console.error(error);process.exitCode=1}).finally(async()=>{
   await browser?.close()

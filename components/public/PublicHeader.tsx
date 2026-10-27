@@ -11,6 +11,7 @@ const navItems = [
   ['/teacher', 'Teachers'],
   ['/sandbox', 'Live Sandbox'],
   ['/global', 'Learn'],
+  ['/success-wishes', 'Success Wishes'],
   ['/blog', 'News & Guides'],
   ['/pathways', 'Pathways'],
   ['/schools', 'Schools'],
