@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { broadcastReceiverLogout, useReceiverSessionSafety } from '@/lib/success-wishes/receiver-browser-session'
 import { useEffect, useRef, useState } from 'react'
 import { BookCard, Template } from '@/components/success-wishes/SuccessCardStudio'
-import styles from '@/components/success-wishes/SuccessCardStudio.module.css'
+import receiver from '../Receiver.module.css'
+import ReceiverGift from '@/components/success-wishes/ReceiverGift'
 import { Volume2, VolumeX } from 'lucide-react'
 import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 
@@ -81,7 +82,7 @@ export default function SuccessWishInvitationPage() {
     return () => { cancelled = true }
   }, [])
   useEffect(() => () => { stopSound.current?.() }, [])
-  useEffect(() => { if (cardOpened) receivedWishHeading.current?.focus() }, [cardOpened])
+  useEffect(() => { if (cardOpened) receivedWishHeading.current?.focus({ preventScroll: true }) }, [cardOpened])
   function playOpeningSound() {
     stopSound.current?.()
     stopSound.current = playWishRevealSound()
@@ -134,54 +135,46 @@ export default function SuccessWishInvitationPage() {
       setWish(null); setCardOpened(false); broadcastReceiverLogout()
     }
   }
-  return <div className={styles.page}>
-    <header className={styles.header}><Link href="/" className={styles.brand}>VibeSchool <span>/ Success Wishes</span></Link><span>Private wish</span></header>
-    <main className={styles.main}>
-      <div className={styles.intro}><p className={styles.eyebrow}>A PRIVATE SUCCESS WISH</p><h1>{wish && cardOpened ? `A wish for ${wish.candidate}` : 'Your private invitation'}</h1>
-        <p>Your gift is free to open. Keep your private link or access code safe. Verify the registered contact on this device before opening.</p></div>
-      {busy && <p role="status" className={styles.status}>Finding your private invitation…</p>}
-      {error && !busy && <section className={styles.form} aria-live="polite">
-        <h2>{wish ? 'Could not finish this action' : 'Invitation unavailable'}</h2><p>{error}</p>
-        {!wish && <p>Check that your complete invitation link was copied. A name or school alone cannot recover a private card.</p>}
-        {!wish && <><Link href="/success-wishes/open">Enter a card access code</Link><Link href="/success-wishes/recover">Find My Wishes</Link><Link href="/contact">Get help</Link></>}
+  return <div className={receiver.page}>
+    <header className={receiver.top}><Link href="/success-wishes" className={receiver.brand}>VIBESCHOOL / SUCCESS WISHES</Link><span className={receiver.muted}>Private · Free to open</span></header>
+    <main className={receiver.wrap + ' ' + receiver.invitation}>
+      <div className={receiver.hero}><p className={receiver.eyebrow}>SOMEONE BELIEVES IN YOU</p>
+        <h1>{wish ? (cardOpened ? `For ${wish.candidate}` : 'A little joy, just for you.') : busy ? 'Your surprise is on its way.' : 'Let’s find your wish.'}</h1>
+      </div>
+      {busy && <div className={receiver.giftStage}><ReceiverGift label="Finding your private gift…"/><p role="status" className={receiver.muted}>Opening your invitation…</p></div>}
+      {error && !busy && <section className={receiver.panel} aria-live="polite">
+        <h2>{wish ? 'Let’s try again' : 'Invitation unavailable'}</h2><p className={receiver.error}>{error}</p>
+        {!wish && <div className={receiver.actions}><Link className={receiver.primary} href="/success-wishes/open">Enter access code</Link><Link className={receiver.secondary} href="/success-wishes/recover">Find my wishes</Link><Link className={receiver.secondary} href="/contact">Get help</Link></div>}
       </section>}
       {wish && !busy && <>
-        <div className={styles.recipientSoundRow}>
-          <span>Tap the envelope to discover your surprise.</span>
-          <button type="button" className={styles.soundToggle} aria-pressed={soundEnabled} onClick={toggleSound}>
+        <div className={receiver.toolbar}><p>{wish.consentRequired ? 'Your message stays sealed until verification.' : cardOpened ? 'Yours to keep. Yours to revisit.' : 'Tap your gift to reveal the message.'}</p>
+          {!wish.consentRequired && <button type="button" className={receiver.secondary} aria-pressed={soundEnabled} onClick={toggleSound}>
             {soundEnabled ? <Volume2 size={16}/> : <VolumeX size={16}/>} Sound {soundEnabled ? 'on' : 'off'}
-          </button>
+          </button>}
         </div>
-        <section className={styles.recipient} aria-labelledby="received-wish">
-          <div className={styles.recipientCard}>
-            {wish.consentRequired ? <div role="status" className={styles.form}>
-              <h2>Your private card is sealed</h2>
-              <p>Verify the registered phone and, for a student under 18, have the authorised parent or guardian approve access. Your message and sender remain private until then.</p>
-              <Link href={"/success-wishes/verify?card=" + encodeURIComponent(wish.id)}>Verify to open this card</Link>
-            </div> : <BookCard template={wish.theme} values={wish} soundEnabled={soundEnabled}
-              onOpen={playOpeningSound} beforeOpen={() => revealCard(true)} onOpenedChange={opened => { if (!opened) setCardOpened(false) }}/>}
-            {revealing && <p role="status" className={styles.status}>Revealing your personal message…</p>}
-          </div>
-          <div className={styles.recipientDetails}>
-            <p className={styles.eyebrow}>TEXT WISH · FREE TO OPEN</p>
-            <h2 id="received-wish" ref={receivedWishHeading} tabIndex={cardOpened ? -1 : undefined}>
-              {cardOpened ? `For ${wish.candidate}` : 'Your surprise is ready'}
-            </h2>
-            <p className={styles.recipientPrompt}>
-              {cardOpened ? 'This message was saved for you. You can revisit using the same private link.' : 'The message and sender are waiting inside your card.'}
-            </p>
-            <p className={styles.privacy}>Your link identifies this card. The registered contact must also be verified on this device. Sign out when using a shared phone.</p>
-            <div className={styles.actions}>
-              <button type="button" className={styles.secondary} onClick={() => void signOut()}>Sign out on this device</button>
-              <Link href="/success-wishes">Send a wish</Link>
-              {mode.current === 'production' && !wish.consentRequired && <Link href={"/success-wishes/verify?card=" + encodeURIComponent(wish.id)}>Save to My Success Wishes</Link>}
-              <Link href="/success-wishes/inbox">My Success Wishes</Link>
-            </div>
-            <p className={styles.hint}>Wish reference: {wish.id}</p>
-          </div>
+        <section className={receiver.giftStage} aria-label="Your Success Wish">
+          {wish.consentRequired ? <>
+            <ReceiverGift theme={wish.theme} name={wish.candidate} label="Sealed with encouragement"/>
+            <div className={receiver.actions}><Link className={receiver.primary} href={"/success-wishes/verify?card=" + encodeURIComponent(wish.id)}>Verify &amp; open my gift</Link></div>
+            <p className={receiver.muted}>Under 18? Your registered parent or guardian approves access.</p>
+          </> : <BookCard receiverView template={wish.theme} values={wish} soundEnabled={soundEnabled}
+            onOpen={playOpeningSound} beforeOpen={() => revealCard(true)} onOpenedChange={opened => { if (!opened) setCardOpened(false) }}/>}
+          {revealing && <p role="status" className={receiver.muted}>Revealing your message…</p>}
         </section>
+        <div className={receiver.cardFooter}>
+          {cardOpened && <h2 id="received-wish" ref={receivedWishHeading} tabIndex={-1}>A wish to remember.</h2>}
+          <div className={receiver.actions}>
+            {mode.current === 'production' && !wish.consentRequired && <Link className={receiver.primary} href={"/success-wishes/verify?card=" + encodeURIComponent(wish.id)}>Keep in my inbox</Link>}
+            <Link className={receiver.secondary} href="/success-wishes/inbox">My wishes</Link>
+            <Link className={receiver.secondary} href="/success-wishes">Send a wish</Link>
+          </div>
+        </div>
+        <details className={receiver.help}><summary>Privacy &amp; help</summary>
+          <p>Keep your link and access code private. Verify the registered contact on a new device. Sign out after using a shared phone.</p>
+          <div className={receiver.links}><button type="button" className={receiver.secondary} onClick={() => void signOut()}>Sign out</button><Link href="/contact">Get help</Link></div>
+          <p className={receiver.reference}>Wish reference: {wish.id}</p>
+        </details>
       </>}
-      <footer className={styles.footer}><p>Success Wishes · Private encouragement for every candidate.</p></footer>
     </main>
   </div>
 }

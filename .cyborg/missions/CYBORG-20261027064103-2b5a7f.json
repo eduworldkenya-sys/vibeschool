@@ -1,0 +1,422 @@
+{
+  "schemaVersion": 1,
+  "kernelVersion": 2,
+  "registryVersion": 5,
+  "missionId": "CYBORG-20261027064103-2b5a7f",
+  "runId": "3c3d16b6-c784-4077-b907-292641e7a61a",
+  "missionType": "IMPLEMENTATION",
+  "intent": "Implement VibeSchool receiver premium dark UI overhaul frontend only; preserve backend, data, verification and consent; card visible immediately; concise actions",
+  "baseSha": "UNRESOLVED",
+  "headSha": "UNRESOLVED",
+  "riskLevel": "R2",
+  "capabilities": [
+    "READ_REPO",
+    "READ_CI",
+    "READ_DB",
+    "READ_RUNTIME",
+    "RUN_TESTS",
+    "EDIT_CODE",
+    "CREATE_BRANCH",
+    "CREATE_PR"
+  ],
+  "scope": {
+    "mission": [
+      "qa/success-wishes/receiver-browser.cjs",
+      "qa/success-wishes/disabled-browser.cjs"
+    ],
+    "affectedDependencies": [],
+    "excluded": []
+  },
+  "requirements": [
+    {
+      "id": "R01-repository_truth",
+      "description": "repository truth",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "ad78e0ac-d1b1-40a4-9e3d-c7764cbd015d"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R02-dependency_map",
+      "description": "dependency map",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "27bd2494-039c-450f-ab7c-e407a6b1863d"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R03-contract_integrity",
+      "description": "contract integrity",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R04-implementation",
+      "description": "implementation",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R05-preflight",
+      "description": "preflight",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R06-test_integrity",
+      "description": "test integrity",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R07-negative_paths",
+      "description": "negative paths",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E4",
+      "evidenceIds": [
+        "32267b2d-ea17-422a-a345-abefa20b9a0d"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R08-security_and_data",
+      "description": "security and data",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E4",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R09-escape_hatch_audit",
+      "description": "escape hatch audit",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R10-exact_head_ci",
+      "description": "exact head ci",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E5",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R11-independent_assurance_when_required",
+      "description": "independent assurance when required",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E6",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R12-merge_gate",
+      "description": "merge gate",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R13-post_merge_verification_when_required",
+      "description": "post merge verification when required",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R14-learning_closure",
+      "description": "learning closure",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    }
+  ],
+  "selectedSkills": [
+    {
+      "id": "repo-truth-first",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "contract-integrity",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "canonical-architecture-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "exact-head-pr-certification-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "activation-authority-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "evidence-status-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "preflight-before-ci",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "test-the-test",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "ci-failure-repair-loop",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "evidence-and-certification",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "dependency-integrity-loop",
+      "activation": "always-armed",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "escape-hatch-auditor",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "security-authority-gate",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "merge-certification-gate",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "regression-learning",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "resource-conservation",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "mission-decomposition",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "completion-coverage-gate",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "autonomous-repair-until-terminal",
+      "activation": "always-armed",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "execution-journal-integrity",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "knowledge-reconciliation",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "tool-failure-recovery",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "idempotency-and-resume",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "concurrency-and-ownership",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "hq-ux-operational-truth",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ad78e0ac-d1b1-40a4-9e3d-c7764cbd015d",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-27T06:57:41.915Z",
+      "fresh": true,
+      "producer": "cyborg",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R01-repository_truth",
+      "kind": "repository",
+      "result": "PASS",
+      "grade": "E1",
+      "source": "main 8de5b211; clean initial checkout; root governance and receiver/sender components inspected; concurrent checkout PR830 inspected"
+    },
+    {
+      "id": "27bd2494-039c-450f-ab7c-e407a6b1863d",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-27T06:57:42.027Z",
+      "fresh": true,
+      "producer": "cyborg",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R02-dependency_map",
+      "kind": "scope",
+      "result": "PASS",
+      "grade": "E1",
+      "source": "Receiver.module.css shared receiver pages; invitation imports existing BookCard; opt-in receiverView styling only; backend/auth/session/network functions unchanged. PR830 verify page overlap requires normal three-way reconciliation."
+    },
+    {
+      "id": "32267b2d-ea17-422a-a345-abefa20b9a0d",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-27T06:57:42.120Z",
+      "fresh": true,
+      "producer": "cyborg",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R07-negative_paths",
+      "kind": "browser",
+      "result": "PASS",
+      "grade": "E4",
+      "source": "40 synthetic responsive screen checks plus existing receiver browser at 320,360,390,412,768,1280: guardian approval, wrong OTP, refresh/recovery, delayed reveal/logout and cross-tab purge. Canonical browser results /tmp/receiver-canonical-browser.log. UI proof only, no live SMS or payment."
+    }
+  ],
+  "contradictions": [],
+  "findings": [],
+  "decisions": [],
+  "technicalDebt": [],
+  "attempts": {},
+  "state": "BLOCKED_EXTERNAL",
+  "learningClosure": false,
+  "createdAt": "2026-10-27T06:41:03.810Z",
+  "updatedAt": "2026-10-27T07:01:28.431Z",
+  "journalPath": ".cyborg/journal/CYBORG-20261027064103-2b5a7f.ndjson",
+  "activation": {
+    "runtime": false,
+    "schedulers": false,
+    "publishing": false,
+    "payments": false,
+    "consequentialAuthority": false
+  },
+  "lastJournalHash": "913bf7b2122eff0382d323d908c8475dc4992c2fd413ec71c44c2dde9fe92b8b",
+  "blocker": {
+    "type": "BLOCKED_EXTERNAL",
+    "reason": "Receiver UI implementation and local verification prepared; exact-head protected CI, applicable independent review and production deployment verification are external release gates. No backend or data changes; no activation. Evidence: docs/success-wishes/receiver-premium-ui/README.md. Existing parent Success Wishes lease treated as parent scope; checkout PR830 preserved.",
+    "createdAt": "2026-10-27T07:01:28.430Z"
+  }
+}

@@ -6,6 +6,9 @@ const { chromium } = require('playwright')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+const PRIVATE_MESSAGE = 'You are capable of wonderful things. Every early morning and every page you studied has brought you here. Take a deep breath, trust your preparation and give each question your best. We believe in you, and we are proud of the person you are becoming.'
+const screenshots = path.join(os.tmpdir(),'success-wishes-artifacts')
+fs.mkdirSync(screenshots,{recursive:true})
 const PORT = 3093
 const ROOT = 'http://localhost:' + PORT
 const CARD_A = '11111111-1111-4111-8111-111111111111'
@@ -51,7 +54,7 @@ function setupMocks(page, existing) {
           if(state.revealPause)await state.revealPause
           state.opened=true
           payload={card:{...card(data.cardId),consentRequired:false,opened:true,
-            sender:data.cardId===CARD_A?'Mum':'Aunt',message:'You are capable of wonderful things.'}}
+            sender:data.cardId===CARD_A?'Mum':'Aunt',message:PRIVATE_MESSAGE}}
         }
       }else payload={ok:true}
     } else if(url.pathname.endsWith('/verify')){
@@ -82,42 +85,52 @@ function setupMocks(page, existing) {
 async function assertNoOverflow(page,label){
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),true,
     label+' must not overflow horizontally')
+  assert.equal(await page.locator('main').evaluate(el=>getComputedStyle(el.parentElement).backgroundColor),'rgb(13, 17, 27)',label+' uses the sender dark palette')
 }
 async function run() {
   await ready()
-  browser=await chromium.launch({headless:true})
+  browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH||chromium.executablePath()})
   for(const width of [320,360,390,412,768,1280]){
     const ctx=await browser.newContext({viewport:{width,height:840},reducedMotion:'reduce'})
     const page=await ctx.newPage();page.setDefaultTimeout(20000)
     const state=setupMocks(page)
     await page.goto(ROOT+'/success-wishes/invitation#token='+'a'.repeat(64),{waitUntil:'networkidle'})
-    await page.getByRole('heading',{name:'Your private invitation'}).waitFor()
-    await page.getByRole('heading',{name:'Your private card is sealed'}).waitFor()
+    await page.getByRole('heading',{name:'A little joy, just for you.'}).waitFor()
+    await page.getByText('Sealed with encouragement',{exact:true}).waitFor()
     assert(!page.url().includes('#token='),'Access secret must leave browser address after accepted claim')
     assert.match(page.url(),/\?card=11111111/)
     assert.equal(await page.getByRole('button',{name:/Open the envelope/}).count(),0,
       'Pending consent cannot interactively reveal the envelope')
     await assertNoOverflow(page,'sealed card at '+width)
-    await page.getByRole('link',{name:'Verify to open this card'}).click()
-    await page.getByRole('button',{name:'Send verification SMS'}).click()
-    await page.getByRole('text', {name:/The parent or guardian must check/}).waitFor().catch(()=>{})
+    await page.screenshot({path:path.join(screenshots,`receiver-sealed-${width}.png`),fullPage:true})
+    assert((await page.getByText('Sealed with encouragement',{exact:true}).boundingBox()).y<600,'The gift is visible on arrival')
+    await page.getByRole('link',{name:'Verify & open my gift'}).click()
+    await page.getByRole('button',{name:'Send my code'}).click()
+    await page.getByText('Ask your guardian for the six-digit SMS code. Valid for five minutes.').waitFor()
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('123456')
     await page.getByRole('checkbox',{name:/I confirm I am the authorised/}).check()
-    await page.getByRole('button',{name:'Verify and open inbox'}).click()
+    await page.getByRole('button',{name:'Verify & open inbox'}).click()
     await page.getByRole('heading',{name:'Your private inbox is ready'}).waitFor()
     assert.equal(state.verified,true,'Guardian approval must be completed')
     await assertNoOverflow(page,'guardian verification at '+width)
-    await page.getByRole('link',{name:'Open My Success Wishes'}).click()
-    await page.getByRole('heading',{name:'My Success Wishes'}).waitFor()
+    await page.getByRole('link',{name:'Open my inbox'}).click()
+    await page.getByRole('heading',{name:'Your little collection of joy.'}).waitFor()
     // Heading renders before the async inbox GET finishes; count() alone races hydration.
     // Wait for the server-backed cards, not only the static page heading.
     await page.waitForFunction(() => document.querySelectorAll('button[aria-label^="Open"]').length===2)
     assert.equal(await page.locator('button[aria-label^="Open"]').count(),2,'Two gifts share one inbox')
     await assertNoOverflow(page,'two-gift inbox at '+width)
+    await page.screenshot({path:path.join(screenshots,`receiver-inbox-${width}.png`),fullPage:true})
     const gifts=page.locator('button[aria-label^="Open"]')
     await gifts.first().click()
     await page.getByRole('button',{name:'Open the envelope and reveal the success card'}).click()
-    await page.getByText('You are capable of wonderful things.').first().waitFor({state:'visible'})
+    await page.getByText(PRIVATE_MESSAGE).first().waitFor({state:'visible'})
+    await page.getByRole('button',{name:'Close the book card'}).waitFor()
+    if(width<=640){
+      const message=page.getByText(PRIVATE_MESSAGE,{exact:true})
+      assert(await message.evaluate(el=>el.scrollHeight<=el.clientHeight+1),'Receiver message must not be cropped into a tiny mobile scroll area')
+    }
+    await page.screenshot({path:path.join(screenshots,`receiver-opened-${width}.png`),fullPage:true})
     assert.equal(state.opened,true,'Paid reveal endpoint was called')
     assert.equal(state.wrongCardReveals,0,'Card ID must stay pinned')
     await page.reload({waitUntil:'networkidle'})
@@ -126,14 +139,14 @@ async function run() {
     await page.goto(ROOT+'/success-wishes/recover',{waitUntil:'networkidle'})
     await page.getByRole('textbox',{name:'Registered Kenyan phone number'}).fill('0712345678')
     await page.getByRole('textbox',{name:'Student recovery code'}).fill('B'.repeat(32))
-    await page.getByRole('button',{name:'Send verification SMS'}).click()
+    await page.getByRole('button',{name:'Send my code'}).click()
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('000000')
-    await page.getByRole('button',{name:'Open My Success Wishes'}).click()
+    await page.getByRole('button',{name:'Open my inbox'}).click()
     await page.getByRole('alert').filter({hasText:'Incorrect or expired code'}).waitFor()
     assert.match(page.url(),/\/recover$/)
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('123456')
-    await page.getByRole('button',{name:'Open My Success Wishes'}).click()
-    await page.getByRole('heading',{name:'My Success Wishes'}).waitFor()
+    await page.getByRole('button',{name:'Open my inbox'}).click()
+    await page.getByRole('heading',{name:'Your little collection of joy.'}).waitFor()
     await assertNoOverflow(page,'recovered inbox at '+width)
     console.log('Receiver controlled browser pass:',width)
     await ctx.close()
@@ -147,7 +160,8 @@ async function run() {
   await second.goto(ROOT+'/success-wishes/invitation?card='+CARD_A,{waitUntil:'networkidle'})
   let release;state.revealPause=new Promise(resolve=>{release=resolve})
   await first.getByRole('button',{name:'Open the envelope and reveal the success card'}).click()
-  await first.getByRole('button',{name:'Sign out on this device'}).click()
+  await first.getByText('Privacy & help',{exact:true}).click()
+  await first.getByRole('button',{name:'Sign out',exact:true}).click()
   await first.getByText('You are signed out. Use your private invitation again to open this wish.').waitFor()
   await second.waitForURL('**/success-wishes/open?notice=device-cleared')
   const lateResponse=first.waitForResponse(r=>r.url().endsWith('/receiver/card')&&r.request().method()==='PUT')
@@ -155,7 +169,7 @@ async function run() {
   await (await lateResponse).finished()
   await first.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
   await first.getByText('You are signed out. Use your private invitation again to open this wish.').waitFor()
-  assert.equal(await first.getByText('You are capable of wonderful things.').count(),0)
+  assert.equal(await first.getByText(PRIVATE_MESSAGE).count(),0)
   console.log('Receiver controlled browser pass: delayed reveal + logout + second-tab purge')
   await ctx.close()
 }

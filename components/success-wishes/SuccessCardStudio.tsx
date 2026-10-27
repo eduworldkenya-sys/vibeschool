@@ -90,7 +90,7 @@ export function CardArt({ template, values, svgRef, preview = false }: {
   )
 }
 
-export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, beforeOpen, mediaKind = 'text', mediaSrc = '', autoOpen = false, senderPreview = false }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; beforeOpen?: () => Promise<boolean>; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string; autoOpen?: boolean; senderPreview?: boolean }) {
+export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, beforeOpen, mediaKind = 'text', mediaSrc = '', autoOpen = false, senderPreview = false, receiverView = false }: { template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void; onOpenedChange?: (open: boolean) => void; beforeOpen?: () => Promise<boolean>; mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string; autoOpen?: boolean; senderPreview?: boolean; receiverView?: boolean }) {
   const [open, setOpen] = useState(false)
   const [envelopeOpened, setEnvelopeOpened] = useState(false)
   const [opening, setOpening] = useState(false)
@@ -128,7 +128,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     onOpenedChange?.(true)
   }, [autoOpen, onOpenedChange])
   useEffect(() => () => { if (replayTimer.current) window.clearTimeout(replayTimer.current) }, [])
-  return <div className={styles.bookPreview}>
+  return <div className={styles.bookPreview} data-receiver-view={receiverView || undefined} data-card-open={open}>
     <div className={styles.bookStage + (open ? ' ' + styles.bookIsOpen : '')}
         style={{ '--book-top': palette[template].top, '--book-bottom': palette[template].bottom, '--book-ink': palette[template].ink, '--book-accent': palette[template].accent } as React.CSSProperties}>
       <div className={styles.bookSpread} aria-hidden={!open}>
