@@ -61,7 +61,7 @@ export default function OpenSuccessWishCode() {
         <div className="text-center max-w-xl mx-auto space-y-2">
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-bold uppercase tracking-wider mb-1">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Encrypted Envelope Access</span>
+            <span>Private Envelope Access</span>
           </div>
           <h1 className="font-cinzel text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-[#FFF5C0] via-[#D4AF37] to-[#AA7C11] bg-clip-text text-transparent">
             A Wish Is Waiting.
