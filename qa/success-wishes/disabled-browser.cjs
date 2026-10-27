@@ -171,7 +171,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     await page.screenshot({ path: path.join(screenshots, `candidate-debug-${width}.png`), fullPage: true })
   }
   await cover.waitFor({ state: 'visible' })
-  await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
+  await page.getByRole('heading', { name: 'A little joy, just for you.' }).waitFor()
   await page.screenshot({ path: path.join(screenshots, `candidate-closed-${width}.png`), fullPage: true })
   assert.equal(await cover.isVisible(), true, 'The recipient sees the sealed envelope first')
   const recipientWish = page.getByTestId('success-card-message-preview')
@@ -202,7 +202,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   const revisitResponse = await revisit
   assert.equal(revisitResponse.status(), 200, 'Active private session returns to the saved wish')
   await page.getByRole('button', { name: 'Open the envelope and reveal the success card' }).waitFor({ state: 'visible' })
-  await page.getByRole('heading', { name: 'Your private invitation' }).waitFor()
+  await page.getByRole('heading', { name: 'A little joy, just for you.' }).waitFor()
   assert.equal(await recipientWish.evaluate(element => element.closest('[aria-hidden]')?.getAttribute('aria-hidden')), 'true', 'Refresh returns to the closed-card reveal')
   await page.getByRole('button', { name: 'Open the envelope and reveal the success card' }).click()
   await page.getByRole('button', { name: 'Close the book card' }).waitFor({ state: 'visible' })
@@ -360,7 +360,8 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   const candidateB = await openCandidate(senderB.invitation, messageB, 390, true, true)
   assert.notEqual(await candidateA.page.getByTestId('success-card-message-preview').innerText(), messageB)
   assert.notEqual(await candidateB.page.getByTestId('success-card-message-preview').innerText(), messageA)
-  await candidateA.page.getByRole('button', { name: 'Sign out on this device' }).click()
+  await candidateA.page.getByText('Privacy & help', { exact: true }).click()
+  await candidateA.page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await candidateA.page.getByText('You are signed out.', { exact: false }).waitFor()
   assert.equal(await candidateB.page.getByTestId('success-card-message-preview').innerText(), messageB, 'Signing out one candidate context leaves the other separate wish intact')
 

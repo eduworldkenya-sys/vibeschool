@@ -53,13 +53,22 @@ fs.mkdirSync(artifacts,{recursive:true})
   })
   await setupPage.goto(root+'/success-wishes/verify#setup='+setupToken,{waitUntil:'networkidle'})
   assert.equal(setupCalls.length,0)
-  await setupPage.getByRole('button',{name:'Send verification SMS',exact:true}).click()
+  await setupPage.getByRole('button',{name:'Send my code',exact:true}).click()
   await setupPage.getByLabel('SMS verification code',{exact:true}).fill('123456')
-  assert.equal(await setupPage.getByRole('button',{name:'Verify and open inbox',exact:true}).isDisabled(),true)
+  assert.equal(await setupPage.getByRole('button',{name:'Verify & open inbox',exact:true}).isDisabled(),true)
   await setupPage.getByRole('checkbox',{name:/I confirm I am at least 18/}).check()
-  await setupPage.getByRole('button',{name:'Verify and open inbox',exact:true}).click()
+  await setupPage.getByRole('button',{name:'Verify & open inbox',exact:true}).click()
   await setupPage.getByRole('heading',{name:'Your private inbox is ready'}).waitFor()
   assert.equal(setupCalls.length,2);assert.equal(setupCalls[1].consentRole,'adult');assert.equal(setupCalls[1].consentAcknowledged,true)
   await setupContext.close();console.log('PASS pre-payment adult setup: no card required, private capability, affirmative consent, inbox recovery')
- }finally{await browser?.close();server?.kill('SIGTERM');if(server)fs.rmSync(testRoot,{recursive:true,force:true})}
+ }finally{
+  await browser?.close()
+  if(server){
+   // Wait for Next's child process to stop writing before removing its workspace.
+   const stopped=new Promise(resolve=>server.once('exit',resolve))
+   if(server.exitCode===null){server.kill('SIGTERM');await stopped}
+   fs.closeSync(log)
+   fs.rmSync(testRoot,{recursive:true,force:true,maxRetries:3,retryDelay:100})
+  }else fs.closeSync(log)
+ }
 })().catch(e=>{console.error(e);process.exitCode=1})

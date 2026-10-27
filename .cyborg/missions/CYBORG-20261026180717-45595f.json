@@ -30,7 +30,9 @@
       "supabase/migrations/20261027035447_success_wishes_adult_setup.sql",
       ".github/workflows/success-wishes-contracts.yml",
       "qa/success-wishes/receiver-setup-assertions.sql",
-      "qa/success-wishes/checkout-browser.cjs"
+      "qa/success-wishes/checkout-browser.cjs",
+      "app/success-wishes/verify/page.tsx",
+      "lib/success-wishes/guest-checkout-route.test.ts"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -356,7 +358,7 @@
   "state": "BLOCKED_EXTERNAL",
   "learningClosure": false,
   "createdAt": "2026-10-26T18:07:17.359Z",
-  "updatedAt": "2026-10-27T03:56:49.738Z",
+  "updatedAt": "2026-10-27T09:19:38.978Z",
   "journalPath": ".cyborg/journal/CYBORG-20261026180717-45595f.ndjson",
   "activation": {
     "runtime": false,
@@ -365,10 +367,10 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "8de9a36ca9e0fc4d4120572eb80abf1d37a175dc33e23a707e69c7015f2baad7",
+  "lastJournalHash": "46a7066dc0396511f2822b48f7737b9dd0a18c02d9c616d9b5d8534d3a9f7cf2",
   "blocker": {
     "type": "BLOCKED_EXTERNAL",
-    "reason": "Production SMS provider username/API key/live mode absent; real recipient OTP, frontend activation and controlled payment proof cannot proceed. Adult pre-payment setup correction checkpointed in PR 830; no STK sent.",
-    "createdAt": "2026-10-27T03:56:49.738Z"
+    "reason": "Real-user commissioning remains blocked on a verified recipient, live SMS and controlled KSh 50 settlement proof; nonactivating checkout reconciliation proceeds to exact-head CI.",
+    "createdAt": "2026-10-27T09:19:38.978Z"
   }
 }

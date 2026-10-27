@@ -1,0 +1,7 @@
+PASS checkout width 320: review, saved order, single payment action, refresh recovery, receipt, exact link/code
+PASS checkout width 360: review, saved order, single payment action, refresh recovery, receipt, exact link/code
+PASS checkout width 390: review, saved order, single payment action, refresh recovery, receipt, exact link/code
+PASS checkout width 412: review, saved order, single payment action, refresh recovery, receipt, exact link/code
+PASS checkout width 768: review, saved order, single payment action, refresh recovery, receipt, exact link/code
+PASS checkout width 1280: review, saved order, single payment action, refresh recovery, receipt, exact link/code
+PASS pre-payment adult setup: no card required, private capability, affirmative consent, inbox recovery
