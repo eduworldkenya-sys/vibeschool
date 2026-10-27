@@ -1,11 +1,13 @@
 'use client'
 import Link from 'next/link'
+import { broadcastReceiverLogout, useReceiverSessionSafety } from '@/lib/success-wishes/receiver-browser-session'
 import { useEffect, useState } from 'react'
 import styles from '../Receiver.module.css'
 type Gift = { id:string; sender:string|null; opened:boolean; createdAt:string }
 type Rights = {id:string;kind:string;status:string;created_at:string}
 const manage='/api/success-wishes/receiver/safety'
 export default function SuccessWishSafety(){
+  useReceiverSessionSafety()
   const [cards,setCards]=useState<Gift[]>([])
   const [requests,setRequests]=useState<Rights[]>([])
   const [selected,setSelected]=useState('')
@@ -53,6 +55,7 @@ export default function SuccessWishSafety(){
         setWithdrawChallenge(p.challengeId)
         setStatus(p.message||'Enter the code sent to the registered consent contact.')
       } else {
+        broadcastReceiverLogout()
         setConsentRevoked(true)
         setWithdrawChallenge('')
         setWithdrawCode('')
@@ -96,6 +99,6 @@ export default function SuccessWishSafety(){
         </div> : <button type="button" className={styles.secondary} disabled={busy}
           onClick={()=>void withdraw('begin_withdrawal')}>Send withdrawal verification code</button>}
       </section>}
-      <div className={styles.links}><Link href="/success-wishes/inbox">Return to My Success Wishes</Link><Link href="/success-wishes/recover">Recovery options</Link><Link href="/success-wishes/guardian-consent">Guardian consent withdrawal</Link></div>
+      <div className={styles.links}><Link href="/success-wishes/inbox">Return to My Success Wishes</Link><Link href="/success-wishes/recover">Recovery options</Link><Link href="/success-wishes/guardian-consent">Guardian consent withdrawal</Link><Link href="/contact">Contact privacy support without inbox access</Link></div>
     </main></div>
 }

@@ -1,9 +1,9 @@
 import { randomBytes } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
-import { receiverDatabase, RECEIVER_COOKIE, SESSION_AGE, sessionDigest, settledCardIds, verifiedCard } from '@/lib/success-wishes/receiver'
-import { inboxCookie, inboxDigest, inboxSession, INBOX_COOKIE } from '@/lib/success-wishes/receiver-otp'
-import { failure, json, reply, sameOrigin } from '@/lib/success-wishes/server'
+import { RECEIVER_COOKIE, SESSION_AGE, sessionDigest, settledCardIds, verifiedCard } from '@/lib/success-wishes/receiver'
+import { inboxSession } from '@/lib/success-wishes/receiver-otp'
+import { failure, json, reply } from '@/lib/success-wishes/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,21 +47,4 @@ export async function POST(req: NextRequest) {
     return response
   } catch (error) { return failure(error) }
 }
-export async function DELETE(req: NextRequest) {
-  try {
-    sameOrigin(req)
-    const raw = req.cookies.get(INBOX_COOKIE)?.value || ''
-    if (/^[a-f0-9]{64}$/.test(raw)) {
-      const { error } = await receiverDatabase().from('success_wish_receiver_sessions')
-        .delete().eq('token_hash', inboxDigest(raw))
-      if (error) throw error
-    }
-    const response = reply({ ok: true })
-    response.cookies.set(INBOX_COOKIE, '', inboxCookie(req, 0))
-    return response
-  } catch (error) {
-    const response = failure(error)
-    if (req.headers.get('origin') === req.nextUrl.origin) response.cookies.set(INBOX_COOKIE, '', inboxCookie(req, 0))
-    return response
-  }
-}
+export { logoutReceiver as DELETE } from '@/lib/success-wishes/receiver-logout'

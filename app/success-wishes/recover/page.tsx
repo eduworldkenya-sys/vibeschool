@@ -37,6 +37,6 @@ export default function RecoverWishes(){
         </form>
         <p>Each student has a different recovery code, even when a parent’s phone is shared. Names or admission numbers are not sufficient for recovery.</p>
       </section>
-      <div className={styles.links}><Link href="/success-wishes/invitation">I have my private card link</Link><Link href="/success-wishes">Send a Wish</Link></div>
+      <div className={styles.links}><Link href="/success-wishes/open">I have a card access code</Link><Link href="/contact">Lost your phone or recovery code? Contact support</Link></div>
     </main></div>
 }

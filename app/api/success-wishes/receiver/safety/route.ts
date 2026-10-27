@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
-import { consumeOtp, inboxCookie, inboxSession, INBOX_COOKIE, issueOtp } from '@/lib/success-wishes/receiver-otp'
+import { consumeOtp, inboxCookie, inboxSession, INBOX_COOKIE, issueOtp, recordConsent } from '@/lib/success-wishes/receiver-otp'
 import { registeredWithdrawalRoute } from '@/lib/success-wishes/receiver-consent'
 import { failure, json, limit, reply } from '@/lib/success-wishes/server'
 
@@ -37,20 +37,7 @@ export async function POST(req: NextRequest) {
             ? 'A withdrawal code was sent to the registered guardian phone.'
             : 'A withdrawal code was sent to the registered adult phone.' })
       }
-      await consumeOtp(db, receiver.id, body.challengeId, body.code, route.purpose)
-      // This status is checked on every inbox and private card read; changing it
-      // immediately denies all outstanding cookies and private links.
-      const { data: changed, error: consentError } = await db.from('success_wish_receivers')
-        .update({ consent_status: 'revoked' })
-        .eq('id', receiver.id).eq('consent_status', 'verified')
-        .select('id').maybeSingle()
-      if (consentError || !changed)
-        throw new WishError(409, 'Consent could not be withdrawn. Please contact support.')
-      // Sessions are already unusable because every protected read checks revocation.
-      // Remove the stored session tokens as an additional defence in depth.
-      const { error: sessionError } = await db.from('success_wish_receiver_sessions')
-        .delete().eq('receiver_id', receiver.id)
-      if (sessionError) console.error('Success Wishes: session cleanup failed after consent revocation')
+      await recordConsent(db, receiver.id, body.challengeId, body.code, 'withdraw', route.consentRole)
       const response = reply({ ok: true, revoked: true,
         message: 'Consent was withdrawn. The private inbox and wishes are no longer accessible.' })
       response.cookies.set(INBOX_COOKIE, '', inboxCookie(req, 0))

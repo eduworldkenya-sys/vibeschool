@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { broadcastReceiverLogout, useReceiverSessionSafety } from '@/lib/success-wishes/receiver-browser-session'
 import { useEffect, useRef, useState } from 'react'
 import { BookCard, Template } from '@/components/success-wishes/SuccessCardStudio'
 import styles from '@/components/success-wishes/SuccessCardStudio.module.css'
@@ -31,6 +32,8 @@ async function requestCard(url: string, init?: RequestInit) {
 }
 export default function SuccessWishInvitationPage() {
   const [wish, setWish] = useState<Wish | null>(null)
+  useReceiverSessionSafety(!!wish && !wish.consentRequired)
+  const accessGeneration = useRef(0)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(true)
   const [revealing, setRevealing] = useState(false)
@@ -88,28 +91,36 @@ export default function SuccessWishInvitationPage() {
     setSoundEnabled(!soundEnabled)
   }
   async function revealCard(isOpen: boolean) {
-    if (!isOpen) { setCardOpened(false); return }
+    if (!isOpen) { setCardOpened(false); return true }
     if (wish?.consentRequired) {
       setError('Verify recipient consent before revealing your personal message.')
-      return
+      return false
     }
-    if (mode.current === 'development') { setCardOpened(true); return }
-    if (revealInFlight.current) return
+    if (mode.current === 'development') { setCardOpened(true); return true }
+    if (revealInFlight.current) return false
     revealInFlight.current = true
+    const generation = accessGeneration.current
     setRevealing(true)
     try {
       const payload = await requestCard(PAID_API, { method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ cardId: wish?.id }) })
+      if (generation !== accessGeneration.current) return false
       setWish(fromPrivateCard(payload.card as PrivateCard))
       setCardOpened(true)
+      setError('')
+      return true
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not reveal your message. Reopen your private link.')
+      if (generation !== accessGeneration.current) return false
+      setError(reason instanceof Error ? reason.message : 'Could not reveal your message. Tap the envelope to retry.')
+      return false
     } finally {
       setRevealing(false)
       revealInFlight.current = false
     }
   }
   async function signOut() {
+    accessGeneration.current += 1
+    setWish(null); setCardOpened(false)
     stopSound.current?.()
     stopSound.current = null
     try {
@@ -118,19 +129,21 @@ export default function SuccessWishInvitationPage() {
       setCardOpened(false)
       setError('You are signed out. Use your private invitation again to open this wish.')
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Could not sign out. Try again.')
+      setError('This device was cleared, but server revocation could not be confirmed. Close this tab and contact support.')
+    } finally {
+      setWish(null); setCardOpened(false); broadcastReceiverLogout()
     }
   }
   return <div className={styles.page}>
     <header className={styles.header}><Link href="/" className={styles.brand}>VibeSchool <span>/ Success Wishes</span></Link><span>Private wish</span></header>
     <main className={styles.main}>
       <div className={styles.intro}><p className={styles.eyebrow}>A PRIVATE SUCCESS WISH</p><h1>{wish && cardOpened ? `A wish for ${wish.candidate}` : 'Your private invitation'}</h1>
-        <p>Your gift is free to open. Keep your private link or access code safe; it grants access to this card.</p></div>
+        <p>Your gift is free to open. Keep your private link or access code safe. Verify the registered contact on this device before opening.</p></div>
       {busy && <p role="status" className={styles.status}>Finding your private invitation…</p>}
       {error && !busy && <section className={styles.form} aria-live="polite">
         <h2>{wish ? 'Could not finish this action' : 'Invitation unavailable'}</h2><p>{error}</p>
         {!wish && <p>Check that your complete invitation link was copied. A name or school alone cannot recover a private card.</p>}
-        {!wish && <Link href="/success-wishes">Return to Success Wishes</Link>}
+        {!wish && <><Link href="/success-wishes/open">Enter a card access code</Link><Link href="/success-wishes/recover">Find My Wishes</Link><Link href="/contact">Get help</Link></>}
       </section>}
       {wish && !busy && <>
         <div className={styles.recipientSoundRow}>
@@ -146,7 +159,7 @@ export default function SuccessWishInvitationPage() {
               <p>Verify the registered phone and, for a student under 18, have the authorised parent or guardian approve access. Your message and sender remain private until then.</p>
               <Link href={"/success-wishes/verify?card=" + encodeURIComponent(wish.id)}>Verify to open this card</Link>
             </div> : <BookCard template={wish.theme} values={wish} soundEnabled={soundEnabled}
-              onOpen={playOpeningSound} onOpenedChange={opened => { void revealCard(opened) }}/>}
+              onOpen={playOpeningSound} beforeOpen={() => revealCard(true)} onOpenedChange={opened => { if (!opened) setCardOpened(false) }}/>}
             {revealing && <p role="status" className={styles.status}>Revealing your personal message…</p>}
           </div>
           <div className={styles.recipientDetails}>
@@ -157,7 +170,7 @@ export default function SuccessWishInvitationPage() {
             <p className={styles.recipientPrompt}>
               {cardOpened ? 'This message was saved for you. You can revisit using the same private link.' : 'The message and sender are waiting inside your card.'}
             </p>
-            <p className={styles.privacy}>This is a private bearer card, not proof of identity. Anyone with your card link or access code may read it. Full inbox recovery requires separate verification.</p>
+            <p className={styles.privacy}>Your link identifies this card. The registered contact must also be verified on this device. Sign out when using a shared phone.</p>
             <div className={styles.actions}>
               <button type="button" className={styles.secondary} onClick={() => void signOut()}>Sign out on this device</button>
               <Link href="/success-wishes">Send a wish</Link>

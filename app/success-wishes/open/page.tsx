@@ -20,7 +20,7 @@ export default function OpenSuccessWishCode(){
     }catch(e){setError(e instanceof Error?e.message:'Unable to open this private card.')}finally{setBusy(false)}
   }
   return <div className={styles.page}><header className={styles.top}><Link href="/success-wishes" className={styles.brand}>VIBESCHOOL / SUCCESS WISHES</Link><span className={styles.muted}>Private access</span></header>
-    <main className={styles.wrap}><div className={styles.hero}><p className={styles.eyebrow}>YOUR PRIVATE GIFT</p><h1>Open your Success Wish.</h1><p>Enter the card access code from your SMS or the person who sent your wish.</p></div>
+    <main className={styles.wrap}><div className={styles.hero}><p className={styles.eyebrow}>YOUR PRIVATE GIFT</p><h1>Open your Success Wish.</h1><p>Enter the card access code from your SMS or the person who sent your wish. On a shared device, sign out when finished.</p></div>
       <section className={styles.panel}><h2>Access your card</h2>
         <form className={styles.form} onSubmit={claim}>
           <label>Card access code<input autoComplete="off" maxLength={40} required value={code} onChange={e=>setCode(e.target.value)} placeholder="32-character private code"/></label>
