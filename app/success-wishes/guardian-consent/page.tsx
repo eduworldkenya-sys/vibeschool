@@ -63,14 +63,14 @@ export default function GuardianConsent() {
     <main className={styles.wrap}>
       <div className={styles.hero}>
         <p className={styles.eyebrow}>FOR PARENTS AND GUARDIANS</p>
-        <h1>Stop access to a student’s wishes.</h1>
-        <p>Already linked to your child’s school record? Sign in with that guardian account to withdraw your consent, even if the student has lost access to their inbox. We send a fresh code to your previously verified phone.</p>
+        <h1>Their wishes. Your consent.</h1>
+        <p>Sign in with your linked guardian account to withdraw access. We’ll verify your registered phone.</p>
       </div>
       {(error||loadError)&&<p className={styles.error} role="alert">{error||loadError}</p>}
       {notice&&<div className={styles.notice} role="status">{notice}</div>}
       {!revoked&&<section className={styles.panel}>
         <h2>Withdraw guardian consent</h2>
-        <p>This closes access to all cards in the student’s private inbox. It does not automatically erase records subject to legal retention, and reactivation requires a separate review.</p>
+        <p>This closes every card in the student’s inbox. Required records remain; restoring access needs a separate review.</p>
         {loading?<p role="status">Checking your linked students…</p>:loadError?<p>We could not check your guardian account. Sign in or contact support.</p>:recipients.length===0?<p>No active, school-verified students were found for this guardian account. If you need help withdrawing consent, contact VibeSchool support through your school.</p>:<div className={styles.form}>
           <label>Choose student
             <select value={receiverId} onChange={e=>{setReceiverId(e.target.value);setChallengeId('');setCode('');setNotice('')}}>
@@ -95,7 +95,7 @@ export default function GuardianConsent() {
       </section>}
       <div className={styles.links}>
         <Link href="/success-wishes">Back to Success Wishes</Link>
-        <Link href="/login">Sign in as guardian</Link><Link href="/contact">Get help without an account or student inbox</Link><Link href="/success-wishes/settings">Student privacy settings</Link>
+        <Link href="/login">Sign in as guardian</Link><Link href="/contact">Get help</Link><Link href="/success-wishes/settings">Student privacy settings</Link>
       </div>
     </main>
   </div>
