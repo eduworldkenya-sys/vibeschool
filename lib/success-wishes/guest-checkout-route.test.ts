@@ -22,6 +22,7 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
    assert.equal(u.searchParams.get('key_hash'),'eq.'+orderKeyHash(key));return Response.json(order)
   }
   if(endpoint==='success-wishes-checkout'){
+   assert.deepEqual(body.merchant,{environment:'production',shortcode:'961580',partyB:'949529',transactionType:'CustomerBuyGoodsOnline',consumerKey:'dedicated-key',consumerSecret:'dedicated-secret',passkey:'dedicated-passkey'})
    if(gatewayStatus===-1)throw new Error('Synthetic timeout before payment claim')
    if(gatewayStatus!==200)return Response.json({error:'Unauthorized'},{status:gatewayStatus})
    assert.equal(body.action,'pay');assert.equal(order?.state,'created');prompts++;Object.assign(order!,{state:'awaiting_customer'});return Response.json({ok:true})
@@ -31,7 +32,7 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
  }) as typeof fetch
  const call=(body:Row)=>POST(new NextRequest(url,{method:'POST',headers:{origin:'https://vibeschool.example','content-type':'application/json'},body:JSON.stringify({key,...body})}))
  try{
-  Object.assign(process.env,{SUCCESS_WISHES_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'https://synthetic.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'synthetic-service'})
+  Object.assign(process.env,{SUCCESS_WISHES_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'https://synthetic.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',SUCCESS_WISHES_MPESA_ENV:'production',SUCCESS_WISHES_MPESA_SHORTCODE:'961580',SUCCESS_WISHES_MPESA_PARTY_B:'949529',SUCCESS_WISHES_MPESA_TRANSACTION_TYPE:'CustomerBuyGoodsOnline',SUCCESS_WISHES_MPESA_CONSUMER_KEY:'dedicated-key',SUCCESS_WISHES_MPESA_CONSUMER_SECRET:'dedicated-secret',SUCCESS_WISHES_MPESA_PASSKEY:'dedicated-passkey'})
   const create={action:'create',...card,payerPhone:'0712345678'}
   assert.equal((await call({...create,deliveryPhone:''})).status,400);assert.equal(order,null)
   assert.equal((await call({...create,paid:true})).status,400);assert.equal(order,null)
@@ -40,10 +41,13 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
   assert.equal((await call(create)).status,200)
   assert.equal((await call({...create,message:'Changed retry'})).status,409)
   assert.equal((await call({...create,deliveryPhone:'0733000112'})).status,409)
+  delete process.env.SUCCESS_WISHES_MPESA_PASSKEY
+  const unavailable=await (await call({action:'pay'})).json();assert.equal(unavailable.order.state,'created');assert.equal(unavailable.paymentError,'Payment couldn’t start.');assert.equal(prompts,0)
+  process.env.SUCCESS_WISHES_MPESA_PASSKEY='dedicated-passkey'
   gatewayStatus=-1
   const unknown=await call({action:'pay'});assert.equal(unknown.status,503);assert.equal(Object.hasOwn(await unknown.json(),'paymentError'),false);assert.equal(prompts,0)
   gatewayStatus=401
-  const denied=await (await call({action:'pay'})).json();assert.equal(denied.order.state,'created');assert.equal(denied.paymentError,'Payment couldn’t start.');assert.equal(prompts,0)
+  const denied=await (await call({action:'pay',merchant:{partyB:'forged'}})).json();assert.equal(denied.order.state,'created');assert.equal(denied.paymentError,'Payment couldn’t start.');assert.equal(prompts,0)
   gatewayStatus=200
   assert.equal((await call({action:'pay'})).status,200)
   assert.equal((await call({action:'pay'})).status,200);assert.equal(prompts,1)

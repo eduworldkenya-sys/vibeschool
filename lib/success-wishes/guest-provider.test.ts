@@ -5,22 +5,23 @@ import ts from 'typescript'
 type Row=Record<string,unknown>
 function fixture(name:string,row:Row,claim=true,result:Row={},probe:unknown=[],probeStatus=200,transportFailure=false,envOverrides:Record<string,string>={}){
  let handler:(r:Request)=>Promise<Response>
- const updates:Row[]=[],calls:string[]=[]
+ let claimCount=0
+ const updates:Row[]=[],calls:string[]=[],requests:{url:string;authorization:string|null;body:unknown}[]=[]
  const env:Record<string,string>={SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'server-secret',MPESA_ENV:'production',MPESA_SHORTCODE:'961580',MPESA_PARTY_B:'949529',MPESA_TRANSACTION_TYPE:'CustomerBuyGoodsOnline',MPESA_CONSUMER_KEY:'key',MPESA_CONSUMER_SECRET:'secret',MPESA_PASSKEY:'passkey'}
  Object.assign(env,envOverrides)
- const db={rpc:async()=>({data:claim,error:null}),from:()=>{
+ const db={rpc:async()=>{claimCount++;return {data:claim,error:null}},from:()=>{
   let patch:Row|undefined,states:string[]|undefined,matched=true
   const chain={select:()=>chain,eq:(k:string,v:unknown)=>{if(row[k]!==v)matched=false;return chain},is:(k:string,v:unknown)=>{if((row[k]??null)!==v)matched=false;return chain},in:(_k:string,v:string[])=>{states=v;return chain},update:(p:Row)=>{patch=p;return chain},single:async()=>({data:matched?row:null,error:null}),maybeSingle:async()=>({data:matched?row:null,error:null}),then:(resolve:(v:unknown)=>unknown)=>{if(matched&&patch&&(!states||states.includes(row.state as string))){updates.push(patch);Object.assign(row,patch)}return Promise.resolve({error:null}).then(resolve)}}
   return chain
  }}
  const source=readFileSync(new URL('../../supabase/functions/'+name+'/index.ts',import.meta.url),'utf8').replace(/import \{createClient\} from 'npm:[^']+'/,'')
  const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}}).outputText
- const fetcher=async(url:string)=>{calls.push(url);if(transportFailure)throw Error('Synthetic transport failure');if(url.includes('/rest/v1/'))return new Response(JSON.stringify(probe),{status:probeStatus});return new Response(JSON.stringify(url.includes('/oauth/')?{access_token:'test-access-token'}:result),{status:200})}
+ const fetcher=async(url:string,options?:RequestInit)=>{calls.push(url);requests.push({url,authorization:new Headers(options?.headers).get('authorization'),body:options?.body?JSON.parse(String(options.body)):null});if(transportFailure)throw Error('Synthetic transport failure');if(url.includes('/rest/v1/'))return new Response(JSON.stringify(probe),{status:probeStatus});return new Response(JSON.stringify(url.includes('/oauth/')?{access_token:'test-access-token'}:result),{status:200})}
  new Function('Deno','createClient','fetch','crypto',js)({env:{get:(k:string)=>env[k]},serve:(f:typeof handler)=>{handler=f}},()=>db,fetcher,crypto)
- return {handle:(r:Request)=>handler(r),updates,calls}
+ return {handle:(r:Request)=>handler(r),updates,calls,requests,get claimCount(){return claimCount}}
 }
 const id='33333333-3333-4333-8333-333333333333'
-const req=(action:string,auth='server-secret')=>new Request('https://example.supabase.co/functions/v1/success-wishes-checkout',{method:'POST',headers:{authorization:'Bearer '+auth},body:JSON.stringify({action,id})})
+const req=(action:string,auth='server-secret',merchant?:unknown)=>new Request('https://example.supabase.co/functions/v1/success-wishes-checkout',{method:'POST',headers:{authorization:'Bearer '+auth},body:JSON.stringify({action,id,...(merchant!==undefined?{merchant}:{})})})
 const query={ResponseCode:'0',ResultCode:'0',CheckoutRequestID:'CHECKOUT1',MerchantRequestID:'MERCHANT1'}
 const pending=()=>({id,state:'awaiting_customer',payer_phone:'254712345678',checkout_id:'CHECKOUT1',merchant_id:'MERCHANT1',updated_at:'2020-01-01',callback_event:{resultCode:0,amount:50,phone:254712345678,receipt:'QAONLY123',checkout:'CHECKOUT1',merchant:'MERCHANT1'}})
 test('browser credentials and unclaimed orders cannot call Safaricom',async()=>{
@@ -83,5 +84,32 @@ test('auth probe network failure fails closed and missing provider config never 
  assert.equal(missing.calls.length,0);assert.equal(missing.updates.length,0)
  const oauth=fixture('success-wishes-checkout',{id,state:'created'},true,{},[],200,true)
  assert.equal((await oauth.handle(req('pay'))).status,503)
- assert.equal(oauth.updates.length,0);assert.equal(oauth.calls.filter(c=>c.includes('processrequest')).length,0)
+ assert.equal(oauth.updates.length,0);assert.equal(oauth.claimCount,0);assert.equal(oauth.calls.filter(c=>c.includes('processrequest')).length,0)
+})
+
+const dedicatedMerchant=()=>({environment:'production',shortcode:'961580',partyB:'949529',transactionType:'CustomerBuyGoodsOnline',consumerKey:'wish-key',consumerSecret:'wish-secret',passkey:'wish-passkey'})
+test('dedicated merchant configuration ignores unrelated shared sandbox routing',async()=>{
+ const f=fixture('success-wishes-checkout',{id,state:'created'},false,{},[],200,false,{MPESA_ENV:'sandbox',MPESA_SHORTCODE:'174379'})
+ assert.equal((await f.handle(req('health','server-secret',dedicatedMerchant()))).status,200)
+ assert.equal(f.requests[0].authorization,'Basic '+btoa('wish-key:wish-secret'))
+ assert.equal(f.calls.filter(c=>c.includes('processrequest')).length,0);assert.equal(f.updates.length,0)
+})
+test('invalid supplied merchant cannot downgrade to valid shared configuration or reach provider',async()=>{
+ for(const merchant of [null,{},[],{...dedicatedMerchant(),partyB:'another-till'},{...dedicatedMerchant(),environment:'sandbox'},{...dedicatedMerchant(),passkey:''},{...dedicatedMerchant(),consumerKey:'x'.repeat(2049)}]){
+  const f=fixture('success-wishes-checkout',{id,state:'created'})
+  assert.equal((await f.handle(req('pay','server-secret',merchant))).status,503)
+  assert.equal(f.calls.length,0);assert.equal(f.updates.length,0);assert.equal(f.claimCount,0)
+ }
+ const denied=fixture('success-wishes-checkout',{id,state:'created'})
+ assert.equal((await denied.handle(req('pay','user-token',dedicatedMerchant()))).status,401)
+ assert.equal(denied.calls.length,0);assert.equal(denied.updates.length,0);assert.equal(denied.claimCount,0)
+})
+test('concurrent health requests keep each service-provided credential isolated',async()=>{
+ const f=fixture('success-wishes-checkout',{id,state:'created'})
+ const first=dedicatedMerchant(),second={...dedicatedMerchant(),consumerKey:'second-key',consumerSecret:'second-secret'}
+ const responses=await Promise.all([f.handle(req('health','server-secret',first)),f.handle(req('health','server-secret',second))])
+ assert.deepEqual(responses.map(r=>r.status),[200,200])
+ assert.deepEqual(f.requests.map(r=>r.authorization).sort(),['Basic '+btoa('wish-key:wish-secret'),'Basic '+btoa('second-key:second-secret')].sort())
+ assert.equal(f.updates.length,0)
+ for(const response of responses)assert.deepEqual(await response.json(),{ready:true},'Credentials never appear in health responses')
 })
