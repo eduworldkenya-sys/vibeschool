@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { NextRequest } from 'next/server'
-import { GET, PUT, DELETE } from '../../app/api/success-wishes/receiver/card/route'
+import { GET, PUT, DELETE, POST as claimCard } from '../../app/api/success-wishes/receiver/card/route'
 import { DELETE as logoutInbox } from '../../app/api/success-wishes/receiver/inbox/route'
 import { enrolRecovery, inboxDigest } from './receiver-otp'
 import { receiverDatabase, sessionDigest } from './receiver'
@@ -78,4 +78,16 @@ test('enabled receiver denies copied links and cross-recipient sessions; preserv
   const hostile=await DELETE(new NextRequest(origin+'/api/success-wishes/receiver/card',{method:'DELETE',headers:{origin:'https://other.example'}}))
   assert.equal(hostile.status,403);assert.equal(hostile.cookies.getAll().length,0)
  }finally{globalThis.fetch=original;for(const key of Object.keys(process.env))if(!(key in saved))delete process.env[key];Object.assign(process.env,saved)}
+})
+
+
+test('short card codes cannot be enumerated or opened before the intended phone is verified',async()=>{
+  for(const code of ['K7M4Q9','X9Z1P4']){
+    const response=await claimCard(new NextRequest(origin+'/api/success-wishes/receiver/card',{
+      method:'POST',headers:{origin,'content-type':'application/json'},body:JSON.stringify({code}),
+    }))
+    assert.equal(response.status,401)
+    assert.equal(response.cookies.getAll().length,0)
+    assert.equal((await response.json()).error,'Verify your phone before using a short card code.')
+  }
 })
