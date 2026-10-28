@@ -5,11 +5,11 @@ import { canRecoverFromPhone, selectRecoveryIdentity, type RecoveryIdentity } fr
 
 const phone = '+254712345678'
 const secret = 'ABCD1234EFGH5678'
-const env = { SUCCESS_WISHES_VERIFICATION_SECRET: 'a-secret-string-longer-than-32-characters-for-tests' }
+process.env.SUCCESS_WISHES_VERIFICATION_SECRET = 'a-secret-string-longer-than-32-characters-for-tests'
 function receiver(id: string, role: 'adult'|'guardian'|null = 'adult'): RecoveryIdentity {
   return { id, phone_e164: phone, guardian_phone_e164: role === 'guardian' ? '+254733333333' : null,
     consent_route: role, consent_status: 'verified',
-    recovery_secret_hash: recoveryDigest(id, secret, env) }
+    recovery_secret_hash: recoveryDigest(id, secret) }
 }
 test('phone-only recovery selects exactly one verified adult or legacy recipient',()=>{
   const adult=receiver('adult')
@@ -29,5 +29,8 @@ test('minor guardian approval cannot be bypassed with a student number',()=>{
 test('shared guardian phone requires an individually matching backup code',()=>{
   const a=receiver('a','guardian'),b=receiver('b','guardian')
   assert.equal(selectRecoveryIdentity([a,b],'+254733333333'),null)
-  assert.equal(selectRecoveryIdentity([a,b],'+254733333333',secret),null, 'Tests need correctly hashed fixture with process environment')
+  assert.equal(selectRecoveryIdentity([a,b],'+254733333333',secret),null)
+  const distinct={...b,recovery_secret_hash:recoveryDigest('b','QWER1234TYUI5678')}
+  assert.equal(selectRecoveryIdentity([a,distinct],'+254733333333',secret),a)
+  assert.equal(selectRecoveryIdentity([a,distinct],'+254733333333','WRONG1234CODE5678'),null)
 })
