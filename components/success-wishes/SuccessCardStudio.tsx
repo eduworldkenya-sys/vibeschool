@@ -116,6 +116,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
   const [previewSession, setPreviewSession] = useState(0)
+  const [previewReached, setPreviewReached] = useState(false)
+  const previewRef = useRef<HTMLDivElement>(null)
   const [candidate, setCandidate] = useState(initialDraft?.candidate || '')
   const [sender, setSender] = useState(initialDraft?.sender || '')
   const [message, setMessage] = useState(initialDraft?.message || '')
@@ -143,6 +145,16 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     examYear: /^20\d{2}$/.test(examYear) ? '' : 'Enter a four-digit exam year, such as 2026.',
   }
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  useEffect(() => {
+    const element = previewRef.current
+    if (!element) return
+    if (typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) setPreviewReached(true)
+    }, { threshold: 0.1 })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
   const ready = Boolean(!Object.values(fieldErrors).some(Boolean) && (selectedVersion === 'text' || mediaFile))
   function handleSendWish() {
     if (!ready) return
@@ -360,13 +372,13 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
             <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</strong></p>
-            <button type="button" className={styles.primary} disabled={!ready} onClick={handleSendWish}>{selectedVersion !== 'text' ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>
+            {(selectedVersion !== 'text' || ready) && <button type="button" className={styles.primary} disabled={!ready} onClick={handleSendWish}>{selectedVersion !== 'text' ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>}
           </div>
         </div>
-        <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
+        <div className={styles.live} id="wish-preview" ref={previewRef} onClickCapture={() => setPreviewReached(true)}><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
           <BookCard senderPreview key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
-          {selectedVersion === 'text' && <div className={styles.previewSend}>
-            <button type="button" className={styles.primary} disabled={!ready} onClick={handleSendWish}>Send this wish <ChevronRight size={18}/></button>
+          {selectedVersion === 'text' && ready && previewReached && <div className={styles.previewSend}>
+            <button type="button" className={styles.primary} onClick={handleSendWish}>Send this wish <ChevronRight size={18}/></button>
           </div>}
           {(testMode && selectedVersion === 'text' || order) && <div className={styles.checkoutSummary}>
             {testMode && selectedVersion === 'text' ? <>
