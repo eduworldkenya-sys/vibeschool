@@ -39,33 +39,34 @@ export default function PrivateGiftPage(){
     }catch(reason){setError(reason instanceof Error?reason.message:'The gift could not be opened.');return false}
   }
   function play(){sound.current?.();sound.current=playWishRevealSound()}
-  return <main className="min-h-screen bg-[#0A0D14] px-4 py-8 text-[#F3E5AB]">
-    <div className="mx-auto flex max-w-2xl flex-col items-center gap-6">
-      <header className="flex w-full items-center justify-between gap-3">
-        <Link href="/success-wishes" className="text-sm text-[#F3E5AB] underline-offset-4 hover:underline">VibeSchool · Success Wishes</Link>
-        <button type="button" onClick={()=>{setSoundEnabled(value=>!value);sound.current?.()}}
-          className="rounded-lg border border-[#D4AF37]/40 px-3 py-2 text-xs"
+  const buttonStyle={background:'#111722',color:'#F3E5AB',border:'1px solid #D4AF37',borderRadius:9,padding:'10px 14px',cursor:'pointer'} as const
+  return <main style={{minHeight:'100vh',background:'#0A0D14',padding:'32px 16px',color:'#F3E5AB'}}>
+    <div style={{maxWidth:720,margin:'0 auto',display:'grid',gap:24}}>
+      <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+        <Link href="/success-wishes" style={{color:'#F3E5AB',fontSize:14}}>VibeSchool · Success Wishes</Link>
+        <button type="button" style={buttonStyle} onClick={()=>{setSoundEnabled(value=>!value);sound.current?.()}}
           aria-label={soundEnabled?'Mute card opening sound':'Turn card opening sound on'}
           aria-pressed={soundEnabled}>{soundEnabled?'Sound on':'Sound off'}</button>
       </header>
-      <div className="space-y-2 text-center"><p className="text-xs uppercase tracking-[.18em] text-[#D4AF37]">A private surprise</p>
-        <h1 className="font-serif text-3xl font-semibold">Someone believes in you.</h1>
-        <p className="text-sm text-slate-300">{gift?'A special Success Wish for '+gift.candidate:'Your gift is being opened privately.'}</p>
+      <div style={{textAlign:'center'}}>
+        <p style={{color:'#D4AF37',fontSize:12,letterSpacing:2}}>A PRIVATE SURPRISE</p>
+        <h1 style={{fontFamily:'Georgia,serif',fontSize:30,margin:'8px 0'}}>Someone believes in you.</h1>
+        <p style={{fontSize:14,color:'#C3C7D1'}}>{gift?'A special Success Wish for '+gift.candidate:'Your gift is being opened privately.'}</p>
       </div>
-      {busy&&<p role="status" className="text-sm text-slate-300">Finding your gift…</p>}
-      {error&&<p role="alert" className="max-w-md text-center text-sm text-red-300">{error}</p>}
-      {gift&&!busy&&<section aria-label="Your private Success Wish" className="w-full">
+      {busy&&<p role="status">Finding your gift…</p>}
+      {error&&<p role="alert" style={{color:'#FCA5A5',textAlign:'center'}}>{error}</p>}
+      {gift&&!busy&&<section aria-label="Your private Success Wish">
         <ReceiverEnvelope receiverView template={gift.theme} values={{candidate:gift.candidate,school:gift.school,examYear:gift.examYear,sender:gift.sender||'',message:gift.message||''}}
           soundEnabled={soundEnabled} onOpen={play} beforeOpen={reveal} onOpenedChange={setOpened}/>
       </section>}
-      {gift&&<p className="max-w-md text-center text-xs leading-6 text-slate-400">
+      {gift&&<p style={{fontSize:13,lineHeight:1.6,color:'#C3C7D1',textAlign:'center'}}>
         {opened?'You can close and reopen your card.':'Tap the sealed card to read your message.'}
         {' '}Keep this private link to revisit your gift. Anyone with the link can open it.
       </p>}
-      <div className="flex items-center gap-5 text-sm">
-        <Link href="/success-wishes" className="text-[#D4AF37] underline-offset-4 hover:underline">Send a wish</Link>
-        <Link href="/legal/privacy" className="text-slate-400 underline-offset-4 hover:underline">Privacy</Link>
-      </div>
+      <nav style={{display:'flex',justifyContent:'center',gap:24,fontSize:14}}>
+        <Link href="/success-wishes" style={{color:'#D4AF37'}}>Send a wish</Link>
+        <Link href="/legal/privacy" style={{color:'#C3C7D1'}}>Privacy</Link>
+      </nav>
     </div>
   </main>
 }
