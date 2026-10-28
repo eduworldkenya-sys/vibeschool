@@ -81,7 +81,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       if (mounted.current && current === generation.current) setChecking(false)
     }
   }
-  function close(replay = false) {
+  function close() {
     if (lock.current || phaseRef.current !== 'opened') return
     lock.current = true
     move('closing')
@@ -89,8 +89,6 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     delay(() => {
       move('sealed')
       lock.current = false
-      // open() reads phaseRef, so replay cannot use stale React state.
-      if (replay) delay(() => { void open() }, 80)
     }, 700)
   }
   const theme = palette[template]
@@ -136,7 +134,6 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     </div>
     {opened && <div className={styles.actions}>
       <button ref={closeButton} type="button" onClick={() => close()} aria-label="Close the book card">Close card</button>
-      {senderPreview && <button type="button" onClick={() => close(true)} aria-label="Replay opening">Replay opening</button>}
     </div>}
     {busy && <span role="status" className={styles.status}>{checking ? 'Checking access…' : phase === 'closing' ? 'Closing card…' : 'Opening your wish…'}</span>}
     {error && <p role="alert" className={styles.error}>{error}</p>}

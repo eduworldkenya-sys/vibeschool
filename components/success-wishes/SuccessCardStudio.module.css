@@ -497,3 +497,8 @@
 .openWishCta:hover,.openWishCta:focus-visible{background:#f4eefc}
 @media(max-width:560px){.header .brandLogo{width:130px}.header .brand>small{font-size:9px;letter-spacing:1px}.headerWishes{font-size:11px;padding:5px 4px}}
 @media(max-width:520px){.entryActions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.entryActions .heroCta,.openWishCta{font-size:13px;padding:10px 8px}}
+
+/* The completion action follows the full card preview; the form CTA remains in place. */
+.previewSend{display:flex;justify-content:flex-end;width:100%;max-width:560px;margin:14px auto 0}
+.previewSend .primary{width:100%;min-height:50px;padding:12px 22px;font-size:14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:10px}
+@media(min-width:851px){.previewSend .primary{max-width:260px}}
