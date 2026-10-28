@@ -132,6 +132,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
   const [freeKey, setFreeKey] = useState<string | null>(null)
+  useEffect(() => { setFreeKey(null) }, [theme,candidate,sender,message,examYear,school])
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const stopSound = useRef<(() => void) | null>(null)
