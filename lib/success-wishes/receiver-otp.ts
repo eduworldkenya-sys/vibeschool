@@ -4,7 +4,7 @@ import { WishError } from './contracts'
 import { takeAttempt } from './server'
 import { receiverDatabase } from './receiver'
 import { hashSecret } from './security'
-import { newSixCharacterRecoveryCode } from './recovery-code'
+import { newSixCharacterRecoveryCode } from './recovery-code-server'
 import { hashedPhoneRateKey, newOtp, otpDigest, recoveryDigest, sendReceiverSms } from './receiver-sms'
 
 export const INBOX_COOKIE = 'vs_wishes_receiver'
