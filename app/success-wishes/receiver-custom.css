@@ -596,3 +596,23 @@
 .receiver-gift-focus [data-receiver-view]{margin-inline:auto}
 .receiver-gift-focus .receiver-content main{max-width:760px}
 @media(max-width:767px){.receiver-gift-focus .receiver-content main{padding-top:12px;padding-bottom:20px}.receiver-gift-focus .receiver-bottom{z-index:30}}
+
+/* The mobile drawer is a navigation panel, not a stretched desktop sidebar.
+   Brand never shares the close button's space. No identity truncation at 320px. */
+.receiver-brand{flex-direction:column;align-items:flex-start;justify-content:center;gap:1px}
+.receiver-brand .receiver-wordmark{width:146px;max-width:100%;height:auto}
+.receiver-brand .receiver-brand-label{margin:0;padding:0 0 0 4px;border:0;color:#f1dda5;white-space:normal;letter-spacing:1px;font-size:9px}
+.receiver-drawer-heading{gap:12px;min-width:0}
+.receiver-drawer-heading .receiver-brand{flex:1 1 0;max-width:calc(100% - 56px);min-width:0}
+.receiver-drawer-heading .receiver-wordmark{max-width:100%;width:140px}
+.receiver-drawer-heading>button{flex:0 0 44px}
+.receiver-drawer>div{width:min(304px,88vw);padding:20px 16px calc(20px + env(safe-area-inset-bottom));gap:12px}
+.receiver-drawer .receiver-drawer-heading{padding-bottom:14px}
+.receiver-drawer nav{gap:4px}
+.receiver-drawer nav a{min-height:44px;padding:9px 12px;gap:12px}
+.receiver-drawer .receiver-drawer-name{margin:0;font-size:12px}
+@media(max-width:767px){
+  .receiver-mobile-header>.receiver-brand{min-width:0;flex:1}
+  .receiver-mobile-header .receiver-wordmark{width:128px;max-width:100%}
+  .receiver-mobile-header .receiver-brand-label{font-size:8px}
+}
