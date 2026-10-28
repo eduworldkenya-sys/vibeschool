@@ -103,14 +103,15 @@ async function run() {
     const page=await context.newPage();page.setDefaultTimeout(20000)
     setupMocks(page)
     await page.goto(ROOT+'/success-wishes/open',{waitUntil:'networkidle'})
+    assert.equal(await page.locator('.receiver-brand img[src*="vibeschool-wordmark-dark.svg"]').count() > 0, true, 'Official VibeSchool wordmark appears in receiver shell')
     assert.deepEqual(await page.locator('.receiver-theme').evaluate(el=>{
       const style=getComputedStyle(el)
       return {pointer:style.pointerEvents,animation:style.animationName,transform:style.transform}
     }),{pointer:'auto',animation:'none',transform:'none'},'Receiver root must remain tappable and stationary in minified production CSS')
     await page.getByRole('textbox',{name:'Card Access Code',exact:true}).fill('TEST-INVALID-CODE')
-    await page.getByRole('button',{name:'Open My Card',exact:true}).click()
+    await page.getByRole('button',{name:'Open my wish',exact:true}).click()
     await page.getByRole('alert').filter({hasText:'This card link or access code is invalid.'}).waitFor()
-    await page.getByRole('link',{name:'Try Demo Inbox — No Code Required',exact:true}).click()
+    await page.getByRole('link',{name:'View sample inbox',exact:true}).click()
     await page.getByRole('heading',{name:'Your little collection of joy.'}).waitFor()
     await context.close()
   }
@@ -141,13 +142,17 @@ async function run() {
     assert.equal(state.verified,true,'Guardian approval must be completed')
     await assertNoOverflow(page,'guardian verification at '+width)
     await page.getByRole('link',{name:'Open my inbox'}).click()
-    await page.getByRole('heading',{name:'Wish Vault Inbox'}).waitFor()
+    await page.getByRole('heading',{name:'My wishes'}).waitFor()
     // Heading renders before the async inbox GET finishes; count() alone races hydration.
     // Wait for the server-backed cards, not only the static page heading.
     await page.waitForFunction(() => document.querySelectorAll('button[aria-label^="Open"][aria-label$="private wish"]').length===2)
     assert.equal(await page.locator('button[aria-label^="Open"][aria-label$="private wish"]').count(),2,'Two gifts share one inbox')
     await assertNoOverflow(page,'two-gift inbox at '+width)
     assert.equal(await page.locator('.receiver-bottom:visible').count(),width<768?1:0,'Exactly one mobile bottom bar')
+    if (width < 768) {
+      assert.equal(await page.locator('.receiver-bottom').getByText('My wishes',{exact:true}).count(),1,'Bottom navigation uses familiar wishes label')
+      assert.equal(await page.locator('.receiver-bottom').getByText('Open',{exact:true}).count(),1,'Bottom navigation uses familiar opening label')
+    }
     assert.equal(await page.locator('.receiver-sidebar:visible').count(),width>=768?1:0,'Desktop sidebar follows breakpoint')
     assert.match(await page.locator('.receiver-theme').evaluate(el=>getComputedStyle(el).fontFamily),/Receiver Plus Jakarta Sans/,'Reference font is applied')
     if(width<768){
@@ -191,7 +196,7 @@ async function run() {
     assert.match(page.url(),/\/recover$/)
     await page.getByRole('textbox',{name:'SMS verification code'}).fill('123456')
     await page.getByRole('button',{name:'Open my inbox'}).click()
-    await page.getByRole('heading',{name:'Wish Vault Inbox'}).waitFor()
+    await page.getByRole('heading',{name:'My wishes'}).waitFor()
     await assertNoOverflow(page,'recovered inbox at '+width)
     console.log('Receiver controlled browser pass:',width)
     await ctx.close()
