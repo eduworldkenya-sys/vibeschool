@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Check, ChevronRight, Volume2, VolumeX } from 'lucide-react'
 import SenderMediaCapture from './SenderMediaCapture'
-import WishCheckout from './WishCheckout'
 import { useSenderDraft } from './useSenderDraft'
 import type { SenderDraft } from '@/lib/success-wishes/sender-draft'
 import { wrapCardText } from '@/lib/success-wishes/card-text'
@@ -132,7 +131,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
-  const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [freeKey, setFreeKey] = useState<string | null>(null)
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
@@ -145,7 +143,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     sender: sender.trim() ? '' : 'Enter your name.',
     message: message.trim() ? '' : 'Write a wish or choose a starter below.',
     examYear: /^20\d{2}$/.test(examYear) ? '' : 'Enter a four-digit exam year, such as 2026.',
-    deliveryPhone: /^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(deliveryPhone.trim().replace(/[ ()-]/g, '')) ? '' : 'Enter the phone number that should receive this wish.',
+    deliveryPhone: !deliveryPhone.trim() || /^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(deliveryPhone.trim().replace(/[ ()-]/g, '')) ? '' : 'Enter the phone number that should receive this wish.',
   }
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   useEffect(() => {
@@ -387,6 +385,5 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {false && checkoutOpen && <WishCheckout theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }
