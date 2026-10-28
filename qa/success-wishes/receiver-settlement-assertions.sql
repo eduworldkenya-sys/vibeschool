@@ -70,7 +70,9 @@ begin
   );
   if not first_issued.newly_issued or first_issued.issued_card_id is null
     or first_issued.link_secret !~ '^[a-f0-9]{64}$'
-    or first_issued.access_code !~ '^[A-Z0-9]{6}
+    or first_issued.access_code !~ '^[A-Z0-9]{6}$'
+    or first_issued.access_code !~ '[A-Z]'
+    or first_issued.access_code !~ '[0-9]'
   then raise exception 'Real paid issue did not return guarded high-entropy credentials'; end if;
 
   select link_hash,code_hash into stored
