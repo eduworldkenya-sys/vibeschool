@@ -483,3 +483,11 @@
 @media(max-width:420px){.draftStatus{align-items:flex-start;flex-direction:column}}
 .composer>*{min-width:0;max-width:100%}
 @media(max-width:850px){.composer{grid-template-columns:minmax(0,1fr)}}
+
+/* Shared VibeSchool identity and two obvious journey entrances. */
+.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;max-width:100%}.brandLogo{width:145px;height:auto;max-width:100%;display:block}.brand>small{font-size:10px;letter-spacing:1px;color:#6a537e;font-weight:800;border-left:1px solid #d8cde6;padding-left:10px}
+.entryActions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px}
+.entryActions .heroCta,.openWishCta{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 17px;text-decoration:none;border-radius:10px;font-size:14px;font-weight:750}
+.openWishCta{border:1px solid #9e83cd;color:#6237a8;background:#fff}
+.openWishCta:hover,.openWishCta:focus-visible{background:#f4eefc}
+@media(max-width:520px){.brandLogo{width:124px}.brand>small{font-size:9px}.entryActions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.entryActions .heroCta,.openWishCta{font-size:13px;padding:10px 8px}}
