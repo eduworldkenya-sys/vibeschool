@@ -365,8 +365,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         </div>
         <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
           <BookCard senderPreview key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
-          {selectedVersion === 'text' && <div className={styles.previewSend}>
-            <button type="button" className={styles.primary} disabled={!ready} onClick={handleSendWish}>Send this wish <ChevronRight size={18}/></button>
+          {selectedVersion === 'text' && ready && <div className={styles.previewSend}>
+            <button type="button" className={styles.primary} onClick={handleSendWish}>Send this wish <ChevronRight size={18}/></button>
           </div>}
           {(testMode && selectedVersion === 'text' || order) && <div className={styles.checkoutSummary}>
             {testMode && selectedVersion === 'text' ? <>
