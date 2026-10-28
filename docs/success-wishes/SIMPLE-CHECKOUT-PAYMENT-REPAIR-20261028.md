@@ -30,6 +30,10 @@ GET `/api/success-wishes/checkout` is a rate-limited, read-only readiness probe:
 
 Rollback: disable the dedicated `success_wishes_enabled` switch to stop new wish claims while preserving reconciliation; revert the application/function change together and restore the previous function's `verify_jwt=true`. Do not revert to a body without its own authentication while leaving the gateway check disabled. Do not retry or reset ambiguous existing attempts. No migration or data rewrite is needed.
 
+## CI dependency repair
+
+The first candidate CI exposed an existing delayed cursor callback in the wish starter. It could run between a sender selecting replacement text and typing, appending the new wish to the starter. Remove that delayed cursor mutation while retaining synchronous focus within the user gesture. The existing exact-message browser assertion is retained, and the disabled checkout test now proves the single Pay action makes only a rejected create request, never a payment request.
+
 ## Remaining production proof
 
 After release, verify the exact deployed revision, readiness response, anonymous/user denials, and the original order's unchanged state. The owner must initiate the real KSh 50 trial through the UI; actual STK acceptance, receiving Till, receipt, independently verified settlement and accessible private gift still require genuine provider evidence. Code/UI assurance must not be presented as financial settlement certification.

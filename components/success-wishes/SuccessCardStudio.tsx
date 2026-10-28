@@ -342,9 +342,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
               setMessage(starter.message)
               // Keep focus inside the user gesture so mobile keyboards open reliably.
               messageInputRef.current?.focus()
-              window.requestAnimationFrame(() => {
-                messageInputRef.current?.setSelectionRange(starter.message.length, starter.message.length)
-              })
+              // Do not move the cursor later: the sender may already be replacing this text.
             }}>{starter.label}</button>)}</div>
           </div>
           <p className={styles.counter}>{message.length}/220 characters</p>

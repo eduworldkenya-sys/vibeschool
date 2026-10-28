@@ -32,7 +32,10 @@
       "app/api/success-wishes/checkout/route.ts",
       "supabase/config.toml",
       "lib/success-wishes/guest-provider.test.ts",
-      "lib/success-wishes/guest-checkout-route.test.ts"
+      "lib/success-wishes/guest-checkout-route.test.ts",
+      "components/success-wishes/SuccessCardStudio.tsx",
+      "qa/success-wishes/disabled-browser.cjs",
+      "qa/success-wishes/guest-checkout-assertions.sql"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -513,7 +516,7 @@
   "state": "MISSION",
   "learningClosure": false,
   "createdAt": "2026-10-28T12:08:33.606Z",
-  "updatedAt": "2026-10-28T12:23:31.986Z",
+  "updatedAt": "2026-10-28T12:30:45.942Z",
   "journalPath": ".cyborg/journal/CYBORG-20261028120833-e5b553.ndjson",
   "activation": {
     "runtime": false,
@@ -522,5 +525,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "6b76ad3f2d877274ab30a91cd5b0d4efc686fe00a32ddc6cbd51c6e5c33cc60d"
+  "lastJournalHash": "dbdff585cc3bf30aba13b395dcc1f4c6dc6c56846eb58baa3b8aed11c9fd7f1b"
 }
