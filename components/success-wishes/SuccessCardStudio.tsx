@@ -382,6 +382,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {checkoutOpen && <WishCheckout theme={theme} values={values} recipientRequest={recipientRequest} onClose={() => setCheckoutOpen(false)}/>}
+    {checkoutOpen && <WishCheckout theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }
