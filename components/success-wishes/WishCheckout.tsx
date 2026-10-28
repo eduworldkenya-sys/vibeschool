@@ -28,6 +28,7 @@ export default function WishCheckout({theme,values,recipientRequest='',onClose}:
   void restore();return()=>{alive.current=false;previous?.focus()}
  },[call])
  const orderId=order?.id,orderState=order?.state
+ const hasRequestLink=Boolean(recipientRequestToken(recipient))
  useEffect(()=>{
   if(!orderId||!orderState||!pendingCheckout(orderState)||!autoCheck)return
   const deadline=Date.now()+180000
@@ -62,15 +63,19 @@ export default function WishCheckout({theme,values,recipientRequest='',onClose}:
  }
  return <div className={styles.modalBackdrop} onKeyDown={trap}><section ref={dialog} tabIndex={-1} className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={id}>
   <button type="button" className={styles.modalClose} aria-label="Close checkout" onClick={onClose}><X size={20}/></button>
-  <p className={styles.eyebrow}>M-PESA CHECKOUT</p><h2 id={id}>{order?.state==='settled'?'Your wish is ready':order?'Your saved order':review?'Review before paying':'Send a Success Wish'}</h2>
+  <p className={styles.eyebrow}>M-PESA CHECKOUT</p><h2 id={id}>{order?.state==='settled'?'Your wish is ready':order?'Your saved order':review?'Review your wish':'Your order'}</h2>
   <div className={styles.checkoutOrder}><CardArt template={order?.card.theme||theme} values={order?.card||values} preview/><div><strong>Text Wish · {order?.card.candidate||values.candidate}</strong><span>{order?.card.school??values.school}</span><span>{order?.card.examYear||values.examYear} exams</span></div></div>
-  {restoring?<p role="status">Checking for an existing order…</p>:!order?<form noValidate onSubmit={e=>{e.preventDefault();if(review){void act('create');return}try{normalizeSafaricomPhone(phone);if(!recipientRequestToken(recipient))throw Error('Add the recipient’s private wish request link.');setReview(true);setError('')}catch(e){setError(e instanceof Error?e.message:'Check your details.')}}}>
-   <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={review||busy} onChange={e=>setPhone(e.target.value)} placeholder="0712 345 678"/></label>
-   <label className={styles.checkoutLabel}>Recipient’s private wish request link<input autoComplete="off" value={recipient} disabled={review||busy} onChange={e=>setRecipient(e.target.value)} placeholder="Paste the link shared by the recipient"/></label>
-   <p className={styles.checkoutDisclosure}>Ask the recipient or their guardian for a private link from My wishes → Request a wish. Recipient verification is required before payment.</p>
+  {restoring?<p role="status">Checking for an existing order…</p>:!order?<form noValidate onSubmit={e=>{e.preventDefault();if(review){if(hasRequestLink)void act('create');return}try{normalizeSafaricomPhone(phone);setReview(true);setError('')}catch(e){setError(e instanceof Error?e.message:'Check your details.')}}}>
+   {!review?<><fieldset className={styles.numberPicker}><legend>Choose a number prefix</legend>{['07','01','+254'].map(prefix=><button key={prefix} type="button" aria-pressed={phone.startsWith(prefix)} disabled={busy} onClick={()=>setPhone(prefix)}>{prefix}</button>)}</fieldset>
+    <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label></>:<p className={styles.checkoutFine}>M-Pesa number: <strong>{phone}</strong></p>}
    <div className={styles.orderTotal}>Total <strong>KSh 50</strong></div><p className={styles.checkoutFine}>Pay to Till 949529. Enter your PIN only in the Safaricom prompt on your phone.</p>
-   {review&&<p className={styles.checkoutNotice}>First we save your exact card and verify its recipient. You confirm the saved order before an M-Pesa prompt is sent.</p>}
-   <div className={styles.checkoutActions}>{review&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>setReview(false)}>Edit details</button>}<button type="submit" className={styles.primary} disabled={busy||!key}>{busy?'Saving…':review?'Save order & continue':'Review order'}</button></div>
+   {review&&<p className={styles.checkoutNotice}>Review only: no payment prompt has been sent. Your exact card will be saved before payment is requested.</p>}
+   <details className={styles.checkoutDisclosure}><summary>Have a private wish request link?</summary>
+    <label className={styles.checkoutLabel}>Recipient’s private wish request link<input autoComplete="off" value={recipient} disabled={busy} onChange={e=>{setRecipient(e.target.value);setError('')}} placeholder="Paste the link shared by the recipient"/></label>
+    <p>The payment service currently requires a verified recipient request. A name or school alone cannot enable payment.</p>
+   </details>
+   {review&&!hasRequestLink&&<p role="status" className={styles.checkoutNotice}>This card can be reviewed, but payment cannot start without a private request from a verified recipient. No order or charge has been started.</p>}
+   <div className={styles.checkoutActions}>{review&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>setReview(false)}>Edit number</button>}<button type="submit" className={styles.primary} disabled={busy||!key||(review&&!hasRequestLink)}>{busy?'Saving…':review?'Save order & continue':'Review order'}</button></div>
   </form>:<div aria-live="polite"><p role="status" className={styles.checkoutNotice}>{checkoutMessage(order.state)}</p><p>KSh {order.amountKes} · {order.payerPhone}</p><p>Order {order.id}</p>{order.receipt&&<p>M-Pesa receipt: {order.receipt}</p>}
    {order.state==='created'&&<button type="button" className={styles.primary} disabled={busy} onClick={()=>void act('pay')}>{busy?'Requesting payment…':'Pay KSh 50 with M-Pesa'}</button>}
    {pendingCheckout(order.state)&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>void act('status')}>{busy?'Checking…':'Check payment status'}</button>}
