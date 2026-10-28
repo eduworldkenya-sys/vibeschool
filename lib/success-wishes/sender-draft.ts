@@ -8,10 +8,11 @@ export type SenderDraft = {
   message: string
   examYear: string
   school: string
+  deliveryPhone?: string
 }
 
 export function hasSenderDraft(draft: SenderDraft) {
-  return Boolean(draft.candidate || draft.sender || draft.message || draft.school
+  return Boolean(draft.candidate || draft.sender || draft.message || draft.school || draft.deliveryPhone
     || draft.theme !== 'heritage' || draft.examYear !== '2026')
 }
 
@@ -31,8 +32,11 @@ export function decodeSenderDraft(raw: string | null, now = Date.now()): SenderD
       if (typeof draft[key] !== 'string' || draft[key].length > max) return null
     }
     if (!/^\d{0,4}$/.test(draft.examYear)) return null
+    if (draft.deliveryPhone !== undefined && (typeof draft.deliveryPhone !== 'string'
+      || (draft.deliveryPhone !== '' && !/^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(draft.deliveryPhone.trim().replace(/[ ()-]/g, ''))))) return null
     // Project allowed fields instead of carrying arbitrary stored properties forward.
     return { theme: draft.theme, candidate: draft.candidate, sender: draft.sender,
-      message: draft.message, examYear: draft.examYear, school: draft.school }
+      message: draft.message, examYear: draft.examYear, school: draft.school,
+      ...(draft.deliveryPhone !== undefined ? { deliveryPhone: draft.deliveryPhone } : {}) }
   } catch { return null }
 }
