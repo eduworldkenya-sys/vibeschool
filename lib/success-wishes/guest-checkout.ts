@@ -1,7 +1,7 @@
 import {NextRequest} from 'next/server'
 import {field,object,WishError} from './contracts'
 import {guestTextWishQuote} from './guest-checkout-contract'
-import {database,limit} from './server'
+import {database,revocationDatabase,takeAttempt} from './server'
 import {enabled,hashSecret} from './security'
 import {linkDigest,codeDigest} from './receiver'
 type DB=ReturnType<typeof database>
@@ -29,11 +29,20 @@ async function present(db:DB,key:string){
  return {id:o.id,state:o.state,amountKes:50,payerPhone:o.payer_phone,card:o.card,receipt:o.state==='settled'?o.provider_receipt:null,invitationUrl,backupCode}
 }
 export async function guestCheckout(req:NextRequest,raw:unknown){
- if(!enabled())throw new WishError(503,'Success Wishes checkout is not open yet. No new payment was requested.')
  const b=object(raw),key=field(b.key,64,64)
+ const isStatus=b.action==='status'
+ if(!isStatus&&!enabled())throw new WishError(503,'M-Pesa checkout is temporarily unavailable. No payment was requested.')
  if(!/^[a-f0-9]{64}$/.test(key))throw new WishError(400,'Invalid private order key.')
- const db=database(),ip=(req.headers.get('x-real-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').slice(0,100)
- await limit('guest-checkout:'+ip,40,60)
+ // A previously paid or pending order must remain recoverable even if new payments are switched off.
+ // The 256-bit order capability is required and recovery is rate-limited independently.
+ const db=isStatus&&!enabled()?revocationDatabase():database()
+ const ip=(req.headers.get('x-real-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').slice(0,100)
+ await takeAttempt(db,'guest-checkout:'+ip,40,60)
+ if(!isStatus){
+  const {data:control,error}=await db.from('mpesa_runtime_control').select('initiation_enabled,success_wishes_enabled').eq('singleton',true).maybeSingle()
+  if(error||control?.initiation_enabled!==true||control?.success_wishes_enabled!==true)
+   throw new WishError(503,'M-Pesa payments are not available yet. No payment was requested.')
+ }
  if(b.action==='create'){
   const q=guestTextWishQuote({...b,idempotencyKey:key})
   // The sender chooses who the gift is for; a recipient request or registration is never required.
