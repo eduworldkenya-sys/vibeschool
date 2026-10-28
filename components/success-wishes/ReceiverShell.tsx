@@ -144,7 +144,7 @@ export default function ReceiverShell({
   );
   return (
     <ReceiverContext.Provider value={value}>
-      <div className={receiver ? "receiver-theme" : "receiver-site"}>
+      <div className={receiver ? (pathname === "/success-wishes/invitation" ? "receiver-theme receiver-gift-focus" : "receiver-theme") : "receiver-site"}>
         {!receiver ? (
           <>
             <nav
