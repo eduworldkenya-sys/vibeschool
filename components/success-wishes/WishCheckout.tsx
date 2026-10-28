@@ -10,20 +10,35 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
  const [key,setKey]=useState(''),[phone,setPhone]=useState('')
  const [order,setOrder]=useState<CheckoutOrder|null>(null),[review,setReview]=useState(false),[restoring,setRestoring]=useState(true)
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[autoCheck,setAutoCheck]=useState(true)
- const persist=useCallback((secret:string)=>sessionStorage.setItem(CHECKOUT_STORAGE_KEY,JSON.stringify({key:secret,expires:Date.now()+90*86400000})),[])
+ const [availability,setAvailability]=useState<'checking'|'open'|'closed'>('checking'),[recoveryBlocked,setRecoveryBlocked]=useState(false)
+ const [manualRecovery,setManualRecovery]=useState(false),[enteredKey,setEnteredKey]=useState('')
+ const persist=useCallback((secret:string)=>{const data=JSON.stringify({key:secret,expires:Date.now()+90*86400000});sessionStorage.setItem(CHECKOUT_STORAGE_KEY,data);localStorage.setItem(CHECKOUT_STORAGE_KEY,data)},[])
  const call=useCallback(async(body:Record<string,unknown>)=>{
   const r=await fetch('/api/success-wishes/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(45000)})
-  const p=await r.json();if(!r.ok)throw Error(p.error||'Checkout is unavailable. Keep your recovery key before trying again.')
+  const p=await r.json();if(!r.ok){const problem=new Error(p.error||'Checkout is unavailable. Keep your recovery key before trying again.') as Error & {status:number};problem.status=r.status;throw problem}
   return p.order as CheckoutOrder
+ },[])
+ useEffect(()=>{
+  let active=true
+  void fetch('/api/success-wishes/config',{cache:'no-store',signal:AbortSignal.timeout(15000)})
+   .then(async response=>{if(!response.ok)throw Error('Unavailable');return response.json()})
+   .then(config=>{if(active)setAvailability(config.paymentsEnabled===true?'open':'closed')})
+   .catch(()=>{if(active)setAvailability('closed')})
+  return()=>{active=false}
  },[])
  useEffect(()=>{
   alive.current=true;const previous=document.activeElement as HTMLElement|null;dialog.current?.focus()
   const restore=async()=>{try{
-   const raw=sessionStorage.getItem(CHECKOUT_STORAGE_KEY),saved=raw?JSON.parse(raw):null
+   const raw=sessionStorage.getItem(CHECKOUT_STORAGE_KEY)||localStorage.getItem(CHECKOUT_STORAGE_KEY),saved=raw?JSON.parse(raw):null
    if(saved&&/^[a-f0-9]{64}$/.test(saved.key)&&saved.expires>Date.now()){
-    setKey(saved.key);const found=await call({action:'status',key:saved.key});if(alive.current)setOrder(found)
+    setKey(saved.key)
+    try{const found=await call({action:'status',key:saved.key});if(alive.current)setOrder(found)}
+    catch(e){
+     if((e as Error & {status?:number}).status===404){sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);localStorage.removeItem(CHECKOUT_STORAGE_KEY);if(alive.current)setKey(newCheckoutKey())}
+     else throw e
+    }
    }else setKey(newCheckoutKey())
-  }catch(e){if(alive.current)setError('Saved order could not be checked. Restore it before paying again. '+(e instanceof Error?e.message:''))}
+  }catch{if(alive.current){setRecoveryBlocked(true);setError('We could not check your previous order. Do not pay again until its status is known.')}}
   finally{if(alive.current)setRestoring(false)}}
   void restore();return()=>{alive.current=false;previous?.focus()}
  },[call])
@@ -48,12 +63,24 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
    if(action==='create')normalizeSafaricomPhone(phone)
    persist(key) // Recovery must be saved before any order/payment request.
    const o=await call(action==='create'?{action,key,version:'text',theme,...values,payerPhone:phone}:{action,key})
-   if(alive.current){setOrder(o);setAutoCheck(true)}
+   if(alive.current){setOrder(o);setRecoveryBlocked(false);setAutoCheck(true)}
   }catch(e){if(alive.current)setError(e instanceof Error?e.message:'This request could not be checked. Do not pay again.')}
   finally{inFlight.current=false;if(alive.current)setBusy(false)}
  }
- function reset(){try{sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);setOrder(null);setKey(newCheckoutKey());setReview(false)}catch{setError('Browser storage is unavailable. Keep your order recovery key.')}}
- async function copy(value:string){try{await navigator.clipboard.writeText(value);setNotice('Copied. Share privately with the intended recipient.')}catch{setNotice('Select and copy the private link from the field below.')}}
+ async function restoreByKey(){
+  const candidate=enteredKey.trim().toLowerCase()
+  if(!/^[a-f0-9]{64}$/.test(candidate)){setError('Enter your full private order recovery key.');return}
+  if(inFlight.current)return
+  inFlight.current=true;setBusy(true);setError('');setNotice('')
+  try{
+   const saved=await call({action:'status',key:candidate})
+   persist(candidate)
+   if(alive.current){setKey(candidate);setOrder(saved);setRecoveryBlocked(false);setManualRecovery(false);setAutoCheck(true)}
+  }catch(e){if(alive.current)setError(e instanceof Error?e.message:'Your order could not be checked. No payment was requested.')}
+  finally{inFlight.current=false;if(alive.current)setBusy(false)}
+ }
+ function reset(){try{sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);localStorage.removeItem(CHECKOUT_STORAGE_KEY);setOrder(null);setKey(newCheckoutKey());setReview(false)}catch{setError('Browser storage is unavailable. Keep your order recovery key.')}}
+ async function copy(value:string,kind:'link'|'key'='link'){try{await navigator.clipboard.writeText(value);setNotice(kind==='key'?'Recovery key copied. Keep it private; do not send it to the recipient.':'Private card link copied. Share only with the intended recipient.')}catch{setNotice('Select and copy the value from the field below.')}}
  function trap(e:React.KeyboardEvent){
   if(e.key==='Escape'){onClose();return}if(e.key!=='Tab')return
   const items=dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),a[href],summary');if(!items?.length)return
@@ -63,18 +90,23 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
  return <div className={styles.modalBackdrop} onKeyDown={trap}><section ref={dialog} tabIndex={-1} className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={id}>
   <button type="button" className={styles.modalClose} aria-label="Close checkout" onClick={onClose}><X size={20}/></button>
   <p className={styles.eyebrow}>M-PESA CHECKOUT</p><h2 id={id}>{order?.state==='settled'?'Your wish is ready':order?'Your saved order':review?'Review your wish':'Your order'}</h2>
-  <div className={styles.checkoutOrder}><CardArt template={order?.card.theme||theme} values={order?.card||values} preview/><div><strong>Text Wish · {order?.card.candidate||values.candidate}</strong><span>{order?.card.school??values.school}</span><span>{order?.card.examYear||values.examYear} exams</span></div></div>
-  {restoring?<p role="status">Checking for an existing order…</p>:!order?<form noValidate onSubmit={e=>{e.preventDefault();if(review){void act('create');return}try{normalizeSafaricomPhone(phone);setReview(true);setError('')}catch(e){setError(e instanceof Error?e.message:'Check your details.')}}}>
+  <div className={styles.checkoutOrder}><CardArt template={order?.card.theme||theme} values={order?.card||values} preview/><div><strong>Text Wish · {order?.card.candidate||values.candidate}</strong>{(order?.card.school??values.school)&&<span>{order?.card.school??values.school}</span>}<span>{order?.card.examYear||values.examYear} exams</span></div></div>
+  <details className={styles.checkoutPreview}><summary>See the full wish</summary><CardArt template={order?.card.theme||theme} values={order?.card||values} preview/></details>
+  {restoring?<p role="status">Checking for an existing order…</p>:recoveryBlocked?<div role="status" className={styles.checkoutRecovery}><button type="button" className={styles.secondary} disabled={busy||!key} onClick={()=>void act('status')}>Check saved order</button></div>:!order?(availability==='checking'?<p role="status">Checking M-Pesa availability…</p>:availability==='closed'?<p role="status" className={styles.checkoutNotice}>M-Pesa payments are not available right now. No payment has been requested. You can return when checkout opens.</p>:<form noValidate onSubmit={e=>{e.preventDefault();if(review){void act('create');return}try{normalizeSafaricomPhone(phone);setReview(true);setError('')}catch(e){setError(e instanceof Error?e.message:'Check your details.')}}}>
    {!review?<><fieldset className={styles.numberPicker}><legend>Choose a number prefix</legend>{['07','01','+254'].map(prefix=><button key={prefix} type="button" aria-pressed={phone.startsWith(prefix)} disabled={busy} onClick={()=>setPhone(prefix)}>{prefix}</button>)}</fieldset>
     <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label></>:<p className={styles.checkoutFine}>M-Pesa number: <strong>{phone}</strong></p>}
    <div className={styles.orderTotal}>Total <strong>KSh 50</strong></div>
    <div className={styles.checkoutActions}>{review&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>setReview(false)}>Edit number</button>}<button type="submit" className={styles.primary} disabled={busy||!key}>{busy?'Saving…':review?'Save order & continue':'Review order'}</button></div>
-  </form>:<div aria-live="polite"><p role="status" className={styles.checkoutNotice}>{checkoutMessage(order.state)}</p><p>KSh {order.amountKes} · {order.payerPhone}</p><p>Order {order.id}</p>{order.receipt&&<p>M-Pesa receipt: {order.receipt}</p>}
-   {order.state==='created'&&<button type="button" className={styles.primary} disabled={busy} onClick={()=>void act('pay')}>{busy?'Requesting payment…':'Pay KSh 50 with M-Pesa'}</button>}
+  </form>):<div aria-live="polite"><p role="status" className={styles.checkoutNotice}>{checkoutMessage(order.state)}</p><p>KSh {order.amountKes} · {order.payerPhone}</p><p>Order {order.id}</p>{order.receipt&&<p>M-Pesa receipt: {order.receipt}</p>}
+   {order.state==='created'&&(availability==='open'?<button type="button" className={styles.primary} disabled={busy} onClick={()=>void act('pay')}>{busy?'Requesting payment…':'Pay KSh 50 with M-Pesa'}</button>:<p role="status" className={styles.checkoutNotice}>New M-Pesa payments are paused. Your order is saved; no new prompt will be sent.</p>)}
    {pendingCheckout(order.state)&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>void act('status')}>{busy?'Checking…':'Check payment status'}</button>}
    {order.invitationUrl&&<><label className={styles.checkoutLabel}>Private card link<input readOnly value={order.invitationUrl} onFocus={e=>e.target.select()}/></label><div className={styles.checkoutActions}><button type="button" className={styles.primary} onClick={()=>void copy(order.invitationUrl!)}>Copy private link</button><a className={styles.secondary} href={order.invitationUrl}>Open card</a></div>{order.backupCode&&<label className={styles.checkoutLabel}>Backup card code<input readOnly value={order.backupCode} onFocus={e=>e.target.select()}/></label>}<p>Share this private gift link with {order.card.candidate}. Anyone with the link can open it; keep it private. The gift is kept for 90 days.</p></>}
-   <details><summary>Save your order recovery key</summary><p>Keep this key private. It restores this order on another device.</p><input aria-label="Private order recovery key" readOnly value={key} onFocus={e=>e.target.select()}/></details>
+   <details><summary>Save your order recovery key</summary><p>Keep this key private. It restores this order on another device.</p><input aria-label="Private order recovery key" readOnly value={key} onFocus={e=>e.target.select()}/><button type="button" className={styles.secondary} onClick={()=>void copy(key,'key')}>Copy recovery key</button></details>
    {['created','failed','settled','refunded'].includes(order.state)&&<button type="button" className={styles.secondary} onClick={reset}>{order.state==='settled'?'Create another wish':'Start a new checkout'}</button>}
+  </div>}
+  {!restoring&&!order&&!recoveryBlocked&&<div className={styles.checkoutRestore}>
+   {!manualRecovery?<button type="button" className={styles.secondary} onClick={()=>setManualRecovery(true)}>Restore an order</button>
+   :<form onSubmit={e=>{e.preventDefault();void restoreByKey()}}><label className={styles.checkoutLabel}>Private recovery key<input type="text" spellCheck={false} autoComplete="off" value={enteredKey} onChange={e=>setEnteredKey(e.target.value)} placeholder="Paste your saved order key"/></label><div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={()=>setManualRecovery(false)} disabled={busy}>Cancel</button><button type="submit" className={styles.primary} disabled={busy||!/^[a-f0-9]{64}$/i.test(enteredKey.trim())}>{busy?'Checking…':'Check order'}</button></div></form>}
   </div>}
   {error&&<p role="alert" className={styles.checkoutError}>{error}</p>}{notice&&<p role="status">{notice}</p>}
  </section></div>

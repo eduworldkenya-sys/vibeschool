@@ -17,6 +17,7 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
   assert.equal(u.hostname,'synthetic.supabase.co','No real network permitted')
   const endpoint=u.pathname.split('/').at(-1),method=init?.method||'GET',body=init?.body?JSON.parse(String(init.body)):{}
   if(endpoint==='success_wishes_take_attempt')return Response.json(true)
+  if(endpoint==='mpesa_runtime_control')return Response.json({initiation_enabled:true,success_wishes_enabled:true})
    if(endpoint==='success_wish_guest_orders'){
    if(method==='POST'){assert.equal(order,null);order={...body,id:'44444444-4444-4444-8444-444444444444',state:'created',updated_at:new Date().toISOString()};return new Response(null,{status:201})}
    assert.equal(u.searchParams.get('key_hash'),'eq.'+orderKeyHash(key));return Response.json(order)
@@ -44,6 +45,12 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
   assert.equal(first.order.receipt,'SYNTHETIC123');assert.equal(first.order.card.message,card.message)
   assert.match(first.order.invitationUrl,/^https:\/\/vibeschool.co.ke\/success-wishes\/gift#token=[a-f0-9]{64}$/)
   assert.equal(first.order.invitationUrl,restored.order.invitationUrl);assert.equal(first.order.backupCode,null)
+  process.env.SUCCESS_WISHES_ENABLED='false'
+  const recoveredWhileDisabled=await call({action:'status'})
+  assert.equal(recoveredWhileDisabled.status,200,'Read-only recovery remains available while initiating new charges is disabled')
+  assert.equal((await recoveredWhileDisabled.json()).order.invitationUrl,first.order.invitationUrl)
+  assert.equal((await call({action:'pay'})).status,503,'Disabled service cannot send another STK')
+  process.env.SUCCESS_WISHES_ENABLED='true'
   Object.assign(order!,{state:'refunded',refunded_at:new Date().toISOString()})
   assert.equal((await (await call({action:'status'})).json()).order.invitationUrl,null)
  }finally{globalThis.fetch=original;for(const k of Object.keys(process.env))if(!(k in saved))delete process.env[k];Object.assign(process.env,saved)}
