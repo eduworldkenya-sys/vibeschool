@@ -502,3 +502,21 @@
 .previewSend{display:flex;justify-content:flex-end;width:100%;max-width:560px;margin:14px auto 0}
 .previewSend .primary{width:100%;min-height:50px;padding:12px 22px;font-size:14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:10px}
 @media(min-width:851px){.previewSend .primary{max-width:260px}}
+
+/* One payment decision at a time; recovery stays within its disclosure. */
+.checkoutModal h2{font-size:clamp(25px,6vw,32px);padding-right:36px;margin-bottom:20px}
+.checkoutPreview{display:grid;gap:12px;margin-bottom:18px}
+.checkoutPreview .art{width:100%;height:auto;aspect-ratio:1200/760}
+.checkoutPreview>strong{font-size:16px;font-weight:600}
+.checkoutFlow{display:grid;gap:14px;margin-top:16px}
+.checkoutFlow>.primary,.checkoutFlow>.secondary{width:100%;min-height:50px}
+.checkoutPhone{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:15px;margin:0;color:#bac1cc}
+.checkoutPhone button{border:0;background:transparent;color:var(--gold2);font:inherit;text-decoration:underline;min-height:44px;padding:0 8px;cursor:pointer}
+.checkoutHint{font-size:13px;line-height:1.5;color:#bac1cc;margin:10px 0;text-align:center}
+.checkoutFlow .checkoutHint{margin:0}
+.checkoutDetails{border-top:1px solid var(--line);padding-top:12px;font-size:13px;line-height:1.6;color:#bac1cc}
+.checkoutDetails summary{min-height:44px;align-content:center;cursor:pointer;color:var(--cream)}
+.checkoutDetails p{overflow-wrap:anywhere}
+.checkoutReference{font-size:12px}
+.checkoutDetails .secondary{font-size:13px;margin-top:8px;min-height:44px}
+.checkoutError{color:#ffb8ad;font-size:14px;line-height:1.5;margin:14px 0 0}

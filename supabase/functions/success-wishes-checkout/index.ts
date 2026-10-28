@@ -2,14 +2,40 @@ import {createClient} from 'npm:@supabase/supabase-js@2.43.4'
 const db=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,{auth:{persistSession:false}})
 const hash=async(v:string)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v))),b=>b.toString(16).padStart(2,'0')).join('')
 const reply=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}})
-async function provider(path:string,body:Record<string,unknown>){
- if(Deno.env.get('MPESA_ENV')!=='production'||Deno.env.get('MPESA_SHORTCODE')!=='961580'||Deno.env.get('MPESA_PARTY_B')!=='949529'||Deno.env.get('MPESA_TRANSACTION_TYPE')!=='CustomerBuyGoodsOnline')throw Error('Merchant configuration mismatch')
- const key=Deno.env.get('MPESA_CONSUMER_KEY')?.trim(),secret=Deno.env.get('MPESA_CONSUMER_SECRET')?.trim(),passkey=Deno.env.get('MPESA_PASSKEY')?.trim()
- if(!key||!secret||!passkey)throw Error('Provider unavailable')
+function merchantReady(){
+ return Deno.env.get('MPESA_ENV')==='production'&&Deno.env.get('MPESA_SHORTCODE')==='961580'
+  &&Deno.env.get('MPESA_PARTY_B')==='949529'&&Deno.env.get('MPESA_TRANSACTION_TYPE')==='CustomerBuyGoodsOnline'
+  &&['MPESA_CONSUMER_KEY','MPESA_CONSUMER_SECRET','MPESA_PASSKEY'].every(k=>!!Deno.env.get(k)?.trim())
+}
+async function accessToken(){
+ if(!merchantReady())throw Error('Merchant configuration unavailable')
+ const key=Deno.env.get('MPESA_CONSUMER_KEY')!.trim(),secret=Deno.env.get('MPESA_CONSUMER_SECRET')!.trim()
  const oauth=await fetch('https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',{headers:{Authorization:'Basic '+btoa(key+':'+secret)},redirect:'error',signal:AbortSignal.timeout(10000)})
- const auth=await oauth.json();if(!oauth.ok||typeof auth.access_token!=='string')throw Error('Authorization unavailable')
+ const auth=await oauth.json();if(!oauth.ok||typeof auth.access_token!=='string'||!auth.access_token)throw Error('Authorization unavailable')
+ return auth.access_token as string
+}
+async function authorized(req:Request){
+ const header=req.headers.get('authorization')||'',apiKey=req.headers.get('apikey')
+ const token=header.startsWith('Bearer ')?header.slice(7).trim():''
+ if(!token||token.length>4096||/\s/.test(token)||(apiKey!==null&&apiKey!==token))return false
+ const canonical=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')?.trim()
+ if(canonical&&token===canonical)return true
+ if(!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token))return false
+ // Verify alternate/rotated service credentials at the same project's cryptographic
+ // Data API boundary, never by decoding caller-controlled role claims. This table
+ // has no anon/authenticated SELECT grants or policies; retain that invariant.
+ try{
+  const r=await fetch(Deno.env.get('SUPABASE_URL')+'/rest/v1/mpesa_runtime_control?select=singleton&singleton=eq.true',{
+   method:'GET',headers:{apikey:token,Authorization:'Bearer '+token},redirect:'error',cache:'no-store',signal:AbortSignal.timeout(5000)})
+  if(!r.ok)return false
+  const rows=await r.json();return Array.isArray(rows)&&rows.length===1&&rows[0]?.singleton===true
+ }catch{return false}
+}
+async function provider(path:string,body:Record<string,unknown>,access?:string){
+ access=access||await accessToken()
+ const passkey=Deno.env.get('MPESA_PASSKEY')!.trim()
  const timestamp=new Date(Date.now()+10800000).toISOString().replace(/\D/g,'').slice(0,14)
- const r=await fetch('https://api.safaricom.co.ke'+path,{method:'POST',headers:{Authorization:'Bearer '+auth.access_token,'Content-Type':'application/json'},body:JSON.stringify({BusinessShortCode:'961580',Password:btoa('961580'+passkey+timestamp),Timestamp:timestamp,...body}),redirect:'error',signal:AbortSignal.timeout(15000)})
+ const r=await fetch('https://api.safaricom.co.ke'+path,{method:'POST',headers:{Authorization:'Bearer '+access,'Content-Type':'application/json'},body:JSON.stringify({BusinessShortCode:'961580',Password:btoa('961580'+passkey+timestamp),Timestamp:timestamp,...body}),redirect:'error',signal:AbortSignal.timeout(15000)})
  if(!r.ok)throw Error('Provider request unavailable');return await r.json()
 }
 async function update(id:string,values:Record<string,unknown>,states:string[]){
@@ -30,19 +56,22 @@ async function reconcile(id:string){
 }
 Deno.serve(async(req:Request)=>{
  if(req.method!=='POST')return reply({error:'Method not allowed'},405)
- // Gateway validation plus exact service credential: authenticated users cannot call this endpoint.
- if(req.headers.get('authorization')!=='Bearer '+Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))return reply({error:'Unauthorized'},401)
+ // Custom service authentication also supports valid rotated keys. Never accept a user JWT.
+ if(!await authorized(req))return reply({error:'Unauthorized'},401)
  try{
-  const b=await req.json();if(!/^[0-9a-f-]{36}$/.test(b.id))return reply({error:'Invalid order'},400)
+  const b=await req.json()
+  if(b.action==='health'){await accessToken();return reply({ready:true})} // OAuth only: no order, STK or charge.
+  if(!/^[0-9a-f-]{36}$/.test(b.id))return reply({error:'Invalid order'},400)
   if(b.action==='reconcile'){await reconcile(b.id);return reply({ok:true})}
   if(b.action!=='pay')return reply({error:'Invalid action'},400)
+  const access=await accessToken() // Configuration/OAuth failures leave the order unclaimed and safe to retry.
   const callbackToken=Array.from(crypto.getRandomValues(new Uint8Array(32)),v=>v.toString(16).padStart(2,'0')).join('')
   const {data:claimed,error:ce}=await db.rpc('success_wish_claim_guest_payment',{p_id:b.id,p_callback_hash:await hash(callbackToken)})
   if(ce||!claimed)return reply({error:'Payment initiation is unavailable for this order'},409)
   const {data:o,error}=await db.from('success_wish_guest_orders').select('*').eq('id',b.id).single()
   if(error||!o||o.state!=='submitting'||o.amount_kes!==50)throw Error('Claim unavailable')
   try{
-   const a=await provider('/mpesa/stkpush/v1/processrequest',{TransactionType:'CustomerBuyGoodsOnline',Amount:50,PartyA:o.payer_phone,PartyB:'949529',PhoneNumber:o.payer_phone,CallBackURL:Deno.env.get('SUPABASE_URL')+'/functions/v1/success-wishes-mpesa-callback?id='+o.id+'&token='+callbackToken,AccountReference:'VW'+o.id.replace(/-/g,'').slice(0,10),TransactionDesc:'Success Wish'})
+   const a=await provider('/mpesa/stkpush/v1/processrequest',{TransactionType:'CustomerBuyGoodsOnline',Amount:50,PartyA:o.payer_phone,PartyB:'949529',PhoneNumber:o.payer_phone,CallBackURL:Deno.env.get('SUPABASE_URL')+'/functions/v1/success-wishes-mpesa-callback?id='+o.id+'&token='+callbackToken,AccountReference:'VW'+o.id.replace(/-/g,'').slice(0,10),TransactionDesc:'Success Wish'},access)
    if(String(a.ResponseCode)!=='0'||typeof a.CheckoutRequestID!=='string'||typeof a.MerchantRequestID!=='string')throw Error('Ambiguous provider response')
    await update(o.id,{state:'awaiting_customer',checkout_id:a.CheckoutRequestID,merchant_id:a.MerchantRequestID},['submitting'])
   }catch{await update(o.id,{state:'reconciliation_required'},['submitting'])} // Never retry an ambiguous external side effect.
