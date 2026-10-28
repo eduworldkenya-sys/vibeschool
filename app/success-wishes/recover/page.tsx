@@ -148,7 +148,7 @@ export default function RecoverWishes() {
                       className="w-full bg-slate-900 border border-slate-800 focus:border-[#D4AF37] rounded-xl pl-10 pr-3.5 py-3 text-xs text-[#D4AF37] font-mono tracking-wider focus:outline-none transition-colors placeholder:text-slate-600 placeholder:font-sans"
                     />
                   </div>
-                </div>
+                </div>}
                 {useBackup && <p className="text-xs text-slate-400">Use the recovery code saved when your wish was verified. Older codes still work.</p>}
               </>
             ) : (
