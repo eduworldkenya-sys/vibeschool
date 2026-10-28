@@ -540,25 +540,34 @@
 @media(prefers-reduced-motion:reduce){.progressTrack span{transition:none}}
 
 /* Animate disclosure contents while retaining native keyboard and summary controls. */
-.completedField::details-content{block-size:0;opacity:0;overflow:hidden;transition:block-size .23s ease,opacity .23s ease;transition-behavior:allow-discrete}
-.completedField[open]::details-content{block-size:auto;opacity:1}
+@supports (interpolate-size:allow-keywords){
+  .completedField{interpolate-size:allow-keywords}
+  .completedField::details-content{block-size:0;opacity:0;overflow:hidden;transition:block-size .23s ease,opacity .23s ease,content-visibility .23s allow-discrete}
+  .completedField[open]::details-content{block-size:auto;opacity:1}
+}
 @media(prefers-reduced-motion:reduce){.completedField::details-content{transition:none}}
 
-/* Approved compact completed-field treatment */
-.completedField{position:relative;margin:0 0 12px;border:1px solid #e2e5df;border-radius:16px;background:#fff;overflow:clip;transition:border-color .23s ease,box-shadow .23s ease,background-color .23s ease}
+/* Compact summaries retain the existing dark and gold sender design. */
+.completedField{position:relative;margin:0 0 12px;border:1px solid var(--line);border-radius:16px;background:#1c2938;overflow:clip;transition:border-color .23s ease,box-shadow .23s ease,background-color .23s ease}
 .completedField[open]{border-color:#c8a44d;box-shadow:0 0 0 1px #c8a44d30}
-.completedField.isComplete:not([open]){background:#fffefa;border-color:#e6d9b6}
+.completedField.isComplete:not([open]){background:#1c2938;border-color:#a88b454f}
 .completedField>.fieldSummary{display:flex;align-items:center;gap:12px;min-height:58px;padding:13px 15px;cursor:pointer;list-style:none;user-select:none}
 .completedField>.fieldSummary::-webkit-details-marker{display:none}
 .completedField>.fieldSummary::marker{content:''}
 .completedField>.fieldSummary:focus-visible{outline:2px solid #bd9135;outline-offset:-3px;border-radius:14px}
-.summaryCheck{display:grid;place-items:center;flex:0 0 27px;width:27px;height:27px;border:1px solid #e2e5df;border-radius:50%;background:#f7f8f5}
-.isComplete .summaryCheck{background:#c69a37;border-color:#c69a37;color:white}
+.summaryCheck{display:grid;place-items:center;flex:0 0 27px;width:27px;height:27px;border:1px solid #bda45966;border-radius:50%;background:transparent;color:var(--gold2)}
+.isComplete .summaryCheck{background:transparent;border-color:var(--gold2);color:var(--gold2)}
 .summaryText{display:flex;flex:1;flex-direction:column;min-width:0;gap:3px}
-.summaryText strong{color:#24362f;font-size:14px;font-weight:700}
-.summaryValue{color:#68736c;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
+.summaryText strong{color:var(--cream);font-size:14px;font-weight:700}
+.summaryValue{color:#bac1cc;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
 .summaryEdit{flex-shrink:0;color:#b68b2d}
 .completedField[open] .summaryEdit{opacity:.55}
 .completedField>.fieldContent{padding:0 15px 16px}
 @media(max-width:480px){.completedField>.fieldSummary{min-height:56px;padding:12px;gap:10px}.completedField>.fieldContent{padding:0 12px 14px}.summaryText strong{font-size:13px}}
 @media(prefers-reduced-motion:reduce){.completedField,.completedField::details-content{transition:none}}
+
+.giftShare{display:grid;gap:8px;text-align:center}
+.giftShare .primary{display:flex;align-items:center;justify-content:center;min-height:48px;background:#e4c772;color:#151b25;border:1px solid #e4c772;border-radius:10px;padding:12px 16px;font:700 14px/1.4 system-ui,sans-serif;text-decoration:none}
+.giftShare p{margin:0;font:400 12px/1.5 system-ui,sans-serif;color:#bac1cc}
+.checkoutActions a{flex:1;display:inline-flex;align-items:center;justify-content:center;min-height:48px}
+.form .sendRow .orderTotal{flex:1;gap:16px;min-width:0;width:100%}

@@ -195,6 +195,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   function clearDraft() {
     if (!window.confirm('Clear this wish and start again?')) return
     restoreDraft({ theme: 'heritage', candidate: '', sender: '', message: '', examYear: '2026', school: '' })
+    setEditingStarted(false); setExpandedFields({candidate:true,school:true,phone:true,sender:true,message:true})
     setDeliveryPhone(''); setSelectedVersion('text'); setMediaFile(null); setTouched({}); setError(''); setStatus(''); setOrder(null)
     setPreviewSession(current => current + 1)
   }
@@ -330,7 +331,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {draftStatus.restored && <p role="status">Draft restored.</p>}
             {draftStatus.saved && <button type="button" className={styles.secondary} onClick={clearDraft}>Clear draft</button>}
           </div>}
-          <CompletedSection title="Candidate details" value={candidate.trim() + ' · ' + examYear} completed={completion[0]} open={expandedFields.candidate} onOpenChange={open => setFieldExpanded('candidate', open)} onBlurCapture={event => collapseOnLeave('candidate', completion[0] && touched.examYear, event)}><div className={styles.formRow}>
+          <CompletedSection title="Candidate details" value={candidate.trim() + ' · ' + examYear} completed={completion[0]} open={expandedFields.candidate} onOpenChange={open => setFieldExpanded('candidate', open)} onBlurCapture={event => collapseOnLeave('candidate', completion[0], event)}><div className={styles.formRow}>
             <label>Candidate name<input aria-label="Candidate name" aria-invalid={touched.candidate && Boolean(fieldErrors.candidate)} aria-describedby={touched.candidate && fieldErrors.candidate ? schoolInputId + '-candidate-error' : undefined} onBlur={() => setTouched(current => ({ ...current, candidate: true }))} autoComplete="off" maxLength={48} value={candidate} onChange={e => { setEditingStarted(true); setCandidate(e.target.value) }} placeholder="Who are you celebrating?"/>{touched.candidate && fieldErrors.candidate && <small id={schoolInputId + '-candidate-error'} className={styles.fieldError}>{fieldErrors.candidate}</small>}</label>
             <label>Exam year<input aria-label="Exam year" aria-invalid={touched.examYear && Boolean(fieldErrors.examYear)} aria-describedby={touched.examYear && fieldErrors.examYear ? schoolInputId + '-year-error' : undefined} onBlur={() => setTouched(current => ({ ...current, examYear: true }))} inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => { setEditingStarted(true); setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4)) }} placeholder="e.g. 2026"/>{touched.examYear && fieldErrors.examYear && <small id={schoolInputId + '-year-error'} className={styles.fieldError}>{fieldErrors.examYear}</small>}</label>
           </div></CompletedSection>
@@ -346,14 +347,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <CompletedSection title="Receiver's phone" value={deliveryPhone} completed={completion[1]} open={expandedFields.phone} onOpenChange={open => setFieldExpanded('phone', open)} onBlurCapture={event => collapseOnLeave('phone', completion[1], event)}><label>Phone to receive this wish<input aria-label="Phone to receive this wish" aria-invalid={touched.deliveryPhone && Boolean(fieldErrors.deliveryPhone)} onBlur={() => setTouched(current => ({ ...current, deliveryPhone: true }))} autoComplete="tel" inputMode="tel" type="tel" maxLength={20} value={deliveryPhone} onChange={e => { setEditingStarted(true); setDeliveryPhone(e.target.value) }} placeholder="07XX XXX XXX"/>{touched.deliveryPhone && fieldErrors.deliveryPhone && <small className={styles.fieldError}>{fieldErrors.deliveryPhone}</small>}</label></CompletedSection>
           <CompletedSection title="Your name" value={sender.trim()} completed={completion[2]} open={expandedFields.sender} onOpenChange={open => setFieldExpanded('sender', open)} onBlurCapture={event => collapseOnLeave('sender', completion[2], event)}><label>Your name<input aria-label="Your name" aria-invalid={touched.sender && Boolean(fieldErrors.sender)} aria-describedby={touched.sender && fieldErrors.sender ? schoolInputId + '-sender-error' : undefined} onBlur={() => setTouched(current => ({ ...current, sender: true }))} autoComplete="off" maxLength={48} value={sender} onChange={e => { setEditingStarted(true); setSender(e.target.value) }} placeholder="From whom?"/>{touched.sender && fieldErrors.sender && <small id={schoolInputId + '-sender-error'} className={styles.fieldError}>{fieldErrors.sender}</small>}</label></CompletedSection>
           <CompletedSection title="Your wish" value={message.trim()} completed={completion[3]} open={expandedFields.message} onOpenChange={open => setFieldExpanded('message', open)} onBlurCapture={event => collapseOnLeave('message', completion[3], event)}><label>Your wish<textarea aria-label="Your wish" aria-invalid={touched.message && Boolean(fieldErrors.message)} aria-describedby={touched.message && fieldErrors.message ? schoolInputId + '-message-error' : undefined} onBlur={() => setTouched(current => ({ ...current, message: true }))} ref={messageInputRef} rows={3} maxLength={220} value={message} onChange={e => { setEditingStarted(true); setMessage(e.target.value) }}
-            placeholder="Write something only you would say…"/>{touched.message && fieldErrors.message && <small id={schoolInputId + '-message-error'} className={styles.fieldError}>{fieldErrors.message}</small>}</label></CompletedSection>
-          {selectedVersion !== 'text' && <>
-            <SenderMediaCapture key={selectedVersion} kind={selectedVersion} file={mediaFile} onChange={setMediaFile}/>
-            {mediaPreviewUrl && <div className={styles.localMediaReview}>
-              {selectedVersion === 'voice' ? <audio className={styles.mediaPlayer} controls preload="metadata" src={mediaPreviewUrl} aria-label="Listen to your recorded voice message"/> : <video className={styles.mediaPlayer} controls playsInline preload="metadata" src={mediaPreviewUrl} aria-label="Watch your recorded video message"/>}
-            </div>}
-            {<p className={styles.mediaDisclosure} role="status">You can record and preview here. Voice and video delivery is not active.</p>}
-          </>}
+            placeholder="Write something only you would say…"/>{touched.message && fieldErrors.message && <small id={schoolInputId + '-message-error'} className={styles.fieldError}>{fieldErrors.message}</small>}</label>
           <div className={styles.messageIdeas}>
             <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
             <div>{messageStarters.map(starter => <button type="button" key={starter.label} aria-label={'Use wish starter: ' + starter.label} onClick={() => {
@@ -366,6 +360,14 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             }}>{starter.label}</button>)}</div>
           </div>
           <p className={styles.counter}>{message.length}/220 characters</p>
+          </CompletedSection>
+          {selectedVersion !== 'text' && <>
+            <SenderMediaCapture key={selectedVersion} kind={selectedVersion} file={mediaFile} onChange={setMediaFile}/>
+            {mediaPreviewUrl && <div className={styles.localMediaReview}>
+              {selectedVersion === 'voice' ? <audio className={styles.mediaPlayer} controls preload="metadata" src={mediaPreviewUrl} aria-label="Listen to your recorded voice message"/> : <video className={styles.mediaPlayer} controls playsInline preload="metadata" src={mediaPreviewUrl} aria-label="Watch your recorded video message"/>}
+            </div>}
+            {<p className={styles.mediaDisclosure} role="status">You can record and preview here. Voice and video delivery is not active.</p>}
+          </>}
           {editingStarted && completedCount === 4 && <p className={styles.readyMessage} role="status">Ready to send</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}

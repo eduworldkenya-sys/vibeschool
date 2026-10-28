@@ -1,11 +1,20 @@
 [
   {
-    "missionId": "CYBORG-20261028072658-f420fd",
-    "runId": "abe899c5-e6de-4b73-a2ab-9a71ffc1500a",
+    "missionId": "CYBORG-20261028174719-a3ff6e",
+    "runId": "ef4cfaf9-ce69-47bb-b1de-0cb082a690c1",
     "paths": [
-      "app/api/success-wishes/verify-sender"
+      "components/success-wishes",
+      "lib/success-wishes/checkout-client.ts",
+      "lib/success-wishes/checkout-client.test.ts",
+      "lib/success-wishes/gift-sharing.ts",
+      "lib/success-wishes/gift-sharing.test.ts",
+      "app/success-wishes/gift/page.tsx",
+      "qa/success-wishes/checkout-browser.cjs",
+      "qa/success-wishes/sender-effects-browser.cjs",
+      "docs/success-wishes",
+      "qa/success-wishes/disabled-browser.cjs"
     ],
-    "acquiredAt": "2026-10-28T07:27:10.366Z",
-    "releasedAt": "2026-10-28T07:30:23.950Z"
+    "acquiredAt": "2026-10-28T17:47:30.021Z",
+    "releasedAt": "2026-10-28T17:58:50.121Z"
   }
 ]
