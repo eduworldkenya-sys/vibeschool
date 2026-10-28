@@ -11,7 +11,7 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
  const [order,setOrder]=useState<CheckoutOrder|null>(null),[review,setReview]=useState(false),[restoring,setRestoring]=useState(true)
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[autoCheck,setAutoCheck]=useState(true)
  const [availability,setAvailability]=useState<'checking'|'open'|'closed'>('checking'),[recoveryBlocked,setRecoveryBlocked]=useState(false)
- const persist=useCallback((secret:string)=>sessionStorage.setItem(CHECKOUT_STORAGE_KEY,JSON.stringify({key:secret,expires:Date.now()+90*86400000})),[])
+ const persist=useCallback((secret:string)=>{const data=JSON.stringify({key:secret,expires:Date.now()+90*86400000});sessionStorage.setItem(CHECKOUT_STORAGE_KEY,data);localStorage.setItem(CHECKOUT_STORAGE_KEY,data)},[])
  const call=useCallback(async(body:Record<string,unknown>)=>{
   const r=await fetch('/api/success-wishes/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(45000)})
   const p=await r.json();if(!r.ok){const problem=new Error(p.error||'Checkout is unavailable. Keep your recovery key before trying again.') as Error & {status:number};problem.status=r.status;throw problem}
@@ -28,12 +28,12 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
  useEffect(()=>{
   alive.current=true;const previous=document.activeElement as HTMLElement|null;dialog.current?.focus()
   const restore=async()=>{try{
-   const raw=sessionStorage.getItem(CHECKOUT_STORAGE_KEY),saved=raw?JSON.parse(raw):null
+   const raw=sessionStorage.getItem(CHECKOUT_STORAGE_KEY)||localStorage.getItem(CHECKOUT_STORAGE_KEY),saved=raw?JSON.parse(raw):null
    if(saved&&/^[a-f0-9]{64}$/.test(saved.key)&&saved.expires>Date.now()){
     setKey(saved.key)
     try{const found=await call({action:'status',key:saved.key});if(alive.current)setOrder(found)}
     catch(e){
-     if((e as Error & {status?:number}).status===404){sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);if(alive.current)setKey(newCheckoutKey())}
+     if((e as Error & {status?:number}).status===404){sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);localStorage.removeItem(CHECKOUT_STORAGE_KEY);if(alive.current)setKey(newCheckoutKey())}
      else throw e
     }
    }else setKey(newCheckoutKey())
@@ -66,7 +66,7 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
   }catch(e){if(alive.current)setError(e instanceof Error?e.message:'This request could not be checked. Do not pay again.')}
   finally{inFlight.current=false;if(alive.current)setBusy(false)}
  }
- function reset(){try{sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);setOrder(null);setKey(newCheckoutKey());setReview(false)}catch{setError('Browser storage is unavailable. Keep your order recovery key.')}}
+ function reset(){try{sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);localStorage.removeItem(CHECKOUT_STORAGE_KEY);setOrder(null);setKey(newCheckoutKey());setReview(false)}catch{setError('Browser storage is unavailable. Keep your order recovery key.')}}
  async function copy(value:string,kind:'link'|'key'='link'){try{await navigator.clipboard.writeText(value);setNotice(kind==='key'?'Recovery key copied. Keep it private; do not send it to the recipient.':'Private card link copied. Share only with the intended recipient.')}catch{setNotice('Select and copy the value from the field below.')}}
  function trap(e:React.KeyboardEvent){
   if(e.key==='Escape'){onClose();return}if(e.key!=='Tab')return
@@ -79,7 +79,7 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
   <p className={styles.eyebrow}>M-PESA CHECKOUT</p><h2 id={id}>{order?.state==='settled'?'Your wish is ready':order?'Your saved order':review?'Review your wish':'Your order'}</h2>
   <div className={styles.checkoutOrder}><CardArt template={order?.card.theme||theme} values={order?.card||values} preview/><div><strong>Text Wish · {order?.card.candidate||values.candidate}</strong>{(order?.card.school??values.school)&&<span>{order?.card.school??values.school}</span>}<span>{order?.card.examYear||values.examYear} exams</span></div></div>
   <details className={styles.checkoutPreview}><summary>See the full wish</summary><CardArt template={order?.card.theme||theme} values={order?.card||values} preview/></details>
-  {restoring?<p role="status">Checking for an existing order…</p>:recoveryBlocked?<div role="status" className={styles.checkoutRecovery}><p>Your earlier order needs to be checked before another payment can start.</p><button type="button" className={styles.secondary} disabled={busy||!key} onClick={()=>void act('status')}>Check saved order</button></div>:!order?(availability==='checking'?<p role="status">Checking M-Pesa availability…</p>:availability==='closed'?<p role="status" className={styles.checkoutNotice}>M-Pesa payments are not available right now. No payment has been requested. You can return when checkout opens.</p>:<form noValidate onSubmit={e=>{e.preventDefault();if(review){void act('create');return}try{normalizeSafaricomPhone(phone);setReview(true);setError('')}catch(e){setError(e instanceof Error?e.message:'Check your details.')}}}>
+  {restoring?<p role="status">Checking for an existing order…</p>:recoveryBlocked?<div role="status" className={styles.checkoutRecovery}><button type="button" className={styles.secondary} disabled={busy||!key} onClick={()=>void act('status')}>Check saved order</button></div>:!order?(availability==='checking'?<p role="status">Checking M-Pesa availability…</p>:availability==='closed'?<p role="status" className={styles.checkoutNotice}>M-Pesa payments are not available right now. No payment has been requested. You can return when checkout opens.</p>:<form noValidate onSubmit={e=>{e.preventDefault();if(review){void act('create');return}try{normalizeSafaricomPhone(phone);setReview(true);setError('')}catch(e){setError(e instanceof Error?e.message:'Check your details.')}}}>
    {!review?<><fieldset className={styles.numberPicker}><legend>Choose a number prefix</legend>{['07','01','+254'].map(prefix=><button key={prefix} type="button" aria-pressed={phone.startsWith(prefix)} disabled={busy} onClick={()=>setPhone(prefix)}>{prefix}</button>)}</fieldset>
     <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label></>:<p className={styles.checkoutFine}>M-Pesa number: <strong>{phone}</strong></p>}
    <div className={styles.orderTotal}>Total <strong>KSh 50</strong></div>
