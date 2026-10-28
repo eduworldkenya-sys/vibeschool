@@ -11,6 +11,7 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
  const [order,setOrder]=useState<CheckoutOrder|null>(null),[review,setReview]=useState(false),[restoring,setRestoring]=useState(true)
  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[autoCheck,setAutoCheck]=useState(true)
  const [availability,setAvailability]=useState<'checking'|'open'|'closed'>('checking'),[recoveryBlocked,setRecoveryBlocked]=useState(false)
+ const [manualRecovery,setManualRecovery]=useState(false),[enteredKey,setEnteredKey]=useState('')
  const persist=useCallback((secret:string)=>{const data=JSON.stringify({key:secret,expires:Date.now()+90*86400000});sessionStorage.setItem(CHECKOUT_STORAGE_KEY,data);localStorage.setItem(CHECKOUT_STORAGE_KEY,data)},[])
  const call=useCallback(async(body:Record<string,unknown>)=>{
   const r=await fetch('/api/success-wishes/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(45000)})
@@ -66,6 +67,18 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
   }catch(e){if(alive.current)setError(e instanceof Error?e.message:'This request could not be checked. Do not pay again.')}
   finally{inFlight.current=false;if(alive.current)setBusy(false)}
  }
+ async function restoreByKey(){
+  const candidate=enteredKey.trim().toLowerCase()
+  if(!/^[a-f0-9]{64}$/.test(candidate)){setError('Enter your full private order recovery key.');return}
+  if(inFlight.current)return
+  inFlight.current=true;setBusy(true);setError('');setNotice('')
+  try{
+   const saved=await call({action:'status',key:candidate})
+   persist(candidate)
+   if(alive.current){setKey(candidate);setOrder(saved);setRecoveryBlocked(false);setManualRecovery(false);setAutoCheck(true)}
+  }catch(e){if(alive.current)setError(e instanceof Error?e.message:'Your order could not be checked. No payment was requested.')}
+  finally{inFlight.current=false;if(alive.current)setBusy(false)}
+ }
  function reset(){try{sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);localStorage.removeItem(CHECKOUT_STORAGE_KEY);setOrder(null);setKey(newCheckoutKey());setReview(false)}catch{setError('Browser storage is unavailable. Keep your order recovery key.')}}
  async function copy(value:string,kind:'link'|'key'='link'){try{await navigator.clipboard.writeText(value);setNotice(kind==='key'?'Recovery key copied. Keep it private; do not send it to the recipient.':'Private card link copied. Share only with the intended recipient.')}catch{setNotice('Select and copy the value from the field below.')}}
  function trap(e:React.KeyboardEvent){
@@ -90,6 +103,10 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
    {order.invitationUrl&&<><label className={styles.checkoutLabel}>Private card link<input readOnly value={order.invitationUrl} onFocus={e=>e.target.select()}/></label><div className={styles.checkoutActions}><button type="button" className={styles.primary} onClick={()=>void copy(order.invitationUrl!)}>Copy private link</button><a className={styles.secondary} href={order.invitationUrl}>Open card</a></div>{order.backupCode&&<label className={styles.checkoutLabel}>Backup card code<input readOnly value={order.backupCode} onFocus={e=>e.target.select()}/></label>}<p>Share this private gift link with {order.card.candidate}. Anyone with the link can open it; keep it private. The gift is kept for 90 days.</p></>}
    <details><summary>Save your order recovery key</summary><p>Keep this key private. It restores this order on another device.</p><input aria-label="Private order recovery key" readOnly value={key} onFocus={e=>e.target.select()}/><button type="button" className={styles.secondary} onClick={()=>void copy(key,'key')}>Copy recovery key</button></details>
    {['created','failed','settled','refunded'].includes(order.state)&&<button type="button" className={styles.secondary} onClick={reset}>{order.state==='settled'?'Create another wish':'Start a new checkout'}</button>}
+  </div>}
+  {!restoring&&!order&&!recoveryBlocked&&<div className={styles.checkoutRestore}>
+   {!manualRecovery?<button type="button" className={styles.secondary} onClick={()=>setManualRecovery(true)}>Restore an order</button>
+   :<form onSubmit={e=>{e.preventDefault();void restoreByKey()}}><label className={styles.checkoutLabel}>Private recovery key<input type="text" spellCheck={false} autoComplete="off" value={enteredKey} onChange={e=>setEnteredKey(e.target.value)} placeholder="Paste your saved order key"/></label><div className={styles.checkoutActions}><button type="button" className={styles.secondary} onClick={()=>setManualRecovery(false)} disabled={busy}>Cancel</button><button type="submit" className={styles.primary} disabled={busy||!/^[a-f0-9]{64}$/i.test(enteredKey.trim())}>{busy?'Checking…':'Check order'}</button></div></form>}
   </div>}
   {error&&<p role="alert" className={styles.checkoutError}>{error}</p>}{notice&&<p role="status">{notice}</p>}
  </section></div>
