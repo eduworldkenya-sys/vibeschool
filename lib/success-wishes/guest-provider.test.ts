@@ -3,10 +3,11 @@ import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 import ts from 'typescript'
 type Row=Record<string,unknown>
-function fixture(name:string,row:Row,claim=true,result:Row={}){
+function fixture(name:string,row:Row,claim=true,result:Row={},probe:unknown=[],probeStatus=200,transportFailure=false,envOverrides:Record<string,string>={}){
  let handler:(r:Request)=>Promise<Response>
  const updates:Row[]=[],calls:string[]=[]
  const env:Record<string,string>={SUPABASE_URL:'https://example.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'server-secret',MPESA_ENV:'production',MPESA_SHORTCODE:'961580',MPESA_PARTY_B:'949529',MPESA_TRANSACTION_TYPE:'CustomerBuyGoodsOnline',MPESA_CONSUMER_KEY:'key',MPESA_CONSUMER_SECRET:'secret',MPESA_PASSKEY:'passkey'}
+ Object.assign(env,envOverrides)
  const db={rpc:async()=>({data:claim,error:null}),from:()=>{
   let patch:Row|undefined,states:string[]|undefined,matched=true
   const chain={select:()=>chain,eq:(k:string,v:unknown)=>{if(row[k]!==v)matched=false;return chain},is:(k:string,v:unknown)=>{if((row[k]??null)!==v)matched=false;return chain},in:(_k:string,v:string[])=>{states=v;return chain},update:(p:Row)=>{patch=p;return chain},single:async()=>({data:matched?row:null,error:null}),maybeSingle:async()=>({data:matched?row:null,error:null}),then:(resolve:(v:unknown)=>unknown)=>{if(matched&&patch&&(!states||states.includes(row.state as string))){updates.push(patch);Object.assign(row,patch)}return Promise.resolve({error:null}).then(resolve)}}
@@ -14,7 +15,7 @@ function fixture(name:string,row:Row,claim=true,result:Row={}){
  }}
  const source=readFileSync(new URL('../../supabase/functions/'+name+'/index.ts',import.meta.url),'utf8').replace(/import \{createClient\} from 'npm:[^']+'/,'')
  const js=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.None}}).outputText
- const fetcher=async(url:string)=>{calls.push(url);return new Response(JSON.stringify(url.includes('/oauth/')?{access_token:'test-access-token'}:result),{status:200})}
+ const fetcher=async(url:string)=>{calls.push(url);if(transportFailure)throw Error('Synthetic transport failure');if(url.includes('/rest/v1/'))return new Response(JSON.stringify(probe),{status:probeStatus});return new Response(JSON.stringify(url.includes('/oauth/')?{access_token:'test-access-token'}:result),{status:200})}
  new Function('Deno','createClient','fetch','crypto',js)({env:{get:(k:string)=>env[k]},serve:(f:typeof handler)=>{handler=f}},()=>db,fetcher,crypto)
  return {handle:(r:Request)=>handler(r),updates,calls}
 }
@@ -24,7 +25,7 @@ const query={ResponseCode:'0',ResultCode:'0',CheckoutRequestID:'CHECKOUT1',Merch
 const pending=()=>({id,state:'awaiting_customer',payer_phone:'254712345678',checkout_id:'CHECKOUT1',merchant_id:'MERCHANT1',updated_at:'2020-01-01',callback_event:{resultCode:0,amount:50,phone:254712345678,receipt:'QAONLY123',checkout:'CHECKOUT1',merchant:'MERCHANT1'}})
 test('browser credentials and unclaimed orders cannot call Safaricom',async()=>{
  const f=fixture('success-wishes-checkout',{id,state:'created'},false)
- assert.equal((await f.handle(req('pay','user-token'))).status,401);assert.equal((await f.handle(req('pay'))).status,409);assert.equal(f.calls.length,0)
+ assert.equal((await f.handle(req('pay','user-token'))).status,401);assert.equal((await f.handle(req('pay'))).status,409);assert.equal(f.calls.filter(c=>c.includes('processrequest')).length,0)
 })
 test('forged callback amounts phones receipts and checkout references cannot settle',async()=>{
  for(const edit of [{amount:1},{phone:254700000000},{receipt:'bad receipt'},{checkout:'foreign'}]){const row=pending();Object.assign(row.callback_event,edit);const f=fixture('success-wishes-checkout',row,true,query);await f.handle(req('reconcile'));assert.notEqual(row.state,'settled')}
@@ -47,4 +48,40 @@ test('callback capability is required and callback stores evidence without settl
  assert.equal((await f.handle(request('b'.repeat(64)))).status,403);assert.equal(f.updates.length,0)
  assert.equal((await f.handle(request(token))).status,200);assert.equal(row.state,'awaiting_customer');assert.ok(row.callback_event);assert.equal(f.calls.length,0)
  const first=JSON.stringify(row.callback_event);await f.handle(request(token));assert.equal(JSON.stringify(row.callback_event),first);assert.equal(f.updates.length,1)
+})
+
+test('rotated service credentials require a successful protected same-project Data API read',async()=>{
+ const f=fixture('success-wishes-checkout',{id,state:'created'},false,{},[{singleton:true}])
+ const response=await f.handle(req('pay','rotated.service.jwt'))
+ assert.equal(response.status,409,'Authenticated but unclaimed; no payment')
+ assert.equal(f.calls.filter(c=>c.includes('/rest/v1/')).length,1)
+ assert.equal(f.calls.filter(c=>c.includes('processrequest')).length,0)
+ assert.equal(f.calls[0],'https://example.supabase.co/rest/v1/mpesa_runtime_control?select=singleton&singleton=eq.true')
+})
+test('invalid, forged, expired and user credentials cannot reach payment claims',async()=>{
+ for(const [probe,status] of [[[],200],[[{singleton:false}],200],[[{singleton:true},{singleton:true}],200],[{},200],[[{singleton:true}],403],[[{singleton:true}],401]] as const){
+  const f=fixture('success-wishes-checkout',{id,state:'created'},true,{},probe,status)
+  assert.equal((await f.handle(req('pay','forged.service.payload'))).status,401)
+  assert.equal(f.updates.length,0);assert.equal(f.calls.filter(c=>c.includes('safaricom')).length,0)
+ }
+ const f=fixture('success-wishes-checkout',{id,state:'created'},true,{},[{singleton:true}])
+ const mixed=new Request('https://example.supabase.co',{method:'POST',headers:{authorization:'Bearer browser-user',apikey:'server-secret'},body:JSON.stringify({action:'pay',id})})
+ assert.equal((await f.handle(mixed)).status,401);assert.equal(f.calls.length,0)
+})
+test('readiness authenticates with Safaricom OAuth but never sends an STK or claims an order',async()=>{
+ const f=fixture('success-wishes-checkout',{id,state:'created'})
+ assert.equal((await f.handle(req('health'))).status,200)
+ assert.equal(f.calls.length,1);assert.match(f.calls[0],/oauth\/v1\/generate/);assert.equal(f.updates.length,0)
+})
+
+test('auth probe network failure fails closed and missing provider config never claims',async()=>{
+ const denied=fixture('success-wishes-checkout',{id,state:'created'},true,{},[{singleton:true}],200,true)
+ assert.equal((await denied.handle(req('pay','rotated.service.jwt'))).status,401)
+ assert.equal(denied.updates.length,0)
+ const missing=fixture('success-wishes-checkout',{id,state:'created'},true,{},[],200,false,{MPESA_PASSKEY:''})
+ assert.equal((await missing.handle(req('health'))).status,503)
+ assert.equal(missing.calls.length,0);assert.equal(missing.updates.length,0)
+ const oauth=fixture('success-wishes-checkout',{id,state:'created'},true,{},[],200,true)
+ assert.equal((await oauth.handle(req('pay'))).status,503)
+ assert.equal(oauth.updates.length,0);assert.equal(oauth.calls.filter(c=>c.includes('processrequest')).length,0)
 })

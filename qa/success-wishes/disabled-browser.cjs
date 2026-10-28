@@ -13,7 +13,7 @@ const PORT = 3092
 const ROOT = `http://localhost:${PORT}`
 const logFile = path.join(os.tmpdir(), 'success-wishes-ecommerce-browser.log')
 const serverLog = fs.openSync(logFile, 'w')
-const screenshots = path.join(os.tmpdir(), 'success-wishes-artifacts')
+const screenshots = process.env.CI ? path.join(process.cwd(),'qa/success-wishes/artifacts') : path.join(os.tmpdir(), 'success-wishes-artifacts')
 const testStore = path.join(process.cwd(), '.success-wishes-test-data.json')
 const hadTestStore = fs.existsSync(testStore)
 fs.mkdirSync(screenshots, { recursive: true })
@@ -153,24 +153,22 @@ async function makeWish(context, { message, theme }) {
       return top >= 0 && top < innerHeight - 150
     })
   }
-  const checkoutRequests = []
-  const trackCheckout = request => { if (request.url().includes('/api/success-wishes/')) checkoutRequests.push(request.url()) }
+  const checkoutRequests = [],checkoutActions=[]
+  const trackCheckout = request => { if (request.url().includes('/api/success-wishes/')) checkoutRequests.push(request.url());if(request.url().endsWith('/checkout')&&request.method()==='POST')checkoutActions.push(request.postDataJSON().action) }
   page.on('request', trackCheckout)
   await page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' }).click()
   const checkout = page.getByRole('dialog')
-  await checkout.getByRole('heading', { name: 'Your order' }).waitFor()
+  await checkout.getByRole('heading', { name: 'Review your wish' }).waitFor()
   assert.equal(await checkout.getByText(/Pay to Till 949529/).count(),0,'Compact checkout omits payment destination explanation')
   assert.equal(await checkout.getByText(/The recipient does not need to register/).count(),0,'Compact checkout omits recipient instructions')
   assert.equal(await checkout.getByText('Already started a payment?').count(),0,'Compact checkout omits manual recovery accordion')
   await checkout.getByLabel('M-Pesa number', {exact:true}).fill('0712345678')
-  await checkout.getByRole('button', { name: 'Review order', exact:true }).click()
-  await checkout.getByRole('heading', { name: 'Review your wish' }).waitFor()
   assert.deepEqual(checkoutRequests, [], 'Review alone never creates an order or starts payment')
   assert.equal(await checkout.getByLabel('Recipient’s private wish request link').count(), 0, 'Sender purchase needs no receiver request')
-  await checkout.getByRole('button', { name: 'Save order & continue' }).click()
-  await checkout.getByRole('alert').filter({hasText:'No new payment was requested'}).waitFor()
+  await checkout.getByRole('button', { name: 'Pay KSh 50', exact:true }).click()
+  await checkout.getByRole('alert').filter({hasText:'Checkout is unavailable. Please try later.'}).waitFor()
   assert.equal(checkoutRequests.filter(url=>url.endsWith('/checkout')).length,1)
-  assert.equal(await checkout.getByRole('button',{name:'Pay KSh 50 with M-Pesa'}).count(),0,'Disabled receiver never offers STK initiation')
+  assert.deepEqual(checkoutActions,['create'],'Disabled create never progresses to a pay request')
   page.off('request', trackCheckout)
   await checkout.getByRole('button', { name: 'Close checkout' }).click()
   assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)

@@ -10,7 +10,7 @@ test('checkout rejects cross-origin payment requests before database/provider ac
 test('enabled checkout preserves one immutable order, never repeats a pending STK, and restores paid delivery',async()=>{
  const saved={...process.env},original=globalThis.fetch,key='a'.repeat(64)
  type Row=Record<string,unknown>
- let order:Row|null=null,prompts=0,issues=0
+ let order:Row|null=null,prompts=0,issues=0,gatewayStatus=200
  const card={version:'text',theme:'nightfall',candidate:'Synthetic recipient',sender:'Synthetic sender',message:'Exact synthetic wish.',examYear:'2026',school:'',deliveryPhone:'0733000111'}
  globalThis.fetch=(async(input,init)=>{
   const u=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url)
@@ -22,6 +22,8 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
    assert.equal(u.searchParams.get('key_hash'),'eq.'+orderKeyHash(key));return Response.json(order)
   }
   if(endpoint==='success-wishes-checkout'){
+   if(gatewayStatus===-1)throw new Error('Synthetic timeout before payment claim')
+   if(gatewayStatus!==200)return Response.json({error:'Unauthorized'},{status:gatewayStatus})
    assert.equal(body.action,'pay');assert.equal(order?.state,'created');prompts++;Object.assign(order!,{state:'awaiting_customer'});return Response.json({ok:true})
   }
   if(endpoint==='success_wish_issue_unrequested_guest_gift'){assert.equal(order?.state,'settled');issues++;return Response.json('55555555-5555-4555-8555-555555555555')}
@@ -38,6 +40,11 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
   assert.equal((await call(create)).status,200)
   assert.equal((await call({...create,message:'Changed retry'})).status,409)
   assert.equal((await call({...create,deliveryPhone:'0733000112'})).status,409)
+  gatewayStatus=-1
+  const unknown=await call({action:'pay'});assert.equal(unknown.status,503);assert.equal(Object.hasOwn(await unknown.json(),'paymentError'),false);assert.equal(prompts,0)
+  gatewayStatus=401
+  const denied=await (await call({action:'pay'})).json();assert.equal(denied.order.state,'created');assert.equal(denied.paymentError,'Payment couldn’t start.');assert.equal(prompts,0)
+  gatewayStatus=200
   assert.equal((await call({action:'pay'})).status,200)
   assert.equal((await call({action:'pay'})).status,200);assert.equal(prompts,1)
   const pending=await (await call({action:'status'})).json();assert.equal(pending.order.invitationUrl,null);assert.equal(issues,0)

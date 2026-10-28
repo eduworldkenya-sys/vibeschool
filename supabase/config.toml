@@ -239,7 +239,9 @@ s3_access_key = "env(S3_ACCESS_KEY)"
 s3_secret_key = "env(S3_SECRET_KEY)"
 
 [functions.success-wishes-checkout]
-verify_jwt = true
+# Service credentials are verified in the handler against the project Data API.
+# The legacy gateway JWT check cannot authenticate every valid rotated service key.
+verify_jwt = false
 
 # Per-attempt callback capability is authenticated in the handler. Callback cannot settle money.
 [functions.success-wishes-mpesa-callback]

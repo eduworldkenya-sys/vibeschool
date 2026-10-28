@@ -1,0 +1,531 @@
+{
+  "schemaVersion": 1,
+  "kernelVersion": 2,
+  "registryVersion": 5,
+  "missionId": "CYBORG-20261028120833-e5b553",
+  "runId": "c3a236eb-02ca-4573-b92d-7c7dd4a6e849",
+  "missionType": "SECURITY",
+  "intent": "Implement simple Success Wishes checkout and repair production payment authorization without initiating a charge",
+  "baseSha": "UNRESOLVED",
+  "headSha": "UNRESOLVED",
+  "riskLevel": "R5",
+  "capabilities": [
+    "READ_REPO",
+    "READ_CI",
+    "READ_DB",
+    "READ_RUNTIME",
+    "RUN_TESTS",
+    "EDIT_CODE",
+    "CREATE_BRANCH",
+    "CREATE_PR"
+  ],
+  "scope": {
+    "mission": [
+      "components/success-wishes/WishCheckout.tsx",
+      "components/success-wishes/SuccessCardStudio.module.css",
+      "lib/success-wishes/checkout-client.ts",
+      "lib/success-wishes/checkout-client.test.ts",
+      "lib/success-wishes/guest-checkout.ts",
+      "supabase/functions/success-wishes-checkout",
+      "qa/success-wishes",
+      "docs/success-wishes",
+      "app/api/success-wishes/checkout/route.ts",
+      "supabase/config.toml",
+      "lib/success-wishes/guest-provider.test.ts",
+      "lib/success-wishes/guest-checkout-route.test.ts",
+      "components/success-wishes/SuccessCardStudio.tsx",
+      "qa/success-wishes/disabled-browser.cjs",
+      "qa/success-wishes/guest-checkout-assertions.sql",
+      "qa/success-wishes/checkout-browser.cjs",
+      "qa/success-wishes/receiver-browser.cjs"
+    ],
+    "affectedDependencies": [],
+    "excluded": []
+  },
+  "requirements": [
+    {
+      "id": "R01-repository_truth",
+      "description": "repository truth",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "291295b8-7c20-4e14-b593-4ca059cac6d8"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R02-user_visible_entrypoint",
+      "description": "user visible entrypoint",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "eae6af98-8d58-464b-8bf3-f0ff1092e1cf"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R03-input_validation",
+      "description": "input validation",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "74824b3b-319a-4dd9-b798-594969607dc4"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R04-canonical_data_contract",
+      "description": "canonical data contract",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "f6202463-ee82-4052-907e-309dee89d625"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R05-authorization_and_tenant_isolation",
+      "description": "authorization and tenant isolation",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "66e68ff9-c61d-42ec-accb-e297e276c0fc"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R06-happy_path",
+      "description": "happy path",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R07-negative_paths",
+      "description": "negative paths",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E4",
+      "evidenceIds": [
+        "e8b9dd8a-ec2f-4411-bbe1-c468415da6e8"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R08-retry_and_idempotency",
+      "description": "retry and idempotency",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "4fa2431e-2c83-4d90-a3d9-5ec10bbb6287"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R09-error_recovery",
+      "description": "error recovery",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "b071b39e-a6d2-4ad5-86e5-12905873be4c"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R10-observability",
+      "description": "observability",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "e3a09a7e-6e73-49f1-8ca2-b45786c1673e"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R11-mobile_or_runtime_when_applicable",
+      "description": "mobile or runtime when applicable",
+      "mandatory": true,
+      "state": "PASS",
+      "minimumEvidenceGrade": "E1",
+      "evidenceIds": [
+        "561e826d-abf9-4277-b45c-9dfd24ef6403"
+      ],
+      "dependencies": [],
+      "negativePaths": []
+    },
+    {
+      "id": "R12-production_configuration_when_claiming_production_ready",
+      "description": "production configuration when claiming production ready",
+      "mandatory": true,
+      "state": "UNKNOWN",
+      "minimumEvidenceGrade": "E7",
+      "evidenceIds": [],
+      "dependencies": [],
+      "negativePaths": []
+    }
+  ],
+  "selectedSkills": [
+    {
+      "id": "repo-truth-first",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "contract-integrity",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "canonical-architecture-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "exact-head-pr-certification-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "activation-authority-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "evidence-status-guardrail",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "preflight-before-ci",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "test-the-test",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "ci-failure-repair-loop",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "evidence-and-certification",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "dependency-integrity-loop",
+      "activation": "always-armed",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "escape-hatch-auditor",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "security-authority-gate",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "merge-certification-gate",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "regression-learning",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "resource-conservation",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "mission-decomposition",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "completion-coverage-gate",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "autonomous-repair-until-terminal",
+      "activation": "always-armed",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "execution-journal-integrity",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "knowledge-reconciliation",
+      "activation": "continuous",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "tool-failure-recovery",
+      "activation": "triggered",
+      "required": false,
+      "result": "NOT_APPLICABLE",
+      "reason": "trigger not observed at mission compile"
+    },
+    {
+      "id": "idempotency-and-resume",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "concurrency-and-ownership",
+      "activation": "always",
+      "required": true,
+      "result": "PENDING",
+      "reason": null
+    },
+    {
+      "id": "supabase-rls-security",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    },
+    {
+      "id": "production-readiness",
+      "activation": "domain-match",
+      "required": true,
+      "result": "PENDING",
+      "reason": "domain match"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "291295b8-7c20-4e14-b593-4ca059cac6d8",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:55.633Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R01-repository_truth",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E1",
+      "source": "git origin/main e65078926fb09e62a2803fb543d349e844b3076a; production dpl_GPDEQGXBtqvdoWAa2qShjVrvjuDH"
+    },
+    {
+      "id": "eae6af98-8d58-464b-8bf3-f0ff1092e1cf",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:55.709Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R02-user_visible_entrypoint",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E3",
+      "source": "/tmp/wishes-browser.log: six viewport checkout journeys pass"
+    },
+    {
+      "id": "74824b3b-319a-4dd9-b798-594969607dc4",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:55.787Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R03-input_validation",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E2",
+      "source": "/tmp/wishes-tests.log: 127 contract tests pass"
+    },
+    {
+      "id": "f6202463-ee82-4052-907e-309dee89d625",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:55.859Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R04-canonical_data_contract",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E3",
+      "source": "Existing immutable guest orders and claim functions preserved; contract tests pass"
+    },
+    {
+      "id": "66e68ff9-c61d-42ec-accb-e297e276c0fc",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:55.936Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R05-authorization_and_tenant_isolation",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E4",
+      "source": "Protected table ACL inspection; auth denial and bypass negative control pass"
+    },
+    {
+      "id": "e8b9dd8a-ec2f-4411-bbe1-c468415da6e8",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:56.012Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R07-negative_paths",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E4",
+      "source": "/tmp/wishes-tests.log and /tmp/wishes-browser.log: auth, timeout-before-claim and reload regressions"
+    },
+    {
+      "id": "4fa2431e-2c83-4d90-a3d9-5ec10bbb6287",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:56.075Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R08-retry_and_idempotency",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E4",
+      "source": "Atomic claim preserved; unknown created snapshots never unlock new checkout"
+    },
+    {
+      "id": "b071b39e-a6d2-4ad5-86e5-12905873be4c",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:56.143Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R09-error_recovery",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E4",
+      "source": "Six viewport browser recovery and safe authorization-denial retry pass"
+    },
+    {
+      "id": "e3a09a7e-6e73-49f1-8ca2-b45786c1673e",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:56.217Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R10-observability",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E2",
+      "source": "Read-only readiness endpoint and sanitized gateway HTTP status telemetry"
+    },
+    {
+      "id": "561e826d-abf9-4277-b45c-9dfd24ef6403",
+      "headSha": "UNRESOLVED",
+      "createdAt": "2026-10-28T12:22:56.296Z",
+      "fresh": true,
+      "producer": "root-implementation",
+      "independent": false,
+      "provenance": {},
+      "requirementId": "R11-mobile_or_runtime_when_applicable",
+      "kind": "verification",
+      "result": "PASS",
+      "grade": "E3",
+      "source": "/tmp/wishes-browser.log: 320,360,390,412,768,1280 widths pass"
+    }
+  ],
+  "contradictions": [],
+  "findings": [],
+  "decisions": [],
+  "technicalDebt": [],
+  "attempts": {},
+  "state": "MISSION",
+  "learningClosure": false,
+  "createdAt": "2026-10-28T12:08:33.606Z",
+  "updatedAt": "2026-10-28T12:47:01.898Z",
+  "journalPath": ".cyborg/journal/CYBORG-20261028120833-e5b553.ndjson",
+  "activation": {
+    "runtime": false,
+    "schedulers": false,
+    "publishing": false,
+    "payments": false,
+    "consequentialAuthority": false
+  },
+  "lastJournalHash": "7ed2c486b657d5ac48e118f7a6efc8c36e3f66cc7b97f6e1226087968a4488e4"
+}

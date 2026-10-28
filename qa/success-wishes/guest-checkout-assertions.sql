@@ -6,6 +6,7 @@ insert into public.success_wish_guest_orders(id,key_hash,request_id,receiver_id,
 do $$
 declare c uuid;d uuid;denied boolean;
 begin
+ if has_table_privilege('anon','public.mpesa_runtime_control','SELECT') or has_table_privilege('authenticated','public.mpesa_runtime_control','SELECT') then raise exception 'Payment service authentication table must remain service-only';end if;
  if has_table_privilege('anon','public.success_wish_guest_orders','SELECT') or has_table_privilege('authenticated','public.success_wish_guest_orders','UPDATE') then raise exception 'Public guest order access';end if;
  if has_function_privilege('anon','public.success_wish_claim_guest_payment(uuid,text)','EXECUTE') then raise exception 'Public payment claim';end if;
  if public.success_wish_claim_guest_payment('e3333333-3333-4333-8333-333333333333',repeat('d',64)) then raise exception 'Default-off failure';end if;

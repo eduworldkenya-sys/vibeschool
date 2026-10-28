@@ -10,12 +10,19 @@ export function recipientRequestToken(value:string){
 export const pendingCheckout=(s:CheckoutState)=>['submitting','awaiting_customer','reconciliation_required'].includes(s)
 export function checkoutMessage(s:CheckoutState){
  switch(s){
- case 'created':return 'Your exact card is saved. Confirm below to request payment.'
- case 'submitting':return 'Sending the M-Pesa prompt. Keep this order open and do not pay again.'
- case 'awaiting_customer':return 'Check your phone and enter your M-Pesa PIN. We are waiting for Safaricom to confirm payment.'
- case 'reconciliation_required':return 'We are checking this payment. Do not pay again. Keep your order reference and check its status here.'
- case 'settled':return 'Payment confirmed. Your private card is ready.'
- case 'failed':return 'Safaricom did not complete this payment. Review your number before starting another checkout.'
- case 'refunded':return 'This payment was refunded. Its private card is unavailable.'
+ case 'created':return ''
+ case 'submitting':return 'Sending your M-Pesa prompt…'
+ case 'awaiting_customer':return 'Enter your PIN on the M-Pesa prompt.'
+ case 'reconciliation_required':return 'Checking payment. Do not pay again.'
+ case 'settled':return 'Payment confirmed.'
+ case 'failed':return 'Payment wasn’t completed.'
+ case 'refunded':return 'Payment refunded.'
  }
 }
+
+export function maskedPayerPhone(value:string){
+ const digits=value.replace(/\D/g,'')
+ const local=digits.startsWith('254')?'0'+digits.slice(3):digits
+ return local.length===10?local.slice(0,4)+' ••• '+local.slice(-3):'Your M-Pesa number'
+}
+export function canPay(state:CheckoutState|undefined,uncertain:boolean){return state==='created'&&!uncertain}

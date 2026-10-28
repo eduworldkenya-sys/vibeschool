@@ -9,9 +9,11 @@ import {sixCardCodeFromOrderKey} from './card-code'
 type DB=ReturnType<typeof database>
 export const orderKeyHash=(key:string)=>hashSecret('success-wishes:guest-order:'+key)
 async function find(db:DB,key:string){const {data,error}=await db.from('success_wish_guest_orders').select('*').eq('key_hash',orderKeyHash(key)).maybeSingle();if(error)throw new WishError(503,'Checkout is not available yet. No new payment was requested.');return data}
+class GatewayRejected extends Error{constructor(readonly status:number){super('Payment service rejected the request.')}}
 async function gateway(action:string,id:string){
- const r=await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+'/functions/v1/success-wishes-checkout',{method:'POST',headers:{Authorization:'Bearer '+process.env.SUPABASE_SERVICE_ROLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({action,id}),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(35000)})
- if(!r.ok)throw new WishError(503,'Payment service is unavailable. Your order is saved. Check status before paying again.')
+ const r=await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+'/functions/v1/success-wishes-checkout',{method:'POST',headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(),Authorization:'Bearer '+process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(),'Content-Type':'application/json'},body:JSON.stringify({action,id}),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(35000)})
+ if(!r.ok){console.error('success_wishes_gateway_rejected',{action,status:r.status});throw new GatewayRejected(r.status)}
+ return await r.json()
 }
 async function present(db:DB,key:string){
  const o=await find(db,key);if(!o)throw new WishError(404,'No saved order was found for this recovery key.')
@@ -61,11 +63,30 @@ export async function guestCheckout(req:NextRequest,raw:unknown){
   const o=await find(db,key);if(!o)throw new WishError(404,'No saved order was found for this recovery key.')
   if(b.action==='pay'){
    await limit('guest-stk:'+o.payer_phone,3,900)
-   if(o.state==='created')await gateway('pay',o.id)
+   if(o.state==='created'){
+    try{await gateway('pay',o.id)}catch(error){
+     // A completed auth denial cannot reach a payment claim. A timeout may still be running.
+     if(!(error instanceof GatewayRejected)||![401,403].includes(error.status))throw new WishError(503,'Payment status couldn’t be checked.')
+     const current=await present(db,key)
+     return {order:current,paymentError:current.state==='created'?'Payment couldn’t start.':null}
+    }
+   }
   }else{
    if(['submitting','awaiting_customer'].includes(o.state)&&Date.now()-Date.parse(o.updated_at)>180000){const {error}=await db.from('success_wish_guest_orders').update({state:'reconciliation_required'}).eq('id',o.id).eq('state',o.state);if(error)throw new WishError(503,'Payment status is unavailable. Do not pay again.')}
    if(['awaiting_customer','reconciliation_required'].includes(o.state)&&o.callback_event)await gateway('reconcile',o.id)
   }
  }else throw new WishError(400,'Unknown checkout action.')
  return {order:await present(db,key)}
+}
+
+/** Read-only operational probe. Never creates an order or invokes STK Push. */
+export async function guestCheckoutReadiness(req:NextRequest){
+ if(!enabled())throw new WishError(503,'Payment is unavailable.')
+ const ip=(req.headers.get('x-real-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').slice(0,100)
+ await limit('guest-checkout-health:'+ip,5,60)
+ const {data:control,error}=await database().from('mpesa_runtime_control').select('initiation_enabled,success_wishes_enabled').eq('singleton',true).maybeSingle()
+ if(error||!control?.initiation_enabled||!control?.success_wishes_enabled)throw new WishError(503,'Payment is unavailable.')
+ const health=await gateway('health','00000000-0000-0000-0000-000000000000')
+ if(health.ready!==true)throw new WishError(503,'Payment is unavailable.')
+ return {ready:true}
 }
