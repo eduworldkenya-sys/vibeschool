@@ -123,7 +123,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [message, setMessage] = useState(initialDraft?.message || '')
   const [examYear, setExamYear] = useState(initialDraft?.examYear || '2026')
   const [school, setSchool] = useState(initialDraft?.school || '')
-  const [deliveryPhone, setDeliveryPhone] = useState('')
+  const [deliveryPhone, setDeliveryPhone] = useState(initialDraft?.deliveryPhone || '')
   const [selectedSchool, setSelectedSchool] = useState<SchoolOption | null>(null)
   const [schoolOptions, setSchoolOptions] = useState<SchoolOption[]>([])
   const [schoolSearchState, setSchoolSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
@@ -170,9 +170,10 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const restoreDraft = useCallback((draft: SenderDraft) => {
     setTheme(draft.theme); setCandidate(draft.candidate); setSender(draft.sender)
     setMessage(draft.message); setExamYear(draft.examYear); setSchool(draft.school)
+    setDeliveryPhone(draft.deliveryPhone || '')
     setSelectedSchool(null)
   }, [])
-  const draftStatus = useSenderDraft({ theme, candidate, sender, message, examYear, school }, Boolean(initialDraft), restoreDraft)
+  const draftStatus = useSenderDraft({ theme, candidate, sender, message, examYear, school, deliveryPhone }, Boolean(initialDraft), restoreDraft)
   function clearDraft() {
     if (!window.confirm('Clear this wish and start again?')) return
     restoreDraft({ theme: 'heritage', candidate: '', sender: '', message: '', examYear: '2026', school: '' })
