@@ -22,7 +22,14 @@ async function present(db:DB,key:string){
   if(o.receiver_id){
    const {data,error}=await db.rpc('success_wish_issue_guest_card',{p_id:o.id,p_key_hash:orderKeyHash(key),p_link_hash:linkDigest(secret),p_code_hash:codeDigest(code)})
    if(error||!data)throw new WishError(503,'Payment is recorded. Card delivery is pending. Keep your recovery key and check again; do not pay again.')
-   invitationUrl='https://vibeschool.co.ke/success-wishes/invitation#token='+secret;backupCode=code
+   invitationUrl='https://vibeschool.co.ke/success-wishes/invitation#token='+secret
+   // Previously issued 32-character codes must remain usable on restored orders.
+   const {data:access,error:accessError}=await db.from('success_wish_card_access')
+     .select('code_hash').eq('card_id',data).maybeSingle()
+   if(accessError)throw new WishError(503,'Card access could not be verified. Keep your private link.')
+   const originalCode=hashSecret('success-wishes:guest-card-code:'+key).slice(0,32).toUpperCase()
+   backupCode=access?.code_hash===codeDigest(code) ? code
+     : access?.code_hash===codeDigest(originalCode) ? originalCode : null
   }else{
    const {data,error}=await db.rpc('success_wish_issue_unrequested_guest_gift',{p_id:o.id,p_key_hash:orderKeyHash(key),p_link_hash:linkDigest(secret)})
    if(error||!data)throw new WishError(503,'Payment is confirmed. Your private gift link is being prepared. Keep your recovery key and check again; do not pay again.')
