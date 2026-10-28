@@ -25,6 +25,7 @@ export default function RecoverWishes() {
   useEffect(() => setClientReady(true), [])
   const [phone, setPhone] = useState('')
   const [recoveryCode, setRecoveryCode] = useState('')
+  const [useBackup, setUseBackup] = useState(false)
   const [challengeId, setChallengeId] = useState('')
   const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
@@ -41,7 +42,7 @@ export default function RecoverWishes() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone,
-          recoveryCode: recoveryCode.trim().toUpperCase(),
+          ...(useBackup ? { recoveryCode: recoveryCode.trim().toUpperCase() } : {}),
           challengeId,
           code: otp
         })
@@ -82,7 +83,7 @@ export default function RecoverWishes() {
             Your wishes are still here.
           </h1>
           <p className="text-xs sm:text-sm text-slate-400">
-            Use your registered phone and recovery code to restore your inbox.
+            Enter your registered phone to receive a six-digit SMS code.
           </p>
         </div>
 
@@ -100,7 +101,7 @@ export default function RecoverWishes() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
-              if (!clientReady || busy || (!challengeId && (!validPhone || !validRecoveryCode)) || (!!challengeId && otp.length !== 6)) return
+              if (!clientReady || busy || (!challengeId && (!validPhone || (useBackup && !validRecoveryCode))) || (!!challengeId && otp.length !== 6)) return
               void submit(challengeId ? 'PATCH' : 'POST')
             }}
             className="space-y-4"
@@ -127,8 +128,8 @@ export default function RecoverWishes() {
                   </div>
                 </div>
 
-                {/* Recovery Code Input */}
-                <div className="space-y-1.5">
+                {/* Optional backup when a family shares the same phone */}
+                {useBackup && <div className="space-y-1.5">
                   <label htmlFor="recover-field-2" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     Student Recovery Code
                   </label>
@@ -147,13 +148,13 @@ export default function RecoverWishes() {
                       className="w-full bg-slate-900 border border-slate-800 focus:border-[#D4AF37] rounded-xl pl-10 pr-3.5 py-3 text-xs text-[#D4AF37] font-mono tracking-wider focus:outline-none transition-colors placeholder:text-slate-600 placeholder:font-sans"
                     />
                   </div>
-                </div>
-                <p className="text-xs text-slate-400">Use the recovery code shown when you first verified your wish. Older 32-character codes still work. <Link href="/success-wishes/open" className="text-[#D4AF37]">Lost it? Open your original card to verify again.</Link></p>
+                </div>}
+                {useBackup && <p className="text-xs text-slate-400">Use the recovery code saved when your wish was verified. Older codes still work.</p>}
               </>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-slate-300 bg-slate-900/60 p-3 rounded-xl border border-slate-800 leading-relaxed">
-                  Check your SMS for the six-digit verification code. It expires after 5 minutes.
+                  Enter the six-digit code sent to the registered phone. It expires after 5 minutes.
                 </p>
                 <div className="space-y-1.5">
                   <label htmlFor="recover-field-3" className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400">
@@ -189,7 +190,7 @@ export default function RecoverWishes() {
 
             <button
               type="submit"
-              disabled={!clientReady || busy || (!challengeId && (!validPhone || !validRecoveryCode)) || (!!challengeId && otp.length !== 6)}
+              disabled={!clientReady || busy || (!challengeId && (!validPhone || (useBackup && !validRecoveryCode))) || (!!challengeId && otp.length !== 6)}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-[#D4AF37]/20 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center space-x-2"
             >
               {busy ? (
@@ -209,12 +210,10 @@ export default function RecoverWishes() {
                 </>
               )}
             </button>
-          {challengeId && <button type="button" className="receiver-close-card" disabled={busy} onClick={() => { setChallengeId(''); setOtp(''); setError('') }}>Change details or request another code</button>}
+          {challengeId && <button type="button" className="receiver-close-card" disabled={busy} onClick={() => { setChallengeId(''); setOtp(''); setError('') }}>Change number or request another code</button>}
           </form>
-
-          <p className="text-[10px] text-slate-500 text-center pt-2 border-t border-slate-800/80">
-            Keep your recovery code private, even when using a shared family device.
-          </p>
+          <button type="button" className="receiver-close-card" disabled={busy} onClick={() => { setUseBackup(!useBackup); setChallengeId(''); setOtp(''); setError('') }}>{useBackup ? 'Use SMS only' : 'Use a recovery code instead'}</button>
+          <p className="text-[10px] text-slate-500 text-center pt-2 border-t border-slate-800/80">Keep SMS and backup codes private. Shared family numbers may require a recovery code or original card link.</p>
         </div>
 
         {/* BOTTOM NAVIGATION FALLBACK LINKS */}
