@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Check, ChevronRight, Volume2, VolumeX } from 'lucide-react'
+import { Check, Pencil, ChevronRight, Volume2, VolumeX } from 'lucide-react'
 import SenderMediaCapture from './SenderMediaCapture'
 import WishCheckout from './WishCheckout'
 import { useSenderDraft } from './useSenderDraft'
@@ -19,6 +19,14 @@ export { BookCard } from './BookCard'
 export type Template = SenderDraft['theme']
 export type CardValues = { candidate: string; sender: string; message: string; examYear?: string; school?: string; deliveryPhone?: string }
 export type CardDesignDraft = CardValues & { theme: Template }
+
+type WishField = 'candidate' | 'school' | 'phone' | 'sender' | 'message'
+function CompletedSection({ title, value, completed, open, onOpenChange, onBlurCapture, children }: {title:string;value:string;completed:boolean;open:boolean;onOpenChange:(open:boolean)=>void;onBlurCapture?:React.FocusEventHandler<HTMLDetailsElement>;children:React.ReactNode}) {
+  return <details className={`${styles.completedField} ${completed ? styles.isComplete : ''}`} open={open} onBlurCapture={onBlurCapture} onToggle={event => { if(event.currentTarget.open !== open) onOpenChange(event.currentTarget.open) }}>
+    <summary className={styles.fieldSummary}><span className={styles.summaryCheck} aria-hidden="true">{completed && <Check size={17} strokeWidth={3}/>}</span><span className={styles.summaryText}><strong>{title}</strong>{completed && !open && <span className={styles.summaryValue}>{value}</span>}</span>{completed && <Pencil className={styles.summaryEdit} size={17} aria-hidden="true"/>}</summary>
+    <div className={styles.fieldContent}>{children}</div>
+  </details>
+}
 
 export function CardArt({ template, values, svgRef, preview = false }: {
   template: Template; values: CardValues; svgRef?: React.Ref<SVGSVGElement>; preview?: boolean
@@ -141,7 +149,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const values = { candidate, sender, message, examYear, school, deliveryPhone }
   const [editingStarted, setEditingStarted] = useState(false)
   const [expandedFields, setExpandedFields] = useState<Record<string, boolean>>({ candidate: true, phone: true, sender: true, message: true, school: true })
-  const setFieldExpanded = (field: string, expanded: boolean) => setExpandedFields(previous => ({ ...previous, [field]: expanded }))
+  const setFieldExpanded = (field: WishField, expanded: boolean) => setExpandedFields(previous => ({ ...previous, [field]: expanded }))
   const fieldErrors = {
     candidate: candidate.trim() ? '' : 'Enter the candidate’s name.',
     sender: sender.trim() ? '' : 'Enter your name.',
@@ -152,7 +160,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const completion = [!fieldErrors.candidate && !fieldErrors.examYear, !fieldErrors.deliveryPhone, !fieldErrors.sender, !fieldErrors.message]
   const completedCount = completion.filter(Boolean).length
-  const collapseOnLeave = (field: string, valid: boolean, event: React.FocusEvent<HTMLDetailsElement>) => {
+  const collapseOnLeave = (field: WishField, valid: boolean, event: React.FocusEvent<HTMLDetailsElement>) => {
     if (!editingStarted || !valid || event.currentTarget.contains(event.relatedTarget as Node)) return
     const element = event.currentTarget
     requestAnimationFrame(() => { if (!element.contains(document.activeElement)) setFieldExpanded(field, false) })
@@ -322,11 +330,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {draftStatus.restored && <p role="status">Draft restored.</p>}
             {draftStatus.saved && <button type="button" className={styles.secondary} onClick={clearDraft}>Clear draft</button>}
           </div>}
-          <details className={styles.completedField} open={expandedFields.candidate} onBlurCapture={event => collapseOnLeave('candidate', completion[0] && touched.examYear, event)} onToggle={event => { const isOpen = event.currentTarget.open; if (isOpen !== expandedFields.candidate) setFieldExpanded('candidate', isOpen) }}><summary>Candidate details {candidate.trim() && /^20\d{2}$/.test(examYear) ? `✓ ${candidate.trim()} · ${examYear}` : ''}</summary><div className={styles.formRow}>
+          <CompletedSection title="Candidate details" value={candidate.trim() + ' · ' + examYear} completed={completion[0]} open={expandedFields.candidate} onOpenChange={open => setFieldExpanded('candidate', open)} onBlurCapture={event => collapseOnLeave('candidate', completion[0] && touched.examYear, event)}><div className={styles.formRow}>
             <label>Candidate name<input aria-label="Candidate name" aria-invalid={touched.candidate && Boolean(fieldErrors.candidate)} aria-describedby={touched.candidate && fieldErrors.candidate ? schoolInputId + '-candidate-error' : undefined} onBlur={() => setTouched(current => ({ ...current, candidate: true }))} autoComplete="off" maxLength={48} value={candidate} onChange={e => { setEditingStarted(true); setCandidate(e.target.value) }} placeholder="Who are you celebrating?"/>{touched.candidate && fieldErrors.candidate && <small id={schoolInputId + '-candidate-error'} className={styles.fieldError}>{fieldErrors.candidate}</small>}</label>
             <label>Exam year<input aria-label="Exam year" aria-invalid={touched.examYear && Boolean(fieldErrors.examYear)} aria-describedby={touched.examYear && fieldErrors.examYear ? schoolInputId + '-year-error' : undefined} onBlur={() => setTouched(current => ({ ...current, examYear: true }))} inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => { setEditingStarted(true); setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4)) }} placeholder="e.g. 2026"/>{touched.examYear && fieldErrors.examYear && <small id={schoolInputId + '-year-error'} className={styles.fieldError}>{fieldErrors.examYear}</small>}</label>
-          </div></details>
-          <details className={styles.completedField} open={expandedFields.school} onToggle={event => { if (event.currentTarget.open !== expandedFields.school) setFieldExpanded("school", event.currentTarget.open) }}><summary>Find their school <small>Optional</small>{selectedSchool ? ` ✓ ${selectedSchool.school_name}` : ""}</summary><div className={styles.optionalField}>
+          </div></CompletedSection>
+          <CompletedSection title="Find their school" value={selectedSchool?.school_name || school} completed={Boolean(selectedSchool)} open={expandedFields.school} onOpenChange={open => setFieldExpanded('school', open)} onBlurCapture={event => collapseOnLeave('school', Boolean(selectedSchool), event)}><div className={styles.optionalField}>
             <div className={styles.optionalFieldHeading}><label htmlFor={schoolInputId}>School (optional)</label></div><p className={styles.schoolInvitation}>Make their card even more personal</p>
             <input id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setEditingStarted(true); setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search school name"/>
             {schoolSearchState === 'loading' && <p className={styles.schoolSearchStatus} role="status">Searching VibeSchool schools…</p>}
@@ -334,11 +342,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {schoolSearchState === 'ready' && schoolOptions.length === 0 && <p className={styles.schoolSearchStatus} role="status">No matching school found. Try another name or leave this optional.</p>}
             {schoolOptions.length > 0 && <ul className={styles.schoolResults} id={schoolResultsId} role="listbox" aria-label="Matching VibeSchool schools">{schoolOptions.map(option => <li key={option.school_id}><button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id} onClick={() => { setSelectedSchool(option); setSchool(option.school_name); setSchoolOptions([]); setSchoolSearchState('idle'); setFieldExpanded('school', false) }}><strong>{option.school_name}</strong><small>{[option.sub_county, option.county].filter(Boolean).join(', ') || 'School in VibeSchool directory'}</small></button></li>)}</ul>}
             {selectedSchool && <p className={styles.schoolSearchStatus} role="status">Selected from VibeSchool&apos;s school list: {selectedSchool.school_name}{selectedSchool.sub_county || selectedSchool.county ? ` · ${[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}` : ''}</p>}
-          </div></details>
-          <details className={styles.completedField} open={expandedFields.phone} onBlurCapture={event => collapseOnLeave('phone', completion[1], event)} onToggle={event => { const isOpen = event.currentTarget.open; if (isOpen !== expandedFields.phone) setFieldExpanded('phone', isOpen) }}><summary>Receiver's phone {fieldErrors.deliveryPhone ? '' : `✓ ${deliveryPhone}`}</summary><label>Phone to receive this wish<input aria-label="Phone to receive this wish" aria-invalid={touched.deliveryPhone && Boolean(fieldErrors.deliveryPhone)} onBlur={() => setTouched(current => ({ ...current, deliveryPhone: true }))} autoComplete="tel" inputMode="tel" type="tel" maxLength={20} value={deliveryPhone} onChange={e => { setEditingStarted(true); setDeliveryPhone(e.target.value) }} placeholder="07XX XXX XXX"/>{touched.deliveryPhone && fieldErrors.deliveryPhone && <small className={styles.fieldError}>{fieldErrors.deliveryPhone}</small>}</label></details>
-          <details className={styles.completedField} open={expandedFields.sender} onBlurCapture={event => collapseOnLeave('sender', completion[2], event)} onToggle={event => { const isOpen = event.currentTarget.open; if (isOpen !== expandedFields.sender) setFieldExpanded('sender', isOpen) }}><summary>Your name {sender.trim() ? `✓ ${sender.trim()}` : ''}</summary><label>Your name<input aria-label="Your name" aria-invalid={touched.sender && Boolean(fieldErrors.sender)} aria-describedby={touched.sender && fieldErrors.sender ? schoolInputId + '-sender-error' : undefined} onBlur={() => setTouched(current => ({ ...current, sender: true }))} autoComplete="off" maxLength={48} value={sender} onChange={e => { setEditingStarted(true); setSender(e.target.value) }} placeholder="From whom?"/>{touched.sender && fieldErrors.sender && <small id={schoolInputId + '-sender-error'} className={styles.fieldError}>{fieldErrors.sender}</small>}</label></details>
-          <details className={styles.completedField} open={expandedFields.message} onBlurCapture={event => collapseOnLeave('message', completion[3], event)} onToggle={event => { if (event.currentTarget.open !== expandedFields.message) setFieldExpanded("message", event.currentTarget.open) }} ><summary>Your wish {completion[3] ? "✓ Message ready" : ""}</summary><label>Your wish<textarea aria-label="Your wish" aria-invalid={touched.message && Boolean(fieldErrors.message)} aria-describedby={touched.message && fieldErrors.message ? schoolInputId + '-message-error' : undefined} onBlur={() => setTouched(current => ({ ...current, message: true }))} ref={messageInputRef} rows={3} maxLength={220} value={message} onChange={e => { setEditingStarted(true); setMessage(e.target.value) }}
-            placeholder="Write something only you would say…"/>{touched.message && fieldErrors.message && <small id={schoolInputId + '-message-error'} className={styles.fieldError}>{fieldErrors.message}</small>}</label></details>
+          </div></CompletedSection>
+          <CompletedSection title="Receiver's phone" value={deliveryPhone} completed={completion[1]} open={expandedFields.phone} onOpenChange={open => setFieldExpanded('phone', open)} onBlurCapture={event => collapseOnLeave('phone', completion[1], event)}><label>Phone to receive this wish<input aria-label="Phone to receive this wish" aria-invalid={touched.deliveryPhone && Boolean(fieldErrors.deliveryPhone)} onBlur={() => setTouched(current => ({ ...current, deliveryPhone: true }))} autoComplete="tel" inputMode="tel" type="tel" maxLength={20} value={deliveryPhone} onChange={e => { setEditingStarted(true); setDeliveryPhone(e.target.value) }} placeholder="07XX XXX XXX"/>{touched.deliveryPhone && fieldErrors.deliveryPhone && <small className={styles.fieldError}>{fieldErrors.deliveryPhone}</small>}</label></CompletedSection>
+          <CompletedSection title="Your name" value={sender.trim()} completed={completion[2]} open={expandedFields.sender} onOpenChange={open => setFieldExpanded('sender', open)} onBlurCapture={event => collapseOnLeave('sender', completion[2], event)}><label>Your name<input aria-label="Your name" aria-invalid={touched.sender && Boolean(fieldErrors.sender)} aria-describedby={touched.sender && fieldErrors.sender ? schoolInputId + '-sender-error' : undefined} onBlur={() => setTouched(current => ({ ...current, sender: true }))} autoComplete="off" maxLength={48} value={sender} onChange={e => { setEditingStarted(true); setSender(e.target.value) }} placeholder="From whom?"/>{touched.sender && fieldErrors.sender && <small id={schoolInputId + '-sender-error'} className={styles.fieldError}>{fieldErrors.sender}</small>}</label></CompletedSection>
+          <CompletedSection title="Your wish" value={message.trim()} completed={completion[3]} open={expandedFields.message} onOpenChange={open => setFieldExpanded('message', open)} onBlurCapture={event => collapseOnLeave('message', completion[3], event)}><label>Your wish<textarea aria-label="Your wish" aria-invalid={touched.message && Boolean(fieldErrors.message)} aria-describedby={touched.message && fieldErrors.message ? schoolInputId + '-message-error' : undefined} onBlur={() => setTouched(current => ({ ...current, message: true }))} ref={messageInputRef} rows={3} maxLength={220} value={message} onChange={e => { setEditingStarted(true); setMessage(e.target.value) }}
+            placeholder="Write something only you would say…"/>{touched.message && fieldErrors.message && <small id={schoolInputId + '-message-error'} className={styles.fieldError}>{fieldErrors.message}</small>}</label></CompletedSection>
           {selectedVersion !== 'text' && <>
             <SenderMediaCapture key={selectedVersion} kind={selectedVersion} file={mediaFile} onChange={setMediaFile}/>
             {mediaPreviewUrl && <div className={styles.localMediaReview}>
@@ -358,7 +366,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             }}>{starter.label}</button>)}</div>
           </div>
           <p className={styles.counter}>{message.length}/220 characters</p>
-          {completedCount === 4 && <p className={styles.readyMessage} role="status">Ready to send</p>}
+          {editingStarted && completedCount === 4 && <p className={styles.readyMessage} role="status">Ready to send</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
