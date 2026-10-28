@@ -263,8 +263,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
 
   return <div className={styles.page}>
     <header className={styles.header}>
-      <Link href="/" className={styles.brand} aria-label="VibeSchool home"><Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160} className={styles.brandLogo}/><small>SUCCESS WISHES</small></Link>
+      <Link href="/" className={styles.brand} aria-label="VibeSchool home"><Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={620} height={160} className={styles.brandLogo}/><small>SUCCESS WISHES</small></Link>
       <div className={styles.headerActions}>
+        <Link className={styles.headerWishes} href="/success-wishes/inbox">My wishes</Link>
         <button type="button" className={styles.headerSound} aria-label={soundEnabled ? 'Mute card opening sound' : 'Turn card opening sound on'} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={17}/> : <VolumeX size={17}/>}</button>
       </div>
     </header>
