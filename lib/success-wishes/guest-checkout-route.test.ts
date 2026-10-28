@@ -11,7 +11,7 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
  const saved={...process.env},original=globalThis.fetch,key='a'.repeat(64)
  type Row=Record<string,unknown>
  let order:Row|null=null,prompts=0,issues=0
- const card={version:'text',theme:'nightfall',candidate:'Synthetic recipient',sender:'Synthetic sender',message:'Exact synthetic wish.',examYear:'2026',school:''}
+ const card={version:'text',theme:'nightfall',candidate:'Synthetic recipient',sender:'Synthetic sender',message:'Exact synthetic wish.',examYear:'2026',school:'',deliveryPhone:'0733000111'}
  globalThis.fetch=(async(input,init)=>{
   const u=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url)
   assert.equal(u.hostname,'synthetic.supabase.co','No real network permitted')
@@ -31,11 +31,13 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
  try{
   Object.assign(process.env,{SUCCESS_WISHES_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'https://synthetic.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'synthetic-service'})
   const create={action:'create',...card,payerPhone:'0712345678'}
+  assert.equal((await call({...create,deliveryPhone:''})).status,400);assert.equal(order,null)
   assert.equal((await call({...create,paid:true})).status,400);assert.equal(order,null)
   assert.equal((await call({...create,recipientRequest:'b'.repeat(64)})).status,400);assert.equal(order,null)
   assert.equal((await call(create)).status,200);assert.equal(prompts,0)
   assert.equal((await call(create)).status,200)
   assert.equal((await call({...create,message:'Changed retry'})).status,409)
+  assert.equal((await call({...create,deliveryPhone:'0733000112'})).status,409)
   assert.equal((await call({action:'pay'})).status,200)
   assert.equal((await call({action:'pay'})).status,200);assert.equal(prompts,1)
   const pending=await (await call({action:'status'})).json();assert.equal(pending.order.invitationUrl,null);assert.equal(issues,0)
