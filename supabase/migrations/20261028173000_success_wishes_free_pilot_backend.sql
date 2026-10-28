@@ -38,8 +38,8 @@ begin
  if coalesce(p_key_hash,'') !~ '^[a-f0-9]{64}$'
  or coalesce(p_link_hash,'') !~ '^[a-f0-9]{64}$'
  or coalesce(p_card_digest,'') !~ '^[a-f0-9]{64}$'
- or p_card->>'kind'<>'success_wish_text'
- or p_card->>'theme' not in ('heritage','botanical','nightfall','sunrise')
+ or coalesce(p_card->>'kind','')<>'success_wish_text'
+ or coalesce(p_card->>'theme','') not in ('heritage','botanical','nightfall','sunrise')
  or length(trim(coalesce(p_card->>'candidate',''))) not between 1 and 48
  or length(trim(coalesce(p_card->>'sender',''))) not between 1 and 48
  or length(trim(coalesce(p_card->>'message',''))) not between 1 and 220
