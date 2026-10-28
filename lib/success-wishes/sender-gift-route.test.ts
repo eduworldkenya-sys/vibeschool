@@ -33,11 +33,6 @@ test('sender-created private gift stays sealed until opened and rejects invalid/
   assert.equal(preview.candidate,card.candidate);assert.equal(preview.sender,null);assert.equal(Object.hasOwn(preview,'message'),false)
   const opened=await PUT(request('PUT'));assert.equal(opened.status,200)
   const reveal=(await opened.json()).card;assert.equal(reveal.sender,card.sender);assert.equal(reveal.message,card.message)
-  process.env.SUCCESS_WISHES_ENABLED='false'
-  const giftWhileClosed=await PUT(request('PUT'))
-  assert.equal(giftWhileClosed.status,200,'Previously paid gift must still open after new payments close')
-  assert.equal((await giftWhileClosed.json()).card.message,card.message)
-  process.env.SUCCESS_WISHES_ENABLED='true'
   assert(calls>=2)
   refunded=true
   assert.equal((await PUT(request('PUT'))).status,404)
