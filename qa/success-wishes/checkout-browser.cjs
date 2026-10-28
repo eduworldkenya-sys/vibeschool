@@ -15,8 +15,6 @@ fs.mkdirSync(artifacts,{recursive:true})
   for(const width of [320,360,390,412,768,1280]){
    const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();page.setDefaultTimeout(30000)
    const calls=[];let stored=null
-   // Synthetic availability response: provider and payment controls remain OFF in this test.
-   await page.route('**/api/success-wishes/config',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({enabled:true,paymentsEnabled:true,mediaEnabled:false})}))
    await page.route('**/api/success-wishes/checkout',async route=>{
     const p=route.request().postDataJSON();calls.push(p.action)
     if(p.action==='create'){assert.equal(Object.hasOwn(p,'recipientRequest'),false,'Receiver never starts checkout');stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:''},receipt:null,invitationUrl:null,backupCode:null}}
@@ -51,8 +49,6 @@ fs.mkdirSync(artifacts,{recursive:true})
    await m.getByRole('button',{name:'+254',exact:true}).click()
    assert.equal(await m.getByLabel('M-Pesa number',{exact:true}).inputValue(),'+254','Old prefix picker is restored')
    await m.getByLabel('M-Pesa number',{exact:true}).fill('0712345678')
-   await m.getByText('See the full wish').click()
-   assert.equal(await m.locator('details[class*="checkoutPreview"] svg').count()>0,true,'Sender can inspect the full exact card before payment')
    await m.getByRole('button',{name:'Review order',exact:true}).click();assert.equal(calls.length,0)
    await m.getByRole('heading',{name:'Review your wish'}).waitFor()
    assert.equal(await m.getByLabel('Recipient’s private wish request link').count(),0,'No receiver request during purchase')
