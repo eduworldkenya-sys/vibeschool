@@ -57,9 +57,9 @@ fs.mkdirSync(artifacts,{recursive:true})
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
    await page.reload({waitUntil:'networkidle'});await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click();m=page.getByRole('dialog')
    await m.getByText(/Check your phone and enter your M-Pesa PIN/).waitFor();assert.equal(calls.filter(c=>c==='pay').length,1)
-   stored.state='settled';stored.receipt='SYNTHETIC123';stored.invitationUrl='https://vibeschool.co.ke/success-wishes/invitation#token='+'b'.repeat(64);stored.backupCode='C'.repeat(32)
+   stored.state='settled';stored.receipt='SYNTHETIC123';stored.invitationUrl='https://vibeschool.co.ke/success-wishes/gift#token='+'b'.repeat(64);stored.backupCode=null
    await m.getByRole('button',{name:'Check payment status'}).click();await m.getByRole('heading',{name:'Your wish is ready'}).waitFor()
-   assert.equal(await m.getByLabel('Private card link',{exact:true}).inputValue(),stored.invitationUrl);assert.equal(await m.getByLabel('Backup card code').inputValue(),stored.backupCode)
+   assert.equal(await m.getByLabel('Private card link',{exact:true}).inputValue(),stored.invitationUrl);assert.equal(await m.getByLabel('Backup card code').count(),0,'No unusable code displayed')
    await page.screenshot({path:artifacts+'/checkout-'+width+'.png'});await context.close();console.log('PASS checkout width '+width+': review, saved order, single payment action, refresh recovery, receipt, exact link/code')
   }
   // Recipient setup must be usable before any card/order exists.
