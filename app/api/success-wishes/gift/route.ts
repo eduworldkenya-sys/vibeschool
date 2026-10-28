@@ -18,7 +18,23 @@ async function gift(req: NextRequest, reveal: boolean) {
     .eq('link_hash', hashSecret('success-wishes:paid-link:' + token))
     .is('revoked_at',null).gt('expires_at',new Date().toISOString()).maybeSingle()
   if (accessError) throw new WishError(503,'Your gift is temporarily unavailable. Try again later.')
-  if (!access) throw new WishError(404,'This private gift link is unavailable.')
+  if (!access) {
+    // Free pilot gifts are independent of the paid-order ledger.
+    const {data:free,error:freeError}=await db.from('success_wish_free_gifts')
+      .select('id,card,expires_at').eq('link_hash',hashSecret('success-wishes:paid-link:'+token))
+      .is('revoked_at',null).gt('expires_at',new Date().toISOString()).maybeSingle()
+    if(freeError) throw new WishError(503,'Your gift is temporarily unavailable. Try again later.')
+    if(!free || free.card?.kind!=='success_wish_text') throw new WishError(404,'This private gift link is unavailable.')
+    if(reveal) {
+      const {error:openedError}=await db.from('success_wish_free_gifts').update({opened_at:new Date().toISOString()})
+        .eq('id',free.id).is('opened_at',null)
+      if(openedError) throw new WishError(503,'Your gift could not be opened. Try again.')
+    }
+    const card=free.card as {theme:string;candidate:string;sender:string;message:string;school:string;examYear:string}
+    return {card:{id:free.id,theme:card.theme,candidate:card.candidate,school:card.school,
+      examYear:card.examYear,sender:reveal?card.sender:null,
+      ...(reveal?{message:card.message}:{}),consentRequired:false}}
+  }
   const { data: order, error } = await db.from('success_wish_guest_orders')
     .select('state,card,amount_kes,receiver_id,provider_receipt,provider_verified_at,settled_at,refunded_at')
     .eq('id',access.guest_order_id).maybeSingle()
