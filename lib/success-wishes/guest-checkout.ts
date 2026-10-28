@@ -58,7 +58,7 @@ export async function guestCheckout(req:NextRequest,raw:unknown){
  }else if(b.action==='pay'||b.action==='status'){
   const o=await find(db,key);if(!o)throw new WishError(404,'No saved order was found for this recovery key.')
   if(b.action==='pay'){
-   await limit('guest-stk:'+o.payer_phone,3,900)
+   await takeAttempt(db,'guest-stk:'+o.payer_phone,3,900)
    if(o.state==='created')await gateway('pay',o.id)
   }else{
    if(['submitting','awaiting_customer'].includes(o.state)&&Date.now()-Date.parse(o.updated_at)>180000){const {error}=await db.from('success_wish_guest_orders').update({state:'reconciliation_required'}).eq('id',o.id).eq('state',o.state);if(error)throw new WishError(503,'Payment status is unavailable. Do not pay again.')}
