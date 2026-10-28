@@ -85,9 +85,9 @@ export function CardArt({ template, values, svgRef, preview = false }: {
 
 
 const versions = [
-  { id: 'text', name: 'Text Wish', price: 50, detail: 'A personalised success card with your message, exactly as you wrote it.' },
-  { id: 'voice', name: 'Voice Wish', price: 75, detail: 'Choose a voice message or record your own.' },
-  { id: 'video', name: 'Video Wish', price: 100, detail: 'Record a video message.' },
+  { id: 'text', name: 'Text Wish', price: 50 },
+  { id: 'voice', name: 'Voice Wish', price: 75 },
+  { id: 'video', name: 'Video Wish', price: 100 },
 ] as const
 
 const messageStarters = [
@@ -144,6 +144,15 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   }
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const ready = Boolean(!Object.values(fieldErrors).some(Boolean) && (selectedVersion === 'text' || mediaFile))
+  function handleSendWish() {
+    if (!ready) return
+    if (selectedVersion !== 'text') {
+      setPreviewSession(current => current + 1)
+      window.requestAnimationFrame(() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
+    } else {
+      setCheckoutOpen(true)
+    }
+  }
   const restoreDraft = useCallback((draft: SenderDraft) => {
     setTheme(draft.theme); setCandidate(draft.candidate); setSender(draft.sender)
     setMessage(draft.message); setExamYear(draft.examYear); setSchool(draft.school)
@@ -351,17 +360,15 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
             <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</strong></p>
-            <button type="button" className={styles.primary} disabled={!ready} onClick={() => {
-              if (selectedVersion !== 'text') {
-                setPreviewSession(current => current + 1)
-                window.requestAnimationFrame(() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
-              } else setCheckoutOpen(true)
-            }}>{selectedVersion !== 'text' ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>
+            <button type="button" className={styles.primary} disabled={!ready} onClick={handleSendWish}>{selectedVersion !== 'text' ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>
           </div>
         </div>
         <div className={styles.live} id="wish-preview"><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
           <BookCard senderPreview key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
-          <div className={styles.checkoutSummary}><h3>{versions.find(version => version.id === selectedVersion)?.name} <span>{selectedVersion !== 'text' ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</span></h3><p>{versions.find(version => version.id === selectedVersion)?.detail}</p>{mediaFile && <p>{mediaFile.name}</p>}
+          {selectedVersion === 'text' && <div className={styles.previewSend}>
+            <button type="button" className={styles.primary} disabled={!ready} onClick={handleSendWish}>Send this wish <ChevronRight size={18}/></button>
+          </div>}
+          {(testMode && selectedVersion === 'text' || order) && <div className={styles.checkoutSummary}>
             {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
             </> : null}
@@ -370,7 +377,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
               <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={`/success-wishes/invitation#token=${encodeURIComponent(new URL(order.invitationUrl).hash.slice(7))}`}>Open invitation</Link></div>
               <small>Reference {order.id} · Local retention until {new Date(order.expiresAt).toLocaleDateString()}</small>{status && <p role="status" className={styles.status}>{status}</p>}
             </div>}
-          </div></div>
+          </div>}</div>
       </section>
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
