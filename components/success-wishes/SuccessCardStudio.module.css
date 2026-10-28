@@ -538,3 +538,8 @@
 .schoolInvitation{font-size:12px;color:var(--cream);opacity:.75;margin:0 0 8px}
 .readyMessage{font-size:13px;color:var(--gold2);font-weight:700}
 @media(prefers-reduced-motion:reduce){.progressTrack span{transition:none}}
+
+/* Animate disclosure contents while retaining native keyboard and summary controls. */
+.completedField::details-content{block-size:0;opacity:0;overflow:hidden;transition:block-size .23s ease,opacity .23s ease;transition-behavior:allow-discrete}
+.completedField[open]::details-content{block-size:auto;opacity:1}
+@media(prefers-reduced-motion:reduce){.completedField::details-content{transition:none}}
