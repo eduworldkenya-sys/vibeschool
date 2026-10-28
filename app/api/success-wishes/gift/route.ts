@@ -23,9 +23,9 @@ async function gift(req: NextRequest, reveal: boolean) {
     .select('state,card,amount_kes,receiver_id,provider_receipt,provider_verified_at,settled_at,refunded_at')
     .eq('id',access.guest_order_id).maybeSingle()
   if (error) throw new WishError(503,'Your gift is temporarily unavailable. Try again later.')
-  if (!order || order.state!=='settled' || order.amount_kes!==50
-    || order.receiver_id!==null || order.refunded_at || !order.provider_receipt
-    || !order.provider_verified_at || !order.settled_at || order.card?.kind!=='success_wish_text')
+  const paid=order?.state==='settled' && order.amount_kes===50 && !!order.provider_receipt && !!order.provider_verified_at && !!order.settled_at && !order.refunded_at
+  const free=order?.state==='free_issued' && order.amount_kes===0 && !order.provider_receipt && !order.provider_verified_at && !order.settled_at && !order.refunded_at
+  if (!order || (!paid && !free) || order.receiver_id!==null || order.card?.kind!=='success_wish_text')
     throw new WishError(404,'This private gift is unavailable.')
   const card = order.card as { theme:string;candidate:string;sender:string;message:string;school:string;examYear:string }
   if (reveal) {
