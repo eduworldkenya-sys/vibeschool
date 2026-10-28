@@ -17,7 +17,7 @@ fs.mkdirSync(artifacts,{recursive:true})
    const calls=[];let stored=null
    await page.route('**/api/success-wishes/checkout',async route=>{
     const p=route.request().postDataJSON();calls.push(p.action)
-    if(p.action==='create')stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:''},receipt:null,invitationUrl:null,backupCode:null}
+    if(p.action==='create'){assert.equal(Object.hasOwn(p,'recipientRequest'),false,'Receiver never starts checkout');stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:''},receipt:null,invitationUrl:null,backupCode:null}}
     if(p.action==='pay')stored.state='awaiting_customer'
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({order:stored})})
    })
@@ -48,10 +48,7 @@ fs.mkdirSync(artifacts,{recursive:true})
    await m.getByLabel('M-Pesa number',{exact:true}).fill('0712345678')
    await m.getByRole('button',{name:'Review order',exact:true}).click();assert.equal(calls.length,0)
    await m.getByRole('heading',{name:'Review your wish'}).waitFor()
-   await m.getByText(/payment cannot start without a private request/).waitFor()
-   assert.equal(await m.getByRole('button',{name:'Save order & continue'}).isDisabled(),true,'No server call or fake payment without recipient verification')
-   await m.getByText('Have a private wish request link?').click()
-   await m.getByLabel('Recipient’s private wish request link').fill('https://vibeschool.co.ke/success-wishes/invite#token='+'a'.repeat(64))
+   assert.equal(await m.getByLabel('Recipient’s private wish request link').count(),0,'No receiver request during purchase')
    await m.getByRole('button',{name:'Save order & continue'}).click()
    await m.getByRole('button',{name:'Pay KSh 50 with M-Pesa'}).waitFor();assert.deepEqual(calls,['create'])
    await m.getByRole('button',{name:'Pay KSh 50 with M-Pesa'}).dblclick()
@@ -60,9 +57,9 @@ fs.mkdirSync(artifacts,{recursive:true})
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
    await page.reload({waitUntil:'networkidle'});await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click();m=page.getByRole('dialog')
    await m.getByText(/Check your phone and enter your M-Pesa PIN/).waitFor();assert.equal(calls.filter(c=>c==='pay').length,1)
-   stored.state='settled';stored.receipt='SYNTHETIC123';stored.invitationUrl='https://vibeschool.co.ke/success-wishes/invitation#token='+'b'.repeat(64);stored.backupCode='C'.repeat(32)
+   stored.state='settled';stored.receipt='SYNTHETIC123';stored.invitationUrl='https://vibeschool.co.ke/success-wishes/gift#token='+'b'.repeat(64);stored.backupCode=null
    await m.getByRole('button',{name:'Check payment status'}).click();await m.getByRole('heading',{name:'Your wish is ready'}).waitFor()
-   assert.equal(await m.getByLabel('Private card link',{exact:true}).inputValue(),stored.invitationUrl);assert.equal(await m.getByLabel('Backup card code').inputValue(),stored.backupCode)
+   assert.equal(await m.getByLabel('Private card link',{exact:true}).inputValue(),stored.invitationUrl);assert.equal(await m.getByLabel('Backup card code').count(),0,'No unusable code displayed')
    await page.screenshot({path:artifacts+'/checkout-'+width+'.png'});await context.close();console.log('PASS checkout width '+width+': review, saved order, single payment action, refresh recovery, receipt, exact link/code')
   }
   // Recipient setup must be usable before any card/order exists.

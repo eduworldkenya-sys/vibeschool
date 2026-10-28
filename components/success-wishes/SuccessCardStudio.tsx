@@ -171,29 +171,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     setSelectedSchool(null)
   }, [])
   const draftStatus = useSenderDraft({ theme, candidate, sender, message, examYear, school }, Boolean(initialDraft), restoreDraft)
-  const [recipientRequest,setRecipientRequest]=useState('')
-  const [requestedBy, setRequestedBy] = useState<string | null>(null)
-  useEffect(() => {
-    const requestToken = new URLSearchParams(window.location.hash.slice(1)).get('request')
-    if (!requestToken) return
-    window.history.replaceState(null, '', window.location.pathname)
-    if (!/^[a-f0-9]{64}$/.test(requestToken)) { setError('This wish request is invalid.'); return }
-    let active = true
-    fetch('/api/success-wishes/receiver/request', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: requestToken }), cache: 'no-store',
-    }).then(async response => {
-      const body = await response.json()
-      if (!response.ok) throw new Error(body.error || 'The wish request is unavailable.')
-      return body as { candidate: string; school: string }
-    }).then(body => {
-      if (!active) return
-      setCandidate(body.candidate); setSchool(body.school); setSelectedSchool(null)
-      setRequestedBy(body.candidate)
-      setRecipientRequest(requestToken)
-    }).catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'The wish request is unavailable.') })
-    return () => { active = false }
-  }, [])
   function clearDraft() {
     if (!window.confirm('Clear this wish and start again?')) return
     restoreDraft({ theme: 'heritage', candidate: '', sender: '', message: '', examYear: '2026', school: '' })
@@ -295,7 +272,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         <p className={styles.eyebrow}>DIGITAL SUCCESS CARDS</p>
         <h1>Wish students good luck <em>&amp; success.</em></h1>
         <p>A personal wish, beautifully made for someone special.</p>
-        {requestedBy && <p role="status">A wish requested by {requestedBy}. Their name and school have been prefilled. Payment and delivery remain unavailable until real checkout is commissioned.</p>}
         <div className={styles.entryActions}>
           <a className={styles.heroCta} href="#choose-card">Send a wish <ChevronRight size={16}/></a>
           <Link className={styles.openWishCta} href="/success-wishes/open">Open a wish</Link>
@@ -394,6 +370,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {checkoutOpen && <WishCheckout theme={theme} values={values} recipientRequest={recipientRequest} onClose={() => setCheckoutOpen(false)}/>}
+    {checkoutOpen && <WishCheckout theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }
