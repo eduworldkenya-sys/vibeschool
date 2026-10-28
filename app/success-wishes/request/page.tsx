@@ -277,7 +277,7 @@ export default function AskForWish() {
             className="inline-flex items-center space-x-2 text-xs font-semibold text-slate-400 hover:text-[#D4AF37] transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to My Wishes Vault</span>
+            <span>Back to my wishes</span>
           </Link>
         </div>
 
