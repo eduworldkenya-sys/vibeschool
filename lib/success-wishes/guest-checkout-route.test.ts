@@ -28,7 +28,7 @@ test('enabled checkout preserves one immutable order, never repeats a pending ST
   if(endpoint==='success_wish_issue_unrequested_guest_gift'){assert.equal(order?.state,'settled');issues++;return Response.json('55555555-5555-4555-8555-555555555555')}
   throw Error('Unexpected transport '+u.pathname)
  }) as typeof fetch
- const call=async(body:Row)=>{const response=await POST(new NextRequest(url,{method:'POST',headers:{origin:'https://vibeschool.example','content-type':'application/json'},body:JSON.stringify({key,...body})}));if(response.status>=500)console.log('Synthetic payment test diagnostic:',body.action,response.status,(await response.clone().json()).error);return response}
+ const call=(body:Row)=>POST(new NextRequest(url,{method:'POST',headers:{origin:'https://vibeschool.example','content-type':'application/json'},body:JSON.stringify({key,...body})}))
  try{
   Object.assign(process.env,{SUCCESS_WISHES_ENABLED:'true',NEXT_PUBLIC_SUPABASE_URL:'https://synthetic.supabase.co',SUPABASE_SERVICE_ROLE_KEY:'synthetic-service'})
   const create={action:'create',...card,payerPhone:'0712345678'}
