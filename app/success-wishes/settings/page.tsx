@@ -174,7 +174,7 @@ export default function SuccessWishSafety() {
         <div className="text-center space-y-2">
           <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#00A896]/15 border border-[#00A896]/30 text-[#00A896] text-[10px] font-bold uppercase tracking-wider mb-1">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Vault Security Controls</span>
+            <span>Privacy & safety</span>
           </div>
           <h1 className="font-cinzel text-3xl sm:text-4xl font-extrabold bg-gradient-to-r from-[#FFF5C0] via-[#D4AF37] to-[#AA7C11] bg-clip-text text-transparent">
             Your Space. Your Choice.
