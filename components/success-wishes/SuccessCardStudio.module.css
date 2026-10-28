@@ -484,10 +484,16 @@
 .composer>*{min-width:0;max-width:100%}
 @media(max-width:850px){.composer{grid-template-columns:minmax(0,1fr)}}
 
-/* Shared VibeSchool identity and two obvious journey entrances. */
-.brand{display:inline-flex;align-items:center;gap:10px;text-decoration:none;max-width:100%}.brandLogo{width:145px;height:auto;max-width:100%;display:block}.brand>small{font-size:10px;letter-spacing:1px;color:#6a537e;font-weight:800;border-left:1px solid #d8cde6;padding-left:10px}
+/* Success Wishes uses the official dark-surface wordmark with a stacked, readable product label. */
+.header .brand{display:inline-flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0;min-width:0;max-width:100%;text-decoration:none}
+.header .brandLogo{display:block;width:145px;max-width:100%;height:auto}
+.header .brand>small{border:0;padding-left:5px;margin-top:-3px;font:800 10px/1.3 var(--font-jakarta),system-ui,sans-serif;letter-spacing:1.15px;color:#f1dda5}
+.header .headerActions{flex-shrink:0;gap:8px}
+.headerWishes{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:6px 10px;color:#e5d7b7;text-decoration:none;font:650 12px var(--font-jakarta),system-ui,sans-serif}
+.headerWishes:hover,.headerWishes:focus-visible{color:#fff}
 .entryActions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:18px}
 .entryActions .heroCta,.openWishCta{min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 17px;text-decoration:none;border-radius:10px;font-size:14px;font-weight:750}
 .openWishCta{border:1px solid #9e83cd;color:#6237a8;background:#fff}
 .openWishCta:hover,.openWishCta:focus-visible{background:#f4eefc}
-@media(max-width:520px){.brandLogo{width:124px}.brand>small{font-size:9px}.entryActions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.entryActions .heroCta,.openWishCta{font-size:13px;padding:10px 8px}}
+@media(max-width:560px){.header .brandLogo{width:130px}.header .brand>small{font-size:9px;letter-spacing:1px}.headerWishes{font-size:11px;padding:5px 4px}}
+@media(max-width:520px){.entryActions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.entryActions .heroCta,.openWishCta{font-size:13px;padding:10px 8px}}
