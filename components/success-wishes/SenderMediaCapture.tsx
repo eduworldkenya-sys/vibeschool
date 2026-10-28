@@ -158,6 +158,5 @@ export default function SenderMediaCapture({ kind, file, onChange }: {
       <button type="button" onClick={() => { onChange(null); setError('') }} aria-label="Remove selected recording"><Trash2 size={16}/> Remove</button>
     </div>}
     {error && <p role="alert" className={styles.error}>{error}</p>}
-    <small className={styles.note}>Local preview only — recordings are not saved with your text draft or delivered to the recipient. Maximum 60 seconds · 25 MB per file.</small>
   </div>
 }

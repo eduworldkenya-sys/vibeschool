@@ -298,16 +298,17 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <section className={styles.composer} id="wish-composer" aria-labelledby="personalise-card">
         <div className={styles.mobilePreview} aria-label="Live card preview">
           <CardArt template={theme} values={values} preview/>
-          <div><span>LIVE PREVIEW</span><strong>{candidate.trim() || 'Your candidate'}</strong><p>{message.trim() || 'Your wish appears as you type.'}</p></div>
+          <div><span>LIVE PREVIEW</span><strong>{candidate.trim() || 'Your candidate'}</strong>{message.trim() && <p>{message.trim()}</p>}</div>
           <button type="button" onClick={() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>View card <ChevronRight size={15}/></button>
         </div>
         <div className={styles.form} onFocusCapture={event => {
           if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) { playFormStartSound() }
         }}><div className={styles.heading}><span>DIGITAL SUCCESS CARD</span><h2 id="personalise-card">Write a wish they’ll remember.</h2></div>
-          <div className={styles.draftStatus}>
-            <p role="status">{draftStatus.unavailable ? 'Draft saving is unavailable in this browser. Copy your message before leaving.' : !draftStatus.hydrated ? 'Checking for a saved wish in this tab…' : draftStatus.saved ? `${draftStatus.restored ? 'Draft restored. ' : ''}Saved in this tab for up to 24 hours. Recordings are not saved.` : 'Start your wish. Text saves in this tab as you type. Recordings are not saved.'}</p>
+          {(draftStatus.unavailable || draftStatus.restored || draftStatus.saved) && <div className={styles.draftStatus}>
+            {draftStatus.unavailable && <p role="alert">Draft saving unavailable.</p>}
+            {draftStatus.restored && <p role="status">Draft restored.</p>}
             {draftStatus.saved && <button type="button" className={styles.secondary} onClick={clearDraft}>Clear draft</button>}
-          </div>
+          </div>}
           <div className={styles.formRow}>
             <label>Candidate name<input aria-label="Candidate name" aria-invalid={touched.candidate && Boolean(fieldErrors.candidate)} aria-describedby={touched.candidate && fieldErrors.candidate ? schoolInputId + '-candidate-error' : undefined} onBlur={() => setTouched(current => ({ ...current, candidate: true }))} autoComplete="off" maxLength={48} value={candidate} onChange={e => setCandidate(e.target.value)} placeholder="Who are you celebrating?"/>{touched.candidate && fieldErrors.candidate && <small id={schoolInputId + '-candidate-error'} className={styles.fieldError}>{fieldErrors.candidate}</small>}</label>
             <label>Exam year<input aria-label="Exam year" aria-invalid={touched.examYear && Boolean(fieldErrors.examYear)} aria-describedby={touched.examYear && fieldErrors.examYear ? schoolInputId + '-year-error' : undefined} onBlur={() => setTouched(current => ({ ...current, examYear: true }))} inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="e.g. 2026"/>{touched.examYear && fieldErrors.examYear && <small id={schoolInputId + '-year-error'} className={styles.fieldError}>{fieldErrors.examYear}</small>}</label>
@@ -343,7 +344,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             }}>{starter.label}</button>)}</div>
           </div>
           <p className={styles.counter}>{message.length}/220 characters</p>
-          {!ready && <p className={styles.hint}>{Object.values(fieldErrors).filter(Boolean).join(' ')} {selectedVersion !== 'text' && !mediaFile ? 'Record or choose a file to preview. ' : ''}School is optional.</p>}
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>

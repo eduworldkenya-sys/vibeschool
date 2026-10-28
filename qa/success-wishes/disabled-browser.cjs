@@ -72,6 +72,9 @@ async function makeWish(context, { message, theme }) {
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
   assert.equal(response.status(), 200)
   await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
+  assert.equal(await page.getByText('Start your wish. Text saves in this tab as you type. Recordings are not saved.').count(), 0, 'No redundant draft instructions')
+  assert.equal(await page.getByText('Your wish appears as you type.').count(), 0, 'Empty mobile preview has no redundant instruction')
+  assert.equal(await page.getByText(/Enter the candidate’s name.*Enter your name.*Write a wish or choose a starter below/).count(), 0, 'No combined missing-fields explanation')
   const previewSend = page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' })
   const formSend = page.locator('#wish-composer [class*="sendRow"]').getByRole('button', { name: 'Send this wish' })
   assert.equal(await previewSend.count(), 0, 'The lower send action is hidden before personalisation is complete')
@@ -258,6 +261,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     await page.getByRole('button', { name: /Voice Wish · Preview only/ }).click()
     assert.equal(await page.getByRole('button', { name: 'Record voice' }).count(), 1, 'Sender can record an audio wish')
     assert.equal(await page.getByRole('button', { name: 'Choose audio file' }).count(), 1, 'Sender can choose an audio file')
+    assert.equal(await page.getByText(/Local preview only — recordings are not saved/).count(), 0, 'Remove redundant recording note')
     await page.locator('input[type="file"][accept^="audio"]').setInputFiles({
       name: 'private-voice.wav', mimeType: 'audio/wav', buffer: Buffer.from('RIFFsynthetic-preview-file'),
     })
