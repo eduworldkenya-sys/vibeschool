@@ -6,7 +6,9 @@ fs.mkdirSync(artifacts,{recursive:true})
 ;(async()=>{
  const testRoot=path.join(os.tmpdir(),'vibeschool-checkout-browser-'+process.pid)
  if(!process.env.CHECKOUT_TEST_URL){fs.cpSync(process.cwd(),testRoot,{recursive:true,filter:src=>!['node_modules','.next','.git','.cyborg'].includes(path.basename(src))});fs.symlinkSync(path.join(process.cwd(),'node_modules'),path.join(testRoot,'node_modules'),'dir')}
- const log=fs.openSync('/tmp/checkout-qa/browser.log','w')
+ const logPath=path.join(os.tmpdir(),'checkout-qa','browser.log')
+ fs.mkdirSync(path.dirname(logPath),{recursive:true})
+ const log=fs.openSync(logPath,'w')
  const server=process.env.CHECKOUT_TEST_URL?null:spawn(process.execPath,['node_modules/next/dist/bin/next','dev','--port','3097'],{cwd:testRoot,env:{...process.env,NEXT_PUBLIC_SUPABASE_URL:'https://example.supabase.co',NEXT_PUBLIC_SUPABASE_ANON_KEY:'public-test-key',SUCCESS_WISHES_ENABLED:'false'},stdio:['ignore',log,log]})
  let browser
  try{
