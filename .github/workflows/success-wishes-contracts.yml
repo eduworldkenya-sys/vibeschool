@@ -18,6 +18,7 @@ on:
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'supabase/migrations/*_success_wishes_receiver_*.sql'
       - 'supabase/migrations/*_success_wishes_guest_checkout.sql'
+      - 'supabase/migrations/*_success_wishes_sender_created_gifts.sql'
       - 'supabase/functions/success-wishes-checkout/**'
       - 'supabase/functions/success-wishes-mpesa-callback/**'
       - 'supabase/migrations/*_success_wishes_school_minor_provisioning.sql'
@@ -43,6 +44,7 @@ on:
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'supabase/migrations/*_success_wishes_receiver_*.sql'
       - 'supabase/migrations/*_success_wishes_guest_checkout.sql'
+      - 'supabase/migrations/*_success_wishes_sender_created_gifts.sql'
       - 'supabase/functions/success-wishes-checkout/**'
       - 'supabase/functions/success-wishes-mpesa-callback/**'
       - 'supabase/migrations/*_success_wishes_school_minor_provisioning.sql'
@@ -137,6 +139,8 @@ jobs:
           psql -v ON_ERROR_STOP=1 -c 'create table public.mpesa_runtime_control(singleton boolean primary key, initiation_enabled boolean not null default false); insert into public.mpesa_runtime_control values(true,false);'
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026184056_success_wishes_guest_checkout.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/guest-checkout-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261028115500_success_wishes_sender_created_gifts.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/sender-created-gift-assertions.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261027035447_success_wishes_adult_setup.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-setup-assertions.sql
           # School-onboarding fixture is synthetic and independent of real school records.
