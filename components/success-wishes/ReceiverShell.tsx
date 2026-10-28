@@ -42,14 +42,14 @@ export const useReceiverTheme = () => useContext(ReceiverContext);
 const links = [
   { href: "/success-wishes/inbox", label: "My wishes", icon: Inbox },
   { href: "/success-wishes/open", label: "Open a Wish", icon: MailOpen },
+  { href: "/success-wishes", label: "Send a wish", icon: Send },
   { href: "/success-wishes/request", label: "Request a wish", icon: Plus },
   { href: "/success-wishes/recover", label: "Recover access", icon: KeyRound },
   {
     href: "/success-wishes/settings",
-    label: "Privacy & Safety",
+    label: "Privacy & safety",
     icon: ShieldCheck,
   },
-  { href: "/success-wishes", label: "Send a wish", icon: Send },
   { href: "/", label: "VibeSchool home", icon: Home },
 ];
 
@@ -145,20 +145,7 @@ export default function ReceiverShell({
   return (
     <ReceiverContext.Provider value={value}>
       <div className={receiver ? (pathname === "/success-wishes/invitation" ? "receiver-theme receiver-gift-focus" : "receiver-theme") : "receiver-site"}>
-        {!receiver ? (
-          <>
-            <nav
-              className="receiver-sender-links"
-              aria-label="Success Wishes navigation"
-            >
-              <Link href="/">VibeSchool</Link>
-              <Link href="/success-wishes#choose-card">Send a wish</Link>
-              <Link href="/success-wishes/open">Open a wish</Link>
-              <Link href="/success-wishes/inbox">My wishes</Link>
-            </nav>
-            {children}
-          </>
-        ) : (
+        {!receiver ? children : (
           <>
             <header className="receiver-mobile-header">
               <button
@@ -298,15 +285,6 @@ export default function ReceiverShell({
                   <p className="receiver-drawer-name">{summary.name}</p>
                 )}
                 {nav}
-                <section className="receiver-summary">
-                  <span>My wishes</span>
-                  <p>
-                    {summary
-                      ? `${summary.count} Received · ${summary.count - summary.unopened} Opened`
-                      : "Open your inbox to see your collection."}
-                  </p>
-                </section>
-                {sound}
               </div>
             </dialog>
           </>
