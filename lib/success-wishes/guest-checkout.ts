@@ -9,9 +9,12 @@ import {sixCardCodeFromOrderKey} from './card-code'
 type DB=ReturnType<typeof database>
 export const orderKeyHash=(key:string)=>hashSecret('success-wishes:guest-order:'+key)
 async function find(db:DB,key:string){const {data,error}=await db.from('success_wish_guest_orders').select('*').eq('key_hash',orderKeyHash(key)).maybeSingle();if(error)throw new WishError(503,'Checkout is not available yet. No new payment was requested.');return data}
-class GatewayRejected extends Error{constructor(readonly status:number){super('Payment service rejected the request.')}}
+class GatewayRejected extends Error{constructor(readonly status:number,readonly preclaim=false){super('Payment service rejected the request.')}}
 async function gateway(action:string,id:string){
- const r=await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+'/functions/v1/success-wishes-checkout',{method:'POST',headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(),Authorization:'Bearer '+process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(),'Content-Type':'application/json'},body:JSON.stringify({action,id}),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(35000)})
+ // This isolated checkout uses its own merchant settings, never the shared wallet sandbox.
+ const merchant={environment:process.env.SUCCESS_WISHES_MPESA_ENV?.trim(),shortcode:process.env.SUCCESS_WISHES_MPESA_SHORTCODE?.trim(),partyB:process.env.SUCCESS_WISHES_MPESA_PARTY_B?.trim(),transactionType:process.env.SUCCESS_WISHES_MPESA_TRANSACTION_TYPE?.trim(),consumerKey:process.env.SUCCESS_WISHES_MPESA_CONSUMER_KEY?.trim(),consumerSecret:process.env.SUCCESS_WISHES_MPESA_CONSUMER_SECRET?.trim(),passkey:process.env.SUCCESS_WISHES_MPESA_PASSKEY?.trim()}
+ if(Object.values(merchant).some(value=>!value||value.length>2048)||merchant.environment!=='production'||merchant.shortcode!=='961580'||merchant.partyB!=='949529'||merchant.transactionType!=='CustomerBuyGoodsOnline')throw new GatewayRejected(503,true)
+ const r=await fetch(process.env.NEXT_PUBLIC_SUPABASE_URL+'/functions/v1/success-wishes-checkout',{method:'POST',headers:{apikey:process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(),Authorization:'Bearer '+process.env.SUPABASE_SERVICE_ROLE_KEY!.trim(),'Content-Type':'application/json'},body:JSON.stringify({action,id,merchant}),cache:'no-store',redirect:'error',signal:AbortSignal.timeout(35000)})
  if(!r.ok){console.error('success_wishes_gateway_rejected',{action,status:r.status});throw new GatewayRejected(r.status)}
  return await r.json()
 }
@@ -66,7 +69,7 @@ export async function guestCheckout(req:NextRequest,raw:unknown){
    if(o.state==='created'){
     try{await gateway('pay',o.id)}catch(error){
      // A completed auth denial cannot reach a payment claim. A timeout may still be running.
-     if(!(error instanceof GatewayRejected)||![401,403].includes(error.status))throw new WishError(503,'Payment status couldn’t be checked.')
+     if(!(error instanceof GatewayRejected)||!error.preclaim&&![401,403].includes(error.status))throw new WishError(503,'Payment status couldn’t be checked.')
      const current=await present(db,key)
      return {order:current,paymentError:current.state==='created'?'Payment couldn’t start.':null}
     }
