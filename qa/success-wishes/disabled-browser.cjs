@@ -13,7 +13,7 @@ const PORT = 3092
 const ROOT = `http://localhost:${PORT}`
 const logFile = path.join(os.tmpdir(), 'success-wishes-ecommerce-browser.log')
 const serverLog = fs.openSync(logFile, 'w')
-const screenshots = path.join(os.tmpdir(), 'success-wishes-artifacts')
+const screenshots = process.env.CI ? path.join(process.cwd(),'qa/success-wishes/artifacts') : path.join(os.tmpdir(), 'success-wishes-artifacts')
 const testStore = path.join(process.cwd(), '.success-wishes-test-data.json')
 const hadTestStore = fs.existsSync(testStore)
 fs.mkdirSync(screenshots, { recursive: true })
@@ -166,7 +166,7 @@ async function makeWish(context, { message, theme }) {
   assert.deepEqual(checkoutRequests, [], 'Review alone never creates an order or starts payment')
   assert.equal(await checkout.getByLabel('Recipient’s private wish request link').count(), 0, 'Sender purchase needs no receiver request')
   await checkout.getByRole('button', { name: 'Pay KSh 50', exact:true }).click()
-  await checkout.getByRole('alert').filter({hasText:'Check your number and try again.'}).waitFor()
+  await checkout.getByRole('alert').filter({hasText:'Checkout is unavailable. Please try later.'}).waitFor()
   assert.equal(checkoutRequests.filter(url=>url.endsWith('/checkout')).length,1)
   assert.deepEqual(checkoutActions,['create'],'Disabled create never progresses to a pay request')
   page.off('request', trackCheckout)

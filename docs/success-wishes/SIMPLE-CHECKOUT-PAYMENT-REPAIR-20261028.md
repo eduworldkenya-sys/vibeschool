@@ -34,6 +34,14 @@ Rollback: disable the dedicated `success_wishes_enabled` switch to stop new wish
 
 The first candidate CI exposed an existing delayed cursor callback in the wish starter. It could run between a sender selecting replacement text and typing, appending the new wish to the starter. Remove that delayed cursor mutation while retaining synchronous focus within the user gesture. The existing exact-message browser assertion is retained, and the disabled checkout test now proves the single Pay action makes only a rejected create request, never a payment request.
 
+## Recovery refinement
+
+Validate the payer before persisting a key. A typed missing-order response may clear an unclaimed recovery key only when no payment uncertainty was recorded; an uncertain key remains locked even on a 404. Browser regressions exercise both cases and invalid-phone recovery.
+
+## Controlled receiver test recovery
+
+A subsequent CI run retained no matching gift buttons after the test cleared search at 412 pixels. The log did not capture enough state to prove an application defect. Keep the no-match and exact private-card assertions, clear the query through native Select All/Backspace, explicitly verify an empty input and both cards, and capture state on failure. No inbox application code is changed. In CI, all three browser suites now write synthetic screenshots to the directory already collected by the workflow; local runs keep temporary paths.
+
 ## Remaining production proof
 
 After release, verify the exact deployed revision, readiness response, anonymous/user denials, and the original order's unchanged state. The owner must initiate the real KSh 50 trial through the UI; actual STK acceptance, receiving Till, receipt, independently verified settlement and accessible private gift still require genuine provider evidence. Code/UI assurance must not be presented as financial settlement certification.

@@ -8,7 +8,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 const PRIVATE_MESSAGE = 'You are capable of wonderful things. Every early morning and every page you studied has brought you here. Take a deep breath, trust your preparation and give each question your best. We believe in you, and we are proud of the person you are becoming.'
-const screenshots = path.join(os.tmpdir(),'success-wishes-artifacts')
+const screenshots = process.env.CI ? path.join(process.cwd(),'qa/success-wishes/artifacts') : path.join(os.tmpdir(),'success-wishes-artifacts')
 fs.mkdirSync(screenshots,{recursive:true})
 const PORT = 3093
 const ROOT = 'http://localhost:' + PORT
@@ -180,7 +180,13 @@ async function run() {
     }
     await page.getByRole('textbox',{name:'Search wishes by sender or theme'}).fill('no-such-sender')
     await page.getByRole('heading',{name:'No matching wishes'}).waitFor()
-    await page.getByRole('textbox',{name:'Search wishes by sender or theme'}).fill('')
+    const search=page.getByRole('textbox',{name:'Search wishes by sender or theme'})
+    await search.focus();await search.press('ControlOrMeta+A');await search.press('Backspace')
+    assert.equal(await search.inputValue(),'','Clearing search removes the entire query')
+    try{await page.waitForFunction(() => document.querySelectorAll('button[aria-label^="Open"][aria-label$="private wish"]').length===2)}catch(error){
+      console.error('Receiver search recovery diagnostic:',JSON.stringify({url:page.url(),search:await search.inputValue(),cards:await page.locator('button[aria-label^="Open"][aria-label$="private wish"]').count()}))
+      await page.screenshot({path:path.join(screenshots,`receiver-search-failed-${width}.png`),fullPage:true});throw error
+    }
 
     await page.screenshot({path:path.join(screenshots,`receiver-inbox-${width}.png`),fullPage:true})
     const gifts=page.locator('button[aria-label^="Open"][aria-label$="private wish"]')

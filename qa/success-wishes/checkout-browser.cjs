@@ -1,7 +1,7 @@
 // SYNTHETIC UI evidence only. This test never contacts Safaricom.
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),{spawn}=require('node:child_process')
 const path=require('node:path'),os=require('node:os')
-const root=process.env.CHECKOUT_TEST_URL||'http://localhost:3097',artifacts='/tmp/checkout-qa/artifacts'
+const root=process.env.CHECKOUT_TEST_URL||'http://localhost:3097',artifacts=process.env.CI?'qa/success-wishes/artifacts':'/tmp/checkout-qa/artifacts'
 fs.mkdirSync(artifacts,{recursive:true})
 ;(async()=>{
  const testRoot=path.join(os.tmpdir(),'vibeschool-checkout-browser-'+process.pid)
@@ -14,10 +14,13 @@ fs.mkdirSync(artifacts,{recursive:true})
   browser=await chromium.launch({headless:true})
   for(const width of [320,360,390,412,768,1280]){
    const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();page.setDefaultTimeout(30000)
-   const calls=[];let stored=null,failedOnce=false
+   const calls=[];let stored=null,failedOnce=false,missingOnRestore=false
+   if(width===768)await page.addInitScript(()=>{if(!sessionStorage.getItem('qa-orphan-seeded')){sessionStorage.setItem('qa-orphan-seeded','1');sessionStorage.setItem('vs-success-wish-checkout-v1',JSON.stringify({key:'e'.repeat(64),expires:Date.now()+60000,paymentUncertain:false}))}})
    await page.route('**/api/success-wishes/checkout',async route=>{
     const p=route.request().postDataJSON();calls.push(p.action)
-    if(p.action==='create'){assert.equal(Object.hasOwn(p,'recipientRequest'),false,'Receiver never starts checkout');assert.equal(p.deliveryPhone,'0733000111','Recipient address is distinct from M-Pesa payer');stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:''},receipt:null,invitationUrl:null,backupCode:null}}
+    if(p.action==='status'&&missingOnRestore){missingOnRestore=false;await route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({error:'Synthetic missing order during uncertainty'})});return}
+    if(p.action==='status'&&!stored){await route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({error:'No saved order was found for this recovery key.'})});return}
+    if(p.action==='create'){if(width===768)assert.notEqual(p.key,'e'.repeat(64),'Missing unclaimed key is replaced before create');assert.equal(Object.hasOwn(p,'recipientRequest'),false,'Receiver never starts checkout');assert.equal(p.deliveryPhone,'0733000111','Recipient address is distinct from M-Pesa payer');stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:''},receipt:null,invitationUrl:null,backupCode:null}}
     if(p.action==='pay'){
      if(!failedOnce&&(width===360||width===390)){
       failedOnce=true
@@ -54,7 +57,14 @@ fs.mkdirSync(artifacts,{recursive:true})
    assert.equal(await m.getByText(/The recipient does not need to register/).count(),0,'Removed recipient explanation')
    assert.equal(await m.getByText('Already started a payment?').count(),0,'Removed recovery accordion from new checkout')
    await m.getByRole('heading',{name:'Review your wish'}).waitFor()
+   if(width===768){await m.getByLabel('M-Pesa number',{exact:true}).waitFor();assert(calls.length>=1&&calls.every(action=>action==='status'),'Only read-only status checks may recover a missing unclaimed order');calls.length=0}
    assert.equal(await m.getByRole('button',{name:'Start a new checkout'}).count(),0)
+   if(width===320){
+    await m.getByLabel('M-Pesa number',{exact:true}).fill('07')
+    await m.getByRole('button',{name:'Pay KSh 50',exact:true}).click()
+    await m.getByRole('alert').waitFor();assert.equal(calls.length,0,'Invalid phone cannot create an order')
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('vs-success-wish-checkout-v1')),null,'Invalid phone cannot strand a recovery key')
+   }
    await m.getByLabel('M-Pesa number',{exact:true}).fill('0712345678')
    await m.getByRole('button',{name:'Pay KSh 50',exact:true}).click()
    if(width===360){await m.getByRole('button',{name:'Try again',exact:true}).click()}
@@ -64,9 +74,13 @@ fs.mkdirSync(artifacts,{recursive:true})
     assert.equal(await m.getByRole('button',{name:'Pay KSh 50',exact:true}).count(),0)
     await m.getByText('Order details',{exact:true}).click()
     assert.equal(await m.getByRole('button',{name:'Start a new checkout'}).count(),0)
+    missingOnRestore=true
     await page.reload({waitUntil:'networkidle'});await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click();m=page.getByRole('dialog')
     await m.getByRole('heading',{name:'Checking payment'}).waitFor()
-    assert.equal(await m.getByRole('button',{name:'Pay KSh 50',exact:true}).count(),0,'Reload cannot unlock an uncertain created order')
+    await m.getByRole('alert').filter({hasText:'Your saved order couldn’t be checked.'}).waitFor()
+    assert.equal(await m.getByRole('button',{name:'Pay KSh 50',exact:true}).count(),0,'A missing uncertain order cannot unlock Pay')
+    assert.equal(await m.getByRole('button',{name:'Edit',exact:true}).count(),0)
+    assert.equal(await m.getByRole('button',{name:'Start a new checkout'}).count(),0)
     stored.state='awaiting_customer';await m.getByRole('button',{name:'Check status',exact:true}).click()
    }
    await m.getByRole('heading',{name:'Check your phone'}).waitFor()

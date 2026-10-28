@@ -6,6 +6,7 @@ import {CHECKOUT_STORAGE_KEY,newCheckoutKey,checkoutMessage,pendingCheckout,mask
 import {normalizeSafaricomPhone} from '@/lib/success-wishes/payment-contract'
 import styles from './SuccessCardStudio.module.css'
 type CheckoutReply={order:CheckoutOrder;paymentError?:string|null}
+class CheckoutRequestError extends Error{constructor(readonly status:number,message:string){super(message)}}
 export default function WishCheckout({theme,values,onClose}:{theme:Template;values:CardValues;onClose:()=>void}){
  const id=useId(),dialog=useRef<HTMLElement>(null),inFlight=useRef(false),alive=useRef(true)
  const [key,setKey]=useState(''),[phone,setPhone]=useState('')
@@ -16,7 +17,7 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
  const persist=useCallback((secret:string,paymentUncertain=false)=>sessionStorage.setItem(CHECKOUT_STORAGE_KEY,JSON.stringify({key:secret,paymentUncertain,expires:Date.now()+90*86400000})),[])
  const call=useCallback(async(body:Record<string,unknown>):Promise<CheckoutReply>=>{
   const r=await fetch('/api/success-wishes/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store',signal:AbortSignal.timeout(45000)})
-  const p=await r.json();if(!r.ok)throw Error(p.error||'Checkout is unavailable.')
+  const p=await r.json();if(!r.ok)throw new CheckoutRequestError(r.status,p.error||'Checkout is unavailable.')
   if(!p.order)throw Error('Checkout is unavailable.')
   return p as CheckoutReply
  },[])
@@ -26,8 +27,14 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
    const raw=sessionStorage.getItem(CHECKOUT_STORAGE_KEY),saved=raw?JSON.parse(raw):null
    if(saved&&/^[a-f0-9]{64}$/.test(saved.key)&&saved.expires>Date.now()){
     setKey(saved.key);setUncertain(true)
-    const found=await call({action:'status',key:saved.key})
-    if(alive.current){setOrder(found.order);setUncertain(saved.paymentUncertain===true&&found.order.state==='created')}
+    try{
+     const found=await call({action:'status',key:saved.key})
+     if(alive.current){setOrder(found.order);setUncertain(saved.paymentUncertain===true&&found.order.state==='created')}
+    }catch(error){
+     if(error instanceof CheckoutRequestError&&error.status===404&&saved.paymentUncertain!==true){
+      sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);if(alive.current){setKey(newCheckoutKey());setUncertain(false)}
+     }else throw error
+    }
    }else setKey(newCheckoutKey())
   }catch{if(alive.current){setUncertain(true);setError('Your saved order couldn’t be checked.')}}
   finally{if(alive.current)setRestoring(false)}}
@@ -52,12 +59,12 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
   inFlight.current=true;setBusy(true);setError('');setNotice('')
   let paymentStarted=false
   try{
+   if(action==='pay'&&!order&&!uncertain)normalizeSafaricomPhone(phone)
    persist(key,uncertain) // Save recovery before any order or payment request.
    let current=order
    if(action==='pay'){
     if(uncertain||current&&current.state!=='created')return
     if(!current){
-     normalizeSafaricomPhone(phone)
      const created=await call({action:'create',key,version:'text',...draft,payerPhone:phone})
      current=created.order;if(alive.current)setOrder(current)
     }
@@ -70,10 +77,10 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
     const p=await call({action:'status',key})
     if(alive.current){setOrder(p.order);const hold=uncertain&&p.order.state==='created';persist(key,hold);setUncertain(hold);setAutoCheck(true)}
    }
-  }catch{
+  }catch(error){
    if(alive.current){
     setUncertain(paymentStarted||action==='status'||uncertain)
-    setError(paymentStarted||action==='status'?'Payment status couldn’t be checked.':'Check your number and try again.')
+    setError(paymentStarted||action==='status'?'Payment status couldn’t be checked.':error instanceof CheckoutRequestError?'Checkout is unavailable. Please try later.':'Check your number and try again.')
    }
   }finally{inFlight.current=false;if(alive.current)setBusy(false)}
  }
