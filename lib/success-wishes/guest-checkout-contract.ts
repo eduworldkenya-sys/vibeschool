@@ -4,6 +4,7 @@
 import { createHash } from 'node:crypto'
 import { field, object, WishError } from './contracts'
 import { normalizeSafaricomPhone } from './payment-contract'
+import { senderPhone } from './phone-verification'
 
 const THEMES = ['heritage', 'botanical', 'nightfall', 'sunrise'] as const
 export type WishTheme = typeof THEMES[number]
@@ -16,6 +17,7 @@ export type TextWishSnapshot = Readonly<{
   message: string
   examYear: string
   school: string
+  deliveryPhone: string
 }>
 export type GuestTextWishQuote = Readonly<{
   version: 1
@@ -50,12 +52,15 @@ export function guestTextWishQuote(input: unknown): GuestTextWishQuote {
   let payerPhone:string
   try{payerPhone=normalizeSafaricomPhone(field(b.payerPhone,9,20))}
   catch{throw new WishError(400,'Enter a valid Kenyan M-Pesa number.')}
+  let deliveryPhone: string
+  try { deliveryPhone = senderPhone(b.deliveryPhone) }
+  catch { throw new WishError(400, 'Enter a valid Kenyan phone to receive this wish.') }
   const idempotencyKey = field(b.idempotencyKey, 64, 64)
   if (!/^[a-f0-9]{64}$/.test(idempotencyKey))
     throw new WishError(400, 'The order reference is invalid. Start a new checkout.')
   const card: TextWishSnapshot = Object.freeze({
     kind: 'success_wish_text', theme: b.theme as WishTheme,
-    candidate, sender, message, examYear, school,
+    candidate, sender, message, examYear, school, deliveryPhone,
   })
   const cardDigest = createHash('sha256')
     .update('vibeschool:success-wishes:text-card:v1:')
