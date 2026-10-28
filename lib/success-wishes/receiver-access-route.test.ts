@@ -62,7 +62,7 @@ test('enabled receiver denies copied links and cross-recipient sessions; preserv
   assert.equal((await opened.json()).card.message,'Exact saved synthetic wish')
   assert.equal(await enrolRecovery(receiverDatabase(),receiverId),null)
   assert.equal(rows.success_wish_receivers[0].recovery_secret_hash,'c'.repeat(64))
-  assert.match((await enrolRecovery(receiverDatabase(),receiverId,true))!,/^[0-9A-F]{32}$/)
+  assert.match((await enrolRecovery(receiverDatabase(),receiverId,true))!,/^[0-9A-HJKMNP-TV-Z]{4}(?:-[0-9A-HJKMNP-TV-Z]{4}){3}$/)
   assert.notEqual(rows.success_wish_receivers[0].recovery_secret_hash,'c'.repeat(64))
   rows.success_wish_card_access[0].revoked_at=future
   assert.equal((await GET(request('GET',true))).status,401)
