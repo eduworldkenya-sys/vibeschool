@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Check, ChevronRight, Volume2, VolumeX } from 'lucide-react'
 import SenderMediaCapture from './SenderMediaCapture'
-import WishCheckout from './WishCheckout'
 import { useSenderDraft } from './useSenderDraft'
 import type { SenderDraft } from '@/lib/success-wishes/sender-draft'
 import { wrapCardText } from '@/lib/success-wishes/card-text'
@@ -132,7 +131,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('')
-  const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [freeKey, setFreeKey] = useState<string | null>(null)
+  useEffect(() => { setFreeKey(null) }, [theme,candidate,sender,message,examYear,school])
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const stopSound = useRef<(() => void) | null>(null)
@@ -144,7 +144,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     sender: sender.trim() ? '' : 'Enter your name.',
     message: message.trim() ? '' : 'Write a wish or choose a starter below.',
     examYear: /^20\d{2}$/.test(examYear) ? '' : 'Enter a four-digit exam year, such as 2026.',
-    deliveryPhone: /^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(deliveryPhone.trim().replace(/[ ()-]/g, '')) ? '' : 'Enter the phone number that should receive this wish.',
+    deliveryPhone: !deliveryPhone.trim() || /^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(deliveryPhone.trim().replace(/[ ()-]/g, '')) ? '' : 'Enter the phone number that should receive this wish.',
   }
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   useEffect(() => {
@@ -164,8 +164,22 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       setPreviewSession(current => current + 1)
       window.requestAnimationFrame(() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
     } else {
-      setCheckoutOpen(true)
+      void sendFreeWish()
     }
+  }
+  async function sendFreeWish() {
+    if (!ready || busy || order) return
+    setError(''); setStatus(''); setBusy(true)
+    try {
+      const key = freeKey || Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2,'0')).join('')
+      if (!freeKey) setFreeKey(key)
+      const response = await fetch('/api/success-wishes/free', {method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({key,version:'text',theme,candidate,sender,message,examYear,school})})
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload.error || 'Your wish could not be sent.')
+      setOrder({id:payload.id,invitationUrl:payload.invitationUrl,expiresAt:new Date(Date.now()+90*86400000).toISOString()})
+      document.getElementById('wish-preview')?.scrollIntoView({behavior:'smooth',block:'center'})
+    } catch(reason) {setError(reason instanceof Error?reason.message:'Your wish could not be sent.')}
+    finally {setBusy(false)}
   }
   const restoreDraft = useCallback((draft: SenderDraft) => {
     setTheme(draft.theme); setCandidate(draft.candidate); setSender(draft.sender)
@@ -177,7 +191,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   function clearDraft() {
     if (!window.confirm('Clear this wish and start again?')) return
     restoreDraft({ theme: 'heritage', candidate: '', sender: '', message: '', examYear: '2026', school: '' })
-    setDeliveryPhone(''); setSelectedVersion('text'); setMediaFile(null); setTouched({}); setError(''); setStatus(''); setOrder(null)
+    setDeliveryPhone(''); setSelectedVersion('text'); setMediaFile(null); setTouched({}); setError(''); setStatus(''); setOrder(null); setFreeKey(null)
     setPreviewSession(current => current + 1)
   }
   useEffect(() => {
@@ -294,7 +308,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <section className={styles.pricingStrip} aria-label="Wish versions and prices">
         <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
           {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null); setPreviewSession(current => current + 1) }}>
-            {version.name} · {version.id !== 'text' ? 'Preview only' : `KES ${version.price}`}
+            {version.name} · {version.id !== 'text' ? 'Preview only' : 'Free'}
           </button>)}
         </div>
       </section>
@@ -349,22 +363,22 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
-            <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</strong></p>
-            {(selectedVersion !== 'text' || ready) && <button type="button" className={styles.primary} disabled={!ready} onClick={handleSendWish}>{selectedVersion !== 'text' ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>}
+            <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' ? 'Preview only' : 'Free'}</strong></p>
+            {(selectedVersion !== 'text' || ready) && <button type="button" className={styles.primary} disabled={!ready || busy || Boolean(order)} onClick={handleSendWish}>{selectedVersion !== 'text' ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>}
           </div>
         </div>
         <div className={styles.live} id="wish-preview" ref={previewRef} onClickCapture={() => setPreviewReached(true)}><span>YOUR LIVE PREVIEW · SENDER VIEW</span>
           <BookCard senderPreview key={previewSession} template={theme} values={values} soundEnabled={soundEnabled} mediaKind={selectedVersion} mediaSrc={mediaPreviewUrl} onOpen={() => { stopSound.current?.(); stopSound.current = playWishRevealSound() }}/>
           {selectedVersion === 'text' && ready && previewReached && <div className={styles.previewSend}>
-            <button type="button" className={styles.primary} onClick={handleSendWish}>Send this wish <ChevronRight size={18}/></button>
+            <button type="button" className={styles.primary} disabled={busy || Boolean(order)} onClick={handleSendWish}>Send this wish <ChevronRight size={18}/></button>
           </div>}
           {(testMode && selectedVersion === 'text' || order) && <div className={styles.checkoutSummary}>
             {testMode && selectedVersion === 'text' ? <>
               {!order && <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveTestWish()}>{busy ? 'Saving test wish…' : 'Complete test order · KES 50'}</button>}
             </> : null}
-            {order && <div className={styles.orderConfirmation} role="status"><h3><Check size={18}/> Test wish saved</h3><p>No payment was taken. Copy the private invitation and share it directly with the intended candidate.</p>
+            {order && <div className={styles.orderConfirmation} role="status"><h3><Check size={18}/> Wish sent</h3><p>No payment was taken. Copy the private invitation and share it directly with the intended candidate.</p>
               <label>Private invitation<input readOnly value={order.invitationUrl} onFocus={e => e.currentTarget.select()}/></label>
-              <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={`/success-wishes/invitation#token=${encodeURIComponent(new URL(order.invitationUrl).hash.slice(7))}`}>Open invitation</Link></div>
+              <div className={styles.actions}><button className={styles.primary} type="button" onClick={() => void copyInvitation()}>Copy invitation</button><Link className={styles.secondary} href={order.invitationUrl}>Open invitation</Link></div>
               <small>Reference {order.id} · Local retention until {new Date(order.expiresAt).toLocaleDateString()}</small>{status && <p role="status" className={styles.status}>{status}</p>}
             </div>}
           </div>}</div>
@@ -372,6 +386,5 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {checkoutOpen && <WishCheckout theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }

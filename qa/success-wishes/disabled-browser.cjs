@@ -153,27 +153,15 @@ async function makeWish(context, { message, theme }) {
       return top >= 0 && top < innerHeight - 150
     })
   }
-  const checkoutRequests = [],checkoutActions=[]
-  const trackCheckout = request => { if (request.url().includes('/api/success-wishes/')) checkoutRequests.push(request.url());if(request.url().endsWith('/checkout')&&request.method()==='POST')checkoutActions.push(request.postDataJSON().action) }
-  page.on('request', trackCheckout)
-  await page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' }).click()
-  const checkout = page.getByRole('dialog')
-  await checkout.getByRole('heading', { name: 'Review your wish' }).waitFor()
-  assert.equal(await checkout.getByText(/Pay to Till 949529/).count(),0,'Compact checkout omits payment destination explanation')
-  assert.equal(await checkout.getByText(/The recipient does not need to register/).count(),0,'Compact checkout omits recipient instructions')
-  assert.equal(await checkout.getByText('Already started a payment?').count(),0,'Compact checkout omits manual recovery accordion')
-  await checkout.getByLabel('M-Pesa number', {exact:true}).fill('0712345678')
-  assert.deepEqual(checkoutRequests, [], 'Review alone never creates an order or starts payment')
-  assert.equal(await checkout.getByLabel('Recipient’s private wish request link').count(), 0, 'Sender purchase needs no receiver request')
-  await checkout.getByRole('button', { name: 'Pay KSh 50', exact:true }).click()
-  await checkout.getByRole('alert').filter({hasText:'Checkout is unavailable. Please try later.'}).waitFor()
-  assert.equal(checkoutRequests.filter(url=>url.endsWith('/checkout')).length,1)
-  assert.deepEqual(checkoutActions,['create'],'Disabled create never progresses to a pay request')
-  page.off('request', trackCheckout)
-  await checkout.getByRole('button', { name: 'Close checkout' }).click()
+  const paymentRequests = []
+  const trackPayment = request => { if (request.url().includes('/api/success-wishes/checkout')) paymentRequests.push(request.url()) }
+  page.on('request', trackPayment)
+  assert.equal(await page.getByRole('dialog').count(), 0, 'Free sender never displays checkout')
   assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
+  assert.deepEqual(paymentRequests, [], 'Free sender does not contact checkout')
+  page.off('request', trackPayment)
   await page.getByRole('button', { name: /Complete test order · KES 50/ }).click()
-  await page.getByRole('heading', { name: 'Test wish saved' }).waitFor()
+  await page.getByRole('heading', { name: 'Wish sent' }).waitFor()
   const invitation = await page.getByLabel('Private invitation').inputValue()
   assert.equal(new URL(invitation).origin, ROOT)
   assert.match(await page.locator('main').innerText(), /No payment was taken/)
@@ -257,7 +245,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await gallery.locator('svg text[textLength], svg text[lengthAdjust]').count(), 0, 'Card lettering must never be stretched to fit')
     assert.equal(await gallery.getByText('Tap a card to choose it').count(), 0, 'Design selection needs no extra instructions')
     assert.equal(await page.locator('section[aria-label="Wish versions and prices"]').locator('[class*="purchaseNote"]').count(), 0, 'Do not duplicate price totals in the selector')
-    assert.equal(await page.getByRole('button', { name: /Text Wish · KES 50/ }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: /Text Wish · Free/ }).count(), 1)
     assert.equal(await page.getByRole('button', { name: /Voice Wish · Preview only/ }).isEnabled(), true)
     assert.equal(await page.getByRole('button', { name: /Video Wish · Preview only/ }).isEnabled(), true)
     await page.getByRole('button', { name: /Voice Wish · Preview only/ }).click()
@@ -277,7 +265,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
       name: 'private-video.mp4', mimeType: 'video/mp4', buffer: Buffer.from('synthetic-video-preview-file'),
     })
     assert.equal(await page.locator('[aria-label="Add a video wish"]').getByText('private-video.mp4').count(), 1, 'Video file is locally selected')
-    await page.getByRole('button', { name: /Text Wish · KES 50/ }).click()
+    await page.getByRole('button', { name: /Text Wish · Free/ }).click()
     assert.equal(await page.getByRole('textbox', { name: 'Exam year' }).inputValue(), '2026', 'Year is prefilled for the sender')
     assert.equal(await page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' }).count(), 0, 'No lower CTA appears before the required details are complete')
     assert.equal(await page.locator('#wish-composer [class*="sendRow"]').getByRole('button', { name: 'Send this wish' }).count(), 0, 'No upper CTA appears before the required details are complete')
