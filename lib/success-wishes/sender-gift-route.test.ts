@@ -7,7 +7,7 @@ const url='https://vibeschool.example/api/success-wishes/gift'
 const token='a'.repeat(64)
 test('sender-created private gift stays sealed until opened and rejects invalid/refunded orders',async()=>{
  const env={...process.env},oldFetch=globalThis.fetch
- let refunded=false,free=false,calls=0
+ let refunded=false,free=false,revoked=false,calls=0
  const card={kind:'success_wish_text',theme:'heritage',candidate:'Synthetic learner',sender:'Hidden sender',message:'Exact secret message',school:'',examYear:'2026'}
  globalThis.fetch=(async(input,init)=>{
   const u=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url)
@@ -19,7 +19,7 @@ test('sender-created private gift stays sealed until opened and rejects invalid/
    if(free || u.searchParams.get('link_hash')!=='eq.'+hashSecret('success-wishes:paid-link:'+token))return Response.json(null)
    return Response.json({id:'11111111-1111-4111-8111-111111111111',guest_order_id:'22222222-2222-4222-8222-222222222222',expires_at:new Date(Date.now()+86400000).toISOString()})
   }
-  if(endpoint==='success_wish_free_gifts')return Response.json(free?{id:'33333333-3333-4333-8333-333333333333',card,expires_at:new Date(Date.now()+86400000).toISOString()}:null)
+  if(endpoint==='success_wish_free_gifts')return Response.json(free&&!revoked?{id:'33333333-3333-4333-8333-333333333333',card,expires_at:new Date(Date.now()+86400000).toISOString()}:null)
   if(endpoint==='success_wish_guest_orders')return Response.json({state:refunded?'refunded':free?'free_issued':'settled',card,amount_kes:free?0:50,receiver_id:null,provider_receipt:free?null:'SYNTHETIC123',provider_verified_at:free?null:new Date().toISOString(),settled_at:free?null:new Date().toISOString(),refunded_at:refunded?new Date().toISOString():null})
   throw Error('Unexpected transport '+u.pathname)
  }) as typeof fetch
@@ -39,8 +39,16 @@ test('sender-created private gift stays sealed until opened and rejects invalid/
   assert.equal((await PUT(request('PUT'))).status,404)
   refunded=false;free=true
   assert.equal((await POST(request('POST'))).status,200)
+  const freeSealed=await POST(request('POST'))
+  assert.equal(freeSealed.status,200)
+  const freePreview=(await freeSealed.json()).card
+  assert.equal(freePreview.sender,null)
+  assert.equal(Object.hasOwn(freePreview,'message'),false)
   const freeOpened=await PUT(request('PUT'))
   assert.equal(freeOpened.status,200)
   assert.equal((await freeOpened.json()).card.message,card.message)
+  revoked=true
+  assert.equal((await POST(request('POST'))).status,404)
+  assert.equal((await PUT(request('PUT'))).status,404)
  }finally{globalThis.fetch=oldFetch;for(const k of Object.keys(process.env))if(!(k in env))delete process.env[k];Object.assign(process.env,env)}
 })
