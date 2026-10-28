@@ -257,7 +257,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await gallery.locator('svg text[textLength], svg text[lengthAdjust]').count(), 0, 'Card lettering must never be stretched to fit')
     assert.equal(await gallery.getByText('Tap a card to choose it').count(), 0, 'Design selection needs no extra instructions')
     assert.equal(await page.locator('section[aria-label="Wish versions and prices"]').locator('[class*="purchaseNote"]').count(), 0, 'Do not duplicate price totals in the selector')
-    assert.equal(await page.getByRole('button', { name: /Text Wish · KES 50/ }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: /Text Wish · Free/ }).count(), 1)
     assert.equal(await page.getByRole('button', { name: /Voice Wish · Preview only/ }).isEnabled(), true)
     assert.equal(await page.getByRole('button', { name: /Video Wish · Preview only/ }).isEnabled(), true)
     await page.getByRole('button', { name: /Voice Wish · Preview only/ }).click()
