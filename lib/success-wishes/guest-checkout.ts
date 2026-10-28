@@ -2,7 +2,7 @@ import {NextRequest} from 'next/server'
 import {field,object,WishError} from './contracts'
 import {guestTextWishQuote} from './guest-checkout-contract'
 import {database,limit} from './server'
-import {hashSecret} from './security'
+import {enabled,hashSecret} from './security'
 import {linkDigest,codeDigest} from './receiver'
 type DB=ReturnType<typeof database>
 export const orderKeyHash=(key:string)=>hashSecret('success-wishes:guest-order:'+key)
@@ -29,6 +29,7 @@ async function present(db:DB,key:string){
  return {id:o.id,state:o.state,amountKes:50,payerPhone:o.payer_phone,card:o.card,receipt:o.state==='settled'?o.provider_receipt:null,invitationUrl,backupCode}
 }
 export async function guestCheckout(req:NextRequest,raw:unknown){
+ if(!enabled())throw new WishError(503,'Success Wishes checkout is not open yet. No new payment was requested.')
  const b=object(raw),key=field(b.key,64,64)
  if(!/^[a-f0-9]{64}$/.test(key))throw new WishError(400,'Invalid private order key.')
  const db=database(),ip=(req.headers.get('x-real-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').slice(0,100)
