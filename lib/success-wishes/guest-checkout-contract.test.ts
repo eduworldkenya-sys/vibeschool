@@ -22,6 +22,7 @@ test('server creates a single KSh 50 frozen quote that reproduces sender preview
   assert.equal(quote.amountKes, 50)
   assert.equal(quote.currency, 'KES')
   assert.equal(quote.payerPhone, '254712345678')
+  assert.notEqual(quote.card.deliveryPhone,'+254712345678','Payment phone is not the recipient address')
   assert.deepEqual(quote.card, {
     kind: 'success_wish_text',
     theme: 'heritage',
