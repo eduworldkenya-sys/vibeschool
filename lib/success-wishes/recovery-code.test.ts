@@ -1,6 +1,17 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { formatRecoveryCode, newRecoveryCodeFromBytes, normalizeRecoveryCode } from './recovery-code'
+import { formatRecoveryCode, newRecoveryCodeFromBytes, newSixCharacterRecoveryCode, normalizeRecoveryCode } from './recovery-code'
+
+test('new six-character backups include letters, digits and symbols and normalize safely', () => {
+  for (let i=0;i<80;i++) {
+    const code = newSixCharacterRecoveryCode()
+    assert.match(code, /^(?=.*[A-HJ-NP-Z])(?=.*[0-9])(?=.*[@!#])[A-HJ-NP-Z0-9@!#]{6}$/)
+    assert.equal(normalizeRecoveryCode(code.toLowerCase()),code)
+    assert.equal(formatRecoveryCode(code),code)
+  }
+  assert.equal(normalizeRecoveryCode('123456'),null)
+  assert.equal(normalizeRecoveryCode('AAAAAA'),null)
+})
 
 test('saved recovery codes encode exactly 80 bits and group for mobile entry', () => {
   assert.equal(newRecoveryCodeFromBytes(new Uint8Array(10)), '0000000000000000')
