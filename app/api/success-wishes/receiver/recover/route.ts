@@ -4,13 +4,14 @@ import { receiverDatabase } from '@/lib/success-wishes/receiver'
 import { consumeOtp, createInboxSession, INBOX_COOKIE, issueOtp } from '@/lib/success-wishes/receiver-otp'
 import { hashedPhoneRateKey, matchesDigest, recoveryDigest } from '@/lib/success-wishes/receiver-sms'
 import { senderPhone } from '@/lib/success-wishes/phone-verification'
+import { normalizeRecoveryCode } from '@/lib/success-wishes/recovery-code'
 import { failure, json, limit, reply } from '@/lib/success-wishes/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 async function knownReceiver(req: NextRequest, phone: unknown, secret: unknown) {
-  if (typeof secret !== 'string' || !/^[0-9A-F]{32}$/i.test(secret))
-    throw new WishError(401, 'Check the registered phone and student recovery code.')
+  const normalizedSecret = normalizeRecoveryCode(secret)
+  if (!normalizedSecret) throw new WishError(401, 'Check the registered phone and student recovery code.')
   const normalized = senderPhone(phone)
   await limit('receiver-recover:global', 1000, 86400)
   await limit('receiver-recover:' + hashedPhoneRateKey(normalized), 12, 86400)
@@ -19,7 +20,7 @@ async function knownReceiver(req: NextRequest, phone: unknown, secret: unknown) 
     .select('id,recovery_secret_hash').eq('phone_e164', normalized).eq('consent_status', 'verified').limit(30)
   if (error) throw new WishError(503, 'Recovery is temporarily unavailable.')
   const matched = (data || []).filter(item =>
-    item.recovery_secret_hash && matchesDigest(item.recovery_secret_hash, recoveryDigest(item.id, secret.toUpperCase())))
+    item.recovery_secret_hash && matchesDigest(item.recovery_secret_hash, recoveryDigest(item.id, normalizedSecret)))
   if (matched.length !== 1) throw new WishError(401, 'Check the registered phone and student recovery code.')
   return { db, receiverId: matched[0].id, phone: normalized }
 }

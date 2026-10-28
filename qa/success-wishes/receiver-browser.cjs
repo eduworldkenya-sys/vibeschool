@@ -70,7 +70,7 @@ function setupMocks(page, existing) {
         state.verifiedCalls++
         if(data.cardId!==CARD_A || data.code!=='123456' || !data.consentAcknowledged || data.consentRole!=='guardian'){
           status=401;payload={error:'Guardian approval missing.'}
-        }else{state.verified=true;payload={ok:true,recoveryCode:'B'.repeat(32),inboxUrl:'/success-wishes/inbox'}}
+        }else{state.verified=true;payload={ok:true,recoveryCode:'ABCD-EFGH-JKMP-QRST',inboxUrl:'/success-wishes/inbox'}}
       }
     } else if(url.pathname.endsWith('/inbox')){
       if(method==='GET')payload={recipient:{name:'Synthetic Candidate',school:'Synthetic School'},
@@ -203,7 +203,12 @@ async function run() {
     await assertNoOverflow(page,'refreshed gift at '+width)
     await page.goto(ROOT+'/success-wishes/recover',{waitUntil:'networkidle'})
     await page.getByRole('textbox',{name:'Registered Kenyan phone number'}).fill('0712345678')
-    await page.getByRole('textbox',{name:'Student recovery code'}).fill('B'.repeat(32))
+    const recoveryInput=page.getByRole('textbox',{name:'Student recovery code'})
+    const recoverySend=page.getByRole('button',{name:'Send my code'})
+    await recoveryInput.fill('5tt')
+    assert.equal(await recoverySend.isDisabled(),true,'Short invalid code cannot trigger SMS')
+    await recoveryInput.fill('ABCD-EFGH-JKMP-QRST')
+    assert.equal(await recoverySend.isEnabled(),true,'Valid 80-bit grouped code permits recovery')
     const recoveryPost=page.waitForResponse(response=>response.url().endsWith('/api/success-wishes/receiver/recover')&&response.request().method()==='POST')
     await page.getByRole('button',{name:'Send my code'}).click()
     assert.equal((await recoveryPost).status(),200,'Recovery uses the client API, never a native GET navigation')

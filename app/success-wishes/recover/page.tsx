@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { normalizeRecoveryCode } from '@/lib/success-wishes/recovery-code'
 import {
   Crown,
   KeyRound,
@@ -28,6 +29,8 @@ export default function RecoverWishes() {
   const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const validPhone = /^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(phone.trim().replace(/[ ()-]/g, ''))
+  const validRecoveryCode = normalizeRecoveryCode(recoveryCode) !== null
 
   async function submit(method: 'POST' | 'PATCH') {
     setBusy(true)
@@ -97,6 +100,7 @@ export default function RecoverWishes() {
           <form
             onSubmit={(e) => {
               e.preventDefault()
+              if (!clientReady || busy || (!challengeId && (!validPhone || !validRecoveryCode)) || (!!challengeId && otp.length !== 6)) return
               void submit(challengeId ? 'PATCH' : 'POST')
             }}
             className="space-y-4"
@@ -134,14 +138,17 @@ export default function RecoverWishes() {
                       type="text"
                       autoComplete="off"
                       required
-                      maxLength={32}
-                      placeholder="32-character recovery code..."
+                      maxLength={64}
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      placeholder="XXXX-XXXX-XXXX-XXXX"
                       value={recoveryCode}
                       onChange={(e) => setRecoveryCode(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-800 focus:border-[#D4AF37] rounded-xl pl-10 pr-3.5 py-3 text-xs text-[#D4AF37] font-mono tracking-wider focus:outline-none transition-colors placeholder:text-slate-600 placeholder:font-sans"
                     />
                   </div>
                 </div>
+                <p className="text-xs text-slate-400">Use the recovery code shown when you first verified your wish. Older 32-character codes still work. <Link href="/success-wishes/open" className="text-[#D4AF37]">Lost it? Open your original card to verify again.</Link></p>
               </>
             ) : (
               <div className="space-y-3">
@@ -182,7 +189,7 @@ export default function RecoverWishes() {
 
             <button
               type="submit"
-              disabled={!clientReady || busy || (!!challengeId && otp.length !== 6)}
+              disabled={!clientReady || busy || (!challengeId && (!validPhone || !validRecoveryCode)) || (!!challengeId && otp.length !== 6)}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-[#D4AF37]/20 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none transition-all flex items-center justify-center space-x-2"
             >
               {busy ? (
