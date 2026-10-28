@@ -1,23 +1,11 @@
 [
   {
-    "missionId": "CYBORG-20261027154108-75d6dd",
-    "runId": "8e9b69ff-11a6-4669-8db6-2d0f20ea7389",
+    "missionId": "CYBORG-20261028072658-f420fd",
+    "runId": "abe899c5-e6de-4b73-a2ab-9a71ffc1500a",
     "paths": [
-      "components/success-wishes/BookCard.tsx",
-      "components/success-wishes/BookCard.module.css",
-      "components/success-wishes/card-themes.ts",
-      "components/success-wishes/SuccessCardStudio.tsx",
-      "components/success-wishes/SuccessCardStudio.module.css",
-      "components/success-wishes/ReceiverEnvelope.tsx",
-      "app/legal",
-      "app/evidence",
-      "app/pathways/schools",
-      "config/public-content-governance.json",
-      "qa/success-wishes",
-      "app/success-wishes/recover/page.tsx",
-      "components/success-wishes/SenderMediaCapture.module.css"
+      "app/api/success-wishes/verify-sender"
     ],
-    "acquiredAt": "2026-10-27T15:41:24.346Z",
-    "releasedAt": "2026-10-27T16:08:45.634Z"
+    "acquiredAt": "2026-10-28T07:27:10.366Z",
+    "releasedAt": "2026-10-28T07:30:23.950Z"
   }
 ]
