@@ -68,6 +68,9 @@ export async function PATCH(req:NextRequest){
     const secret=configuredSecret()
     const code=field(input.code,6,6)
     if(!/^\d{6}$/.test(code))throw new WishError(400,'Enter the six-digit code.')
+    // One noisy source must not exhaust the shared bucket for every sender.
+    const ip=(req.headers.get('x-real-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').trim().slice(0,100)
+    await limit('sender-verify-ip:'+ip,60,3600)
     await limit('sender-verify:global',1200,3600)
     await limit('sender-verify:'+who.fingerprint,12,900)
     const db=database()
