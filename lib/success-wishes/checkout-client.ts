@@ -1,5 +1,5 @@
 export type CheckoutState='created'|'submitting'|'awaiting_customer'|'reconciliation_required'|'settled'|'failed'|'refunded'
-export type CheckoutCard={theme:'heritage'|'botanical'|'nightfall'|'sunrise';candidate:string;sender:string;message:string;examYear:string;school:string}
+export type CheckoutCard={theme:'heritage'|'botanical'|'nightfall'|'sunrise';candidate:string;sender:string;message:string;examYear:string;school:string;deliveryPhone?:string}
 export type CheckoutOrder={id:string;state:CheckoutState;amountKes:50;payerPhone:string;card:CheckoutCard;receipt:string|null;invitationUrl:string|null;backupCode:string|null}
 export const CHECKOUT_STORAGE_KEY='vs-success-wish-checkout-v1'
 export const newCheckoutKey=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('')

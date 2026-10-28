@@ -12,7 +12,7 @@ const verificationSecret = 'synthetic-verification-secret-for-sms-recovery-tests
 const adultPhone = '+254712000111'
 const guardianPhone = '+254733333333'
 const secretA = 'ABCD-EFGH-JKMP-QRST'
-const secretB = 'WXYZ-2345-6789-HJKM'
+const secretB = 'R8@K2!'
 const saved = { ...process.env }
 
 function record(id: string, phone: string, guardian: string | null = null, code = secretA): RecoveryIdentity {

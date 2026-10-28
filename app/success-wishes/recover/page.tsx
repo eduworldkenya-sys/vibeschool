@@ -142,7 +142,7 @@ export default function RecoverWishes() {
                       maxLength={64}
                       autoCapitalize="characters"
                       spellCheck={false}
-                      placeholder="XXXX-XXXX-XXXX-XXXX"
+                      placeholder="e.g. R8@K2!"
                       value={recoveryCode}
                       onChange={(e) => setRecoveryCode(e.target.value)}
                       className="w-full bg-slate-900 border border-slate-800 focus:border-[#D4AF37] rounded-xl pl-10 pr-3.5 py-3 text-xs text-[#D4AF37] font-mono tracking-wider focus:outline-none transition-colors placeholder:text-slate-600 placeholder:font-sans"

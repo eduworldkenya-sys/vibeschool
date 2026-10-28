@@ -10,6 +10,12 @@ const now = Date.UTC(2026, 9, 26)
 test('restores the exact text draft, design and line breaks before expiry', () => {
   assert.deepEqual(decodeSenderDraft(encodeSenderDraft(draft, now), now + 500), draft)
 })
+test('delivery phone can restore in the same tab without retaining arbitrary payment data',()=>{
+  const saved={...draft,deliveryPhone:'0733000111'}
+  assert.deepEqual(decodeSenderDraft(encodeSenderDraft(saved,now),now+500),saved)
+  assert.equal(decodeSenderDraft(encodeSenderDraft({...saved,deliveryPhone:'123'},now),now),null)
+})
+
 test('rejects expired, future, malformed, oversized and invalid drafts', () => {
   for (const raw of [null, '{', 'x'.repeat(8001), encodeSenderDraft(draft, now - SENDER_DRAFT_TTL_MS),
     encodeSenderDraft(draft, now + 120000), encodeSenderDraft({ ...draft, message: 'x'.repeat(221) }, now),

@@ -4,7 +4,7 @@ import { WishError } from './contracts'
 import { takeAttempt } from './server'
 import { receiverDatabase } from './receiver'
 import { hashSecret } from './security'
-import { formatRecoveryCode, newRecoveryCodeFromBytes } from './recovery-code'
+import { newSixCharacterRecoveryCode } from './recovery-code-server'
 import { hashedPhoneRateKey, newOtp, otpDigest, recoveryDigest, sendReceiverSms } from './receiver-sms'
 
 export const INBOX_COOKIE = 'vs_wishes_receiver'
@@ -77,7 +77,7 @@ export async function inboxSession(req: NextRequest) {
   return { db, receiver }
 }
 export async function enrolRecovery(db: DB, receiverId: string, replaceLostCode = false) {
-  const recoverySecret = newRecoveryCodeFromBytes(randomBytes(10))
+  const recoverySecret = newSixCharacterRecoveryCode()
   let update = db.from('success_wish_receivers')
     .update({ recovery_secret_hash: recoveryDigest(receiverId, recoverySecret) })
     .eq('id', receiverId).eq('consent_status', 'verified')
@@ -90,7 +90,7 @@ export async function enrolRecovery(db: DB, receiverId: string, replaceLostCode 
     if (lookupError || !existing?.recovery_secret_hash) throw new WishError(409, 'Recovery setup could not be confirmed. Verify again.')
     return null
   }
-  return formatRecoveryCode(recoverySecret)
+  return recoverySecret
 }
 
 export const RECEIVER_NOTICE_VERSION = 'receiver-2026-10-26-v1'

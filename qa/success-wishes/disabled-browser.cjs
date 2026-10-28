@@ -109,6 +109,7 @@ async function makeWish(context, { message, theme }) {
     { p_query: 'Gilgil Township', p_limit: 12 },
   ], 'Public Success Wishes search uses the safe full-directory projection and supports changing schools')
   await page.getByRole('textbox', { name: 'Your name' }).fill('Synthetic sender')
+   await page.getByRole('textbox', { name: 'Phone to receive this wish' }).fill('0733000111')
   const wishInput = page.getByRole('textbox', { name: 'Your wish' })
   const starterText = 'You have worked so hard to reach this moment. Walk in with courage; we believe in you.'
   await page.getByRole('button', { name: 'Use wish starter: Trust your work' }).click()
@@ -290,12 +291,14 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     const yearInput = page.getByRole('textbox', { name: 'Exam year', exact: true })
     const schoolInput = page.getByRole('combobox', { name: 'School (optional)' })
     await page.route('**/rest/v1/rpc/success_wishes_school_search_public_v1', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }))
+    const deliveryInput = page.getByRole('textbox', { name: 'Phone to receive this wish' })
     const longCandidate = 'C'.repeat(48), longSender = 'S'.repeat(48), longSchool = 'N'.repeat(80)
     const longWish = Array(7).fill('a'.repeat(30)).join(' ')
     await page.getByRole('button', { name: 'Choose Bright Star card' }).click()
     await candidateInput.fill(longCandidate)
     await senderInput.fill(longSender)
     await schoolInput.fill(longSchool)
+    await deliveryInput.fill('0733000111')
     await wishInput.fill(longWish)
     await yearInput.fill('20')
     await wishInput.focus()

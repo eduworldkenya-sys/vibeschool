@@ -2,10 +2,10 @@
 begin;
 insert into public.success_wish_guest_orders(id,key_hash,card,card_digest,payer_phone)
 values('a3333333-3333-4333-8333-333333333333',repeat('a',64),
-'{"kind":"success_wish_text","theme":"heritage","candidate":"Example candidate","school":"","message":"Keep going","sender":"Example sender","examYear":"2026"}',
+'{"kind":"success_wish_text","theme":"heritage","candidate":"Example candidate","school":"","message":"Keep going","sender":"Example sender","examYear":"2026","deliveryPhone":"+254733000111"}',
 repeat('b',64),'254712345678');
 do $$
-declare c uuid;d uuid; denied boolean;
+declare c uuid;d uuid; denied boolean; delivery_claim uuid;
 begin
  if has_table_privilege('anon','public.success_wish_guest_gifts','SELECT')
     or has_table_privilege('authenticated','public.success_wish_guest_gifts','INSERT')
@@ -13,6 +13,11 @@ begin
  then raise exception 'Private gift leaks through public Data API';end if;
  if public.success_wish_claim_guest_payment('a3333333-3333-4333-8333-333333333333',repeat('c',64))
  then raise exception 'Default OFF allows payment';end if;
+ if has_table_privilege('anon','public.success_wish_guest_sms_delivery','SELECT')
+   or has_function_privilege('anon','public.success_wish_claim_guest_sms_delivery(uuid,text)','EXECUTE')
+ then raise exception 'SMS delivery ledger is public';end if;
+ if public.success_wish_claim_guest_sms_delivery('a3333333-3333-4333-8333-333333333333',repeat('a',64)) is not null
+ then raise exception 'Unpaid SMS delivery claim';end if;
  denied:=false;
  begin
   perform public.success_wish_issue_unrequested_guest_gift('a3333333-3333-4333-8333-333333333333',repeat('a',64),repeat('d',64));
@@ -39,6 +44,13 @@ begin
  c:=public.success_wish_issue_unrequested_guest_gift('a3333333-3333-4333-8333-333333333333',repeat('a',64),repeat('d',64));
  d:=public.success_wish_issue_unrequested_guest_gift('a3333333-3333-4333-8333-333333333333',repeat('a',64),repeat('d',64));
  if c is null or c<>d then raise exception 'Private gift not idempotent';end if;
+ if public.success_wish_claim_guest_sms_delivery('a3333333-3333-4333-8333-333333333333',repeat('e',64)) is not null then raise exception 'Wrong order key claimed SMS delivery';end if;
+ delivery_claim:=public.success_wish_claim_guest_sms_delivery('a3333333-3333-4333-8333-333333333333',repeat('a',64));
+ if delivery_claim <> 'a3333333-3333-4333-8333-333333333333' then raise exception 'Settled gift SMS claim missing';end if;
+ if (select destination_phone from public.success_wish_guest_sms_delivery where guest_order_id=delivery_claim)<>'+254733000111' then raise exception 'Delivery address is not the guardian phone';end if;
+ if public.success_wish_claim_guest_sms_delivery('a3333333-3333-4333-8333-333333333333',repeat('a',64)) is not null then raise exception 'Double SMS submission';end if;
+ denied:=false;begin update public.success_wish_guest_orders set card=jsonb_set(card,'{deliveryPhone}','"+254733000112"'::jsonb) where id=delivery_claim;exception when others then denied:=true;end;
+ if not denied then raise exception 'Post-purchase address mutation allowed';end if;
  denied:=false;
  begin perform public.success_wish_issue_unrequested_guest_gift('a3333333-3333-4333-8333-333333333333',repeat('a',64),repeat('e',64));
  exception when others then denied:=true;end;

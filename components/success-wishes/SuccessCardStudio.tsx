@@ -17,7 +17,7 @@ import { BookCard } from './BookCard'
 export { BookCard } from './BookCard'
 
 export type Template = SenderDraft['theme']
-export type CardValues = { candidate: string; sender: string; message: string; examYear?: string; school?: string }
+export type CardValues = { candidate: string; sender: string; message: string; examYear?: string; school?: string; deliveryPhone?: string }
 export type CardDesignDraft = CardValues & { theme: Template }
 
 export function CardArt({ template, values, svgRef, preview = false }: {
@@ -123,6 +123,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [message, setMessage] = useState(initialDraft?.message || '')
   const [examYear, setExamYear] = useState(initialDraft?.examYear || '2026')
   const [school, setSchool] = useState(initialDraft?.school || '')
+  const [deliveryPhone, setDeliveryPhone] = useState(initialDraft?.deliveryPhone || '')
   const [selectedSchool, setSelectedSchool] = useState<SchoolOption | null>(null)
   const [schoolOptions, setSchoolOptions] = useState<SchoolOption[]>([])
   const [schoolSearchState, setSchoolSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
@@ -137,12 +138,13 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const stopSound = useRef<(() => void) | null>(null)
   const formStartSoundPlayed = useRef(false)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
-  const values = { candidate, sender, message, examYear, school }
+  const values = { candidate, sender, message, examYear, school, deliveryPhone }
   const fieldErrors = {
     candidate: candidate.trim() ? '' : 'Enter the candidate’s name.',
     sender: sender.trim() ? '' : 'Enter your name.',
     message: message.trim() ? '' : 'Write a wish or choose a starter below.',
     examYear: /^20\d{2}$/.test(examYear) ? '' : 'Enter a four-digit exam year, such as 2026.',
+    deliveryPhone: /^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(deliveryPhone.trim().replace(/[ ()-]/g, '')) ? '' : 'Enter the phone number that should receive this wish.',
   }
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   useEffect(() => {
@@ -168,13 +170,14 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const restoreDraft = useCallback((draft: SenderDraft) => {
     setTheme(draft.theme); setCandidate(draft.candidate); setSender(draft.sender)
     setMessage(draft.message); setExamYear(draft.examYear); setSchool(draft.school)
+    setDeliveryPhone(draft.deliveryPhone || '')
     setSelectedSchool(null)
   }, [])
-  const draftStatus = useSenderDraft({ theme, candidate, sender, message, examYear, school }, Boolean(initialDraft), restoreDraft)
+  const draftStatus = useSenderDraft({ theme, candidate, sender, message, examYear, school, deliveryPhone }, Boolean(initialDraft), restoreDraft)
   function clearDraft() {
     if (!window.confirm('Clear this wish and start again?')) return
     restoreDraft({ theme: 'heritage', candidate: '', sender: '', message: '', examYear: '2026', school: '' })
-    setSelectedVersion('text'); setMediaFile(null); setTouched({}); setError(''); setStatus(''); setOrder(null)
+    setDeliveryPhone(''); setSelectedVersion('text'); setMediaFile(null); setTouched({}); setError(''); setStatus(''); setOrder(null)
     setPreviewSession(current => current + 1)
   }
   useEffect(() => {
@@ -322,6 +325,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {schoolOptions.length > 0 && <ul className={styles.schoolResults} id={schoolResultsId} role="listbox" aria-label="Matching VibeSchool schools">{schoolOptions.map(option => <li key={option.school_id}><button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id} onClick={() => { setSelectedSchool(option); setSchool(option.school_name); setSchoolOptions([]); setSchoolSearchState('idle') }}><strong>{option.school_name}</strong><small>{[option.sub_county, option.county].filter(Boolean).join(', ') || 'School in VibeSchool directory'}</small></button></li>)}</ul>}
             {selectedSchool && <p className={styles.schoolSearchStatus} role="status">Selected from VibeSchool&apos;s school list: {selectedSchool.school_name}{selectedSchool.sub_county || selectedSchool.county ? ` · ${[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}` : ''}</p>}
           </div>
+          <label>Phone to receive this wish<input aria-label="Phone to receive this wish" aria-invalid={touched.deliveryPhone && Boolean(fieldErrors.deliveryPhone)} onBlur={() => setTouched(current => ({ ...current, deliveryPhone: true }))} autoComplete="tel" inputMode="tel" type="tel" maxLength={20} value={deliveryPhone} onChange={e => setDeliveryPhone(e.target.value)} placeholder="07XX XXX XXX"/>{touched.deliveryPhone && fieldErrors.deliveryPhone && <small className={styles.fieldError}>{fieldErrors.deliveryPhone}</small>}</label>
           <label>Your name<input aria-label="Your name" aria-invalid={touched.sender && Boolean(fieldErrors.sender)} aria-describedby={touched.sender && fieldErrors.sender ? schoolInputId + '-sender-error' : undefined} onBlur={() => setTouched(current => ({ ...current, sender: true }))} autoComplete="off" maxLength={48} value={sender} onChange={e => setSender(e.target.value)} placeholder="From whom?"/>{touched.sender && fieldErrors.sender && <small id={schoolInputId + '-sender-error'} className={styles.fieldError}>{fieldErrors.sender}</small>}</label>
           <label>Your wish<textarea aria-label="Your wish" aria-invalid={touched.message && Boolean(fieldErrors.message)} aria-describedby={touched.message && fieldErrors.message ? schoolInputId + '-message-error' : undefined} onBlur={() => setTouched(current => ({ ...current, message: true }))} ref={messageInputRef} rows={6} maxLength={220} value={message} onChange={e => setMessage(e.target.value)}
             placeholder="Write something only you would say…"/>{touched.message && fieldErrors.message && <small id={schoolInputId + '-message-error'} className={styles.fieldError}>{fieldErrors.message}</small>}</label>

@@ -1,6 +1,8 @@
-// A printable 80-bit saved recovery code. Keep legacy 128-bit hex codes valid.
+// Six-character backup codes are paired with an SMS challenge and strict attempt limits.
+// Preserve 80-bit and 128-bit previously issued codes without rotation.
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'
 const SHORT = /^[0-9A-HJKMNP-TV-Z]{16}$/
+const SIX = /^(?=.*[A-HJ-NP-Z])(?=.*[0-9])(?=.*[@!#])[A-HJ-NP-Z0-9@!#]{6}$/
 const LEGACY = /^[0-9A-F]{32}$/
 
 export function newRecoveryCodeFromBytes(bytes: Uint8Array): string {
@@ -24,7 +26,7 @@ export function newRecoveryCodeFromBytes(bytes: Uint8Array): string {
 export function normalizeRecoveryCode(input: unknown): string | null {
   if (typeof input !== 'string' || input.length > 64) return null
   const raw = input.trim().toUpperCase().replace(/[\s-]/g, '')
-  return SHORT.test(raw) || LEGACY.test(raw) ? raw : null
+  return SIX.test(raw) || SHORT.test(raw) || LEGACY.test(raw) ? raw : null
 }
 
 export function formatRecoveryCode(raw: string): string {

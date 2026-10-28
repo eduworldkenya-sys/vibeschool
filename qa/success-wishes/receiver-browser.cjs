@@ -70,7 +70,7 @@ function setupMocks(page, existing) {
         state.verifiedCalls++
         if(data.cardId!==CARD_A || data.code!=='123456' || !data.consentAcknowledged || data.consentRole!=='guardian'){
           status=401;payload={error:'Guardian approval missing.'}
-        }else{state.verified=true;payload={ok:true,recoveryCode:'ABCD-EFGH-JKMP-QRST',inboxUrl:'/success-wishes/inbox'}}
+        }else{state.verified=true;payload={ok:true,recoveryCode:'R8@K2!',inboxUrl:'/success-wishes/inbox'}}
       }
     } else if(url.pathname.endsWith('/inbox')){
       if(method==='GET')payload={recipient:{name:'Synthetic Candidate',school:'Synthetic School'},
@@ -228,7 +228,7 @@ async function run() {
       const backup=page.getByRole('textbox',{name:'Student recovery code'})
       await backup.fill('5tt')
       assert.equal(await page.getByRole('button',{name:'Send my code'}).isDisabled(),true,'Invalid backup code is blocked')
-      await backup.fill('ABCD-EFGH-JKMP-QRST')
+      await backup.fill('R8@K2!')
       assert.equal(await page.getByRole('button',{name:'Send my code'}).isEnabled(),true,'Existing recovery codes remain available for shared numbers')
       await page.getByRole('button',{name:'Use SMS only'}).click()
       assert.equal(await backup.count(),0,'Switching back hides the optional backup code')

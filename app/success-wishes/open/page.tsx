@@ -116,7 +116,7 @@ export default function OpenSuccessWishCode() {
                   required
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  placeholder="Paste your card access code..."
+                  placeholder="e.g. K7M4Q9"
                   className="w-full bg-slate-900/90 border border-slate-800 focus:border-[#D4AF37] rounded-xl px-4 py-3 text-sm text-[#D4AF37] font-mono tracking-wider focus:outline-none transition-colors placeholder:text-slate-600 placeholder:font-sans"
                 />
               </div>

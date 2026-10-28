@@ -17,7 +17,7 @@ fs.mkdirSync(artifacts,{recursive:true})
    const calls=[];let stored=null
    await page.route('**/api/success-wishes/checkout',async route=>{
     const p=route.request().postDataJSON();calls.push(p.action)
-    if(p.action==='create'){assert.equal(Object.hasOwn(p,'recipientRequest'),false,'Receiver never starts checkout');stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:''},receipt:null,invitationUrl:null,backupCode:null}}
+    if(p.action==='create'){assert.equal(Object.hasOwn(p,'recipientRequest'),false,'Receiver never starts checkout');assert.equal(p.deliveryPhone,'0733000111','Recipient address is distinct from M-Pesa payer');stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:''},receipt:null,invitationUrl:null,backupCode:null}}
     if(p.action==='pay')stored.state='awaiting_customer'
     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({order:stored})})
    })
@@ -40,6 +40,7 @@ fs.mkdirSync(artifacts,{recursive:true})
    assert.equal(await page.getByRole('link',{name:'My wishes',exact:true}).count(),1,'Sender retains direct inbox access')
    await page.getByRole('textbox',{name:'Candidate name',exact:true}).fill('QA Recipient')
    await page.getByRole('textbox',{name:'Your name',exact:true}).fill('QA Sender')
+   await page.getByRole('textbox',{name:'Phone to receive this wish'}).fill('0733000111')
    await page.getByRole('textbox',{name:'Your wish',exact:true}).fill('Synthetic checkout proof only.')
    await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click()
    let m=page.getByRole('dialog')
