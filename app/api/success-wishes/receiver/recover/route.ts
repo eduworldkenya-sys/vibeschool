@@ -17,6 +17,7 @@ const SELECT = 'id,phone_e164,guardian_phone_e164,consent_route,consent_status,r
 
 async function knownReceiver(phone: unknown, secret: unknown) {
   const normalized = senderPhone(phone)
+  if (!receiverSmsReady()) throw new WishError(503, 'Recovery SMS is not available yet.')
   const isBackup = typeof secret === 'string' && secret.trim().length > 0
   const backup = isBackup ? normalizeRecoveryCode(secret) : null
   // An invalid backup cannot become an easier phone-only request.
