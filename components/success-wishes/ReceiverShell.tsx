@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   createContext,
@@ -11,7 +12,6 @@ import {
   useState,
 } from "react";
 import {
-  Crown,
   Menu,
   X,
   Volume2,
@@ -40,17 +40,17 @@ const ReceiverContext = createContext<{
 }>({ soundEnabled: true, setSummary: () => {} });
 export const useReceiverTheme = () => useContext(ReceiverContext);
 const links = [
-  { href: "/success-wishes/inbox", label: "Wish Vault Inbox", icon: Inbox },
+  { href: "/success-wishes/inbox", label: "My wishes", icon: Inbox },
   { href: "/success-wishes/open", label: "Open a Wish", icon: MailOpen },
-  { href: "/success-wishes/request", label: "Request Wish", icon: Plus },
-  { href: "/success-wishes/recover", label: "Recover Access", icon: KeyRound },
+  { href: "/success-wishes/request", label: "Request a wish", icon: Plus },
+  { href: "/success-wishes/recover", label: "Recover access", icon: KeyRound },
   {
     href: "/success-wishes/settings",
     label: "Privacy & Safety",
     icon: ShieldCheck,
   },
-  { href: "/success-wishes", label: "Send a Wish", icon: Send },
-  { href: "/", label: "Website Home", icon: Home },
+  { href: "/success-wishes", label: "Send a wish", icon: Send },
+  { href: "/", label: "VibeSchool home", icon: Home },
 ];
 
 export default function ReceiverShell({
@@ -109,13 +109,8 @@ export default function ReceiverShell({
   }
   const brand = (
     <Link href="/success-wishes" className="receiver-brand">
-      <span className="receiver-logo">
-        <Crown size={20} />
-      </span>
-      <span>
-        <b>VIBESCHOOL</b>
-        <small>RECEIVER HUB</small>
-      </span>
+      <Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={620} height={160} className="receiver-wordmark" />
+      <small className="receiver-brand-label">SUCCESS WISHES</small>
     </Link>
   );
   const nav = (
@@ -156,10 +151,10 @@ export default function ReceiverShell({
               className="receiver-sender-links"
               aria-label="Success Wishes navigation"
             >
-              <Link href="/">Home</Link>
-              <Link href="/success-wishes/open">Receive a Wish</Link>
-              <Link href="/success-wishes/inbox">My Inbox</Link>
-              <Link href="/success-wishes/recover">Recover Access</Link>
+              <Link href="/">VibeSchool</Link>
+              <Link href="/success-wishes#choose-card">Send a wish</Link>
+              <Link href="/success-wishes/open">Open a wish</Link>
+              <Link href="/success-wishes/inbox">My wishes</Link>
             </nav>
             {children}
           </>
@@ -191,7 +186,7 @@ export default function ReceiverShell({
               <aside className="receiver-sidebar">
                 {brand}
                 {nav}
-                <section className="receiver-summary">
+                {pathname !== "/success-wishes/invitation" && <section className="receiver-summary">
                   <span>
                     Wish Collection <ShieldCheck size={14} />
                   </span>
@@ -209,7 +204,7 @@ export default function ReceiverShell({
                       ? `${summary.count - summary.unopened} Opened · ${summary.unopened} Waiting`
                       : "Your private wishes, kept together."}
                   </p>
-                </section>
+                </section>}
                 <div className="receiver-profile">
                   {sound}
                   {summary && (
@@ -237,7 +232,7 @@ export default function ReceiverShell({
                 aria-current={pathname.endsWith("/inbox") ? "page" : undefined}
               >
                 <Inbox />
-                <span>Inbox</span>
+                <span>My wishes</span>
               </Link>
               <Link
                 href="/success-wishes/open"
@@ -248,7 +243,7 @@ export default function ReceiverShell({
                 }
               >
                 <MailOpen />
-                <span>Unbox</span>
+                <span>Open</span>
               </Link>
               <Link className="receiver-request" href="/success-wishes/request">
                 <i>
@@ -263,7 +258,7 @@ export default function ReceiverShell({
                 }
               >
                 <KeyRound />
-                <span>Access</span>
+                <span>Recover</span>
               </Link>
               <button
                 type="button"
@@ -304,7 +299,7 @@ export default function ReceiverShell({
                 )}
                 {nav}
                 <section className="receiver-summary">
-                  <span>Keepsake Vault Summary</span>
+                  <span>My wishes</span>
                   <p>
                     {summary
                       ? `${summary.count} Received · ${summary.count - summary.unopened} Opened`
