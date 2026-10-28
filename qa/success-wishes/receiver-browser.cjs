@@ -104,6 +104,23 @@ async function run() {
     setupMocks(page)
     await page.goto(ROOT+'/success-wishes/open',{waitUntil:'networkidle'})
     assert.equal(await page.locator('.receiver-brand img[src*="vibeschool-wordmark-dark.svg"]').count() > 0, true, 'Official VibeSchool wordmark appears in receiver shell')
+    if(width<768){
+      await page.getByRole('button',{name:'Open receiver menu',exact:true}).first().click()
+      const drawer=page.getByRole('dialog',{name:'Receiver navigation menu'})
+      await drawer.waitFor({state:'visible'})
+      assert.equal(await drawer.locator('.receiver-summary').count(),0,'Empty duplicate collection summary is absent')
+      assert.equal(await drawer.getByText('Audio Chimes',{exact:true}).count(),0,'Audio control is not duplicated in drawer')
+      assert.equal(await drawer.getByRole('link',{name:'Send a wish'}).count(),1,'Send action remains in receiver navigation')
+      const aligned=await drawer.evaluate(el=>{
+        const brand=el.querySelector('.receiver-drawer-heading .receiver-brand')?.getBoundingClientRect()
+        const close=el.querySelector('.receiver-drawer-heading button')?.getBoundingClientRect()
+        const panel=el.querySelector(':scope > div')?.getBoundingClientRect()
+        return Boolean(brand&&close&&panel&&brand.right <= close.left + 1&&close.right <= panel.right + 1&&brand.left >= panel.left - 1)
+      })
+      assert.equal(aligned,true,'Close button and brand occupy separate visible space')
+      await drawer.getByRole('button',{name:'Close receiver menu'}).click()
+      await drawer.waitFor({state:'hidden'})
+    }
     assert.deepEqual(await page.locator('.receiver-theme').evaluate(el=>{
       const style=getComputedStyle(el)
       return {pointer:style.pointerEvents,animation:style.animationName,transform:style.transform}
