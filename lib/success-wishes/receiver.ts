@@ -87,7 +87,7 @@ export async function cardSession(req: NextRequest, expectedCardId?: unknown) {
 }
 export async function cardAccess(req: NextRequest, secret: string, kind: 'link'|'code') {
   const isLink = kind === 'link'
-  if (!(isLink ? /^[a-f0-9]{64}$/ : /^[0-9A-F]{32}$/).test(secret))
+  if (!(isLink ? /^[a-f0-9]{64}$/.test(secret) : SIX_CARD_CODE.test(secret) || LEGACY_CARD_CODE.test(secret)))
     throw new WishError(404, 'This card link or access code is invalid.')
   const ip = (req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown').slice(0, 100)
   await limit('card-access:global', 1500, 60)
