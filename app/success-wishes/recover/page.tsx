@@ -88,7 +88,7 @@ export default function RecoverWishes() {
           <div className="flex items-center justify-between pb-3 border-b border-slate-800">
             <h2 className="font-cinzel text-base font-bold text-slate-100 flex items-center gap-2">
               <KeyRound className="w-4 h-4 text-[#D4AF37]" />
-              <span>{challengeId ? 'Verify Your Phone' : 'Recover Your Inbox'}</span>
+              <span>{challengeId ? 'Verify Your Phone' : 'Recover access'}</span>
             </h2>
             <ShieldCheck className="w-4 h-4 text-[#00A896]" />
           </div>

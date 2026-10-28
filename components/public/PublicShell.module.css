@@ -3,3 +3,9 @@
 @media(max-width:640px){.headerInner{height:64px;padding:0 16px}.logo{width:126px;max-height:33px}.productName{font-size:13px}.divider{height:20px}.mobilePanel{top:56px}.whatsappInner{align-items:stretch;flex-direction:column}.whatsappCta{width:100%}.footerTop{grid-template-columns:1fr 1fr;gap:24px}.footerBrand{grid-column:1/-1}.footerBottom{flex-direction:column}.footerLogo{width:145px;max-height:38px}}
 @media(max-width:420px){.headerInner{height:62px;padding:0 14px}.mobilePanel{right:14px;top:54px;width:calc(100vw - 28px)}.logo{width:118px;max-height:31px}.productLockup{gap:8px}.productName{font-size:12px}.footerTop{grid-template-columns:1fr}.footerBrand{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){.skip{transition:none}.header{backdrop-filter:none}}
+
+/* Desktop footer stays expanded; mobile sections are accessible disclosures. */
+.footerGroup{min-width:0}.footerGroup summary{cursor:pointer;list-style:none}.footerGroup summary::-webkit-details-marker{display:none}
+.footerGroup summary:focus-visible{outline:2px solid #7c3aed;outline-offset:4px;border-radius:4px}
+@media(min-width:641px){.footerGroup summary{cursor:default}}
+@media(max-width:640px){.footerGroup{padding:8px 0;border-bottom:1px solid #e5e7eb}.footerGroup summary{min-height:44px;display:flex;align-items:center;justify-content:space-between}.footerGroup summary::after{content:'+';font-size:20px;color:#6b7280}.footerGroup[open] summary::after{content:'−'}.footerGroup .linkList{padding:3px 0 12px}.footerTop{row-gap:10px}}

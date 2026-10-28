@@ -33,6 +33,17 @@ const trust = [
 
 export default function HomePage() { return <div className={styles.page}><PublicHeader/><main id="main-content">
 <section className={styles.hero}><div className={styles.heroInner}><p className={styles.eyebrow}>VIBESCHOOL · KENYA</p><h1>One learning system. From curriculum to the learner’s next step.</h1><p className={styles.lead}>VibeSchool connects planning, teaching, learning, evidence, assessment, progress, families and future direction — so the education journey works as one continuous system instead of a collection of disconnected tools.</p><div className={styles.actions}><TrackedLink className={styles.primary} href="/global" event="public_home_start_learning">Start learning</TrackedLink><Link className={styles.secondary} href="/sandbox">Use the live sandbox</Link><TrackedLink className={styles.textAction} href="/institutions" event="public_home_institutions">For schools →</TrackedLink></div><div className={styles.heroTrust}><span>Built for Kenya</span><span>CBC / CBE aware</span><span>Explore before login</span><span>Mobile-first</span><span>Role-based privacy</span></div></div></section>
+<section className={styles.wishesPromo} aria-labelledby="wishes-promo-title">
+  <div className={styles.wishesPromoCopy}>
+    <p className={styles.wishesPromoEyebrow}>VIBESCHOOL · SUCCESS WISHES</p>
+    <h2 id="wishes-promo-title">A little encouragement can mean everything.</h2>
+    <p>Choose a digital success card, write your message and send a private wish to someone preparing for exams.</p>
+    <Link href="/success-wishes" className={styles.wishesPromoLink}>Explore Success Wishes <span aria-hidden="true">→</span></Link>
+  </div>
+  <div className={styles.wishesPromoArtwork} aria-hidden="true">
+    <span>WITH LOVE</span><strong>You've got this.</strong><small>GOOD LUCK & SUCCESS</small>
+  </div>
+</section>
 <div id="product-tour"><ProductTour/></div>
 <RoleJourneySelector/>
 <section className={styles.daySection} aria-labelledby="school-day-title"><div className={styles.dayIntro}><p className={styles.eyebrowDark}>A DAY WITH VIBESCHOOL</p><h2 id="school-day-title">By the end of the school day, everyone should know what matters.</h2><p>Follow the educational signal through one ordinary day. The value is not six separate modules — it is what becomes possible when the same learning story survives from planning to support.</p></div><ol className={styles.dayTimeline}>{schoolDay.map(([time,title,body])=><li key={time}><time>{time}</time><div><h3>{title}</h3><p>{body}</p></div></li>)}</ol></section>

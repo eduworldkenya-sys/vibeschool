@@ -324,7 +324,7 @@ export default function SuccessWishInvitationPage() {
                   className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs"
                   href="/success-wishes/recover"
                 >
-                  Find my wishes
+                  Recover access
                 </Link>
                 <Link
                   className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs"
@@ -341,7 +341,7 @@ export default function SuccessWishInvitationPage() {
         {wish && !busy && (
           <div className="space-y-6">
 
-            {/* Toolbar */}
+            {/* Minimal status above the private gift; the book stays central. */}
             <div className="flex items-center justify-between px-2 text-xs text-slate-400">
               <p className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
@@ -349,7 +349,7 @@ export default function SuccessWishInvitationPage() {
                   {wish.consentRequired
                     ? 'Your message stays sealed until verification.'
                     : cardOpened
-                    ? 'Yours to keep. Yours to revisit.'
+                    ? 'Your wish is ready to read again.'
                     : 'Tap your gift to reveal the message.'}
                 </span>
               </p>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import { Check, ChevronRight, Volume2, VolumeX } from 'lucide-react'
 import SenderMediaCapture from './SenderMediaCapture'
@@ -262,7 +263,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
 
   return <div className={styles.page}>
     <header className={styles.header}>
-      <Link href="/" className={styles.brand}><span className={styles.brandMark}>V</span><span className={styles.brandText}>VIBESCHOOL<small>SUCCESS WISHES</small></span></Link>
+      <Link href="/" className={styles.brand} aria-label="VibeSchool home"><Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={620} height={160} className={styles.brandLogo}/><small>SUCCESS WISHES</small></Link>
       <div className={styles.headerActions}>
         <button type="button" className={styles.headerSound} aria-label={soundEnabled ? 'Mute card opening sound' : 'Turn card opening sound on'} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={17}/> : <VolumeX size={17}/>}</button>
       </div>
@@ -273,7 +274,10 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         <h1>Wish students good luck <em>&amp; success.</em></h1>
         <p>A personal wish, beautifully made for someone special.</p>
         {requestedBy && <p role="status">A wish requested by {requestedBy}. Their name and school have been prefilled. Payment and delivery remain unavailable until real checkout is commissioned.</p>}
-        <button type="button" className={styles.heroCta} onClick={() => document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth' })}>Explore Success Cards <ChevronRight size={16}/></button>
+        <div className={styles.entryActions}>
+          <a className={styles.heroCta} href="#choose-card">Send a wish <ChevronRight size={16}/></a>
+          <Link className={styles.openWishCta} href="/success-wishes/open">Open a wish</Link>
+        </div>
       </section>
       <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
         <div className={styles.sectionHeading}><div><h2 id="choose-card-title">Choose a success card design</h2></div></div>

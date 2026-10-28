@@ -150,7 +150,7 @@ export default function SuccessWishesInboxPage() {
               MADE FOR YOU
             </span>
             <h2 className="font-cinzel text-xl sm:text-2xl font-bold bg-gradient-to-r from-[#FFF5C0] via-[#D4AF37] to-[#AA7C11] bg-clip-text text-transparent mt-0.5">
-              Wish Vault Inbox
+              My wishes
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 mt-1">
               {data
@@ -163,7 +163,7 @@ export default function SuccessWishesInboxPage() {
             className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-[#D4AF37]/20 hover:brightness-110 active:scale-95 transition-all flex items-center space-x-2"
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Request Wish Link</span>
+            <span>Request a wish</span>
           </Link>
         </div>
 
@@ -180,13 +180,13 @@ export default function SuccessWishesInboxPage() {
                   className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-slate-950 font-semibold text-xs"
                   href="/success-wishes/recover"
                 >
-                  Find My Wishes
+                  Recover access
                 </Link>
                 <Link
                   className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-xs"
                   href="/success-wishes/open"
                 >
-                  Open card link
+                  Open a wish
                 </Link>
                 <Link
                   className="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-300 text-xs"
@@ -293,14 +293,14 @@ export default function SuccessWishesInboxPage() {
                         </strong>
                         <p className="text-[11px] text-slate-400">{formattedDate}</p>
                         <p className="receiver-inbox-theme">{card.theme.charAt(0).toUpperCase()+card.theme.slice(1)} Envelope</p>
-                        <p className="receiver-inbox-teaser">{isUnopened ? 'A private wish, waiting to be unboxed.' : 'Your personal message is ready to read again.'}</p>
+                        <p className="receiver-inbox-teaser">{isUnopened ? 'A private wish waiting to be opened.' : 'Your personal message is ready to read again.'}</p>
                       </div>
 
                       {/* Card Bottom CTA */}
                       <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
                         <span className="text-[10px] text-slate-400 flex items-center">
                           <Sparkles className="w-3 h-3 mr-1 text-[#D4AF37]" />
-                          {isUnopened ? 'Sealed Wish' : 'Keepsake Vault'}
+                          {isUnopened ? 'Sealed Wish' : 'Saved wish'}
                         </span>
                         <span className="font-bold text-[#D4AF37] group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
                           {busy === card.id
@@ -331,7 +331,7 @@ export default function SuccessWishesInboxPage() {
                   className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-[#00A896] text-slate-950 font-bold text-xs hover:brightness-110 transition-all mt-2"
                 >
                   <PlusCircle className="w-4 h-4" />
-                  <span>Request Wish Link</span>
+                  <span>Request a wish</span>
                 </Link>
               </div>
             )}
@@ -343,7 +343,7 @@ export default function SuccessWishesInboxPage() {
                 href="/success-wishes/request"
               >
                 <PlusCircle className="w-4 h-4" />
-                <span>Request Wish Link</span>
+                <span>Request a wish</span>
               </Link>
               <Link
                 className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white font-semibold text-xs sm:text-sm active:scale-95 transition-all flex items-center gap-1.5"

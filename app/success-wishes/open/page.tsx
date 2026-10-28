@@ -67,7 +67,7 @@ export default function OpenSuccessWishCode() {
             A Wish Is Waiting.
           </h1>
           <p className="text-xs sm:text-sm text-slate-400">
-            Enter your secret card access code to unseal your personalized keepsake note.
+            Enter the private card access code you received to open your wish.
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export default function OpenSuccessWishCode() {
             </p>
             <div className="mt-6 inline-flex items-center space-x-1.5 text-[10px] text-[#00A896] font-semibold bg-[#00A896]/10 px-3 py-1.5 rounded-full border border-[#00A896]/30">
               <ShieldCheck className="w-3 h-3" />
-              <span>Protected by Vault Security</span>
+              <span>Private access</span>
             </div>
           </div>
 
@@ -99,7 +99,7 @@ export default function OpenSuccessWishCode() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h2 className="font-cinzel text-base font-bold text-slate-100 flex items-center gap-2">
                 <KeyRound className="w-4 h-4 text-[#D4AF37]" />
-                <span>Open Your Gift</span>
+                <span>Open a wish</span>
               </h2>
               <Lock className="w-4 h-4 text-slate-500" />
             </div>
@@ -142,7 +142,7 @@ export default function OpenSuccessWishCode() {
                   </>
                 ) : (
                   <>
-                    <span>Open My Card</span>
+                    <span>Open my wish</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -156,7 +156,7 @@ export default function OpenSuccessWishCode() {
                 <span>Where is my code?</span>
               </summary>
               <p className="mt-2 text-slate-400 text-[11px] leading-relaxed pl-5">
-                Use the card access code provided in your SMS or shared directly by the sender. It grants single-card access; to view your full vault inbox, verify your phone number separately.
+                Use the card access code provided in your SMS or shared directly by the sender. It grants single-card access; to view your all your wishes, verify your phone number separately.
               </p>
             </details>
           </div>
@@ -170,14 +170,14 @@ export default function OpenSuccessWishCode() {
             className="hover:text-[#D4AF37] transition-colors flex items-center space-x-1.5"
           >
             <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-            <span>Find My Wishes (Phone Lookup)</span>
+            <span>Recover access</span>
           </Link>
           <span className="text-slate-700">•</span>
           <Link
             href="/success-wishes/demo"
             className="hover:text-[#D4AF37] transition-colors"
           >
-            Try Demo Inbox — No Code Required
+            View sample inbox
           </Link>
         </div>
 
