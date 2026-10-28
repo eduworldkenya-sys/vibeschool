@@ -22,7 +22,7 @@ fs.mkdirSync(artifacts,{recursive:true})
     const p=route.request().postDataJSON();calls.push(p.action)
     if(p.action==='status'&&missingOnRestore){missingOnRestore=false;await route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({error:'Synthetic missing order during uncertainty'})});return}
     if(p.action==='status'&&!stored){await route.fulfill({status:404,contentType:'application/json',body:JSON.stringify({error:'No saved order was found for this recovery key.'})});return}
-    if(p.action==='create'){if(width===768)assert.notEqual(p.key,'e'.repeat(64),'Missing unclaimed key is replaced before create');assert.equal(Object.hasOwn(p,'recipientRequest'),false,'Receiver never starts checkout');assert.equal(p.deliveryPhone,'0733000111','Recipient address is distinct from M-Pesa payer');stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:''},receipt:null,invitationUrl:null,backupCode:null}}
+    if(p.action==='create'){if(width===768)assert.notEqual(p.key,'e'.repeat(64),'Missing unclaimed key is replaced before create');assert.equal(Object.hasOwn(p,'recipientRequest'),false,'Receiver never starts checkout');assert.equal(p.deliveryPhone,'0733000111','Recipient address is distinct from M-Pesa payer');stored={id:'33333333-3333-4333-8333-333333333333',state:'created',amountKes:50,payerPhone:'254712345678',card:{theme:'heritage',candidate:'QA Recipient',sender:'QA Sender',message:'Synthetic checkout proof only.',examYear:'2026',school:'',deliveryPhone:'0733000111'},receipt:null,invitationUrl:null,backupCode:null}}
     if(p.action==='pay'){
      if(!failedOnce&&(width===360||width===390)){
       failedOnce=true
@@ -49,8 +49,12 @@ fs.mkdirSync(artifacts,{recursive:true})
    assert.equal(await page.locator('.receiver-sender-links').count(),0,'No duplicate sender navigation strip')
    assert.equal(await page.locator('header img[src*="vibeschool-wordmark-dark.svg"]').count(),1,'Sender uses readable dark-surface wordmark')
    assert.equal(await page.getByRole('link',{name:'My wishes',exact:true}).count(),1,'Sender retains direct inbox access')
+   assert.equal(await page.getByRole('progressbar',{name:'Wish details completed'}).count(),0,'Progress waits for editing')
    await page.getByRole('textbox',{name:'Candidate name',exact:true}).fill('QA Recipient')
+   assert.equal(await page.getByRole('textbox',{name:'Candidate name',exact:true}).isVisible(),true,'Typing does not collapse the active section')
    await page.getByRole('textbox',{name:'Your name',exact:true}).fill('QA Sender')
+   await page.waitForFunction(()=>!document.querySelector('#wish-composer details').open)
+   assert.equal(await page.locator('#wish-composer details').first().getByText('QA Recipient · 2026',{exact:true}).isVisible(),true,'Default valid year does not block the completed candidate summary')
    await page.getByRole('textbox',{name:'Phone to receive this wish'}).fill('0733000111')
    await page.getByRole('textbox',{name:'Your wish',exact:true}).fill('Synthetic checkout proof only.')
    await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click()
@@ -95,11 +99,41 @@ fs.mkdirSync(artifacts,{recursive:true})
    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true)
    await page.reload({waitUntil:'networkidle'});await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click();m=page.getByRole('dialog')
    await m.getByRole('heading',{name:'Check your phone'}).waitFor();assert.equal(calls.filter(c=>c==='pay').length,width===360?2:1)
+   if(width===320||width===412){
+    stored.state='failed'
+    await m.getByRole('button',{name:'Check status',exact:true}).click()
+    await m.getByText('Payment wasn’t completed.',{exact:true}).waitFor()
+    const before=calls.length,oldKey=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('vs-success-wish-checkout-v1')).key)
+    await m.getByRole('button',{name:'Try again',exact:true}).click()
+    await m.getByLabel('M-Pesa number',{exact:true}).waitFor()
+    assert.equal(await m.getByLabel('M-Pesa number',{exact:true}).inputValue(),'254712345678')
+    assert.deepEqual(calls.slice(before),['status'],'Retry first verifies terminal failure without requesting payment')
+    await m.getByRole('button',{name:'Pay KSh 50',exact:true}).click()
+    await m.getByRole('heading',{name:'Check your phone'}).waitFor()
+    const newKey=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('vs-success-wish-checkout-v1')).key)
+    assert.notEqual(newKey,oldKey,'New attempt cannot reuse a terminal failed order key')
+    assert.deepEqual(calls.slice(before),['status','create','pay'])
+   }
    stored.state='settled';stored.receipt='SYNTHETIC123';stored.invitationUrl='https://vibeschool.co.ke/success-wishes/gift#token='+'b'.repeat(64);stored.backupCode=null
    await m.getByRole('button',{name:'Check status'}).click();await m.getByRole('heading',{name:'Your wish is ready'}).waitFor()
    assert.equal(await m.getByLabel('Private card link',{exact:true}).inputValue(),stored.invitationUrl);assert.equal(await m.getByLabel('Backup card code').count(),0,'No unusable code displayed')
+   const share=await m.getByRole('link',{name:'Share via WhatsApp'}).getAttribute('href')
+   assert.equal(new URL(share).searchParams.get('text').endsWith(stored.invitationUrl),true,'WhatsApp includes the exact gift token')
    await page.screenshot({path:artifacts+'/checkout-'+width+'.png'});await context.close();console.log('PASS checkout width '+width+': review, saved order, single payment action, refresh recovery, receipt, exact link/code')
   }
+  const giftContext=await browser.newContext({viewport:{width:390,height:900}}),giftPage=await giftContext.newPage()
+  const giftToken='c'.repeat(64),giftLink='https://vibeschool.co.ke/success-wishes/gift#token='+giftToken
+  let reveals=0
+  await giftPage.route('**/api/success-wishes/gift',async route=>{
+   assert.equal(route.request().postDataJSON().token,giftToken)
+   if(route.request().method()==='PUT')reveals++
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({card:{id:'synthetic-gift',theme:'heritage',candidate:'QA Recipient',school:'',examYear:'2026',sender:null}})})
+  })
+  await giftPage.goto(root+'/success-wishes/gift#token='+giftToken,{waitUntil:'networkidle'})
+  const giftShare=giftPage.getByRole('link',{name:'Share via WhatsApp'})
+  assert.equal(new URL(await giftShare.getAttribute('href')).searchParams.get('text').endsWith(giftLink),true)
+  assert.equal(reveals,0,'Preparing a share must not open or alter the sealed gift')
+  await giftContext.close();console.log('PASS private gift page WhatsApp action preserves sealed state and complete token')
   // Recipient setup must be usable before any card/order exists.
   const setupContext=await browser.newContext({viewport:{width:390,height:900}}),setupPage=await setupContext.newPage()
   const setupToken='d'.repeat(64),setupCalls=[]

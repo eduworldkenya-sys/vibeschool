@@ -5,6 +5,7 @@ import {CardArt,type CardValues,type Template} from './SuccessCardStudio'
 import {CHECKOUT_STORAGE_KEY,newCheckoutKey,checkoutMessage,pendingCheckout,maskedPayerPhone,canPay,type CheckoutOrder} from '@/lib/success-wishes/checkout-client'
 import {normalizeSafaricomPhone} from '@/lib/success-wishes/payment-contract'
 import styles from './SuccessCardStudio.module.css'
+import GiftShareActions from './GiftShareActions'
 type CheckoutReply={order:CheckoutOrder;paymentError?:string|null}
 class CheckoutRequestError extends Error{constructor(readonly status:number,message:string){super(message)}}
 export default function WishCheckout({theme,values,onClose}:{theme:Template;values:CardValues;onClose:()=>void}){
@@ -98,6 +99,20 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
   }catch{if(alive.current){setUncertain(true);setError('Check payment status before editing.')}}
   finally{inFlight.current=false;if(alive.current)setBusy(false)}
  }
+ async function retryFailed(){
+  if(inFlight.current)return
+  inFlight.current=true;setBusy(true);setError('')
+  try{
+   const p=await call({action:'status',key})
+   if(!alive.current)return
+   setOrder(p.order)
+   if(p.order.state==='failed'){
+    setDraft({...p.order.card,deliveryPhone:p.order.card.deliveryPhone||''})
+    clear(p.order.payerPhone)
+   }
+  }catch{if(alive.current){setUncertain(true);setError('Check payment status before trying again.')}}
+  finally{inFlight.current=false;if(alive.current)setBusy(false)}
+ }
  function reset(){try{clear();setDraft({theme,...values})}catch{setError('Keep your recovery key before closing.')}}
  async function copy(value:string){try{await navigator.clipboard.writeText(value);setNotice('Copied. Share privately.')}catch{setNotice('Select the link to copy it.')}}
  function trap(e:React.KeyboardEvent){
@@ -122,9 +137,10 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
    </form>:<div aria-live="polite" className={styles.checkoutFlow}>
     {order&&<p className={styles.checkoutPhone}>M-Pesa: {maskedPayerPhone(order.payerPhone)}{canPay(order.state,uncertain)&&<button type="button" disabled={busy} onClick={()=>void editNumber()}>Edit</button>}</p>}
     {(checking||order&&order.state!=='created')&&<p role="status" className={styles.checkoutNotice}>{uncertain?'Checking payment. Do not pay again.':checkoutMessage(order!.state)}</p>}
+    {order?.state==='failed'&&!uncertain&&<><p className={styles.checkoutHint}>Check that your M-Pesa SIM has mobile signal and airplane mode is off.</p><button type="button" className={styles.primary} disabled={busy} onClick={()=>void retryFailed()}>{busy?'Checking…':'Try again'}</button></>}
     {order&&canPay(order.state,uncertain)&&<><button type="button" className={styles.primary} disabled={busy} onClick={()=>void act('pay')}>{busy?'Requesting…':error?'Try again':'Pay KSh 50'}</button><p className={styles.checkoutHint}>Enter your PIN on the M-Pesa prompt.</p></>}
     {checking&&<button type="button" className={styles.secondary} disabled={busy||!key} onClick={()=>void act('status')}>{busy?'Checking…':'Check status'}</button>}
-    {order?.invitationUrl&&<><label className={styles.checkoutLabel}>Private card link<input readOnly value={order.invitationUrl} onFocus={e=>e.target.select()}/></label><div className={styles.checkoutActions}><button type="button" className={styles.primary} onClick={()=>void copy(order.invitationUrl!)}>Copy link</button><a className={styles.secondary} href={order.invitationUrl}>Open wish</a></div><p className={styles.checkoutHint}>Share privately with {order.card.candidate}.</p></>}
+    {order?.invitationUrl&&<><GiftShareActions link={order.invitationUrl}/><label className={styles.checkoutLabel}>Private card link<input readOnly value={order.invitationUrl} onFocus={e=>e.target.select()}/></label><div className={styles.checkoutActions}><button type="button" className={styles.primary} onClick={()=>void copy(order.invitationUrl!)}>Copy link</button><a className={styles.secondary} href={order.invitationUrl}>Open wish</a></div><p className={styles.checkoutHint}>Share privately with {order.card.candidate}.</p></>}
     {key&&<details className={styles.checkoutDetails}><summary>Order details</summary>
      {order&&<><p className={styles.checkoutReference}>Order {order.id}</p>{order.receipt&&<p>M-Pesa receipt: {order.receipt}</p>}<p>Delivery: {order.card.deliveryPhone||'Private gift link'}</p></>}
      <label className={styles.checkoutLabel}>Recovery key<input readOnly value={key} onFocus={e=>e.target.select()}/></label><p>Keep this key private to restore your order.</p>

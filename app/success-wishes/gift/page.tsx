@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import ReceiverEnvelope from '@/components/success-wishes/ReceiverEnvelope'
 import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import type { Template } from '@/components/success-wishes/SuccessCardStudio'
+import GiftShareActions from '@/components/success-wishes/GiftShareActions'
 
 type Gift = {id:string;theme:Template;candidate:string;school:string;examYear:string;sender:string|null;message?:string}
 async function fetchGift(token:string,reveal=false):Promise<Gift> {
@@ -63,6 +64,7 @@ export default function PrivateGiftPage(){
         {opened?'You can close and reopen your card.':'Tap the sealed card to read your message.'}
         {' '}Keep this private link to revisit your gift. Anyone with the link can open it.
       </p>}
+      {gift&&<GiftShareActions link={'https://vibeschool.co.ke/success-wishes/gift#token='+secret.current}/>}
       <nav style={{display:'flex',justifyContent:'center',gap:24,fontSize:14}}>
         <Link href="/success-wishes" style={{color:'#D4AF37'}}>Send a wish</Link>
         <Link href="/legal/privacy" style={{color:'#C3C7D1'}}>Privacy</Link>
