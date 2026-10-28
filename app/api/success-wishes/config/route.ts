@@ -1,4 +1,3 @@
-import { receiverEnabled } from '@/lib/success-wishes/receiver'
 import { database } from '@/lib/success-wishes/server'
 import { reply } from '@/lib/success-wishes/server'
 import { enabled } from '@/lib/success-wishes/security'
@@ -12,7 +11,7 @@ export async function GET() {
     && process.env.SUCCESS_WISHES_MEDIA_CERTIFIED === 'true'
     && successWishesMediaReady() && trustedAudioProbeReady()
   let paymentsEnabled = false
-  if(receiverEnabled()){
+  if(enabled()){
     const {data,error}=await database().from('mpesa_runtime_control').select('initiation_enabled,success_wishes_enabled').eq('singleton',true).maybeSingle()
     paymentsEnabled=!error&&data?.initiation_enabled===true&&data?.success_wishes_enabled===true
   }
