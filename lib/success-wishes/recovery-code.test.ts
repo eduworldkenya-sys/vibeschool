@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { formatRecoveryCode, newRecoveryCodeFromBytes, newSixCharacterRecoveryCode, normalizeRecoveryCode } from './recovery-code'
+import { formatRecoveryCode, newRecoveryCodeFromBytes, normalizeRecoveryCode } from './recovery-code'
+import { newSixCharacterRecoveryCode } from './recovery-code-server'
 
 test('new six-character backups include letters, digits and symbols and normalize safely', () => {
   for (let i=0;i<80;i++) {
