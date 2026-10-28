@@ -89,6 +89,15 @@ export async function cardAccess(req: NextRequest, secret: string, kind: 'link'|
   const isLink = kind === 'link'
   if (!(isLink ? /^[a-f0-9]{64}$/.test(secret) : SIX_CARD_CODE.test(secret) || LEGACY_CARD_CODE.test(secret)))
     throw new WishError(404, 'This card link or access code is invalid.')
+  // Six characters must not become a guessable 90-day bearer secret.
+  // Prove ownership of the recipient inbox BEFORE looking up any short code.
+  let verifiedReceiverId: string | null = null
+  if (!isLink && SIX_CARD_CODE.test(secret)) {
+    try {
+      const { inboxSession } = await import('./receiver-otp')
+      verifiedReceiverId = (await inboxSession(req)).receiver.id
+    } catch { throw new WishError(401, 'Verify your phone before using a short card code.') }
+  }
   const ip = (req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown').slice(0, 100)
   await limit('card-access:global', 1500, 60)
   await limit('card-access:' + ip, 12, 900)
@@ -99,7 +108,10 @@ export async function cardAccess(req: NextRequest, secret: string, kind: 'link'|
     .select('card_id,revoked_at,expires_at').eq(column, digest).maybeSingle()
   if (error || !access || access.revoked_at || Date.parse(access.expires_at) <= Date.now())
     throw new WishError(404, 'This card link or access code is invalid, expired or revoked.')
-  return { db, ...(await verifiedCard(db, access.card_id, true)) }
+  const verified = await verifiedCard(db, access.card_id, true)
+  if (verifiedReceiverId && verified.card.receiver_id !== verifiedReceiverId)
+    throw new WishError(404, 'This card link or access code is invalid, expired or revoked.')
+  return { db, ...verified }
 }
 export { SESSION_AGE }
 
