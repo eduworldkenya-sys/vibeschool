@@ -1,6 +1,8 @@
 -- Free pilot gifts use a distinct durable state and never spoof M-Pesa settlement.
 -- access: service-only public.success_wish_guest_orders
 -- authorization-test: public.success_wish_guest_orders
+-- access: service-only public.success_wishes_pilot_control
+-- authorization-test: public.success_wishes_pilot_control
 create table public.success_wishes_pilot_control (
  singleton boolean primary key default true check(singleton),
  free_text_enabled boolean not null default false,
