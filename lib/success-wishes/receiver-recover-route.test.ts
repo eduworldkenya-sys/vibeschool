@@ -45,7 +45,7 @@ test('six-digit SMS-only recovery is unique, rate checked, private and guardian-
   globalThis.fetch = (async (input, init) => {
     const url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url)
     const method = init?.method || 'GET'
-    const body = init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {}
+    const body = url.hostname === 'synthetic.supabase.co' && init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {}
     const response = (data: unknown, status = 200) => Response.json(data, { status })
     if (url.hostname === 'api.africastalking.com') {
       const params = new URLSearchParams(String(init?.body))
