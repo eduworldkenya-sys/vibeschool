@@ -12,6 +12,7 @@ const payload = {
   examYear: '2026',
   school: 'Sample Secondary',
   payerPhone: '0712345678',
+  deliveryPhone: '0733000111',
   idempotencyKey: 'a'.repeat(64),
 }
 
@@ -29,6 +30,7 @@ test('server creates a single KSh 50 frozen quote that reproduces sender preview
     message: 'You have worked hard. We are proud of you.',
     examYear: '2026',
     school: 'Sample Secondary',
+    deliveryPhone: '+254733000111',
   })
   assert.match(quote.cardDigest, /^[a-f0-9]{64}$/)
   assert.equal(Object.isFrozen(quote), true)
@@ -41,7 +43,7 @@ test('changed message, design, year, recipient, school or payer cannot reuse quo
   const edits = [
     {message:'A different wish'}, {theme:'botanical'}, {examYear:'2027'},
     {candidate:'Another Student'}, {sender:'Another Sender'},
-    {school:'Another School'}, {payerPhone:'0712345679'}, {idempotencyKey:'b'.repeat(64)},
+    {school:'Another School'}, {payerPhone:'0712345679'}, {deliveryPhone:'0733000112'}, {idempotencyKey:'b'.repeat(64)},
   ]
   for (const edit of edits) {
     const change = guestTextWishQuote({...payload,...edit})
@@ -63,7 +65,7 @@ test('only four text cards and valid input lengths are eligible for a locked ord
     {version:'voice'}, {version:'video'}, {theme:'unapproved'},
     {candidate:''},{candidate:'x'.repeat(49)}, {sender:''},{sender:'x'.repeat(49)},
     {message:''},{message:'x'.repeat(221)}, {examYear:'26'}, {examYear:'203'},
-    {school:'x'.repeat(81)}, {payerPhone:'254800000000'},
+    {school:'x'.repeat(81)}, {payerPhone:'254800000000'}, {deliveryPhone:'254800000000'}, {deliveryPhone:''},
     {idempotencyKey:'123'}, {idempotencyKey:'A'.repeat(64)},
     {message:'Hidden\u0001character'},
   ]
