@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import {NextRequest} from 'next/server'
 import {POST} from '../../app/api/success-wishes/checkout/route'
 import {orderKeyHash} from './guest-checkout'
-import {hashSecret} from './security'
 const url='https://vibeschool.example/api/success-wishes/checkout'
 test('checkout rejects cross-origin payment requests before database/provider access',async()=>{
  const r=await POST(new NextRequest(url,{method:'POST',headers:{origin:'https://evil.example','content-type':'application/json'},body:JSON.stringify({action:'pay',key:'a'.repeat(64)})}));assert.equal(r.status,403)
