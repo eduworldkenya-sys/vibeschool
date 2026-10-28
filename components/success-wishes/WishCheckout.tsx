@@ -67,9 +67,7 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
   {restoring?<p role="status">Checking for an existing order…</p>:!order?<form noValidate onSubmit={e=>{e.preventDefault();if(review){void act('create');return}try{normalizeSafaricomPhone(phone);setReview(true);setError('')}catch(e){setError(e instanceof Error?e.message:'Check your details.')}}}>
    {!review?<><fieldset className={styles.numberPicker}><legend>Choose a number prefix</legend>{['07','01','+254'].map(prefix=><button key={prefix} type="button" aria-pressed={phone.startsWith(prefix)} disabled={busy} onClick={()=>setPhone(prefix)}>{prefix}</button>)}</fieldset>
     <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label></>:<p className={styles.checkoutFine}>M-Pesa number: <strong>{phone}</strong></p>}
-   <div className={styles.orderTotal}>Total <strong>KSh 50</strong></div><p className={styles.checkoutFine}>Pay to Till 949529. Enter your PIN only in the Safaricom prompt on your phone.</p>
-   {review&&<p className={styles.checkoutNotice}>Review only: no payment prompt has been sent. Your exact card will be saved before payment is requested.</p>}
-   <p className={styles.checkoutDisclosure}>The recipient does not need to register or request this gift. After verified payment, you will receive a private card link to share.</p>
+   <div className={styles.orderTotal}>Total <strong>KSh 50</strong></div>
    <div className={styles.checkoutActions}>{review&&<button type="button" className={styles.secondary} disabled={busy} onClick={()=>setReview(false)}>Edit number</button>}<button type="submit" className={styles.primary} disabled={busy||!key}>{busy?'Saving…':review?'Save order & continue':'Review order'}</button></div>
   </form>:<div aria-live="polite"><p role="status" className={styles.checkoutNotice}>{checkoutMessage(order.state)}</p><p>KSh {order.amountKes} · {order.payerPhone}</p><p>Order {order.id}</p>{order.receipt&&<p>M-Pesa receipt: {order.receipt}</p>}
    {order.state==='created'&&<button type="button" className={styles.primary} disabled={busy} onClick={()=>void act('pay')}>{busy?'Requesting payment…':'Pay KSh 50 with M-Pesa'}</button>}
@@ -78,7 +76,6 @@ export default function WishCheckout({theme,values,onClose}:{theme:Template;valu
    <details><summary>Save your order recovery key</summary><p>Keep this key private. It restores this order on another device.</p><input aria-label="Private order recovery key" readOnly value={key} onFocus={e=>e.target.select()}/></details>
    {['created','failed','settled','refunded'].includes(order.state)&&<button type="button" className={styles.secondary} onClick={reset}>{order.state==='settled'?'Create another wish':'Start a new checkout'}</button>}
   </div>}
-  {!restoring&&!order&&<details><summary>Already started a payment?</summary><label className={styles.checkoutLabel}>Private order recovery key<input autoComplete="off" value={key} maxLength={64} onChange={e=>setKey(e.target.value.trim())}/></label><button type="button" className={styles.secondary} disabled={busy||!/^[a-f0-9]{64}$/.test(key)} onClick={()=>void act('status')}>Restore order</button></details>}
   {error&&<p role="alert" className={styles.checkoutError}>{error}</p>}{notice&&<p role="status">{notice}</p>}
  </section></div>
 }
