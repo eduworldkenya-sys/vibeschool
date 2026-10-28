@@ -520,3 +520,11 @@
 .checkoutReference{font-size:12px}
 .checkoutDetails .secondary{font-size:13px;margin-top:8px;min-height:44px}
 .checkoutError{color:#ffb8ad;font-size:14px;line-height:1.5;margin:14px 0 0}
+
+/* Completed sender fields remain editable without occupying full form height. */
+.completedField{min-width:0;border:1px solid var(--line);border-radius:12px;padding:0 12px;margin:0 0 12px}
+.completedField>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--cream);font-size:14px;font-weight:600;overflow-wrap:anywhere;list-style:none}
+.completedField>summary::-webkit-details-marker{display:none}
+.completedField>summary:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+.completedField[open]{padding-bottom:12px}
+.completedField[open]>summary{margin-bottom:8px}
