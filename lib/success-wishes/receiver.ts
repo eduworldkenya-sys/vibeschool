@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { WishError } from './contracts'
 import { database, limit } from './server'
 import { enabled, hashSecret } from './security'
+import { SIX_CARD_CODE, LEGACY_CARD_CODE } from './card-code'
 
 export const RECEIVER_COOKIE = 'vs_wish_card'
 const SESSION_AGE = 7 * 24 * 60 * 60
