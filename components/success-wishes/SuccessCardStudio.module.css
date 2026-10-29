@@ -592,3 +592,13 @@
 .messageFooter{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
 .messageFooter .counter{margin:0}
 .messageFooter .fieldNext{margin-top:0}
+
+/* Success Card 2026 promotion. Scoped to checkout, no changes to payment styles. */
+.promoSection{margin:12px 0 16px}
+.promoEntry{display:flex;gap:8px;align-items:center}
+.promoEntry input{flex:1;min-width:0;width:100%;padding:11px 12px;border:1px solid rgba(212,175,55,.4);border-radius:10px;background:transparent;color:inherit;font:inherit}
+.promoEntry button{flex-shrink:0}
+.promoAccepted{display:flex;gap:6px;align-items:center;color:#d8b963;font-size:.88rem;animation:promoFloat .32s ease-out}
+.promoPriceAccepted{animation:promoFloat .32s ease-out}
+@keyframes promoFloat{from{opacity:.4;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.promoAccepted,.promoPriceAccepted{animation:none}}
