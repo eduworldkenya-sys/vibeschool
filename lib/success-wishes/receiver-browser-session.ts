@@ -16,7 +16,7 @@ export function useReceiverSessionSafety(verifyOnReturn = true) {
     const visibility = () => {
       if (!verifyOnReturn || document.visibilityState !== 'visible') return
       // Revalidate without reloading an in-progress OTP form after visiting the SMS app.
-      void fetch('/api/success-wishes/receiver/inbox', { cache: 'no-store' })
+      void fetch('/api/success-wishes/receiver/collection', { cache: 'no-store' })
         .then(response => { if (!response.ok) clear() }).catch(clear)
     }
     window.addEventListener('storage', storage)
