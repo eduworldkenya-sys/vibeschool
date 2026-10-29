@@ -1,0 +1,42 @@
+.backdrop{position:fixed;inset:0;z-index:1010;background:rgba(5,12,28,.74);display:grid;place-items:center;padding:12px;box-sizing:border-box}
+.dialog{width:min(520px,100%);max-height:min(92dvh,850px);overflow:auto;overscroll-behavior:contain;background:#faf5eb;color:#172743;border:1px solid #d5b86c;border-radius:16px;box-shadow:0 15px 60px #0005;font-family:Arial,Helvetica,sans-serif;outline:none}
+.dialog *{box-sizing:border-box}
+.header{background:#0c1730;color:white;padding:22px 22px 15px;display:flex;justify-content:space-between;gap:10px}
+.header h2{font-size:23px;color:#f0ce80;margin:6px 0;line-height:1.15}
+.header p{font-size:13px;margin:0;color:#f0e8d3}
+.eyebrow{font-weight:700;font-size:10px;letter-spacing:1px;color:#d8b35c}
+.close{background:transparent;border:1px solid #bda76d;color:#fff;border-radius:50%;width:36px;height:36px;flex-shrink:0;font-size:22px;cursor:pointer}
+.steps{display:flex;justify-content:space-around;gap:8px;padding:12px 15px;border-bottom:1px solid #e1d8c6;background:#f4eddf}
+.steps span{font-size:12px;color:#647084}.steps .selected{color:#172743;font-weight:800}
+.body{padding:18px 22px;min-height:250px}
+.body h3{font-size:17px;margin:0 0 14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.row small{font-size:12px;color:#647084}
+.nameRow{display:flex;align-items:end;gap:8px;margin-bottom:12px}.nameRow label{flex:1;display:grid;gap:5px}
+.nameRow span,.field span{font-size:12px;font-weight:700}
+.nameRow input,.field input,.field select,.field textarea{width:100%;border:1px solid #c9c8c1;border-radius:9px;background:white;color:#172743;padding:11px 12px;font:inherit;font-size:14px;min-height:44px}
+.field{display:grid;gap:6px;margin-bottom:12px}
+.remove{background:transparent;border:1px solid #c9c8c1;border-radius:9px;height:44px;width:40px;font-size:20px;cursor:pointer}
+.hint{font-size:12px;color:#576275;line-height:1.5;margin:14px 0 0}
+.primary,.secondary{border-radius:9px;min-height:42px;padding:10px 16px;cursor:pointer;font-weight:700;font-size:13px}
+.primary{background:#172743;color:#fff;border:1px solid #172743}
+.secondary{background:transparent;color:#172743;border:1px solid #b7b2a6}
+.primary:disabled{opacity:.55;cursor:not-allowed}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tabs button{border:1px solid #d5c8ac;border-radius:8px;padding:8px 10px;background:white;color:#172743;cursor:pointer;font-size:12px}
+.tabs .activeTab{background:#172743;color:#fff}
+.toggle{display:flex;align-items:center;gap:8px;margin:10px 0 14px;font-size:12px}
+.toggle input{width:17px;height:17px;accent-color:#172743}
+.miniCard{background:#172743;border:2px solid #d5b86c;border-radius:10px;padding:16px;color:#faf5eb;display:grid;gap:10px;text-align:center;min-height:170px}
+.miniCard small{color:#e6c574;font-size:9px}
+.miniCard strong{font:600 24px Georgia,serif;color:#f0ce80}
+.miniCard p{font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+.miniCard span{font-size:12px}
+.reviewList{display:grid;gap:8px}.reviewItem{background:#fff;border:1px solid #e0d8c7;border-radius:9px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.reviewItem>div{min-width:0;display:grid;gap:4px}.reviewItem small{overflow-wrap:anywhere;color:#5c6574;font-size:12px;line-height:1.4}
+.reviewItem button{border:none;background:transparent;color:#172743;text-decoration:underline;cursor:pointer}
+.total{display:flex;justify-content:space-between;gap:8px;padding:20px 0 10px;font-size:15px}.total strong{font-size:21px}
+.demoNotice{background:#efe4cc;color:#634b1b;padding:12px;border-radius:8px;font-size:12px;margin-top:15px}
+.actions{display:flex;justify-content:flex-end;gap:9px;border-top:1px solid #e1d8c6;padding:14px 22px 20px;background:#faf5eb}
+.actions .primary{flex:1;max-width:240px}
+.dialog button:focus-visible,.dialog input:focus-visible,.dialog select:focus-visible,.dialog textarea:focus-visible{outline:2px solid #b3913c;outline-offset:2px}
+@media(max-width:480px){.header{padding:17px}.header h2{font-size:20px}.body{padding:16px}.actions{padding:12px 16px 16px}.dialog{max-height:92dvh}}

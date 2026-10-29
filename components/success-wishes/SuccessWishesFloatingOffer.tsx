@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import styles from './SuccessWishesFloatingOffer.module.css'
+import SuccessWishesGroupDemo from './SuccessWishesGroupDemo'
 
 const SESSION_KEY = 'success-wishes-2026-floating-offer-dismissed'
 
 export default function SuccessWishesFloatingOffer({ preview = false }: { preview?: boolean }) {
   const [visible, setVisible] = useState(false)
+  const [demoOpen, setDemoOpen] = useState(false)
 
   useEffect(() => {
     if (preview) { setVisible(true); return }
@@ -25,10 +27,11 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
     document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  if (!visible) return null
+  if (!visible && !demoOpen) return null
 
   return (
-    <aside className={styles.floating} aria-label="Success Wishes 2026 offers">
+    <>
+    {visible && <aside className={styles.floating} aria-label="Success Wishes 2026 offers">
       <button type="button" className={styles.dismiss} aria-label="Close Success Wishes offer" onClick={close}>×</button>
       <div className={styles.heading}>
         <span>VIBESCHOOL PRESENTS</span>
@@ -48,10 +51,12 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
           <strong>KSh 100</strong>
           <p>Up to 4 students</p>
           <p className={styles.free}>Get 2 FREE</p>
-          <button type="button" disabled title="Group checkout is not yet available">Choose Four</button>
+          <button type="button" disabled={!preview} title={preview ? "Open group wishes demo" : "Group checkout is not yet available"} onClick={() => { setVisible(false); setDemoOpen(true) }}>Choose Four</button>
         </div>
       </div>
       <p className={styles.footer}>Personalised cards. Private wishes.</p>
-    </aside>
+    </aside>}
+    {demoOpen && <SuccessWishesGroupDemo onClose={() => { setDemoOpen(false); setVisible(true) }} />}
+    </>
   )
 }
