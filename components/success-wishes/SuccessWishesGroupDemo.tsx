@@ -57,7 +57,7 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
               <label><span>Student {i + 1}</span><input maxLength={80} value={student.name} placeholder="Student name" onChange={e => update(i, { name: e.target.value })}/></label>
               {i > 1 && <button type="button" className={styles.remove} onClick={() => remove(i)} aria-label={'Remove student ' + (i + 1)}>×</button>}
             </div>)}
-            {students.length < 4 && <button className={styles.secondary} type="button" onClick={add}>+ Add student</button>}
+            {students.length < 4 && <button className={styles.secondary} type="button" onClick={add}>+ Add {students.length === 2 ? "third" : "fourth"} student</button>}
             <p className={styles.hint}>Each student gets a personal card and private link.</p>
           </section>}
           {step === 'cards' && <section>
