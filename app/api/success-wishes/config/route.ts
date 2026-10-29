@@ -10,10 +10,11 @@ export async function GET() {
   const mediaReady = serviceReady && process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED === 'true'
     && process.env.SUCCESS_WISHES_MEDIA_CERTIFIED === 'true'
     && successWishesMediaReady() && trustedAudioProbeReady()
-  let paymentsEnabled = false
+  let paymentsEnabled = false, groupPaymentsEnabled = false
   if(enabled()){
-    const {data,error}=await database().from('mpesa_runtime_control').select('initiation_enabled,success_wishes_enabled').eq('singleton',true).maybeSingle()
+    const {data,error}=await database().from('mpesa_runtime_control').select('initiation_enabled,success_wishes_enabled,success_wishes_group_enabled').eq('singleton',true).maybeSingle()
     paymentsEnabled=!error&&data?.initiation_enabled===true&&data?.success_wishes_enabled===true
+    groupPaymentsEnabled=paymentsEnabled&&data?.success_wishes_group_enabled===true
   }
-  return reply({ enabled: serviceReady, mediaEnabled: mediaReady, paymentsEnabled, maxSeconds: 60, maxBytes: 25 * 1024 * 1024 })
+  return reply({ enabled: serviceReady, mediaEnabled: mediaReady, paymentsEnabled, groupPaymentsEnabled, maxSeconds: 60, maxBytes: 25 * 1024 * 1024 })
 }

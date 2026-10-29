@@ -18,6 +18,7 @@ on:
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'supabase/migrations/*_success_wishes_receiver_*.sql'
       - 'supabase/migrations/*_success_wishes_guest_checkout.sql'
+      - 'supabase/migrations/*_success_wishes_group_checkout.sql'
       - 'supabase/migrations/*_success_wishes_sender_created_gifts.sql'
       - 'supabase/migrations/*_success_wishes_delivery_short_codes.sql'
       - 'supabase/functions/success-wishes-checkout/**'
@@ -45,6 +46,7 @@ on:
       - 'supabase/migrations/*_success_wishes_sponsored_pilot_limits.sql'
       - 'supabase/migrations/*_success_wishes_receiver_*.sql'
       - 'supabase/migrations/*_success_wishes_guest_checkout.sql'
+      - 'supabase/migrations/*_success_wishes_group_checkout.sql'
       - 'supabase/migrations/*_success_wishes_sender_created_gifts.sql'
       - 'supabase/migrations/*_success_wishes_delivery_short_codes.sql'
       - 'supabase/functions/success-wishes-checkout/**'
@@ -155,6 +157,10 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-hardening-assertions.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261028173000_success_wishes_free_pilot_backend.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261029064000_success_wishes_receiver_pin_collections.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/pin-collection-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261029115041_success_wishes_group_checkout.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/group-checkout-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/guest-checkout-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/pin-collection-assertions.sql
 
   success-wishes-browser:

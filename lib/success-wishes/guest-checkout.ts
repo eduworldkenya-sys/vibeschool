@@ -1,5 +1,6 @@
 import {NextRequest} from 'next/server'
 import {field,object,WishError} from './contracts'
+import {groupWishQuote} from './group-checkout'
 import {guestTextWishQuote} from './guest-checkout-contract'
 import {database,limit} from './server'
 import {enabled,hashSecret} from './security'
@@ -21,6 +22,17 @@ async function gateway(action:string,id:string){
 }
 async function present(db:DB,key:string){
  const o=await find(db,key);if(!o)throw new WishError(404,'No saved order was found for this recovery key.')
+ if(o.group_cards){
+  const cards=o.group_cards as Array<Record<string,string>>
+  let links:Array<{card:Record<string,string>;invitationUrl:string}>=[]
+  if(o.state==='settled'&&!o.refunded_at){
+   const secrets=cards.map((_,i)=>hashSecret('success-wishes:group-card-link:'+key+':'+i))
+   const {error}=await db.rpc('success_wish_issue_group_gifts',{p_id:o.id,p_key_hash:orderKeyHash(key),p_links:secrets.map(linkDigest)})
+   if(error)throw new WishError(503,'Payment is recorded. Keep your recovery key and check again; do not pay again.')
+   links=cards.map((card,i)=>({card,invitationUrl:'https://vibeschool.co.ke/success-wishes/gift#token='+secrets[i]}))
+  }
+  return {id:o.id,state:o.state,amountKes:100,payerPhone:o.payer_phone,cards,links,receipt:o.state==='settled'?o.provider_receipt:null}
+ }
  let invitationUrl:string|null=null,backupCode:string|null=null
  let deliveryStatus:'not_addressed'|'disabled'|'accepted'|'needs_review'='not_addressed'
  if(o.state==='settled'&&!o.refunded_at){
@@ -52,6 +64,18 @@ export async function guestCheckout(req:NextRequest,raw:unknown){
  const db=database(),ip=(req.headers.get('x-real-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').slice(0,100)
  await limit('guest-checkout:'+ip,40,60)
  if(b.action==='create'){
+  if(b.group===true){
+   if(b.inboxRequest!==undefined||b.recipientRequest!==undefined)throw new WishError(400,'Group orders use individual private gift links.')
+   const q=groupWishQuote(b,key),previous=await find(db,key)
+   const matches=(o:Record<string,unknown>)=>o.card_digest===q.digest&&o.payer_phone===q.payerPhone&&o.amount_kes===100&&o.group_cards!=null
+   if(previous&&!matches(previous))throw new WishError(409,'This recovery key belongs to another order.')
+   if(!previous){
+    const {error}=await db.from('success_wish_guest_orders').insert({key_hash:orderKeyHash(key),card:q.cards[0],group_cards:q.cards,card_digest:q.digest,payer_phone:q.payerPhone,amount_kes:100})
+    if(error?.code==='23505'){const saved=await find(db,key);if(!saved||!matches(saved))throw new WishError(409,'Order reference conflict.')}
+    else if(error)throw new WishError(503,'Your order could not be saved. No payment was requested.')
+   }
+   return {order:await present(db,key)}
+  }
   const q=guestTextWishQuote({...b,idempotencyKey:key})
   // The sender chooses who the gift is for; a recipient request or registration is never required.
   if(b.recipientRequest!==undefined)throw new WishError(400,'A recipient request is not part of gift checkout.')
@@ -66,7 +90,7 @@ export async function guestCheckout(req:NextRequest,raw:unknown){
    else if(error)throw new WishError(503,'Your order could not be saved. No payment was requested.')
   }
  }else if(b.action==='correct_address'){
-  const phone=senderPhone(b.phone),o=await find(db,key);if(!o)throw new WishError(404,'Order not found.')
+  const phone=senderPhone(b.phone),o=await find(db,key);if(o?.group_cards)throw new WishError(400,'Contact support to correct a group recipient.');if(!o)throw new WishError(404,'Order not found.')
   const epoch=o.gift_access_epoch||0,next=hashSecret('success-wishes:guest-card-link:'+key+':'+(epoch+1))
   const {data,error}=await db.rpc('success_wish_pin_correct_address',{p_key:orderKeyHash(key),p_phone:phone,p_epoch:epoch,p_link:linkDigest(next)})
   if(error||data!==true)throw new WishError(409,'This gift has been opened or claimed. Contact support to correct its address.')

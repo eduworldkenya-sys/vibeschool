@@ -14,7 +14,7 @@ async function gift(req: NextRequest, reveal: boolean) {
   await limit('guest-gift-access:' + ip, 40, 900)
   const db = database()
   const { data: access, error: accessError } = await db.from('success_wish_guest_gifts')
-    .select('id,guest_order_id,expires_at')
+    .select('id,guest_order_id,expires_at,card,item_index')
     .eq('link_hash', hashSecret('success-wishes:paid-link:' + token))
     .is('revoked_at',null).gt('expires_at',new Date().toISOString()).maybeSingle()
   if (accessError) throw new WishError(503,'Your gift is temporarily unavailable. Try again later.')
@@ -39,11 +39,11 @@ async function gift(req: NextRequest, reveal: boolean) {
     .select('state,card,amount_kes,receiver_id,provider_receipt,provider_verified_at,settled_at,refunded_at')
     .eq('id',access.guest_order_id).maybeSingle()
   if (error) throw new WishError(503,'Your gift is temporarily unavailable. Try again later.')
-  if (!order || order.state!=='settled' || order.amount_kes!==50
+  if (!order || order.state!=='settled' || (access.item_index===null||access.item_index===undefined?order.amount_kes!==50:order.amount_kes!==100)
     || order.receiver_id!==null || order.refunded_at || !order.provider_receipt
     || !order.provider_verified_at || !order.settled_at || order.card?.kind!=='success_wish_text')
     throw new WishError(404,'This private gift is unavailable.')
-  const card = order.card as { theme:string;candidate:string;sender:string;message:string;school:string;examYear:string }
+  const card = (access.card||order.card) as { theme:string;candidate:string;sender:string;message:string;school:string;examYear:string }
   if (reveal) {
     // The gift message is returned only after the receiver taps the envelope.
     const {data:opened,error:oe}=await db.rpc('success_wish_pin_open_gift',{p_link:hashSecret('success-wishes:paid-link:'+token)})
