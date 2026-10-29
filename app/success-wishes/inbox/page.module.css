@@ -13,3 +13,34 @@
 @media(max-width:440px){.welcome{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.welcomeIcon{display:none}.waiting{margin:0;justify-self:start}.cover{min-height:260px;padding:24px}.coverTitle{font-size:30px}.coverOrnament{font-size:36px}.coverBrand{margin-bottom:12px}.seal{flex-shrink:0}}
 
 @media(min-width:768px) and (max-width:1000px){.grid{grid-template-columns:minmax(0,1fr)}.cover{aspect-ratio:1.3}}
+
+
+/* Wish Vault-inspired inbox layout. Existing copy, card data and actions remain unchanged. */
+.page{max-width:1240px;padding:30px 30px 54px}
+.header{margin-bottom:18px}
+.header h1{font-size:clamp(27px,2.6vw,34px)}
+.welcome{padding:16px 0 18px;margin-bottom:22px}
+.welcomeIcon{width:44px;height:44px}
+.welcome h2{font-size:clamp(19px,2.3vw,24px);margin-bottom:5px}
+.toolbar{margin-bottom:22px}
+.filters{background:#101827;border:1px solid #273148;border-radius:12px;padding:4px}
+.filters button{border-radius:9px;min-height:37px;padding:8px 13px}
+.filters button[aria-pressed=true]{background:#3d3928;border-color:transparent;color:#e8c550}
+.search{background:#101827;border-color:#263146;border-radius:13px}
+.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.card{display:grid;grid-template-columns:138px minmax(0,1fr);min-height:206px;border-color:#77612f55;background:#101624;border-radius:16px;align-items:stretch}
+.card:hover{transform:translateY(-2px);border-color:#d4af3799}
+.cover{width:138px;height:100%;min-height:206px;aspect-ratio:auto;padding:20px 12px;border-right:1px solid #d4af372b;border-bottom:0}
+.coverFrame{inset:9px}
+.coverBrand{font-size:6px;letter-spacing:1.4px;margin-bottom:13px}
+.coverOrnament{font-size:26px;margin-bottom:12px}
+.coverTitle{font-size:20px;max-width:112px}
+.coverName{font-size:9px;margin-top:12px}
+.seal{width:25px;height:25px;margin-top:13px}
+.cardBody{min-width:0;padding:20px;justify-content:space-between;gap:14px}
+.cardMeta{font-size:11px}
+.cardBody strong{font:600 19px/1.35 system-ui,sans-serif;color:#f5eddb}
+.cardAction{margin-top:auto;font-size:12px}
+@media(min-width:768px) and (max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}.cover{aspect-ratio:auto}}
+@media(max-width:767px){.page{padding:22px 16px 36px}.grid{grid-template-columns:minmax(0,1fr);gap:14px}.card{grid-template-columns:116px minmax(0,1fr);min-height:185px}.cover{width:116px;min-height:185px;padding:16px 9px}.coverFrame{inset:8px}.coverTitle{font-size:18px}.coverOrnament{font-size:23px;margin-bottom:9px}.coverBrand{font-size:6px;margin-bottom:10px}.coverName{font-size:9px}.seal{margin-top:11px}.cardBody{padding:16px 14px}.cardBody strong{font-size:17px}.waiting{margin-left:0}}
+@media(max-width:350px){.card{grid-template-columns:96px minmax(0,1fr)}.cover{width:96px;padding:12px 7px}.coverTitle{font-size:16px}.cardBody{padding:14px 10px}.cardBody strong{font-size:15px}.cardAction{font-size:11px}}
