@@ -340,11 +340,19 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <span className={styles.optionCaption}><strong>{item.name}</strong></span>
         </button>)}</div>
       </section>
-      <section className={styles.pricingStrip} aria-label="Wish versions and prices">
-        <div className={styles.priceChoices} role="group" aria-label="Choose a wish version">
-          {versions.map(version => <button key={version.id} type="button" className={styles.priceChoice} aria-pressed={selectedVersion === version.id} onClick={() => { setSelectedVersion(version.id); setMediaFile(null); setPreviewSession(current => current + 1) }}>
-            {version.name} · {version.id !== 'text' ? 'Preview only' : `KES ${version.price}`}
-          </button>)}
+      <section className={styles.pricingStrip} aria-label="Choose Success Card price">
+        <div style={{textAlign:'center',marginBottom:12}}>
+          <strong style={{display:'block',color:'#e8be64',fontSize:12,letterSpacing:'.09em'}}>VIBESCHOOL · SUCCESS WISHES 2026</strong>
+          <h2 style={{margin:'6px 0',fontSize:22}}>Choose your Success Card</h2>
+          <p style={{margin:0,fontSize:13}}>Make it yours. Make them smile.</p>
+        </div>
+        <div className={styles.priceChoices} role="group" aria-label="Choose one or four Success Cards">
+          <button type="button" className={styles.priceChoice} aria-label="Choose one card for KSh 50" aria-pressed={true} onClick={() => { setSelectedVersion('text'); document.getElementById('wish-composer')?.scrollIntoView({behavior:'smooth',block:'start'}) }}>
+            <span style={{display:'block',fontSize:11}}>JUST FOR ONE</span><strong style={{display:'block',fontSize:23}}>KSh 50</strong><span style={{display:'block',fontSize:12}}>1 student</span><span style={{display:'block',marginTop:5}}>Make it yours →</span>
+          </button>
+          <button type="button" className={styles.priceChoice} aria-label="Choose up to four cards for KSh 100" aria-pressed={false} onClick={() => window.dispatchEvent(new Event('success-wishes:open-group'))}>
+            <span style={{display:'block',fontSize:11}}>SHARE THE JOY</span><strong style={{display:'block',fontSize:23}}>KSh 100</strong><span style={{display:'block',fontSize:12}}>Up to 4 students</span><span style={{display:'block',marginTop:5}}>Get 2 FREE →</span>
+          </button>
         </div>
       </section>
       <section className={styles.composer} id="wish-composer" aria-labelledby="personalise-card">
