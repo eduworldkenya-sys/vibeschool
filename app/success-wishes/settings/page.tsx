@@ -42,6 +42,7 @@ export default function SuccessWishSafety() {
   const [withdrawChallenge, setWithdrawChallenge] = useState('')
   const [withdrawCode, setWithdrawCode] = useState('')
   const [consentRevoked, setConsentRevoked] = useState(false)
+  const [pinSession, setPinSession] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -61,7 +62,8 @@ export default function SuccessWishSafety() {
     ])
       .then(([inbox, rights]) => {
         if (!mounted) return
-        // Only legacy cards have the legacy per-card hide/report persistence contract.\n        // Paid and group cards remain available in My wishes without offering inert controls.\n        setCards((inbox.cards || []).filter((card: Gift & {source?: string}) => card.source === 'legacy'))
+        // Only legacy cards have the legacy per-card hide/report persistence contract.\n        // Paid and group cards remain available in My wishes without offering inert controls.\n        setPinSession(!inbox.legacy)
+        setCards((inbox.cards || []).filter((card: Gift & {source?: string}) => card.source === 'legacy'))
         setRequests(rights.requests || [])
       })
       .catch((e) => {
@@ -132,6 +134,7 @@ export default function SuccessWishSafety() {
           p.error || 'We could not complete your consent request.'
         )
       if (action === 'begin_withdrawal') {
+        if (p.pending) { setStatus(p.message || 'Your withdrawal request is pending review.'); return }
         setWithdrawChallenge(p.challengeId)
         setStatus(
           p.message ||
@@ -351,7 +354,7 @@ export default function SuccessWishSafety() {
                       className="pt-1.5 flex items-center justify-between text-xs"
                     >
                       <span className="text-slate-300 font-medium capitalize">
-                        {r.kind === 'deletion' ? 'Data Deletion' : 'Data Access'}
+                        {r.kind === 'deletion' ? 'Data Deletion' : r.kind === 'consent_withdrawal' ? 'Consent Withdrawal' : 'Data Access'}
                       </span>
                       <span className="text-slate-400 text-[11px]">
                         <span className="text-[#00A896] font-semibold">
@@ -379,7 +382,7 @@ export default function SuccessWishSafety() {
             </div>
 
             <p className="text-xs text-slate-400">
-              Revoke guardian consent and close access to all received wishes. Requires verification using the registered adult or guardian phone.
+              {pinSession ? 'Request consent withdrawal for independent adult or guardian verification. Your cards remain available while the request is reviewed.' : 'Revoke guardian consent and close access to all received wishes. Requires verification using the registered adult or guardian phone.'}
             </p>
 
             {withdrawChallenge ? (
@@ -439,7 +442,7 @@ export default function SuccessWishSafety() {
                 onClick={() => void withdraw('begin_withdrawal')}
                 className="w-full py-3 px-4 rounded-xl bg-slate-900 border border-red-500/40 hover:border-red-500 text-red-300 font-bold text-xs active:scale-95 transition-all flex items-center justify-center space-x-2"
               >
-                <span>Verify Phone to Withdraw Consent</span>
+                <span>{pinSession ? 'Request Consent Withdrawal' : 'Verify Phone to Withdraw Consent'}</span>
               </button>
             )}
 
@@ -449,7 +452,7 @@ export default function SuccessWishSafety() {
                 <span>What happens after consent withdrawal?</span>
               </summary>
               <p className="mt-2 text-slate-400 text-[11px] leading-relaxed pl-5">
-                All inbox and card viewing privileges will immediately be locked. Required financial audit records are securely retained per statutory law. Restoring access requires a new phone verification.
+                All inbox and card viewing privileges will immediately be locked. Required financial audit records are securely retained per statutory law. Restoring access requires independently verified authority; a PIN or phone number alone is insufficient.
               </p>
             </details>
           </div>
