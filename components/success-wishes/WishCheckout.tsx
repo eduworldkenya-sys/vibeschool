@@ -1,18 +1,20 @@
 'use client'
 import {useCallback,useEffect,useId,useRef,useState} from 'react'
-import {Check,X} from 'lucide-react'
+import {Check,X,Tag} from 'lucide-react'
 import {CardArt,type CardValues,type Template} from './SuccessCardStudio'
 import {CHECKOUT_STORAGE_KEY,newCheckoutKey,checkoutMessage,pendingCheckout,maskedPayerPhone,canPay,checkoutSuccess,type CheckoutOrder} from '@/lib/success-wishes/checkout-client'
 import {normalizeSafaricomPhone} from '@/lib/success-wishes/payment-contract'
 import styles from './SuccessCardStudio.module.css'
 import {playWishFeedbackSound,prepareWishFeedbackSound} from '@/lib/success-wishes/signature-sound'
 import GiftShareActions from './GiftShareActions'
+import {giftWhatsAppUrl} from '@/lib/success-wishes/gift-sharing'
 type CheckoutReply={order:CheckoutOrder;paymentError?:string|null}
 class CheckoutRequestError extends Error{constructor(readonly status:number,message:string){super(message)}}
 export default function WishCheckout({theme,values,onClose,soundEnabled=false,inboxRequest=''}:{inboxRequest?:string;soundEnabled?:boolean;theme:Template;values:CardValues;onClose:()=>void}){
  const id=useId(),dialog=useRef<HTMLElement>(null),inFlight=useRef(false),alive=useRef(true)
  const [promoCode,setPromoCode]=useState(''),[promoValid,setPromoValid]=useState(false)
  const [promoBusy,setPromoBusy]=useState(false),[promoGift,setPromoGift]=useState<string|null>(null)
+ const promoKey=useRef<string|null>(null),promoSending=useRef(false)
  const [correctPhone,setCorrectPhone]=useState('')
  const [key,setKey]=useState(''),[phone,setPhone]=useState('')
  const [draft,setDraft]=useState({theme,...values})
@@ -112,16 +114,19 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   finally{setPromoBusy(false)}
  }
  async function sendPromo(){
-  if(promoBusy||!promoValid||promoGift)return
-  setPromoBusy(true);setError('')
+  if(promoSending.current||!promoValid||promoGift)return
+  promoSending.current=true;setPromoBusy(true);setError('')
   try{
-   const r=await fetch('/api/success-wishes/campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:promoCode.trim().toUpperCase(),version:'text',key:newCheckoutKey(),...draft}),cache:'no-store'})
+   if(!promoKey.current)promoKey.current=newCheckoutKey()
+   const r=await fetch('/api/success-wishes/campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:promoCode.trim().toUpperCase(),version:'text',key:promoKey.current,...draft}),cache:'no-store'})
    const data=await r.json()
    if(!r.ok||!data.invitationUrl)throw new Error(data.error||'Could not send your card.')
    setPromoGift(data.invitationUrl)
-   if(soundEnabled){prepareWishFeedbackSound();stopFeedback.current?.();stopFeedback.current=playWishFeedbackSound('ready')}
+   const whatsapp=giftWhatsAppUrl(data.invitationUrl,draft.candidate)
+   if(!whatsapp)throw new Error('Your card is ready, but its sharing link could not be opened.')
+   window.location.assign(whatsapp)
   }catch(e){setError(e instanceof Error?e.message:'Please try again.')}
-  finally{setPromoBusy(false)}
+  finally{promoSending.current=false;setPromoBusy(false)}
  }
  function clear(nextPhone=''){
   sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);setOrder(null);setKey(newCheckoutKey());setPhone(nextPhone);setUncertain(false);setError('');setNotice('')
@@ -169,13 +174,13 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   <h2 id={id}>{title}</h2>
   <div className={`${styles.checkoutPreview} ${checking?styles.checkoutPreviewCompact:''}`}><CardArt template={card.theme} values={card} preview/><strong>For {card.candidate}</strong></div>
   {promoGift?<div className={styles.checkoutFlow} role="status"><GiftShareActions link={promoGift} candidate={draft.candidate} compact/></div>:restoring?<p role="status">Checking your order…</p>:<>
-   {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?'FREE':'KSh 50'}</strong></div>}
+   {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?<span className={styles.promoPriceAccepted} style={{display:'inline-flex',alignItems:'center',gap:8}}><s style={{opacity:.7}}>KSh 50</s><Tag size={17} aria-hidden="true"/> <span style={{fontSize:'.85rem'}}>Offer applied</span></span>:'KSh 50'}</strong></div>}
    {!order&&!uncertain?<form noValidate onSubmit={e=>{e.preventDefault();void act('pay')}}>
     {!promoValid?<div className={styles.promoSection}>
      <label className={styles.checkoutLabel} htmlFor={id+'-promo'}>Have a secret code?</label>
-     <div className={styles.promoEntry}><input id={id+'-promo'} type="text" autoComplete="off" maxLength={32} placeholder="Enter code" value={promoCode} disabled={promoBusy||busy} onChange={e=>{setPromoCode(e.target.value);setPromoValid(false);setError('')}}/><button type="button" className={styles.secondary} disabled={promoBusy||busy||!promoCode.trim()} onClick={()=>void applyPromo()}>{promoBusy?'Checking…':'Apply'}</button></div>
+     <div className={styles.promoEntry}><input id={id+'-promo'} type="text" autoComplete="off" maxLength={32} placeholder="Enter code" value={promoCode} disabled={promoBusy||busy} onChange={e=>{setPromoCode(e.target.value.toUpperCase());setPromoValid(false);promoKey.current=null;setError('')}}/><button type="button" className={styles.secondary} disabled={promoBusy||busy||!promoCode.trim()} onClick={()=>void applyPromo()}>{promoBusy?'Checking…':'Apply'}</button></div>
     </div>:<p className={styles.promoAccepted} role="status"><Check size={16}/> Code accepted!</p>}
-    {promoValid?<button type="button" className={styles.primary} disabled={promoBusy||busy} onClick={()=>void sendPromo()}>{promoBusy?'Sending…':'Send Success Card'}</button>:<>
+    {promoValid?<button type="button" className={styles.primary} disabled={promoBusy||busy} onClick={()=>void sendPromo()}>{promoBusy?'Preparing card…':'Send via WhatsApp'}</button>:<>
     <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label>
     <button type="submit" className={styles.primary} disabled={busy||!key}>{busy?'Saving…':'Pay KSh 50'}</button>
     <p className={styles.checkoutHint}>Enter your PIN on the M-Pesa prompt.</p></>}
