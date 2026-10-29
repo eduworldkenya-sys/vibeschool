@@ -1,9 +1,30 @@
 import type { Metadata } from 'next'
 import SuccessCardStudio from '@/components/success-wishes/SuccessCardStudio'
 
+const title = 'Success Wishes 2026 | VibeSchool'
+const description = 'Wish students good luck & success. Send a beautiful personalised Success Card for KSh 50.'
+const url = 'https://vibeschool.co.ke/success-wishes'
+const image = 'https://vibeschool.co.ke/success-wishes/opengraph-image'
+
 export const metadata: Metadata = {
-  title: 'Success Wishes | VibeSchool',
-  description: 'Choose a Success Wishes design and version, personalise a wish, and preview it before checkout.',
+  title: { absolute: title },
+  description,
+  alternates: { canonical: url },
+  openGraph: {
+    title,
+    description,
+    url,
+    siteName: 'VibeSchool',
+    locale: 'en_KE',
+    type: 'website',
+    images: [{ url: image, width: 1200, height: 630, alt: 'Success Wishes 2026 — personalised Success Cards by VibeSchool' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title,
+    description,
+    images: [image],
+  },
 }
 
 export default function SuccessWishesPage() {
