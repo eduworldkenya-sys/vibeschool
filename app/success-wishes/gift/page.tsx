@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import {watchKeepsakeChange} from '@/lib/success-wishes/receiver-pin-browser'
+import {useReceiverTheme} from '@/components/success-wishes/ReceiverShell'
 import KeepWish from '@/components/success-wishes/KeepWish'
 import { useEffect, useRef, useState } from 'react'
 import ReceiverEnvelope from '@/components/success-wishes/ReceiverEnvelope'
@@ -21,7 +22,7 @@ export default function PrivateGiftPage(){
   const [gift,setGift]=useState<Gift|null>(null)
   const [busy,setBusy]=useState(true)
   const [error,setError]=useState('')
-  const [soundEnabled,setSoundEnabled]=useState(true)
+  const {soundEnabled,setSoundEnabled}=useReceiverTheme()
   const [opened,setOpened]=useState(false)
   const sound=useRef<(()=>void)|null>(null)
   const secret=useRef('')
@@ -50,23 +51,24 @@ export default function PrivateGiftPage(){
       return true
     }catch(reason){setError(reason instanceof Error?reason.message:'The gift could not be opened.');return false}
   }
+  useEffect(()=>{if(!soundEnabled)sound.current?.()},[soundEnabled])
   function play(){sound.current?.();sound.current=playWishRevealSound()}
   const buttonStyle={background:'#111722',color:'#F3E5AB',border:'1px solid #D4AF37',borderRadius:9,padding:'10px 14px',cursor:'pointer'} as const
   return <main style={{minHeight:'100vh',background:'#0A0D14',padding:'32px 16px',color:'#F3E5AB'}}>
     <div style={{maxWidth:720,margin:'0 auto',display:'grid',gap:24}}>
       <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
         <Link href="/success-wishes" style={{color:'#F3E5AB',fontSize:14}}>VibeSchool · Success Wishes</Link>
-        <button type="button" style={buttonStyle} onClick={()=>{setSoundEnabled(value=>!value);sound.current?.()}}
+        <button type="button" style={buttonStyle} onClick={()=>{setSoundEnabled(!soundEnabled);sound.current?.()}}
           aria-label={soundEnabled?'Mute card opening sound':'Turn card opening sound on'}
           aria-pressed={soundEnabled}>{soundEnabled?'Sound on':'Sound off'}</button>
       </header>
       <div style={{textAlign:'center'}}>
         <p style={{color:'#D4AF37',fontSize:12,letterSpacing:2}} >SUCCESS WISHES 2026</p>
         <h1 style={{fontFamily:'Georgia,serif',fontSize:30,margin:'8px 0'}} >{gift?.sender ? `From ${gift.sender} to ${gift.candidate}` : gift ? `For ${gift.candidate}` : 'Your Success Card'}</h1>
-        <p style={{fontSize:14,color:'#C3C7D1'}}>{gift?'':'Opening your card…'}</p>
+        <p style={{fontSize:14,color:'#C3C7D1'}}>{!gift && !error ? 'Opening your card…' : ''}</p>
       </div>
       {busy&&<p role="status">Finding your gift…</p>}
-      {error&&<p role="alert" style={{color:'#FCA5A5',textAlign:'center'}}>{error}</p>}
+      {error&&<div role="alert" style={{color:'#FCA5A5',textAlign:'center'}}><p>{error}</p><Link href="/success-wishes/inbox" style={{color:'#D4AF37'}}>Back to My wishes</Link></div>}
       {gift&&!busy&&<section aria-label="Your private Success Wish">
         <ReceiverEnvelope receiverView template={gift.theme} values={{candidate:gift.candidate,school:gift.school,examYear:gift.examYear,sender:gift.sender||'',message:gift.message||''}}
           soundEnabled={soundEnabled} onOpen={play} beforeOpen={reveal} onOpenedChange={setOpened}/>
