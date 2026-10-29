@@ -13,7 +13,7 @@ function mocks(page,state){page.route('**/api/success-wishes/**',async route=>{
  if(u.pathname.endsWith('/config'))p={enabled:false}
  else if(u.pathname.endsWith('/account')){
   if(method==='GET'){if(!state.login){status=401;p={error:'Unlock your wishes.'}}else p={recipient:{id:ID,name:state.name||'Charles',school:'Example school',phone:'+254733000111',examYear:'2026'}}}
-  else if(method==='DELETE'){state.login=false;p={ok:true,inboxId:ID}}
+  else if(method==='DELETE'){if(state.deletePause)await state.deletePause;state.login=false;p={ok:true,inboxId:ID}}
   else if(b.action==='login'){if(b.pin!=='0123'){status=401;p={error:'Check your details or use your private recovery link.'}}else{state.login=true;p={ok:true,inboxId:ID}}}
   else if(b.action==='create'||b.action==='recover'){assert.equal(b.pin,'0123');state.login=true;p={ok:true,inboxId:ID,recoveryUrl:ROOT+'/success-wishes/recover#recovery='+TOKEN}}
   else if(b.action==='attach'){state.saved=true;p={ok:true,inboxId:ID}}
@@ -39,6 +39,15 @@ async function run(){await ready();browser=await chromium.launch({headless:true,
   await page.goto(ROOT+'/success-wishes/recover#recovery='+TOKEN,{waitUntil:'networkidle'});assert(!page.url().includes('#recovery='));await page.getByLabel('New PIN',{exact:true}).fill('0123');await page.getByLabel('Confirm PIN',{exact:true}).fill('0123');await page.getByRole('button',{name:'Reset PIN',exact:true}).click();await page.getByRole('textbox',{name:'Private recovery link',exact:true}).waitFor();await page.getByRole('button',{name:'Open my wishes',exact:true}).click();await page.getByRole('button',{name:'Aunt Jane'}).waitFor();assert.deepEqual(errors,[]);console.log('PIN receiver browser pass:',width);await ctx.close()
  }
  const ctx=await browser.newContext({viewport:{width:390,height:840}}),a=await ctx.newPage(),b=await ctx.newPage(),state={login:true,opened:false,theme:'heritage'};mocks(a,state);mocks(b,state);await a.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'});await b.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'});await a.getByRole('button',{name:'Aunt Jane'}).waitFor();await a.getByLabel('Inbox options').click();await a.getByRole('button',{name:'Lock inbox',exact:true}).click();await b.getByRole('heading',{name:'Open my wishes',exact:true}).waitFor();assert.equal(await b.getByRole('button',{name:'Aunt Jane'}).count(),0);await ctx.close()
+ // Reopening during a slow DELETE cannot retain private rows after revocation completes.
+ for(const storageOnly of [false,true]){
+  const c=await browser.newContext({viewport:{width:390,height:840}});if(storageOnly)await c.addInitScript(()=>{delete window.BroadcastChannel})
+  const first=await c.newPage(),second=await c.newPage(),s={login:true,opened:false,theme:'heritage'};mocks(first,s);mocks(second,s)
+  await first.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'});await second.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'});await first.getByRole('button',{name:'Aunt Jane'}).waitFor()
+  let release;s.deletePause=new Promise(resolve=>{release=resolve});const sent=first.waitForRequest(r=>r.url().endsWith('/receiver/account')&&r.method()==='DELETE')
+  await first.getByLabel('Inbox options').click();await first.getByRole('button',{name:'Lock inbox',exact:true}).click();await sent
+  await second.reload({waitUntil:'networkidle'});await second.getByRole('button',{name:'Aunt Jane'}).waitFor();release();await second.getByRole('heading',{name:'Open my wishes',exact:true}).waitFor();assert.equal(await second.getByRole('button',{name:'Aunt Jane'}).count(),0);await c.close()
+ }
  // A delayed initial load and delayed reveal must never restore a locked learner's content.
  for(const delayed of ['initialPause','revealPause']){
   const c=await browser.newContext({viewport:{width:390,height:840}}),gift=await c.newPage(),locker=await c.newPage(),s={login:true,opened:false,theme:'heritage'};mocks(gift,s);mocks(locker,s)
