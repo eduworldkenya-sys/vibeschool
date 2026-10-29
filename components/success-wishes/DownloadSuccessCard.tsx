@@ -109,6 +109,51 @@ function render(gift: GiftDetails): HTMLCanvasElement {
   return canvas
 }
 
+// Portrait download for WhatsApp Status / Instagram Stories. Keeps the private card
+// details on the device; no new public URL or server-side data exposure.
+function renderStatus(gift: GiftDetails): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = 1080
+  canvas.height = 1920
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Your browser cannot create this image.')
+  const theme = palette[gift.theme]
+  const item = templates.find(t => t.id === gift.theme) || templates[0]
+  const background = ctx.createLinearGradient(0, 0, 1080, 1920)
+  background.addColorStop(0, theme.top)
+  background.addColorStop(1, theme.bottom)
+  ctx.fillStyle = background
+  ctx.fillRect(0, 0, 1080, 1920)
+  ctx.strokeStyle = theme.border
+  ctx.lineWidth = 8
+  ctx.strokeRect(45, 45, 990, 1830)
+  ctx.lineWidth = 2
+  ctx.strokeRect(65, 65, 950, 1790)
+  ctx.textAlign = 'center'
+  ctx.fillStyle = theme.ink
+  function block(value: string, font: string, top: number, lineHeight: number, maxLines: number) {
+    ctx.font = font
+    const lines = wrapped(ctx, value, 840)
+    if (lines.length > maxLines) throw new Error('This message is too long for the Status format. Use the full-card download instead.')
+    lines.forEach((line, i) => ctx.fillText(line, 540, top + i * lineHeight, 840))
+    return top + lines.length * lineHeight
+  }
+  block('VIBESCHOOL · SUCCESS WISHES', 'bold 32px Arial', 180, 45, 2)
+  block(gift.examYear || '2026', 'bold 38px Georgia', 245, 45, 1)
+  ctx.fillStyle = theme.accent
+  ctx.font = '110px Georgia'
+  ctx.fillText('✦', 540, 470)
+  ctx.fillStyle = theme.ink
+  const headingBottom = block(item.headline, 'bold 68px Georgia', 605, 83, 3)
+  const nameBottom = block(gift.candidate, 'bold 68px Georgia', headingBottom + 90, 82, 3)
+  if (gift.school) block(gift.school, '32px Georgia', nameBottom + 25, 44, 2)
+  const messageTop = Math.max(nameBottom + 180, 1100)
+  const messageBottom = block(gift.message?.trim() || 'Wishing you good luck & success!', '46px Georgia', messageTop, 64, 7)
+  if (messageBottom > 1670) throw new Error('This message is too long for the Status format. Use the full-card download instead.')
+  block('With love, ' + (gift.sender?.trim() || 'Your well-wisher'), 'italic 36px Georgia', 1730, 48, 2)
+  return canvas
+}
+
 // The same renderer powers both exports: no duplicate source of truth.
 function printKeepsake(canvas: HTMLCanvasElement, target: Window) {
   const pageHeight = canvas.height / 2
@@ -165,6 +210,27 @@ export default function DownloadSuccessCard({ gift }: { gift: GiftDetails }) {
       setWorking(false)
     }
   }
+  async function downloadStatus() {
+    if (working) return
+    setWorking(true)
+    setError('')
+    try {
+      await document.fonts.ready
+      const canvas = renderStatus(gift)
+      const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
+      if (!blob) throw new Error('Could not save your Status card.')
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = 'success-status-' + (gift.candidate.replace(/[^a-z0-9-]+/gi, '-').slice(0, 50) || 'wish') + '.png'
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      setTimeout(() => URL.revokeObjectURL(url), 60000)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Status download failed.')
+    } finally { setWorking(false) }
+  }
   async function printCard() {
     if (working) return
     // Open immediately on user interaction to avoid popup blockers.
@@ -189,6 +255,10 @@ export default function DownloadSuccessCard({ gift }: { gift: GiftDetails }) {
     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}><button type="button" onClick={() => void download()} disabled={working}
       style={{ background: '#D4AF37', color: '#101522', border: 0, borderRadius: 10, padding: '13px 22px', fontWeight: 700, cursor: working ? 'wait' : 'pointer' }}>
       {working ? 'Preparing card…' : 'Download PNG'}
+    </button>
+    <button type="button" onClick={() => void downloadStatus()} disabled={working}
+      style={{ background: '#F3E5AB', color: '#101522', border: 0, borderRadius: 10, padding: '13px 22px', fontWeight: 700, cursor: working ? 'wait' : 'pointer' }}>
+      Download for Status
     </button>
     <button type="button" onClick={() => void printCard()} disabled={working}
       style={{ background: 'transparent', color: '#F3E5AB', border: '1px solid #D4AF37', borderRadius: 10, padding: '13px 22px', fontWeight: 700, cursor: working ? 'wait' : 'pointer' }}>
