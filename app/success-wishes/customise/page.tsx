@@ -32,8 +32,10 @@ export default function CardCustomiser() {
   useEffect(() => {
     try {
       const draft = decodeSenderDraft(sessionStorage.getItem(SENDER_DRAFT_KEY))
+      const selected = new URLSearchParams(window.location.search).get('design')
+      if (selected && templates.some(item => item.id === selected)) setTheme(selected as Template)
+      else if (draft) setTheme(draft.theme)
       if (!draft) return
-      setTheme(draft.theme)
       if (draft.candidate) setName(draft.candidate)
       if (draft.message) setMessage(draft.message)
       if (draft.sender) setSender(draft.sender)
@@ -64,6 +66,7 @@ export default function CardCustomiser() {
     else setPositions(prev=>({...prev,[current.type]:{...prev[current.type],x,y}}))
   }
   async function download() {
+    await document.fonts.ready
     const width=1080,height=1920
     const output=document.createElement('canvas');output.width=width;output.height=height
     const ctx=output.getContext('2d');if(!ctx)return
