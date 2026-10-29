@@ -165,14 +165,20 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const setFieldExpanded = (field: WishField, expanded: boolean) => setExpandedFields(previous => expanded
     ? {candidate:false,school:false,phone:false,sender:false,message:false,[field]:true}
     : {...previous,[field]:false})
+  const pendingFocus = useRef<WishField | null>(null)
   function goToField(field: WishField) {
+    pendingFocus.current = field
     setFieldExpanded(field, true)
-    requestAnimationFrame(() => {
-      const input = formRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-wish-field="${field}"] input, [data-wish-field="${field}"] textarea`)
-      input?.focus({preventScroll:true})
-      input?.scrollIntoView({block:'nearest',behavior:'auto'})
-    })
   }
+  useEffect(() => {
+    const field = pendingFocus.current
+    if (!field || !expandedFields[field]) return
+    const input = formRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-wish-field="${field}"] input, [data-wish-field="${field}"] textarea`)
+    if (!input) return
+    pendingFocus.current = null
+    input.focus({ preventScroll: true })
+    input.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+  }, [expandedFields])
   const fieldErrors = {
     candidate: candidate.trim() ? '' : 'Enter the candidate’s name.',
     sender: sender.trim() ? '' : 'Enter your name.',
