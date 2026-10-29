@@ -23,7 +23,7 @@ function fixture(name:string,row:Row,claim=true,result:Row={},probe:unknown=[],p
 const id='33333333-3333-4333-8333-333333333333'
 const req=(action:string,auth='server-secret',merchant?:unknown)=>new Request('https://example.supabase.co/functions/v1/success-wishes-checkout',{method:'POST',headers:{authorization:'Bearer '+auth},body:JSON.stringify({action,id,...(merchant!==undefined?{merchant}:{})})})
 const query={ResponseCode:'0',ResultCode:'0',CheckoutRequestID:'CHECKOUT1',MerchantRequestID:'MERCHANT1'}
-const pending=()=>({id,state:'awaiting_customer',payer_phone:'254712345678',checkout_id:'CHECKOUT1',merchant_id:'MERCHANT1',updated_at:'2020-01-01',callback_event:{resultCode:0,amount:50,phone:254712345678,receipt:'QAONLY123',checkout:'CHECKOUT1',merchant:'MERCHANT1'}})
+const pending=()=>({id,amount_kes:50,state:'awaiting_customer',payer_phone:'254712345678',checkout_id:'CHECKOUT1',merchant_id:'MERCHANT1',updated_at:'2020-01-01',callback_event:{resultCode:0,amount:50,phone:254712345678,receipt:'QAONLY123',checkout:'CHECKOUT1',merchant:'MERCHANT1'}})
 test('browser credentials and unclaimed orders cannot call Safaricom',async()=>{
  const f=fixture('success-wishes-checkout',{id,state:'created'},false)
  assert.equal((await f.handle(req('pay','user-token'))).status,401);assert.equal((await f.handle(req('pay'))).status,409);assert.equal(f.calls.filter(c=>c.includes('processrequest')).length,0)
@@ -112,4 +112,18 @@ test('concurrent health requests keep each service-provided credential isolated'
  assert.deepEqual(f.requests.map(r=>r.authorization).sort(),['Basic '+btoa('wish-key:wish-secret'),'Basic '+btoa('second-key:second-secret')].sort())
  assert.equal(f.updates.length,0)
  for(const response of responses)assert.deepEqual(await response.json(),{ready:true},'Credentials never appear in health responses')
+})
+
+test('group STK uses the stored KSh 100 and a KSh 50 callback cannot settle it',async()=>{
+ const row={id,state:'submitting',payer_phone:'254712345678',amount_kes:100}
+ const f=fixture('success-wishes-checkout',row,true,{ResponseCode:'0',CheckoutRequestID:'CHECKOUT1',MerchantRequestID:'MERCHANT1'})
+ assert.equal((await f.handle(req('pay'))).status,200)
+ const stk=f.requests.find(r=>r.url.includes('processrequest'))!.body as Row
+ assert.equal(stk.Amount,100)
+ const pendingGroup={...pending(),amount_kes:100}
+ const wrong=fixture('success-wishes-checkout',pendingGroup,true,query)
+ await wrong.handle(req('reconcile'));assert.notEqual(pendingGroup.state,'settled')
+ pendingGroup.callback_event.amount=100
+ pendingGroup.updated_at='2020-01-01'
+ await wrong.handle(req('reconcile'));assert.equal(pendingGroup.state,'settled')
 })

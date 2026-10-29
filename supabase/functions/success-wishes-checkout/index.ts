@@ -55,7 +55,7 @@ async function reconcile(id:string,merchant:Merchant){
  const q=await provider('/mpesa/stkpushquery/v1/query',{CheckoutRequestID:o.checkout_id},merchant)
  if(q.CheckoutRequestID!==o.checkout_id||q.MerchantRequestID!==o.merchant_id||String(q.ResponseCode)!=='0'||!/^\d+$/.test(String(q.ResultCode)))return
  if(Number(q.ResultCode)!==0){if(Number(q.ResultCode)===e.resultCode)await update(id,{state:'failed'},['awaiting_customer','reconciliation_required']);return}
- if(e.resultCode!==0||e.amount!==50||String(e.phone)!==o.payer_phone||typeof e.receipt!=='string'||!/^[A-Z0-9]{6,30}$/.test(e.receipt)){
+ if(e.resultCode!==0||e.amount!==o.amount_kes||String(e.phone)!==o.payer_phone||typeof e.receipt!=='string'||!/^[A-Z0-9]{6,30}$/.test(e.receipt)){
   await update(id,{state:'reconciliation_required'},['awaiting_customer']);return
  }
  await update(id,{state:'settled',provider_query:{ResponseCode:String(q.ResponseCode),ResultCode:String(q.ResultCode),CheckoutRequestID:q.CheckoutRequestID,MerchantRequestID:q.MerchantRequestID},provider_receipt:e.receipt,provider_verified_at:new Date().toISOString(),settled_at:new Date().toISOString()},['awaiting_customer','reconciliation_required'])
@@ -76,9 +76,9 @@ Deno.serve(async(req:Request)=>{
   const {data:claimed,error:ce}=await db.rpc('success_wish_claim_guest_payment',{p_id:b.id,p_callback_hash:await hash(callbackToken)})
   if(ce||!claimed)return reply({error:'Payment initiation is unavailable for this order'},409)
   const {data:o,error}=await db.from('success_wish_guest_orders').select('*').eq('id',b.id).single()
-  if(error||!o||o.state!=='submitting'||o.amount_kes!==50)throw Error('Claim unavailable')
+  if(error||!o||o.state!=='submitting'||![50,100].includes(o.amount_kes))throw Error('Claim unavailable')
   try{
-   const a=await provider('/mpesa/stkpush/v1/processrequest',{TransactionType:'CustomerBuyGoodsOnline',Amount:50,PartyA:o.payer_phone,PartyB:'949529',PhoneNumber:o.payer_phone,CallBackURL:Deno.env.get('SUPABASE_URL')+'/functions/v1/success-wishes-mpesa-callback?id='+o.id+'&token='+callbackToken,AccountReference:'VW'+o.id.replace(/-/g,'').slice(0,10),TransactionDesc:'Success Wish'},merchant,access)
+   const a=await provider('/mpesa/stkpush/v1/processrequest',{TransactionType:'CustomerBuyGoodsOnline',Amount:o.amount_kes,PartyA:o.payer_phone,PartyB:'949529',PhoneNumber:o.payer_phone,CallBackURL:Deno.env.get('SUPABASE_URL')+'/functions/v1/success-wishes-mpesa-callback?id='+o.id+'&token='+callbackToken,AccountReference:'VW'+o.id.replace(/-/g,'').slice(0,10),TransactionDesc:'Success Wish'},merchant,access)
    if(String(a.ResponseCode)!=='0'||typeof a.CheckoutRequestID!=='string'||typeof a.MerchantRequestID!=='string')throw Error('Ambiguous provider response')
    await update(o.id,{state:'awaiting_customer',checkout_id:a.CheckoutRequestID,merchant_id:a.MerchantRequestID},['submitting'])
   }catch{await update(o.id,{state:'reconciliation_required'},['submitting'])} // Never retry an ambiguous external side effect.

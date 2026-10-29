@@ -9,5 +9,30 @@
     ],
     "acquiredAt": "2026-10-29T12:04:08.662Z",
     "releasedAt": "2026-10-29T12:07:18.899Z"
+  },
+  {
+    "missionId": "CYBORG-20261029114815-273b64",
+    "runId": "b51602aa-9663-47c3-9065-ab5b53169d8b",
+    "paths": [
+      "components/success-wishes/SuccessWishesGroupDemo.tsx",
+      "lib/success-wishes/guest-checkout.ts",
+      "lib/success-wishes/group-checkout.ts",
+      "supabase/functions/success-wishes-checkout",
+      "supabase/migrations",
+      "qa/success-wishes",
+      "app/api/success-wishes/gift/route.ts",
+      "app/api/success-wishes/receiver/collection/route.ts",
+      "lib/success-wishes/receiver-collection.ts",
+      "app/api/success-wishes/config/route.ts",
+      "components/success-wishes/SuccessWishesFloatingOffer.tsx",
+      "lib/success-wishes/group-checkout.test.ts",
+      "lib/success-wishes/guest-provider.test.ts",
+      ".github/workflows/success-wishes-contracts.yml",
+      "docs/success-wishes/GROUP-CHECKOUT-20261029.md",
+      "lib/success-wishes/group-receiver.test.ts",
+      "lib/success-wishes/group-checkout-route.test.ts"
+    ],
+    "acquiredAt": "2026-10-29T11:48:41.219Z",
+    "releasedAt": null
   }
 ]

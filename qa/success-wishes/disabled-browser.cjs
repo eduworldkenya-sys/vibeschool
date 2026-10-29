@@ -412,7 +412,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     assert(overflow <= 1, `Unexpected horizontal overflow at ${width}px: ${overflow}`)
     const config = await page.request.get(`${ROOT}/api/success-wishes/config`)
-    assert.deepEqual(await config.json(), { enabled: false, mediaEnabled: false, paymentsEnabled: false, maxSeconds: 60, maxBytes: 26214400 })
+    assert.deepEqual(await config.json(), { enabled: false, mediaEnabled: false, paymentsEnabled: false, groupPaymentsEnabled: false, maxSeconds: 60, maxBytes: 26214400 })
     assert.deepEqual(errors, [], `Browser errors at ${width}px`)
     await page.screenshot({ path: path.join(screenshots, `ecommerce-${width}.png`), fullPage: true })
     widths.push({ width, page: 'single unified journey', overflow: false, productionSending: false })
