@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { palette, templates, type Template } from '@/components/success-wishes/card-themes'
+import { SENDER_DRAFT_KEY, decodeSenderDraft } from '@/lib/success-wishes/sender-draft'
 
 type TextKey = 'name' | 'message' | 'sender'
 type Position = { x: number; y: number; size: number }
@@ -28,6 +29,16 @@ export default function CardCustomiser() {
   const photoRef = useRef<HTMLImageElement>(null)
   const textValues = { name, message, sender }
   const themeColors = palette[theme]
+  useEffect(() => {
+    try {
+      const draft = decodeSenderDraft(sessionStorage.getItem(SENDER_DRAFT_KEY))
+      if (!draft) return
+      setTheme(draft.theme)
+      if (draft.candidate) setName(draft.candidate)
+      if (draft.message) setMessage(draft.message)
+      if (draft.sender) setSender(draft.sender)
+    } catch { /* The editor works without saved form data. */ }
+  }, [])
   const drag = useRef<{type:TextKey|'photo';offsetX:number;offsetY:number}|null>(null)
   useEffect(() => () => { if (photo?.startsWith('blob:')) URL.revokeObjectURL(photo) }, [photo])
   function onFile(file?: File) {
@@ -56,12 +67,16 @@ export default function CardCustomiser() {
     const width=1080,height=1920
     const output=document.createElement('canvas');output.width=width;output.height=height
     const ctx=output.getContext('2d');if(!ctx)return
+    // Wait until the uploaded file has decoded before exporting.
+    if (photo && photoRef.current) {
+      try { await photoRef.current.decode() } catch { alert('The photo is not ready. Try again.'); return }
+    }
     const gradient=ctx.createLinearGradient(0,0,0,height)
     gradient.addColorStop(0,themeColors.top);gradient.addColorStop(1,themeColors.bottom)
     ctx.fillStyle=gradient;ctx.fillRect(0,0,width,height)
     ctx.strokeStyle=themeColors.border;ctx.lineWidth=12;ctx.strokeRect(44,44,width-88,height-88)
     if(photo&&photoRef.current?.complete&&photoRef.current.naturalWidth) {
-      const img=photoRef.current, size=620*photoScale, cx=photoPosition.x/100*width,cy=photoPosition.y/100*height
+      const img=photoRef.current, cx=photoPosition.x/100*width,cy=photoPosition.y/100*height
       ctx.save();ctx.beginPath();ctx.roundRect(cx-310,cy-370,620,740,30);ctx.clip()
       const cover=Math.max(620/img.naturalWidth,740/img.naturalHeight)
       const w=img.naturalWidth*cover*photoScale,h=img.naturalHeight*cover*photoScale
