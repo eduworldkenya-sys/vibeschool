@@ -8,6 +8,7 @@ import ReceiverEnvelope from '@/components/success-wishes/ReceiverEnvelope'
 import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import type { Template } from '@/components/success-wishes/SuccessCardStudio'
 import GiftShareActions from '@/components/success-wishes/GiftShareActions'
+import DownloadSuccessCard from '@/components/success-wishes/DownloadSuccessCard'
 
 type Gift = {id:string;theme:Template;candidate:string;school:string;examYear:string;sender:string|null;message?:string}
 async function fetchGift(token:string,reveal=false):Promise<Gift> {
@@ -77,6 +78,7 @@ export default function PrivateGiftPage(){
         {opened?'You can close and reopen your card.':'Tap the sealed card to read your message.'}
         {' '}{secret.current?'Keep your private gift link. Anyone with it can open this card.':'Find this card again in My wishes.'}
       </p>}
+      {gift&&opened&&<DownloadSuccessCard gift={gift}/>}
       {gift&&opened&&secret.current&&<KeepWish token={secret.current} candidate={gift.candidate}/>}
       {gift&&secret.current&&<GiftShareActions link={'https://vibeschool.co.ke/success-wishes/gift#token='+secret.current} candidate={gift.candidate} sender={gift.sender||undefined}/>}
       <nav style={{display:'flex',justifyContent:'center',gap:24,fontSize:14}}>
