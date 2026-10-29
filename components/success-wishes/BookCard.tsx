@@ -98,7 +98,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   const theme = palette[template]
   const item = templates.find(t => t.id === template) || templates[0]
   const opened = phase === 'opened'
-  const turning = phase === 'opening' || opened || phase === 'closing'
+  const turning = phase === 'opening' || opened
   const busy = checking || phase === 'unsealing' || phase === 'revealing-book' || phase === 'opening' || phase === 'closing'
   const variables = { '--book-top': theme.top, '--book-bottom': theme.bottom,
     '--book-ink': theme.ink, '--book-accent': theme.accent } as CSSProperties
