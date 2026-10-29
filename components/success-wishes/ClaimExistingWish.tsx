@@ -1,5 +1,6 @@
 'use client'
 import {useState} from 'react'
+import styles from './ClaimExistingWish.module.css'
 
 /** Reclaims only by possession of the original private capability plus an unlocked receiver PIN session.
  * Names, school and shared phone numbers are never used to discover or reassign private gifts. */
@@ -31,19 +32,19 @@ export default function ClaimExistingWish({inboxId,onClaimed}:{inboxId:string;on
    }catch(reason){setError(reason instanceof Error?reason.message:'Could not save card.')}
    finally{setBusy(false)}
  }
- return <details style={{margin:'16px 0',padding:'14px',border:'1px solid rgba(148,163,184,.25)',borderRadius:12}}>
-   <summary style={{cursor:'pointer',fontWeight:600}}>Already received a card? Save it here</summary>
-   <p style={{fontSize:13,margin:'12px 0'}}>Paste its private WhatsApp link. We will save it to this inbox after verifying the card belongs to this learner. No payment needed.</p>
-   <form onSubmit={e=>void claim(e)} style={{display:'grid',gap:10}}>
+ return <details className={styles.claim}>
+   <summary className={styles.summary}>Already received a card? Save it here</summary>
+   <p className={styles.explainer}>Paste its private WhatsApp link. We will save it to this inbox after verifying the card belongs to this learner. No payment needed.</p>
+   <form onSubmit={e=>void claim(e)} className={styles.form}>
      <label htmlFor="claim-wish-link">Private gift link</label>
      <input id="claim-wish-link" value={input} onChange={e=>setInput(e.target.value)}
        autoComplete="off" placeholder="Paste private gift link" required
-       style={{width:'100%',padding:12,borderRadius:8,border:'1px solid #64748b',background:'transparent',color:'inherit'}}/>
-     <button type="submit" disabled={busy} style={{padding:12,borderRadius:8,background:'#e2c572',color:'#17140d',fontWeight:600}}>
+       className={styles.input}/>
+     <button type="submit" disabled={busy} className={styles.button}>
        {busy?'Saving…':'Save to My wishes'}
      </button>
    </form>
-   {error&&<p role="alert" style={{color:'#fca5a5'}}>{error}</p>}
-   <p style={{fontSize:12,marginTop:10}}>Lost the private link? Ask the sender to reopen their purchase and share your card again.</p>
+   {error&&<p role="alert" className={styles.error}>{error}</p>}
+   <p className={styles.hint}>Lost the private link? Ask the sender to reopen their purchase and share your card again.</p>
  </details>
 }
