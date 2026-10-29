@@ -32,6 +32,6 @@ export default function SuccessWishesPage({ searchParams }: { searchParams?: { o
   const previewOffer = searchParams?.offerPreview === '1'
   return <>
     <SuccessCardStudio testMode={process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE === '1'} />
-    {(previewOffer || process.env.NEXT_PUBLIC_SUCCESS_WISHES_GROUP_OFFER_ENABLED === 'true') && <SuccessWishesFloatingOffer preview={previewOffer} />}
+    <SuccessWishesFloatingOffer preview={previewOffer} />
   </>
 }
