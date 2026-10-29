@@ -13,6 +13,7 @@ test('sender-created private gift stays sealed until opened and rejects invalid/
   const u=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url)
   assert.equal(u.hostname,'synthetic.supabase.co')
   const endpoint=u.pathname.split('/').at(-1)
+  if(endpoint==='success_wish_pin_open_gift')return Response.json(!refunded)
   if(endpoint==='success_wishes_take_attempt')return Response.json(true)
   if(endpoint==='success_wish_guest_gifts'){
    calls++

@@ -141,6 +141,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [examYear, setExamYear] = useState(initialDraft?.examYear || '2026')
   const [school, setSchool] = useState(initialDraft?.school || '')
   const [deliveryPhone, setDeliveryPhone] = useState(initialDraft?.deliveryPhone || '')
+  const [inboxRequest,setInboxRequest]=useState('')
+  useEffect(()=>{const request=new URLSearchParams(window.location.hash.slice(1)).get('request')||'';if(!/^[a-f0-9]{64}$/.test(request))return;let active=true;void fetch('/api/success-wishes/receiver/request',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:request})}).then(async r=>{const p=await r.json();if(!r.ok)throw Error(p.error);if(active){setCandidate(p.candidate);setSchool(p.school);setExamYear(p.examYear);setDeliveryPhone(p.phone);setInboxRequest(request)}}).catch(()=>{if(active)setError('This wish request is unavailable. Ask for a new link.')});return()=>{active=false}},[])
   const [selectedSchool, setSelectedSchool] = useState<SchoolOption | null>(null)
   const [schoolOptions, setSchoolOptions] = useState<SchoolOption[]>([])
   const [schoolSearchState, setSchoolSearchState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
@@ -418,6 +420,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {checkoutOpen && <WishCheckout soundEnabled={soundEnabled} theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
+    {checkoutOpen && <WishCheckout inboxRequest={inboxRequest} soundEnabled={soundEnabled} theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }

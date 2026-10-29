@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
 import { senderPhone } from '@/lib/success-wishes/phone-verification'
-import { inboxSession } from '@/lib/success-wishes/receiver-otp'
+import {receiverSession as inboxSession} from '@/lib/success-wishes/receiver-collection'
 import { receiverDatabase } from '@/lib/success-wishes/receiver'
 import { hashSecret } from '@/lib/success-wishes/security'
 import { failure, json, limit, reply } from '@/lib/success-wishes/server'
@@ -22,8 +22,9 @@ export async function GET(req: NextRequest) {
 }
 export async function POST(req: NextRequest) {
   try {
-    const body = await json(req) as { phone?: unknown }
+    const body = await json(req) as { phone?: unknown; inboxId?:unknown }
     const { db, receiver } = await inboxSession(req)
+    if(body.inboxId!==receiver.id)throw new WishError(409,'The active learner changed. Reopen My wishes.')
     const phone = senderPhone(body?.phone)
     await limit('wish-request:receiver:' + receiver.id, 8, 86400)
     await limit('wish-request:global', 2000, 86400)
@@ -49,10 +50,10 @@ export async function PUT(req: NextRequest) {
     if (error || !data || data.cancelled_at || Date.parse(data.expires_at) <= Date.now())
       throw new WishError(404, 'This wish request has expired or is unavailable.')
     const { data: receiver } = await db.from('success_wish_receivers')
-      .select('display_name,school_label,consent_status').eq('id', data.receiver_id).maybeSingle()
-    if (!receiver || receiver.consent_status !== 'verified')
+      .select('display_name,school_label,consent_status,pin_hash,phone_e164,pin_exam_year').eq('id', data.receiver_id).maybeSingle()
+    if (!receiver || !receiver.pin_hash || receiver.consent_status === 'revoked')
       throw new WishError(404, 'This wish request has expired or is unavailable.')
-    return reply({ requestId: data.id, candidate: receiver.display_name, school: receiver.school_label })
+    return reply({ requestId: data.id, candidate: receiver.display_name, school: receiver.school_label, phone: receiver.phone_e164, examYear: receiver.pin_exam_year })
   } catch (error) { return failure(error) }
 }
 export async function DELETE(req: NextRequest) {

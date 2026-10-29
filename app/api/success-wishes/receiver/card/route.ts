@@ -1,4 +1,4 @@
-import { inboxSession } from '@/lib/success-wishes/receiver-otp'
+import {trustedReceiverSession as inboxSession} from '@/lib/success-wishes/receiver-collection'
 import { randomBytes } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
