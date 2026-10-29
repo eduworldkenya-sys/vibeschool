@@ -86,7 +86,7 @@ export default function ReceiverShell({
     setSummary(null);
     setLogoutError("");
     try {
-      const response = await fetch("/api/success-wishes/receiver/inbox", {
+      const response = await fetch("/api/success-wishes/receiver/account", {
         method: "DELETE",
       });
       if (!response.ok)
