@@ -100,6 +100,14 @@
         "SUCCESS_WISHES_MEDIA_CLEANUP_ENABLED",
         "SUCCESS_WISHES_MEDIA_CLEANUP_ENABLED!=='true'"
       ]
+    },
+    "app/api/hq/success-wishes-report/route.ts": {
+      "authority": "verified_founder_operator_read_only_reporting",
+      "requiredEvidence": [
+        "verifiedFounderOperator(req)",
+        "Forbidden",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
     }
   }
 }
