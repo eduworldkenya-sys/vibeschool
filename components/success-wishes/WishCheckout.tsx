@@ -122,7 +122,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
    const data=await r.json()
    if(!r.ok||!data.invitationUrl)throw new Error(data.error||'Could not send your card.')
    setPromoGift(data.invitationUrl)
-   const whatsapp=giftWhatsAppUrl(data.invitationUrl,draft.candidate)
+   const whatsapp=giftWhatsAppUrl(data.invitationUrl,draft.candidate,draft.sender)
    if(!whatsapp)throw new Error('Your card is ready, but its sharing link could not be opened.')
    window.location.assign(whatsapp)
   }catch(e){setError(e instanceof Error?e.message:'Please try again.')}
@@ -173,7 +173,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   {success&&<div className={styles.successCelebration} aria-hidden="true"><Check size={30}/><span>✦</span><span>✧</span><span>✦</span></div>}
   <h2 id={id}>{title}</h2>
   <div className={`${styles.checkoutPreview} ${checking?styles.checkoutPreviewCompact:''}`}><CardArt template={card.theme} values={card} preview/><strong>For {card.candidate}</strong></div>
-  {promoGift?<div className={styles.checkoutFlow} role="status"><GiftShareActions link={promoGift} candidate={draft.candidate} compact/></div>:restoring?<p role="status">Checking your order…</p>:<>
+  {promoGift?<div className={styles.checkoutFlow} role="status"><GiftShareActions link={promoGift} candidate={draft.candidate} sender={draft.sender} compact/></div>:restoring?<p role="status">Checking your order…</p>:<>
    {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?<span className={styles.promoPriceAccepted} style={{display:'inline-flex',alignItems:'center',gap:8}}><s style={{opacity:.7}}>KSh 50</s><Tag size={17} aria-hidden="true"/> <span style={{fontSize:'.85rem'}}>Offer applied</span></span>:'KSh 50'}</strong></div>}
    {!order&&!uncertain?<form noValidate onSubmit={e=>{e.preventDefault();void act('pay')}}>
     {!promoValid?<div className={styles.promoSection}>
@@ -191,7 +191,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
     {order&&canPay(order.state,uncertain)&&<><button type="button" className={styles.primary} disabled={busy} onClick={()=>void act('pay')}>{busy?'Requesting…':error?'Try again':'Pay KSh 50'}</button><p className={styles.checkoutHint}>Enter your PIN on the M-Pesa prompt.</p></>}
     {checking&&<button type="button" className={styles.secondary} disabled={busy||!key} onClick={()=>void act('status')}>{busy?'Checking…':'Check status'}</button>}
     {success&&order&&<div className={styles.successMessage} role="status"><strong>Payment received · KSh 50</strong><p>{success==='sent'?`The invitation was sent to ${maskedPayerPhone(order.card.deliveryPhone||'')}. You can also share the card below.`:`Share it with ${order.card.candidate} so they can open your wish.`}</p>{order.deliveryStatus==='needs_review'&&<p>The SMS invitation couldn’t be confirmed. Share the card below.</p>}</div>}
-    {success&&order?.invitationUrl&&<GiftShareActions link={order.invitationUrl} candidate={order.card.candidate}/>}
+    {success&&order?.invitationUrl&&<GiftShareActions link={order.invitationUrl} candidate={order.card.candidate} sender={order.card.sender}/>}
     {order?.state==='settled'&&!success&&<><p role="status">Payment received. Your card is still being prepared. Do not pay again.</p><button type="button" className={styles.secondary} disabled={busy} onClick={()=>void act('status')}>{busy?'Checking…':'Check card status'}</button></>}
     {checking&&!autoCheck&&<p role="status" className={styles.checkoutHint}>Confirmation is taking longer. You can check status or close and return to this order. Do not pay again.</p>}
     {checking&&autoCheck&&<p className={styles.checkoutHint}>We check automatically. You can close and return to this order.</p>}
