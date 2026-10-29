@@ -42,6 +42,12 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
     }
   }, [preview])
 
+  useEffect(() => {
+    const openGroup = () => { setVisible(false); setDemoOpen(true) }
+    window.addEventListener('success-wishes:open-group', openGroup)
+    return () => window.removeEventListener('success-wishes:open-group', openGroup)
+  }, [])
+
   function close() {
     setVisible(false)
     try { sessionStorage.setItem(SESSION_KEY, '1') } catch { /* Non-persistent dismissal is fine. */ }
