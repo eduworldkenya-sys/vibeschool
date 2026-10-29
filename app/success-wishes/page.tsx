@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import SuccessCardStudio from '@/components/success-wishes/SuccessCardStudio'
+import SuccessWishesFloatingOffer from '@/components/success-wishes/SuccessWishesFloatingOffer'
 
 const title = 'Success Wishes 2026 | VibeSchool'
 const description = 'Wish students good luck & success. Send a beautiful personalised Success Card for KSh 50.'
@@ -28,5 +29,8 @@ export const metadata: Metadata = {
 }
 
 export default function SuccessWishesPage() {
-  return <SuccessCardStudio testMode={process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE === '1'} />
+  return <>
+    <SuccessCardStudio testMode={process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE === '1'} />
+    {process.env.NEXT_PUBLIC_SUCCESS_WISHES_GROUP_OFFER_ENABLED === 'true' && <SuccessWishesFloatingOffer />}
+  </>
 }
