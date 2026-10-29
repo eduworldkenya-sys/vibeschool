@@ -44,3 +44,16 @@
 @media(min-width:768px) and (max-width:1100px){.grid{grid-template-columns:minmax(0,1fr)}.cover{aspect-ratio:auto}}
 @media(max-width:767px){.page{padding:22px 16px 36px}.grid{grid-template-columns:minmax(0,1fr);gap:14px}.card{grid-template-columns:116px minmax(0,1fr);min-height:185px}.cover{width:116px;min-height:185px;padding:16px 9px}.coverFrame{inset:8px}.coverTitle{font-size:18px}.coverOrnament{font-size:23px;margin-bottom:9px}.coverBrand{font-size:6px;margin-bottom:10px}.coverName{font-size:9px}.seal{margin-top:11px}.cardBody{padding:16px 14px}.cardBody strong{font-size:17px}.waiting{margin-left:0}}
 @media(max-width:350px){.card{grid-template-columns:96px minmax(0,1fr)}.cover{width:96px;padding:12px 7px}.coverTitle{font-size:16px}.cardBody{padding:14px 10px}.cardBody strong{font-size:15px}.cardAction{font-size:11px}}
+
+/* Inbox polish: card balance, actionable footer, and responsive single-card layout. */
+.grid:has(> .card:only-child){grid-template-columns:minmax(0, 580px)}
+.card{min-height:184px;border-color:#6c5a355e;transition:border-color .16s ease,background-color .16s ease}
+.card:hover{background:#151e30}
+.card:focus-visible{border-color:#e5c56e;outline:2px solid #e5c56e;outline-offset:2px}
+.cover{min-height:184px}
+.cardBody{justify-content:flex-start;gap:10px;padding:17px 19px}
+.cardBody strong{margin-top:2px}
+.cardAction{margin-top:auto;min-height:42px;border-top:1px solid #b7a26a2d;padding:12px 0 0;color:#f3d27d;font-weight:650}
+.card:hover .cardAction{text-decoration:underline;text-underline-offset:3px}
+@media(max-width:767px){.grid:has(> .card:only-child){grid-template-columns:minmax(0,1fr)}.card{min-height:184px}.cover{min-height:184px}.cardBody{padding:14px 13px}.cardAction{min-height:38px}}
+@media(prefers-reduced-motion:reduce){.card{transition:none}}
