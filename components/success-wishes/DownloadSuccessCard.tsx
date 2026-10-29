@@ -25,72 +25,85 @@ function wrapped(ctx: CanvasRenderingContext2D, value: string, maxWidth: number)
 }
 
 function render(gift: GiftDetails): HTMLCanvasElement {
+  // Render the two-page keepsake as an image, using the same palette and wording
+  // as BookCard. Height grows to fit content instead of silently cutting it off.
+  const width = 1200
+  const pagePadding = 100
   const canvas = document.createElement('canvas')
-  canvas.width = 1200
-  canvas.height = 1600
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Your browser cannot create this image.')
+  const measure = document.createElement('canvas').getContext('2d')
+  if (!measure) throw new Error('Your browser cannot create this image.')
   const theme = palette[gift.theme]
   const item = templates.find(t => t.id === gift.theme) || templates[0]
-  const gradient = ctx.createLinearGradient(0, 0, 1200, 1600)
+  const candidate = gift.candidate.trim()
+  const sender = gift.sender?.trim() || 'Your well-wisher'
+  const school = gift.school.trim()
+  const year = gift.examYear || '2026'
+  const maxWidth = width - pagePadding * 2
+
+  function layout(value: string, font: string, lineHeight: number) {
+    measure.font = font
+    const lines = wrapped(measure, value, maxWidth)
+    return { lines, height: Math.max(1, lines.length) * lineHeight }
+  }
+  const headline = layout(item.headline, 'bold 58px Georgia, serif', 74)
+  const candidateBlock = layout(candidate, 'bold 49px Georgia, serif', 65)
+  const schoolBlock = school ? layout(school, '27px Georgia, serif', 38) : null
+  const senderBlock = layout(sender, 'bold 35px Georgia, serif', 48)
+  const messageBlock = layout(gift.message?.trim() || '', '37px Georgia, serif', 55)
+  const signoff = layout('With every good wish, ' + sender, 'italic 29px Georgia, serif', 40)
+
+  // Page 1: sender, recipient, school and year. Page 2: the personal wish.
+  const firstPageHeight = 235 + senderBlock.height + candidateBlock.height +
+    (schoolBlock?.height || 0) + 210
+  const secondPageHeight = 235 + headline.height + messageBlock.height + signoff.height + 190
+  const pageHeight = Math.max(780, firstPageHeight, secondPageHeight)
+  const height = pageHeight * 2
+  if (height > 16000) throw new Error('This message is too long for one image. Please reopen the card to read it.')
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Your browser cannot create this image.')
+  const gradient = ctx.createLinearGradient(0, 0, width, height)
   gradient.addColorStop(0, theme.top)
   gradient.addColorStop(1, theme.bottom)
   ctx.fillStyle = gradient
-  ctx.fillRect(0, 0, 1200, 1600)
+  ctx.fillRect(0, 0, width, height)
   ctx.strokeStyle = theme.accent
   ctx.lineWidth = 5
-  ctx.strokeRect(40, 40, 1120, 1520)
+  ctx.strokeRect(40, 40, width - 80, height - 80)
   ctx.lineWidth = 2
-  ctx.strokeRect(60, 60, 1080, 1480)
+  ctx.strokeRect(60, 60, width - 120, height - 120)
+  ctx.beginPath()
+  ctx.moveTo(65, pageHeight)
+  ctx.lineTo(width - 65, pageHeight)
+  ctx.stroke()
+
+  function lineText(lines: string[], font: string, y: number, lineHeight: number) {
+    ctx.font = font
+    ctx.fillStyle = theme.ink
+    ctx.textAlign = 'center'
+    lines.forEach((line, index) => ctx.fillText(line, width / 2, y + index * lineHeight))
+    return y + lines.length * lineHeight
+  }
   ctx.textAlign = 'center'
-  ctx.fillStyle = theme.ink
-  ctx.font = 'bold 29px Georgia, serif'
-  ctx.fillText('VIBESCHOOL · SUCCESS WISHES', 600, 143)
   ctx.fillStyle = theme.accent
-  ctx.font = '64px Georgia, serif'
-  ctx.fillText('✧', 600, 240)
-  ctx.fillStyle = theme.ink
-  ctx.font = 'bold 58px Georgia, serif'
-  const titleLines = wrapped(ctx, item.headline, 970)
-  titleLines.forEach((line, i) => ctx.fillText(line, 600, 335 + i * 67))
-  const titleBottom = 335 + (titleLines.length - 1) * 67
-  ctx.font = '28px Georgia, serif'
-  ctx.fillText('A PERSONAL WISH FOR', 600, titleBottom + 95)
-  ctx.font = 'bold 53px Georgia, serif'
-  const nameLines = wrapped(ctx, gift.candidate.trim(), 960)
-  nameLines.forEach((line, i) => ctx.fillText(line, 600, titleBottom + 166 + i * 59))
-  const detailsY = titleBottom + 166 + nameLines.length * 59
-  ctx.font = '27px Georgia, serif'
-  if (gift.school.trim()) ctx.fillText(gift.school.trim().slice(0, 95), 600, detailsY + 20)
-  ctx.fillText((gift.examYear || '2026') + ' exams', 600, detailsY + 68)
-  const messageTop = detailsY + 140
-  const bottomReserved = 225
-  const available = Math.max(170, canvas.height - bottomReserved - messageTop)
-  const message = gift.message?.trim() || ''
-  let fontSize = 38, lineHeight = 53, lines: string[] = []
-  while (fontSize >= 18) {
-    ctx.font = fontSize + 'px Georgia, serif'
-    lines = wrapped(ctx, message, 930)
-    lineHeight = Math.round(fontSize * 1.4)
-    if (lines.length * lineHeight <= available) break
-    fontSize -= 2
-  }
-  if (lines.length * lineHeight > available) {
-    // Preserve the full message rather than silently cutting off text.
-    throw new Error('This message is too long for a single image.')
-  }
-  ctx.fillStyle = theme.ink
-  ctx.font = fontSize + 'px Georgia, serif'
-  lines.forEach((line, i) => ctx.fillText(line, 600, messageTop + i * lineHeight))
+  ctx.font = '29px Georgia, serif'
+  ctx.fillText('VIBESCHOOL · SUCCESS WISHES', width / 2, 140)
+  ctx.fillText('WITH LOVE', width / 2, 215)
+  let y = lineText(senderBlock.lines, 'bold 35px Georgia, serif', 285, 48) + 90
+  y = lineText(['For ' + candidateBlock.lines[0], ...candidateBlock.lines.slice(1)],
+    'bold 49px Georgia, serif', y, 65) + 60
+  if (schoolBlock) y = lineText(schoolBlock.lines, '27px Georgia, serif', y, 38) + 30
+  lineText([year + ' exams'], '27px Georgia, serif', y, 38)
+
+  const offset = pageHeight
   ctx.fillStyle = theme.accent
-  ctx.font = '40px Georgia, serif'
-  ctx.fillText('✧', 600, 1450)
-  ctx.fillStyle = theme.ink
-  ctx.font = 'italic 30px Georgia, serif'
-  const signoff = 'With every good wish, ' + (gift.sender?.trim() || 'Your well-wisher')
-  ctx.font = 'italic 30px Georgia, serif'
-  const signoffLines = wrapped(ctx, signoff, 950)
-  signoffLines.forEach((line, i) => ctx.fillText(line, 600, 1500 + i * 33))
+  ctx.font = '26px Georgia, serif'
+  ctx.fillText(item.name.toUpperCase(), width / 2, offset + 130)
+  y = lineText(headline.lines, 'bold 58px Georgia, serif', offset + 220, 74) + 60
+  y = lineText(candidateBlock.lines, 'bold 43px Georgia, serif', y, 65) + 75
+  y = lineText(messageBlock.lines, '37px Georgia, serif', y, 55) + 90
+  lineText(signoff.lines, 'italic 29px Georgia, serif', y, 40)
   return canvas
 }
 
