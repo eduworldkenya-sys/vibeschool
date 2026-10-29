@@ -28,8 +28,8 @@
 .live{position:sticky;top:14px;background:#f5f2eb;text-align:center;display:grid;gap:13px;justify-items:center}
 .live .art{max-width:460px;box-shadow:0 7px 24px #192e2b17}
 .live>p{max-width:300px;font-size:11px;color:#65756b;line-height:1.7}
-.footer{border-top:1px solid #dfe7df;margin-top:35px;padding:20px 0;color:#62746f;font-size:12px;line-height:1.7}
-.footer p+p{margin-top:7px}.footer a{color:#13664b;font-weight:700;text-decoration:underline;text-underline-offset:2px}.footer a svg{display:inline;vertical-align:middle}
+.footer{border-top:1px solid #dfe7df;margin-top:36px;padding:24px 12px 28px;color:#62746f;font-size:12px;line-height:1.7;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+.footer p{margin:0}.footer p+p{margin-top:0}.footer a{color:#13664b;font-weight:700;text-decoration:underline;text-underline-offset:2px}.footer a svg{display:inline;vertical-align:middle}
 .page button:focus-visible,.page a:focus-visible{outline:3px solid #deb95a;outline-offset:3px}
 @media(max-width:800px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.composer{grid-template-columns:1fr}.live{position:static;max-width:540px;width:100%;margin:auto}}
 @media(max-width:520px){.header{padding:15px}.main{padding:29px 15px}.intro h1{font-size:38px}.gallery{gap:9px}.option{padding:5px}.option.active{padding:4px}.optionCaption{padding:9px 3px 5px}.optionCaption strong{font-size:11px}.optionCaption small{font-size:9px}.form,.live{padding:18px}.actions>.primary,.actions>.secondary{width:100%}}
