@@ -5,14 +5,15 @@ import styles from './SuccessWishesFloatingOffer.module.css'
 
 const SESSION_KEY = 'success-wishes-2026-floating-offer-dismissed'
 
-export default function SuccessWishesFloatingOffer() {
+export default function SuccessWishesFloatingOffer({ preview = false }: { preview?: boolean }) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY) === '1') return
+    if (preview) { setVisible(true); return }
+    try { if (sessionStorage.getItem(SESSION_KEY) === '1') return } catch { /* Keep advert available when storage is blocked. */ }
     const timer = window.setTimeout(() => setVisible(true), 1400)
     return () => window.clearTimeout(timer)
-  }, [])
+  }, [preview])
 
   function close() {
     setVisible(false)
