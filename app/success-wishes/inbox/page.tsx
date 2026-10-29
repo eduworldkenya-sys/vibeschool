@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {useCallback, useEffect, useRef, useState, type CSSProperties} from 'react'
 import {useRouter} from 'next/navigation'
-import {ArrowRight, Check, Heart, LockKeyhole, Mail, Plus, Search, Sparkles} from 'lucide-react'
+import {ArrowRight, Check, Heart, LockKeyhole, Mail, Search, Sparkles} from 'lucide-react'
 import ReceiverAccount from '@/components/success-wishes/ReceiverAccount'
 import ClaimExistingWish from '@/components/success-wishes/ClaimExistingWish'
 import {useReceiverTheme} from '@/components/success-wishes/ReceiverShell'
@@ -130,11 +130,7 @@ export default function MyWishes() {
   return <main className={styles.page}>
     <header className={styles.header}>
       <div><p className={styles.eyebrow}>MADE FOR YOU</p><h1>My wishes</h1></div>
-      {data && <details className={styles.menu}><summary aria-label="Inbox options">•••</summary><div>
-        <button onClick={() => void lock()} disabled={locking}><LockKeyhole size={16}/>Lock inbox</button>
-        <Link href="/success-wishes/recover">Recover access</Link><Link href="/legal/privacy">Privacy</Link>
-        <button onClick={() => void lock()} disabled={locking}>Sign out</button>
-      </div></details>}
+
     </header>
     {error && <div className={styles.error} role="alert"><p>{error}</p><button onClick={() => {openingLock.current=false; setOpening(null); void load()}}>Try again</button></div>}
     {busy && !data && <div className={styles.loading} role="status"><span className={styles.loadingIcon}><Mail size={24}/></span>Opening your wishes…</div>}
@@ -173,7 +169,7 @@ export default function MyWishes() {
         </button>
       })}</section> : <section className={styles.empty}><Sparkles size={32} aria-hidden="true"/><h2>{search ? 'No matching wishes' : filter==='unopened' && data.cards.length ? 'All wishes opened' : 'Your first wish awaits'}</h2><p>{search ? 'Try another name or card design.' : data.cards.length ? 'Read your favourite messages again.' : 'Already received a card? Open its private WhatsApp link, then choose Keep your wishes. If you lost the link, ask the sender to share it again. No second payment is needed.'}</p>{data.cards.length > 0 && <button onClick={() => {setQuery('');setFilter('all')}}>Show all wishes</button>}</section>}
       {data.recipient.id && <ClaimExistingWish inboxId={data.recipient.id} onClaimed={() => void load()}/>}
-      <footer className={styles.footer}><Link className={styles.request} href="/success-wishes/request"><Plus size={17}/>Request a wish</Link><span><LockKeyhole size={13}/>Your private collection</span></footer>
+      <footer className={styles.footer}><span><LockKeyhole size={13}/>Your private collection</span></footer>
       {data.legacy && <ReceiverAccount initialMode="create" candidate={data.recipient.name} onReady={() => void load()}/>}
       <p className={styles.note}>Paid wishes are available for 90 days after payment. Keep your recovery link private.</p>
     </>}

@@ -25,6 +25,7 @@ import {
   Home,
   Send,
   LogOut,
+  Settings,
 } from "lucide-react";
 import {broadcastKeepsakeChange} from '@/lib/success-wishes/receiver-pin-browser';
 
@@ -45,13 +46,6 @@ const links = [
   { href: "/success-wishes/open", label: "Open a Wish", icon: MailOpen },
   { href: "/success-wishes", label: "Send a wish", icon: Send },
   { href: "/success-wishes/request", label: "Request a wish", icon: Plus },
-  { href: "/success-wishes/recover", label: "Recover access", icon: KeyRound },
-  {
-    href: "/success-wishes/settings",
-    label: "Privacy & safety",
-    icon: ShieldCheck,
-  },
-  { href: "/", label: "VibeSchool home", icon: Home },
 ];
 
 export default function ReceiverShell({
@@ -92,7 +86,7 @@ export default function ReceiverShell({
     setSummary(null);
     setLogoutError("");
     try {
-      const response = await fetch("/api/success-wishes/receiver/inbox", {
+      const response = await fetch("/api/success-wishes/receiver/account", {
         method: "DELETE",
       });
       if (!response.ok)
@@ -128,6 +122,7 @@ export default function ReceiverShell({
           {href.endsWith("/inbox") && summary && <em>{summary.unopened}</em>}
         </Link>
       ))}
+      <details className="receiver-account-options"><summary><Settings size={18}/><span>Settings</span></summary><div><Link href="/success-wishes/settings" onClick={() => setDrawer(false)}><ShieldCheck size={18}/>Privacy &amp; safety</Link><Link href="/success-wishes/recover" onClick={() => setDrawer(false)}><KeyRound size={18}/>Recover access</Link><button type="button" onClick={() => void signOut()}><LogOut size={18}/>Sign out</button><Link href="/" onClick={() => setDrawer(false)}><Home size={18}/>VibeSchool home</Link></div></details>
     </nav>
   );
   const sound = (
@@ -199,9 +194,7 @@ export default function ReceiverShell({
                     <>
                       <strong>{summary.name}</strong>
                       <small>{summary.school}</small>
-                      <button type="button" onClick={() => void signOut()}>
-                        <LogOut size={16} /> Sign out
-                      </button>
+
                     </>
                   )}
                 </div>
@@ -211,6 +204,7 @@ export default function ReceiverShell({
                 {signedOut ? <div className="receiver-signout-state"><p role="status">{logoutError ? "Sign-out needs confirmation." : "This device has been cleared."}</p><Link href="/success-wishes/recover">Recover access</Link></div> : children}
               </div>
             </div>
+            <footer className="receiver-legal-footer"><p>© 2026 VibeSchool · by GILOWINC</p><p><Link href="/legal/terms">Terms &amp; Conditions apply</Link> · <Link href="/contact">Contact us</Link></p></footer>
             <nav
               className="receiver-bottom"
               aria-label="Receiver bottom navigation"
@@ -240,13 +234,11 @@ export default function ReceiverShell({
                 <span>Request</span>
               </Link>
               <Link
-                href="/success-wishes/recover"
-                aria-current={
-                  pathname.endsWith("/recover") ? "page" : undefined
-                }
+                href="/success-wishes"
+                aria-current={pathname === "/success-wishes" ? "page" : undefined}
               >
-                <KeyRound />
-                <span>Recover</span>
+                <Send />
+                <span>Send</span>
               </Link>
               <button
                 type="button"

@@ -615,3 +615,16 @@
   .receiver-gift-focus .receiver-content main{padding-top:12px;padding-bottom:20px}
   .receiver-gift-focus .receiver-bottom{z-index:30}
 }
+
+/* Receiver account controls are grouped under Settings without duplicating primary navigation. */
+.receiver-account-options{border-top:1px solid #273247;margin-top:12px;padding-top:10px}
+.receiver-account-options summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:44px;padding:9px 12px;cursor:pointer;color:#b6c1d1;font-weight:600}
+.receiver-account-options summary::-webkit-details-marker{display:none}
+.receiver-account-options[open] summary{color:#ebcf78}
+.receiver-account-options>div{display:grid;gap:2px;padding-left:10px}
+.receiver-account-options a,.receiver-account-options button{display:flex;align-items:center;gap:12px;min-height:44px;padding:9px 12px;background:transparent;border:0;text-decoration:none;color:#b6c1d1;font:inherit;text-align:left;cursor:pointer}
+.receiver-account-options a:hover,.receiver-account-options button:hover{color:#f0d382}
+.receiver-account-options :focus-visible{outline:2px solid #e2c572;outline-offset:2px}
+.receiver-legal-footer{background:#0a0d14;color:#aeb6c3;border-top:1px solid #263146;padding:18px 24px 24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;font-size:12px}
+.receiver-legal-footer p{margin:0;line-height:1.6}.receiver-legal-footer a{color:#e2c572;text-decoration:none}.receiver-legal-footer a:hover{text-decoration:underline}
+@media(max-width:767px){.receiver-legal-footer{padding:18px 16px calc(112px + env(safe-area-inset-bottom));display:block}.receiver-legal-footer p+p{margin-top:7px}}
