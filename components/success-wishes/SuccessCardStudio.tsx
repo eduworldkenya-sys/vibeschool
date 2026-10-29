@@ -126,7 +126,7 @@ type DirectorySchoolOption = {
 
 const phonePattern = /^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/
 const normalisePhone = (value: string) => value.trim().replace(/[ ()-]/g, '')
-const capitaliseFirstLetter = (value: string) => value.replace(/\p{L}/u, letter => letter.toLocaleUpperCase())
+const capitaliseFirstLetter = (value: string) => value.replace(/[A-Za-z]/, letter => letter.toUpperCase())
 
 export default function SuccessCardStudio({ initialDraft, testMode = false }: { initialDraft?: CardDesignDraft; testMode?: boolean }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
