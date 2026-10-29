@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { WishError } from '@/lib/success-wishes/contracts'
-import { consumeOtp, inboxCookie, inboxSession, INBOX_COOKIE, issueOtp, recordConsent } from '@/lib/success-wishes/receiver-otp'
+import { consumeOtp, inboxCookie, INBOX_COOKIE, issueOtp, recordConsent } from '@/lib/success-wishes/receiver-otp'
+import { trustedReceiverSession } from '@/lib/success-wishes/receiver-collection'
+import { PIN_COOKIE } from '@/lib/success-wishes/receiver-pin'
 import { registeredWithdrawalRoute } from '@/lib/success-wishes/receiver-consent'
 import { failure, json, limit, reply } from '@/lib/success-wishes/server'
 
@@ -9,7 +11,7 @@ export const dynamic = 'force-dynamic'
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i
 export async function GET(req: NextRequest) {
   try {
-    const { db, receiver } = await inboxSession(req)
+    const { db, receiver } = await trustedReceiverSession(req)
     const { data, error } = await db.from('success_wish_data_requests')
       .select('id,kind,status,created_at')
       .eq('receiver_id', receiver.id).order('created_at',{ascending:false}).limit(10)
@@ -20,9 +22,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await json(req) as { action?: unknown; cardId?: unknown; reason?: unknown; challengeId?: unknown; code?: unknown }
-    const { db, receiver } = await inboxSession(req)
+    const { db, receiver } = await trustedReceiverSession(req)
     await limit('receiver-safety:' + receiver.id, 20, 86400)
     if (body?.action === 'begin_withdrawal' || body?.action === 'confirm_withdrawal') {
+      // A PIN session is not independently verified phone/guardian authority.
+      // Never send an OTP or allow consent revocation based only on a self-asserted phone.
+      if (req.cookies.has(PIN_COOKIE)) throw new WishError(409, 'This account uses private-link access. Contact support to withdraw consent; SMS is not required for opening or keeping wishes.')
       // Only an existing verified inbox can request this. The OTP destination is trusted
       // server-side data; never accept an alternative guardian number from a caller.
       const { data: person, error: personError } = await db.from('success_wish_receivers')
