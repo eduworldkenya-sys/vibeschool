@@ -21,10 +21,16 @@ export type CardValues = { candidate: string; sender: string; message: string; e
 export type CardDesignDraft = CardValues & { theme: Template }
 
 type WishField = 'candidate' | 'school' | 'phone' | 'sender' | 'message'
-function CompletedSection({ title, value, completed, open, onOpenChange, onBlurCapture, children }: {title:string;value:string;completed:boolean;open:boolean;onOpenChange:(open:boolean)=>void;onBlurCapture?:React.FocusEventHandler<HTMLDetailsElement>;children:React.ReactNode}) {
-  return <details className={`${styles.completedField} ${completed ? styles.isComplete : ''}`} open={open} onBlurCapture={onBlurCapture} onToggle={event => { if(event.currentTarget.open !== open) onOpenChange(event.currentTarget.open) }}>
-    <summary className={styles.fieldSummary}><span className={styles.summaryCheck} aria-hidden="true">{completed && <Check size={17} strokeWidth={3}/>}</span><span className={styles.summaryText}><strong>{title}</strong>{completed && !open && <span className={styles.summaryValue}>{value}</span>}</span>{completed && <Pencil className={styles.summaryEdit} size={17} aria-hidden="true"/>}</summary>
-    <div className={styles.fieldContent}>{children}</div>
+function CompletedSection({ field, next, title, value, completed, open, onOpenChange, children }: {field:WishField;next?:{label:string;disabled?:boolean;onClick:()=>void};title:string;value:string;completed:boolean;open:boolean;onOpenChange:(open:boolean)=>void;children:React.ReactNode}) {
+  return <details data-wish-field={field} className={`${styles.completedField} ${completed ? styles.isComplete : ''}`} open={open} onKeyDown={event => {
+    if (event.key !== 'Enter' || !(event.target instanceof HTMLInputElement) || event.target.getAttribute('role') === 'combobox') return
+    const inputs = Array.from(event.currentTarget.querySelectorAll<HTMLInputElement>('input'))
+    const following = inputs[inputs.indexOf(event.target) + 1]
+    if (following) { event.preventDefault(); following.focus() }
+    else if (next && !next.disabled) { event.preventDefault(); next.onClick() }
+  }}>
+    <summary className={styles.fieldSummary} onClick={event => { event.preventDefault(); onOpenChange(!open) }}><span className={styles.summaryCheck} aria-hidden="true">{completed && <Check size={17} strokeWidth={3}/>}</span><span className={styles.summaryText}><strong>{title}</strong>{completed && !open && <span className={styles.summaryValue}>{value}</span>}</span>{completed && <Pencil className={styles.summaryEdit} size={17} aria-hidden="true"/>}</summary>
+    <div className={styles.fieldContent}>{children}{next && <button type="button" className={styles.fieldNext} disabled={next.disabled} onClick={next.onClick}>{next.label}<ChevronRight size={16} aria-hidden="true"/></button>}</div>
   </details>
 }
 
@@ -148,8 +154,19 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
   const values = { candidate, sender, message, examYear, school, deliveryPhone }
   const [editingStarted, setEditingStarted] = useState(false)
-  const [expandedFields, setExpandedFields] = useState<Record<string, boolean>>({ candidate: true, phone: true, sender: true, message: true, school: true })
-  const setFieldExpanded = (field: WishField, expanded: boolean) => setExpandedFields(previous => ({ ...previous, [field]: expanded }))
+  const formRef = useRef<HTMLDivElement>(null)
+  const [expandedFields, setExpandedFields] = useState<Record<WishField, boolean>>({ candidate: true, phone: false, sender: false, message: false, school: false })
+  const setFieldExpanded = (field: WishField, expanded: boolean) => setExpandedFields(previous => expanded
+    ? {candidate:false,school:false,phone:false,sender:false,message:false,[field]:true}
+    : {...previous,[field]:false})
+  function goToField(field: WishField) {
+    setFieldExpanded(field, true)
+    requestAnimationFrame(() => {
+      const input = formRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-wish-field="${field}"] input, [data-wish-field="${field}"] textarea`)
+      input?.focus({preventScroll:true})
+      input?.scrollIntoView({block:'nearest',behavior:'auto'})
+    })
+  }
   const fieldErrors = {
     candidate: candidate.trim() ? '' : 'Enter the candidate’s name.',
     sender: sender.trim() ? '' : 'Enter your name.',
@@ -160,11 +177,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const completion = [!fieldErrors.candidate && !fieldErrors.examYear, !fieldErrors.deliveryPhone, !fieldErrors.sender, !fieldErrors.message]
   const completedCount = completion.filter(Boolean).length
-  const collapseOnLeave = (field: WishField, valid: boolean, event: React.FocusEvent<HTMLDetailsElement>) => {
-    if (!editingStarted || !valid || event.currentTarget.contains(event.relatedTarget as Node)) return
-    const element = event.currentTarget
-    requestAnimationFrame(() => { if (!element.contains(document.activeElement)) setFieldExpanded(field, false) })
-  }
   useEffect(() => {
     const element = previewRef.current
     if (!element) return
@@ -195,7 +207,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   function clearDraft() {
     if (!window.confirm('Clear this wish and start again?')) return
     restoreDraft({ theme: 'heritage', candidate: '', sender: '', message: '', examYear: '2026', school: '' })
-    setEditingStarted(false); setExpandedFields({candidate:true,school:true,phone:true,sender:true,message:true})
+    setEditingStarted(false); setExpandedFields({candidate:true,school:false,phone:false,sender:false,message:false})
     setDeliveryPhone(''); setSelectedVersion('text'); setMediaFile(null); setTouched({}); setError(''); setStatus(''); setOrder(null)
     setPreviewSession(current => current + 1)
   }
@@ -329,7 +341,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <div><span>LIVE PREVIEW</span><strong>{candidate.trim() || 'Your candidate'}</strong>{message.trim() && <p>{message.trim()}</p>}</div>
           <button type="button" onClick={() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>View card <ChevronRight size={15}/></button>
         </div>
-        <div className={styles.form} onChangeCapture={event => {
+        <div ref={formRef} className={styles.form} onChangeCapture={event => {
           if (event.target instanceof HTMLTextAreaElement) { playFormStartSound() }
         }}><div className={styles.heading}><span>DIGITAL SUCCESS CARD</span><h2 id="personalise-card">Create your wish</h2>{editingStarted && <><div className={styles.progressHeading}><span>YOUR PROGRESS</span><span>{completedCount}/4</span></div><div className={styles.progressTrack} role="progressbar" aria-label="Wish details completed" aria-valuemin={0} aria-valuemax={4} aria-valuenow={completedCount}>{completion.map((done, index) => <span key={index} className={done ? styles.progressDone : undefined}/>)}</div></>}</div>
           {(draftStatus.unavailable || draftStatus.restored || draftStatus.saved) && <div className={styles.draftStatus}>
@@ -337,22 +349,22 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {draftStatus.restored && <p role="status">Draft restored.</p>}
             {draftStatus.saved && <button type="button" className={styles.secondary} onClick={clearDraft}>Clear draft</button>}
           </div>}
-          <CompletedSection title="Candidate details" value={candidate.trim() + ' · ' + examYear} completed={completion[0]} open={expandedFields.candidate} onOpenChange={open => setFieldExpanded('candidate', open)} onBlurCapture={event => collapseOnLeave('candidate', completion[0], event)}><div className={styles.formRow}>
-            <label>Candidate name<input aria-label="Candidate name" aria-invalid={touched.candidate && Boolean(fieldErrors.candidate)} aria-describedby={touched.candidate && fieldErrors.candidate ? schoolInputId + '-candidate-error' : undefined} onBlur={() => setTouched(current => ({ ...current, candidate: true }))} autoComplete="off" maxLength={48} value={candidate} onChange={e => { setEditingStarted(true); setCandidate(e.target.value) }} placeholder="Who are you celebrating?"/>{touched.candidate && fieldErrors.candidate && <small id={schoolInputId + '-candidate-error'} className={styles.fieldError}>{fieldErrors.candidate}</small>}</label>
-            <label>Exam year<input aria-label="Exam year" aria-invalid={touched.examYear && Boolean(fieldErrors.examYear)} aria-describedby={touched.examYear && fieldErrors.examYear ? schoolInputId + '-year-error' : undefined} onBlur={() => setTouched(current => ({ ...current, examYear: true }))} inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => { setEditingStarted(true); setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4)) }} placeholder="e.g. 2026"/>{touched.examYear && fieldErrors.examYear && <small id={schoolInputId + '-year-error'} className={styles.fieldError}>{fieldErrors.examYear}</small>}</label>
+          <CompletedSection field="candidate" next={{label:"Next: school",disabled:!completion[0],onClick:()=>goToField('school')}} title="Candidate details" value={candidate.trim() + ' · ' + examYear} completed={completion[0]} open={expandedFields.candidate} onOpenChange={open => setFieldExpanded('candidate', open)}><div className={styles.formRow}>
+            <label>Candidate name<input enterKeyHint="next" aria-label="Candidate name" aria-invalid={touched.candidate && Boolean(fieldErrors.candidate)} aria-describedby={touched.candidate && fieldErrors.candidate ? schoolInputId + '-candidate-error' : undefined} onBlur={() => setTouched(current => ({ ...current, candidate: true }))} autoComplete="off" maxLength={48} value={candidate} onChange={e => { setEditingStarted(true); setCandidate(e.target.value) }} placeholder="Who are you celebrating?"/>{touched.candidate && fieldErrors.candidate && <small id={schoolInputId + '-candidate-error'} className={styles.fieldError}>{fieldErrors.candidate}</small>}</label>
+            <label>Exam year<input enterKeyHint="next" aria-label="Exam year" aria-invalid={touched.examYear && Boolean(fieldErrors.examYear)} aria-describedby={touched.examYear && fieldErrors.examYear ? schoolInputId + '-year-error' : undefined} onBlur={() => setTouched(current => ({ ...current, examYear: true }))} inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => { setEditingStarted(true); setExamYear(e.target.value.replace(/\D/g, '').slice(0, 4)) }} placeholder="e.g. 2026"/>{touched.examYear && fieldErrors.examYear && <small id={schoolInputId + '-year-error'} className={styles.fieldError}>{fieldErrors.examYear}</small>}</label>
           </div></CompletedSection>
-          <CompletedSection title="Find their school" value={selectedSchool?.school_name || school} completed={Boolean(selectedSchool)} open={expandedFields.school} onOpenChange={open => setFieldExpanded('school', open)} onBlurCapture={event => collapseOnLeave('school', Boolean(selectedSchool), event)}><div className={styles.optionalField}>
+          <CompletedSection field="school" next={{label:school.trim()?"Next: receiver’s phone":"Skip school",onClick:()=>goToField('phone')}} title="Find their school" value={selectedSchool?.school_name || school} completed={Boolean(selectedSchool)} open={expandedFields.school} onOpenChange={open => setFieldExpanded('school', open)}><div className={styles.optionalField}>
             <div className={styles.optionalFieldHeading}><label htmlFor={schoolInputId}>School (optional)</label></div><p className={styles.schoolInvitation}>Make their card even more personal</p>
-            <input id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setEditingStarted(true); setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search school name"/>
+            <input enterKeyHint="next" id={schoolInputId} role="combobox" aria-autocomplete="list" aria-expanded={schoolOptions.length > 0} aria-controls={schoolResultsId} autoComplete="off" maxLength={80} value={school} onChange={e => { setEditingStarted(true); setSchool(e.target.value); setSelectedSchool(null) }} placeholder="Search school name"/>
             {schoolSearchState === 'loading' && <p className={styles.schoolSearchStatus} role="status">Searching VibeSchool schools…</p>}
             {schoolSearchState === 'error' && <p className={styles.schoolSearchStatus} role="status">School search is unavailable right now. You can leave this optional field blank.</p>}
             {schoolSearchState === 'ready' && schoolOptions.length === 0 && <p className={styles.schoolSearchStatus} role="status">No matching school found. Try another name or leave this optional.</p>}
-            {schoolOptions.length > 0 && <ul className={styles.schoolResults} id={schoolResultsId} role="listbox" aria-label="Matching VibeSchool schools">{schoolOptions.map(option => <li key={option.school_id}><button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id} onClick={() => { setSelectedSchool(option); setSchool(option.school_name); setSchoolOptions([]); setSchoolSearchState('idle'); setFieldExpanded('school', false) }}><strong>{option.school_name}</strong><small>{[option.sub_county, option.county].filter(Boolean).join(', ') || 'School in VibeSchool directory'}</small></button></li>)}</ul>}
+            {schoolOptions.length > 0 && <ul className={styles.schoolResults} id={schoolResultsId} role="listbox" aria-label="Matching VibeSchool schools">{schoolOptions.map(option => <li key={option.school_id}><button type="button" role="option" aria-selected={selectedSchool?.school_id === option.school_id} onClick={() => { setSelectedSchool(option); setSchool(option.school_name); setSchoolOptions([]); setSchoolSearchState('idle'); goToField('phone') }}><strong>{option.school_name}</strong><small>{[option.sub_county, option.county].filter(Boolean).join(', ') || 'School in VibeSchool directory'}</small></button></li>)}</ul>}
             {selectedSchool && <p className={styles.schoolSearchStatus} role="status">Selected from VibeSchool&apos;s school list: {selectedSchool.school_name}{selectedSchool.sub_county || selectedSchool.county ? ` · ${[selectedSchool.sub_county, selectedSchool.county].filter(Boolean).join(', ')}` : ''}</p>}
           </div></CompletedSection>
-          <CompletedSection title="Receiver's phone" value={deliveryPhone} completed={completion[1]} open={expandedFields.phone} onOpenChange={open => setFieldExpanded('phone', open)} onBlurCapture={event => collapseOnLeave('phone', completion[1], event)}><label>Phone to receive this wish<input aria-label="Phone to receive this wish" aria-invalid={touched.deliveryPhone && Boolean(fieldErrors.deliveryPhone)} onBlur={() => setTouched(current => ({ ...current, deliveryPhone: true }))} autoComplete="tel" inputMode="tel" type="tel" maxLength={20} value={deliveryPhone} onChange={e => { setEditingStarted(true); setDeliveryPhone(e.target.value) }} placeholder="07XX XXX XXX"/>{touched.deliveryPhone && fieldErrors.deliveryPhone && <small className={styles.fieldError}>{fieldErrors.deliveryPhone}</small>}</label></CompletedSection>
-          <CompletedSection title="Your name" value={sender.trim()} completed={completion[2]} open={expandedFields.sender} onOpenChange={open => setFieldExpanded('sender', open)} onBlurCapture={event => collapseOnLeave('sender', completion[2], event)}><label>Your name<input aria-label="Your name" aria-invalid={touched.sender && Boolean(fieldErrors.sender)} aria-describedby={touched.sender && fieldErrors.sender ? schoolInputId + '-sender-error' : undefined} onBlur={() => setTouched(current => ({ ...current, sender: true }))} autoComplete="off" maxLength={48} value={sender} onChange={e => { setEditingStarted(true); setSender(e.target.value) }} placeholder="From whom?"/>{touched.sender && fieldErrors.sender && <small id={schoolInputId + '-sender-error'} className={styles.fieldError}>{fieldErrors.sender}</small>}</label></CompletedSection>
-          <CompletedSection title="Your wish" value={message.trim()} completed={completion[3]} open={expandedFields.message} onOpenChange={open => setFieldExpanded('message', open)} onBlurCapture={event => collapseOnLeave('message', completion[3], event)}>
+          <CompletedSection field="phone" next={{label:"Next: your name",disabled:!completion[1],onClick:()=>goToField('sender')}} title="Receiver's phone" value={deliveryPhone} completed={completion[1]} open={expandedFields.phone} onOpenChange={open => setFieldExpanded('phone', open)}><label>Phone to receive this wish<input enterKeyHint="next" aria-label="Phone to receive this wish" aria-invalid={touched.deliveryPhone && Boolean(fieldErrors.deliveryPhone)} onBlur={() => setTouched(current => ({ ...current, deliveryPhone: true }))} autoComplete="tel" inputMode="tel" type="tel" maxLength={20} value={deliveryPhone} onChange={e => { setEditingStarted(true); setDeliveryPhone(e.target.value) }} placeholder="07XX XXX XXX"/>{touched.deliveryPhone && fieldErrors.deliveryPhone && <small className={styles.fieldError}>{fieldErrors.deliveryPhone}</small>}</label></CompletedSection>
+          <CompletedSection field="sender" next={{label:"Next: your wish",disabled:!completion[2],onClick:()=>goToField('message')}} title="Your name" value={sender.trim()} completed={completion[2]} open={expandedFields.sender} onOpenChange={open => setFieldExpanded('sender', open)}><label>Your name<input enterKeyHint="next" aria-label="Your name" aria-invalid={touched.sender && Boolean(fieldErrors.sender)} aria-describedby={touched.sender && fieldErrors.sender ? schoolInputId + '-sender-error' : undefined} onBlur={() => setTouched(current => ({ ...current, sender: true }))} autoComplete="off" maxLength={48} value={sender} onChange={e => { setEditingStarted(true); setSender(e.target.value) }} placeholder="From whom?"/>{touched.sender && fieldErrors.sender && <small id={schoolInputId + '-sender-error'} className={styles.fieldError}>{fieldErrors.sender}</small>}</label></CompletedSection>
+          <CompletedSection field="message" title="Your wish" value={message.trim()} completed={completion[3]} open={expandedFields.message} onOpenChange={open => setFieldExpanded('message', open)}>
           <div className={styles.messageIdeas}>
             <div className={styles.messageIdeasHeading}><strong>Need a wish?</strong><small>Tap a phrase, then make it yours</small></div>
             <div>{messageStarters.map(starter => <button type="button" key={starter.label} aria-label={'Use wish starter: ' + starter.label} onClick={() => {

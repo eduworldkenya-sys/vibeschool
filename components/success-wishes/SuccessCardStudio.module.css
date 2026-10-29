@@ -521,51 +521,6 @@
 .checkoutDetails .secondary{font-size:13px;margin-top:8px;min-height:44px}
 .checkoutError{color:#ffb8ad;font-size:14px;line-height:1.5;margin:14px 0 0}
 
-/* Completed sender fields remain editable without occupying full form height. */
-.completedField{min-width:0;border:1px solid var(--line);border-radius:12px;padding:0 12px;margin:0 0 12px}
-.completedField>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;color:var(--cream);font-size:14px;font-weight:600;overflow-wrap:anywhere;list-style:none}
-.completedField>summary::-webkit-details-marker{display:none}
-.completedField>summary:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
-.completedField[open]{padding-bottom:12px}
-.completedField[open]>summary{margin-bottom:8px}
-
-.progressHeading{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--gold2);margin-top:12px}
-.progressTrack{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:6px}
-.progressTrack span{height:4px;background:var(--line);border-radius:4px;transition:background-color .25s ease}
-.progressTrack .progressDone{background:var(--gold2)}
-.completedField>summary{gap:8px;flex-wrap:wrap}
-.completedField>summary small{font-size:11px;opacity:.7}
-.schoolInvitation{font-size:12px;color:var(--cream);opacity:.75;margin:0 0 8px}
-.readyMessage{font-size:13px;color:var(--gold2);font-weight:700}
-@media(prefers-reduced-motion:reduce){.progressTrack span{transition:none}}
-
-/* Animate disclosure contents while retaining native keyboard and summary controls. */
-@supports (interpolate-size:allow-keywords){
-  .completedField{interpolate-size:allow-keywords}
-  .completedField::details-content{block-size:0;opacity:0;overflow:hidden;transition:block-size .23s ease,opacity .23s ease,content-visibility .23s allow-discrete}
-  .completedField[open]::details-content{block-size:auto;opacity:1}
-}
-@media(prefers-reduced-motion:reduce){.completedField::details-content{transition:none}}
-
-/* Compact summaries retain the existing dark and gold sender design. */
-.completedField{position:relative;margin:0 0 12px;border:1px solid var(--line);border-radius:16px;background:#1c2938;overflow:clip;transition:border-color .23s ease,box-shadow .23s ease,background-color .23s ease}
-.completedField[open]{border-color:#c8a44d;box-shadow:0 0 0 1px #c8a44d30}
-.completedField.isComplete:not([open]){background:#1c2938;border-color:#a88b454f}
-.completedField>.fieldSummary{display:flex;align-items:center;gap:12px;min-height:58px;padding:13px 15px;cursor:pointer;list-style:none;user-select:none}
-.completedField>.fieldSummary::-webkit-details-marker{display:none}
-.completedField>.fieldSummary::marker{content:''}
-.completedField>.fieldSummary:focus-visible{outline:2px solid #bd9135;outline-offset:-3px;border-radius:14px}
-.summaryCheck{display:grid;place-items:center;flex:0 0 27px;width:27px;height:27px;border:1px solid #bda45966;border-radius:50%;background:transparent;color:var(--gold2)}
-.isComplete .summaryCheck{background:transparent;border-color:var(--gold2);color:var(--gold2)}
-.summaryText{display:flex;flex:1;flex-direction:column;min-width:0;gap:3px}
-.summaryText strong{color:var(--cream);font-size:14px;font-weight:700}
-.summaryValue{color:#bac1cc;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
-.summaryEdit{flex-shrink:0;color:#b68b2d}
-.completedField[open] .summaryEdit{opacity:.55}
-.completedField>.fieldContent{padding:0 15px 16px}
-@media(max-width:480px){.completedField>.fieldSummary{min-height:56px;padding:12px;gap:10px}.completedField>.fieldContent{padding:0 12px 14px}.summaryText strong{font-size:13px}}
-@media(prefers-reduced-motion:reduce){.completedField,.completedField::details-content{transition:none}}
-
 .giftShare{display:grid;gap:8px;text-align:center}
 .giftShare .primary{display:flex;align-items:center;justify-content:center;min-height:48px;background:#e4c772;color:#151b25;border:1px solid #e4c772;border-radius:10px;padding:12px 16px;font:700 14px/1.4 system-ui,sans-serif;text-decoration:none}
 .giftShare p{margin:0;font:400 12px/1.5 system-ui,sans-serif;color:#bac1cc}
@@ -573,13 +528,8 @@
 .form .sendRow .orderTotal{flex:1;gap:16px;min-width:0;width:100%}
 
 /* Comfortable rhythm and clear feedback without changing the card designs. */
-.form{border-radius:22px;padding:clamp(18px,3vw,28px)}
-.heading{margin-bottom:20px}
-.completedField{margin-bottom:16px}
-.completedField>.fieldSummary{min-height:68px}
-.completedField>.fieldContent{padding-bottom:20px}
-.form input,.form textarea{min-height:48px;border-radius:12px;transition:border-color .18s,box-shadow .18s}
-.form input:focus,.form textarea:focus{outline:2px solid var(--gold2);outline-offset:2px;box-shadow:0 0 0 5px #d8b45e14}
+.form input,.form textarea{min-height:44px;border-radius:8px;transition:none}
+.form input:focus,.form textarea:focus{outline:2px solid var(--gold2);outline-offset:1px;box-shadow:none}
 .messageIdeas{margin:0 0 16px}
 .messageIdeasHeading{display:grid;gap:5px;margin-bottom:10px}
 .messageIdeas>div button{min-height:44px;padding:10px 14px}
@@ -602,3 +552,32 @@
 @keyframes wishSparkle{0%{opacity:0;transform:translateY(12px) scale(.5)}40%{opacity:1}100%{opacity:0;transform:translateY(-18px) scale(1.15)}}
 @media(max-width:560px){.completedField>.fieldSummary{padding:14px 12px}.checkoutModal{max-height:calc(100dvh - 24px);padding-bottom:max(24px,env(safe-area-inset-bottom))}.sendRow{bottom:max(8px,env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){.successCelebration,.successCelebration span{animation:none}.successCelebration span{display:none}.form input,.form textarea{transition:none}}
+
+/* Flat, compact sender: native disclosures, one active field group, no blur or shadows. */
+.form{padding:14px;border:1px solid var(--line);border-radius:10px;background:#111722;box-shadow:none}
+.form .heading{margin-bottom:8px}.form .heading>span{display:none}.form .heading h2{font-size:22px;margin:0 0 6px}
+.progressHeading{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font-size:11px;color:var(--gold2)}
+.progressTrack{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:6px}
+.progressTrack span{height:4px;border-radius:4px;background:var(--line)}.progressTrack .progressDone{background:var(--gold2)}
+.form .draftStatus{margin:0 0 8px}.form .draftStatus button{min-height:32px;padding:4px 0;border:0;border-radius:0;background:transparent;color:var(--muted);font-size:11px}
+.completedField{min-width:0;margin:0 0 6px;padding:0;border:0;border-bottom:1px solid var(--line);background:transparent}
+.completedField>.fieldSummary{display:flex;align-items:center;gap:9px;min-height:44px;padding:6px 0;list-style:none;cursor:pointer;user-select:none}
+.fieldSummary::-webkit-details-marker{display:none}.fieldSummary::marker{content:''}.fieldSummary:focus-visible{outline:2px solid var(--gold2);outline-offset:1px}
+.fieldContent{padding:4px 4px 12px}
+.summaryCheck{display:grid;place-items:center;flex:0 0 20px;width:20px;height:20px;border:1px solid #bda45966;border-radius:50%;color:var(--gold2)}
+.isComplete .summaryCheck{border-color:var(--gold2)}
+.summaryText{display:flex;flex:1;flex-direction:column;min-width:0;gap:2px}.summaryText strong{color:var(--cream);font-size:13px;line-height:1.2}
+.summaryValue{color:var(--muted);font-size:11px;line-height:1.2;overflow:hidden;max-height:1.2em;white-space:nowrap;text-overflow:ellipsis}
+.summaryEdit{flex-shrink:0;color:var(--gold)}
+.form .formRow,.form .optionalField{padding:0;border:0;margin-top:0;background:transparent;box-shadow:none}.form .formRow{gap:10px}
+.form label{margin-top:8px}.form .fieldContent>label:first-child{margin-top:0}
+.form input,.form textarea{min-height:44px;border-radius:8px;box-shadow:none;transition:none}.form textarea{min-height:100px}
+.form input:focus,.form textarea:focus{outline:2px solid var(--gold2);outline-offset:1px;box-shadow:none}
+.form .messageIdeas{margin-bottom:10px}.form .messageIdeasHeading{gap:3px;margin-bottom:7px}.form .messageIdeasHeading small{font-size:11px}
+.form .messageIdeas>div button{min-height:44px;padding:6px 5px;font-size:11px;line-height:1.2;box-shadow:none;transform:none}
+.schoolInvitation{font-size:12px;color:var(--muted);margin:0 0 8px}.readyMessage{display:none}
+.fieldNext{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;margin-top:12px;padding:8px 12px;border:1px solid var(--gold);border-radius:8px;background:transparent;color:var(--gold2);font:650 13px var(--font-jakarta),system-ui,sans-serif;cursor:pointer}
+.fieldNext:disabled{opacity:.4;cursor:not-allowed}.fieldNext:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+.form .sendRow{position:static;padding:10px 0 0;margin-top:10px;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none}
+.form .sendRow .orderTotal{border:0;margin:0;padding:0}.mobilePreview{box-shadow:none}
+@media(max-width:850px){.mobilePreview{position:static;padding:7px}.mobilePreview>.art{width:64px}.mobilePreview p{-webkit-line-clamp:1}.form input,.form textarea{scroll-margin-block:12px}.form{padding:12px}}
