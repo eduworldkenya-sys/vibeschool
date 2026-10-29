@@ -46,7 +46,7 @@ export default function SuccessWishSafety() {
   useEffect(() => {
     let mounted = true
     void Promise.all([
-      fetch('/api/success-wishes/receiver/inbox', { cache: 'no-store' }).then(
+      fetch('/api/success-wishes/receiver/collection', { cache: 'no-store' }).then(
         async (r) => {
           const p = await r.json()
           if (!r.ok) throw new Error(p.error || 'Please verify your inbox.')
@@ -61,7 +61,7 @@ export default function SuccessWishSafety() {
     ])
       .then(([inbox, rights]) => {
         if (!mounted) return
-        setCards(inbox.cards || [])
+        // Only legacy cards have the legacy per-card hide/report persistence contract.\n        // Paid and group cards remain available in My wishes without offering inert controls.\n        setCards((inbox.cards || []).filter((card: Gift & {source?: string}) => card.source === 'legacy'))
         setRequests(rights.requests || [])
       })
       .catch((e) => {
