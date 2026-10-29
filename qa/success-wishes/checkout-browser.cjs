@@ -52,6 +52,7 @@ fs.mkdirSync(artifacts,{recursive:true})
      await noJs.close()
    }
    await page.goto(root+'/success-wishes',{waitUntil:'networkidle',timeout:120000})
+   await page.getByRole('button',{name:'Close Success Wishes offer',exact:true}).click()
    assert.equal(await page.locator('main').getByRole('link',{name:'Send a Success Card',exact:true}).count(),1,'Sender entrance is visible')
    assert.equal(await page.locator('main').getByRole('link',{name:'Open a Success Card',exact:true}).count(),1,'Receiver entrance is visible')
    assert.equal(await page.locator('.receiver-sender-links').count(),0,'No duplicate sender navigation strip')
