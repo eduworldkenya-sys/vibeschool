@@ -564,6 +564,8 @@
 .completedField>.fieldSummary{display:flex;align-items:center;gap:9px;min-height:44px;padding:6px 0;list-style:none;cursor:pointer;user-select:none}
 .fieldSummary::-webkit-details-marker{display:none}.fieldSummary::marker{content:''}.fieldSummary:focus-visible{outline:2px solid var(--gold2);outline-offset:1px}
 .fieldContent{padding:4px 4px 12px}
+.completedField[open]{padding-bottom:4px}
+.fieldContent input,.fieldContent textarea{margin-top:6px}
 .summaryCheck{display:grid;place-items:center;flex:0 0 20px;width:20px;height:20px;border:1px solid #bda45966;border-radius:50%;color:var(--gold2)}
 .isComplete .summaryCheck{border-color:var(--gold2)}
 .summaryText{display:flex;flex:1;flex-direction:column;min-width:0;gap:2px}.summaryText strong{color:var(--cream);font-size:13px;line-height:1.2}
