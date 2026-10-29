@@ -23,7 +23,6 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
   }
 
   function chooseFour() {
-    if (!preview) return
     setVisible(false)
     setDemoOpen(true)
   }
@@ -52,12 +51,12 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
           <p className={styles.tagline}>Just for them.</p>
           <button type="button" onClick={chooseOne}>Choose One</button>
         </div>
-        <div className={styles.group} role={preview ? "button" : undefined} tabIndex={preview ? 0 : undefined} aria-label={preview ? "KSh 100 Group Wishes. Open four-student demo" : undefined} onClick={chooseFour} onKeyDown={event => { if (preview && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); chooseFour() } }} style={preview ? { cursor: "pointer" } : undefined}>
+        <div className={styles.group} role="button" tabIndex={0} aria-label="KSh 100 Group Wishes. Open four-student demo" onClick={chooseFour} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); chooseFour() } }} style={{ cursor: "pointer" }}>
           <span>GROUP WISHES</span>
           <strong>KSh 100</strong>
           <p>Up to 4 students</p>
           <p className={styles.free}>Get 2 FREE</p>
-          <button type="button" disabled={!preview} title={preview ? "Open group wishes demo" : "Group checkout is not yet available"} onClick={event => { event.stopPropagation(); chooseFour() }}>Choose Four</button>
+          <button type="button" title="Try group wishes demo — no payment" onClick={event => { event.stopPropagation(); chooseFour() }}>Choose Four</button>
         </div>
       </div>
       <p className={styles.footer}>Personalised cards. Private wishes.</p>
