@@ -419,7 +419,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </div>}</div>
       </section>
       <footer className={styles.footer}>
-        <p><Link href="/legal/terms">Terms &amp; Conditions apply</Link></p></footer>
+        <p>© 2026 VibeSchool · by GILOWINC</p>
+        <p><Link href="/legal/terms">Terms &amp; Conditions apply</Link> · <Link href="/contact">Contact us</Link></p></footer>
     </main>
     {checkoutOpen && <WishCheckout inboxRequest={inboxRequest} soundEnabled={soundEnabled} theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
   </div>
