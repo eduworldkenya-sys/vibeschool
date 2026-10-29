@@ -5,6 +5,7 @@ import { HQPage, HQPanel, HQ_THEME, hqButtonStyle } from '@/components/hq/HQShel
 import { hqSupabase } from '@/lib/hq/supabase'
 import SuccessWishesPaymentReadiness from '@/components/success-wishes/SuccessWishesPaymentReadiness'
 import SuccessWishesBusinessReport from '@/components/success-wishes/SuccessWishesBusinessReport'
+import SuccessWishesLedger from '@/components/success-wishes/SuccessWishesLedger'
 
 type School = {
   school_id: string
@@ -134,6 +135,7 @@ export default function SuccessWishesHQ() {
       {notice && <p role="status" style={{color:HQ_THEME.green,marginTop:12}}>{notice}</p>}
     </HQPanel>
     {allowed === true && <SuccessWishesBusinessReport/>}
+    {allowed === true && <SuccessWishesLedger/>}
     {allowed === true && <SuccessWishesPaymentReadiness/>}
   </HQPage>
 }
