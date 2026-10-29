@@ -13,3 +13,7 @@
 .requestRow div{display:grid;gap:4px;overflow-wrap:anywhere;min-width:0}
 .requestRow .secondary{min-height:38px;background:transparent;color:#e2c572;border:1px solid #e2c572;padding:6px 12px;flex-shrink:0}
 @media(max-width:390px){.panel{padding:18px}.requestRow{flex-wrap:wrap}}
+
+/* Compact floating browser-confirmation panel; success and error remain announced. */
+.confirmPanel{position:relative;z-index:1;display:grid;gap:12px;padding:18px;border:1px solid #d4af3777;border-radius:16px;background:#172235;box-shadow:0 12px 32px #0005;animation:confirmEnter .22s ease-out}
+.confirmPanel>strong{font:22px Georgia,serif;color:#f1d992}.confirmPanel p{margin:0}.generated{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#0b1423;padding:10px 12px;border-radius:10px}.generated output{font:700 26px ui-monospace,monospace;letter-spacing:4px;color:#f2d58a}.generated button{min-height:38px}.success{color:#a5e9b8!important;font-size:13px!important}.error{background:#7a202025;padding:10px;border-radius:8px}@keyframes confirmEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}@media(prefers-reduced-motion:reduce){.confirmPanel{animation:none}}
