@@ -586,3 +586,9 @@
 .form .sendRow{position:static;padding:10px 0 0;margin-top:10px;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none;backdrop-filter:none}
 .form .sendRow .orderTotal{border:0;margin:0;padding:0}.mobilePreview{box-shadow:none}
 @media(max-width:850px){.mobilePreview{position:static;padding:7px}.mobilePreview>.art{width:64px}.mobilePreview p{-webkit-line-clamp:1}.form input,.form textarea{scroll-margin-block:12px}.form{padding:12px}}
+
+/* Guided wish entry: the textarea grows with its text; counter and Done share a row. */
+.form textarea{overflow:hidden;resize:none}
+.messageFooter{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px}
+.messageFooter .counter{margin:0}
+.messageFooter .fieldNext{margin-top:0}
