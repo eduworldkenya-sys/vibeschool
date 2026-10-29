@@ -153,6 +153,9 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/school-provisioning-assertions.sql
           psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261026183710_success_wishes_receiver_access_hardening.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/receiver-hardening-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261028173000_success_wishes_free_pilot_backend.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261029064000_success_wishes_receiver_pin_collections.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/pin-collection-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety

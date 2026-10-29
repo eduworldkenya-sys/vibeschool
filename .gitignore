@@ -87,3 +87,6 @@ PASTE_ME_*.sh
 .vibeschool-agent/
 .success-wishes-test-data.json
 .success-wishes-test-data.json.tmp
+
+# Local dependency symlink used by isolated worktrees
+/node_modules

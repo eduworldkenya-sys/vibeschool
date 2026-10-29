@@ -46,8 +46,8 @@ async function gift(req: NextRequest, reveal: boolean) {
   const card = order.card as { theme:string;candidate:string;sender:string;message:string;school:string;examYear:string }
   if (reveal) {
     // The gift message is returned only after the receiver taps the envelope.
-    await db.from('success_wish_guest_gifts').update({opened_at:new Date().toISOString()})
-      .eq('id',access.id).is('opened_at',null)
+    const {data:opened,error:oe}=await db.rpc('success_wish_pin_open_gift',{p_link:hashSecret('success-wishes:paid-link:'+token)})
+    if(oe||opened!==true)throw new WishError(503,'Your gift could not be opened. Try again.')
   }
   return { card: {
     id:access.id,theme:card.theme,candidate:card.candidate,school:card.school,

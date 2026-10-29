@@ -9,8 +9,9 @@ import {playWishFeedbackSound,prepareWishFeedbackSound} from '@/lib/success-wish
 import GiftShareActions from './GiftShareActions'
 type CheckoutReply={order:CheckoutOrder;paymentError?:string|null}
 class CheckoutRequestError extends Error{constructor(readonly status:number,message:string){super(message)}}
-export default function WishCheckout({theme,values,onClose,soundEnabled=false}:{soundEnabled?:boolean;theme:Template;values:CardValues;onClose:()=>void}){
+export default function WishCheckout({theme,values,onClose,soundEnabled=false,inboxRequest=''}:{inboxRequest?:string;soundEnabled?:boolean;theme:Template;values:CardValues;onClose:()=>void}){
  const id=useId(),dialog=useRef<HTMLElement>(null),inFlight=useRef(false),alive=useRef(true)
+ const [correctPhone,setCorrectPhone]=useState('')
  const [key,setKey]=useState(''),[phone,setPhone]=useState('')
  const [draft,setDraft]=useState({theme,...values})
  const [order,setOrder]=useState<CheckoutOrder|null>(null),[restoring,setRestoring]=useState(true)
@@ -78,7 +79,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false}:{
    if(action==='pay'){
     if(uncertain||current&&current.state!=='created')return
     if(!current){
-     const created=await call({action:'create',key,version:'text',...draft,payerPhone:phone})
+     const created=await call({action:'create',key,version:'text',...draft,payerPhone:phone,...(inboxRequest?{inboxRequest}:{})})
      current=created.order;if(alive.current)setOrder(current)
     }
     if(current.state==='created'){
@@ -100,6 +101,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false}:{
  function clear(nextPhone=''){
   sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);setOrder(null);setKey(newCheckoutKey());setPhone(nextPhone);setUncertain(false);setError('');setNotice('')
  }
+ async function correctAddress(){if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');try{const p=await call({action:'correct_address',key,phone:correctPhone});if(alive.current){setOrder(p.order);setCorrectPhone('');setNotice('Address corrected. The old gift link is replaced. Share the new link.')}}catch(e){if(alive.current)setError(e instanceof Error?e.message:'Could not correct this address.')}finally{inFlight.current=false;if(alive.current)setBusy(false)}}
  async function editNumber(){
   if(inFlight.current)return
   inFlight.current=true;setBusy(true);setError('')
@@ -137,6 +139,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false}:{
  const title=restoring?'Restoring your order':success==='sent'?'Success card invitation sent!':success==='ready'?'Your success card is ready!':order?.state==='settled'?'Payment received':uncertain||order?.state==='reconciliation_required'?'Confirming payment':checking?'Check your phone':order?.state==='failed'?'Payment not completed':order?.state==='refunded'?'Payment refunded':'Review your wish'
  return <div className={styles.modalBackdrop} onKeyDown={trap}><section ref={dialog} tabIndex={-1} className={styles.checkoutModal} role="dialog" aria-modal="true" aria-labelledby={id}>
   <button type="button" className={styles.modalClose} aria-label="Close checkout" onClick={onClose}><X size={20}/></button>
+  {order?.state==='settled'&&<p>{order.inboxStatus==='opened'?'Opened':order.inboxStatus==='available'?'Available in their inbox':'Not opened—share link'}</p>}
   {success&&<div className={styles.successCelebration} aria-hidden="true"><Check size={30}/><span>✦</span><span>✧</span><span>✦</span></div>}
   <h2 id={id}>{title}</h2>
   <div className={`${styles.checkoutPreview} ${checking?styles.checkoutPreviewCompact:''}`}><CardArt template={card.theme} values={card} preview/><strong>For {card.candidate}</strong></div>
@@ -160,6 +163,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false}:{
     {key&&<details className={styles.checkoutDetails}><summary>Order details</summary>
      {order&&<><p className={styles.checkoutReference}>Order {order.id}</p>{order.receipt&&<p>M-Pesa receipt: {order.receipt}</p>}<p>Delivery: {order.card.deliveryPhone||'Private gift link'}</p></>}
      <label className={styles.checkoutLabel}>Recovery key<input readOnly value={key} onFocus={e=>e.target.select()}/></label><p>Keep this key private to restore your order.</p>
+     {order?.state==='settled'&&order.inboxStatus!=='opened'&&<details><summary>Correct recipient number</summary><label className={styles.checkoutLabel}>Recipient phone<input type="tel" value={correctPhone} onChange={e=>setCorrectPhone(e.target.value)}/></label><button type="button" disabled={busy||!correctPhone.trim()} onClick={()=>void correctAddress()}>Update address</button><p>Opened or claimed gifts need <a href="/contact">support</a>.</p></details>}
      {order?.backupCode&&<label className={styles.checkoutLabel}>Backup card code<input readOnly value={order.backupCode} onFocus={e=>e.target.select()}/></label>}
      {order&&!uncertain&&['created','failed','settled','refunded'].includes(order.state)&&<button type="button" className={styles.secondary} disabled={busy} onClick={reset}>{order.state==='settled'?'Create another wish':'Start a new checkout'}</button>}
     </details>}

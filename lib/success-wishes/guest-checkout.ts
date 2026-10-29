@@ -4,7 +4,8 @@ import {guestTextWishQuote} from './guest-checkout-contract'
 import {database,limit} from './server'
 import {enabled,hashSecret} from './security'
 import {linkDigest,codeDigest} from './receiver'
-import {deliverGuestGiftOnce} from './guest-gift-sms'
+import {requestRecipient} from './receiver-collection'
+import {senderPhone} from './phone-verification'
 import {sixCardCodeFromOrderKey} from './card-code'
 type DB=ReturnType<typeof database>
 export const orderKeyHash=(key:string)=>hashSecret('success-wishes:guest-order:'+key)
@@ -23,7 +24,7 @@ async function present(db:DB,key:string){
  let invitationUrl:string|null=null,backupCode:string|null=null
  let deliveryStatus:'not_addressed'|'disabled'|'accepted'|'needs_review'='not_addressed'
  if(o.state==='settled'&&!o.refunded_at){
-  const secret=hashSecret('success-wishes:guest-card-link:'+key),code=sixCardCodeFromOrderKey(key)
+  const secret=hashSecret('success-wishes:guest-card-link:'+key+(o.gift_access_epoch?':'+o.gift_access_epoch:'')),code=sixCardCodeFromOrderKey(key)
   if(o.receiver_id){
    const {data,error}=await db.rpc('success_wish_issue_guest_card',{p_id:o.id,p_key_hash:orderKeyHash(key),p_link_hash:linkDigest(secret),p_code_hash:codeDigest(code)})
    if(error||!data)throw new WishError(503,'Payment is recorded. Card delivery is pending. Keep your recovery key and check again; do not pay again.')
@@ -39,10 +40,10 @@ async function present(db:DB,key:string){
    const {data,error}=await db.rpc('success_wish_issue_unrequested_guest_gift',{p_id:o.id,p_key_hash:orderKeyHash(key),p_link_hash:linkDigest(secret)})
    if(error||!data)throw new WishError(503,'Payment is confirmed. Your private gift link is being prepared. Keep your recovery key and check again; do not pay again.')
    invitationUrl='https://vibeschool.co.ke/success-wishes/gift#token='+secret
-   deliveryStatus=await deliverGuestGiftOnce(db,o,key,invitationUrl)
+   deliveryStatus='disabled'
   }
  }
- return {id:o.id,state:o.state,amountKes:50,payerPhone:o.payer_phone,card:o.card,receipt:o.state==='settled'?o.provider_receipt:null,invitationUrl,backupCode,deliveryStatus}
+ return {id:o.id,state:o.state,amountKes:50,payerPhone:o.payer_phone,card:{...o.card,deliveryPhone:o.delivery_phone_override||o.card.deliveryPhone},receipt:o.state==='settled'?o.provider_receipt:null,invitationUrl,backupCode,deliveryStatus,inboxStatus:o.state==='settled'&&o.inbox_receiver_id?(o.inbox_opened_at?'opened':'available'):'unclaimed'}
 }
 export async function guestCheckout(req:NextRequest,raw:unknown){
  if(!enabled())throw new WishError(503,'Success Wishes checkout is not open yet. No new payment was requested.')
@@ -54,14 +55,21 @@ export async function guestCheckout(req:NextRequest,raw:unknown){
   const q=guestTextWishQuote({...b,idempotencyKey:key})
   // The sender chooses who the gift is for; a recipient request or registration is never required.
   if(b.recipientRequest!==undefined)throw new WishError(400,'A recipient request is not part of gift checkout.')
-  const matches=(o:Record<string,unknown>)=>o.card_digest===q.cardDigest&&o.payer_phone===q.payerPhone&&o.receiver_id==null&&o.request_id==null
+  const target=await requestRecipient(db,b.inboxRequest,q.card)
+  const requestHash=target?hashSecret('success-wishes:gift-request:'+String(b.inboxRequest)):null
+  const matches=(o:Record<string,unknown>)=>o.card_digest===q.cardDigest&&o.payer_phone===q.payerPhone&&o.receiver_id==null&&o.request_id==null&&((o.inbox_request_hash||null)===requestHash)
   const previous=await find(db,key)
   if(previous&&!matches(previous))throw new WishError(409,'This private key belongs to a different order. Restore that order first.')
   if(!previous){
-   const {error}=await db.from('success_wish_guest_orders').insert({key_hash:orderKeyHash(key),card:q.card,card_digest:q.cardDigest,payer_phone:q.payerPhone})
+   const {error}=await db.from('success_wish_guest_orders').insert({key_hash:orderKeyHash(key),card:q.card,card_digest:q.cardDigest,payer_phone:q.payerPhone,inbox_receiver_id:target,inbox_request_hash:requestHash})
    if(error?.code==='23505'){const o=await find(db,key);if(!o||!matches(o))throw new WishError(409,'Order reference conflict. Restore your saved order.')}
    else if(error)throw new WishError(503,'Your order could not be saved. No payment was requested.')
   }
+ }else if(b.action==='correct_address'){
+  const phone=senderPhone(b.phone),o=await find(db,key);if(!o)throw new WishError(404,'Order not found.')
+  const epoch=o.gift_access_epoch||0,next=hashSecret('success-wishes:guest-card-link:'+key+':'+(epoch+1))
+  const {data,error}=await db.rpc('success_wish_pin_correct_address',{p_key:orderKeyHash(key),p_phone:phone,p_epoch:epoch,p_link:linkDigest(next)})
+  if(error||data!==true)throw new WishError(409,'This gift has been opened or claimed. Contact support to correct its address.')
  }else if(b.action==='pay'||b.action==='status'){
   const o=await find(db,key);if(!o)throw new WishError(404,'No saved order was found for this recovery key.')
   if(b.action==='pay'){

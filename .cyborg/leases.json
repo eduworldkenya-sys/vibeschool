@@ -1,20 +1,18 @@
 [
   {
-    "missionId": "CYBORG-20261028174719-a3ff6e",
-    "runId": "ef4cfaf9-ce69-47bb-b1de-0cb082a690c1",
+    "missionId": "CYBORG-20261029063547-de83d6",
+    "runId": "d0e29535-9649-4f69-b882-9deb7e4da2b9",
     "paths": [
+      "app/success-wishes",
+      "app/api/success-wishes",
       "components/success-wishes",
-      "lib/success-wishes/checkout-client.ts",
-      "lib/success-wishes/checkout-client.test.ts",
-      "lib/success-wishes/gift-sharing.ts",
-      "lib/success-wishes/gift-sharing.test.ts",
-      "app/success-wishes/gift/page.tsx",
-      "qa/success-wishes/checkout-browser.cjs",
-      "qa/success-wishes/sender-effects-browser.cjs",
-      "docs/success-wishes",
-      "qa/success-wishes/disabled-browser.cjs"
+      "lib/success-wishes",
+      "supabase/migrations",
+      "qa/success-wishes",
+      ".github/workflows/success-wishes-contracts.yml",
+      "docs/success-wishes"
     ],
-    "acquiredAt": "2026-10-28T17:47:30.021Z",
-    "releasedAt": "2026-10-28T17:58:50.121Z"
+    "acquiredAt": "2026-10-29T06:36:31.381Z",
+    "releasedAt": "2026-10-29T07:12:37.006Z"
   }
 ]
