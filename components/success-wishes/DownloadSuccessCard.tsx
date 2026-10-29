@@ -30,8 +30,9 @@ function render(gift: GiftDetails): HTMLCanvasElement {
   const width = 1200
   const pagePadding = 100
   const canvas = document.createElement('canvas')
-  const measure = document.createElement('canvas').getContext('2d')
-  if (!measure) throw new Error('Your browser cannot create this image.')
+  const measuringContext = document.createElement('canvas').getContext('2d')
+  if (!measuringContext) throw new Error('Your browser cannot create this image.')
+  const measure: CanvasRenderingContext2D = measuringContext
   const theme = palette[gift.theme]
   const item = templates.find(t => t.id === gift.theme) || templates[0]
   const candidate = gift.candidate.trim()
@@ -61,8 +62,9 @@ function render(gift: GiftDetails): HTMLCanvasElement {
   if (height > 16000) throw new Error('This message is too long for one image. Please reopen the card to read it.')
   canvas.width = width
   canvas.height = height
-  const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('Your browser cannot create this image.')
+  const canvasContext = canvas.getContext('2d')
+  if (!canvasContext) throw new Error('Your browser cannot create this image.')
+  const ctx: CanvasRenderingContext2D = canvasContext
   const gradient = ctx.createLinearGradient(0, 0, width, height)
   gradient.addColorStop(0, theme.top)
   gradient.addColorStop(1, theme.bottom)
