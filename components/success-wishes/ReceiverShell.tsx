@@ -26,7 +26,7 @@ import {
   Send,
   LogOut,
 } from "lucide-react";
-import { broadcastReceiverLogout } from "@/lib/success-wishes/receiver-browser-session";
+import {broadcastKeepsakeChange} from '@/lib/success-wishes/receiver-pin-browser';
 
 type Summary = {
   name: string;
@@ -37,7 +37,8 @@ type Summary = {
 const ReceiverContext = createContext<{
   soundEnabled: boolean;
   setSummary: (summary: Summary) => void;
-}>({ soundEnabled: true, setSummary: () => {} });
+  setSoundEnabled: (enabled: boolean) => void;
+}>({ soundEnabled: true, setSummary: () => {}, setSoundEnabled: () => {} });
 export const useReceiverTheme = () => useContext(ReceiverContext);
 const links = [
   { href: "/success-wishes/inbox", label: "My wishes", icon: Inbox },
@@ -67,7 +68,7 @@ export default function ReceiverShell({
   const [signedOut, setSignedOut] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
-  const value = useMemo(() => ({ soundEnabled, setSummary }), [soundEnabled]);
+  const value = useMemo(() => ({ soundEnabled, setSummary, setSoundEnabled }), [soundEnabled]);
   useEffect(() => {
     setDrawer(false);
     setSummary(null);
@@ -98,10 +99,10 @@ export default function ReceiverShell({
         throw Error(
           "Sign-out could not be confirmed. Close this tab and contact support.",
         );
-      broadcastReceiverLogout();
+      broadcastKeepsakeChange();
       window.location.replace("/success-wishes/recover");
     } catch {
-      broadcastReceiverLogout();
+      broadcastKeepsakeChange();
       setLogoutError(
         "Sign-out could not be confirmed. Close this tab and contact support.",
       );
@@ -144,7 +145,7 @@ export default function ReceiverShell({
   );
   return (
     <ReceiverContext.Provider value={value}>
-      <div className={receiver ? (pathname === "/success-wishes/invitation" ? "receiver-theme receiver-gift-focus" : "receiver-theme") : "receiver-site"}>
+      <div className={receiver ? (["/success-wishes/invitation", "/success-wishes/gift"].includes(pathname) ? "receiver-theme receiver-gift-focus" : "receiver-theme") : "receiver-site"}>
         {!receiver ? children : (
           <>
             <header className="receiver-mobile-header">
@@ -207,7 +208,7 @@ export default function ReceiverShell({
               </aside>
               <div className="receiver-content">
                 {logoutError && <p role="alert">{logoutError}</p>}
-                {signedOut ? <div className="receiver-signout-state"><p role="status">This device has been cleared.</p><Link href="/success-wishes/recover">Recover access</Link></div> : children}
+                {signedOut ? <div className="receiver-signout-state"><p role="status">{logoutError ? "Sign-out needs confirmation." : "This device has been cleared."}</p><Link href="/success-wishes/recover">Recover access</Link></div> : children}
               </div>
             </div>
             <nav

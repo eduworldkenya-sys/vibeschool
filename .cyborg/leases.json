@@ -1,18 +1,13 @@
 [
   {
-    "missionId": "CYBORG-20261029063547-de83d6",
-    "runId": "d0e29535-9649-4f69-b882-9deb7e4da2b9",
+    "missionId": "CYBORG-20261029114348-35bebc",
+    "runId": "186b0b05-5caa-4ab0-98cd-759ab929e0cf",
     "paths": [
-      "app/success-wishes",
-      "app/api/success-wishes",
-      "components/success-wishes",
-      "lib/success-wishes",
-      "supabase/migrations",
-      "qa/success-wishes",
-      ".github/workflows/success-wishes-contracts.yml",
-      "docs/success-wishes"
+      "components/success-wishes/SuccessWishesFloatingOffer.tsx",
+      "qa/success-wishes/disabled-browser.cjs",
+      "docs/success-wishes/receiver-premium-20261029.md"
     ],
-    "acquiredAt": "2026-10-29T06:36:31.381Z",
-    "releasedAt": "2026-10-29T07:12:37.006Z"
+    "acquiredAt": "2026-10-29T12:04:08.662Z",
+    "releasedAt": "2026-10-29T12:07:18.899Z"
   }
 ]

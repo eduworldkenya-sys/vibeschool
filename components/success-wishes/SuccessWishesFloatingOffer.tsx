@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styles from './SuccessWishesFloatingOffer.module.css'
 import SuccessWishesGroupDemo from './SuccessWishesGroupDemo'
 
@@ -9,12 +9,37 @@ const SESSION_KEY = 'success-wishes-2026-floating-offer-dismissed'
 export default function SuccessWishesFloatingOffer({ preview = false }: { preview?: boolean }) {
   const [visible, setVisible] = useState(false)
   const [demoOpen, setDemoOpen] = useState(false)
+  const engaged = useRef(false)
 
   useEffect(() => {
     if (preview) { setVisible(true); return }
     try { if (sessionStorage.getItem(SESSION_KEY) === '1') return } catch { /* Keep advert available when storage is blocked. */ }
-    const timer = window.setTimeout(() => setVisible(true), 1400)
-    return () => window.clearTimeout(timer)
+    engaged.current = false
+    const timer = window.setTimeout(() => { if (!engaged.current) setVisible(true) }, 1400)
+    // The approved offer belongs to browsing, never above personalisation or payment.
+    const pauseOffer = () => {
+      engaged.current = true
+      window.clearTimeout(timer)
+      setVisible(false)
+    }
+    const onInteraction = (event: Event) => {
+      if (event.target instanceof Element && event.target.closest('#wish-composer, #wish-preview, [role="dialog"]')) pauseOffer()
+    }
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(entry => entry.isIntersecting)) pauseOffer()
+    })
+    for (const id of ['wish-composer', 'wish-preview']) {
+      const section = document.getElementById(id)
+      if (section) observer.observe(section)
+    }
+    document.addEventListener('focusin', onInteraction)
+    document.addEventListener('pointerdown', onInteraction, true)
+    return () => {
+      window.clearTimeout(timer)
+      observer.disconnect()
+      document.removeEventListener('focusin', onInteraction)
+      document.removeEventListener('pointerdown', onInteraction, true)
+    }
   }, [preview])
 
   function close() {
@@ -61,7 +86,7 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
       </div>
       <p className={styles.footer}>Personalised cards. Private wishes.</p>
     </aside>}
-    {demoOpen && <SuccessWishesGroupDemo onClose={() => { setDemoOpen(false); setVisible(true) }} />}
+    {demoOpen && <SuccessWishesGroupDemo onClose={() => { setDemoOpen(false); setVisible(preview || !engaged.current) }} />}
     </>
   )
 }
