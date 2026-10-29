@@ -26,7 +26,9 @@
       "app/success-wishes/gift/page.tsx",
       "components/success-wishes/ReceiverShell.tsx",
       "qa/success-wishes/receiver-browser.cjs",
-      "docs/success-wishes/receiver-premium-20261029.md"
+      "docs/success-wishes/receiver-premium-20261029.md",
+      "components/success-wishes/SuccessWishesFloatingOffer.tsx",
+      "qa/success-wishes/disabled-browser.cjs"
     ],
     "affectedDependencies": [],
     "excluded": []
@@ -408,7 +410,7 @@
   "state": "MISSION",
   "learningClosure": false,
   "createdAt": "2026-10-29T11:43:48.336Z",
-  "updatedAt": "2026-10-29T11:58:10.431Z",
+  "updatedAt": "2026-10-29T12:07:18.900Z",
   "journalPath": ".cyborg/journal/CYBORG-20261029114348-35bebc.ndjson",
   "activation": {
     "runtime": false,
@@ -417,5 +419,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "4ef743a298744c26511eeca01b4b2df2d6a0fb719f35ebfde660ef58f3e4bda4"
+  "lastJournalHash": "d4792a145f94cea059906cf6d7a050783be2bb089f643a3490d5034dc7738f9c"
 }

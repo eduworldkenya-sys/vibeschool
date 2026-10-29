@@ -103,6 +103,7 @@ async function makeWish(context, { message, theme }) {
   await page.screenshot({ path: path.join(screenshots, `design-preview-${theme.replace(/\s+/g, '-')}.png`) })
 
   await page.getByRole('textbox', { name: 'Candidate name' }).fill('John Mwangi')
+  await page.locator('[aria-label="Success Wishes 2026 offers"]').waitFor({state:'hidden'})
   assert.equal(await page.evaluate(() => window.__successWishChimeOscillators), 0, 'Sender form is silent until sound is explicitly enabled')
   const yearInput = page.getByRole('textbox', { name: 'Exam year' , includeHidden: true })
   await editField(page, yearInput, undefined, true)

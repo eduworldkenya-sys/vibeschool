@@ -3,10 +3,11 @@
     "missionId": "CYBORG-20261029114348-35bebc",
     "runId": "186b0b05-5caa-4ab0-98cd-759ab929e0cf",
     "paths": [
-      "app/success-wishes/inbox",
-      "qa/success-wishes/receiver-browser.cjs"
+      "components/success-wishes/SuccessWishesFloatingOffer.tsx",
+      "qa/success-wishes/disabled-browser.cjs",
+      "docs/success-wishes/receiver-premium-20261029.md"
     ],
-    "acquiredAt": "2026-10-29T11:55:24.964Z",
-    "releasedAt": "2026-10-29T11:58:10.430Z"
+    "acquiredAt": "2026-10-29T12:04:08.662Z",
+    "releasedAt": "2026-10-29T12:07:18.899Z"
   }
 ]
