@@ -73,7 +73,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
             hasOpened.current = true
             lock.current = false
             callbacks.current.onOpenedChange?.(true)
-          }, 1050)
+          }, window.matchMedia('(max-width: 560px)').matches ? 950 : 1050)
         }, 450)
       }, 450)
     } catch {
@@ -93,7 +93,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     delay(() => {
       move('sealed')
       lock.current = false
-    }, 1050)
+    }, window.matchMedia('(max-width: 560px)').matches ? 950 : 1050)
   }
   const theme = palette[template]
   const item = templates.find(t => t.id === template) || templates[0]

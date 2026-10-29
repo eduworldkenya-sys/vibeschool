@@ -41,3 +41,33 @@
 @keyframes bookSettle{0%{transform:translateY(7px) scale(.985)}60%{transform:translateY(-2px) scale(1.005)}100%{transform:translateY(0) scale(1)}}
 @media(max-width:560px){.stage{perspective:1300px}.page{padding:16px 10px}.pageStack{inset:5px}.spine{width:10px;left:calc(50% - 5px)}.cover{transition-duration:.95s}}
 @media(prefers-reduced-motion:reduce){.cover,.envelope,.spread,.spine{transition-duration:.01ms!important;animation:none!important}}
+
+
+/* Book reveal correction: page content is mounted before animation,
+   so reveal it smoothly without React layout popping at completion. */
+.preview[data-book-phase=opened] .spread .page > *{animation:pageInkReveal .28s ease-out both}
+@keyframes pageInkReveal{from{opacity:0}to{opacity:1}}
+/* A finished page turn must not hide the recipient's left-hand text. */
+.preview[data-book-phase=opened] .cover{visibility:hidden}
+/* Reverse the cover while closing, then restore the sealed envelope. */
+.preview[data-book-phase=closing] .cover{visibility:visible}
+/* Keep the book geometry inside the stage, without horizontal overflow. */
+.spread{overflow:hidden}
+.page{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:var(--book-accent) transparent}
+.stage{contain:layout paint}
+/* Lift an envelope flap before the envelope slides away. */
+.envelope::after{content:'';position:absolute;top:0;left:0;right:0;height:45%;background:linear-gradient(165deg,#ffffff38,transparent 65%);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:center top;transition:transform .45s ease;pointer-events:none}
+.envelope[data-unsealing=true]::after{transform:rotateX(65deg)}
+@media(max-width:560px){
+  .stage{height:clamp(380px,115vw,460px)}
+  .page{padding:12px 9px;gap:8px}
+  .page h3{font-size:clamp(15px,4.5vw,19px)}
+  .page p{font-size:clamp(13px,3.7vw,16px);line-height:1.45}
+  .page strong{font-size:clamp(13px,3.8vw,16px)}
+  .page>span{font-size:11px}
+  .page .ornament{font-size:26px}
+}
+@media(prefers-reduced-motion:reduce){
+  .spread .page > *{transition:none}
+  .envelope::after{transition:none}
+}
