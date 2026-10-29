@@ -6,7 +6,7 @@ import type { CardValues } from './SuccessCardStudio'
 import { palette, templates, type Template } from './card-themes'
 import styles from './BookCard.module.css'
 
-type Phase = 'sealed' | 'unsealing' | 'opening' | 'opened' | 'closing'
+type Phase = 'sealed' | 'unsealing' | 'revealing-book' | 'opening' | 'opened' | 'closing'
 type Props = {
   template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void
   onOpenedChange?: (open: boolean) => void; beforeOpen?: () => Promise<boolean>
@@ -61,17 +61,21 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       const allowed = callbacks.current.beforeOpen ? await callbacks.current.beforeOpen() : true
       if (!mounted.current || current !== generation.current) return
       if (!allowed) { lock.current = false; return }
+      setChecking(false)
       move('unsealing')
       if (callbacks.current.soundEnabled) callbacks.current.onOpen()
       delay(() => {
-        move('opening')
+        move('revealing-book')
         delay(() => {
-          move('opened')
-          hasOpened.current = true
-          lock.current = false
-          callbacks.current.onOpenedChange?.(true)
-        }, 700)
-      }, 400)
+          move('opening')
+          delay(() => {
+            move('opened')
+            hasOpened.current = true
+            lock.current = false
+            callbacks.current.onOpenedChange?.(true)
+          }, 1050)
+        }, 450)
+      }, 450)
     } catch {
       if (mounted.current && current === generation.current) {
         lock.current = false
@@ -89,18 +93,21 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     delay(() => {
       move('sealed')
       lock.current = false
-    }, 700)
+    }, 1050)
   }
   const theme = palette[template]
   const item = templates.find(t => t.id === template) || templates[0]
   const opened = phase === 'opened'
   const turning = phase === 'opening' || opened
-  const busy = checking || phase === 'unsealing' || phase === 'opening' || phase === 'closing'
+  const busy = checking || phase === 'unsealing' || phase === 'revealing-book' || phase === 'opening' || phase === 'closing'
   const variables = { '--book-top': theme.top, '--book-bottom': theme.bottom,
     '--book-ink': theme.ink, '--book-accent': theme.accent } as CSSProperties
   return <div className={styles.preview} data-receiver-view={receiverView || undefined}
     data-card-open={opened} data-book-phase={phase} data-theme={template} style={variables}>
     <div className={styles.stage}>
+      <div className={styles.bookShadow} aria-hidden="true" />
+      <div className={styles.pageStack} aria-hidden="true" />
+      <div className={styles.spine} aria-hidden="true" />
       <div className={styles.spread} aria-hidden={!opened}>
         <div className={styles.page} role="group" aria-label="Card details" tabIndex={opened ? 0 : -1}>
           {opened && <><span className={styles.eyebrow}>WITH LOVE</span>
@@ -117,6 +124,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
         </div>
       </div>
       <div className={styles.cover} data-turned={turning} aria-hidden="true">
+        <div className={styles.coverThickness} aria-hidden="true" />
         <div className={styles.outside}><span>VIBESCHOOL · SUCCESS WISHES</span>
           <b>{template === 'botanical' ? '✿' : template === 'nightfall' ? '✦' : template === 'sunrise' ? '✳' : '✧'}</b>
           <strong>{item.headline}</strong><small>{values.candidate.trim() || 'Someone special'}</small></div>
