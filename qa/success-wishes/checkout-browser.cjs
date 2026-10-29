@@ -52,7 +52,7 @@ fs.mkdirSync(artifacts,{recursive:true})
      await noJs.close()
    }
    await page.goto(root+'/success-wishes',{waitUntil:'networkidle',timeout:120000})
-   assert.equal(await page.locator('main').getByRole('link',{name:'Send a wish',exact:true}).count(),1,'Sender entrance is visible')
+   assert.equal(await page.locator('main').getByRole('link',{name:'Send a Success Card',exact:true}).count(),1,'Sender entrance is visible')
    assert.equal(await page.locator('main').getByRole('link',{name:'Open a wish',exact:true}).count(),1,'Receiver entrance is visible')
    assert.equal(await page.locator('.receiver-sender-links').count(),0,'No duplicate sender navigation strip')
    assert.equal(await page.locator('header img[src*="vibeschool-wordmark-dark.svg"]').count(),1,'Sender uses readable dark-surface wordmark')
