@@ -108,6 +108,14 @@
         "Forbidden",
         "SUPABASE_SERVICE_ROLE_KEY"
       ]
+    },
+    "app/api/hq/success-wishes-ledger/route.ts": {
+      "authority": "verified_founder_operator_read_only_ledger",
+      "requiredEvidence": [
+        "verifiedFounderOperator(req)",
+        "Forbidden",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
     }
   }
 }
