@@ -1,4 +1,6 @@
 -- Requests are untrusted leads for independent recovery verification, never authorization.
+-- access: service-only public.success_wish_recovery_reviews
+-- authorization-test: public.success_wish_recovery_reviews
 create table if not exists public.success_wish_recovery_reviews (
   id uuid primary key default gen_random_uuid(),
   phone_digest text not null check (phone_digest ~ '^[a-f0-9]{64}$'),
@@ -16,3 +18,14 @@ create index if not exists success_wish_recovery_reviews_status_created
  on public.success_wish_recovery_reviews (status,created_at desc);
 comment on table public.success_wish_recovery_reviews is
  'Unverified recovery enquiries. Never use this table alone to issue PIN sessions, replace recovery capabilities or transfer gift ownership.';
+
+do $$
+begin
+  if has_table_privilege('anon','public.success_wish_recovery_reviews','SELECT')
+     or has_table_privilege('anon','public.success_wish_recovery_reviews','INSERT')
+     or has_table_privilege('authenticated','public.success_wish_recovery_reviews','SELECT')
+     or has_table_privilege('authenticated','public.success_wish_recovery_reviews','INSERT')
+  then
+    raise exception 'Recovery reviews must not be publicly accessible';
+  end if;
+end $$;
