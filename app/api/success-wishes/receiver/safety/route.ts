@@ -27,7 +27,20 @@ export async function POST(req: NextRequest) {
     if (body?.action === 'begin_withdrawal' || body?.action === 'confirm_withdrawal') {
       // A PIN session is not independently verified phone/guardian authority.
       // Never send an OTP or allow consent revocation based only on a self-asserted phone.
-      if (req.cookies.has(PIN_COOKIE)) throw new WishError(409, 'This account uses private-link access. Contact support to withdraw consent; SMS is not required for opening or keeping wishes.')
+      if (req.cookies.has(PIN_COOKIE)) {
+        if (body.action === 'confirm_withdrawal') throw new WishError(409, 'Consent withdrawal requires an independently verified adult or guardian.')
+        const { data: active, error: loadError } = await db.from('success_wish_data_requests')
+          .select('id').eq('receiver_id', receiver.id).eq('kind', 'consent_withdrawal')
+          .in('status', ['pending', 'reviewing']).limit(1)
+        if (loadError) throw loadError
+        if (!active?.length) {
+          const { error } = await db.from('success_wish_data_requests')
+            .insert({ receiver_id: receiver.id, kind: 'consent_withdrawal' })
+          if (error) throw error
+        }
+        return reply({ ok: true, pending: true,
+          message: 'Your request is recorded. Consent remains unchanged until an authorized adult or guardian is independently verified.' })
+      }
       // Only an existing verified inbox can request this. The OTP destination is trusted
       // server-side data; never accept an alternative guardian number from a caller.
       const { data: person, error: personError } = await db.from('success_wish_receivers')
