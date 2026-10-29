@@ -108,16 +108,16 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       <div className={styles.bookShadow} aria-hidden="true" />
       <div className={styles.pageStack} aria-hidden="true" />
       <div className={styles.spine} aria-hidden="true" />
-      <div className={styles.spread} aria-hidden={!opened} inert={!opened}>
+      <div className={styles.spread} aria-hidden={!opened}>
         <div className={styles.page} role="group" aria-label="Card details" tabIndex={opened ? 0 : -1}>
-          <><span className={styles.eyebrow}>WITH LOVE</span>
+          {opened && <><span className={styles.eyebrow}>WITH LOVE</span>
             <strong>{values.sender.trim() || 'Your name'}</strong>
             <span>For {values.candidate.trim() || 'your candidate'}</span>
             {values.school?.trim() && <span>{values.school.trim()}</span>}
             <span>{values.examYear || '2026'} exams</span><span className={styles.ornament}>✧</span></>}
         </div>
         <div className={styles.page} role="group" aria-label="Personal wish" tabIndex={opened ? 0 : -1}>
-          <><span className={styles.eyebrow}>{item.name}</span><h3>{item.headline}</h3>
+          {opened && <><span className={styles.eyebrow}>{item.name}</span><h3>{item.headline}</h3>
             <strong>{values.candidate.trim() || 'Candidate name'}</strong>
             <p data-testid="success-card-message-preview">{values.message.trim() || 'Your personal message will appear here.'}</p>
             <span className={styles.signoff}>With every good wish, {values.sender.trim() || 'Your name'}</span></>}
