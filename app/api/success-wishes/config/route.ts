@@ -6,8 +6,10 @@ import { successWishesMediaReady } from '@/lib/success-wishes/media'
 import { trustedAudioProbeReady } from '@/lib/success-wishes/audio-probe'
 export const dynamic = 'force-dynamic'
 export async function GET() {
-  const serviceReady = enabled() && phoneVerificationReady()
-  const mediaReady = serviceReady && process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED === 'true'
+  // Public paid gifts and PIN-based receiver access do not require an SMS provider.
+  // Keep voice/video media separately gated until legacy phone verification is commissioned.
+  const serviceReady = enabled()
+  const mediaReady = serviceReady && phoneVerificationReady() && process.env.SUCCESS_WISHES_MEDIA_UPLOAD_ENABLED === 'true'
     && process.env.SUCCESS_WISHES_MEDIA_CERTIFIED === 'true'
     && successWishesMediaReady() && trustedAudioProbeReady()
   let paymentsEnabled = false, groupPaymentsEnabled = false
