@@ -1,4 +1,6 @@
 -- Success Card 2026: limited promotional redemption, independent of M-Pesa.
+-- access: service-only public.success_wishes_campaigns
+-- authorization-test: public.success_wishes_campaigns
 -- Access: service-role only.
 create table public.success_wishes_campaigns (
  code text primary key,
