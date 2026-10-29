@@ -53,9 +53,9 @@ function render(gift: GiftDetails): HTMLCanvasElement {
   const signoff = layout('With every good wish, ' + sender, 'italic 29px Georgia, serif', 40)
 
   // Page 1: sender, recipient, school and year. Page 2: the personal wish.
-  const firstPageHeight = 235 + senderBlock.height + candidateBlock.height +
-    (schoolBlock?.height || 0) + 210
-  const secondPageHeight = 235 + headline.height + messageBlock.height + signoff.height + 190
+  const firstPageHeight = 520 + senderBlock.height + candidateBlock.height +
+    (schoolBlock?.height || 0)
+  const secondPageHeight = 600 + headline.height + candidateBlock.height + messageBlock.height + signoff.height
   const pageHeight = Math.max(780, firstPageHeight, secondPageHeight)
   const height = pageHeight * 2
   if (height > 16000) throw new Error('This message is too long for one image. Please reopen the card to read it.')
