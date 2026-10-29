@@ -10,7 +10,7 @@ import { useSenderDraft } from './useSenderDraft'
 import type { SenderDraft } from '@/lib/success-wishes/sender-draft'
 import { wrapCardText } from '@/lib/success-wishes/card-text'
 import { supabase } from '@/lib/supabase'
-import { playWishRevealSound } from '@/lib/success-wishes/signature-sound'
+import { playWishFeedbackSound, prepareWishFeedbackSound, playWishRevealSound } from '@/lib/success-wishes/signature-sound'
 import styles from './SuccessCardStudio.module.css'
 import { templates, palette } from './card-themes'
 import { BookCard } from './BookCard'
@@ -142,7 +142,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const [status, setStatus] = useState('')
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [order, setOrder] = useState<{ id: string; invitationUrl: string; expiresAt: string } | null>(null)
-  const [soundEnabled, setSoundEnabled] = useState(true)
+  const [soundEnabled, setSoundEnabled] = useState(false)
   const stopSound = useRef<(() => void) | null>(null)
   const formStartSoundPlayed = useRef(false)
   const messageInputRef = useRef<HTMLTextAreaElement>(null)
@@ -153,7 +153,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
   const fieldErrors = {
     candidate: candidate.trim() ? '' : 'Enter the candidate’s name.',
     sender: sender.trim() ? '' : 'Enter your name.',
-    message: message.trim() ? '' : 'Write a wish or choose a starter below.',
+    message: message.trim() ? '' : 'Write a wish or choose a suggestion above.',
     examYear: /^20\d{2}$/.test(examYear) ? '' : 'Enter a four-digit exam year, such as 2026.',
     deliveryPhone: /^(?:0[17]\d{8}|254[17]\d{8}|\+254[17]\d{8})$/.test(deliveryPhone.trim().replace(/[ ()-]/g, '')) ? '' : 'Enter the phone number that should receive this wish.',
   }
@@ -266,11 +266,15 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     catch { setStatus(order.invitationUrl) }
   }
 
+  useEffect(() => {
+    try { setSoundEnabled(localStorage.getItem('vs-wish-sound') === 'on') } catch { /* Sound stays off when preferences are unavailable. */ }
+  }, [])
+
   function playFormStartSound() {
     if (!soundEnabled || formStartSoundPlayed.current) return
     formStartSoundPlayed.current = true
     stopSound.current?.()
-    stopSound.current = playWishRevealSound()
+    stopSound.current = playWishFeedbackSound('typing')
   }
 
   function toggleSound() {
@@ -278,7 +282,9 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       stopSound.current?.()
       stopSound.current = null
     }
+    if (!soundEnabled) prepareWishFeedbackSound()
     setSoundEnabled(!soundEnabled)
+    try { localStorage.setItem('vs-wish-sound', soundEnabled ? 'off' : 'on') } catch { /* Preference applies for this visit. */ }
   }
 
   return <div className={styles.page}>
@@ -286,7 +292,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <Link href="/" className={styles.brand} aria-label="VibeSchool home"><Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={620} height={160} className={styles.brandLogo}/><small>SUCCESS WISHES</small></Link>
       <div className={styles.headerActions}>
         <Link className={styles.headerWishes} href="/success-wishes/inbox">My wishes</Link>
-        <button type="button" className={styles.headerSound} aria-label={soundEnabled ? 'Mute card opening sound' : 'Turn card opening sound on'} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={17}/> : <VolumeX size={17}/>}</button>
+        <button type="button" className={styles.headerSound} aria-label={soundEnabled ? 'Turn wish sounds off' : 'Turn wish sounds on'} aria-pressed={soundEnabled} onClick={toggleSound}>{soundEnabled ? <Volume2 size={17}/> : <VolumeX size={17}/>}<span>Sound {soundEnabled ? 'on' : 'off'}</span></button>
       </div>
     </header>
     <main className={styles.main}>
@@ -323,8 +329,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <div><span>LIVE PREVIEW</span><strong>{candidate.trim() || 'Your candidate'}</strong>{message.trim() && <p>{message.trim()}</p>}</div>
           <button type="button" onClick={() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>View card <ChevronRight size={15}/></button>
         </div>
-        <div className={styles.form} onFocusCapture={event => {
-          if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) { playFormStartSound() }
+        <div className={styles.form} onChangeCapture={event => {
+          if (event.target instanceof HTMLTextAreaElement) { playFormStartSound() }
         }}><div className={styles.heading}><span>DIGITAL SUCCESS CARD</span><h2 id="personalise-card">Create your wish</h2>{editingStarted && <><div className={styles.progressHeading}><span>YOUR PROGRESS</span><span>{completedCount}/4</span></div><div className={styles.progressTrack} role="progressbar" aria-label="Wish details completed" aria-valuemin={0} aria-valuemax={4} aria-valuenow={completedCount}>{completion.map((done, index) => <span key={index} className={done ? styles.progressDone : undefined}/>)}</div></>}</div>
           {(draftStatus.unavailable || draftStatus.restored || draftStatus.saved) && <div className={styles.draftStatus}>
             {draftStatus.unavailable && <p role="alert">Draft saving unavailable.</p>}
@@ -346,11 +352,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           </div></CompletedSection>
           <CompletedSection title="Receiver's phone" value={deliveryPhone} completed={completion[1]} open={expandedFields.phone} onOpenChange={open => setFieldExpanded('phone', open)} onBlurCapture={event => collapseOnLeave('phone', completion[1], event)}><label>Phone to receive this wish<input aria-label="Phone to receive this wish" aria-invalid={touched.deliveryPhone && Boolean(fieldErrors.deliveryPhone)} onBlur={() => setTouched(current => ({ ...current, deliveryPhone: true }))} autoComplete="tel" inputMode="tel" type="tel" maxLength={20} value={deliveryPhone} onChange={e => { setEditingStarted(true); setDeliveryPhone(e.target.value) }} placeholder="07XX XXX XXX"/>{touched.deliveryPhone && fieldErrors.deliveryPhone && <small className={styles.fieldError}>{fieldErrors.deliveryPhone}</small>}</label></CompletedSection>
           <CompletedSection title="Your name" value={sender.trim()} completed={completion[2]} open={expandedFields.sender} onOpenChange={open => setFieldExpanded('sender', open)} onBlurCapture={event => collapseOnLeave('sender', completion[2], event)}><label>Your name<input aria-label="Your name" aria-invalid={touched.sender && Boolean(fieldErrors.sender)} aria-describedby={touched.sender && fieldErrors.sender ? schoolInputId + '-sender-error' : undefined} onBlur={() => setTouched(current => ({ ...current, sender: true }))} autoComplete="off" maxLength={48} value={sender} onChange={e => { setEditingStarted(true); setSender(e.target.value) }} placeholder="From whom?"/>{touched.sender && fieldErrors.sender && <small id={schoolInputId + '-sender-error'} className={styles.fieldError}>{fieldErrors.sender}</small>}</label></CompletedSection>
-          <CompletedSection title="Your wish" value={message.trim()} completed={completion[3]} open={expandedFields.message} onOpenChange={open => setFieldExpanded('message', open)} onBlurCapture={event => collapseOnLeave('message', completion[3], event)}><label>Your wish<textarea aria-label="Your wish" aria-invalid={touched.message && Boolean(fieldErrors.message)} aria-describedby={touched.message && fieldErrors.message ? schoolInputId + '-message-error' : undefined} onBlur={() => setTouched(current => ({ ...current, message: true }))} ref={messageInputRef} rows={3} maxLength={220} value={message} onChange={e => { setEditingStarted(true); setMessage(e.target.value) }}
-            placeholder="Write something only you would say…"/>{touched.message && fieldErrors.message && <small id={schoolInputId + '-message-error'} className={styles.fieldError}>{fieldErrors.message}</small>}</label>
+          <CompletedSection title="Your wish" value={message.trim()} completed={completion[3]} open={expandedFields.message} onOpenChange={open => setFieldExpanded('message', open)} onBlurCapture={event => collapseOnLeave('message', completion[3], event)}>
           <div className={styles.messageIdeas}>
-            <div className={styles.messageIdeasHeading}><strong>Need a wish to start with?</strong><small>Tap a phrase, then make it yours</small></div>
+            <div className={styles.messageIdeasHeading}><strong>Need a wish?</strong><small>Tap a phrase, then make it yours</small></div>
             <div>{messageStarters.map(starter => <button type="button" key={starter.label} aria-label={'Use wish starter: ' + starter.label} onClick={() => {
+              if (message.trim() && message !== starter.message && !window.confirm('Replace your message with this suggestion?')) return
               setEditingStarted(true)
               setFieldExpanded('message', true)
               setMessage(starter.message)
@@ -359,6 +365,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
               // Do not move the cursor later: the sender may already be replacing this text.
             }}>{starter.label}</button>)}</div>
           </div>
+          <label>Your wish<textarea aria-label="Your wish" aria-invalid={touched.message && Boolean(fieldErrors.message)} aria-describedby={touched.message && fieldErrors.message ? schoolInputId + '-message-error' : undefined} onBlur={() => setTouched(current => ({ ...current, message: true }))} ref={messageInputRef} rows={3} maxLength={220} value={message} onChange={e => { setEditingStarted(true); setMessage(e.target.value) }}
+            placeholder="Write something only you would say…"/>{touched.message && fieldErrors.message && <small id={schoolInputId + '-message-error'} className={styles.fieldError}>{fieldErrors.message}</small>}</label>
           <p className={styles.counter}>{message.length}/220 characters</p>
           </CompletedSection>
           {selectedVersion !== 'text' && <>
@@ -395,6 +403,6 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       <footer className={styles.footer}>
         <p><Link href="/legal/privacy">Privacy</Link></p></footer>
     </main>
-    {checkoutOpen && <WishCheckout theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
+    {checkoutOpen && <WishCheckout soundEnabled={soundEnabled} theme={theme} values={values} onClose={() => setCheckoutOpen(false)}/>}
   </div>
 }

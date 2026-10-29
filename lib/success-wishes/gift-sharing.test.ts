@@ -21,3 +21,10 @@ test('untrusted, malformed, or extra-content URLs cannot become private sharing 
     assert.equal(giftWhatsAppUrl(link),null)
   }
 })
+
+test('personal sharing keeps the complete token and recipient text encoded',()=>{
+ const link='https://vibeschool.co.ke/success-wishes/gift#token='+'a'.repeat(64)
+ const url=new URL(giftWhatsAppUrl(link,'Helen & Jane')!)
+ assert.equal(url.searchParams.get('text'),`Helen & Jane, I made you a success card 💛\nOpen your wish here: ${link}`)
+ assert.equal(url.searchParams.size,1)
+})

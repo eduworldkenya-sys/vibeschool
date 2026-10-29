@@ -13,10 +13,18 @@ fs.mkdirSync(artifacts,{recursive:true})
  let browser
  try{
   for(let i=0;i<120;i++){try{if((await fetch(root+'/api/success-wishes/config')).ok)break}catch{}if(server?.exitCode!==null&&server?.exitCode!==undefined)throw Error('Server stopped');await new Promise(r=>setTimeout(r,1000))}
-  browser=await chromium.launch({headless:true})
+  browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE,args:['--no-sandbox','--disable-dev-shm-usage']}: {})})
   for(const width of [320,360,390,412,768,1280]){
    const context=await browser.newContext({viewport:{width,height:900}}),page=await context.newPage();page.setDefaultTimeout(30000)
    const calls=[];let stored=null,failedOnce=false,missingOnRestore=false
+   if(width===320)await page.addInitScript(()=>{
+    window.__qaNotes=0
+    const original=AudioContext.prototype.createOscillator
+    AudioContext.prototype.createOscillator=function(...args){window.__qaNotes++;return original.apply(this,args)}
+    Object.defineProperty(navigator,'share',{value:async data=>{window.__qaShared=data;throw new DOMException('Cancelled','AbortError')}})
+    Object.defineProperty(navigator,'clipboard',{value:{writeText:async text=>{window.__qaCopied=text}}})
+   })
+
    if(width===768)await page.addInitScript(()=>{if(!sessionStorage.getItem('qa-orphan-seeded')){sessionStorage.setItem('qa-orphan-seeded','1');sessionStorage.setItem('vs-success-wish-checkout-v1',JSON.stringify({key:'e'.repeat(64),expires:Date.now()+60000,paymentUncertain:false}))}})
    await page.route('**/api/success-wishes/checkout',async route=>{
     const p=route.request().postDataJSON();calls.push(p.action)
@@ -57,6 +65,24 @@ fs.mkdirSync(artifacts,{recursive:true})
    assert.equal(await page.locator('#wish-composer details').first().getByText('QA Recipient · 2026',{exact:true}).isVisible(),true,'Default valid year does not block the completed candidate summary')
    await page.getByRole('textbox',{name:'Phone to receive this wish'}).fill('0733000111')
    await page.getByRole('textbox',{name:'Your wish',exact:true}).fill('Synthetic checkout proof only.')
+   const ideas=await page.getByText('Need a wish?',{exact:true}).boundingBox(),messageBox=await page.getByRole('textbox',{name:'Your wish',exact:true}).boundingBox()
+   assert(ideas.y<messageBox.y,'Wish suggestions appear above the editor')
+   page.once('dialog',dialog=>dialog.dismiss())
+   await page.getByRole('button',{name:/Use wish starter:/}).first().click()
+   assert.equal(await page.getByRole('textbox',{name:'Your wish',exact:true}).inputValue(),'Synthetic checkout proof only.','Declining replacement preserves writing')
+   assert.equal(await page.getByRole('button',{name:'Turn wish sounds on'}).count(),1,'Sound starts off')
+   if(width===320){
+    assert.equal(await page.evaluate(()=>window.__qaNotes),0,'Focusing and writing are silent by default')
+    await page.getByRole('button',{name:'Turn wish sounds on'}).click()
+    await page.locator('#wish-composer details').last().locator('summary').click()
+    const wish=page.getByRole('textbox',{name:'Your wish',exact:true})
+    await wish.fill('Synthetic checkout proof only. Edited')
+    assert.equal(await page.evaluate(()=>window.__qaNotes),4,'Typing starts the short melody after opt-in')
+    await wish.fill('Synthetic checkout proof only.')
+    assert.equal(await page.evaluate(()=>window.__qaNotes),4,'Further typing does not restart the melody')
+   }
+
+
    await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click()
    let m=page.getByRole('dialog')
    assert.equal(await m.getByText(/Pay to Till 949529/).count(),0,'Removed Till instructions from compact checkout')
@@ -75,14 +101,14 @@ fs.mkdirSync(artifacts,{recursive:true})
    await m.getByRole('button',{name:'Pay KSh 50',exact:true}).click()
    if(width===360){await m.getByRole('button',{name:'Try again',exact:true}).click()}
    if(width===390){
-    await m.getByRole('heading',{name:'Checking payment'}).waitFor()
+    await m.getByRole('heading',{name:'Confirming payment'}).waitFor()
     await m.getByRole('button',{name:'Check status',exact:true}).click()
     assert.equal(await m.getByRole('button',{name:'Pay KSh 50',exact:true}).count(),0)
     await m.getByText('Order details',{exact:true}).click()
     assert.equal(await m.getByRole('button',{name:'Start a new checkout'}).count(),0)
     missingOnRestore=true
     await page.reload({waitUntil:'networkidle'});await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click();m=page.getByRole('dialog')
-    await m.getByRole('heading',{name:'Checking payment'}).waitFor()
+    await m.getByRole('heading',{name:'Confirming payment'}).waitFor()
     await m.getByRole('alert').filter({hasText:'Your saved order couldn’t be checked.'}).waitFor()
     assert.equal(await m.getByRole('button',{name:'Pay KSh 50',exact:true}).count(),0,'A missing uncertain order cannot unlock Pay')
     assert.equal(await m.getByRole('button',{name:'Edit',exact:true}).count(),0)
@@ -115,10 +141,25 @@ fs.mkdirSync(artifacts,{recursive:true})
     assert.deepEqual(calls.slice(before),['status','create','pay'])
    }
    stored.state='settled';stored.receipt='SYNTHETIC123';stored.invitationUrl='https://vibeschool.co.ke/success-wishes/gift#token='+'b'.repeat(64);stored.backupCode=null
-   await m.getByRole('button',{name:'Check status'}).click();await m.getByRole('heading',{name:'Your wish is ready'}).waitFor()
+   await m.getByRole('button',{name:'Check status'}).click();await m.getByRole('heading',{name:'Your success card is ready!'}).waitFor()
+   await m.getByText('View link',{exact:true}).click()
    assert.equal(await m.getByLabel('Private card link',{exact:true}).inputValue(),stored.invitationUrl);assert.equal(await m.getByLabel('Backup card code').count(),0,'No unusable code displayed')
-   const share=await m.getByRole('link',{name:'Share via WhatsApp'}).getAttribute('href')
+   const share=await m.getByRole('link',{name:'Share on WhatsApp'}).getAttribute('href')
    assert.equal(new URL(share).searchParams.get('text').endsWith(stored.invitationUrl),true,'WhatsApp includes the exact gift token')
+   if(width===320){
+    await m.getByRole('button',{name:'More sharing options'}).click()
+    assert((await page.evaluate(()=>window.__qaShared.text)).endsWith(stored.invitationUrl),'Native sharing retains complete private link')
+    assert.equal(await m.getByRole('heading',{name:'Your success card is ready!'}).count(),1,'Cancelled sharing never claims sent')
+    await m.getByRole('button',{name:'Copy link',exact:true}).click()
+    assert.equal(await page.evaluate(()=>window.__qaCopied),stored.invitationUrl)
+    await m.getByRole('button',{name:'Link copied ✓',exact:true}).waitFor()
+    stored.deliveryStatus='accepted'
+    await m.getByRole('button',{name:'Close checkout'}).click()
+    await page.locator('#wish-composer [class*="sendRow"]').getByRole('button',{name:'Send this wish'}).click()
+    m=page.getByRole('dialog')
+    await m.getByRole('heading',{name:'Success card invitation sent!'}).waitFor()
+    assert.equal(await m.getByRole('button',{name:'Pay KSh 50',exact:true}).count(),0,'Confirmed sent restoration never requests a second payment')
+   }
    await page.screenshot({path:artifacts+'/checkout-'+width+'.png'});await context.close();console.log('PASS checkout width '+width+': review, saved order, single payment action, refresh recovery, receipt, exact link/code')
   }
   const giftContext=await browser.newContext({viewport:{width:390,height:900}}),giftPage=await giftContext.newPage()
@@ -130,7 +171,7 @@ fs.mkdirSync(artifacts,{recursive:true})
    await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({card:{id:'synthetic-gift',theme:'heritage',candidate:'QA Recipient',school:'',examYear:'2026',sender:null}})})
   })
   await giftPage.goto(root+'/success-wishes/gift#token='+giftToken,{waitUntil:'networkidle'})
-  const giftShare=giftPage.getByRole('link',{name:'Share via WhatsApp'})
+  const giftShare=giftPage.getByRole('link',{name:'Share on WhatsApp'})
   assert.equal(new URL(await giftShare.getAttribute('href')).searchParams.get('text').endsWith(giftLink),true)
   assert.equal(reveals,0,'Preparing a share must not open or alter the sealed gift')
   await giftContext.close();console.log('PASS private gift page WhatsApp action preserves sealed state and complete token')
