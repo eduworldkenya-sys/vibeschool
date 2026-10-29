@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { HQPage, HQPanel, HQ_THEME, hqButtonStyle } from '@/components/hq/HQShell'
 import { hqSupabase } from '@/lib/hq/supabase'
 import SuccessWishesPaymentReadiness from '@/components/success-wishes/SuccessWishesPaymentReadiness'
+import SuccessWishesBusinessReport from '@/components/success-wishes/SuccessWishesBusinessReport'
 
 type School = {
   school_id: string
@@ -132,6 +133,7 @@ export default function SuccessWishesHQ() {
       {error && <p role="alert" style={{color:HQ_THEME.red,marginTop:12}}>{error}</p>}
       {notice && <p role="status" style={{color:HQ_THEME.green,marginTop:12}}>{notice}</p>}
     </HQPanel>
+    {allowed === true && <SuccessWishesBusinessReport/>}
     {allowed === true && <SuccessWishesPaymentReadiness/>}
   </HQPage>
 }
