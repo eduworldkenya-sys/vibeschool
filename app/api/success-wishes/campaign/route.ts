@@ -12,8 +12,7 @@ async function freeWish(req: NextRequest, raw: unknown) {
  if (b.action === 'validate') {
   const db = database()
   const {data,error} = await db.from('success_wishes_campaigns').select('enabled,max_redemptions,redeemed').eq('code','DNJIMAX3').maybeSingle()
-  const {data:pilot} = await db.from('success_wishes_pilot_control').select('free_text_enabled').eq('singleton',true).maybeSingle()
-  if(error || !data?.enabled || !pilot?.free_text_enabled || data.redeemed >= data.max_redemptions) throw new WishError(409,'This code is unavailable.')
+  if(error || !data?.enabled || data.redeemed >= data.max_redemptions) throw new WishError(409,'This code is unavailable.')
   return {valid:true}
  }
 
@@ -35,8 +34,6 @@ async function freeWish(req: NextRequest, raw: unknown) {
  const ip=(req.headers.get('x-real-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').slice(0,100)
  await limit('free-gift-ip:'+ip,10,3600)
  await limit('free-gift-global',1000,3600)
- const {data:control,error:controlError}=await db.from('success_wishes_pilot_control').select('free_text_enabled').eq('singleton',true).maybeSingle()
- if(controlError || !control?.free_text_enabled) throw new WishError(503,'Free wishes are not available.')
  const digest=createHash('sha256').update('vibeschool:success-wishes:text-card:v1:').update(JSON.stringify(card)).digest('hex')
  const secret=hashSecret('success-wishes:guest-card-link:'+key)
  const {data,error}=await db.rpc('success_wish_redeem_campaign',{
