@@ -315,11 +315,11 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     </header>
     <main className={styles.main}>
       <section className={styles.intro}>
-        <p className={styles.eyebrow}>DIGITAL SUCCESS CARDS</p>
-        <h1>Wish students good luck <em>&amp; success.</em></h1>
-        <p>A personal wish, beautifully made for someone special.</p>
+        <p className={styles.eyebrow}>2026</p>
+        <h1>Digital Success Cards</h1>
+        <p>Wish students good luck &amp; success.</p>
         <div className={styles.entryActions}>
-          <a className={styles.heroCta} href="#choose-card">Send a wish <ChevronRight size={16}/></a>
+          <a className={styles.heroCta} href="#choose-card">Send a Success Card <ChevronRight size={16}/></a>
           <Link className={styles.openWishCta} href="/success-wishes/open">Open a wish</Link>
         </div>
       </section>
