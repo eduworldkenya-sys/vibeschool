@@ -104,7 +104,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   if(promoBusy||busy)return
   setPromoBusy(true);setError('')
   try{
-   const r=await fetch('/api/success-wishes/campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'validate',code:promoCode}),cache:'no-store'})
+   const r=await fetch('/api/success-wishes/campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'validate',code:promoCode.trim().toUpperCase()}),cache:'no-store'})
    const data=await r.json()
    if(!r.ok||!data.valid)throw new Error(data.error||'Code unavailable.')
    setPromoValid(true)
@@ -115,7 +115,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   if(promoBusy||!promoValid||promoGift)return
   setPromoBusy(true);setError('')
   try{
-   const r=await fetch('/api/success-wishes/campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:promoCode,version:'text',key:newCheckoutKey(),...draft}),cache:'no-store'})
+   const r=await fetch('/api/success-wishes/campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:promoCode.trim().toUpperCase(),version:'text',key:newCheckoutKey(),...draft}),cache:'no-store'})
    const data=await r.json()
    if(!r.ok||!data.invitationUrl)throw new Error(data.error||'Could not send your card.')
    setPromoGift(data.invitationUrl)
@@ -172,11 +172,10 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   {promoGift?<div className={styles.checkoutFlow} role="status"><p className={styles.successMessage}>Success Card 2026 is ready.</p><GiftShareActions link={promoGift} candidate={draft.candidate}/><button type="button" className={styles.secondary} onClick={sharePromo}>Share Code on WhatsApp</button></div>:restoring?<p role="status">Checking your order…</p>:<>
    {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?'FREE':'KSh 50'}</strong></div>}
    {!order&&!uncertain?<form noValidate onSubmit={e=>{e.preventDefault();void act('pay')}}>
-    <div className={styles.promoSection}>
+    {!promoValid?<div className={styles.promoSection}>
      <label className={styles.checkoutLabel} htmlFor={id+'-promo'}>Have a secret code?</label>
      <div className={styles.promoEntry}><input id={id+'-promo'} type="text" autoComplete="off" maxLength={32} placeholder="Enter code" value={promoCode} disabled={promoBusy||busy} onChange={e=>{setPromoCode(e.target.value);setPromoValid(false);setError('')}}/><button type="button" className={styles.secondary} disabled={promoBusy||busy||!promoCode.trim()} onClick={()=>void applyPromo()}>{promoBusy?'Checking…':'Apply'}</button></div>
-     {promoValid&&<p className={styles.promoAccepted} role="status"><Check size={16}/> Code accepted!</p>}
-    </div>
+    </div>:<p className={styles.promoAccepted} role="status"><Check size={16}/> Code accepted!</p>}
     {promoValid?<button type="button" className={styles.primary} disabled={promoBusy||busy} onClick={()=>void sendPromo()}>{promoBusy?'Sending…':'Send Success Card'}</button>:<>
     <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label>
     <button type="submit" className={styles.primary} disabled={busy||!key}>{busy?'Saving…':'Pay KSh 50'}</button>
