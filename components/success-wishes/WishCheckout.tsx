@@ -123,7 +123,6 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   }catch(e){setError(e instanceof Error?e.message:'Please try again.')}
   finally{setPromoBusy(false)}
  }
- const sharePromo=()=>window.open('https://wa.me/?text='+encodeURIComponent('Niko na secret code ya kutuma Success Card 2026!\\nCode: Dnjimax3\\nNi kwa watu 200 wa kwanza.\\nhttps://vibeschool.co.ke/success-wishes'),'_blank','noopener,noreferrer')
  function clear(nextPhone=''){
   sessionStorage.removeItem(CHECKOUT_STORAGE_KEY);setOrder(null);setKey(newCheckoutKey());setPhone(nextPhone);setUncertain(false);setError('');setNotice('')
  }
@@ -169,7 +168,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   {success&&<div className={styles.successCelebration} aria-hidden="true"><Check size={30}/><span>✦</span><span>✧</span><span>✦</span></div>}
   <h2 id={id}>{title}</h2>
   <div className={`${styles.checkoutPreview} ${checking?styles.checkoutPreviewCompact:''}`}><CardArt template={card.theme} values={card} preview/><strong>For {card.candidate}</strong></div>
-  {promoGift?<div className={styles.checkoutFlow} role="status"><p className={styles.successMessage}>Success Card 2026 is ready.</p><GiftShareActions link={promoGift} candidate={draft.candidate}/><button type="button" className={styles.secondary} onClick={sharePromo}>Share Code on WhatsApp</button></div>:restoring?<p role="status">Checking your order…</p>:<>
+  {promoGift?<div className={styles.checkoutFlow} role="status"><GiftShareActions link={promoGift} candidate={draft.candidate} compact/></div>:restoring?<p role="status">Checking your order…</p>:<>
    {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?'FREE':'KSh 50'}</strong></div>}
    {!order&&!uncertain?<form noValidate onSubmit={e=>{e.preventDefault();void act('pay')}}>
     {!promoValid?<div className={styles.promoSection}>
