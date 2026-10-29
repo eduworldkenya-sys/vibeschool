@@ -11,7 +11,7 @@ import {palette, templates} from '@/components/success-wishes/card-themes'
 import {broadcastKeepsakeChange, watchKeepsakeChange, rememberInbox} from '@/lib/success-wishes/receiver-pin-browser'
 import styles from './page.module.css'
 
-type Card = {id:string; source:'paid'|'free'|'legacy'; sender:string|null; opened:boolean; theme?:string; createdAt?:string}
+type Card = {id:string; source:'paid'|'free'|'group'|'legacy'; sender:string|null; opened:boolean; theme?:string; createdAt?:string}
 type Inbox = {legacy?:boolean; recipient:{id?:string; name:string; school:string}; cards:Card[]}
 
 export default function MyWishes() {
