@@ -37,8 +37,37 @@ begin
  update public.success_wishes_campaigns set redeemed=redeemed+1
  where code='DNJIMAX3' and enabled and redeemed<max_redemptions;
  if not found then raise exception 'All codes claimed' using errcode='23514'; end if;
- -- Existing free-gift issuance keeps the paid order system untouched.
- gift_id := public.success_wish_issue_free_guest_gift(p_key_hash,p_link_hash,p_card,p_card_digest);
+ -- Issue through the existing free-gift table without opening the public free-pilot switch.
+ if coalesce(p_key_hash,'') !~ '^[a-f0-9]{64}
+end $$;
+revoke all on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) from public,anon,authenticated;
+grant execute on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) to service_role;
+
+ or coalesce(p_link_hash,'') !~ '^[a-f0-9]{64}
+end $$;
+revoke all on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) from public,anon,authenticated;
+grant execute on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) to service_role;
+
+ or coalesce(p_card_digest,'') !~ '^[a-f0-9]{64}
+end $$;
+revoke all on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) from public,anon,authenticated;
+grant execute on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) to service_role;
+
+ or coalesce(p_card->>'kind','') <> 'success_wish_text'
+ or coalesce(p_card->>'theme','') not in ('heritage','botanical','nightfall','sunrise')
+ or length(trim(coalesce(p_card->>'candidate',''))) not between 1 and 48
+ or length(trim(coalesce(p_card->>'sender',''))) not between 1 and 48
+ or length(trim(coalesce(p_card->>'message',''))) not between 1 and 220
+ or coalesce(p_card->>'examYear','') !~ '^20[0-9]{2}
+end $$;
+revoke all on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) from public,anon,authenticated;
+grant execute on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) to service_role;
+
+ or length(coalesce(p_card->>'school','')) > 80
+ then raise exception 'Invalid card' using errcode='22023'; end if;
+ insert into public.success_wish_free_gifts(key_hash,link_hash,card,card_digest,expires_at)
+ values(p_key_hash,p_link_hash,p_card,p_card_digest,now()+interval '90 days')
+ returning id into gift_id;
  return gift_id;
 end $$;
 revoke all on function public.success_wish_redeem_campaign(text,text,text,jsonb,text) from public,anon,authenticated;
