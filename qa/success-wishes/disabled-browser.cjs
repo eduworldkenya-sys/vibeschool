@@ -85,6 +85,7 @@ async function makeWish(context, { message, theme }) {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(results) })
   })
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
+  await page.getByRole('button', { name: 'Close Success Wishes offer', exact: true }).click()
   assert.equal(response.status(), 200)
   await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
   assert.equal(await page.getByText('Start your wish. Text saves in this tab as you type. Recordings are not saved.').count(), 0, 'No redundant draft instructions')
