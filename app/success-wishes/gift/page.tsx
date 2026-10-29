@@ -61,9 +61,9 @@ export default function PrivateGiftPage(){
           aria-pressed={soundEnabled}>{soundEnabled?'Sound on':'Sound off'}</button>
       </header>
       <div style={{textAlign:'center'}}>
-        <p style={{color:'#D4AF37',fontSize:12,letterSpacing:2}}>A PRIVATE SURPRISE</p>
-        <h1 style={{fontFamily:'Georgia,serif',fontSize:30,margin:'8px 0'}}>Someone believes in you.</h1>
-        <p style={{fontSize:14,color:'#C3C7D1'}}>{gift?'A special Success Wish for '+gift.candidate:'Your gift is being opened privately.'}</p>
+        <p style={{color:'#D4AF37',fontSize:12,letterSpacing:2}} >SUCCESS WISHES 2026</p>
+        <h1 style={{fontFamily:'Georgia,serif',fontSize:30,margin:'8px 0'}} >{gift?.sender ? `From ${gift.sender} to ${gift.candidate}` : gift ? `For ${gift.candidate}` : 'Your Success Card'}</h1>
+        <p style={{fontSize:14,color:'#C3C7D1'}}>{gift?'':'Opening your card…'}</p>
       </div>
       {busy&&<p role="status">Finding your gift…</p>}
       {error&&<p role="alert" style={{color:'#FCA5A5',textAlign:'center'}}>{error}</p>}
@@ -76,7 +76,7 @@ export default function PrivateGiftPage(){
         {' '}{secret.current?'Keep your private gift link. Anyone with it can open this card.':'Find this card again in My wishes.'}
       </p>}
       {gift&&opened&&secret.current&&<KeepWish token={secret.current} candidate={gift.candidate}/>}
-      {gift&&secret.current&&<GiftShareActions link={'https://vibeschool.co.ke/success-wishes/gift#token='+secret.current}/>}
+      {gift&&secret.current&&<GiftShareActions link={'https://vibeschool.co.ke/success-wishes/gift#token='+secret.current} candidate={gift.candidate} sender={gift.sender||undefined}/>}
       <nav style={{display:'flex',justifyContent:'center',gap:24,fontSize:14}}>
         <Link href="/success-wishes/inbox" style={{color:'#D4AF37'}}>My wishes</Link>
         <Link href="/success-wishes" style={{color:'#D4AF37'}}>Send a wish</Link>

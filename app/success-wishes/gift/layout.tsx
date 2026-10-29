@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
-const title = 'You Received a Success Card | Success Wishes 2026'
-const description = 'Someone sent you a Success Card. A special message is waiting for you. Tap to open your surprise.'
+const title = 'Success Wishes 2026 — Open Your Card'
+const description = 'Open your personalised Success Card.'
 const url = 'https://vibeschool.co.ke/success-wishes/gift'
 const image = 'https://vibeschool.co.ke/success-wishes/gift/opengraph-image'
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     siteName: 'VibeSchool',
     locale: 'en_KE',
     type: 'website',
-    images: [{ url: image, width: 1200, height: 630, alt: 'A private Success Card is waiting for you' }],
+    images: [{ url: image, width: 1200, height: 630, alt: 'Success Wishes 2026 personalised card' }],
   },
   twitter: {
     card: 'summary_large_image',
