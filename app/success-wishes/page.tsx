@@ -28,9 +28,10 @@ export const metadata: Metadata = {
   },
 }
 
-export default function SuccessWishesPage() {
+export default function SuccessWishesPage({ searchParams }: { searchParams?: { offerPreview?: string } }) {
+  const previewOffer = searchParams?.offerPreview === '1'
   return <>
     <SuccessCardStudio testMode={process.env.NODE_ENV === 'development' && process.env.VIBESCHOOL_SUCCESS_WISHES_TEST_MODE === '1'} />
-    {process.env.NEXT_PUBLIC_SUCCESS_WISHES_GROUP_OFFER_ENABLED === 'true' && <SuccessWishesFloatingOffer />}
+    {(previewOffer || process.env.NEXT_PUBLIC_SUCCESS_WISHES_GROUP_OFFER_ENABLED === 'true') && <SuccessWishesFloatingOffer />}
   </>
 }
