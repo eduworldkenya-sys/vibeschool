@@ -109,6 +109,36 @@ function render(gift: GiftDetails): HTMLCanvasElement {
   return canvas
 }
 
+// The same renderer powers both exports: no duplicate source of truth.
+function printKeepsake(canvas: HTMLCanvasElement, target: Window) {
+  const pageHeight = canvas.height / 2
+  const pages = [0, 1].map(index => {
+    const page = document.createElement('canvas')
+    page.width = canvas.width
+    page.height = pageHeight
+    const context = page.getContext('2d')
+    if (!context) throw new Error('Could not prepare the printable card.')
+    context.drawImage(canvas, 0, index * pageHeight, canvas.width, pageHeight,
+      0, 0, canvas.width, pageHeight)
+    return page.toDataURL('image/png')
+  })
+  // Avoid injecting recipient text into HTML. Image data is generated locally.
+  target.document.open()
+  target.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Success Card</title>' +
+    '<style>@page{size:A4 portrait;margin:10mm}html,body{padding:0;margin:0;background:white}' +
+    '.page{height:277mm;display:flex;align-items:center;justify-content:center;break-after:page;page-break-after:always}' +
+    '.page:last-child{break-after:auto;page-break-after:auto}' +
+    'img{display:block;max-width:100%;max-height:100%;object-fit:contain;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    '@media screen{body{background:#e5e5e5}.page{max-width:210mm;margin:12px auto;background:white}}</style></head><body>' +
+    pages.map(src => '<section class="page"><img alt="Personalised Success Card page" src="' + src + '"></section>').join('') +
+    '</body></html>')
+  target.document.close()
+  target.focus()
+  // Allow images to finish decoding before opening the system print / Save PDF dialog.
+  void Promise.all(Array.from(target.document.images, img => img.decode().catch(() => {})))
+    .then(() => { if (!target.closed) target.print() })
+}
+
 export default function DownloadSuccessCard({ gift }: { gift: GiftDetails }) {
   const [working, setWorking] = useState(false)
   const [error, setError] = useState('')
@@ -135,11 +165,35 @@ export default function DownloadSuccessCard({ gift }: { gift: GiftDetails }) {
       setWorking(false)
     }
   }
+  async function printCard() {
+    if (working) return
+    // Open immediately on user interaction to avoid popup blockers.
+    const target = window.open('', '_blank')
+    if (!target) {
+      setError('Allow pop-ups to print this card, or use Download PNG.')
+      return
+    }
+    setWorking(true)
+    setError('')
+    try {
+      await document.fonts.ready
+      printKeepsake(render(gift), target)
+    } catch (reason) {
+      target.close()
+      setError(reason instanceof Error ? reason.message : 'Could not prepare printable card.')
+    } finally {
+      setWorking(false)
+    }
+  }
   return <div style={{ textAlign: 'center' }}>
-    <button type="button" onClick={() => void download()} disabled={working}
+    <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}><button type="button" onClick={() => void download()} disabled={working}
       style={{ background: '#D4AF37', color: '#101522', border: 0, borderRadius: 10, padding: '13px 22px', fontWeight: 700, cursor: working ? 'wait' : 'pointer' }}>
-      {working ? 'Preparing card…' : 'Download card'}
+      {working ? 'Preparing card…' : 'Download PNG'}
     </button>
+    <button type="button" onClick={() => void printCard()} disabled={working}
+      style={{ background: 'transparent', color: '#F3E5AB', border: '1px solid #D4AF37', borderRadius: 10, padding: '13px 22px', fontWeight: 700, cursor: working ? 'wait' : 'pointer' }}>
+      Print / Save PDF
+    </button></div>
     {error && <p role="alert" style={{ color: '#FCA5A5', fontSize: 13 }}>{error}</p>}
   </div>
 }
