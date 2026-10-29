@@ -86,7 +86,7 @@ async function makeWish(context, { message, theme }) {
   })
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
   assert.equal(response.status(), 200)
-  await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
+  await page.getByRole('heading', { name: /Digital Success Cards/i }).waitFor()
   assert.equal(await page.getByText('Start your wish. Text saves in this tab as you type. Recordings are not saved.').count(), 0, 'No redundant draft instructions')
   assert.equal(await page.getByText('Your wish appears as you type.').count(), 0, 'Empty mobile preview has no redundant instruction')
   assert.equal(await page.getByText(/Enter the candidate’s name.*Enter your name.*Write a wish or choose a starter below/).count(), 0, 'No combined missing-fields explanation')
@@ -269,7 +269,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     page.on('pageerror', error => errors.push(error.message))
     const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
     assert.equal(response.status(), 200)
-    await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
+    await page.getByRole('heading', { name: /Digital Success Cards/i }).waitFor()
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
       assert.equal(await page.getByRole('button', { name: `Choose ${design} card` }).count(), 1)
     }
