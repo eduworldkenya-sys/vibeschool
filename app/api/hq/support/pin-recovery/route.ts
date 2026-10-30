@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server'
 import {createClient} from '@supabase/supabase-js'
-import {secret,validId} from '@/lib/success-wishes/receiver-pin'
+import {secret,validId,nameKey} from '@/lib/success-wishes/receiver-pin'
 import {recoveryHash} from '@/lib/success-wishes/receiver-collection'
 import {hashSecret} from '@/lib/success-wishes/security'
 export const runtime='nodejs'
@@ -37,7 +37,7 @@ export async function POST(req:NextRequest){
  const {data:receiver}=await client.from('success_wish_receivers').select('id,phone_e164,display_name,pin_exam_year,pin_hash,consent_status').eq('id',body.receiverId).maybeSingle()
  if(!receiver||!receiver.pin_hash||receiver.consent_status==='revoked'||receiver.pin_exam_year!==review.exam_year||
  hashSecret('success-wishes:recovery-review:phone:'+receiver.phone_e164)!==review.phone_digest||
- hashSecret('success-wishes:recovery-review:name:'+receiver.display_name.trim().toLocaleLowerCase('en'))!==review.name_digest)
+ hashSecret('success-wishes:recovery-review:name:'+nameKey(receiver.display_name))!==review.name_digest)
  return fail('Recipient does not match this request',409)
  // Approvals do not authenticate phone ownership. HQ must verify identity outside the form.
  const capability=secret()
