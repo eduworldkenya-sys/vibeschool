@@ -110,7 +110,7 @@ export default function ReceiverShell({
   );
   const nav = (
     <nav aria-label="Receiver menu">
-      {links.map(({ href, label, icon: Icon }) => (
+      {links.filter(item => item.href !== "/success-wishes/open" || !["/success-wishes/inbox", "/success-wishes/gift"].includes(pathname)).map(({ href, label, icon: Icon }) => (
         <Link
           key={href}
           href={href}
@@ -140,7 +140,7 @@ export default function ReceiverShell({
   );
   return (
     <ReceiverContext.Provider value={value}>
-      <div className={receiver ? (["/success-wishes/invitation", "/success-wishes/gift"].includes(pathname) ? "receiver-theme receiver-gift-focus" : "receiver-theme") : "receiver-site"}>
+      <div className={receiver ? (["/success-wishes/invitation", "/success-wishes/gift"].includes(pathname) ? "receiver-theme receiver-gift-focus" : pathname === "/success-wishes/inbox" ? "receiver-theme receiver-inbox-fit" : "receiver-theme") : "receiver-site"}>
         {!receiver ? children : (
           <>
             <header className="receiver-mobile-header">
@@ -215,17 +215,6 @@ export default function ReceiverShell({
               >
                 <Inbox />
                 <span>My wishes</span>
-              </Link>
-              <Link
-                href="/success-wishes/open"
-                aria-current={
-                  pathname.endsWith("/open") || pathname.endsWith("/invitation")
-                    ? "page"
-                    : undefined
-                }
-              >
-                <MailOpen />
-                <span>Open</span>
               </Link>
               <Link className="receiver-request" href="/success-wishes/request">
                 <i>
