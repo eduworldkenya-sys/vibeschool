@@ -12,6 +12,8 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
   const [visible, setVisible] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [demoOpen, setDemoOpen] = useState(false)
+  const [trialEnabled,setTrialEnabled] = useState(false)
+  useEffect(()=>{let active=true;fetch('/api/success-wishes/config',{cache:'no-store'}).then(r=>r.json()).then(c=>{if(active)setTrialEnabled(c.freeTrialEnabled===true)}).catch(()=>{});return()=>{active=false}},[])
 
   useEffect(() => {
     if (preview) { setVisible(true); setExpanded(true); return }
@@ -75,7 +77,13 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
 
   return (
     <>
-      {visible && !expanded && !demoOpen && <aside className={styles.teaser} aria-label="Digital Success Cards last-minute offer">
+      {visible && trialEnabled && !expanded && !demoOpen && <aside className={styles.teaser} aria-label="Free Digital Success Cards offer">
+        <span className={styles.yearRibbon} aria-hidden="true">2026</span>
+        <button type="button" className={styles.teaserClose} aria-label="Dismiss free card advert" onClick={dismiss}>×</button>
+        <div className={styles.teaserContent}><strong className={styles.teaserHeadline}>Send 5 FREE Success Cards</strong><strong className={styles.teaserFree}>Never late for a wish</strong><span className={styles.teaserNow}>Personalise · Share instantly</span><button type="button" className={styles.teaserMainCta} onClick={chooseDesign}>Send Free Cards →</button></div>
+      </aside>}
+      {visible && trialEnabled && expanded && !demoOpen && <div className={styles.backdrop} onMouseDown={e=>{if(e.target===e.currentTarget)collapse()}}><section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="free-trial-offer"><button type="button" className={styles.modalClose} aria-label="Close free offer" onClick={collapse}>×</button><div className={styles.heading}><h2 id="free-trial-offer">Send 5 FREE Success Cards</h2><p>Personalise. Share instantly.</p></div><button type="button" className={styles.teaserMainCta} style={{display:'block',width:'100%'}} onClick={chooseDesign}>Send Free Cards →</button></section></div>}
+      {visible && !trialEnabled && !expanded && !demoOpen && <aside className={styles.teaser} aria-label="Digital Success Cards last-minute offer">
         <span className={styles.yearRibbon} aria-label="2026">2026</span>
         <button type="button" className={styles.teaserClose} onClick={dismiss} aria-label="Dismiss Success Cards advert">×</button>
         <div className={styles.teaserContent}>
@@ -93,7 +101,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
           <button type="button" className={styles.teaserMainCta} onClick={chooseDesign}>Send Success Card Now →</button>
         </div>
       </aside>}
-      {visible && expanded && !demoOpen && <div className={styles.backdrop} onMouseDown={event => { if (event.target === event.currentTarget) collapse() }}>
+      {visible && !trialEnabled && expanded && !demoOpen && <div className={styles.backdrop} onMouseDown={event => { if (event.target === event.currentTarget) collapse() }}>
         <section role="dialog" aria-modal="true" aria-labelledby="success-offer-heading" className={styles.modal}>
           <button type="button" className={styles.modalClose} onClick={collapse} aria-label="Close offer details">×</button>
           <div className={styles.heading}>
