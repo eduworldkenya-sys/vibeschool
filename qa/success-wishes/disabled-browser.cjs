@@ -281,27 +281,9 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await gallery.locator('svg text[textLength], svg text[lengthAdjust]').count(), 0, 'Card lettering must never be stretched to fit')
     assert.equal(await gallery.getByText('Tap a card to choose it').count(), 0, 'Design selection needs no extra instructions')
     assert.equal(await page.locator('section[aria-label="Wish versions and prices"]').locator('[class*="purchaseNote"]').count(), 0, 'Do not duplicate price totals in the selector')
-    assert.equal(await page.getByRole('button', { name: /Text Wish · KES 50/ }).count(), 1)
-    assert.equal(await page.getByRole('button', { name: /Voice Wish · Preview only/ }).isEnabled(), true)
-    assert.equal(await page.getByRole('button', { name: /Video Wish · Preview only/ }).isEnabled(), true)
-    await page.getByRole('button', { name: /Voice Wish · Preview only/ }).click()
-    assert.equal(await page.getByRole('button', { name: 'Record voice' }).count(), 1, 'Sender can record an audio wish')
-    assert.equal(await page.getByRole('button', { name: 'Choose audio file' }).count(), 1, 'Sender can choose an audio file')
-    assert.equal(await page.getByText(/Local preview only — recordings are not saved/).count(), 0, 'Remove redundant recording note')
-    await page.locator('input[type="file"][accept^="audio"]').setInputFiles({
-      name: 'private-voice.wav', mimeType: 'audio/wav', buffer: Buffer.from('RIFFsynthetic-preview-file'),
-    })
-    assert.equal(await page.locator('[aria-label="Add a voice wish"]').getByText('private-voice.wav').count(), 1, 'Sender file is locally selected')
-    assert.equal(await page.getByRole('button', { name: 'Remove selected recording' }).count(), 1)
-    assert.equal(await page.getByRole('button', { name: 'Preview your wish' }).isDisabled(), true, 'Unfinished media wish cannot create a checkout')
-    await page.getByRole('button', { name: /Video Wish · Preview only/ }).click()
-    assert.equal(await page.getByRole('button', { name: 'Record video' }).count(), 1)
-    assert.equal(await page.getByRole('button', { name: 'Choose video file' }).count(), 1)
-    await page.locator('input[type="file"][accept^="video"]').setInputFiles({
-      name: 'private-video.mp4', mimeType: 'video/mp4', buffer: Buffer.from('synthetic-video-preview-file'),
-    })
-    assert.equal(await page.locator('[aria-label="Add a video wish"]').getByText('private-video.mp4').count(), 1, 'Video file is locally selected')
-    await page.getByRole('button', { name: /Text Wish · KES 50/ }).click()
+    // The current sender flow defaults to Text; Voice/Video selectors are not displayed.
+    assert.equal(await page.locator('#wish-composer').count(), 1, 'Sender composer is available')
+    assert.equal(await page.getByRole('button', { name: /Text Wish · KES 50/ }).count(), 0, 'Do not restore the retired version selector')
     assert.equal(await page.getByRole('textbox', { name: 'Exam year' }).inputValue(), '2026', 'Year is prefilled for the sender')
     assert.equal(await page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' }).count(), 0, 'No lower CTA appears before the required details are complete')
     assert.equal(await page.locator('#wish-composer [class*="sendRow"]').getByRole('button', { name: 'Send this wish' }).count(), 0, 'No upper CTA appears before the required details are complete')
