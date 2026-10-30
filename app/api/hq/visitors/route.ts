@@ -47,11 +47,14 @@ export async function GET(req: NextRequest) {
     const events = data || []
     const visitors = new Set(events.map(event => event.visitor_hash)).size
     const pages = new Map<string, number>()
+    const hours = new Map<number, number>()
     const devices = new Map<string, number>()
     const sources = new Map<string, number>()
     const daily = new Map<string, { date: string, views: number, visitors: Set<string> }>()
     for (const event of events) {
       pages.set(event.page_path, (pages.get(event.page_path) || 0) + 1)
+      const hour = Number(new Date(event.occurred_at).toLocaleString('en-GB',{hour:'2-digit',hour12:false,timeZone:'Africa/Nairobi'}))
+      hours.set(hour,(hours.get(hour)||0)+1)
       devices.set(event.device || 'Unknown', (devices.get(event.device || 'Unknown') || 0) + 1)
       sources.set(event.referrer || 'Direct', (sources.get(event.referrer || 'Direct') || 0) + 1)
       const date = event.occurred_at.slice(0, 10)
@@ -62,6 +65,9 @@ export async function GET(req: NextRequest) {
     }
     return respond({
       visitors, pageViews: events.length, days: period, truncated: events.length === 50000,
+      recent: events.slice(0,20).map(e => ({path:e.page_path,at:e.occurred_at,device:e.device||'Unknown',source:e.referrer||'Direct'})),
+      hourly: Array.from({length:24},(_,hour)=>({hour,views:hours.get(hour)||0})),
+      repeatVisitors: [...events.reduce((map,event)=>map.set(event.visitor_hash,(map.get(event.visitor_hash)||0)+1),new Map<string,number>()).values()].filter(count=>count>1).length,
       devices: [...devices].sort((a,b) => b[1]-a[1]).map(([name,views]) => ({name,views})),
       sources: [...sources].sort((a,b) => b[1]-a[1]).slice(0,10).map(([name,views]) => ({name,views})),
       pages: [...pages].sort((a,b) => b[1] - a[1]).slice(0, 10).map(([path, views]) => ({ path, views })),
