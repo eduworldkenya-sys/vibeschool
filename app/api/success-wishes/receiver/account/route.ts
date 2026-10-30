@@ -27,6 +27,12 @@ export async function POST(req:NextRequest){try{
   const {data:previous,error:pe}=await db.from('success_wish_receivers').select('id,pin_epoch,pin_hash,pin_recovery_hash,pin_name_key,phone_e164').eq('pin_setup_hash',setup).maybeSingle()
   if(pe)throw new WishError(503,'Could not check setup. Try again.')
   if(previous){if(previous.pin_name_key!==nameKey(name)||previous.phone_e164!==phone||previous.pin_recovery_hash!==recoveryHash(recovery)||!verifyPin(b.pin,previous.pin_hash))throw denied();const response=reply({ok:true,inboxId:previous.id,recoveryUrl:req.nextUrl.origin+'/success-wishes/recover#recovery='+recovery});await remember(db,req,response,previous);return response}
+  // A phone is a shared delivery address, but an existing recipient identity
+  // must be unlocked rather than silently provisioned a second time.
+  const {data:existing,error:existingError}=await db.from('success_wish_receivers')
+   .select('id').eq('phone_e164',phone).eq('pin_name_key',nameKey(name)).eq('pin_exam_year',year).limit(1)
+  if(existingError)throw new WishError(503,'Could not check existing inbox. Try again.')
+  if(existing?.length)throw new WishError(409,'This recipient already has an inbox. Open My wishes and enter their PIN.')
   let legacyId:string|null=null
   try{const {inboxSession}=await import('@/lib/success-wishes/receiver-otp');const old=await inboxSession(req);if(old.receiver.phone_e164===phone&&nameKey(old.receiver.display_name)===nameKey(name))legacyId=old.receiver.id}catch(e){if(!(e instanceof WishError&&[401,503].includes(e.status)))throw e}
   const record={display_name:name,school_label:school,phone_e164:phone,pin_name_key:nameKey(name),pin_exam_year:year,pin_hash:pin,pin_epoch:1,pin_setup_hash:setup,pin_recovery_hash:recoveryHash(recovery),pin_notice_version:'keepsake-2026-10-29',pin_consent_role:b.role,pin_consent_at:new Date().toISOString()}
