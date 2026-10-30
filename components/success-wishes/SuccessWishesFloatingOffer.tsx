@@ -5,6 +5,7 @@ import styles from './SuccessWishesFloatingOffer.module.css'
 import SuccessWishesGroupDemo from './SuccessWishesGroupDemo'
 
 const SESSION_KEY = 'success-wishes-2026-floating-offer-dismissed'
+const COLLAPSED_KEY = 'success-wishes-2026-floating-offer-collapsed'
 
 export default function SuccessWishesFloatingOffer({ preview = false }: { preview?: boolean }) {
   const [visible, setVisible] = useState(false)
@@ -15,6 +16,7 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
     if (preview) { setVisible(true); setExpanded(true); return }
     try { if (sessionStorage.getItem(SESSION_KEY) === '1') return } catch { /* Browsers can block storage. */ }
     setVisible(true)
+    try { setExpanded(sessionStorage.getItem(COLLAPSED_KEY) !== '1') } catch { setExpanded(true) }
   }, [preview])
 
   useEffect(() => {
@@ -25,10 +27,15 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
 
   useEffect(() => {
     if (!expanded || demoOpen) return
-    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setExpanded(false) }
+    const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') collapse() }
     document.addEventListener('keydown', onEscape)
     return () => document.removeEventListener('keydown', onEscape)
   }, [expanded, demoOpen])
+
+  function collapse() {
+    setExpanded(false)
+    try { sessionStorage.setItem(COLLAPSED_KEY, '1') } catch { /* Keep local state. */ }
+  }
 
   function dismiss() {
     setExpanded(false)
@@ -37,12 +44,12 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
   }
 
   function chooseOne() {
-    setExpanded(false)
+    collapse()
     document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   function chooseFour() {
-    setExpanded(false)
+    collapse()
     setDemoOpen(true)
   }
 
@@ -55,9 +62,9 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
         </button>
         <button type="button" className={styles.teaserClose} onClick={dismiss} aria-label="Dismiss Success Wishes advert">×</button>
       </aside>}
-      {visible && expanded && !demoOpen && <div className={styles.backdrop} onMouseDown={event => { if (event.target === event.currentTarget) setExpanded(false) }}>
+      {visible && expanded && !demoOpen && <div className={styles.backdrop} onMouseDown={event => { if (event.target === event.currentTarget) collapse() }}>
         <section role="dialog" aria-modal="true" aria-labelledby="success-offer-heading" className={styles.modal}>
-          <button type="button" className={styles.modalClose} onClick={() => setExpanded(false)} aria-label="Close offer details">×</button>
+          <button type="button" className={styles.modalClose} onClick={collapse} aria-label="Close offer details">×</button>
           <div className={styles.heading}>
             <h2 id="success-offer-heading">Digital Success Cards 2026</h2>
             <p>A little wish. A big smile.</p>
