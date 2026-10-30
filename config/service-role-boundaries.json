@@ -124,6 +124,15 @@
         "status:403",
         "'Cache-Control':'private, no-store'"
       ]
+    },
+    "app/api/hq/visitors/route.ts": {
+      "authority": "anonymous_bounded_ingestion_and_verified_platform_owner_read",
+      "requiredEvidence": [
+        "auth.getUser(token)",
+        "is_platform_owner",
+        "Rate limited",
+        "SUPABASE_SERVICE_ROLE_KEY"
+      ]
     }
   }
 }
