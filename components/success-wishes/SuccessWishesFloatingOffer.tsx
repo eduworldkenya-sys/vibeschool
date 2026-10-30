@@ -50,8 +50,7 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
     <>
       {visible && !demoOpen && <aside className={styles.teaser} aria-label="Success Wishes promotional offer">
         <button type="button" className={styles.teaserOpen} onClick={() => setExpanded(true)} aria-label="View KSh 50 and KSh 100 Success Card offers">
-          <span className={styles.teaserBrand}>VIBESCHOOL PRESENTS</span>
-          <strong>Success Wishes 2026</strong>
+          <strong>Digital Success Cards 2026</strong>
           <span className={styles.teaserBottom}><span>From KSh 50</span><span className={styles.teaserCta}>Choose Now →</span></span>
         </button>
         <button type="button" className={styles.teaserClose} onClick={dismiss} aria-label="Dismiss Success Wishes advert">×</button>
@@ -60,8 +59,7 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
         <section role="dialog" aria-modal="true" aria-labelledby="success-offer-heading" className={styles.modal}>
           <button type="button" className={styles.modalClose} onClick={() => setExpanded(false)} aria-label="Close offer details">×</button>
           <div className={styles.heading}>
-            <span>VIBESCHOOL PRESENTS</span>
-            <h2 id="success-offer-heading">Success Wishes 2026</h2>
+            <h2 id="success-offer-heading">Digital Success Cards 2026</h2>
             <p>A little wish. A big smile.</p>
           </div>
           <div className={styles.offers}>
