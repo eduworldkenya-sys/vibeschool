@@ -11,8 +11,13 @@ async function gift(req:NextRequest,reveal:boolean){
  const ip=(req.headers.get('x-real-ip')||req.headers.get('x-forwarded-for')?.split(',')[0]||'unknown').slice(0,100)
  await limit('guest-gift-access:'+ip,40,900)
  const result=await privateGift(database(),hashSecret('success-wishes:paid-link:'+body.token),reveal)
- const response=reply({card:result.card})
- if(reveal)await rememberGift(req,response,result)
+ const response=reply({card:{...result.card,...(reveal?{remembered:true}:{})}})
+ if(reveal){
+  try{await rememberGift(req,response,result)}catch{
+   // Reading an authorised gift must not depend on optional device persistence.
+   return reply({card:{...result.card,remembered:false}})
+  }
+ }
  return response
 }
 export async function POST(req:NextRequest){try{return await gift(req,false)}catch(e){return failure(e)}}

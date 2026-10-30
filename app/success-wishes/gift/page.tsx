@@ -10,7 +10,7 @@ import type { Template } from '@/components/success-wishes/SuccessCardStudio'
 import GiftShareActions from '@/components/success-wishes/GiftShareActions'
 import DownloadSuccessCard from '@/components/success-wishes/DownloadSuccessCard'
 
-type Gift = {id:string;theme:Template;candidate:string;school:string;examYear:string;sender:string|null;message?:string}
+type Gift = {id:string;theme:Template;candidate:string;school:string;examYear:string;sender:string|null;message?:string;remembered?:boolean}
 async function fetchGift(token:string,reveal=false):Promise<Gift> {
   const query=new URLSearchParams(window.location.search),id=query.get('card'),source=query.get('source')
   const response=await fetch(id?(source==='remembered'?'/api/success-wishes/receiver/remembered':'/api/success-wishes/receiver/collection'):'/api/success-wishes/gift',{method:id?'POST':reveal?'PUT':'POST',
@@ -68,7 +68,7 @@ export default function PrivateGiftPage(){
           soundEnabled={soundEnabled} onOpen={play} beforeOpen={reveal} onOpenedChange={setOpened}/>
       </section>}
       {gift&&<p style={{fontSize:13,lineHeight:1.6,color:'#C3C7D1',textAlign:'center'}}>
-        {opened?'Your wish is saved on this browser.':'Tap the card to read again.'}
+        {opened?(gift.remembered===false?'Keep your gift link to read again.':'Your wish is saved on this browser.'):'Tap the card to read again.'}
         {' '}<Link href="/success-wishes/inbox">My wishes →</Link>
       </p>}
       {gift&&opened&&<DownloadSuccessCard gift={gift}/>}

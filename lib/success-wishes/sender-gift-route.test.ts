@@ -7,14 +7,14 @@ const url='https://vibeschool.example/api/success-wishes/gift'
 const token='a'.repeat(64)
 test('sender-created private gift stays sealed until opened and rejects invalid/refunded orders',async()=>{
  const env={...process.env},oldFetch=globalThis.fetch
- let refunded=false,free=false,revoked=false,calls=0
+ let refunded=false,free=false,revoked=false,rememberFailed=false,calls=0
  const order=()=>({id:'22222222-2222-4222-8222-222222222222',state:refunded?'refunded':'settled',card,amount_kes:50,receiver_id:null,provider_receipt:'SYNTHETIC123',provider_verified_at:new Date().toISOString(),settled_at:new Date().toISOString(),refunded_at:refunded?new Date().toISOString():null})
  const card={kind:'success_wish_text',theme:'heritage',candidate:'Synthetic learner',sender:'Hidden sender',message:'Exact secret message',school:'',examYear:'2026'}
  globalThis.fetch=(async(input,init)=>{
   const u=new URL(typeof input==='string'?input:input instanceof URL?input.href:input.url)
   assert.equal(u.hostname,'synthetic.supabase.co')
   const endpoint=u.pathname.split('/').at(-1)
-  if(endpoint==='success_wish_receiver_sessions')return Response.json(null,{status:201})
+  if(endpoint==='success_wish_receiver_sessions')return rememberFailed?Response.json({message:'Synthetic device persistence failure'},{status:400}):Response.json(null,{status:201})
   if(endpoint==='success_wish_pin_open_gift')return Response.json(!refunded)
   if(endpoint==='success_wishes_take_attempt')return Response.json(true)
   if(endpoint==='success_wish_guest_gifts'){
@@ -39,6 +39,10 @@ test('sender-created private gift stays sealed until opened and rejects invalid/
   assert.match(opened.headers.get('set-cookie')||'',/vs_wish_gifts=.*HttpOnly/);
   const reveal=(await opened.json()).card;assert.equal(reveal.sender,card.sender);assert.equal(reveal.message,card.message)
   assert(calls>=2)
+  rememberFailed=true
+  const withoutSave=await PUT(request('PUT'));assert.equal(withoutSave.status,200,'Optional device persistence cannot prevent an authorised gift from opening')
+  const fallback=(await withoutSave.json()).card;assert.equal(fallback.message,card.message);assert.equal(fallback.remembered,false);assert.equal(withoutSave.headers.get('set-cookie'),null)
+  rememberFailed=false
   refunded=true
   assert.equal((await PUT(request('PUT'))).status,404)
   refunded=false;free=true
