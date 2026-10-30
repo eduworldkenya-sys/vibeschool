@@ -18,12 +18,10 @@ export async function POST(req: NextRequest) {
     const path = safePath(body?.path)
     if (!path || typeof body?.visitor !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.visitor)) return respond({ error: 'Invalid event' }, 400)
     const client = db()
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'
-    const rateKey = createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!).update('traffic-rate:' + ip).digest('hex')
-    const { data: allowed, error: limitError } = await client.rpc('success_wishes_take_attempt', { p_key_hash: rateKey, p_limit: 100, p_window_seconds: 3600 })
-    if (limitError || allowed !== true) return respond({ error: 'Rate limited' }, 429)
     const visitor_hash = createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!).update('traffic-visitor:' + body.visitor).digest('hex')
-    const { error } = await client.from('hq_visitor_events').insert({ visitor_hash, page_path: path })
+    const device = /mobile|android|iphone/i.test(req.headers.get('user-agent') || '') ? 'Mobile' : /ipad|tablet/i.test(req.headers.get('user-agent') || '') ? 'Tablet' : 'Desktop'
+    const referrer = typeof body?.referrer === 'string' && /^[a-z0-9.-]{1,100}$/i.test(body.referrer) ? body.referrer : 'Direct'
+    const { error } = await client.from('hq_visitor_events').insert({ visitor_hash, page_path: path, device, referrer })
     if (error) return respond({ error: 'Unable to record visit' }, 503)
     return respond({ ok: true })
   } catch { return respond({ error: 'Unable to record visit' }, 503) }
@@ -44,14 +42,18 @@ export async function GET(req: NextRequest) {
     if (ownerError || owner !== true) return respond({ error: 'Founder access required' }, 403)
     const period = req.nextUrl.searchParams.get('days') === '30' ? 30 : 7
     const from = new Date(Date.now() - period * 86400000).toISOString()
-    const { data, error } = await db().from('hq_visitor_events').select('visitor_hash,page_path,occurred_at').gte('occurred_at', from).order('occurred_at', { ascending: false }).limit(50000)
+    const { data, error } = await db().from('hq_visitor_events').select('visitor_hash,page_path,occurred_at,device,referrer').gte('occurred_at', from).order('occurred_at', { ascending: false }).limit(50000)
     if (error) return respond({ error: 'Visitor reporting unavailable' }, 503)
     const events = data || []
     const visitors = new Set(events.map(event => event.visitor_hash)).size
     const pages = new Map<string, number>()
+    const devices = new Map<string, number>()
+    const sources = new Map<string, number>()
     const daily = new Map<string, { date: string, views: number, visitors: Set<string> }>()
     for (const event of events) {
       pages.set(event.page_path, (pages.get(event.page_path) || 0) + 1)
+      devices.set(event.device || 'Unknown', (devices.get(event.device || 'Unknown') || 0) + 1)
+      sources.set(event.referrer || 'Direct', (sources.get(event.referrer || 'Direct') || 0) + 1)
       const date = event.occurred_at.slice(0, 10)
       if (!daily.has(date)) daily.set(date, { date, views: 0, visitors: new Set() })
       const item = daily.get(date)!
@@ -60,6 +62,8 @@ export async function GET(req: NextRequest) {
     }
     return respond({
       visitors, pageViews: events.length, days: period, truncated: events.length === 50000,
+      devices: [...devices].sort((a,b) => b[1]-a[1]).map(([name,views]) => ({name,views})),
+      sources: [...sources].sort((a,b) => b[1]-a[1]).slice(0,10).map(([name,views]) => ({name,views})),
       pages: [...pages].sort((a,b) => b[1] - a[1]).slice(0, 10).map(([path, views]) => ({ path, views })),
       daily: [...daily.values()].sort((a,b) => a.date.localeCompare(b.date)).map(item => ({ date: item.date, views: item.views, visitors: item.visitors.size })),
       source: 'VibeSchool first-party tracking',
