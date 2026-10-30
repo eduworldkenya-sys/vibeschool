@@ -76,6 +76,7 @@ export default function PrivateGiftPage(){
         {' '}{secret.current?'Keep your private gift link. Anyone with it can open this card.':'Find this card again in My wishes.'}
       </p>}
       {gift&&opened&&<DownloadSuccessCard gift={gift}/>}
+      {gift&&opened&&<aside aria-label="Share the encouragement" style={{border:'1px solid #8B7440',borderRadius:14,padding:'16px 18px',background:'#121C2D',display:'grid',gap:10,textAlign:'center'}}><strong style={{color:'#F3E5AB',fontSize:16}}>Someone made you smile.</strong><p style={{margin:0,color:'#C3C7D1',fontSize:13}}>Make someone else smile too.</p><Link href="/success-wishes" style={{display:'inline-flex',justifyContent:'center',alignItems:'center',minHeight:44,padding:'10px 16px',borderRadius:9,background:'#E2C572',color:'#17140D',fontWeight:700,fontSize:14}}>Send a Success Card →</Link></aside>}
       {gift&&opened&&secret.current&&<KeepWish token={secret.current} candidate={gift.candidate}/>}
       {gift&&secret.current&&<GiftShareActions link={'https://vibeschool.co.ke/success-wishes/gift#token='+secret.current} candidate={gift.candidate} sender={gift.sender||undefined}/>}
 
