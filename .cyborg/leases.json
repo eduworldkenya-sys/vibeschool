@@ -14,9 +14,10 @@
       ".github/workflows/success-wishes-contracts.yml",
       "app/api/hq/success-wishes/ledger",
       "app/hq/success-wishes/ledger",
-      "app/hq/success-wishes/page.tsx"
+      "app/hq/success-wishes/page.tsx",
+      "config/service-role-boundaries.json"
     ],
     "acquiredAt": "2026-10-30T08:39:34.836Z",
-    "releasedAt": null
+    "releasedAt": "2026-10-30T09:33:45.395Z"
   }
 ]

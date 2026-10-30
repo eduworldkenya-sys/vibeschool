@@ -32,7 +32,8 @@
       ".github/workflows/success-wishes-contracts.yml",
       "app/api/hq/success-wishes/ledger",
       "app/hq/success-wishes/ledger",
-      "app/hq/success-wishes/page.tsx"
+      "app/hq/success-wishes/page.tsx",
+      "config/service-role-boundaries.json"
     ],
     "affectedDependencies": [
       "verified M-Pesa settlement callback",
@@ -391,7 +392,7 @@
   "state": "MISSION",
   "learningClosure": false,
   "createdAt": "2026-10-30T08:37:23.375Z",
-  "updatedAt": "2026-10-30T09:08:21.299Z",
+  "updatedAt": "2026-10-30T09:34:28.322Z",
   "journalPath": ".cyborg/journal/CYBORG-20261030083723-94da15.ndjson",
   "activation": {
     "runtime": false,
@@ -400,5 +401,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "9f4cdcf4de7fa6c2cf77fd3b90e6e47d5d896370e0c14f6dae6c4484d925787f"
+  "lastJournalHash": "1ed374195f16c523df297610757f140bea4cb164d811017660df3ea804655e5d"
 }

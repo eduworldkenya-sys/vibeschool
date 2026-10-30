@@ -116,6 +116,14 @@
         "Forbidden",
         "SUPABASE_SERVICE_ROLE_KEY"
       ]
+    },
+    "app/api/hq/success-wishes-schools/route.ts": {
+      "authority": "Verified active HQ founder; aggregate school associations only",
+      "requiredEvidence": [
+        "verifiedFounderOperator(request)",
+        "status:403",
+        "'Cache-Control':'private, no-store'"
+      ]
     }
   }
 }
