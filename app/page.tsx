@@ -8,6 +8,7 @@ import { SchoolReadinessAssessment } from '@/components/public/SchoolReadinessAs
 import { RoleJourneySelector } from '@/components/public/RoleJourneySelector'
 import { ConnectedEducationExplorer } from '@/components/public/ConnectedEducationExplorer'
 import styles from './home.module.css'
+import SuccessWishesFloatingOffer from '@/components/success-wishes/SuccessWishesFloatingOffer'
 
 export const metadata: Metadata = {
   alternates:{canonical:'/'},
@@ -31,7 +32,7 @@ const trust = [
   ['Humans remain responsible', 'Technology can assist planning, learning and understanding, while consequential educational decisions remain appropriately human-led.'],
 ]
 
-export default function HomePage() { return <div className={styles.page}><PublicHeader/><main id="main-content">
+export default function HomePage() { return <div className={styles.page}><PublicHeader/><SuccessWishesFloatingOffer homepage/><main id="main-content">
 <section className={styles.hero}><div className={styles.heroInner}><p className={styles.eyebrow}>VIBESCHOOL · KENYA</p><h1>One learning system. From curriculum to the learner’s next step.</h1><p className={styles.lead}>VibeSchool connects planning, teaching, learning, evidence, assessment, progress, families and future direction — so the education journey works as one continuous system instead of a collection of disconnected tools.</p><div className={styles.actions}><TrackedLink className={styles.primary} href="/global" event="public_home_start_learning">Start learning</TrackedLink><Link className={styles.secondary} href="/sandbox">Use the live sandbox</Link><TrackedLink className={styles.textAction} href="/institutions" event="public_home_institutions">For schools →</TrackedLink></div><div className={styles.heroTrust}><span>Built for Kenya</span><span>CBC / CBE aware</span><span>Explore before login</span><span>Mobile-first</span><span>Role-based privacy</span></div></div></section>
 <section className={styles.wishesPromo} aria-labelledby="wishes-promo-title">
   <div className={styles.wishesPromoCopy}>
