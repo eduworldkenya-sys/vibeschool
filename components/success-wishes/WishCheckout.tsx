@@ -13,12 +13,13 @@ class CheckoutRequestError extends Error{constructor(readonly status:number,mess
 export default function WishCheckout({theme,values,onClose,soundEnabled=false,inboxRequest=''}:{inboxRequest?:string;soundEnabled?:boolean;theme:Template;values:CardValues;onClose:()=>void}){
  const id=useId(),dialog=useRef<HTMLElement>(null),inFlight=useRef(false),alive=useRef(true)
  const [trialEnabled,setTrialEnabled]=useState(false)
+ const freeCampaign=true
  const [trialPhone,setTrialPhone]=useState('')
  const [trialCode,setTrialCode]=useState('')
  const [trialBusy,setTrialBusy]=useState(false)
  const [trialRemaining,setTrialRemaining]=useState<number|null>(null)
  const trialKey=useRef<string|null>(null)
- const [promoCode,setPromoCode]=useState(''),[promoValid,setPromoValid]=useState(false)
+ const [promoCode,setPromoCode]=useState('DNJIMAX3'),[promoValid,setPromoValid]=useState(false)
  const [promoBusy,setPromoBusy]=useState(false),[promoGift,setPromoGift]=useState<string|null>(null)
  const promoKey=useRef<string|null>(null),promoSending=useRef(false)
  const [correctPhone,setCorrectPhone]=useState('')
@@ -194,7 +195,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   <h2 id={id}>{title}</h2>
   <div className={`${styles.checkoutPreview} ${checking?styles.checkoutPreviewCompact:''}`}><CardArt template={card.theme} values={card} preview/><strong>For {card.candidate}</strong></div>
   {promoGift?<div className={styles.checkoutFlow} role="status"><GiftShareActions link={promoGift} candidate={draft.candidate} sender={draft.sender} compact/></div>:restoring?<p role="status">Checking your order…</p>:<>
-   {trialEnabled&&!order&&!uncertain&&!promoGift&&<div className={styles.promoSection}>
+   {!freeCampaign&&trialEnabled&&!order&&!uncertain&&!promoGift&&<div className={styles.promoSection}>
      <p><strong>5 FREE Success Cards</strong></p>
      <p className={styles.checkoutHint}>Use your sender number for up to five free cards. Afterwards, continue with paid checkout.</p>
      <label className={styles.checkoutLabel}>Your sender number
@@ -207,16 +208,17 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
      {trialRemaining!==null&&<p role="status">{trialRemaining} free cards remaining</p>}
      <p className={styles.checkoutHint}>Or continue with the regular paid checkout below.</p>
    </div>}
-   {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?'KSh 0':'KSh 50'}</strong></div>}
+   {!freeCampaign&&order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?'KSh 0':'KSh 50'}</strong></div>}
    {!order&&!uncertain?<form noValidate onSubmit={e=>{e.preventDefault();void act('pay')}}>
-    {!trialEnabled&&(!promoValid?<div className={styles.promoSection}>
-     <label className={styles.checkoutLabel} htmlFor={id+'-promo'}>Have a free code?</label>\n     <p className={styles.checkoutHint} style={{margin:'4px 0 10px',color:'#e8cb83'}}><s style={{opacity:.75}}>KSh 50</s> <strong style={{marginLeft:8}}>FREE with a valid code</strong></p>
+    {freeCampaign&&(!promoValid?<div className={styles.promoSection}>
+     <label className={styles.checkoutLabel} htmlFor={id+'-promo'}>Your free-card code</label>
+     <p className={styles.checkoutHint} style={{margin:'4px 0 10px',color:'#e8cb83'}}><strong>FREE with a valid code</strong></p>
      <div className={styles.promoEntry}><input id={id+'-promo'} type="text" autoComplete="off" maxLength={32} placeholder="Enter code" value={promoCode} disabled={promoBusy||busy} onChange={e=>{setPromoCode(e.target.value.toUpperCase());setPromoValid(false);promoKey.current=null;setError('')}}/><button type="button" className={styles.secondary} disabled={promoBusy||busy||!promoCode.trim()} onClick={()=>void applyPromo()}>{promoBusy?'Checking…':'Apply'}</button></div>
-    </div>:<div className={styles.promoSection} role="status" aria-live="polite"><p className={styles.promoAccepted} style={{marginBottom:8}}><Check size={16}/> Code accepted · You saved KSh 50</p><p style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,margin:0,color:"#e8cb83"}}><span>Your discount</span><span><s style={{opacity:.75}}>KSh 50</s> <strong style={{marginLeft:8}}>FREE</strong></span></p></div>)}
+    </div>:<div className={styles.promoSection} role="status" aria-live="polite"><p className={styles.promoAccepted} style={{marginBottom:8}}><Check size={16}/> Code accepted · Your card is FREE</p><p style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,margin:0,color:"#e8cb83"}}><span>Your discount</span><span><strong>FREE</strong></span></p></div>)}
     {promoValid?<><label className={styles.checkoutLabel}>Your sender number<input type="tel" inputMode="tel" autoComplete="tel" maxLength={20} placeholder="07XX XXX XXX" value={trialPhone} disabled={promoBusy||busy} onChange={e=>{setTrialPhone(e.target.value);promoKey.current=null}}/></label><button type="button" className={styles.primary} disabled={promoBusy||busy||!trialPhone.trim()} onClick={()=>void sendPromo()}>{promoBusy?'Preparing card…':'Send via WhatsApp'}</button></>:<>
-    <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label>
+    {!freeCampaign&&<><label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label>
     <button type="submit" className={styles.primary} disabled={busy||!key}>{busy?'Saving…':'Pay KSh 50'}</button>
-    <p className={styles.checkoutHint}>Enter your PIN on the M-Pesa prompt.</p></>}
+    <p className={styles.checkoutHint}>Enter your PIN on the M-Pesa prompt.</p></>}</>}
    </form>:<div aria-live="polite" className={styles.checkoutFlow}>
     {order&&!success&&<p className={styles.checkoutPhone}>M-Pesa: {maskedPayerPhone(order.payerPhone)}{canPay(order.state,uncertain)&&<button type="button" disabled={busy} onClick={()=>void editNumber()}>Edit</button>}</p>}
     {!success&&(checking||order&&order.state!=='created')&&<p role="status" className={styles.checkoutNotice}>{uncertain?'Confirming your payment. Do not pay again.':checkoutMessage(order!.state)}</p>}
