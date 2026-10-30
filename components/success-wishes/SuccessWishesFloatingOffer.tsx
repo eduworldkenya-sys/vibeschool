@@ -56,7 +56,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
             <strong className={styles.freeCampaignTitle}><span>Digital</span>Success Cards</strong>
             <p>Send a personal wish in seconds.</p>
           </div>
-          <div className={styles.freeBook} aria-hidden="true"><span className={styles.freePage}><small>✦　✧　✦</small><strong>Good Luck<br/>and<br/>Great Success!</strong><small>✦　✧　✦</small></span><span className={styles.freePage}><small>✧　✦　✧</small><em>Believe in yourself.<br/>You can do it!<br/>Wishing you success<br/>in your exams.</em><small>♥</small></span></div>
+          <img className={styles.freeCampaignImage} src="/images/success-wishes/backgrounds/success-card-vibeschool.png" alt="Good luck in your exams, 2026 Success Card" />
           <div className={styles.freeCampaignCode}><span>Use code: <strong>DNJIMAX3</strong></span></div>
           
           <button type="button" className={styles.freeCampaignAction} onClick={chooseDesign}>Create Free Card →</button>

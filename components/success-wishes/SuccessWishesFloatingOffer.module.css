@@ -114,3 +114,15 @@
 .freeCampaignAction{width:100%;max-width:420px;border:0;border-radius:12px;min-height:45px;background:linear-gradient(110deg,#f5c76a,#e7ad44);color:#11233b;font-size:15px;font-weight:850;cursor:pointer}
 .freeCampaignAction:focus-visible{outline:3px solid #fff;outline-offset:3px}
 @media(max-width:380px){.freeCampaign{padding:28px 12px 15px}.freeBrush{padding:3px 25px}.freePage{padding:10px 5px;border-width:5px}.freeCampaignFeatures{gap:4px}}
+
+/* Approved real-card artwork for the free advert. */
+.freeCampaign{width:min(490px,100%);padding:20px 16px 16px;border-radius:16px}
+.freeCampaign:before{content:none}
+.freeBrush{font-size:clamp(36px,9vw,54px);padding:2px 24px;transform:none;box-shadow:none}
+.freeCampaignTitle{font-size:clamp(24px,5vw,32px)}
+.freeCampaignCopy p{font-size:13px;margin:3px 0}
+.freeCampaignImage{display:block;width:100%;max-width:390px;aspect-ratio:3/2;object-fit:cover;margin:12px auto;border:1px solid #d9b76b;border-radius:9px}
+.freeCampaignCode{max-width:390px;padding:9px 8px;border-radius:9px}
+.freeCampaignCode span{font-size:16px}
+.freeCampaignAction{max-width:390px}
+@media(max-height:700px){.freeCampaign{padding:12px}.freeCampaignImage{max-width:290px;margin:7px auto}.freeCampaignCopy p{display:none}}
