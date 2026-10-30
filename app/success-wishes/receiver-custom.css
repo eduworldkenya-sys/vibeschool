@@ -494,18 +494,18 @@
     color: #d4af37;
   }
   .receiver-bottom .receiver-request {
-    margin-top: -24px;
+    margin-top: 0;
     color: #d4af37;
     font-weight: 700;
   }
   .receiver-request i {
     display: grid;
     place-items: center;
-    padding: 12px;
-    background: linear-gradient(135deg, #d4af37, #00a896, #800020);
+    padding: 0;
+    background: transparent;
     color: #0a0d14;
     border-radius: 50%;
-    box-shadow: 0 4px 20px #d4af3744;
+    box-shadow: none;
   }
   .receiver-content main {
     padding: 24px 16px;
