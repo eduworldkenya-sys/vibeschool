@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Check, Pencil, ChevronRight, UserRound, UsersRound, Volume2, VolumeX } from 'lucide-react'
+import { Check, Pencil, ChevronRight, Volume2, VolumeX } from 'lucide-react'
 import SenderMediaCapture from './SenderMediaCapture'
 import WishCheckout from './WishCheckout'
 import { useSenderDraft } from './useSenderDraft'
@@ -14,6 +14,7 @@ import { playWishFeedbackSound, prepareWishFeedbackSound, playWishRevealSound } 
 import styles from './SuccessCardStudio.module.css'
 import { templates, palette } from './card-themes'
 import { BookCard } from './BookCard'
+import SuccessCardPriceChoice from './SuccessCardPriceChoice'
 export { BookCard } from './BookCard'
 
 export type Template = SenderDraft['theme']
@@ -341,20 +342,13 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         </button>)}</div>
         
       </section>
-      <section className={styles.cardPriceSection} aria-label="Choose Success Card price">
-        <div className={styles.cardPriceGrid} role="group" aria-label="Choose number of students">
-          <button className={styles.cardPriceSingle} type="button" aria-label="Choose One: KSh 50 for one student" onClick={() => { setSelectedVersion('text'); document.getElementById('wish-composer')?.scrollIntoView({behavior:'smooth',block:'start'}) }}>
-            <UserRound aria-hidden="true" size={23} strokeWidth={2}/>
-            <strong>KSh 50</strong><span>1 student</span>
-            <span className={styles.cardPriceAction}>Choose One <ChevronRight size={16} aria-hidden="true"/></span>
-          </button>
-          <button className={styles.cardPriceGroup} type="button" aria-label="Choose Four: KSh 100 for up to four students, get two free" onClick={() => window.dispatchEvent(new Event('success-wishes:open-group'))}>
-            <UsersRound aria-hidden="true" size={25} strokeWidth={2}/>
-            <strong>KSh 100</strong><span>Up to 4 students</span>
-            <span className={styles.cardPriceAction}>Choose Four <ChevronRight size={16} aria-hidden="true"/></span>
-          </button>
-        </div>
-      </section>
+      <SuccessCardPriceChoice
+        onChooseOne={() => {
+          setSelectedVersion('text')
+          document.getElementById('wish-composer')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})
+        }}
+        onChooseFour={() => window.dispatchEvent(new Event('success-wishes:open-group'))}
+      />
       <section className={styles.composer} id="wish-composer" aria-labelledby="personalise-card">
         <div className={styles.mobilePreview} aria-label="Live card preview">
           <CardArt template={theme} values={values} preview/>
