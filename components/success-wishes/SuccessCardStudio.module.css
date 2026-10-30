@@ -610,3 +610,9 @@
 .entryActions .heroCta svg,.entryActions .openWishCta svg{flex-shrink:0}
 .entryActions .heroCta:focus-visible,.entryActions .openWishCta:focus-visible{outline:3px solid #f1dc9d;outline-offset:3px}
 @media(max-width:520px){.entryActions{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.entryActions .heroCta,.entryActions .openWishCta{min-width:0;padding:11px 7px;font-size:clamp(12px,3.4vw,14px);gap:6px}.entryActions svg{width:17px;height:17px}}
+
+
+/* Hero actions are entry links, not competing product cards. */
+.entryActions{justify-content:center;gap:9px}
+.entryActions .heroCta,.entryActions .openWishCta{min-height:44px;padding:9px 15px;border-radius:9px;font-size:13px;box-shadow:none}
+@media(max-width:520px){.entryActions{display:flex;flex-wrap:nowrap;gap:8px}.entryActions .heroCta,.entryActions .openWishCta{flex:1;min-width:0;min-height:44px;font-size:clamp(11px,3.2vw,13px);padding:8px 6px;gap:5px}.entryActions svg{width:15px;height:15px}}

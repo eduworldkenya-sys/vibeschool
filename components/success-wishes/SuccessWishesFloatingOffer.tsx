@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { UserRound, UsersRound } from 'lucide-react'
 import styles from './SuccessWishesFloatingOffer.module.css'
 import SuccessWishesGroupDemo from './SuccessWishesGroupDemo'
 
@@ -83,10 +84,10 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
           <span className={styles.teaserNow}>Send now</span>
           <div className={styles.teaserOptions}>
             <button type="button" className={styles.teaserOne} onClick={chooseOne} aria-label="KSh 50, one instant digital Success Card, send now">
-              <strong>INSTANT</strong><span>Share Success Cards · KSh 50</span><b>Send Now →</b>
+              <strong>INSTANT</strong><span>KSh 50 · 1 card</span><b>Send →</b>
             </button>
             <button type="button" className={styles.teaserFour} onClick={chooseFour} aria-label="KSh 100, four digital Success Cards, buy two get two free, send now">
-              <strong>Buy 2 Get 2 Free</strong><span>2 FREE Success Cards · KSh 100</span><b>Send Now →</b>
+              <strong>Buy 2 Get 2 Free</strong><span>KSh 100 · 4 cards</span><b>Send →</b>
             </button>
           </div>
           <button type="button" className={styles.teaserMainCta} onClick={chooseDesign}>Send Success Card Now →</button>
@@ -103,7 +104,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
             <div className={styles.single} role="button" tabIndex={0} aria-label="Choose one Success Card for KSh 50" onClick={chooseOne} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); chooseOne() } }}>
               <span className={styles.eyebrow}>Share Success Cards</span>
               <strong>INSTANT</strong>
-              <div className={styles.cardIllustration} aria-hidden="true"><span className={styles.personHead}>👤</span></div>
+              <div className={styles.cardIllustration} aria-hidden="true"><UserRound size={35} strokeWidth={1.7}/></div>
               <p>1 student · KSh 50</p>
               <p className={styles.tagline}>Just for them.</p>
               <button type="button" onClick={event => { event.stopPropagation(); chooseOne() }}>Choose One →</button>
@@ -111,7 +112,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
             <div className={styles.group} role="button" tabIndex={0} aria-label="Choose up to four Success Cards for KSh 100" onClick={chooseFour} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); chooseFour() } }}>
               <span className={styles.eyebrow}>2 FREE Success Cards</span>
               <strong>Buy 2 Get 2 Free</strong>
-              <div className={styles.groupIllustration} aria-hidden="true"><span>👤</span><span>👤</span><span>👤</span><span>👤</span></div>
+              <div className={styles.groupIllustration} aria-hidden="true"><UsersRound size={43} strokeWidth={1.7}/></div>
               <p>Up to 4 students · KSh 100</p>
               <p className={styles.free}>2 FREE Success Cards</p>
               <button type="button" onClick={event => { event.stopPropagation(); chooseFour() }}>Choose Four →</button>
