@@ -627,7 +627,8 @@
 .receiver-account-options :focus-visible{outline:2px solid #e2c572;outline-offset:2px}
 .receiver-legal-footer{background:#0a0d14;color:#aeb6c3;border-top:1px solid #263146;padding:18px 24px 24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;font-size:12px}
 .receiver-legal-footer p{margin:0;line-height:1.6}.receiver-legal-footer a{color:#e2c572;text-decoration:none}.receiver-legal-footer a:hover{text-decoration:underline}
-@media(max-width:767px){.receiver-legal-footer{padding:18px 16px calc(112px + env(safe-area-inset-bottom));display:block}.receiver-legal-footer p+p{margin-top:7px}}
+.receiver-legal-footer{justify-content:center;text-align:center;align-items:center;flex-direction:column;gap:6px}
+@media(max-width:767px){.receiver-legal-footer{padding:18px 16px calc(112px + env(safe-area-inset-bottom));display:flex}.receiver-legal-footer p+p{margin-top:0}}
 
 /* Keep receiver actions in sight on shorter screens; overflow remains accessible. */
 @media(min-width:768px) and (max-height:760px){
