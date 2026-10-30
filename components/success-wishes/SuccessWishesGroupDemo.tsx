@@ -19,7 +19,6 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
   const [startingDesign, setStartingDesign] = useState('Heritage')
   const [step, setStep] = useState<'design' | 'names' | 'cards' | 'review'>('design')
   const [active, setActive] = useState(0)
-  const [copyForAll, setCopyForAll] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const nextId = useRef(3)
   const [groupEnabled,setGroupEnabled]=useState(false)
@@ -137,7 +136,7 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
             <label className={styles.field}><span>Recipient phone for {current.name}</span><input type="tel" maxLength={20} value={current.phone} onChange={e=>update(active,{phone:e.target.value})} placeholder="07XX XXX XXX"/></label>
             <label className={styles.field}><span>Card design</span><select value={current.design} onChange={e => update(active,{design:e.target.value})}>{designs.map(d=><option key={d} value={d}>{d}</option>)}</select></label>
             <label className={styles.field}><span>Message for {current.name}</span><textarea rows={4} maxLength={220} value={current.message} placeholder="Write a personal wish…" onChange={e => update(active,{message:e.target.value})}/></label>
-            <label className={styles.toggle}><input type="checkbox" checked={copyForAll} onChange={e => setCopyForAll(e.target.checked)}/>Use this message for all students</label>
+            <button type="button" className={styles.secondary} disabled={!current.message.trim()} onClick={() => setStudents(items => items.map(item => ({...item,message:current.message})))}>Use this message for all students</button>
             <div className={styles.miniCard} aria-label={'Preview card for '+ current.name}>
               <small>{current.design.toUpperCase()} · SUCCESS WISHES 2026</small>
               <strong>To {current.name}</strong>
@@ -165,9 +164,8 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
           {step !== 'design' && !order&&!busy&&!uncertain && <button type="button" className={styles.secondary} onClick={() => setStep(step === 'review' ? 'cards' : step === 'cards' ? 'names' : 'design')}>Back</button>}
           {step === 'names' && <button type="button" className={styles.primary} disabled={!namesReady} onClick={() => setStep('cards')}>Personalise cards</button>}
           {step === 'cards' && <button type="button" className={styles.primary} onClick={() => {
-            if (copyForAll && current.message.trim()) {setStudents(items=>items.map(s=>({...s,message:current.message})));setCopyForAll(false)}
             if (active < students.length - 1) setActive(n=>n+1)
-            else if (cardsReady || (copyForAll && current.message.trim() && sender.trim() && students.every(s=>s.phone.trim()))) setStep('review')
+            else if (cardsReady) setStep('review')
           }}>{active === students.length - 1 ? 'Review wishes' : 'Next student'}</button>}
           {step === 'review' && !uncertain&&(!order||order.state==='created')&&<button type="button" className={styles.primary} disabled={!groupEnabled||busy||restoring||!key||!order&&!phone.trim()} onClick={()=>void pay()}>{!groupEnabled?'Payment not open yet':busy?'Requesting…':'Pay KSh 100'}</button>}
           {(uncertain||order&&pendingCheckout(order.state))&&<button type="button" className={styles.primary} disabled={busy} onClick={()=>void check(key)}>Check status</button>}
