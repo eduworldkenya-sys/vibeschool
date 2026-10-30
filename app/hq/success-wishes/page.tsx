@@ -23,6 +23,7 @@ const fieldStyle: CSSProperties = {
 }
 
 export default function SuccessWishesHQ() {
+  const [section, setSection] = useState<'overview' | 'cards' | 'orders' | 'settings'>('overview')
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [schools, setSchools] = useState<School[]>([])
   const [schoolId, setSchoolId] = useState('')
@@ -86,8 +87,11 @@ export default function SuccessWishesHQ() {
     } finally { setBusy(false) }
   }
 
-  return <HQPage title="Success Wishes · Sponsored pilot"
-    description="Founder-only controls for free, text-only candidate encouragement. This does not enable M-Pesa, media sending or public delivery.">
+  return <HQPage title="Success Wishes" description="Business overview and card management.">
+    <nav aria-label="Success Wishes sections" style={{display:"grid",gridTemplateColumns:"repeat(4,minmax(0,1fr))",gap:6,marginBottom:16}}>
+      {([["overview","Overview"],["cards","Cards"],["orders","Orders"],["settings","Settings"]] as const).map(([key,label]) => <button key={key} type="button" aria-current={section===key?"page":undefined} onClick={()=>setSection(key)} style={{minWidth:0,minHeight:44,borderRadius:10,border:"1px solid "+(section===key?"#dfc27a":HQ_THEME.border),background:section===key?"#dfc27a":HQ_THEME.panelSoft,color:section===key?"#111827":HQ_THEME.text,fontSize:12,fontWeight:section===key?700:500,padding:"8px 3px"}}>{label}</button>)}
+    </nav>
+    {section === "settings" && <>
     <HQPanel title="Sponsor only participating schools"
       description="Schools must separately accept the child-privacy responsibilities from their school administration workspace.">
       {allowed === null && <p role="status">Verifying founder authority…</p>}
@@ -134,8 +138,12 @@ export default function SuccessWishesHQ() {
       {error && <p role="alert" style={{color:HQ_THEME.red,marginTop:12}}>{error}</p>}
       {notice && <p role="status" style={{color:HQ_THEME.green,marginTop:12}}>{notice}</p>}
     </HQPanel>
-    {allowed === true && <SuccessWishesBusinessReport/>}
-    {allowed === true && <SuccessWishesLedger/>}
     {allowed === true && <SuccessWishesPaymentReadiness/>}
+    </>}
+    {section === "overview" && allowed === true && <SuccessWishesBusinessReport/>}
+    {section === "cards" && allowed === true && <SuccessWishesLedger/>}
+    {section === "orders" && allowed === true && <SuccessWishesBusinessReport/>}
+    {allowed === null && <p role="status">Verifying founder access…</p>}
+    {allowed === false && <p role="alert">Founder access required.</p>}
   </HQPage>
 }
