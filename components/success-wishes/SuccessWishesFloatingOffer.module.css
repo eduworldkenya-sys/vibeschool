@@ -162,3 +162,14 @@
 @media(max-width:380px){.freeCampaign{padding:18px 12px 14px;gap:8px}.freeHero{gap:9px}.freeHero strong{font-size:clamp(34px,10vw,42px)}.freeCampaignImage{aspect-ratio:1.65}}
 @media(max-height:700px){.freeCampaign{padding:12px;gap:6px}.freeCampaignImage{aspect-ratio:2;max-width:340px;margin:2px auto}.freeHero strong{font-size:37px}.freeCampaignTitle{font-size:24px}.freeCampaignCopy p{display:block;font-size:12px}.freeCampaignAction{min-height:38px}}
 @media(prefers-reduced-motion:reduce){.freeCampaign:before,.freeCampaign:after{animation:none}}
+
+/* Present the campaign as one complete composition, never a late image slot. */
+.advertPending{visibility:hidden;pointer-events:none}
+.advertReady{visibility:visible;animation:advertReveal .24s ease-out both}
+@keyframes advertReveal{from{opacity:0}to{opacity:1}}
+.freeCampaign{background:radial-gradient(ellipse at 52% 8%,#1c426f 0%,#0b2346 48%,#081831 100%);border:2px solid #d9b46e;box-shadow:0 22px 64px #0009}
+.freeHero{gap:10px;isolation:isolate;margin:0 auto 4px}
+.freeHero strong{font-family:Georgia,'Times New Roman',serif;font-size:clamp(40px,10.5vw,64px);font-weight:900;letter-spacing:-.06em;color:#f6d18a;text-shadow:0 2px 0 #9b6e2f,0 5px 18px #0006}
+.freeHero strong:first-child{font-style:italic}
+.freeCampaignImage{box-shadow:0 7px 22px #0005;border-color:#dbbd7c}
+@media(prefers-reduced-motion:reduce){.advertReady{animation:none}}
