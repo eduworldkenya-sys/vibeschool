@@ -215,12 +215,16 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
     return () => observer.disconnect()
   }, [])
   const ready = Boolean(!Object.values(fieldErrors).some(Boolean) && (selectedVersion === 'text' || mediaFile))
+  function trackBusinessEvent(eventType: 'card_selected'|'checkout_opened'|'form_started', label?:string) {
+    try { const visitor = localStorage.getItem('vibeschool-visitor-id'); if (!visitor) return; void fetch('/api/hq/visitors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({visitor,path:'/success-wishes',eventType,label}),keepalive:true}).catch(()=>{}) } catch { /* Analytics must never interrupt checkout. */ }
+  }
   function handleSendWish() {
     if (!ready) return
     if (selectedVersion !== 'text') {
       setPreviewSession(current => current + 1)
       window.requestAnimationFrame(() => document.getElementById('wish-preview')?.scrollIntoView({ behavior: 'smooth', block: 'center' }))
     } else {
+      trackBusinessEvent('checkout_opened')
       setCheckoutOpen(true)
     }
   }
@@ -348,6 +352,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         <div className={styles.sectionHeading}><div><h2 id="choose-card-title">Choose a success card design</h2></div></div>
         <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => {
           setTheme(item.id)
+          trackBusinessEvent('card_selected',item.id)
           document.getElementById('wish-composer')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
         }}
           className={styles.option + (theme === item.id ? ' ' + styles.active : '')} aria-pressed={theme === item.id} aria-label={`Choose ${item.name} card`}>
@@ -378,7 +383,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
             {draftStatus.saved && <button type="button" className={styles.secondary} onClick={clearDraft}>Clear draft</button>}
           </div>}
           <CompletedSection field="candidate" next={{label:"Next: school",disabled:!completion[0],onClick:()=>goToField('school')}} title="Candidate details" value={candidate.trim() + ' · ' + examYear} completed={completion[0]} open={expandedFields.candidate} onOpenChange={open => setFieldExpanded('candidate', open)}><div className={styles.formRow}>
-            <label>Candidate name<input enterKeyHint="next" aria-label="Candidate name" aria-invalid={touched.candidate && Boolean(fieldErrors.candidate)} aria-describedby={touched.candidate && fieldErrors.candidate ? schoolInputId + '-candidate-error' : undefined} onBlur={() => setTouched(current => ({ ...current, candidate: true }))} autoComplete="off" autoCapitalize="words" maxLength={48} value={candidate} onChange={e => { setEditingStarted(true); setCandidate(capitaliseFirstLetter(e.target.value)) }} placeholder="Who are you celebrating?"/>{touched.candidate && fieldErrors.candidate && <small id={schoolInputId + '-candidate-error'} className={styles.fieldError}>{fieldErrors.candidate}</small>}</label>
+            <label>Candidate name<input enterKeyHint="next" aria-label="Candidate name" aria-invalid={touched.candidate && Boolean(fieldErrors.candidate)} aria-describedby={touched.candidate && fieldErrors.candidate ? schoolInputId + '-candidate-error' : undefined} onBlur={() => setTouched(current => ({ ...current, candidate: true }))} autoComplete="off" autoCapitalize="words" maxLength={48} value={candidate} onChange={e => { setEditingStarted(true); trackBusinessEvent('form_started'); setCandidate(capitaliseFirstLetter(e.target.value)) }} placeholder="Who are you celebrating?"/>{touched.candidate && fieldErrors.candidate && <small id={schoolInputId + '-candidate-error'} className={styles.fieldError}>{fieldErrors.candidate}</small>}</label>
             <label>Exam year<input enterKeyHint="next" aria-label="Exam year" aria-invalid={touched.examYear && Boolean(fieldErrors.examYear)} aria-describedby={touched.examYear && fieldErrors.examYear ? schoolInputId + '-year-error' : undefined} onBlur={() => setTouched(current => ({ ...current, examYear: true }))} inputMode="numeric" type="text" pattern="20[0-9]{2}" maxLength={4} value={examYear} onChange={e => { const year = e.target.value.replace(/\D/g, '').slice(0, 4); setEditingStarted(true); setExamYear(year); if (/^20\d{2}$/.test(year) && candidate.trim()) goToField('school') }} placeholder="e.g. 2026"/>{touched.examYear && fieldErrors.examYear && <small id={schoolInputId + '-year-error'} className={styles.fieldError}>{fieldErrors.examYear}</small>}</label>
           </div></CompletedSection>
           <CompletedSection field="school" next={{label:school.trim()?"Next: receiver’s phone":"Skip school",onClick:()=>goToField('phone')}} title="Find their school" value={selectedSchool?.school_name || school} completed={Boolean(selectedSchool)} open={expandedFields.school} onOpenChange={open => setFieldExpanded('school', open)}><div className={styles.optionalField}>
