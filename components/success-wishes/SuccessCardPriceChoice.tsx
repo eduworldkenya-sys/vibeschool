@@ -19,10 +19,10 @@ export default function SuccessCardPriceChoice({ onChooseOne, onChooseFour }: Pr
           </span>
           <span className={styles.action}>Choose One <ChevronRight aria-hidden="true" size={16} /></span>
         </button>
-        <button type="button" className={styles.group} onClick={onChooseFour} aria-label="Choose Four: up to four students, KSh 100">
+        <button type="button" className={styles.group} onClick={onChooseFour} aria-label="Choose Four: up to four students, KSh 100, Buy 2 Get 2 Free">
           <span className={styles.details}>
             <UsersRound size={25} aria-hidden="true" strokeWidth={2} />
-            <span className={styles.label}><strong>KSh 100</strong><small>Up to 4 students</small></span>
+            <span className={styles.label}><strong>KSh 100</strong><small>Up to 4 students</small><small className={styles.freeOffer}>Buy 2 Get 2 Free</small></span>
           </span>
           <span className={styles.action}>Choose Four <ChevronRight aria-hidden="true" size={16} /></span>
         </button>
