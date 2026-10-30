@@ -17,11 +17,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const path = safePath(body?.path)
     if (!path || typeof body?.visitor !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.visitor)) return respond({ error: 'Invalid event' }, 400)
+    const eventType = ['card_selected','checkout_opened','form_started'].includes(body?.eventType) && path === '/success-wishes' ? body.eventType : 'page_view'
+    const eventLabel = eventType === 'card_selected' && typeof body?.label === 'string' && /^[a-z0-9_-]{1,40}$/i.test(body.label) ? body.label : null
     const client = db()
     const visitor_hash = createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!).update('traffic-visitor:' + body.visitor).digest('hex')
     const device = /mobile|android|iphone/i.test(req.headers.get('user-agent') || '') ? 'Mobile' : /ipad|tablet/i.test(req.headers.get('user-agent') || '') ? 'Tablet' : 'Desktop'
     const referrer = typeof body?.referrer === 'string' && /^[a-z0-9.-]{1,100}$/i.test(body.referrer) ? body.referrer : 'Direct'
-    const { error } = await client.from('hq_visitor_events').insert({ visitor_hash, page_path: path, device, referrer })
+    const { error } = await client.from('hq_visitor_events').insert({ visitor_hash, page_path: path, device, referrer, event_type: eventType, event_label: eventLabel })
     if (error) return respond({ error: 'Unable to record visit' }, 503)
     return respond({ ok: true })
   } catch { return respond({ error: 'Unable to record visit' }, 503) }
@@ -42,9 +44,12 @@ export async function GET(req: NextRequest) {
     if (ownerError || owner !== true) return respond({ error: 'Founder access required' }, 403)
     const period = req.nextUrl.searchParams.get('days') === '30' ? 30 : 7
     const from = new Date(Date.now() - period * 86400000).toISOString()
-    const { data, error } = await db().from('hq_visitor_events').select('visitor_hash,page_path,occurred_at,device,referrer').gte('occurred_at', from).order('occurred_at', { ascending: false }).limit(50000)
+    const { data, error } = await db().from('hq_visitor_events').select('visitor_hash,page_path,occurred_at,device,referrer,event_type,event_label').gte('occurred_at', from).order('occurred_at', { ascending: false }).limit(50000)
     if (error) return respond({ error: 'Visitor reporting unavailable' }, 503)
-    const events = data || []
+    const allEvents = data || []
+    const events = allEvents.filter(event => event.event_type === 'page_view')
+    const funnel = ['form_started','card_selected','checkout_opened'].map(name=>({name,count:allEvents.filter(event=>event.event_type===name).length}))
+    const cardSelections = [...allEvents.filter(event=>event.event_type==='card_selected' && event.event_label).reduce((map,event)=>map.set(event.event_label!, (map.get(event.event_label!)||0)+1),new Map<string,number>())].sort((a,b)=>b[1]-a[1]).map(([name,count])=>({name,count}))
     const visitors = new Set(events.map(event => event.visitor_hash)).size
     const pages = new Map<string, number>()
     const hours = new Map<number, number>()
@@ -64,7 +69,7 @@ export async function GET(req: NextRequest) {
       item.visitors.add(event.visitor_hash)
     }
     return respond({
-      visitors, pageViews: events.length, days: period, truncated: events.length === 50000,
+      visitors, pageViews: events.length, days: period, truncated: allEvents.length === 50000, funnel, cardSelections,
       recent: events.slice(0,20).map(e => ({path:e.page_path,at:e.occurred_at,device:e.device||'Unknown',source:e.referrer||'Direct'})),
       hourly: Array.from({length:24},(_,hour)=>({hour,views:hours.get(hour)||0})),
       repeatVisitors: [...events.reduce((map,event)=>map.set(event.visitor_hash,(map.get(event.visitor_hash)||0)+1),new Map<string,number>()).values()].filter(count=>count>1).length,
