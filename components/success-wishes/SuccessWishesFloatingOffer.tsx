@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import styles from './SuccessWishesFloatingOffer.module.css'
 
 const SESSION_KEY = 'success-wishes-2026-floating-offer-dismissed'
@@ -56,7 +57,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
             <strong className={styles.freeCampaignTitle}><span>Digital</span>Success Cards</strong>
             <p>Send a personal wish in seconds.</p>
           </div>
-          <img className={styles.freeCampaignImage} src="/images/success-wishes/backgrounds/success-card-vibeschool.png" alt="Good luck in your exams, 2026 Success Card" />
+          <Image className={styles.freeCampaignImage} src="/images/success-wishes/backgrounds/success-card-vibeschool.png" alt="Good luck in your exams, 2026 Success Card" width={800} height={533} sizes="(max-width: 480px) calc(100vw - 68px), 420px" quality={72} priority />
           <div className={styles.freeCampaignCode}><span>Use code: <strong>DNJIMAX3</strong></span></div>
           
           <button type="button" className={styles.freeCampaignAction} onClick={chooseDesign}>Create Free Card →</button>
