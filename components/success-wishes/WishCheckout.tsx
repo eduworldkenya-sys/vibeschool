@@ -12,6 +12,11 @@ type CheckoutReply={order:CheckoutOrder;paymentError?:string|null}
 class CheckoutRequestError extends Error{constructor(readonly status:number,message:string){super(message)}}
 export default function WishCheckout({theme,values,onClose,soundEnabled=false,inboxRequest=''}:{inboxRequest?:string;soundEnabled?:boolean;theme:Template;values:CardValues;onClose:()=>void}){
  const id=useId(),dialog=useRef<HTMLElement>(null),inFlight=useRef(false),alive=useRef(true)
+ const [trialEnabled,setTrialEnabled]=useState(false)
+ const [trialPhone,setTrialPhone]=useState('')
+ const [trialBusy,setTrialBusy]=useState(false)
+ const [trialRemaining,setTrialRemaining]=useState<number|null>(null)
+ const trialKey=useRef<string|null>(null)
  const [promoCode,setPromoCode]=useState(''),[promoValid,setPromoValid]=useState(false)
  const [promoBusy,setPromoBusy]=useState(false),[promoGift,setPromoGift]=useState<string|null>(null)
  const promoKey=useRef<string|null>(null),promoSending=useRef(false)
@@ -22,6 +27,20 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
  const [busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false)
  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[autoCheck,setAutoCheck]=useState(true)
  const celebrated=useRef(new Set<string>()),stopFeedback=useRef<(()=>void)|null>(null)
+ useEffect(()=>{let active=true;fetch('/api/success-wishes/config',{cache:'no-store'}).then(r=>r.json()).then(c=>{if(active)setTrialEnabled(c.freeTrialEnabled===true)}).catch(()=>{});return()=>{active=false}},[])
+ async function sendFreeTrial(){
+  if(trialBusy||busy||restoring||order||uncertain)return
+  setTrialBusy(true);setError('')
+  try{
+   if(!trialKey.current)trialKey.current=newCheckoutKey()
+   const r=await fetch('/api/success-wishes/free',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({version:'text',key:trialKey.current,senderPhone:trialPhone,...draft})})
+   const p=await r.json()
+   if(!r.ok||!p.invitationUrl)throw new Error(p.error||'Could not send your free card. You can continue with paid checkout.')
+   setTrialRemaining(typeof p.remaining==='number'?p.remaining:null)
+   setPromoGift(p.invitationUrl)
+  }catch(e){setError(e instanceof Error?e.message:'Free sending unavailable. Paid checkout remains available.')}
+  finally{setTrialBusy(false)}
+ }
  const success=checkoutSuccess(order)
  useEffect(()=>{
   if(!success||!order)return
@@ -174,6 +193,16 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   <h2 id={id}>{title}</h2>
   <div className={`${styles.checkoutPreview} ${checking?styles.checkoutPreviewCompact:''}`}><CardArt template={card.theme} values={card} preview/><strong>For {card.candidate}</strong></div>
   {promoGift?<div className={styles.checkoutFlow} role="status"><GiftShareActions link={promoGift} candidate={draft.candidate} sender={draft.sender} compact/></div>:restoring?<p role="status">Checking your order…</p>:<>
+   {trialEnabled&&!order&&!uncertain&&!promoGift&&<div className={styles.promoSection}>
+     <p><strong>5 FREE Success Cards</strong></p>
+     <p className={styles.checkoutHint}>Use your sender number for up to five free cards. Afterwards, continue with paid checkout.</p>
+     <label className={styles.checkoutLabel}>Your sender number
+       <input type="tel" inputMode="tel" autoComplete="tel" maxLength={20} placeholder="07XX XXX XXX" value={trialPhone} disabled={trialBusy||busy} onChange={e=>{setTrialPhone(e.target.value);trialKey.current=null}}/>
+     </label>
+     <button type="button" className={styles.primary} disabled={trialBusy||busy||restoring||!trialPhone.trim()} onClick={()=>void sendFreeTrial()}>{trialBusy?'Preparing card…':'Send Free Card'}</button>
+     {trialRemaining!==null&&<p role="status">{trialRemaining} free cards remaining</p>}
+     <p className={styles.checkoutHint}>Or continue with the regular paid checkout below.</p>
+   </div>}
    {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?<span className={styles.promoPriceAccepted} style={{display:'inline-flex',alignItems:'center',gap:8}}><s style={{opacity:.7}}>KSh 50</s><Tag size={17} aria-hidden="true"/> <span style={{fontSize:'.85rem'}}>Offer applied</span></span>:'KSh 50'}</strong></div>}
    {!order&&!uncertain?<form noValidate onSubmit={e=>{e.preventDefault();void act('pay')}}>
     {!promoValid?<div className={styles.promoSection}>

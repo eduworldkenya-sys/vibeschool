@@ -18,5 +18,7 @@ export async function GET() {
     paymentsEnabled=!error&&data?.initiation_enabled===true&&data?.success_wishes_enabled===true
     groupPaymentsEnabled=paymentsEnabled&&data?.success_wishes_group_enabled===true
   }
-  return reply({ enabled: serviceReady, mediaEnabled: mediaReady, paymentsEnabled, groupPaymentsEnabled, maxSeconds: 60, maxBytes: 25 * 1024 * 1024 })
+  const {data:pilot}=await database().from('success_wishes_pilot_control').select('free_text_enabled').eq('singleton',true).maybeSingle()
+  const freeTrialEnabled=serviceReady&&pilot?.free_text_enabled===true
+  return reply({ freeTrialEnabled, enabled: serviceReady, mediaEnabled: mediaReady, paymentsEnabled, groupPaymentsEnabled, maxSeconds: 60, maxBytes: 25 * 1024 * 1024 })
 }
