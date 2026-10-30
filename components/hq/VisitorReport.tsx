@@ -2,9 +2,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { hqSupabase } from '@/lib/hq/supabase'
 import { HQPanel, HQ_THEME } from '@/components/hq/HQShell'
+type Commerce = { orders:number; settledOrders:number; settledAmountKes:number; free:number; freeOpened:number; links:number; linksOpened:number; states:Record<string,number> }
 type Report = { visitors: number; pageViews: number; days: number; truncated: boolean; pages: { path: string; views: number }[]; daily: { date: string; views: number; visitors: number }[]; devices: {name:string;views:number}[]; sources:{name:string;views:number}[]; source: string; repeatVisitors:number; hourly:{hour:number;views:number}[]; recent:{path:string;at:string;device:string;source:string}[] }
 export default function VisitorReport() {
   const [days, setDays] = useState(7)
+  const [commerce, setCommerce] = useState<Commerce | null>(null)
   const [report, setReport] = useState<Report | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -17,6 +19,9 @@ export default function VisitorReport() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Visitor reporting unavailable.')
       setReport(result)
+      const commerceResponse = await fetch('/api/hq/success-wishes-report', { headers: { Authorization: 'Bearer ' + session.access_token }, cache: 'no-store' })
+      if (commerceResponse.ok) setCommerce(await commerceResponse.json())
+      else setCommerce(null)
     } catch (reason) { setReport(null); setError(reason instanceof Error ? reason.message : 'Visitor reporting unavailable.') }
     finally { setLoading(false) }
   }, [days])
@@ -34,6 +39,7 @@ export default function VisitorReport() {
       <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:12}}>
         {([['Visitors',report.visitors],['Page views',report.pageViews]] as const).map(([name,count]) => <div key={name} style={{padding:16,borderRadius:12,background:HQ_THEME.panelSoft}}><div style={{fontSize:13,color:HQ_THEME.muted}}>{name}</div><strong style={{fontSize:28}}>{count.toLocaleString()}</strong></div>)}
       </div>
+      {commerce && <section aria-label="Success Wishes business results" style={{marginTop:18}}><h3>Success Wishes business</h3><div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>{([['Revenue (KES)',commerce.settledAmountKes],['Paid orders',commerce.settledOrders],['Free cards',commerce.free],['Cards opened',commerce.freeOpened+commerce.linksOpened]] as const).map(([label,value])=><div key={label} style={{background:HQ_THEME.panelSoft,padding:12,borderRadius:10}}><div style={{fontSize:12,color:HQ_THEME.muted}}>{label}</div><strong style={{fontSize:22}}>{value.toLocaleString()}</strong></div>)}</div><p style={{fontSize:12,color:HQ_THEME.muted}}>Confirmed payments only · {commerce.orders} orders · {commerce.links} paid gifts</p></section>}
       {report.truncated && <p role="status">High traffic: showing the most recent 50,000 page views.</p>}
       <p style={{marginTop:12,fontSize:13,color:HQ_THEME.muted}}>Returning visitors: <strong style={{color:HQ_THEME.text}}>{report.repeatVisitors}</strong></p>
       <h3 style={{marginTop:20}}>Recent visits</h3>
