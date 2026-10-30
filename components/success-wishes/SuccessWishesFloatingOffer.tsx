@@ -36,7 +36,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
   }
 
   function chooseDesign() {
-    collapse()
+    dismiss()
     if (homepage) { window.location.assign('/success-wishes#choose-card'); return }
     document.getElementById('choose-card')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   }
@@ -54,11 +54,11 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
           <div className={styles.freeCampaignCopy}>
             <strong id="free-trial-offer" className={styles.freeBrush}>FREE</strong>
             <strong className={styles.freeCampaignTitle}><span>Digital</span>Success Cards</strong>
-            <p>Wish your students success in exams with a beautiful personalised digital card.</p>
+            <p>Send a personal wish in seconds.</p>
           </div>
           <div className={styles.freeBook} aria-hidden="true"><span className={styles.freePage}><small>✦　✧　✦</small><strong>Good Luck<br/>and<br/>Great Success!</strong><small>✦　✧　✦</small></span><span className={styles.freePage}><small>✧　✦　✧</small><em>Believe in yourself.<br/>You can do it!<br/>Wishing you success<br/>in your exams.</em><small>♥</small></span></div>
-          <div className={styles.freeCampaignCode}><span>Use code: <strong>DNJIMAX3</strong></span><small>Free for now!</small></div>
-          <div className={styles.freeCampaignFeatures}><span>Create instantly</span><span>Beautiful designs</span><span>Share via WhatsApp</span></div>
+          <div className={styles.freeCampaignCode}><span>Use code: <strong>DNJIMAX3</strong></span></div>
+          
           <button type="button" className={styles.freeCampaignAction} onClick={chooseDesign}>Create Free Card →</button>
         </section>
       </div>}
