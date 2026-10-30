@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {newCheckoutKey,pendingCheckout,type CheckoutState,type CheckoutCard} from '@/lib/success-wishes/checkout-client'
 import GiftShareActions from './GiftShareActions'
+import { CardArt, type Template } from './SuccessCardStudio'
 import styles from './SuccessWishesGroupDemo.module.css'
 
 type Student = { id: number; name: string; message: string; design: string; phone:string }
@@ -100,7 +101,7 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
     <div className={styles.backdrop} onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="group-demo-title" tabIndex={-1} ref={dialogRef}>
         <header className={styles.header}>
-          <div><span className={styles.eyebrow}>GROUP WISHES</span><h2 id="group-demo-title">Four smiles. One price.</h2><p>Up to 4 cards · KSh 100</p></div>
+          <div><span className={styles.eyebrow}>GROUP WISHES</span><h2 id="group-demo-title">Four smiles. One price.</h2><p>Up to 4 cards · KSh 100 · <strong>2 FREE Success Cards</strong></p></div>
           <button type="button" className={styles.close} onClick={onClose} aria-label="Close group wishes">×</button>
         </header>
         <nav className={styles.steps} aria-label="Order progress">
@@ -113,10 +114,10 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
           {step === 'design' && !restoring && <section>
             <h3>Choose a success card design</h3>
             <div role="group" aria-label="Choose first design" style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,margin:'14px 0'}}>
-              {designs.map(design => <button key={design} type="button" aria-pressed={startingDesign === design} onClick={() => setStartingDesign(design)} className={styles.secondary} style={{minHeight:56,border:startingDesign === design?'2px solid #d4af37':undefined,fontWeight:startingDesign === design?800:400}}>{design}</button>)}
+              {designs.map(design => <button key={design} type="button" aria-pressed={startingDesign === design} aria-label={`Choose ${design} card design`} onClick={() => setStartingDesign(design)} className={styles.designChoice + (startingDesign === design ? ' ' + styles.designSelected : '')}><span className={styles.designArtwork}><CardArt template={design.toLowerCase() as Template} values={{candidate:'Your candidate',sender:sender || 'Your name',message:'',examYear:'2026'}} preview /></span><strong>{design}</strong></button>)}
             </div>
             <p className={styles.hint}>You can use this design for everyone or change each card later.</p>
-            <button className={styles.primary} type="button" onClick={() => { setStudents(items => items.map(item => ({...item,design:startingDesign})));setStep('names') }}>Continue to students →</button>
+            <button className={styles.primary} type="button" onClick={() => { setStudents(items => items.map(item => item.design === 'Heritage' ? {...item,design:startingDesign} : item));setStep('names') }}>Continue to students →</button>
           </section>}
           {step === 'names' && !restoring && <section>
             <div className={styles.row}><h3>Add students</h3><small>{students.length} of 4</small></div>
@@ -161,7 +162,7 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
           {error&&<p role="alert">{error}</p>}
         </div>
         <footer className={styles.actions}>
-          {step !== 'names' && !order&&!busy&&!uncertain && <button type="button" className={styles.secondary} onClick={() => setStep(step === 'review' ? 'cards' : 'names')}>Back</button>}
+          {step !== 'design' && !order&&!busy&&!uncertain && <button type="button" className={styles.secondary} onClick={() => setStep(step === 'review' ? 'cards' : step === 'cards' ? 'names' : 'design')}>Back</button>}
           {step === 'names' && <button type="button" className={styles.primary} disabled={!namesReady} onClick={() => setStep('cards')}>Personalise cards</button>}
           {step === 'cards' && <button type="button" className={styles.primary} onClick={() => {
             if (copyForAll && current.message.trim()) {setStudents(items=>items.map(s=>({...s,message:current.message})));setCopyForAll(false)}
