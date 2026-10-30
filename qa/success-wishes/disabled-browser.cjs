@@ -288,6 +288,9 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await page.getByRole('button', { name: 'Choose One: one student, KSh 50', exact: true }).count(), 1)
     assert.equal(await page.getByRole('button', { name: /Choose Four: up to four students, KSh 100/ }).count(), 1)
     assert.equal(await page.getByRole('button', { name: /Voice Wish|Video Wish|Record voice|Record video|Choose audio file|Choose video file/ }).count(), 0, 'Uncommissioned media controls remain hidden in the text-card product')
+    // The current sender flow defaults to Text; Voice/Video selectors are not displayed.
+    assert.equal(await page.locator('#wish-composer').count(), 1, 'Sender composer is available')
+    assert.equal(await page.getByRole('button', { name: /Text Wish · KES 50/ }).count(), 0, 'Do not restore the retired version selector')
     assert.equal(await page.getByRole('textbox', { name: 'Exam year' }).inputValue(), '2026', 'Year is prefilled for the sender')
     assert.equal(await page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' }).count(), 0, 'No lower CTA appears before the required details are complete')
     assert.equal(await page.locator('#wish-composer [class*="sendRow"]').getByRole('button', { name: 'Send this wish' }).count(), 0, 'No upper CTA appears before the required details are complete')
