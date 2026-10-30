@@ -130,6 +130,7 @@ const capitaliseFirstLetter = (value: string) => value.replace(/[A-Za-z]/, lette
 
 export default function SuccessCardStudio({ initialDraft, testMode = false }: { initialDraft?: CardDesignDraft; testMode?: boolean }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
+  const [designFilter, setDesignFilter] = useState<'all' | 'classic' | 'floral' | 'bold' | 'colourful'>('all')
   const [selectedVersion, setSelectedVersion] = useState<'text' | 'voice' | 'video'>('text')
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
