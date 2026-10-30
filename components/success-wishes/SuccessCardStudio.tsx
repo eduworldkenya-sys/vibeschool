@@ -130,7 +130,6 @@ const capitaliseFirstLetter = (value: string) => value.replace(/[A-Za-z]/, lette
 
 export default function SuccessCardStudio({ initialDraft, testMode = false }: { initialDraft?: CardDesignDraft; testMode?: boolean }) {
   const [theme, setTheme] = useState<Template>(initialDraft?.theme || 'heritage')
-  const [designFilter, setDesignFilter] = useState<'all' | 'classic' | 'floral' | 'bold' | 'colourful'>('all')
   const [selectedVersion, setSelectedVersion] = useState<'text' | 'voice' | 'video'>('text')
   const [mediaFile, setMediaFile] = useState<File | null>(null)
   const [mediaPreviewUrl, setMediaPreviewUrl] = useState('')
@@ -332,15 +331,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
       </section>
       <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
         <div className={styles.sectionHeading}><div><h2 id="choose-card-title">Choose a success card design</h2></div></div>
-        <div role="group" aria-label="Filter card designs" style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:16}}>
-          {([
-            ['all','All designs'],['classic','Classic'],['floral','Floral'],['bold','Bold'],['colourful','Colourful'],
-          ] as const).map(([filter,label]) => <button key={filter} type="button" aria-pressed={designFilter===filter} onClick={()=>setDesignFilter(filter)}
-            style={{border:'1px solid currentColor',borderRadius:999,padding:'7px 14px',background:designFilter===filter?'#23365b':'transparent',color:designFilter===filter?'#fff':'inherit',cursor:'pointer'}}>{label}</button>)}
-        </div>
-        <div className={styles.gallery}>{templates.filter(item => designFilter==='all' || ({
-          heritage:'classic',botanical:'floral',nightfall:'bold',sunrise:'colourful',
-        } as Record<Template,string>)[item.id]===designFilter).map(item => <button type="button" key={item.id} onClick={() => {
+        <div className={styles.gallery}>{templates.map(item => <button type="button" key={item.id} onClick={() => {
           setTheme(item.id)
           document.getElementById('wish-composer')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
         }}
