@@ -22,3 +22,18 @@
 .single,.group{min-height:112px}
 @container (max-width:640px){.label .instant{font-size:clamp(19px,4.8vw,26px)}.label .freeOffer{font-size:clamp(17px,4.1vw,23px)}.label .price{font-size:20px}}
 @container (max-width:310px){.label .instant{font-size:22px}.label .freeOffer{font-size:20px}}
+
+
+/* Compact offer actions should not overpower the card library. */
+.container{width:min(720px,100%);margin:10px auto 17px}
+.single,.group{min-height:94px;gap:10px;padding:10px 12px}
+.details{gap:8px}
+.details>svg{width:20px;height:20px}
+.label{gap:2px}
+.label .instant{font-size:clamp(19px,2.6vw,24px)}
+.label .freeOffer{font-size:clamp(17px,2.5vw,22px);line-height:1.1}
+.label .price{font-size:clamp(16px,2vw,20px)}
+.label small{font-size:11px}
+.action{font-size:12px;padding:8px;min-height:44px}
+@container (max-width:640px){.single,.group{flex-direction:row;text-align:left;gap:8px;padding:10px}.details{flex-direction:row;align-items:center;gap:8px}.label{align-items:flex-start}.action{width:auto;min-width:105px}.label .instant{font-size:clamp(18px,4.5vw,23px)}.label .freeOffer{font-size:clamp(17px,4.2vw,22px)}}
+@container (max-width:390px){.grid{grid-template-columns:1fr;gap:9px}.single,.group{min-height:90px}.action{min-width:103px}}
