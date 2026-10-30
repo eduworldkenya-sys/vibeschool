@@ -17,7 +17,6 @@ import {
   Volume2,
   VolumeX,
   Inbox,
-  MailOpen,
   Plus,
   KeyRound,
   Grid2X2,
@@ -43,7 +42,6 @@ const ReceiverContext = createContext<{
 export const useReceiverTheme = () => useContext(ReceiverContext);
 const links = [
   { href: "/success-wishes/inbox", label: "My wishes", icon: Inbox },
-  { href: "/success-wishes/open", label: "Open a Wish", icon: MailOpen },
   { href: "/success-wishes", label: "Send a wish", icon: Send },
   { href: "/success-wishes/request", label: "Request a wish", icon: Plus },
 ];
@@ -110,7 +108,7 @@ export default function ReceiverShell({
   );
   const nav = (
     <nav aria-label="Receiver menu">
-      {links.filter(item => item.href !== "/success-wishes/open" || !["/success-wishes/inbox", "/success-wishes/gift"].includes(pathname)).map(({ href, label, icon: Icon }) => (
+      {links.map(({ href, label, icon: Icon }) => (
         <Link
           key={href}
           href={href}
