@@ -68,7 +68,7 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
             <div className={styles.single} role="button" tabIndex={0} aria-label="Choose one Success Card for KSh 50" onClick={chooseOne} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); chooseOne() } }}>
               <span className={styles.eyebrow}>PERSONAL WISH</span>
               <strong>KSh 50</strong>
-              <div className={styles.cardIllustration} aria-hidden="true"><span className={styles.personHead}>●</span></div>
+              <div className={styles.cardIllustration} aria-hidden="true"><span className={styles.personHead}>👤</span></div>
               <p>1 student</p>
               <p className={styles.tagline}>Just for them.</p>
               <button type="button" onClick={event => { event.stopPropagation(); chooseOne() }}>Choose One →</button>
@@ -76,7 +76,7 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
             <div className={styles.group} role="button" tabIndex={0} aria-label="Choose up to four Success Cards for KSh 100" onClick={chooseFour} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); chooseFour() } }}>
               <span className={styles.eyebrow}>GROUP WISHES</span>
               <strong>KSh 100</strong>
-              <div className={styles.groupIllustration} aria-hidden="true"><span>●</span><span>●</span><span>●</span><span>●</span></div>
+              <div className={styles.groupIllustration} aria-hidden="true"><span>👤</span><span>👤</span><span>👤</span><span>👤</span></div>
               <p>Up to 4 students</p>
               <p className={styles.free}>Get 2 FREE</p>
               <button type="button" onClick={event => { event.stopPropagation(); chooseFour() }}>Choose Four →</button>
