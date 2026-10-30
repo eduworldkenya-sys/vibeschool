@@ -406,7 +406,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           {error && <p role="alert" className={styles.error}>{error}</p>}
           {status && <p role="status" className={styles.status}>{status}</p>}
           <div className={styles.sendRow}>
-            <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' ? 'Preview only' : `KES ${versions.find(version => version.id === selectedVersion)?.price}`}</strong></p>
+            <p className={styles.orderTotal}>Total <strong>{selectedVersion !== 'text' ? 'Preview only' : 'FREE with code DNJIMAX3'}</strong></p>
             {(selectedVersion !== 'text' || ready) && <button type="button" className={styles.primary} disabled={!ready} onClick={handleSendWish}>{selectedVersion !== 'text' ? 'Preview your wish' : 'Send this wish'} <ChevronRight size={18}/></button>}
           </div>
         </div>
