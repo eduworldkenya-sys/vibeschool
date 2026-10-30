@@ -10,6 +10,7 @@ const COLLAPSED_KEY = 'success-wishes-2026-floating-offer-collapsed'
 export default function SuccessWishesFloatingOffer({ preview = false, homepage = false }: { preview?: boolean; homepage?: boolean }) {
   const [visible, setVisible] = useState(false)
   const [expanded, setExpanded] = useState(false)
+  const [imageReady, setImageReady] = useState(false)
 
   useEffect(() => {
     if (preview) { setVisible(true); setExpanded(true); return }
@@ -49,7 +50,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
         <button type="button" className={styles.teaserClose} aria-label="Dismiss free card advert" onClick={dismiss}>×</button>
         <div className={styles.teaserContent}><strong className={styles.teaserHeadline}>Send 5 FREE Success Cards</strong><strong className={styles.teaserFree}>Never late for a wish</strong><span className={styles.teaserNow}>Personalise · Share instantly</span><button type="button" className={styles.teaserMainCta} onClick={chooseDesign}>Send Free Cards →</button></div>
       </aside>}
-      {visible && expanded && <div className={styles.backdrop} onMouseDown={e=>{if(e.target===e.currentTarget)collapse()}}>
+      {visible && expanded && <div className={`${styles.backdrop} ${imageReady ? styles.advertReady : styles.advertPending}`} onMouseDown={e=>{if(e.target===e.currentTarget)collapse()}}>
         <section className={styles.freeCampaign} role="dialog" aria-modal="true" aria-labelledby="free-trial-offer">
           <button type="button" className={styles.modalClose} aria-label="Close free offer" onClick={collapse}>×</button>
           <div className={styles.freeCampaignCopy}>
@@ -57,7 +58,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
             <strong className={styles.freeCampaignTitle}><span>Digital</span>Success Cards</strong>
             <p>Send a personal wish in seconds.</p>
           </div>
-          <Image className={styles.freeCampaignImage} src="/images/success-wishes/backgrounds/success-card-vibeschool.png" alt="Good luck in your exams, 2026 Success Card" width={800} height={533} sizes="(max-width: 480px) calc(100vw - 68px), 420px" quality={72} priority />
+          <Image className={styles.freeCampaignImage} src="/images/success-wishes/backgrounds/success-card-vibeschool.png" alt="Good luck in your exams, 2026 Success Card" width={800} height={533} sizes="(max-width: 480px) calc(100vw - 68px), 420px" quality={72} priority onLoad={() => setImageReady(true)} />
           <div className={styles.freeCampaignCode}><span>Use code: <strong>DNJIMAX3</strong></span></div>
           
           <button type="button" className={styles.freeCampaignAction} onClick={chooseDesign}>Create Free Card →</button>
