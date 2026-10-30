@@ -42,8 +42,8 @@ const ReceiverContext = createContext<{
 export const useReceiverTheme = () => useContext(ReceiverContext);
 const links = [
   { href: "/success-wishes/inbox", label: "My wishes", icon: Inbox },
-  { href: "/success-wishes", label: "Send a wish", icon: Send },
   { href: "/success-wishes/request", label: "Request a wish", icon: Plus },
+  { href: "/success-wishes", label: "Send a wish", icon: Send },
 ];
 
 export default function ReceiverShell({
