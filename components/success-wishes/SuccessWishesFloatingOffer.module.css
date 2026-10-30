@@ -89,3 +89,28 @@
 .groupIllustration{letter-spacing:normal}
 @media(max-width:540px){.teaser{width:min(308px,calc(100vw - 20px))}.teaserFree{font-size:23px}.teaserContent{padding:36px 9px 9px}}
 @media(max-width:360px){.teaserHeadline{font-size:21px}.teaserFree{font-size:21px}}
+
+
+/* Free campaign: artwork-inspired layout without a second VibeSchool logo. */
+.freeCampaign{position:relative;isolation:isolate;width:min(620px,100%);max-height:calc(100dvh - 28px);overflow-y:auto;background:radial-gradient(circle at 80% 28%,#194273 0%,#071a3d 55%,#03112b 100%);border:2px solid #e7be67;border-radius:23px;box-shadow:0 25px 70px #0008;color:#fff;padding:32px 22px 20px;font-family:system-ui,Arial,sans-serif;text-align:center}
+.freeCampaign:before{content:'✦　　　✧　　　　✦';position:absolute;right:3%;top:12%;color:#f7d37c;font-size:20px;opacity:.7;pointer-events:none}
+.freeCampaignCopy{position:relative;z-index:1;display:grid;justify-items:center;gap:7px}
+.freeBrush{display:block;font-size:clamp(53px,12vw,96px);line-height:.95;font-weight:1000;font-style:italic;letter-spacing:-.06em;color:#081a38;background:linear-gradient(100deg,#f0b947,#ffe39a 52%,#d99a32);padding:3px 38px;transform:rotate(-4deg);box-shadow:6px 6px 0 #a47a2e44}
+.freeCampaignTitle{display:flex;flex-direction:column;font-size:clamp(29px,6vw,46px);line-height:1.07;font-weight:900;letter-spacing:-.045em;color:#f1bf5c}
+.freeCampaignTitle span{color:#fff;font-size:.83em}
+.freeCampaignCopy p{max-width:40ch;font-size:clamp(13px,3vw,17px);line-height:1.35;margin:5px 0}
+.freeBook{display:flex;justify-content:center;align-items:stretch;max-width:450px;margin:14px auto 15px;filter:drop-shadow(0 12px 12px #0007);perspective:500px}
+.freePage{width:50%;aspect-ratio:4/4.3;padding:14px 7px;border:7px solid #f6dec0;outline:2px solid #c89b4b;outline-offset:-12px;background:linear-gradient(135deg,#fff9eb,#f9dfb3);color:#102446;display:flex;flex-direction:column;align-items:center;justify-content:space-around;gap:4px}
+.freePage:first-child{transform:skewY(-3deg);border-radius:8px 0 0 8px}.freePage:last-child{transform:skewY(3deg);border-radius:0 8px 8px 0}
+.freePage strong{font:bold italic clamp(15px,4vw,28px) Georgia,serif;line-height:1.2}
+.freePage em{font:italic clamp(11px,2.8vw,18px)/1.45 Georgia,serif}
+.freePage small{color:#b68729;font-size:16px}
+.freeCampaignCode{display:grid;gap:1px;background:linear-gradient(110deg,#f1b34d,#ffdf86,#edb348);color:#0d203f;padding:12px 8px;border-radius:15px;margin:6px auto;max-width:460px}
+.freeCampaignCode span{font-size:clamp(15px,4vw,23px);font-weight:700}
+.freeCampaignCode strong{font-weight:950;white-space:nowrap}
+.freeCampaignCode small{font-size:15px}
+.freeCampaignFeatures{display:flex;justify-content:space-around;gap:8px;margin:14px 0;font-size:clamp(10px,2.5vw,13px)}
+.freeCampaignFeatures span+span{border-left:1px solid #e0b861aa;padding-left:9px}
+.freeCampaignAction{width:100%;max-width:420px;border:0;border-radius:12px;min-height:45px;background:linear-gradient(110deg,#f5c76a,#e7ad44);color:#11233b;font-size:15px;font-weight:850;cursor:pointer}
+.freeCampaignAction:focus-visible{outline:3px solid #fff;outline-offset:3px}
+@media(max-width:380px){.freeCampaign{padding:28px 12px 15px}.freeBrush{padding:3px 25px}.freePage{padding:10px 5px;border-width:5px}.freeCampaignFeatures{gap:4px}}
