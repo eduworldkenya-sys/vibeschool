@@ -9,3 +9,6 @@ create index if not exists hq_visitor_events_occurred_idx on public.hq_visitor_e
 alter table public.hq_visitor_events enable row level security;
 revoke all on public.hq_visitor_events from anon, authenticated;
 -- No client policies: reporting and ingestion are performed by authenticated server routes.
+
+-- access: service-only public.hq_visitor_events
+-- authorization-test: public.hq_visitor_events anonymous and authenticated clients cannot SELECT or INSERT; server service role is required.
