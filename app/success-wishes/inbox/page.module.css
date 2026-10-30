@@ -57,3 +57,34 @@
 .card:hover .cardAction{text-decoration:underline;text-underline-offset:3px}
 @media(max-width:767px){.grid:has(> .card:only-child){grid-template-columns:minmax(0,1fr)}.card{min-height:184px}.cover{min-height:184px}.cardBody{padding:14px 13px}.cardAction{min-height:38px}}
 @media(prefers-reduced-motion:reduce){.card{transition:none}}
+
+/* Viewport-first inbox: prioritise wishes above the fold, without hiding overflow. */
+@media(min-width:768px) and (max-height:850px){
+ .page{padding-top:16px;padding-bottom:20px}
+ .header{margin-bottom:10px}
+ .welcome{padding:9px 0 12px;margin-bottom:12px}
+ .toolbar{margin-bottom:12px}
+ .card,.cover{min-height:156px}
+ .cover{padding-block:10px}
+ .coverBrand{margin-bottom:6px}
+ .coverOrnament{font-size:20px;margin-bottom:5px}
+ .coverTitle{font-size:18px}
+ .coverName{margin-top:6px}
+ .seal{margin-top:7px}
+ .footer{margin-top:14px}
+ .note{margin-top:12px}
+}
+@media(max-width:767px){
+ .page{padding-top:12px;padding-bottom:16px}
+ .header{margin-bottom:8px}
+ .welcome{padding:10px 0 12px;margin-bottom:12px}
+ .toolbar{margin-bottom:12px}
+ .grid{gap:10px}
+ .card,.cover{min-height:160px}
+ .cover{padding-block:12px}
+ .coverBrand{margin-bottom:6px}
+ .coverOrnament{margin-bottom:6px}
+ .coverName{margin-top:6px}
+ .seal{margin-top:7px}
+ .footer{margin-top:14px}
+}
