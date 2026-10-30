@@ -15,7 +15,8 @@ const STORAGE='vs-group-wishes-orders-v1'
 export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => void }) {
   const [students, setStudents] = useState<Student[]>([makeStudent(1), makeStudent(2)])
   const [sender, setSender] = useState('')
-  const [step, setStep] = useState<'names' | 'cards' | 'review'>('names')
+  const [startingDesign, setStartingDesign] = useState('Heritage')
+  const [step, setStep] = useState<'design' | 'names' | 'cards' | 'review'>('design')
   const [active, setActive] = useState(0)
   const [copyForAll, setCopyForAll] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -37,7 +38,7 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
     if(inFlight.current)return
     inFlight.current=true;setBusy(true);setError('')
     try{const p=await call({action:'status',key:secret});if(mounted.current){setKey(secret);setOrder(p.order);setStep('review');setUncertain(false);save(secret)}}
-    catch(e){if(mounted.current){if(e instanceof GroupRequestError&&e.status===404){setOrder(null);setKey(newCheckoutKey());setUncertain(false);setStep('names')}else setUncertain(true);setError(e instanceof Error?e.message:'Reconnect to restore your order.')}}
+    catch(e){if(mounted.current){if(e instanceof GroupRequestError&&e.status===404){setOrder(null);setKey(newCheckoutKey());setUncertain(false);setStep('design')}else setUncertain(true);setError(e instanceof Error?e.message:'Reconnect to restore your order.')}}
     finally{inFlight.current=false;if(mounted.current){setBusy(false);setRestoring(false)}}
   },[call,save])
   useEffect(()=>{
@@ -63,7 +64,7 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
     }catch(e){if(mounted.current){setUncertain(started);setError(e instanceof Error?e.message:'Check status before paying again.')}}
     finally{inFlight.current=false;if(mounted.current)setBusy(false)}
   }
-  function startNew(){if(order){setStudents(order.cards.map((c,i)=>({id:i+1,name:c.candidate,message:c.message,design:c.theme[0].toUpperCase()+c.theme.slice(1),phone:c.deliveryPhone||''})));nextId.current=order.cards.length+1;setSender(order.cards[0].sender);setPhone(order.payerPhone)}setOrder(null);setKey(newCheckoutKey());setUncertain(false);setError('');setStep('names')}
+  function startNew(){if(order){setStudents(order.cards.map((c,i)=>({id:i+1,name:c.candidate,message:c.message,design:c.theme[0].toUpperCase()+c.theme.slice(1),phone:c.deliveryPhone||''})));nextId.current=order.cards.length+1;setSender(order.cards[0].sender);setPhone(order.payerPhone)}setOrder(null);setKey(newCheckoutKey());setUncertain(false);setError('');setStep('design')}
 
 
   useEffect(() => {
@@ -103,11 +104,20 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
           <button type="button" className={styles.close} onClick={onClose} aria-label="Close group wishes">×</button>
         </header>
         <nav className={styles.steps} aria-label="Order progress">
-          <span className={step === 'names' ? styles.selected : ''}>1. Students</span>
-          <span className={step === 'cards' ? styles.selected : ''}>2. Cards</span>
-          <span className={step === 'review' ? styles.selected : ''}>3. Review</span>
+          <span className={step === 'design' ? styles.selected : ''}>1. Design</span>
+          <span className={step === 'names' ? styles.selected : ''}>2. Students</span>
+          <span className={step === 'cards' ? styles.selected : ''}>3. Cards</span>
+          <span className={step === 'review' ? styles.selected : ''}>4. Review</span>
         </nav>
         <div className={styles.body}>
+          {step === 'design' && !restoring && <section>
+            <h3>Choose a success card design</h3>
+            <div role="group" aria-label="Choose first design" style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,margin:'14px 0'}}>
+              {designs.map(design => <button key={design} type="button" aria-pressed={startingDesign === design} onClick={() => setStartingDesign(design)} className={styles.secondary} style={{minHeight:56,border:startingDesign === design?'2px solid #d4af37':undefined,fontWeight:startingDesign === design?800:400}}>{design}</button>)}
+            </div>
+            <p className={styles.hint}>You can use this design for everyone or change each card later.</p>
+            <button className={styles.primary} type="button" onClick={() => { setStudents(items => items.map(item => ({...item,design:startingDesign})));setStep('names') }}>Continue to students →</button>
+          </section>}
           {step === 'names' && !restoring && <section>
             <div className={styles.row}><h3>Add students</h3><small>{students.length} of 4</small></div>
             {students.map((student, i) => <div key={student.id} className={styles.nameRow}>

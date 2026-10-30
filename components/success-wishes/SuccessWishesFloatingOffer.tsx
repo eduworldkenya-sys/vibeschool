@@ -57,7 +57,13 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
   function chooseOne() {
     collapse()
     if (homepage) { window.location.assign('/success-wishes#choose-card'); return }
-    document.getElementById('wish-composer')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+    document.getElementById('choose-card')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+  }
+
+  function chooseDesign() {
+    collapse()
+    if (homepage) { window.location.assign('/success-wishes#choose-card'); return }
+    document.getElementById('choose-card')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   }
 
   function chooseFour() {
@@ -83,7 +89,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
               <strong>KSh 100</strong><span>4 cards · 2 FREE</span><b>Send Now →</b>
             </button>
           </div>
-          <button type="button" className={styles.teaserMainCta} onClick={chooseOne}>Send Success Card Now →</button>
+          <button type="button" className={styles.teaserMainCta} onClick={chooseDesign}>Send Success Card Now →</button>
         </div>
       </aside>}
       {visible && expanded && !demoOpen && <div className={styles.backdrop} onMouseDown={event => { if (event.target === event.currentTarget) collapse() }}>
