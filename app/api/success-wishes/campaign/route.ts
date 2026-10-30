@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { object, WishError } from '@/lib/success-wishes/contracts'
 import { database, failure, json, reply } from '@/lib/success-wishes/server'
-import { freeWish } from '../free/route'
+import { freeWish } from '@/lib/success-wishes/free-issue'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
