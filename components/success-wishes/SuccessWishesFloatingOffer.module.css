@@ -34,3 +34,17 @@
 @keyframes enter{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:540px){.teaser{left:10px;bottom:calc(70px + env(safe-area-inset-bottom,0px));width:min(294px,calc(100vw - 20px))}.modal{padding:26px 11px 14px}.heading{margin:6px 32px 19px}.heading p{font-size:12px}.offers{gap:8px}.single,.group{padding:12px;min-height:265px}.group{padding:10px}.eyebrow{font-size:9px}.single p,.group p{font-size:12px}.single button,.group button{font-size:12px}.cardIllustration,.groupIllustration{font-size:29px;min-height:65px}.groupIllustration{font-size:22px}}
 @media(prefers-reduced-motion:reduce){.teaser{animation:none}}
+
+/* Responsive promotional actions: the entire offer is a tap target. */
+.visuallyHidden{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
+.modal{width:min(680px,100%);padding:34px 22px 22px}
+.single,.group{cursor:pointer;min-height:270px;align-items:center;text-align:center;justify-content:space-between;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}
+.single:hover,.group:hover{transform:translateY(-2px);box-shadow:0 8px 25px #0003}
+.single:focus-visible,.group:focus-visible{outline:3px solid #ffdb82;outline-offset:3px}
+.single button,.group button{min-height:48px;width:100%;padding:11px 10px;border-radius:12px;font-size:clamp(12px,2.4vw,16px);line-height:1.3;white-space:normal;transition:filter .15s ease,transform .15s ease}
+.single button:hover,.group button:hover{filter:brightness(1.1)}
+.single button:active,.group button:active{transform:scale(.98)}
+.cardIllustration,.groupIllustration{min-height:60px}
+@media(max-width:540px){.modal{padding:48px 12px 14px}.offers{gap:9px}.single,.group{min-height:244px;padding:11px 8px}.single strong,.group strong{font-size:clamp(23px,7vw,35px)}.single button,.group button{min-height:44px;padding:9px 5px;font-size:12px}.eyebrow{font-size:9px}}
+@media(max-width:350px){.offers{grid-template-columns:1fr}.single,.group{min-height:190px}.cardIllustration,.groupIllustration{min-height:30px}.modal{max-height:calc(100dvh - 20px)}}
+@media(prefers-reduced-motion:reduce){.single,.group,.single button,.group button{transition:none}}
