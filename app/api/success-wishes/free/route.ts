@@ -7,7 +7,7 @@ import { senderPhone } from '@/lib/success-wishes/phone-verification'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function freeWish(req: NextRequest, raw: unknown) {
+async function freeWish(req: NextRequest, raw: unknown) {
  const b = object(raw)
  if (typeof b.code !== 'string' || b.code.trim().toUpperCase() !== 'DNJIMAX3') throw new WishError(400,'Enter the valid free-card code DNJIMAX3.')
  for (const name of ['amountKes','price','paid','paymentStatus','providerReceipt','checkoutRequestId','merchantRequestId','paymentAttemptId']) {
