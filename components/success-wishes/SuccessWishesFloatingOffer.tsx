@@ -52,12 +52,12 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
         <section className={styles.freeCampaign} role="dialog" aria-modal="true" aria-labelledby="free-trial-offer">
           <button type="button" className={styles.modalClose} aria-label="Close free offer" onClick={collapse}>×</button>
           <div className={styles.freeCampaignCopy}>
-            <span className={styles.freeBrush}>2026 · FREE OFFER</span>
-            <strong id="free-trial-offer" className={styles.freeCampaignTitle}>5 Free Success Cards</strong>
-            <p>Personalise and share a wish in seconds.</p>
+            <div className={styles.freeHero} id="free-trial-offer"><strong>FREE</strong><strong>2026</strong></div>
+            <strong className={styles.freeCampaignTitle}><span>Digital</span>Success Cards</strong>
+            <p>Send a personal wish in seconds.</p>
           </div>
           <img className={styles.freeCampaignImage} src="/images/success-wishes/backgrounds/success-card-vibeschool.png" alt="Good luck in your exams, 2026 Success Card" />
-          <div className={styles.freeCampaignCode}><span>Offer code</span><strong>DNJIMAX3</strong></div>
+          <div className={styles.freeCampaignCode}><span>Use code: <strong>DNJIMAX3</strong></span></div>
           
           <button type="button" className={styles.freeCampaignAction} onClick={chooseDesign}>Create Free Card →</button>
         </section>
