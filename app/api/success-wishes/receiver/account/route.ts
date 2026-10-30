@@ -3,7 +3,7 @@ import {WishError,field,object} from '@/lib/success-wishes/contracts'
 import {database,failure,json,reply,takeAttempt} from '@/lib/success-wishes/server'
 import {hashSecret} from '@/lib/success-wishes/security'
 import {senderPhone} from '@/lib/success-wishes/phone-verification'
-import {PIN_COOKIE,derive,nameKey,protectPin,validSecret,validId,verifyPin} from '@/lib/success-wishes/receiver-pin'
+import {PIN_COOKIE,derive,nameKey,protectPin,secret,validSecret,validId,verifyPin} from '@/lib/success-wishes/receiver-pin'
 import {receiverSession,remember,pinAttempt,cookieOptions,sessionHash,recoveryHash,type Receiver} from '@/lib/success-wishes/receiver-collection'
 export const dynamic='force-dynamic'
 export const runtime='nodejs'
@@ -49,6 +49,24 @@ export async function POST(req:NextRequest){try{
   const r=Array.isArray(data)?data[0]:data
   if(error||!r?.id)throw denied()
   const response=reply({ok:true,inboxId:r.id,recoveryUrl:req.nextUrl.origin+'/success-wishes/recover#recovery='+next});response.cookies.set(PIN_COOKIE,raw,cookieOptions(req));return response
+ }
+ if(action==='reset_signed_in'){
+  // An existing authenticated PIN session is a possession credential. Phone and name
+  // are never used to identify the inbox. Rotate every old session on reset.
+  const {receiver:r}=await receiverSession(req)
+  await pinAttempt(req,'trusted-reset:'+r.id)
+  const recovery=secret(),pin=protectPin(b.pin)
+  const {data:updated,error}=await db.from('success_wish_receivers')
+   .update({pin_hash:pin,pin_recovery_hash:recoveryHash(recovery),
+    pin_previous_recovery_hash:null,pin_reset_hash:null,pin_epoch:r.pin_epoch+1})
+   .eq('id',r.id).eq('pin_epoch',r.pin_epoch)
+   .select('id,pin_epoch').maybeSingle()
+  if(error||!updated)throw new WishError(409,'Your inbox changed. Reopen My wishes and try again.')
+  const {error:revokeError}=await db.from('success_wish_receiver_sessions').delete().eq('receiver_id',r.id)
+  if(revokeError)throw new WishError(503,'PIN changed. Sign in again with your new PIN.')
+  const response=reply({ok:true,inboxId:r.id,recoveryUrl:req.nextUrl.origin+'/success-wishes/recover#recovery='+recovery})
+  await remember(db,req,response,updated)
+  return response
  }
  if(action==='confirm_recovery'){
   const {receiver:r}=await receiverSession(req);if(b.inboxId!==r.id)throw new WishError(409,'The active learner changed. Reopen My wishes.');const {error}=await db.from('success_wish_receivers').update({pin_previous_recovery_hash:null,pin_reset_hash:null}).eq('id',r.id).eq('pin_epoch',r.pin_epoch);if(error)throw new WishError(503,'Could not finish recovery. Try again.');return reply({ok:true})
