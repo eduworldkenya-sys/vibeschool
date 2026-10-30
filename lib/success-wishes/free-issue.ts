@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { NextRequest } from 'next/server'
 import { field, object, WishError } from '@/lib/success-wishes/contracts'
-import { database, failure, json, limit, reply } from '@/lib/success-wishes/server'
+import { database, limit } from '@/lib/success-wishes/server'
 import { hashSecret } from '@/lib/success-wishes/security'
 import { senderPhone } from '@/lib/success-wishes/phone-verification'
 export async function freeWish(req: NextRequest, raw: unknown) {
