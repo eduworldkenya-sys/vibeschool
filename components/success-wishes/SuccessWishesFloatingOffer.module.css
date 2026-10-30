@@ -141,3 +141,24 @@
 .modalClose{right:10px;top:9px;width:34px;height:34px;border:1px solid #a7a9b0;background:#132842;font-size:23px}
 @media(max-width:380px){.freeCampaign{padding:20px 12px 13px;gap:9px}.freeCampaignTitle{font-size:24px}.freeCampaignCode strong{font-size:15px}}
 @media(max-height:650px){.freeCampaign{gap:7px;padding:12px}.freeCampaignImage{aspect-ratio:2.3}.freeCampaignCopy p{display:none}.freeCampaignTitle{font-size:23px}.freeCampaignAction{min-height:40px}}
+
+/* Final premium campaign treatment: restrained celebration, original copy. */
+.freeCampaign{width:min(490px,100%);gap:10px;padding:22px 18px 18px;border:1.5px solid #cfa960;border-radius:18px;background:radial-gradient(ellipse at 75% 20%,#183b66,#091a37 72%);overflow-x:hidden}
+.freeCampaign:before{content:'✦';display:block;position:absolute;top:19%;left:8%;right:auto;color:#e6bf73;font-size:15px;opacity:.65;animation:campaignTwinkle 4.5s ease-in-out infinite}
+.freeCampaign:after{content:'✧';position:absolute;top:31%;right:7%;color:#e6bf73;font-size:18px;opacity:.55;pointer-events:none;animation:campaignTwinkle 5.5s ease-in-out 1.3s infinite}
+.freeCampaignCopy{gap:5px}
+.freeHero{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:0 36px}
+.freeHero strong{font-size:clamp(38px,10vw,59px);font-weight:900;letter-spacing:-.055em;line-height:1.04;color:#f0c16b}
+.freeHero strong:first-child{font-style:italic}
+.freeCampaignTitle{display:flex;flex-direction:column;color:#efc16c;font-size:clamp(27px,6vw,35px);line-height:1.06;padding:0}
+.freeCampaignTitle span{color:#fff;font-size:.83em}
+.freeCampaignCopy p{font-size:clamp(12px,3.3vw,15px);margin:4px 0 0;color:#f1f2f5}
+.freeCampaignImage{width:100%;max-width:420px;aspect-ratio:1.5;object-fit:cover;object-position:center;border:1px solid #d0a75d;border-radius:10px;margin:6px auto}
+.freeCampaignCode{display:block;max-width:310px;margin:2px auto;padding:7px 12px;border:1px solid #bb9b5f;background:#152b48;color:#e9edf4;border-radius:8px}
+.freeCampaignCode span{font-size:clamp(12px,3.2vw,14px);font-weight:500}
+.freeCampaignCode strong{color:#f3d08c;font-weight:800;letter-spacing:.02em}
+.freeCampaignAction{display:block;width:auto;min-width:190px;max-width:240px;min-height:41px;margin:0 auto;padding:9px 18px;border-radius:9px;font-size:14px;background:#eac071}
+@keyframes campaignTwinkle{0%,100%{opacity:.3;transform:scale(.9)}50%{opacity:.8;transform:scale(1.1)}}
+@media(max-width:380px){.freeCampaign{padding:18px 12px 14px;gap:8px}.freeHero{gap:9px}.freeHero strong{font-size:clamp(34px,10vw,42px)}.freeCampaignImage{aspect-ratio:1.65}}
+@media(max-height:700px){.freeCampaign{padding:12px;gap:6px}.freeCampaignImage{aspect-ratio:2;max-width:340px;margin:2px auto}.freeHero strong{font-size:37px}.freeCampaignTitle{font-size:24px}.freeCampaignCopy p{display:block;font-size:12px}.freeCampaignAction{min-height:38px}}
+@media(prefers-reduced-motion:reduce){.freeCampaign:before,.freeCampaign:after{animation:none}}
