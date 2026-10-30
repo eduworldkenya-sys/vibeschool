@@ -194,7 +194,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   {success&&<div className={styles.successCelebration} aria-hidden="true"><Check size={30}/><span>✦</span><span>✧</span><span>✦</span></div>}
   <h2 id={id}>{title}</h2>
   <div className={`${styles.checkoutPreview} ${checking?styles.checkoutPreviewCompact:''}`}><CardArt template={card.theme} values={card} preview/><strong>For {card.candidate}</strong></div>
-  {promoGift?<div className={styles.checkoutFlow} role="status"><GiftShareActions link={promoGift} candidate={draft.candidate} sender={draft.sender} compact/></div>:restoring?<p role="status">Checking your order…</p>:<>
+  {promoGift?<div className={styles.checkoutFlow} role="status"><GiftShareActions link={promoGift} candidate={draft.candidate} sender={draft.sender} recipientPhone={draft.deliveryPhone} compact/></div>:restoring?<p role="status">Checking your order…</p>:<>
    {!freeCampaign&&trialEnabled&&!order&&!uncertain&&!promoGift&&<div className={styles.promoSection}>
      <p><strong>5 FREE Success Cards</strong></p>
      <p className={styles.checkoutHint}>Use your sender number for up to five free cards. Afterwards, continue with paid checkout.</p>
@@ -226,7 +226,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
     {order&&canPay(order.state,uncertain)&&<><button type="button" className={styles.primary} disabled={busy} onClick={()=>void act('pay')}>{busy?'Requesting…':error?'Try again':'Pay KSh 50'}</button><p className={styles.checkoutHint}>Enter your PIN on the M-Pesa prompt.</p></>}
     {checking&&<button type="button" className={styles.secondary} disabled={busy||!key} onClick={()=>void act('status')}>{busy?'Checking…':'Check status'}</button>}
     {success&&order&&<div className={styles.successMessage} role="status"><strong>Payment received · KSh 50</strong><p>{success==='sent'?`The invitation was sent to ${maskedPayerPhone(order.card.deliveryPhone||'')}. You can also share the card below.`:`Share it with ${order.card.candidate} so they can open your wish.`}</p>{order.deliveryStatus==='needs_review'&&<p>The SMS invitation couldn’t be confirmed. Share the card below.</p>}</div>}
-    {success&&order?.invitationUrl&&<GiftShareActions link={order.invitationUrl} candidate={order.card.candidate} sender={order.card.sender}/>}
+    {success&&order?.invitationUrl&&<GiftShareActions link={order.invitationUrl} candidate={order.card.candidate} sender={order.card.sender} recipientPhone={order.card.deliveryPhone}/>}
     {order?.state==='settled'&&!success&&<><p role="status">Payment received. Your card is still being prepared. Do not pay again.</p><button type="button" className={styles.secondary} disabled={busy} onClick={()=>void act('status')}>{busy?'Checking…':'Check card status'}</button></>}
     {checking&&!autoCheck&&<p role="status" className={styles.checkoutHint}>Confirmation is taking longer. You can check status or close and return to this order. Do not pay again.</p>}
     {checking&&autoCheck&&<p className={styles.checkoutHint}>We check automatically. You can close and return to this order.</p>}
