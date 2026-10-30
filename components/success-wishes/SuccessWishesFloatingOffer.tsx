@@ -83,10 +83,10 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
           <span className={styles.teaserNow}>Send now</span>
           <div className={styles.teaserOptions}>
             <button type="button" className={styles.teaserOne} onClick={chooseOne} aria-label="KSh 50, one instant digital Success Card, send now">
-              <strong>KSh 50</strong><span>1 card · Instant</span><b>Send Now →</b>
+              <strong>INSTANT</strong><span>Share Success Cards · KSh 50</span><b>Send Now →</b>
             </button>
             <button type="button" className={styles.teaserFour} onClick={chooseFour} aria-label="KSh 100, four digital Success Cards, buy two get two free, send now">
-              <strong>KSh 100</strong><span>4 cards · 2 FREE</span><b>Send Now →</b>
+              <strong>Buy 2 Get 2 Free</strong><span>2 FREE Success Cards · KSh 100</span><b>Send Now →</b>
             </button>
           </div>
           <button type="button" className={styles.teaserMainCta} onClick={chooseDesign}>Send Success Card Now →</button>
@@ -101,19 +101,19 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
           </div>
           <div className={styles.offers}>
             <div className={styles.single} role="button" tabIndex={0} aria-label="Choose one Success Card for KSh 50" onClick={chooseOne} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); chooseOne() } }}>
-              <span className={styles.eyebrow}>PERSONAL WISH</span>
-              <strong>KSh 50</strong>
+              <span className={styles.eyebrow}>Share Success Cards</span>
+              <strong>INSTANT</strong>
               <div className={styles.cardIllustration} aria-hidden="true"><span className={styles.personHead}>👤</span></div>
-              <p>1 student</p>
+              <p>1 student · KSh 50</p>
               <p className={styles.tagline}>Just for them.</p>
               <button type="button" onClick={event => { event.stopPropagation(); chooseOne() }}>Choose One →</button>
             </div>
             <div className={styles.group} role="button" tabIndex={0} aria-label="Choose up to four Success Cards for KSh 100" onClick={chooseFour} onKeyDown={event => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); chooseFour() } }}>
-              <span className={styles.eyebrow}>GROUP WISHES</span>
-              <strong>KSh 100</strong>
+              <span className={styles.eyebrow}>2 FREE Success Cards</span>
+              <strong>Buy 2 Get 2 Free</strong>
               <div className={styles.groupIllustration} aria-hidden="true"><span>👤</span><span>👤</span><span>👤</span><span>👤</span></div>
-              <p>Up to 4 students</p>
-              <p className={styles.free}>Get 2 FREE</p>
+              <p>Up to 4 students · KSh 100</p>
+              <p className={styles.free}>2 FREE Success Cards</p>
               <button type="button" onClick={event => { event.stopPropagation(); chooseFour() }}>Choose Four →</button>
             </div>
           </div>
