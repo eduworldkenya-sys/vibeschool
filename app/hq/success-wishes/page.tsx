@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { HQPage, HQPanel, HQ_THEME, hqButtonStyle } from '@/components/hq/HQShell'
 import { hqSupabase } from '@/lib/hq/supabase'
@@ -135,7 +136,7 @@ export default function SuccessWishesHQ() {
       {notice && <p role="status" style={{color:HQ_THEME.green,marginTop:12}}>{notice}</p>}
     </HQPanel>
     {allowed === true && <SuccessWishesBusinessReport/>}
-    {allowed === true && <SuccessWishesLedger/>}
+    {allowed === true && <><Link href="/hq/success-wishes/ledger" style={hqButtonStyle}>Orders &amp; delivery</Link><SuccessWishesLedger/></>}
     {allowed === true && <SuccessWishesPaymentReadiness/>}
   </HQPage>
 }

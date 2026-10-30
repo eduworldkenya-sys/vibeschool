@@ -52,8 +52,9 @@ fs.mkdirSync(artifacts,{recursive:true})
      await noJs.close()
    }
    await page.goto(root+'/success-wishes',{waitUntil:'networkidle',timeout:120000})
-   const offerClose=page.getByRole('button',{name:'Close Success Wishes offer',exact:true})
+   const offerClose=page.getByRole('button',{name:'Close offer details',exact:true})
    if(await offerClose.isVisible().catch(()=>false)) await offerClose.click()
+   const dismissOffer=page.getByRole('button',{name:'Dismiss Success Cards advert',exact:true});if(await dismissOffer.isVisible().catch(()=>false))await dismissOffer.click()
    assert.equal(await page.locator('main').getByRole('link',{name:'Send a Success Card',exact:true}).count(),1,'Sender entrance is visible')
    assert.equal(await page.locator('main').getByRole('link',{name:'Open a Success Card',exact:true}).count(),1,'Receiver entrance is visible')
    assert.equal(await page.locator('.receiver-sender-links').count(),0,'No duplicate sender navigation strip')
@@ -204,13 +205,13 @@ fs.mkdirSync(artifacts,{recursive:true})
   await giftPage.route('**/api/success-wishes/gift',async route=>{
    assert.equal(route.request().postDataJSON().token,giftToken)
    if(route.request().method()==='PUT')reveals++
-   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({card:{id:'synthetic-gift',theme:'heritage',candidate:'QA Recipient',school:'',examYear:'2026',sender:null}})})
+   await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({card:{id:'synthetic-gift',theme:'heritage',candidate:'QA Recipient',school:'',examYear:'2026',sender:'Mum',message:'A direct gift',opened:true}})})
   })
   await giftPage.goto(root+'/success-wishes/gift#token='+giftToken,{waitUntil:'networkidle'})
   const giftShare=giftPage.getByRole('link',{name:'Share on WhatsApp'})
   assert.equal(new URL(await giftShare.getAttribute('href')).searchParams.get('text').endsWith(giftLink),true)
-  assert.equal(reveals,0,'Preparing a share must not open or alter the sealed gift')
-  await giftContext.close();console.log('PASS private gift page WhatsApp action preserves sealed state and complete token')
+  assert([1,2].includes(reveals),'Direct opening occurs once, with at most one development StrictMode replay')
+  await giftContext.close();console.log('PASS direct private gift opens once and WhatsApp preserves its complete token')
   // Recipient setup must be usable before any card/order exists.
   const setupContext=await browser.newContext({viewport:{width:390,height:900}}),setupPage=await setupContext.newPage()
   const setupToken='d'.repeat(64),setupCalls=[]

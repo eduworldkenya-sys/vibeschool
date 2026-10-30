@@ -70,7 +70,7 @@ export async function guestCheckout(req:NextRequest,raw:unknown){
    const matches=(o:Record<string,unknown>)=>o.card_digest===q.digest&&o.payer_phone===q.payerPhone&&o.amount_kes===100&&o.group_cards!=null
    if(previous&&!matches(previous))throw new WishError(409,'This recovery key belongs to another order.')
    if(!previous){
-    const {error}=await db.from('success_wish_guest_orders').insert({key_hash:orderKeyHash(key),card:q.cards[0],group_cards:q.cards,card_digest:q.digest,payer_phone:q.payerPhone,amount_kes:100})
+    const {error}=await db.from('success_wish_guest_orders').insert({key_hash:orderKeyHash(key),card:q.cards[0],group_cards:q.cards,card_digest:q.digest,payer_phone:q.payerPhone,amount_kes:100,delivery_link_hashes:q.cards.map((_,i)=>linkDigest(hashSecret('success-wishes:group-card-link:'+key+':'+i)))})
     if(error?.code==='23505'){const saved=await find(db,key);if(!saved||!matches(saved))throw new WishError(409,'Order reference conflict.')}
     else if(error)throw new WishError(503,'Your order could not be saved. No payment was requested.')
    }
@@ -85,7 +85,7 @@ export async function guestCheckout(req:NextRequest,raw:unknown){
   const previous=await find(db,key)
   if(previous&&!matches(previous))throw new WishError(409,'This private key belongs to a different order. Restore that order first.')
   if(!previous){
-   const {error}=await db.from('success_wish_guest_orders').insert({key_hash:orderKeyHash(key),card:q.card,card_digest:q.cardDigest,payer_phone:q.payerPhone,inbox_receiver_id:target,inbox_request_hash:requestHash})
+   const {error}=await db.from('success_wish_guest_orders').insert({key_hash:orderKeyHash(key),card:q.card,card_digest:q.cardDigest,payer_phone:q.payerPhone,inbox_receiver_id:target,inbox_request_hash:requestHash,delivery_link_hashes:[linkDigest(hashSecret('success-wishes:guest-card-link:'+key))]})
    if(error?.code==='23505'){const o=await find(db,key);if(!o||!matches(o))throw new WishError(409,'Order reference conflict. Restore your saved order.')}
    else if(error)throw new WishError(503,'Your order could not be saved. No payment was requested.')
   }

@@ -11,20 +11,20 @@ type Props = {
   template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void
   onOpenedChange?: (open: boolean) => void; beforeOpen?: () => Promise<boolean>
   mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string
-  senderPreview?: boolean; receiverView?: boolean
+  senderPreview?: boolean; receiverView?: boolean; initiallyOpen?: boolean
 }
 
 export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, beforeOpen,
-  mediaKind = 'text', mediaSrc = '', senderPreview = false, receiverView = false }: Props) {
-  const [phase, setPhase] = useState<Phase>('sealed')
+  mediaKind = 'text', mediaSrc = '', senderPreview = false, receiverView = false, initiallyOpen = false }: Props) {
+  const [phase, setPhase] = useState<Phase>(initiallyOpen ? 'opened' : 'sealed')
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
-  const phaseRef = useRef<Phase>('sealed')
+  const phaseRef = useRef<Phase>(initiallyOpen ? 'opened' : 'sealed')
   const lock = useRef(false)
   const generation = useRef(0)
   const mounted = useRef(true)
   const timers = useRef<ReturnType<typeof setTimeout>[]>([])
-  const hasOpened = useRef(false)
+  const hasOpened = useRef(initiallyOpen)
   const callbacks = useRef({ beforeOpen, onOpen, onOpenedChange, soundEnabled })
   callbacks.current = { beforeOpen, onOpen, onOpenedChange, soundEnabled }
   const envelope = useRef<HTMLButtonElement>(null)

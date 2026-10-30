@@ -162,6 +162,11 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/group-checkout-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/guest-checkout-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/pin-collection-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261030084022_success_wishes_receiver_simplification.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/simplification-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/guest-checkout-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/pin-collection-assertions.sql
+          psql -v ON_ERROR_STOP=1 -f qa/success-wishes/group-checkout-assertions.sql
 
   success-wishes-browser:
     name: Success Wishes Disabled Browser Safety
@@ -188,6 +193,8 @@ jobs:
         run: node qa/success-wishes/receiver-browser.cjs
       - name: Verify guest checkout UI without contacting Safaricom
         run: node qa/success-wishes/checkout-browser.cjs
+      - name: Verify direct books and separate remembered collections at six widths
+        run: node qa/success-wishes/simplification-browser.cjs
       - name: Publish synthetic-only browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
