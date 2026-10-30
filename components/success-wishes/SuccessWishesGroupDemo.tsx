@@ -114,10 +114,10 @@ export default function SuccessWishesGroupDemo({ onClose }: { onClose: () => voi
           {step === 'design' && !restoring && <section>
             <h3>Choose a success card design</h3>
             <div role="group" aria-label="Choose first design" style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10,margin:'14px 0'}}>
-              {designs.map(design => <button key={design} type="button" aria-pressed={startingDesign === design} aria-label={`Choose ${design} card design`} onClick={() => setStartingDesign(design)} className={styles.designChoice + (startingDesign === design ? ' ' + styles.designSelected : '')}><span className={styles.designArtwork}><CardArt template={design.toLowerCase() as Template} values={{candidate:'Your candidate',sender:sender || 'Your name',message:'',examYear:'2026'}} preview /></span><strong>{design}</strong></button>)}
+              {designs.map(design => <button key={design} type="button" aria-pressed={startingDesign === design} aria-label={`Choose ${design} card design`} onClick={() => { setStudents(items => items.map(item => item.design === startingDesign ? {...item,design} : item));setStartingDesign(design) }} className={styles.designChoice + (startingDesign === design ? ' ' + styles.designSelected : '')}><span className={styles.designArtwork}><CardArt template={design.toLowerCase() as Template} values={{candidate:'Your candidate',sender:sender || 'Your name',message:'',examYear:'2026'}} preview /></span><strong>{design}</strong></button>)}
             </div>
             <p className={styles.hint}>You can use this design for everyone or change each card later.</p>
-            <button className={styles.primary} type="button" onClick={() => { setStudents(items => items.map(item => item.design === 'Heritage' ? {...item,design:startingDesign} : item));setStep('names') }}>Continue to students →</button>
+            <button className={styles.primary} type="button" onClick={() => setStep('names')}>Continue to students →</button>
           </section>}
           {step === 'names' && !restoring && <section>
             <div className={styles.row}><h3>Add students</h3><small>{students.length} of 4</small></div>
