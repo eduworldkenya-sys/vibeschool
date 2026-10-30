@@ -23,7 +23,7 @@ export default function PrivateGiftPage(){
   const [gift,setGift]=useState<Gift|null>(null)
   const [busy,setBusy]=useState(true)
   const [error,setError]=useState('')
-  const {soundEnabled,setSoundEnabled}=useReceiverTheme()
+  const {soundEnabled}=useReceiverTheme()
   const [opened,setOpened]=useState(false)
   const sound=useRef<(()=>void)|null>(null)
   const secret=useRef('')
@@ -54,14 +54,11 @@ export default function PrivateGiftPage(){
   }
   useEffect(()=>{if(!soundEnabled)sound.current?.()},[soundEnabled])
   function play(){sound.current?.();sound.current=playWishRevealSound()}
-  const buttonStyle={background:'#111722',color:'#F3E5AB',border:'1px solid #D4AF37',borderRadius:9,padding:'10px 14px',cursor:'pointer'} as const
   return <main style={{minHeight:'100vh',background:'#0A0D14',padding:'32px 16px',color:'#F3E5AB'}}>
     <div style={{maxWidth:720,margin:'0 auto',display:'grid',gap:24}}>
       <header style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
         <Link href="/success-wishes" style={{color:'#F3E5AB',fontSize:14}}>VibeSchool · Success Wishes</Link>
-        <button type="button" style={buttonStyle} onClick={()=>{setSoundEnabled(!soundEnabled);sound.current?.()}}
-          aria-label={soundEnabled?'Mute card opening sound':'Turn card opening sound on'}
-          aria-pressed={soundEnabled}>{soundEnabled?'Sound on':'Sound off'}</button>
+
       </header>
       <div style={{textAlign:'center'}}>
         <p style={{color:'#D4AF37',fontSize:12,letterSpacing:2}} >SUCCESS WISHES 2026</p>
@@ -81,11 +78,7 @@ export default function PrivateGiftPage(){
       {gift&&opened&&<DownloadSuccessCard gift={gift}/>}
       {gift&&opened&&secret.current&&<KeepWish token={secret.current} candidate={gift.candidate}/>}
       {gift&&secret.current&&<GiftShareActions link={'https://vibeschool.co.ke/success-wishes/gift#token='+secret.current} candidate={gift.candidate} sender={gift.sender||undefined}/>}
-      <nav style={{display:'flex',justifyContent:'center',gap:24,fontSize:14}}>
-        <Link href="/success-wishes/inbox" style={{color:'#D4AF37'}}>My wishes</Link>
-        <Link href="/success-wishes" style={{color:'#D4AF37'}}>Send a wish</Link>
-        <Link href="/legal/privacy" style={{color:'#C3C7D1'}}>Privacy</Link>
-      </nav>
+
     </div>
   </main>
 }
