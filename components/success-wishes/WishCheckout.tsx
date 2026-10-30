@@ -143,7 +143,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
    const data=await r.json()
    if(!r.ok||!data.invitationUrl)throw new Error(data.error||'Could not send your card.')
    setPromoGift(data.invitationUrl)
-   const whatsapp=giftWhatsAppUrl(data.invitationUrl,draft.candidate,draft.sender)
+   const whatsapp=giftWhatsAppUrl(data.invitationUrl,draft.candidate,draft.sender,draft.deliveryPhone)
    if(!whatsapp)throw new Error('Your card is ready, but its sharing link could not be opened.')
    window.location.assign(whatsapp)
   }catch(e){setError(e instanceof Error?e.message:'Please try again.')}
