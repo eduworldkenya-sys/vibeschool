@@ -52,7 +52,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
         <section className={styles.freeCampaign} role="dialog" aria-modal="true" aria-labelledby="free-trial-offer">
           <button type="button" className={styles.modalClose} aria-label="Close free offer" onClick={collapse}>×</button>
           <div className={styles.freeCampaignCopy}>
-            <strong id="free-trial-offer" className={styles.freeBrush}>FREE</strong>
+            <div className={styles.freeHero} id="free-trial-offer"><strong>FREE</strong><strong>2026</strong></div>
             <strong className={styles.freeCampaignTitle}><span>Digital</span>Success Cards</strong>
             <p>Send a personal wish in seconds.</p>
           </div>
