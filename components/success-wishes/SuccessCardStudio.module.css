@@ -616,3 +616,10 @@
 .entryActions{justify-content:center;gap:9px}
 .entryActions .heroCta,.entryActions .openWishCta{min-height:44px;padding:9px 15px;border-radius:9px;font-size:13px;box-shadow:none}
 @media(max-width:520px){.entryActions{display:flex;flex-wrap:nowrap;gap:8px}.entryActions .heroCta,.entryActions .openWishCta{flex:1;min-width:0;min-height:44px;font-size:clamp(11px,3.2vw,13px);padding:8px 6px;gap:5px}.entryActions svg{width:15px;height:15px}}
+
+/* Keep the contact picker beside the recipient phone field on narrow screens. */
+.recipientPhoneRow{min-width:0}
+.recipientPhoneRow>label{display:block;margin-bottom:6px}
+.recipientPhoneInput{display:flex;align-items:stretch;gap:8px;min-width:0}
+.recipientPhoneInput input{flex:1 1 auto;min-width:0;width:100%}
+.recipientPhoneInput button{flex:0 0 46px;min-width:46px;min-height:44px;margin:0!important;display:grid!important;place-items:center;padding:8px!important}
