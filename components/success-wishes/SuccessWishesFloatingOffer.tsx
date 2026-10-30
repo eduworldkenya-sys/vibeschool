@@ -45,7 +45,7 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
 
   function chooseOne() {
     collapse()
-    document.getElementById('choose-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.getElementById('wish-composer')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   }
 
   function chooseFour() {
@@ -55,12 +55,23 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
 
   return (
     <>
-      {visible && !demoOpen && <aside className={styles.teaser} aria-label="Success Wishes promotional offer">
-        <button type="button" className={styles.teaserOpen} onClick={() => setExpanded(true)} aria-label="View KSh 50 and KSh 100 Success Card offers">
-          <strong>Digital Success Cards 2026</strong>
-          <span className={styles.teaserBottom}><span>From KSh 50</span><span className={styles.teaserCta}>Choose Now →</span></span>
-        </button>
-        <button type="button" className={styles.teaserClose} onClick={dismiss} aria-label="Dismiss Success Wishes advert">×</button>
+      {visible && !expanded && !demoOpen && <aside className={styles.teaser} aria-label="Digital Success Cards last-minute offer">
+        <span className={styles.yearRibbon} aria-label="2026">2026</span>
+        <button type="button" className={styles.teaserClose} onClick={dismiss} aria-label="Dismiss Success Cards advert">×</button>
+        <div className={styles.teaserContent}>
+          <strong className={styles.teaserHeadline}>Never late for a wish</strong>
+          <strong className={styles.teaserFree}>Buy 2 Get 2 Free</strong>
+          <span className={styles.teaserNow}>Send now</span>
+          <div className={styles.teaserOptions}>
+            <button type="button" className={styles.teaserOne} onClick={chooseOne} aria-label="KSh 50, one instant digital Success Card, send now">
+              <strong>KSh 50</strong><span>1 card · Instant</span><b>Send Now →</b>
+            </button>
+            <button type="button" className={styles.teaserFour} onClick={chooseFour} aria-label="KSh 100, four digital Success Cards, buy two get two free, send now">
+              <strong>KSh 100</strong><span>4 cards · 2 FREE</span><b>Send Now →</b>
+            </button>
+          </div>
+          <button type="button" className={styles.teaserMainCta} onClick={chooseOne}>Send Success Card Now →</button>
+        </div>
       </aside>}
       {visible && expanded && !demoOpen && <div className={styles.backdrop} onMouseDown={event => { if (event.target === event.currentTarget) collapse() }}>
         <section role="dialog" aria-modal="true" aria-labelledby="success-offer-heading" className={styles.modal}>
