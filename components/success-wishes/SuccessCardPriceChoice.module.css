@@ -14,3 +14,11 @@
 @media(prefers-reduced-motion:reduce){.single,.group{transition:none}}
 
 .freeOffer{color:#e8c16d;font-weight:800;line-height:1.2}
+
+/* Offer hierarchy: speed for one card, free value for four; actions stay untouched. */
+.label .instant{font-size:clamp(22px,3.1vw,30px);font-weight:900;letter-spacing:.015em;color:#ab741f}
+.label .price{font-size:clamp(18px,2.4vw,24px);font-weight:800}
+.label .freeOffer{font-size:clamp(18px,2.7vw,27px);line-height:1.1;white-space:normal;color:#e8c16d;font-weight:900}
+.single,.group{min-height:112px}
+@container (max-width:640px){.label .instant{font-size:clamp(19px,4.8vw,26px)}.label .freeOffer{font-size:clamp(17px,4.1vw,23px)}.label .price{font-size:20px}}
+@container (max-width:310px){.label .instant{font-size:22px}.label .freeOffer{font-size:20px}}
