@@ -7,7 +7,7 @@ import SuccessWishesGroupDemo from './SuccessWishesGroupDemo'
 const SESSION_KEY = 'success-wishes-2026-floating-offer-dismissed'
 const COLLAPSED_KEY = 'success-wishes-2026-floating-offer-collapsed'
 
-export default function SuccessWishesFloatingOffer({ preview = false }: { preview?: boolean }) {
+export default function SuccessWishesFloatingOffer({ preview = false, homepage = false }: { preview?: boolean; homepage?: boolean }) {
   const [visible, setVisible] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [demoOpen, setDemoOpen] = useState(false)
@@ -18,6 +18,17 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
     setVisible(true)
     try { setExpanded(sessionStorage.getItem(COLLAPSED_KEY) !== '1') } catch { setExpanded(true) }
   }, [preview])
+
+  useEffect(() => {
+    if (homepage) return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('offer') === 'group') {
+      setVisible(true)
+      setExpanded(false)
+      setDemoOpen(true)
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [homepage])
 
   useEffect(() => {
     const openGroup = () => { setVisible(true); setExpanded(false); setDemoOpen(true) }
@@ -45,11 +56,13 @@ export default function SuccessWishesFloatingOffer({ preview = false }: { previe
 
   function chooseOne() {
     collapse()
+    if (homepage) { window.location.assign('/success-wishes#choose-card'); return }
     document.getElementById('wish-composer')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   }
 
   function chooseFour() {
     collapse()
+    if (homepage) { window.location.assign('/success-wishes?offer=group'); return }
     setDemoOpen(true)
   }
 
