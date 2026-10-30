@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { hqSupabase } from '@/lib/hq/supabase'
 import { HQPanel, HQ_THEME } from '@/components/hq/HQShell'
 type Commerce = { orders:number; settledOrders:number; settledAmountKes:number; free:number; freeOpened:number; links:number; linksOpened:number; states:Record<string,number> }
-type Report = { visitors: number; pageViews: number; days: number; truncated: boolean; pages: { path: string; views: number }[]; daily: { date: string; views: number; visitors: number }[]; devices: {name:string;views:number}[]; sources:{name:string;views:number}[]; source: string; repeatVisitors:number; hourly:{hour:number;views:number}[]; recent:{path:string;at:string;device:string;source:string}[] }
+type Report = { funnel:{name:string;count:number}[];cardSelections:{name:string;count:number}[]; visitors: number; pageViews: number; days: number; truncated: boolean; pages: { path: string; views: number }[]; daily: { date: string; views: number; visitors: number }[]; devices: {name:string;views:number}[]; sources:{name:string;views:number}[]; source: string; repeatVisitors:number; hourly:{hour:number;views:number}[]; recent:{path:string;at:string;device:string;source:string}[] }
 export default function VisitorReport() {
   const [days, setDays] = useState(7)
   const [commerce, setCommerce] = useState<Commerce | null>(null)
@@ -42,6 +42,10 @@ export default function VisitorReport() {
       {commerce && <section aria-label="Success Wishes business results" style={{marginTop:18}}><h3>Success Wishes business</h3><div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>{([['Revenue (KES)',commerce.settledAmountKes],['Paid orders',commerce.settledOrders],['Free cards',commerce.free],['Cards opened',commerce.freeOpened+commerce.linksOpened]] as const).map(([label,value])=><div key={label} style={{background:HQ_THEME.panelSoft,padding:12,borderRadius:10}}><div style={{fontSize:12,color:HQ_THEME.muted}}>{label}</div><strong style={{fontSize:22}}>{value.toLocaleString()}</strong></div>)}</div><p style={{fontSize:12,color:HQ_THEME.muted}}>Confirmed payments only · {commerce.orders} orders · {commerce.links} paid gifts</p></section>}
       {report.truncated && <p role="status">High traffic: showing the most recent 50,000 page views.</p>}
       <p style={{marginTop:12,fontSize:13,color:HQ_THEME.muted}}>Returning visitors: <strong style={{color:HQ_THEME.text}}>{report.repeatVisitors}</strong></p>
+      <h3 style={{marginTop:20}}>Card conversion funnel</h3>
+      {report.funnel.map(item=><div key={item.name} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',fontSize:13}}><span>{item.name.replaceAll('_',' ')}</span><strong>{item.count}</strong></div>)}
+      <h3 style={{marginTop:20}}>Most selected card designs</h3>
+      {report.cardSelections.map(item=><div key={item.name} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',fontSize:13}}><span>{item.name}</span><strong>{item.count}</strong></div>)}
       <h3 style={{marginTop:20}}>Recent visits</h3>
       {report.recent.length===0 ? <p>No visits yet.</p> : <div style={{display:'grid',gap:0}}>{report.recent.map((item,i)=><div key={item.at+i} style={{display:'grid',gridTemplateColumns:'90px minmax(0,1fr)',gap:10,padding:'9px 0',borderBottom:'1px solid '+HQ_THEME.border,fontSize:13}}><span style={{color:HQ_THEME.muted}}>{new Date(item.at).toLocaleTimeString('en-KE',{timeZone:'Africa/Nairobi',hour:'2-digit',minute:'2-digit'})}</span><span style={{overflowWrap:'anywhere'}}>{item.path} <span style={{color:HQ_THEME.muted}}>· {item.device} · {item.source}</span></span></div>)}</div>}
       <h3 style={{marginTop:20}}>Hourly traffic · Kenya time</h3>
