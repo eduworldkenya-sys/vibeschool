@@ -22,7 +22,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
     const onEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') collapse() }
     document.addEventListener('keydown', onEscape)
     return () => document.removeEventListener('keydown', onEscape)
-  }, [expanded, demoOpen])
+  }, [expanded])
 
   function collapse() {
     setExpanded(false)
@@ -52,7 +52,7 @@ export default function SuccessWishesFloatingOffer({ preview = false, homepage =
         <section className={styles.freeCampaign} role="dialog" aria-modal="true" aria-labelledby="free-trial-offer">
           <button type="button" className={styles.modalClose} aria-label="Close free offer" onClick={collapse}>×</button>
           <div className={styles.freeCampaignCopy}>
-            <strong className={styles.freeBrush}>FREE</strong>
+            <strong id="free-trial-offer" className={styles.freeBrush}>FREE</strong>
             <strong className={styles.freeCampaignTitle}><span>Digital</span>Success Cards</strong>
             <p>Wish your students success in exams with a beautiful personalised digital card.</p>
           </div>
