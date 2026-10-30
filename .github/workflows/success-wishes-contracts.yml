@@ -162,7 +162,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/group-checkout-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/guest-checkout-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/pin-collection-assertions.sql
-          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261030084022_success_wishes_receiver_simplification.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261030091602_success_wishes_receiver_simplification.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/simplification-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/guest-checkout-assertions.sql
           psql -v ON_ERROR_STOP=1 -f qa/success-wishes/pin-collection-assertions.sql
