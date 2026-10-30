@@ -12,3 +12,5 @@
 @container (max-width:640px){.single,.group{flex-direction:column;gap:8px;text-align:center;padding:12px 9px}.details{flex-direction:column;gap:5px}.action{width:100%;box-sizing:border-box}.label{align-items:center}.label strong{font-size:clamp(19px,5vw,24px)}}
 @container (max-width:310px){.grid{grid-template-columns:1fr}.single,.group{flex-direction:row;text-align:left;min-height:72px}.details{flex-direction:row}.label{align-items:flex-start}.action{width:auto}}
 @media(prefers-reduced-motion:reduce){.single,.group{transition:none}}
+
+.freeOffer{color:#e8c16d;font-weight:800;line-height:1.2}
