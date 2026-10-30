@@ -1,38 +1,23 @@
 [
   {
-    "missionId": "CYBORG-20261029114348-35bebc",
-    "runId": "186b0b05-5caa-4ab0-98cd-759ab929e0cf",
+    "missionId": "CYBORG-20261030083723-94da15",
+    "runId": "97375cd2-42c2-4fdb-98de-a1ab4a599c50",
     "paths": [
-      "components/success-wishes/SuccessWishesFloatingOffer.tsx",
-      "qa/success-wishes/disabled-browser.cjs",
-      "docs/success-wishes/receiver-premium-20261029.md"
-    ],
-    "acquiredAt": "2026-10-29T12:04:08.662Z",
-    "releasedAt": "2026-10-29T12:07:18.899Z"
-  },
-  {
-    "missionId": "CYBORG-20261029114815-273b64",
-    "runId": "b51602aa-9663-47c3-9065-ab5b53169d8b",
-    "paths": [
-      "components/success-wishes/SuccessWishesGroupDemo.tsx",
-      "lib/success-wishes/guest-checkout.ts",
-      "lib/success-wishes/group-checkout.ts",
-      "supabase/functions/success-wishes-checkout",
+      "lib/success-wishes",
+      "app/success-wishes",
+      "app/api/success-wishes",
+      "components/success-wishes",
       "supabase/migrations",
+      "app/api/hq/success-wishes-ledger",
+      "docs/success-wishes",
       "qa/success-wishes",
-      "app/api/success-wishes/gift/route.ts",
-      "app/api/success-wishes/receiver/collection/route.ts",
-      "lib/success-wishes/receiver-collection.ts",
-      "app/api/success-wishes/config/route.ts",
-      "components/success-wishes/SuccessWishesFloatingOffer.tsx",
-      "lib/success-wishes/group-checkout.test.ts",
-      "lib/success-wishes/guest-provider.test.ts",
       ".github/workflows/success-wishes-contracts.yml",
-      "docs/success-wishes/GROUP-CHECKOUT-20261029.md",
-      "lib/success-wishes/group-receiver.test.ts",
-      "lib/success-wishes/group-checkout-route.test.ts"
+      "app/api/hq/success-wishes/ledger",
+      "app/hq/success-wishes/ledger",
+      "app/hq/success-wishes/page.tsx",
+      "config/service-role-boundaries.json"
     ],
-    "acquiredAt": "2026-10-29T11:48:41.219Z",
-    "releasedAt": null
+    "acquiredAt": "2026-10-30T08:39:34.836Z",
+    "releasedAt": "2026-10-30T09:33:45.395Z"
   }
 ]

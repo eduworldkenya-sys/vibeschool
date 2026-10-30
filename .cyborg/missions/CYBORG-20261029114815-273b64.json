@@ -387,7 +387,7 @@
   "state": "MISSION",
   "learningClosure": false,
   "createdAt": "2026-10-29T11:48:15.749Z",
-  "updatedAt": "2026-10-29T12:02:58.672Z",
+  "updatedAt": "2026-10-30T08:39:34.751Z",
   "journalPath": ".cyborg/journal/CYBORG-20261029114815-273b64.ndjson",
   "activation": {
     "runtime": false,
@@ -396,5 +396,5 @@
     "payments": false,
     "consequentialAuthority": false
   },
-  "lastJournalHash": "8331cd26c8fac9e4ee123eb2de6d7d739f3363c14992975e0d1240768b769784"
+  "lastJournalHash": "447f925adcb39d2fea120e7db7cb1d5dcd68ee5db535bd757f946f2dc689457d"
 }

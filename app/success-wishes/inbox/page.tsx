@@ -4,6 +4,7 @@ import Link from 'next/link'
 import {useCallback, useEffect, useRef, useState, type CSSProperties} from 'react'
 import {useRouter} from 'next/navigation'
 import {ArrowRight, Check, Heart, Mail, Search, Sparkles} from 'lucide-react'
+import RememberedWishes from '@/components/success-wishes/RememberedWishes'
 import ReceiverAccount from '@/components/success-wishes/ReceiverAccount'
 import {useReceiverTheme} from '@/components/success-wishes/ReceiverShell'
 import {palette, templates} from '@/components/success-wishes/card-themes'
@@ -18,6 +19,9 @@ export default function MyWishes() {
   const {setSummary} = useReceiverTheme()
   const [data, setData] = useState<Inbox|null>(null)
   const [login, setLogin] = useState(false)
+  const [remembered,setRemembered]=useState<number|null>(null)
+  const [showAccount,setShowAccount]=useState(false)
+  const giftsLoaded=useCallback((count:number)=>setRemembered(count),[])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(true)
   const [locking, setLocking] = useState(false)
@@ -133,7 +137,9 @@ export default function MyWishes() {
     </header>
     {error && <div className={styles.error} role="alert"><p>{error}</p><button onClick={() => {openingLock.current=false; setOpening(null); void load()}}>Try again</button></div>}
     {busy && !data && <div className={styles.loading} role="status"><span className={styles.loadingIcon}><Mail size={24}/></span>Opening your wishes…</div>}
-    {login && !busy && <ReceiverAccount onReady={() => void load()}/>}
+    <RememberedWishes onLoaded={giftsLoaded} excludeReceiverId={data?.recipient.id}/>
+    {login && !busy && remembered!==null && (remembered===0||showAccount) && <ReceiverAccount onReady={() => void load()}/>}
+    {login && !busy && !!remembered && !showAccount && <button type="button" onClick={()=>setShowAccount(true)}>Use PIN or recovery link</button>}
     {data && <>
       <section className={styles.welcome} aria-label="Your collection">
         <span className={styles.welcomeIcon} aria-hidden="true"><Heart size={22}/></span>

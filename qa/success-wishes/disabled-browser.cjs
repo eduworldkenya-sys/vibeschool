@@ -85,8 +85,10 @@ async function makeWish(context, { message, theme }) {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(results) })
   })
   const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
-  const offerClose = page.getByRole('button', { name: 'Close Success Wishes offer', exact: true })
+  const offerClose = page.getByRole('button', { name: 'Close offer details', exact: true })
   if (await offerClose.isVisible().catch(() => false)) await offerClose.click()
+  const dismissOffer = page.getByRole('button', { name: 'Dismiss Success Cards advert', exact: true })
+  if (await dismissOffer.isVisible().catch(() => false)) await dismissOffer.click()
   assert.equal(response.status(), 200)
   await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
   assert.equal(await page.getByText('Start your wish. Text saves in this tab as you type. Recordings are not saved.').count(), 0, 'No redundant draft instructions')
@@ -263,7 +265,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
 ;(async () => {
   assert.equal(hadTestStore, false, 'Refusing to overwrite existing local test wishes')
   await ready()
-  browser = await chromium.launch({ headless: true, executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH || chromium.executablePath() })
+  browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}) })
   const widths = []
   for (const width of [320, 360, 390, 412, 560, 768, 1440]) {
     const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
@@ -273,6 +275,8 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
     assert.equal(response.status(), 200)
     await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
+    const close=page.getByRole('button',{name:'Close offer details',exact:true});if(await close.isVisible().catch(()=>false))await close.click()
+    const dismiss=page.getByRole('button',{name:'Dismiss Success Cards advert',exact:true});if(await dismiss.isVisible().catch(()=>false))await dismiss.click()
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
       assert.equal(await page.getByRole('button', { name: `Choose ${design} card` }).count(), 1)
     }
@@ -281,6 +285,9 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await gallery.locator('svg text[textLength], svg text[lengthAdjust]').count(), 0, 'Card lettering must never be stretched to fit')
     assert.equal(await gallery.getByText('Tap a card to choose it').count(), 0, 'Design selection needs no extra instructions')
     assert.equal(await page.locator('section[aria-label="Wish versions and prices"]').locator('[class*="purchaseNote"]').count(), 0, 'Do not duplicate price totals in the selector')
+    assert.equal(await page.getByRole('button', { name: 'Choose One: one student, KSh 50', exact: true }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: /Choose Four: up to four students, KSh 100/ }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: /Voice Wish|Video Wish|Record voice|Record video|Choose audio file|Choose video file/ }).count(), 0, 'Uncommissioned media controls remain hidden in the text-card product')
     // The current sender flow defaults to Text; Voice/Video selectors are not displayed.
     assert.equal(await page.locator('#wish-composer').count(), 1, 'Sender composer is available')
     assert.equal(await page.getByRole('button', { name: /Text Wish · KES 50/ }).count(), 0, 'Do not restore the retired version selector')
@@ -334,6 +341,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await yearInput.getAttribute('aria-invalid'), 'false')
     assert.equal(await page.locator('#wish-composer [class*="sendRow"]').getByRole('button', { name: 'Send this wish' }).isEnabled(), true, 'Valid year reveals the upper action')
     await page.locator('#wish-preview').scrollIntoViewIfNeeded()
+    await page.locator('#wish-preview').click({position:{x:5,y:5}})
     await page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' }).waitFor({ state: 'visible' })
     await expandField(page,'Your wish')
     await editField(page, wishInput, '')
@@ -403,34 +411,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
 
   const messageA = 'John, we are proud of your hard work. Go forward with courage.'
   const messageB = 'John, may your next chapter bring you joy and opportunity.'
-  // Exercise real browser recording controls against deterministic microphone permission/device fixtures.
-  const recordContext = await browser.newContext({ viewport: { width: 1000, height: 850 } })
-  const recordPage = await recordContext.newPage()
-  await recordPage.addInitScript(() => {
-    Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: {
-      getUserMedia: async () => ({ getTracks: () => [{ stop() {} }] }),
-    } })
-    window.MediaRecorder = class {
-      constructor(_stream, options) { this.mimeType = options?.mimeType || 'audio/webm'; this.state = 'inactive' }
-      static isTypeSupported() { return true }
-      start() { this.state = 'recording' }
-      stop() {
-        this.state = 'inactive'
-        this.ondataavailable?.({ data: new Blob(['synthetic-recorded-audio'], { type: this.mimeType }) })
-        this.onstop?.()
-      }
-    }
-  })
-  await recordPage.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle' })
-  await recordPage.getByRole('button', { name: /Voice Wish · Preview only/ }).click()
-  await recordPage.getByRole('button', { name: 'Record voice' }).click()
-  await recordPage.getByRole('button', { name: /Stop recording/ }).waitFor()
-  await recordPage.getByRole('button', { name: /Stop recording/ }).click()
-  await recordPage.locator('[aria-label="Add a voice wish"]').getByText('success-wish-voice.webm').waitFor()
-  await recordPage.getByRole('button', { name: 'Remove selected recording' }).click()
-  assert.equal(await recordPage.getByRole('button', { name: 'Remove selected recording' }).count(), 0, 'Sender can remove a recording')
-  await recordContext.close()
-
+  // Voice/video remain covered by recording/media unit contracts; the public text MVP must not expose their controls.
   const senderA = await makeWish(await browser.newContext({ viewport: { width: 1440, height: 850 } }), { message: messageA, theme: 'New Beginnings' })
   const senderB = await makeWish(await browser.newContext({ viewport: { width: 390, height: 850 } }), { message: messageB, theme: 'Golden Hour' })
   assert.notEqual(senderA.invitation, senderB.invitation, 'Same-name, same-school and same-year candidates need unique invitations')

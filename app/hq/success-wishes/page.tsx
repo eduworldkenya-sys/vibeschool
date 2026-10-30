@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { HQPage, HQPanel, HQ_THEME, hqButtonStyle } from '@/components/hq/HQShell'
 import { hqSupabase } from '@/lib/hq/supabase'
@@ -143,7 +144,7 @@ export default function SuccessWishesHQ() {
     </>}
     {section === "overview" && allowed === true && <SuccessWishesBusinessReport/>}
     {section === "cards" && allowed === true && <SuccessWishesLedger/>}
-    {section === "orders" && allowed === true && <SuccessWishesBusinessReport/>}
+    {section === "orders" && allowed === true && <><Link href="/hq/success-wishes/ledger" style={hqButtonStyle}>Open delivery ledger</Link><SuccessWishesBusinessReport/></>}
     {section === "schools" && allowed === true && <SuccessWishesSchoolReport/>}
     {allowed === null && <p role="status">Verifying founder access…</p>}
     {allowed === false && <p role="alert">Founder access required.</p>}
