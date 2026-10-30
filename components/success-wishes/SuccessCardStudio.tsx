@@ -348,7 +348,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
           <CardArt template={item.id} values={{ candidate: candidate || 'Your candidate', sender, message: '', examYear: examYear || '2026', school }} preview/>
           <span className={styles.optionCaption}><strong>{item.name}</strong></span>
         </button>)}</div>
-        <p style={{marginTop:12}}><Link href={`/success-wishes/customise?design=${theme}`}>Customise &amp; download {templates.find(item => item.id === theme)?.name || 'this design'}</Link> <span style={{fontSize:12,opacity:.72}}>(optional, separate from checkout)</span></p>
+        
       </section>
       <section aria-label="Choose Success Card price" style={{maxWidth:760,margin:'14px auto 22px',padding:'0 12px'}}>
         <div role="group" aria-label="Choose number of students" style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>
