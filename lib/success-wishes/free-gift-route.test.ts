@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server'
 import { POST } from '../../app/api/success-wishes/free/route'
 const url='https://vibeschool.example/api/success-wishes/free'
 const key='a'.repeat(64)
-const make=(extra:Record<string,unknown>={})=>new NextRequest(url,{method:'POST',headers:{origin:'https://vibeschool.example','content-type':'application/json'},body:JSON.stringify({key,version:'text',theme:'heritage',candidate:'Learner',sender:'Friend',senderPhone:'0712345678',message:'Good luck',examYear:'2026',...extra})})
+const make=(extra:Record<string,unknown>={})=>new NextRequest(url,{method:'POST',headers:{origin:'https://vibeschool.example','content-type':'application/json'},body:JSON.stringify({key,version:'text',theme:'heritage',candidate:'Learner',sender:'Friend',senderPhone:'0712345678',code:'DNJIMAX3',message:'Good luck',examYear:'2026',...extra})})
 test('free wishes require server-side pilot authority and never initiate payment',async()=>{
  const env={...process.env},oldFetch=globalThis.fetch
  let enabled=false,rpcs=0
@@ -29,6 +29,8 @@ test('free wishes require server-side pilot authority and never initiate payment
   assert.equal((await POST(make())).status,503)
   assert.equal(rpcs,0)
   enabled=true
+  assert.equal((await POST(make({code:'WRONG'}))).status,400)
+  assert.equal((await POST(make({code:''}))).status,400)
   assert.equal((await POST(make({paid:true}))).status,400)
   assert.equal((await POST(make({version:'voice'}))).status,400)
   assert.equal((await POST(make({message:'x'.repeat(221)}))).status,400)
