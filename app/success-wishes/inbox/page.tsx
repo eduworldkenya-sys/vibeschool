@@ -5,7 +5,6 @@ import {useCallback, useEffect, useRef, useState, type CSSProperties} from 'reac
 import {useRouter} from 'next/navigation'
 import {ArrowRight, Check, Heart, LockKeyhole, Mail, Search, Sparkles} from 'lucide-react'
 import ReceiverAccount from '@/components/success-wishes/ReceiverAccount'
-import ClaimExistingWish from '@/components/success-wishes/ClaimExistingWish'
 import {useReceiverTheme} from '@/components/success-wishes/ReceiverShell'
 import {palette, templates} from '@/components/success-wishes/card-themes'
 import {broadcastKeepsakeChange, watchKeepsakeChange, rememberInbox} from '@/lib/success-wishes/receiver-pin-browser'
@@ -167,8 +166,7 @@ export default function MyWishes() {
             <span className={styles.cardAction}>{selected ? 'Opening…' : card.opened ? 'Read again' : 'Open your wish'}<ArrowRight size={17}/></span>
           </span>
         </button>
-      })}</section> : <section className={styles.empty}><Sparkles size={32} aria-hidden="true"/><h2>{search ? 'No matching wishes' : filter==='unopened' && data.cards.length ? 'All wishes opened' : 'Your first wish awaits'}</h2><p>{search ? 'Try another name or card design.' : data.cards.length ? 'Read your favourite messages again.' : 'Already received a card? Open its private WhatsApp link, then choose Keep your wishes. If you lost the link, ask the sender to share it again. No second payment is needed.'}</p>{data.cards.length > 0 && <button onClick={() => {setQuery('');setFilter('all')}}>Show all wishes</button>}</section>}
-      {data.recipient.id && <ClaimExistingWish inboxId={data.recipient.id} onClaimed={() => void load()}/>}
+      })}</section> : <section className={styles.empty}><Sparkles size={32} aria-hidden="true"/><h2>{search ? 'No matching wishes' : filter==='unopened' && data.cards.length ? 'All wishes opened' : 'Your first wish awaits'}</h2><p>{search ? 'Try another name or card design.' : data.cards.length ? 'Read your favourite messages again.' : 'Your success cards will appear here when they are delivered to your collection.'}</p>{data.cards.length > 0 && <button onClick={() => {setQuery('');setFilter('all')}}>Show all wishes</button>}</section>}
       <footer className={styles.footer}><span><LockKeyhole size={13}/>Your private collection</span></footer>
       {data.legacy && <ReceiverAccount initialMode="create" candidate={data.recipient.name} onReady={() => void load()}/>}
       <p className={styles.note}>Paid wishes are available for 90 days after payment. Keep your recovery link private.</p>
