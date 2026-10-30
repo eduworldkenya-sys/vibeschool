@@ -628,3 +628,16 @@
 .receiver-legal-footer{background:#0a0d14;color:#aeb6c3;border-top:1px solid #263146;padding:18px 24px 24px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 20px;font-size:12px}
 .receiver-legal-footer p{margin:0;line-height:1.6}.receiver-legal-footer a{color:#e2c572;text-decoration:none}.receiver-legal-footer a:hover{text-decoration:underline}
 @media(max-width:767px){.receiver-legal-footer{padding:18px 16px calc(112px + env(safe-area-inset-bottom));display:block}.receiver-legal-footer p+p{margin-top:7px}}
+
+/* Keep receiver actions in sight on shorter screens; overflow remains accessible. */
+@media(min-width:768px) and (max-height:760px){
+ .receiver-inbox-fit .receiver-sidebar{padding:14px 18px;overflow-y:auto;overscroll-behavior:contain}
+ .receiver-inbox-fit .receiver-sidebar>.receiver-brand{padding-bottom:10px;margin-bottom:10px}
+ .receiver-inbox-fit .receiver-sidebar nav a{min-height:40px;padding:7px 12px}
+ .receiver-inbox-fit .receiver-summary{margin-top:12px;padding:11px}
+ .receiver-inbox-fit .receiver-profile{padding-top:10px}
+}
+@media(max-width:767px){
+ .receiver-inbox-fit .receiver-app{padding-top:64px}
+ .receiver-inbox-fit .receiver-bottom{min-height:64px}
+}
