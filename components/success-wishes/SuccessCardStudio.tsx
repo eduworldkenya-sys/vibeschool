@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Check, Pencil, ChevronRight, Volume2, VolumeX } from 'lucide-react'
+import { Check, Pencil, ChevronRight, UserRound, UsersRound, Volume2, VolumeX } from 'lucide-react'
 import SenderMediaCapture from './SenderMediaCapture'
 import WishCheckout from './WishCheckout'
 import { useSenderDraft } from './useSenderDraft'
@@ -341,13 +341,17 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         </button>)}</div>
         
       </section>
-      <section aria-label="Choose Success Card price" style={{maxWidth:760,margin:'14px auto 22px',padding:'0 12px'}}>
-        <div role="group" aria-label="Choose number of students" style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:10}}>
-          <button type="button" aria-label="KSh 50: Choose One, one student" onClick={() => { setSelectedVersion('text'); document.getElementById('wish-composer')?.scrollIntoView({behavior:'smooth',block:'start'}) }} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,minWidth:0,minHeight:118,borderRadius:13,border:'1px solid #d8b35c',background:'#fff4de',color:'#102747',cursor:'pointer',padding:12}}>
-            <span aria-hidden="true" style={{fontSize:20}}>👤</span><strong style={{fontSize:'clamp(20px,4vw,28px)'}}>KSh 50</strong><span style={{fontSize:12}}>1 student</span><span style={{background:'#102747',color:'#fff',borderRadius:8,padding:'10px 12px',fontSize:13,fontWeight:700,width:'100%',textAlign:'center'}}>Choose One →</span>
+      <section className={styles.cardPriceSection} aria-label="Choose Success Card price">
+        <div className={styles.cardPriceGrid} role="group" aria-label="Choose number of students">
+          <button className={styles.cardPriceSingle} type="button" aria-label="Choose One: KSh 50 for one student" onClick={() => { setSelectedVersion('text'); document.getElementById('wish-composer')?.scrollIntoView({behavior:'smooth',block:'start'}) }}>
+            <UserRound aria-hidden="true" size={23} strokeWidth={2}/>
+            <strong>KSh 50</strong><span>1 student</span>
+            <span className={styles.cardPriceAction}>Choose One <ChevronRight size={16} aria-hidden="true"/></span>
           </button>
-          <button type="button" aria-label="KSh 100: Choose Four, up to four students" onClick={() => window.dispatchEvent(new Event('success-wishes:open-group'))} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:6,minWidth:0,minHeight:118,borderRadius:13,border:'1px solid #d8b35c',background:'#142e50',color:'#fff',cursor:'pointer',padding:12}}>
-            <span aria-hidden="true" style={{fontSize:18,color:'#edc46c',letterSpacing:-2}}>👤👤👤👤</span><strong style={{fontSize:'clamp(20px,4vw,28px)'}}>KSh 100</strong><span style={{fontSize:12}}>Up to 4 students</span><span style={{background:'#e8bc66',color:'#102747',borderRadius:8,padding:'10px 12px',fontSize:13,fontWeight:700,width:'100%',textAlign:'center'}}>Choose Four →</span>
+          <button className={styles.cardPriceGroup} type="button" aria-label="Choose Four: KSh 100 for up to four students, get two free" onClick={() => window.dispatchEvent(new Event('success-wishes:open-group'))}>
+            <UsersRound aria-hidden="true" size={25} strokeWidth={2}/>
+            <strong>KSh 100</strong><span>Up to 4 students</span>
+            <span className={styles.cardPriceAction}>Choose Four <ChevronRight size={16} aria-hidden="true"/></span>
           </button>
         </div>
       </section>
