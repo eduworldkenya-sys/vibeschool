@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { Check, Pencil, ChevronRight, Volume2, VolumeX } from 'lucide-react'
+import { Check, Pencil, ChevronRight, Send, MailOpen, Volume2, VolumeX } from 'lucide-react'
 import SenderMediaCapture from './SenderMediaCapture'
 import WishCheckout from './WishCheckout'
 import { useSenderDraft } from './useSenderDraft'
@@ -326,8 +326,8 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         <p className={styles.eyebrow}>2026</p>
         <h1>Wish students good luck <em>&amp; success.</em></h1>
         <div className={styles.entryActions}>
-          <a className={styles.heroCta} href="#choose-card">Send a Success Card <ChevronRight size={16}/></a>
-          <Link className={styles.openWishCta} href="/success-wishes/open">Open a Success Card</Link>
+          <a className={styles.heroCta} href="#choose-card"><Send size={18} aria-hidden="true"/>Send a Card</a>
+          <Link className={styles.openWishCta} href="/success-wishes/open"><MailOpen size={18} aria-hidden="true"/>Open a Card</Link>
         </div>
       </section>
       <section aria-labelledby="choose-card-title" className={styles.designSection} id="choose-card">
