@@ -25,7 +25,7 @@ const fieldStyle: CSSProperties = {
 }
 
 export default function SuccessWishesHQ() {
-  const [section, setSection] = useState<'overview' | 'cards' | 'orders' | 'schools' | 'settings'>('overview')
+  const [section, setSection] = useState<'overview' | 'cards' | 'orders' | 'schools' | 'visitors' | 'settings'>('overview')
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [schools, setSchools] = useState<School[]>([])
   const [schoolId, setSchoolId] = useState('')
@@ -90,10 +90,10 @@ export default function SuccessWishesHQ() {
   }
 
   return <HQPage title="Success Wishes" description="Business overview and card management.">
-    <nav aria-label="Success Wishes sections" style={{display:"grid",gridTemplateColumns:"repeat(5,minmax(0,1fr))",gap:5,marginBottom:16}}>
-      {([["overview","Overview"],["cards","Cards"],["orders","Orders"],["schools","Schools"],["settings","Settings"]] as const).map(([key,label]) => <button key={key} type="button" aria-current={section===key?"page":undefined} onClick={()=>setSection(key)} style={{minWidth:0,minHeight:44,borderRadius:10,border:"1px solid "+(section===key?"#dfc27a":HQ_THEME.border),background:section===key?"#dfc27a":HQ_THEME.panelSoft,color:section===key?"#111827":HQ_THEME.text,fontSize:11,fontWeight:section===key?700:500,padding:"8px 2px"}}>{label}</button>)}
+    <nav aria-label="Success Wishes sections" style={{display:"grid",gridTemplateColumns:"repeat(3,minmax(0,1fr))",gap:5,marginBottom:16}}>
+      {([["overview","Overview"],["cards","Cards"],["orders","Orders"],["schools","Schools"],["visitors","Visitors"],["settings","Settings"]] as const).map(([key,label]) => <button key={key} type="button" aria-current={section===key?"page":undefined} onClick={()=>setSection(key)} style={{minWidth:0,minHeight:44,borderRadius:10,border:"1px solid "+(section===key?"#dfc27a":HQ_THEME.border),background:section===key?"#dfc27a":HQ_THEME.panelSoft,color:section===key?"#111827":HQ_THEME.text,fontSize:11,fontWeight:section===key?700:500,padding:"8px 2px"}}>{label}</button>)}
     </nav>
-    {section === "settings" && <>
+    {section === "visitors" && <HQPanel title="Website visitors" description="Anonymous page views and traffic sources are recorded by Vercel Web Analytics once enabled for this project. No names, card messages, gift tokens or phone numbers are collected for this report.">\n      <p style={{color:HQ_THEME.muted,fontSize:14}}>View visitor counts, popular pages, devices and referrers in your Vercel project’s Web Analytics dashboard. Filter the page list to /success-wishes for campaign traffic.</p>\n      <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer" style={{...hqButtonStyle,display:"inline-block",textDecoration:"none"}}>Open Vercel Analytics</a>\n      <p style={{fontSize:12,color:HQ_THEME.muted}}>Enable Web Analytics in Vercel project settings if it is not already active. This page does not invent visitor counts.</p>\n    </HQPanel>}\n    {section === "settings" && <>
     <HQPanel title="Sponsor only participating schools"
       description="Schools must separately accept the child-privacy responsibilities from their school administration workspace.">
       {allowed === null && <p role="status">Verifying founder authority…</p>}
