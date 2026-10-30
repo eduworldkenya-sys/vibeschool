@@ -203,12 +203,12 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
      {trialRemaining!==null&&<p role="status">{trialRemaining} free cards remaining</p>}
      <p className={styles.checkoutHint}>Or continue with the regular paid checkout below.</p>
    </div>}
-   {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?<span className={styles.promoPriceAccepted} style={{display:'inline-flex',alignItems:'center',gap:8}}><s style={{opacity:.7}}>KSh 50</s><Tag size={17} aria-hidden="true"/> <span style={{fontSize:'.85rem'}}>Offer applied</span></span>:'KSh 50'}</strong></div>}
+   {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?'KSh 0':'KSh 50'}</strong></div>}
    {!order&&!uncertain?<form noValidate onSubmit={e=>{e.preventDefault();void act('pay')}}>
     {!promoValid?<div className={styles.promoSection}>
-     <label className={styles.checkoutLabel} htmlFor={id+'-promo'}>Have a secret code?</label>
+     <label className={styles.checkoutLabel} htmlFor={id+'-promo'}>Have a free code?</label>\n     <p className={styles.checkoutHint} style={{margin:'4px 0 10px',color:'#e8cb83'}}><s style={{opacity:.75}}>KSh 50</s> <strong style={{marginLeft:8}}>FREE with a valid code</strong></p>
      <div className={styles.promoEntry}><input id={id+'-promo'} type="text" autoComplete="off" maxLength={32} placeholder="Enter code" value={promoCode} disabled={promoBusy||busy} onChange={e=>{setPromoCode(e.target.value.toUpperCase());setPromoValid(false);promoKey.current=null;setError('')}}/><button type="button" className={styles.secondary} disabled={promoBusy||busy||!promoCode.trim()} onClick={()=>void applyPromo()}>{promoBusy?'Checking…':'Apply'}</button></div>
-    </div>:<p className={styles.promoAccepted} role="status"><Check size={16}/> Code accepted!</p>}
+    </div>:<div className={styles.promoSection} role="status" aria-live="polite"><p className={styles.promoAccepted} style={{marginBottom:8}}><Check size={16}/> Code accepted · You saved KSh 50</p><p style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,margin:0,color:"#e8cb83"}}><span>Your discount</span><span><s style={{opacity:.75}}>KSh 50</s> <strong style={{marginLeft:8}}>FREE</strong></span></p></div>}
     {promoValid?<button type="button" className={styles.primary} disabled={promoBusy||busy} onClick={()=>void sendPromo()}>{promoBusy?'Preparing card…':'Send via WhatsApp'}</button>:<>
     <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label>
     <button type="submit" className={styles.primary} disabled={busy||!key}>{busy?'Saving…':'Pay KSh 50'}</button>
