@@ -69,3 +69,23 @@
 @keyframes yearGlint{0%,83%,100%{filter:brightness(1)}87%{filter:brightness(1.22)}91%{filter:brightness(1)}}
 @media(max-width:540px){.teaser{width:min(320px,calc(100vw - 20px))}.teaserContent{padding:33px 10px 10px}.teaserFree{font-size:22px}}
 @media(prefers-reduced-motion:reduce){.yearRibbon{animation:none;transform:rotate(-14deg)}}
+
+
+/* Compact, urgency-first floating reminder: hierarchy ahead of price tiles. */
+.teaser{width:min(316px,calc(100vw - 20px));font-family:var(--font-jakarta),system-ui,sans-serif}
+.teaserContent{padding:36px 11px 11px;gap:5px}
+.teaserHeadline{font-size:clamp(21px,5vw,26px);font-weight:850;line-height:1.08;letter-spacing:-.035em;padding:0 16px}
+.teaserFree{font-size:clamp(22px,5.3vw,27px);font-weight:900;line-height:1.08;letter-spacing:-.035em}
+.teaserNow{font-size:12px;letter-spacing:.03em}
+.teaserOptions{gap:7px;margin-top:7px}
+.teaserOne,.teaserFour{min-height:0;padding:8px 6px;gap:4px;border-radius:9px}
+.teaserOne strong,.teaserFour strong{font-size:clamp(14px,3.9vw,18px);line-height:1.12}
+.teaserOne span,.teaserFour span{font-size:10px;line-height:1.2}
+.teaserOne b,.teaserFour b{min-height:30px;padding:4px;font-size:11px}
+.teaserMainCta{min-height:40px;font-size:12px;padding:8px}
+.teaserClose{width:36px;height:36px}
+.cardIllustration,.groupIllustration{min-height:45px;letter-spacing:normal}
+.cardIllustration svg,.groupIllustration svg{color:inherit;filter:drop-shadow(0 1px 1px #0001)}
+.groupIllustration{letter-spacing:normal}
+@media(max-width:540px){.teaser{width:min(308px,calc(100vw - 20px))}.teaserFree{font-size:23px}.teaserContent{padding:36px 9px 9px}}
+@media(max-width:360px){.teaserHeadline{font-size:21px}.teaserFree{font-size:21px}}
