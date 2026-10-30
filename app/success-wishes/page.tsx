@@ -3,7 +3,7 @@ import SuccessCardStudio from '@/components/success-wishes/SuccessCardStudio'
 import SuccessWishesFloatingOffer from '@/components/success-wishes/SuccessWishesFloatingOffer'
 
 const title = 'Success Wishes 2026 | VibeSchool'
-const description = 'Wish students good luck & success. Send a beautiful personalised Success Card for KSh 50.'
+const description = 'Wish students good luck & success. Create a personalised Digital Success Card free with campaign code DNJIMAX3.'
 const url = 'https://vibeschool.co.ke/success-wishes'
 const image = 'https://vibeschool.co.ke/success-wishes/opengraph-image'
 
