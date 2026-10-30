@@ -318,13 +318,13 @@ export default function SuccessWishInvitationPage() {
                   className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-slate-950 font-bold text-xs"
                   href="/success-wishes/open"
                 >
-                  Enter access code
+                  My wishes
                 </Link>
                 <Link
                   className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs"
                   href="/success-wishes/recover"
                 >
-                  Recover access
+                  Forgot PIN?
                 </Link>
                 <Link
                   className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 text-xs"
