@@ -14,6 +14,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
  const id=useId(),dialog=useRef<HTMLElement>(null),inFlight=useRef(false),alive=useRef(true)
  const [trialEnabled,setTrialEnabled]=useState(false)
  const [trialPhone,setTrialPhone]=useState('')
+ const [trialCode,setTrialCode]=useState('')
  const [trialBusy,setTrialBusy]=useState(false)
  const [trialRemaining,setTrialRemaining]=useState<number|null>(null)
  const trialKey=useRef<string|null>(null)
@@ -33,7 +34,7 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   setTrialBusy(true);setError('')
   try{
    if(!trialKey.current)trialKey.current=newCheckoutKey()
-   const r=await fetch('/api/success-wishes/free',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({version:'text',key:trialKey.current,senderPhone:trialPhone,...draft})})
+   const r=await fetch('/api/success-wishes/free',{method:'POST',headers:{'Content-Type':'application/json'},cache:'no-store',body:JSON.stringify({version:'text',key:trialKey.current,senderPhone:trialPhone,code:trialCode.trim().toUpperCase(),...draft})})
    const p=await r.json()
    if(!r.ok||!p.invitationUrl)throw new Error(p.error||'Could not send your free card. You can continue with paid checkout.')
    setTrialRemaining(typeof p.remaining==='number'?p.remaining:null)
@@ -133,11 +134,11 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
   finally{setPromoBusy(false)}
  }
  async function sendPromo(){
-  if(promoSending.current||!promoValid||promoGift)return
+  if(promoSending.current||!promoValid||promoGift||!trialPhone.trim())return
   promoSending.current=true;setPromoBusy(true);setError('')
   try{
    if(!promoKey.current)promoKey.current=newCheckoutKey()
-   const r=await fetch('/api/success-wishes/campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:promoCode.trim().toUpperCase(),version:'text',key:promoKey.current,...draft}),cache:'no-store'})
+   const r=await fetch('/api/success-wishes/campaign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:promoCode.trim().toUpperCase(),version:'text',key:promoKey.current,senderPhone:trialPhone.trim(),...draft}),cache:'no-store'})
    const data=await r.json()
    if(!r.ok||!data.invitationUrl)throw new Error(data.error||'Could not send your card.')
    setPromoGift(data.invitationUrl)
@@ -199,17 +200,20 @@ export default function WishCheckout({theme,values,onClose,soundEnabled=false,in
      <label className={styles.checkoutLabel}>Your sender number
        <input type="tel" inputMode="tel" autoComplete="tel" maxLength={20} placeholder="07XX XXX XXX" value={trialPhone} disabled={trialBusy||busy} onChange={e=>{setTrialPhone(e.target.value);trialKey.current=null}}/>
      </label>
-     <button type="button" className={styles.primary} disabled={trialBusy||busy||restoring||!trialPhone.trim()} onClick={()=>void sendFreeTrial()}>{trialBusy?'Preparing card…':'Send Free Card'}</button>
+     <label className={styles.checkoutLabel}>Free-card code
+       <input type="text" autoComplete="off" maxLength={16} placeholder="DNJIMAX3" value={trialCode} disabled={trialBusy||busy} onChange={e=>{setTrialCode(e.target.value.toUpperCase());trialKey.current=null}}/>
+     </label>
+     <button type="button" className={styles.primary} disabled={trialBusy||busy||restoring||!trialPhone.trim()||trialCode.trim().toUpperCase()!=='DNJIMAX3'} onClick={()=>void sendFreeTrial()}>{trialBusy?'Preparing card…':'Send Free Card'}</button>
      {trialRemaining!==null&&<p role="status">{trialRemaining} free cards remaining</p>}
      <p className={styles.checkoutHint}>Or continue with the regular paid checkout below.</p>
    </div>}
    {order?.state!=='settled'&&<div className={styles.orderTotal}>Total <strong className={promoValid?'promoPriceAccepted':''}>{promoValid?'KSh 0':'KSh 50'}</strong></div>}
    {!order&&!uncertain?<form noValidate onSubmit={e=>{e.preventDefault();void act('pay')}}>
-    {!promoValid?<div className={styles.promoSection}>
+    {!trialEnabled&&(!promoValid?<div className={styles.promoSection}>
      <label className={styles.checkoutLabel} htmlFor={id+'-promo'}>Have a free code?</label>\n     <p className={styles.checkoutHint} style={{margin:'4px 0 10px',color:'#e8cb83'}}><s style={{opacity:.75}}>KSh 50</s> <strong style={{marginLeft:8}}>FREE with a valid code</strong></p>
      <div className={styles.promoEntry}><input id={id+'-promo'} type="text" autoComplete="off" maxLength={32} placeholder="Enter code" value={promoCode} disabled={promoBusy||busy} onChange={e=>{setPromoCode(e.target.value.toUpperCase());setPromoValid(false);promoKey.current=null;setError('')}}/><button type="button" className={styles.secondary} disabled={promoBusy||busy||!promoCode.trim()} onClick={()=>void applyPromo()}>{promoBusy?'Checking…':'Apply'}</button></div>
-    </div>:<div className={styles.promoSection} role="status" aria-live="polite"><p className={styles.promoAccepted} style={{marginBottom:8}}><Check size={16}/> Code accepted · You saved KSh 50</p><p style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,margin:0,color:"#e8cb83"}}><span>Your discount</span><span><s style={{opacity:.75}}>KSh 50</s> <strong style={{marginLeft:8}}>FREE</strong></span></p></div>}
-    {promoValid?<button type="button" className={styles.primary} disabled={promoBusy||busy} onClick={()=>void sendPromo()}>{promoBusy?'Preparing card…':'Send via WhatsApp'}</button>:<>
+    </div>:<div className={styles.promoSection} role="status" aria-live="polite"><p className={styles.promoAccepted} style={{marginBottom:8}}><Check size={16}/> Code accepted · You saved KSh 50</p><p style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,margin:0,color:"#e8cb83"}}><span>Your discount</span><span><s style={{opacity:.75}}>KSh 50</s> <strong style={{marginLeft:8}}>FREE</strong></span></p></div>)}
+    {promoValid?<><label className={styles.checkoutLabel}>Your sender number<input type="tel" inputMode="tel" autoComplete="tel" maxLength={20} placeholder="07XX XXX XXX" value={trialPhone} disabled={promoBusy||busy} onChange={e=>{setTrialPhone(e.target.value);promoKey.current=null}}/></label><button type="button" className={styles.primary} disabled={promoBusy||busy||!trialPhone.trim()} onClick={()=>void sendPromo()}>{promoBusy?'Preparing card…':'Send via WhatsApp'}</button></>:<>
     <label className={styles.checkoutLabel}>M-Pesa number<input type="tel" inputMode="tel" autoComplete="tel" value={phone} maxLength={20} disabled={busy} onChange={e=>setPhone(e.target.value)} placeholder="07XX XXX XXX"/></label>
     <button type="submit" className={styles.primary} disabled={busy||!key}>{busy?'Saving…':'Pay KSh 50'}</button>
     <p className={styles.checkoutHint}>Enter your PIN on the M-Pesa prompt.</p></>}
