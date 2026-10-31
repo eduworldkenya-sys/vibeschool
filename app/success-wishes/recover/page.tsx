@@ -29,11 +29,6 @@ export default function RecoverWishes(){
      <button disabled={saving}>{saving?'Changing PIN…':'Change PIN'}</button>
     </>}
    </form>}
-   {!checking&&signedIn&&!newLink&&false&&<div style={{padding:16,border:'1px solid #39475d',borderRadius:12,marginBottom:16}}>
-    <strong>This device is already signed in.</strong>
-    <p>You can open your wishes without entering a PIN.</p>
-    <Link href="/success-wishes/inbox">Open my wishes</Link>
-   </div>}
    {!checking&&!signedIn&&choice==='start'&&<div style={{display:'grid',gap:12}}>
     <button type="button" onClick={()=>setChoice('link')}>I saved my recovery link</button>
     <button type="button" onClick={()=>setChoice('review')}>Try another way</button>
