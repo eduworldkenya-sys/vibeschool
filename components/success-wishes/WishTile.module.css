@@ -21,3 +21,27 @@
 @media(max-width:359px){.tile{grid-template-columns:96px minmax(0,1fr);min-height:150px}.cover{width:96px;min-height:150px;padding:10px 7px;gap:7px}.headline{font-size:17px}.ornament{font-size:20px}.body{padding:13px 10px}.body strong{font-size:15px}.action{font-size:11px}}
 @media(min-width:768px){.tile{grid-template-columns:128px minmax(0,1fr)}.cover{width:128px}.body{padding:18px}}
 @media(prefers-reduced-motion:reduce){.tile{transition:none}}
+
+/* Sealed gifts catch the eye without leaking sender identity. */
+.sealed{position:relative;border-color:#bfa36a90;box-shadow:0 3px 18px #d8af3b10}
+.sealed .cover::after{content:'';position:absolute;inset:-70% -130%;pointer-events:none;background:linear-gradient(110deg,transparent 42%,#fff9 50%,transparent 58%);transform:translateX(-90%) rotate(12deg);animation:sealedShimmer 2.5s ease-in-out 1 both}
+.sealed .seal{box-shadow:0 0 0 4px #e8c87c25;animation:sealPulse 2.2s ease-in-out 2}
+.sealed:hover .cover{filter:brightness(1.06)}
+.sealed:hover{transform:translateY(-2px);box-shadow:0 8px 26px #d8af3b20}
+@keyframes sealedShimmer{0%{transform:translateX(-95%) rotate(12deg)}75%,100%{transform:translateX(95%) rotate(12deg)}}
+@keyframes sealPulse{0%,100%{box-shadow:0 0 0 3px #e8c87c15}50%{box-shadow:0 0 0 7px #e8c87c30}}
+@media(max-width:767px){
+ .tile{display:flex;flex-direction:column;min-height:0;border-radius:15px;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+ .cover{width:100%;min-height:186px;flex:1;padding:18px 10px;gap:9px;border-right:0;border-bottom:1px solid #0002}
+ .frame{inset:10px}
+ .brand{font-size:7px}
+ .headline{font-size:clamp(19px,5.3vw,27px);line-height:1.1}
+ .recipient{font-size:10px}
+ .body{padding:11px 12px 13px;gap:7px;min-height:116px}
+ .body strong{font-size:14px;line-height:1.3}
+ .meta{font-size:10px}
+ .action{padding-top:8px;min-height:28px;font-size:11px}
+ .action svg{width:15px}
+}
+@media(max-width:359px){.cover{width:100%;min-height:162px}.headline{font-size:18px}.body{padding:10px}.body strong{font-size:13px}.action{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.sealed,.sealed .cover::after,.sealed .seal{animation:none;transition:none}.sealed:hover{transform:none}}
