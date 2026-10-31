@@ -499,7 +499,7 @@
     place-items: center;
     padding: 0;
     background: transparent;
-    color: #0a0d14;
+    color: inherit;
     border-radius: 50%;
     box-shadow: none;
   }
