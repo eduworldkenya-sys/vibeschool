@@ -25,6 +25,7 @@ export default function PrivateGiftPage(){
   const [error,setError]=useState('')
   const {soundEnabled}=useReceiverTheme()
   const [opened,setOpened]=useState(false)
+  const [extras,setExtras]=useState(false)
   const sound=useRef<(()=>void)|null>(null)
   const secret=useRef('')
   const generation=useRef({value:0})
@@ -34,12 +35,12 @@ export default function PrivateGiftPage(){
     const value=new URLSearchParams(window.location.hash.slice(1)).get('token')||''
     secret.current=value
     if(!new URLSearchParams(location.search).get('card')&&!/^[a-f0-9]{64}$/.test(value)){setError('Open the private gift link shared by the sender.');setBusy(false);return}
-    void fetchGift(value,true).then(card=>{if(active&&revision===state.value){setGift(card);setOpened(true)}})
+    void fetchGift(value,false).then(card=>{if(active&&revision===state.value){setGift(card);setOpened(false)}})
       .catch(reason=>{if(active&&revision===state.value)setError(reason instanceof Error?reason.message:'Gift unavailable.')})
       .finally(()=>{if(active&&revision===state.value)setBusy(false)})
     const clear=()=>{if(!secret.current){state.value++;setGift(null);setOpened(false);setBusy(false);setError('Your inbox changed. Open My wishes to continue.')}}
     const stop=watchKeepsakeChange(clear)
-    const verify=()=>{if(document.visibilityState==='visible'&&!secret.current){const current=state.value;void fetchGift('',true).then(card=>{if(active&&current===state.value){setGift(card);setOpened(true)}}).catch(clear)}}
+    const verify=()=>{if(document.visibilityState==='visible'&&!secret.current){const current=state.value;void fetchGift('',false).then(card=>{if(active&&current===state.value){setGift(card)}}).catch(clear)}}
     window.addEventListener('pagehide',clear);document.addEventListener('visibilitychange',verify)
     return()=>{active=false;state.value++;stop();window.removeEventListener('pagehide',clear);document.removeEventListener('visibilitychange',verify);sound.current?.()}
   },[])
@@ -54,27 +55,29 @@ export default function PrivateGiftPage(){
   }
   useEffect(()=>{if(!soundEnabled)sound.current?.()},[soundEnabled])
   function play(){sound.current?.();sound.current=playWishRevealSound()}
-  return <main style={{minHeight:'100vh',background:'#0A0D14',padding:'12px 12px 88px',color:'#F3E5AB'}}>
+  return <main className="receiver-gift-journey" style={{minHeight:'100svh',background:'#0A0D14',padding:'12px 12px calc(120px + env(safe-area-inset-bottom))',color:'#F3E5AB'}}>
     <div style={{maxWidth:720,margin:'0 auto',display:'grid',gap:12}}>
+      <nav aria-label="Gift navigation"><Link href="/success-wishes/inbox" style={{color:'#E2C572',fontSize:14,display:'inline-flex',minHeight:44,alignItems:'center'}}>← My wishes</Link></nav>
       <div style={{textAlign:'center'}}>
         <p style={{color:'#D4AF37',fontSize:12,letterSpacing:2}} >SUCCESS WISHES 2026</p>
-        <h1 style={{fontFamily:'Georgia,serif',fontSize:24,margin:'4px 0'}} >{gift?.sender ? `From ${gift.sender} to ${gift.candidate}` : gift ? `For ${gift.candidate}` : 'Your Success Card'}</h1>
+        <h1 style={{fontFamily:'Georgia,serif',fontSize:24,margin:'4px 0'}} >{gift ? `For ${gift.candidate}` : 'Your Success Card'}</h1>
         <p style={{fontSize:14,color:'#C3C7D1'}}>{!gift && !error ? 'Opening your card…' : ''}</p>
       </div>
       {busy&&<p role="status">Finding your gift…</p>}
       {error&&<div role="alert" style={{color:'#FCA5A5',textAlign:'center'}}><p>{error}</p><Link href="/success-wishes/inbox" style={{color:'#D4AF37'}}>Back to My wishes</Link></div>}
       {gift&&!busy&&<section aria-label="Your private Success Wish">
-        <ReceiverEnvelope receiverView initiallyOpen template={gift.theme} values={{candidate:gift.candidate,school:gift.school,examYear:gift.examYear,sender:gift.sender||'',message:gift.message||''}}
+        <ReceiverEnvelope receiverView template={gift.theme} values={{candidate:gift.candidate,school:gift.school,examYear:gift.examYear,sender:gift.sender||'',message:gift.message||''}}
           soundEnabled={soundEnabled} onOpen={play} beforeOpen={reveal} onOpenedChange={setOpened}/>
       </section>}
       {gift&&<p style={{fontSize:13,lineHeight:1.6,color:'#C3C7D1',textAlign:'center'}}>
-        {opened?(gift.remembered===false?'Keep your gift link to read again.':'Your wish is saved on this browser.'):'Tap the card to read again.'}
+        {opened?(gift.remembered===false?'Keep your private gift link to read again.':'You can return to this wish.'):'Tap the envelope to open your wish.'}
         {' '}<Link href="/success-wishes/inbox">My wishes →</Link>
       </p>}
-      {gift&&opened&&<DownloadSuccessCard gift={gift}/>}
-      {gift&&opened&&<aside aria-label="Share the encouragement" style={{border:"1px solid #8B7440",borderRadius:14,padding:"16px 18px",background:"#121C2D",display:"grid",gap:10,textAlign:"center"}}><strong style={{color:"#F3E5AB",fontSize:16}}>Someone made you smile.</strong><p style={{margin:0,color:"#C3C7D1",fontSize:13}}>Make someone else smile too.</p><Link href="/success-wishes" style={{display:"inline-flex",justifyContent:"center",alignItems:"center",minHeight:44,padding:"10px 16px",borderRadius:9,background:"#E2C572",color:"#17140D",fontWeight:700,fontSize:14}}>Send a Success Card →</Link></aside>}
-      {gift&&opened&&secret.current&&<KeepWish token={secret.current} candidate={gift.candidate}/>}
-      {gift&&secret.current&&<GiftShareActions link={'https://vibeschool.co.ke/success-wishes/gift#token='+secret.current} candidate={gift.candidate} sender={gift.sender||undefined}/>}
+      {gift&&opened&&<button type="button" onClick={()=>setExtras(v=>!v)} aria-expanded={extras} style={{justifySelf:'center',minHeight:44,padding:'8px 18px',border:'1px solid #8B7440',borderRadius:10,color:'#F3E5AB',background:'#121C2D'}}>{extras?'Hide options':'More options'}</button>}
+      {gift&&opened&&extras&&<DownloadSuccessCard gift={gift}/>}
+      {gift&&opened&&extras&&<aside aria-label="Share the encouragement" style={{border:"1px solid #8B7440",borderRadius:14,padding:"16px 18px",background:"#121C2D",display:"grid",gap:10,textAlign:"center"}}><strong style={{color:"#F3E5AB",fontSize:16}}>Someone made you smile.</strong><p style={{margin:0,color:"#C3C7D1",fontSize:13}}>Make someone else smile too.</p><Link href="/success-wishes" style={{display:"inline-flex",justifyContent:"center",alignItems:"center",minHeight:44,padding:"10px 16px",borderRadius:9,background:"#E2C572",color:"#17140D",fontWeight:700,fontSize:14}}>Send a Success Card →</Link></aside>}
+      {gift&&opened&&extras&&secret.current&&<KeepWish token={secret.current} candidate={gift.candidate}/>}
+      {gift&&opened&&extras&&secret.current&&<GiftShareActions link={'https://vibeschool.co.ke/success-wishes/gift#token='+secret.current} candidate={gift.candidate} sender={gift.sender||undefined}/>}
 
     </div>
   </main>

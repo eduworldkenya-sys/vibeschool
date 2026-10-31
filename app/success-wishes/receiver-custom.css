@@ -753,3 +753,11 @@
  .receiver-theme .receiver-account-hub .account-summary {padding:16px;}
  .receiver-theme .receiver-account-hub .account-link {min-height:62px;}
 }
+
+/* Gift reading is a focused surface: Back to My wishes stays in the page,
+   while the fixed four-action bar does not cover the book on small screens. */
+@media(max-width:767px){
+ .receiver-gift-focus .receiver-bottom{display:none}
+ .receiver-gift-focus .receiver-app{padding-bottom:env(safe-area-inset-bottom)}
+ .receiver-gift-focus .receiver-content .receiver-gift-journey{padding-bottom:calc(48px + env(safe-area-inset-bottom))}
+}

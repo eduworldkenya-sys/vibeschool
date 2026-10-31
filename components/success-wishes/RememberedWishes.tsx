@@ -1,6 +1,8 @@
 'use client'
 import Link from 'next/link'
-import {useCallback,useEffect,useRef,useState} from 'react'
+import {useCallback,useEffect,useRef,useState,type CSSProperties} from 'react'
+import {ArrowRight,Check,Heart} from 'lucide-react'
+import styles from '@/app/success-wishes/inbox/page.module.css'
 import {watchKeepsakeChange} from '@/lib/success-wishes/receiver-pin-browser'
 import type {RememberedGift} from '@/lib/success-wishes/remembered-gifts'
 import {palette,templates,type Template} from './card-themes'
@@ -14,11 +16,17 @@ export default function RememberedWishes({onLoaded,excludeReceiverId}:{onLoaded:
  const groups=Array.from(new Set(visible.map(c=>c.recipientId)))
  if(error)return <p role="alert">{error} <button onClick={()=>void load()}>Try again</button></p>
  if(!visible.length)return null
- return <section aria-label="Saved gift collections" style={{display:'grid',gap:16,marginBottom:16}}>
-  <p style={{margin:0,color:'#c3c7d1'}}>Special wishes, always here.</p>
-  {groups.map(id=>{const gifts=visible.filter(c=>c.recipientId===id);return <section key={id} aria-label={gifts[0].candidate+' collection'} style={{display:'grid',gap:10}}>
-   <h2 style={{fontSize:20,margin:'4px 0'}}>{gifts[0].candidate}</h2>
-   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,150px),1fr))',gap:12}}>{gifts.map(c=>{const theme=palette[c.theme as Template]||palette.heritage;const design=templates.find(t=>t.id===c.theme)||templates[0];return <Link key={c.id} href={'/success-wishes/gift?source=remembered&card='+c.id} style={{display:'grid',gap:12,minHeight:160,padding:18,border:'1px solid '+theme.accent,borderRadius:12,background:theme.top,color:theme.ink,textDecoration:'none'}}><strong>{design.headline}</strong><span>{c.sender?`From ${c.sender}`:'A wish for you'}</span><span>Read your wish →</span></Link>})}</div>
+ return <section aria-label="Saved gift collections" style={{display:'grid',gap:18,marginBottom:24}}>
+  {groups.map(id=>{const gifts=visible.filter(c=>c.recipientId===id);return <section key={id} aria-label={gifts[0].candidate+' collection'} style={{display:'grid',gap:12}}>
+   <h2 style={{fontSize:20,margin:'4px 0',color:'#F3E5AB'}}>For {gifts[0].candidate}</h2>
+   <div className={styles.grid} style={gifts.length===1?{gridTemplateColumns:'minmax(0,580px)'}:undefined}>
+    {gifts.map(c=>{const theme=palette[c.theme as Template]||palette.heritage;const design=templates.find(t=>t.id===c.theme)||templates[0];return <Link key={c.id} className={styles.card} data-theme={design.id} href={'/success-wishes/gift?source=remembered&card='+encodeURIComponent(c.id)} aria-label={'Read wish for '+c.candidate}>
+     <span className={styles.cover} aria-hidden="true" style={{'--cover-top':theme.top,'--cover-bottom':theme.bottom,'--cover-ink':theme.ink,'--cover-accent':theme.accent} as CSSProperties}>
+      <span className={styles.coverFrame}/><span className={styles.coverBrand}>SUCCESS WISHES</span><span className={styles.coverOrnament}>✧</span><span className={styles.coverTitle}>{design.headline}</span><span className={styles.coverName}>For {c.candidate}</span><span className={styles.seal}>{c.opened?<Check size={17}/>:<Heart size={17}/>}</span>
+     </span>
+     <span className={styles.cardBody}><span className={styles.cardMeta}><span className={c.opened?styles.opened:styles.unopened}>{c.opened?'Opened':'Unopened'}</span></span><strong>{c.opened?(c.sender||'Someone special'):'A wish for you'}</strong><span className={styles.cardAction}>Read your wish <ArrowRight size={17}/></span></span>
+    </Link>})}
+   </div>
   </section>})}
  </section>
 }
