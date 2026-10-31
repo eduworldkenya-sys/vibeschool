@@ -51,3 +51,19 @@
 .tile:not(.sealed) .action{color:#d6c39a}
 @media(hover:none){.sealed:hover .cover{transform:none;filter:none}}
 @media(prefers-reduced-motion:reduce){.sealed .cover{transition:none}.sealed:hover .cover,.sealed:focus-visible .cover{transform:none}}
+
+/* Mobile gift shelf: card artwork is the product, not a sidebar thumbnail. */
+@media(max-width:767px){
+ .tile{display:flex;flex-direction:column;min-width:0;min-height:0;align-self:start;border-radius:13px;overflow:hidden}
+ .cover{box-sizing:border-box;width:100%;height:auto;min-height:0;aspect-ratio:3/4;flex:none;padding:12px 8px;gap:7px;border-right:0;border-bottom:1px solid #0002}
+ .frame{inset:8px}
+ .headline{font-size:clamp(15px,4.5vw,22px);line-height:1.12}
+ .brand{font-size:6px;letter-spacing:.8px}
+ .ornament{font-size:21px}
+ .recipient{font-size:9px}
+ .body{box-sizing:border-box;min-height:94px;padding:10px 9px 11px;gap:6px}
+ .body strong{font-size:13px;line-height:1.25}
+ .meta{font-size:10px}
+ .action{font-size:10px;min-height:27px;padding-top:6px}
+ .action svg{width:13px;flex-shrink:0}
+}
