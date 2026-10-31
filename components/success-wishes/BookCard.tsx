@@ -18,6 +18,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   mediaKind = 'text', mediaSrc = '', senderPreview = false, receiverView = false, initiallyOpen = false, autoOpen = false }: Props) {
   const [phase, setPhase] = useState<Phase>(initiallyOpen ? 'opened' : 'sealed')
   const [checking, setChecking] = useState(false)
+  const [celebrating, setCelebrating] = useState(false)
   const [error, setError] = useState('')
   const phaseRef = useRef<Phase>(initiallyOpen ? 'opened' : 'sealed')
   const lock = useRef(false)
@@ -72,6 +73,10 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
           move('opening')
           delay(() => {
             move('opened')
+            if (receiverView && !hasOpened.current) {
+              setCelebrating(true)
+              delay(() => setCelebrating(false), 1500)
+            }
             hasOpened.current = true
             lock.current = false
             callbacks.current.onOpenedChange?.(true)
@@ -94,6 +99,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   function close() {
     if (lock.current || phaseRef.current !== 'opened') return
     lock.current = true
+    setCelebrating(false)
     move('closing')
     callbacks.current.onOpenedChange?.(false)
     delay(() => {
@@ -111,6 +117,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   return <div className={styles.preview} data-receiver-view={receiverView || undefined}
     data-card-open={opened} data-book-phase={phase} data-theme={template} style={variables}>
     <div className={styles.stage}>
+      {celebrating && <div className={styles.celebration} aria-hidden="true">{Array.from({ length: 12 }, (_, index) => <span key={index} style={{ '--piece-index': index } as CSSProperties} />)}</div>}
       <div className={styles.bookShadow} aria-hidden="true" />
       <div className={styles.pageStack} aria-hidden="true" />
       <div className={styles.spine} aria-hidden="true" />
