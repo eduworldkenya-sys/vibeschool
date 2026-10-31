@@ -3,6 +3,7 @@ import {createClient} from '@supabase/supabase-js'
 import {secret,validId,nameKey} from '@/lib/success-wishes/receiver-pin'
 import {recoveryHash} from '@/lib/success-wishes/receiver-collection'
 import {hashSecret} from '@/lib/success-wishes/security'
+import {matchingRecoveryCandidates,type RecoveryReceiver,type RecoveryReview} from '@/lib/success-wishes/hq-recovery-match'
 export const runtime='nodejs'
 export const dynamic='force-dynamic'
 function db(){return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{autoRefreshToken:false,persistSession:false}})}
@@ -19,8 +20,37 @@ async function authorize(req:NextRequest){
 const fail=(message:string,status:number)=>NextResponse.json({error:message},{status})
 export async function GET(req:NextRequest){
  const auth=await authorize(req);if(!auth)return fail('Not authorized',403)
- const {data,error}=await auth.client.from('success_wish_recovery_reviews').select('id,exam_year,status,created_at,resolved_at').order('created_at',{ascending:false}).limit(100)
- return error?fail('Could not load requests',503):NextResponse.json({requests:data},{headers:{'cache-control':'no-store'}})
+ // Recovery enquiries are untrusted leads. Only authenticated, active HQ staff
+ // with support authority may see potential matching accounts. No public lookup.
+ const {data:reviews,error}=await auth.client.from('success_wish_recovery_reviews')
+  .select('id,exam_year,status,created_at,phone_digest,name_digest')
+  .in('status',['pending','reviewing']).order('created_at',{ascending:false}).limit(100)
+ if(error)return fail('Could not load requests',503)
+ const active=reviews||[]
+ if(!active.length)return NextResponse.json({requests:[]},{headers:{'cache-control':'no-store'}})
+ const years=Array.from(new Set(active.map(r=>r.exam_year))).filter(year=>/^20\d{2}$/.test(year))
+ const receivers:RecoveryReceiver[]=[]
+ if(years.length){
+  // Page explicitly. Supabase's standard row limit is not evidence that all
+  // candidates were inspected. Never silently return an incomplete list.
+  const batchSize=250, maxRecords=2500
+  for(let offset=0;offset<maxRecords;offset+=batchSize){
+   const {data:batch,error:lookupError}=await auth.client.from('success_wish_receivers')
+    .select('id,display_name,school_label,phone_e164,pin_exam_year,pin_hash,consent_status')
+    .in('pin_exam_year',years).order('id',{ascending:true})
+    .range(offset,offset+batchSize-1)
+   if(lookupError)return fail('Could not safely match recovery requests',503)
+   receivers.push(...(batch||[]) as RecoveryReceiver[])
+   if(!batch||batch.length<batchSize)break
+   if(offset+batchSize===maxRecords)return fail('Account lookup too large; contact technical support',503)
+  }
+ }
+ const requests=active.map(review=>{
+  const candidates=matchingRecoveryCandidates(review as RecoveryReview,receivers)
+  return {id:review.id,exam_year:review.exam_year,status:review.status,
+   created_at:review.created_at,candidates}
+ })
+ return NextResponse.json({requests},{headers:{'cache-control':'no-store'}})
 }
 export async function POST(req:NextRequest){
  const auth=await authorize(req);if(!auth)return fail('Not authorized',403)
