@@ -42,3 +42,12 @@
 }
 @media(max-width:359px){.cover{width:100%;min-height:162px}.headline{font-size:18px}.body{padding:10px}.body strong{font-size:13px}.action{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.sealed,.sealed .cover::after,.sealed .seal{animation:none;transition:none}.sealed:hover{transform:none}}
+
+/* Physical-card feel: the sealed cover lifts only on interaction, never pulses. */
+.sealed .cover{transform-origin:center bottom;transition:transform .32s cubic-bezier(.2,.7,.2,1),filter .25s}
+.sealed:hover .cover,.sealed:focus-visible .cover{transform:translateY(-3px) rotate(-.6deg);filter:brightness(1.035)}
+.tile:not(.sealed){border-color:#6a6353;background:#161b26}
+.tile:not(.sealed) .cover{filter:saturate(.8)}
+.tile:not(.sealed) .action{color:#d6c39a}
+@media(hover:none){.sealed:hover .cover{transform:none;filter:none}}
+@media(prefers-reduced-motion:reduce){.sealed .cover{transition:none}.sealed:hover .cover,.sealed:focus-visible .cover{transform:none}}
