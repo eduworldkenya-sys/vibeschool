@@ -21,7 +21,7 @@ export default function RecoverWishes(){
    <p style={{fontSize:14,color:'#b9c3d3',margin:'0 0 24px'}}>Return to your existing wishes. No gifts will be lost.</p>
    {!checking&&signedIn&&<form onSubmit={async e=>{e.preventDefault();setResetError('');if(!/^\d{4}$/.test(newPin)||newPin!==confirmPin){setResetError('Enter the same four-digit PIN twice.');return}setSaving(true);try{const res=await fetch('/api/success-wishes/receiver/account',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'reset_signed_in',pin:newPin}),cache:'no-store'});const data=await res.json();if(!res.ok)throw Error(data.error||'Could not reset PIN.');setNewLink(data.recoveryUrl);setNewPin('');setConfirmPin('')}catch(error){setResetError(error instanceof Error?error.message:'Could not reset PIN.')}finally{setSaving(false)}}} style={{display:'grid',gap:12,marginBottom:20}}>
     <strong>This device already has access to your wishes.</strong>
-    {newLink?<><p role="status">PIN changed. Your wishes remain in the same inbox. Save your new private recovery link.</p><textarea aria-label="New recovery link" readOnly value={newLink}/><button type="button" onClick={()=>void navigator.clipboard.writeText(newLink)}>Copy recovery link</button><Link href="/success-wishes/inbox">Open my wishes</Link></>:<>
+    {newLink?<><p role="status">PIN changed. Your wishes remain in the same inbox. Save your new private recovery link.</p><Link href="/success-wishes/inbox">Open my wishes</Link><button type="button" onClick={()=>void navigator.clipboard.writeText(newLink).catch(()=>setResetError('Could not copy. Please use a browser with clipboard access.'))}>Copy private backup link</button></>:<>
      <p>Choose a new PIN. No SMS or support request needed.</p>
      <label>New 4-digit PIN<input type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} required value={newPin} onChange={e=>setNewPin(e.target.value.replace(/\D/g,''))}/></label>
      <label>Confirm PIN<input type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} required value={confirmPin} onChange={e=>setConfirmPin(e.target.value.replace(/\D/g,''))}/></label>
@@ -29,11 +29,6 @@ export default function RecoverWishes(){
      <button disabled={saving}>{saving?'Changing PIN…':'Change PIN'}</button>
     </>}
    </form>}
-   {!checking&&signedIn&&!newLink&&<div style={{padding:16,border:'1px solid #39475d',borderRadius:12,marginBottom:16}}>
-    <strong>This device is already signed in.</strong>
-    <p>You can open your wishes without entering a PIN.</p>
-    <Link href="/success-wishes/inbox">Open my wishes</Link>
-   </div>}
    {!checking&&!signedIn&&choice==='start'&&<div style={{display:'grid',gap:12}}>
     <button type="button" onClick={()=>setChoice('link')}>I saved my recovery link</button>
     <button type="button" onClick={()=>setChoice('review')}>Try another way</button>

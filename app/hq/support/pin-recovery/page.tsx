@@ -57,7 +57,7 @@ export default function RecoveryApprovals(){
     evidence:action==='approve'?evidence.trim():undefined,
     confirmedVerified:action==='approve'&&verified
    })
-   if(data.recoveryUrl)setLink(data.recoveryUrl)
+   if(data.recoveryUrl){setLink(data.recoveryUrl);setSelected('');setReceiverId('');setEvidence('');setVerified(false)}
    await refresh()
   }catch(e){setError(e instanceof Error?e.message:'Could not finish')}
   finally{setBusy(false)}
@@ -65,7 +65,7 @@ export default function RecoveryApprovals(){
  async function copy(){
   if(!link)return
   try{await navigator.clipboard.writeText(link);setCopied(true)}
-  catch{setError('Copy unavailable. Select and copy the private link manually.')}
+  catch{setError('Clipboard unavailable. Use a browser that supports secure copying; the private link will not be displayed.')}
  }
  return <main className={styles.page}>
   <header className={styles.header}>
@@ -77,7 +77,7 @@ export default function RecoveryApprovals(){
   {link&&<section className={styles.result} aria-label="Approved private recovery link">
    <div className={styles.resultHead}><Check size={19}/><strong>Reset link generated</strong></div>
    <p>Send this privately to the independently verified recipient. It allows resetting the PIN of their existing inbox.</p>
-   <textarea aria-label="Private PIN reset link" value={link} readOnly rows={3}/>
+   <p className={styles.privateHint}>The private link is hidden to protect the recipient. Copy it and share it only through a verified private channel.</p>
    <button type="button" onClick={()=>void copy()} className={styles.copy}><Copy size={17}/>{copied?'Copied':'Copy private link'}</button>
   </section>}
   <div className={styles.listHeader}>
