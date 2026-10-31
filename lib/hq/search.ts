@@ -6,7 +6,7 @@ export type HQSearchResult = { result_type: HQSearchResultType; result_id: strin
 // Add new HQ destinations here without modifying the search page or database RPC.
 // This registry searches navigation; database records remain owner-gated by hq_global_search.
 export const hqSearchPages = [
-  {title:"Success Wishes PIN recovery",route:"/hq/success-wishes",keywords:"pin reset pin recovery recover access success wishes receiver account"},
+  {title:"Success Wishes PIN recovery",route:"/hq/support/pin-recovery",keywords:"pin reset pin recovery recover access success wishes receiver account"},
   {title:"Success Wishes",route:"/success-wishes",keywords:"digital success cards send gift wishes"},
   {title:"HQ Search",route:"/hq/search",keywords:"find anything global search"},
   {title:"HQ Home",route:"/hq",keywords:"dashboard overview"},
@@ -15,7 +15,6 @@ export const hqSearchPages = [
   {title:"HQ Schools",route:"/hq/schools",keywords:"school directory"},
   {title:"HQ Content",route:"/hq/content",keywords:"publications lessons resources"},
   {title:"HQ Security",route:"/hq/security",keywords:"incidents privacy safety"},
-  {title:"HQ Analytics",route:"/hq/analytics",keywords:"visitors traffic insights statistics"},
 ] as const
 
 export function searchHQPages(query: string): HQSearchResult[] {
