@@ -16,7 +16,7 @@ export const hqSearchPages = [
   {title:"HQ Content",route:"/hq/content",keywords:"publications lessons resources"},
   {title:"HQ Security",route:"/hq/security",keywords:"incidents privacy safety"},
   {title:"Teacher OS",route:"/teacher",keywords:"teacher app teacher dashboard classroom"},
-  {title:"Teacher lesson plans",route:"/teacher/lesson-plan",keywords:"teacher lessons teaching planning"},
+  {title:"Teacher lesson plans",route:"/teacher/scheme",keywords:"teacher lessons teaching planning"},
   {title:"Teacher attendance",route:"/teacher/attendance",keywords:"teacher roll call register learners"},
   {title:"Teacher assessment",route:"/teacher/assessment",keywords:"teacher marks exams results"},
   {title:"Teacher timetable",route:"/teacher/timetable",keywords:"teacher periods schedule"},
