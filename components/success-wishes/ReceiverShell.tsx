@@ -216,7 +216,7 @@ export default function ReceiverShell({
                 <Inbox />
                 <span>My wishes</span>
               </Link>
-              <Link className="receiver-request" href="/success-wishes/request">
+              <Link className="receiver-request" href="/success-wishes/request" aria-current={pathname === "/success-wishes/request" ? "page" : undefined}>
                 <i>
                   <Plus />
                 </i>
