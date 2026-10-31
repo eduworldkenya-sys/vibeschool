@@ -126,11 +126,12 @@
       ]
     },
     "app/api/hq/visitors/route.ts": {
-      "authority": "anonymous_bounded_ingestion_and_verified_platform_owner_read",
+      "authority": "same_origin_schema_bounded_ingestion_and_verified_platform_owner_read",
       "requiredEvidence": [
+        "req.headers.get('origin') !== req.nextUrl.origin",
+        "safePath(body?.path)",
         "auth.getUser(token)",
         "is_platform_owner",
-        "Rate limited",
         "SUPABASE_SERVICE_ROLE_KEY"
       ]
     },
