@@ -58,6 +58,7 @@ async function editField(page, input, value, focusOnly = false) {
 }
 
 async function makeWish(context, { message, theme }) {
+  await context.addInitScript(() => { try { sessionStorage.setItem('success-wishes-2026-floating-offer-dismissed', '1') } catch {} })
   const page = await context.newPage()
   page.setDefaultTimeout(15000)
   await page.addInitScript(() => {
@@ -208,6 +209,7 @@ async function makeWish(context, { message, theme }) {
 
 async function openCandidate(invitation, message, width, muteFirst = false, reducedMotion = false) {
   const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: reducedMotion ? 'reduce' : 'no-preference' })
+  await context.addInitScript(() => { try { sessionStorage.setItem('success-wishes-2026-floating-offer-dismissed', '1') } catch {} })
   const page = await context.newPage()
   const pageErrors = []
   page.on('pageerror', error => pageErrors.push(error.message))
@@ -269,7 +271,8 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   const widths = []
   for (const width of [320, 360, 390, 412, 560, 768, 1440]) {
     const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
-    const page = await context.newPage()
+    await context.addInitScript(() => { try { sessionStorage.setItem('success-wishes-2026-floating-offer-dismissed', '1') } catch {} })
+  const page = await context.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
     const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
