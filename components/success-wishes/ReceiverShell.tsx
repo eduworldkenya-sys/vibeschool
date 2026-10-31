@@ -25,6 +25,7 @@ import {
   Send,
   LogOut,
   Settings,
+  UserRound,
 } from "lucide-react";
 import {broadcastKeepsakeChange} from '@/lib/success-wishes/receiver-pin-browser';
 
@@ -42,6 +43,7 @@ const ReceiverContext = createContext<{
 export const useReceiverTheme = () => useContext(ReceiverContext);
 const links = [
   { href: "/success-wishes/inbox", label: "My wishes", icon: Inbox },
+  { href: "/success-wishes/account", label: "My account", icon: UserRound },
   { href: "/success-wishes/request", label: "Request a wish", icon: Plus },
   { href: "/success-wishes", label: "Send a wish", icon: Send },
 ];
