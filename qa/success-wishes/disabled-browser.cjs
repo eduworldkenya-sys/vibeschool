@@ -84,7 +84,7 @@ async function makeWish(context, { message, theme }) {
         ]
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(results) })
   })
-  const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
+  const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
   const offerClose = page.getByRole('button', { name: 'Close offer details', exact: true })
   if (await offerClose.isVisible().catch(() => false)) await offerClose.click()
   const dismissOffer = page.getByRole('button', { name: 'Dismiss Success Cards advert', exact: true })
@@ -212,7 +212,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   const pageErrors = []
   page.on('pageerror', error => pageErrors.push(error.message))
   const claim = page.waitForResponse(response => response.url().includes('/api/success-wishes/test-access') && response.request().method() === 'POST')
-  await page.goto(invitation, { waitUntil: 'networkidle', timeout: 90000 })
+  await page.goto(invitation, { waitUntil: 'domcontentloaded', timeout: 90000 })
   const claimResponse = await claim
   assert.equal(claimResponse.status(), 200, 'Candidate claims the private invitation successfully')
   assert.ok((await context.cookies(`${ROOT}/api/success-wishes/test-access`)).some(cookie => cookie.name === 'vsw_test_claim'), 'Private session cookie is stored for this wish')
@@ -249,7 +249,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   await recipientWish.waitFor({ state: 'visible' })
   await page.screenshot({ path: path.join(screenshots, `candidate-open-${width}.png`), fullPage: true })
   const revisit = page.waitForResponse(response => response.url().includes('/api/success-wishes/test-access') && response.request().method() === 'GET')
-  await page.reload({ waitUntil: 'networkidle' })
+  await page.reload({ waitUntil: 'domcontentloaded' })
   const revisitResponse = await revisit
   assert.equal(revisitResponse.status(), 200, 'Active private session returns to the saved wish')
   await page.getByRole('button', { name: 'Open the envelope and reveal the success card' }).waitFor({ state: 'visible' })
@@ -272,7 +272,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     const page = await context.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
-    const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
+    const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
     assert.equal(response.status(), 200)
     await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
     const close=page.getByRole('button',{name:'Close offer details',exact:true});if(await close.isVisible().catch(()=>false))await close.click()
@@ -352,7 +352,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' }).isEnabled(), true, 'Restoring the required message restores the lower action')
     assert.equal(await page.locator('#wish-composer [class*="sendRow"]').getByRole('button', { name: 'Send this wish' }).isEnabled(), true, 'Restoring the required message also restores the upper action')
     await page.waitForFunction(() => JSON.parse(sessionStorage.getItem('vibeschool:success-wishes:sender-draft:v1'))?.draft.examYear === '2027')
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.reload({ waitUntil: 'domcontentloaded' })
     await page.getByRole('status').filter({ hasText: 'Draft restored.' }).waitFor()
     assert.equal(await candidateInput.inputValue(), longCandidate, 'Refresh restores candidate')
     assert.equal(await senderInput.inputValue(), longSender, 'Refresh restores sender')
@@ -397,7 +397,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     await page.getByRole('button', { name: 'Clear draft' }).click()
     assert.equal(await candidateInput.inputValue(), '')
     await page.waitForFunction(() => sessionStorage.getItem('vibeschool:success-wishes:sender-draft:v1') === null)
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.reload({ waitUntil: 'domcontentloaded' })
     assert.equal(await candidateInput.inputValue(), '', 'Cleared draft stays cleared after refresh')
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     assert(overflow <= 1, `Unexpected horizontal overflow at ${width}px: ${overflow}`)
