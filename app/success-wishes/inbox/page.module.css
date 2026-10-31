@@ -80,3 +80,16 @@
 .welcomeIcon{animation:none}
 @media(max-width:359px){.grid,.grid:has(> :only-child){grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:767px){.grid:has(> :only-child){grid-template-columns:minmax(0,210px)}}
+
+/* Two visible cards per row on phones; no full-width 330px list rows. */
+@media(max-width:767px){
+ .page{padding:14px 14px calc(108px + env(safe-area-inset-bottom))}
+ .header{margin-bottom:12px}
+ .header h1{font-size:27px}
+ .welcome{margin-bottom:12px;padding-bottom:12px}
+ .welcome h2{font-size:17px}
+ .welcome p{font-size:12px}
+ .toolbar{margin-bottom:12px}
+ .grid,.grid:has(> :only-child){grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+}
+@media(max-width:359px){.grid,.grid:has(> :only-child){gap:8px}}
