@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import type {CSSProperties, ReactNode} from 'react'
-import {ArrowRight, Check, Gift, Heart} from 'lucide-react'
+import {ArrowRight, Check, Gift} from 'lucide-react'
 import {palette, templates, type Template} from './card-themes'
 import styles from './WishTile.module.css'
 
@@ -31,9 +31,9 @@ export default function WishTile({recipient,theme,sender,opened,date,ariaLabel,b
    <span className={styles.seal}>{opened?<Check size={15}/>:<Gift size={15}/>}</span>
   </span>
   <span className={styles.body}>
-   <span className={styles.meta}><span className={opened?styles.opened:styles.unopened}>{opened?'Opened':'A surprise'}</span>{date&&<time>{date}</time>}</span>
+   <span className={styles.meta}><span className={opened?styles.opened:styles.unopened}>{opened?'A keepsake':'Sealed for you'}</span>{date&&<time>{date}</time>}</span>
    <strong>{opened?sender||'Someone special':'A wish for you'}</strong>
-   <span className={styles.action}>{busy?'Opening…':opened?'Read again':'Unwrap wish'}<ArrowRight size={17} aria-hidden="true"/></span>
+   <span className={styles.action}>{busy?'Opening…':opened?'Open keepsake':'Open your wish'}<ArrowRight size={17} aria-hidden="true"/></span>
   </span>
  </>
  const common={className:opened?styles.tile:styles.tile+' '+styles.sealed,'aria-label':ariaLabel,'aria-busy':busy} as const
