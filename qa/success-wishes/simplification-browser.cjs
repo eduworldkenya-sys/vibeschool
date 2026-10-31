@@ -37,7 +37,7 @@ const apex={...joe,id:'33333333-3333-4333-8333-333333333333',recipientId:'444444
    await page.getByRole('link',{name:'Back to My wishes',exact:true}).click()
    await page.getByRole('region',{name:'Joe collection',exact:true}).waitFor()
    if(width===390){await page.getByRole('heading',{name:'For Apex Plaster',exact:true}).waitFor();assert.equal(await page.getByRole('region',{name:'Apex Plaster collection',exact:true}).count(),0,'Existing PIN collection is not duplicated')}else await page.getByRole('region',{name:'Apex Plaster collection',exact:true}).waitFor()
-   assert.equal(await page.getByLabel('PIN or confirmation code').count(),0,'PIN interrupts guest inbox')
+   assert.equal(await page.getByLabel('Your inbox PIN').count(),0,'PIN interrupts guest inbox')
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Inbox horizontal overflow at '+width)
    if(width===390)await page.getByRole('button',{name:'Read wish from Dad',exact:true}).click();else await page.getByRole('region',{name:'Apex Plaster collection',exact:true}).getByRole('link').click()
    await page.getByRole('heading',{name:'From Dad to Apex Plaster',exact:true}).waitFor()
