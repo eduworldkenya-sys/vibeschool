@@ -139,3 +139,9 @@
 @keyframes skyFloat{from{transform:translateY(3px)}to{transform:translateY(-6px)}}
 @media(prefers-reduced-motion:reduce){.skyBalloon,.skyBurst{animation:none}.skyBurst{display:none}}
 @media(max-width:359px){.inboxSky{min-height:62px}.skyBalloon{width:17px;height:23px}}
+
+/* Staggered fireworks: four small blooms with distinct timing and placement. */
+.skyBurst:nth-last-child(4){left:16%;top:40%;animation-delay:.3s}
+.skyBurst:nth-last-child(3){left:40%;top:22%;animation-delay:.85s;filter:hue-rotate(18deg)}
+.skyBurst:nth-last-child(2){left:64%;top:38%;animation-delay:1.45s;filter:hue-rotate(-22deg)}
+.skyBurst:nth-last-child(1){left:86%;top:23%;animation-delay:2.05s}
