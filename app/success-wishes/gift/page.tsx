@@ -64,7 +64,7 @@ export default function PrivateGiftPage(){
       </header>
       {busy&&<div role="status" className={styles.loading}>Finding your gift…</div>}
       {error&&<div role="alert" className={styles.error}><p>{error}</p><Link href="/success-wishes/inbox">Back to My wishes</Link></div>}
-      {gift&&!busy&&<section aria-label="Your private Success Wish" className={styles.book}>
+      {gift&&!busy&&<section aria-label="Your private Success Wish" className={opened ? styles.bookOpened : styles.book}>
         <ReceiverEnvelope receiverView autoOpen template={gift.theme}
           values={{candidate:gift.candidate,school:gift.school,examYear:gift.examYear,sender:gift.sender||'',message:gift.message||''}}
           soundEnabled={soundEnabled} onOpen={play} beforeOpen={reveal} onOpenedChange={setOpened}/>
