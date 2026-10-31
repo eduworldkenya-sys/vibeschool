@@ -60,6 +60,7 @@ export default function ReceiverShell({
   const [summary, setSummary] = useState<Summary>(null);
   const [logoutError, setLogoutError] = useState("");
   const [signedOut, setSignedOut] = useState(false);
+  const [hasAccount, setHasAccount] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const opener = useRef<HTMLButtonElement>(null);
   const value = useMemo(() => ({ soundEnabled, setSummary, setSoundEnabled }), [soundEnabled]);
@@ -69,6 +70,23 @@ export default function ReceiverShell({
     setSignedOut(false);
     setLogoutError("");
   }, [pathname]);
+  useEffect(() => {
+    if (!receiver) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await fetch("/api/success-wishes/receiver/account", {cache:"no-store"});
+        if (active) setHasAccount(response.ok);
+      } catch { if (active) setHasAccount(false); }
+    };
+    void refresh();
+    const onVisible = () => { if (document.visibilityState === "visible") void refresh(); };
+    const onChange = () => void refresh();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onChange);
+    window.addEventListener("pageshow", onChange);
+    return () => {active = false; document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", onChange); window.removeEventListener("pageshow", onChange);};
+  }, [receiver, pathname, drawer]);
   useEffect(() => {
     const el = dialog.current;
     if (!el) return;
@@ -83,6 +101,7 @@ export default function ReceiverShell({
   }, [drawer]);
   async function signOut() {
     setSignedOut(true);
+    setHasAccount(false);
     setSummary(null);
     setLogoutError("");
     try {
@@ -110,7 +129,7 @@ export default function ReceiverShell({
   );
   const nav = (
     <nav aria-label="Receiver menu">
-      {links.map(({ href, label, icon: Icon }) => (
+      {links.filter(({href}) => hasAccount || href !== "/success-wishes/account").map(({ href, label, icon: Icon }) => (
         <Link
           key={href}
           href={href}
@@ -122,7 +141,7 @@ export default function ReceiverShell({
           {href.endsWith("/inbox") && summary && <em>{summary.unopened}</em>}
         </Link>
       ))}
-      <details className="receiver-account-options"><summary><Settings size={18}/><span>Settings</span></summary><div><Link href="/success-wishes/settings" onClick={() => setDrawer(false)}><ShieldCheck size={18}/>Privacy &amp; safety</Link><Link href="/success-wishes/recover" onClick={() => setDrawer(false)}><KeyRound size={18}/>Recover access</Link><button type="button" onClick={() => void signOut()}><LogOut size={18}/>Sign out</button><Link href="/" onClick={() => setDrawer(false)}><Home size={18}/>VibeSchool home</Link></div></details>
+      <details className="receiver-account-options"><summary><Settings size={18}/><span>Settings</span></summary><div><Link href="/success-wishes/settings" onClick={() => setDrawer(false)}><ShieldCheck size={18}/>Privacy &amp; safety</Link><Link href="/success-wishes/recover" onClick={() => setDrawer(false)}><KeyRound size={18}/>Recover access</Link>{hasAccount && <button type="button" onClick={() => void signOut()}><LogOut size={18}/>Sign out</button>}<Link href="/" onClick={() => setDrawer(false)}><Home size={18}/>VibeSchool home</Link></div></details>
     </nav>
   );
   const sound = (
