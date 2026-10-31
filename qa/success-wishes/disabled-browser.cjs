@@ -101,7 +101,8 @@ async function makeWish(context, { message, theme }) {
   assert.equal(await formSend.count(), 0, 'The upper send button is hidden before personalisation is complete')
   const designButton = page.getByRole('button', { name: `Choose ${theme} card` })
   await designButton.click()
-  assert.equal(await designButton.getAttribute('aria-pressed'), 'true', 'Choosing a design updates the selected card immediately')
+  await page.waitForFunction(label=>document.querySelector(`[aria-label="Choose ${label} card"]`)?.getAttribute('aria-pressed')==='true',theme)
+  assert.equal(await designButton.getAttribute('aria-pressed'), 'true', 'Choosing a design updates the selected card after its React state settles')
   await page.locator('#wish-composer').scrollIntoViewIfNeeded() // A shorter composer may already fit at the document's scroll limit.
   const mini = page.locator('[aria-label="Live card preview"]')
   assert.equal(await mini.isVisible(), page.viewportSize().width <= 850, 'Mini preview appears only on mobile/tablet layouts')
