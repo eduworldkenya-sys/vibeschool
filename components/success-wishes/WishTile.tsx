@@ -31,7 +31,7 @@ export default function WishTile({recipient,theme,sender,opened,date,ariaLabel,b
    <span className={styles.seal}>{opened?<Check size={15}/>:<Heart size={15}/>}</span>
   </span>
   <span className={styles.body}>
-   <span className={styles.meta}><span className={opened?styles.opened:styles.unopened}>{opened?'Opened':'New wish'}</span>{date&&<time>{date}</time>}</span>
+   <span className={styles.meta}><span className={opened?styles.opened:styles.unopened}>{opened?'Opened':'Unopened'}</span>{date&&<time>{date}</time>}</span>
    <strong>{opened?sender||'Someone special':'A wish for you'}</strong>
    <span className={styles.action}>{busy?'Opening…':opened?'Read again':'Open your wish'}<ArrowRight size={17} aria-hidden="true"/></span>
   </span>
