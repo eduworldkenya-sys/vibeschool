@@ -64,7 +64,7 @@ export default function ReceiverAccountHub(){
  }
  const protectedInbox=state.access==='signed-in'
  const giftCount=protectedInbox?state.count:state.deviceCount
- const countLabel=giftCount===null?'View your collection':giftCount===0?'Your collection is ready':giftCount===1?'1 wish waiting for you':`${giftCount} wishes to enjoy`
+ const countLabel=giftCount===null?'Your gifts, all in one place':giftCount===0?'Your collection is ready':giftCount===1?'1 saved gift':`${giftCount} saved gifts`
  return <main className={styles.page}>
   <div className={styles.inner}>
    <header className={styles.header}>
