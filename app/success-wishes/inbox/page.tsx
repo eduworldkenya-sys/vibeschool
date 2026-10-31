@@ -112,7 +112,7 @@ export default function MyWishes() {
 
   return <main className={styles.page}>
     <header className={styles.header}>
-      <div><p className={styles.eyebrow}>A LITTLE JOY, JUST FOR YOU</p><h1>My wishes <Sparkles size={22} aria-hidden="true" className={styles.titleSparkle}/></h1></div>
+      <div><p className={styles.eyebrow}>A LITTLE JOY, JUST FOR YOU</p><h1>My wishes</h1></div>
     </header>
     {error && <div className={styles.error} role="alert"><p>{error}</p><button type="button" onClick={() => {openingLock.current=false; setOpening(null); void load()}}>Try again</button></div>}
     {busy && !data && <div className={styles.loading} role="status"><span className={styles.loadingIcon}><Mail size={23}/></span>Finding your wishes…</div>}
@@ -137,7 +137,7 @@ export default function MyWishes() {
         <div><h2>For {data.recipient.name}</h2><p>{data.cards.length ? 'Someone is cheering you on.' : 'A little encouragement belongs here.'}</p></div>
         <span className={styles.waiting}>{unopened ? String(unopened)+' surprises' : String(data.cards.length)+' saved'}</span>
       </section>
-      {unopened>0 && <div className={styles.celebration} role="status"><span className={styles.celebrationIcon}><Gift size={22}/></span><span><strong>{unopened===1?'A surprise is waiting for you':`${unopened} surprises are waiting for you`}</strong><small>Tap a sealed wish to discover your message.</small></span><Sparkles size={18} aria-hidden="true"/></div>}
+      {unopened>0 && <div className={styles.celebration} role="status"><span className={styles.celebrationIcon}><Gift size={22}/></span><span><strong>{unopened===1?'A surprise is waiting for you':`${unopened} surprises are waiting for you`}</strong><small>Tap a sealed wish to discover your message.</small></span></div>}
       {data.cards.length>1 && <div className={styles.toolbar}>
         <div className={styles.filters} role="group" aria-label="Filter wishes">
           <button type="button" aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All <span>{data.cards.length}</span></button>
