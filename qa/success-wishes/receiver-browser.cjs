@@ -21,7 +21,7 @@ function mocks(page,state){page.route('**/api/success-wishes/**',async route=>{
   else{status=400;p={error:'Unexpected account action'}}
  }else if(u.pathname.endsWith('/collection')){
   if(!state.login){status=401;p={error:'Unlock your wishes.'}}
-  else if(method==='GET'){if(state.loadPause)await state.loadPause;p={recipient:{id:ID,name:state.name||'Charles',school:'Example school'},cards:[card,{...card,id:'22222222-2222-4222-8222-222222222222',sender:'Aunt Jane',opened:true,source:state.legacy?'legacy':'paid'}]}}
+  else if(method==='GET'){if(state.loadPause)await state.loadPause;p={recipient:{id:ID,name:state.name||'Charles',school:'Example school'},cards:[card,{...card,id:'22222222-2222-4222-8222-222222222222',sender:'Aunt Jane',opened:true,source:state.legacy?'legacy':'paid'},...Array.from({length:3},(_,i)=>({...card,id:'33333333-3333-4333-8333-'+String(i+1).padStart(12,'0'),sender:'Family '+(i+1),opened:true}))].slice(0,state.cardCount??2)}}
   else{if(state.initialPause)await state.initialPause;if(b.reveal&&state.revealPause)await state.revealPause;if(b.reveal)state.opened=true;p={card:{...card,...(b.reveal?{sender:'Mum',message:MESSAGE,opened:true}:{})}}}
  }else if(u.pathname.endsWith('/gift')){if(method==='PUT')state.opened=true;p={card:{...card,...(method==='PUT'?{sender:'Mum',message:MESSAGE,opened:true}:{})}}}
  else if(u.pathname.endsWith('/remembered'))p={cards:[]}
@@ -48,6 +48,22 @@ async function run(){await ready();browser=await chromium.launch({headless:true,
   await page.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'});await page.getByRole('button',{name:'Read wish from Aunt Jane'}).waitFor();await signOut(page);await page.waitForURL('**/success-wishes/recover');await page.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'});await page.getByRole('button',{name:'I have an inbox'}).click();await page.getByLabel('PIN or confirmation code',{exact:true}).fill('9999');await page.getByRole('button',{name:'Open my wishes',exact:true}).click();await page.getByRole('alert').filter({hasText:'Check your details'}).waitFor();await page.getByLabel('PIN or confirmation code',{exact:true}).fill('0123');await page.getByRole('button',{name:'Open my wishes',exact:true}).click();await page.getByRole('button',{name:'Read wish from Aunt Jane'}).waitFor();await page.reload({waitUntil:'networkidle'});await page.getByRole('button',{name:'Read wish from Aunt Jane'}).waitFor();assert.equal(await page.getByLabel('PIN or confirmation code',{exact:true}).count(),0)
   await page.goto(ROOT+'/success-wishes/recover#recovery='+TOKEN,{waitUntil:'networkidle'});assert(!page.url().includes('#recovery='));await page.getByLabel('New PIN',{exact:true}).fill('0123');await page.getByLabel('Confirm PIN',{exact:true}).fill('0123');await page.getByRole('button',{name:'Reset PIN',exact:true}).click();await page.getByRole('textbox',{name:'Private recovery link',exact:true}).waitFor();await page.getByRole('button',{name:'Open my wishes',exact:true}).click();await page.getByRole('button',{name:'Read wish from Aunt Jane'}).waitFor();assert.deepEqual(errors,[]);console.log('PIN receiver browser pass:',width);await ctx.close()
  }
+
+ // Real receiver states: empty, one wish and many; no compulsory signup or needless controls.
+ for(const count of [0,1,5]){
+  const c=await browser.newContext({viewport:{width:360,height:720}}),p=await c.newPage(),st={login:true,opened:false,theme:'heritage',cardCount:count};mocks(p,st)
+  await p.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'})
+  if(count===0){await p.getByRole('heading',{name:'Your first wish awaits'}).waitFor();assert.equal(await p.getByRole('textbox',{name:'Search wishes'}).count(),0)}
+  else{await p.getByRole('button',{name:/^Open wish 1,/}).waitFor();assert.equal(await p.locator('[aria-label="Your wishes"]>button').count(),count);assert.equal(await p.getByRole('textbox',{name:'Search wishes'}).count(),count===1?0:1)}
+  await noOverflow(p,'PIN count '+count);await c.close()
+ }
+ const empty=await browser.newContext({viewport:{width:320,height:690}}),emptyPage=await empty.newPage();mocks(emptyPage,{login:false,opened:false,theme:'heritage'})
+ await emptyPage.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'})
+ await emptyPage.getByRole('heading',{name:'No wishes here yet'}).waitFor()
+ assert.equal(await emptyPage.getByLabel('PIN or confirmation code').count(),0)
+ await emptyPage.getByRole('button',{name:'I have an inbox'}).click()
+ await emptyPage.getByLabel('PIN or confirmation code').waitFor()
+ await noOverflow(emptyPage,'Signed out empty inbox');await empty.close()
  const ctx=await browser.newContext({viewport:{width:390,height:840}}),a=await ctx.newPage(),b=await ctx.newPage(),state={login:true,opened:false,theme:'heritage'};mocks(a,state);mocks(b,state);await a.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'});await b.goto(ROOT+'/success-wishes/inbox',{waitUntil:'networkidle'});await a.getByRole('button',{name:'Read wish from Aunt Jane'}).waitFor();await signOut(a);await b.getByRole('heading',{name:'No wishes here yet',exact:true}).waitFor();assert.equal(await b.getByRole('button',{name:'Read wish from Aunt Jane'}).count(),0);await ctx.close()
  // Reopening during a slow DELETE cannot retain private rows after revocation completes.
  for(const storageOnly of [false,true]){
