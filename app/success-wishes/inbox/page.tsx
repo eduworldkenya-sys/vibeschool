@@ -138,7 +138,7 @@ export default function MyWishes() {
         <div><h2>For {data.recipient.name}</h2><p>{data.cards.length ? 'These wishes were made for you.' : 'A little encouragement belongs here.'}</p></div>
         <span className={styles.waiting}>{unopened ? String(unopened)+' surprises' : String(data.cards.length)+' saved'}</span>
       </section>
-      {unopened>0 && <div className={styles.celebration} role="status"><span className={styles.celebrationIcon}><Gift size={22}/></span><span><strong>{unopened===1?'A surprise is waiting for you':`${unopened} surprises are waiting for you`}</strong><small>A personal message is waiting inside.</small></span></div>}
+      {unopened>0 && <div className={styles.celebration} role="status"><span className={styles.partyEffects} aria-hidden="true"><i/><i/><i/><i/><i/><i/><b/><b/></span><span className={styles.celebrationIcon}><Gift size={22}/></span><span><strong>{unopened===1?'A surprise is waiting for you':`${unopened} surprises are waiting for you`}</strong><small>A personal message is waiting inside.</small></span></div>}
       {data.cards.length>1 && <div className={styles.toolbar}>
         <div className={styles.filters} role="group" aria-label="Filter wishes">
           <button type="button" aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All <span>{data.cards.length}</span></button>
