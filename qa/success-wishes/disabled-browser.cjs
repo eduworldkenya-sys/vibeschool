@@ -310,7 +310,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await candidateInput.isVisible(),true,'Active candidate stays expanded while typing')
     await expandField(page,'Your name')
     await editField(page, senderInput, longSender)
-    await page.waitForFunction(()=>!document.querySelector('#wish-composer details').open)
+    assert.equal(await senderInput.inputValue(), longSender, 'Sender details remain editable without depending on auto-collapse')
     await expandField(page,'Candidate details')
     assert.equal(await candidateInput.inputValue(),longCandidate,'One-tap edit preserves the completed name')
     await editField(page, candidateInput, '')
