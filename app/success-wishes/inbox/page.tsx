@@ -138,7 +138,7 @@ export default function MyWishes() {
     {error && <div className={styles.error} role="alert"><p>{error}</p><button onClick={() => {openingLock.current=false; setOpening(null); void load()}}>Try again</button></div>}
     {busy && !data && <div className={styles.loading} role="status"><span className={styles.loadingIcon}><Mail size={24}/></span>Opening your wishes…</div>}
     <RememberedWishes onLoaded={giftsLoaded} excludeReceiverId={data?.recipient.id}/>
-    {login && !busy && remembered!==null && (remembered===0||showAccount) && <ReceiverAccount onReady={() => void load()}/>}
+    {login && !busy && remembered!==null && (remembered===0||showAccount) && <section className={styles.empty} aria-label="Access your wishes"><Mail size={28} aria-hidden="true"/><h2>{remembered===0?'Your wishes will appear here':'Open your protected inbox'}</h2><p>{remembered===0?'Have a private gift link? Open it to read your card. No account is needed.':'Sign in with your PIN to view wishes saved in your protected inbox.'}</p><div style={{display:'flex',gap:12,flexWrap:'wrap',justifyContent:'center'}}><Link href="/success-wishes/open">Open a gift or inbox</Link><Link href="/success-wishes/request">Request a wish</Link></div><details style={{marginTop:16,textAlign:'left'}} open={showAccount}><summary style={{cursor:'pointer',minHeight:44}}>Use a PIN-protected inbox</summary><ReceiverAccount onReady={() => void load()}/></details></section>}
     {login && !busy && !!remembered && !showAccount && <button type="button" onClick={()=>setShowAccount(true)}>Use PIN or recovery link</button>}
     {data && <>
       <section className={styles.welcome} aria-label="Your collection">
@@ -146,7 +146,7 @@ export default function MyWishes() {
         <div><h2>For {data.recipient.name}</h2><p>{data.cards.length ? 'Someone is cheering you on.' : 'A little encouragement belongs here.'}</p></div>
         <span className={styles.waiting}>{unopened ? `${unopened} waiting` : `${data.cards.length} saved`}</span>
       </section>
-      {data.cards.length > 0 && <div className={styles.toolbar}>
+      {data.cards.length > 1 && <div className={styles.toolbar}>
         <div className={styles.filters} role="group" aria-label="Filter wishes">
           <button aria-pressed={filter==='all'} onClick={() => setFilter('all')}>All <span>{data.cards.length}</span></button>
           <button aria-pressed={filter==='unopened'} onClick={() => setFilter('unopened')}>Unopened <span>{unopened}</span></button>
