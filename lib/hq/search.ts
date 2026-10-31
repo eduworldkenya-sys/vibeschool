@@ -15,6 +15,15 @@ export const hqSearchPages = [
   {title:"HQ Schools",route:"/hq/schools",keywords:"school directory"},
   {title:"HQ Content",route:"/hq/content",keywords:"publications lessons resources"},
   {title:"HQ Security",route:"/hq/security",keywords:"incidents privacy safety"},
+  {title:"Teacher OS",route:"/teacher",keywords:"teacher app teacher dashboard classroom"},
+  {title:"Teacher lesson plans",route:"/teacher/lesson-plan",keywords:"teacher lessons teaching planning"},
+  {title:"Teacher attendance",route:"/teacher/attendance",keywords:"teacher roll call register learners"},
+  {title:"Teacher assessment",route:"/teacher/assessment",keywords:"teacher marks exams results"},
+  {title:"Teacher timetable",route:"/teacher/timetable",keywords:"teacher periods schedule"},
+  {title:"Parent OS",route:"/parent",keywords:"parents guardians family app"},
+  {title:"Student OS",route:"/student",keywords:"student learner homework lessons app"},
+  {title:"Success Wishes receiver inbox",route:"/success-wishes/inbox",keywords:"received gifts cards my wishes"},
+  {title:"Success Wishes sender",route:"/success-wishes",keywords:"send gift card checkout"},
 ] as const
 
 export function searchHQPages(query: string): HQSearchResult[] {
