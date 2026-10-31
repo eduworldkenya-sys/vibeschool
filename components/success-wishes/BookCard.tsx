@@ -11,11 +11,11 @@ type Props = {
   template: Template; values: CardValues; soundEnabled: boolean; onOpen: () => void
   onOpenedChange?: (open: boolean) => void; beforeOpen?: () => Promise<boolean>
   mediaKind?: 'text' | 'voice' | 'video'; mediaSrc?: string
-  senderPreview?: boolean; receiverView?: boolean; initiallyOpen?: boolean
+  senderPreview?: boolean; receiverView?: boolean; initiallyOpen?: boolean; autoOpen?: boolean
 }
 
 export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChange, beforeOpen,
-  mediaKind = 'text', mediaSrc = '', senderPreview = false, receiverView = false, initiallyOpen = false }: Props) {
+  mediaKind = 'text', mediaSrc = '', senderPreview = false, receiverView = false, initiallyOpen = false, autoOpen = false }: Props) {
   const [phase, setPhase] = useState<Phase>(initiallyOpen ? 'opened' : 'sealed')
   const [checking, setChecking] = useState(false)
   const [error, setError] = useState('')
@@ -39,11 +39,13 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   }
   useEffect(() => {
     mounted.current = true
+    lock.current = false
     const pending = timers.current
     return () => {
       mounted.current = false
       generation.current += 1
       pending.forEach(clearTimeout)
+      timers.current = []
     }
   }, [])
   useEffect(() => {
@@ -51,7 +53,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
     if (phase === 'sealed' && hasOpened.current) envelope.current?.focus({ preventScroll: true })
   }, [phase, senderPreview])
 
-  async function open() {
+  async function open(automatic = false) {
     if (lock.current || phaseRef.current !== 'sealed') return
     lock.current = true
     setChecking(true)
@@ -63,7 +65,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       if (!allowed) { lock.current = false; return }
       setChecking(false)
       move('unsealing')
-      if (callbacks.current.soundEnabled) callbacks.current.onOpen()
+      if (callbacks.current.soundEnabled && !automatic) callbacks.current.onOpen()
       delay(() => {
         move('revealing-book')
         delay(() => {
@@ -85,6 +87,10 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
       if (mounted.current && current === generation.current) setChecking(false)
     }
   }
+  // A private gift link or inbox card is one action: animate after server-authorised reveal.
+  // The effect does not rerun after the reader intentionally closes the book.
+  useEffect(() => { if (receiverView && autoOpen && !initiallyOpen) void open(true) }, [receiverView, autoOpen, initiallyOpen])
+
   function close() {
     if (lock.current || phaseRef.current !== 'opened') return
     lock.current = true
