@@ -133,6 +133,7 @@ export default function MyWishes() {
       <button type="button" onClick={()=>setShowAccount(true)}>Open PIN-protected inbox</button>
     </div>}
     {data && <>
+      {data.cards.length>0 && <div className={styles.inboxSky} aria-hidden="true"><span className={styles.skyBalloon}/><span className={styles.skyBalloon}/><span className={styles.skyBalloon}/><span className={styles.skyBalloon}/><span className={styles.skyBalloon}/><span className={styles.skyBurst}/><span className={styles.skyBurst}/><span className={styles.skyBurst}/><span className={styles.skyBurst}/></div>}
       <section className={styles.welcome} aria-label="Your collection">
         <span className={styles.welcomeIcon} aria-hidden="true"><Heart size={21}/></span>
         <div><h2>For {data.recipient.name}</h2><p>{data.cards.length ? 'These wishes were made for you.' : 'A little encouragement belongs here.'}</p></div>

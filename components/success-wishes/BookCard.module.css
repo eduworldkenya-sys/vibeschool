@@ -40,3 +40,20 @@
 /* Leave the receiver navigation clear while keeping both pages in view. */
 .preview[data-receiver-view=true] .stage{height:clamp(380px,calc(100svh - 220px),510px)}
 @media(max-width:560px){.preview[data-receiver-view=true] .stage{height:clamp(380px,calc(100svh - 185px),485px)}}
+
+/* Recipient-only first reveal: lightweight celebration behind no controls. */
+.revealCelebration{position:absolute;inset:0;z-index:12;overflow:hidden;pointer-events:none}
+.revealCelebration i{position:absolute;bottom:-32px;left:var(--x);width:20px;height:27px;border-radius:50% 50% 46% 46%;background:var(--c);box-shadow:inset -4px -4px 5px #0002;animation:revealBalloon 2.6s ease-out both;animation-delay:var(--d)}
+.revealCelebration i::after{content:"";position:absolute;top:100%;left:50%;width:1px;height:19px;background:#ead8b8}
+.revealCelebration i:nth-child(1){--x:9%;--c:#e6c978;--d:0s}
+.revealCelebration i:nth-child(2){--x:25%;--c:#e9c1b4;--d:.2s}
+.revealCelebration i:nth-child(3){--x:51%;--c:#c4b4df;--d:.1s}
+.revealCelebration i:nth-child(4){--x:76%;--c:#f1d9a5;--d:.35s}
+.revealCelebration i:nth-child(5){--x:90%;--c:#b9d5bc;--d:.15s}
+.revealCelebration b{position:absolute;top:var(--top);left:var(--left);width:3px;height:3px;border-radius:50%;background:#ffe4a2;box-shadow:0 -17px #e8bf64,12px -12px #f5d78d,17px 0 #e8bf64,12px 12px #f5d78d,0 17px #e8bf64,-12px 12px #f5d78d,-17px 0 #e8bf64,-12px -12px #f5d78d;animation:revealFirework .95s ease-out var(--delay) both}
+.revealCelebration b:nth-last-child(3){--top:20%;--left:19%;--delay:.35s}
+.revealCelebration b:nth-last-child(2){--top:35%;--left:75%;--delay:.9s}
+.revealCelebration b:nth-last-child(1){--top:15%;--left:52%;--delay:1.4s}
+@keyframes revealBalloon{0%{opacity:0;transform:translateY(0)}20%{opacity:.9}75%{opacity:.85}100%{opacity:0;transform:translateY(-260px)}}
+@keyframes revealFirework{0%{opacity:0;scale:.2}35%{opacity:1}100%{opacity:0;scale:1.7}}
+@media(prefers-reduced-motion:reduce){.revealCelebration{display:none}}

@@ -18,6 +18,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   mediaKind = 'text', mediaSrc = '', senderPreview = false, receiverView = false, initiallyOpen = false, autoOpen = false }: Props) {
   const [phase, setPhase] = useState<Phase>(initiallyOpen ? 'opened' : 'sealed')
   const [checking, setChecking] = useState(false)
+  const [revealCelebration, setRevealCelebration] = useState(false)
   const [error, setError] = useState('')
   const phaseRef = useRef<Phase>(initiallyOpen ? 'opened' : 'sealed')
   const lock = useRef(false)
@@ -72,6 +73,10 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
           move('opening')
           delay(() => {
             move('opened')
+            if (receiverView && !hasOpened.current) {
+              setRevealCelebration(true)
+              delay(() => setRevealCelebration(false), 2600)
+            }
             hasOpened.current = true
             lock.current = false
             callbacks.current.onOpenedChange?.(true)
@@ -111,6 +116,7 @@ export function BookCard({ template, values, soundEnabled, onOpen, onOpenedChang
   return <div className={styles.preview} data-receiver-view={receiverView || undefined}
     data-card-open={opened} data-book-phase={phase} data-theme={template} style={variables}>
     <div className={styles.stage}>
+      {revealCelebration && <div className={styles.revealCelebration} aria-hidden="true"><i/><i/><i/><i/><i/><b/><b/><b/></div>}
       <div className={styles.bookShadow} aria-hidden="true" />
       <div className={styles.pageStack} aria-hidden="true" />
       <div className={styles.spine} aria-hidden="true" />
