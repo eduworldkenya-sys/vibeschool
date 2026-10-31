@@ -33,7 +33,7 @@ const apex={...joe,id:'33333333-3333-4333-8333-333333333333',recipientId:'444444
    assert.equal(await page.getByRole('button',{name:'Open the envelope and reveal the success card'}).count(),0)
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Gift horizontal overflow at '+width)
    const message=await page.getByTestId('success-card-message-preview').boundingBox();assert(message.y<640,'Message requires scrolling at '+width)
-   if(width<768){const book=await page.locator('[data-receiver-view] > div').first().boundingBox();assert(book.y+book.height<670,'Book hidden by bottom navigation at '+width)}
+   if(width<768){assert.equal(await page.locator('.receiver-bottom:visible').count(),0,'Reading hides the duplicate bottom navigation at '+width);const book=await page.locator('[data-receiver-view] > div').first().boundingBox();assert(book.width<=width+1,'Book exceeds phone width at '+width)}
    await page.getByRole('link',{name:'Back to My wishes',exact:true}).click()
    await page.getByRole('region',{name:'Joe collection',exact:true}).waitFor()
    if(width===390){await page.getByRole('heading',{name:'For Apex Plaster',exact:true}).waitFor();assert.equal(await page.getByRole('region',{name:'Apex Plaster collection',exact:true}).count(),0,'Existing PIN collection is not duplicated')}else await page.getByRole('region',{name:'Apex Plaster collection',exact:true}).waitFor()
