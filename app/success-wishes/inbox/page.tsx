@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {useRouter} from 'next/navigation'
-import {Gift, Heart, Mail, Search} from 'lucide-react'
+import {Gift, Heart, Mail, Search, Grid2X2, Layers3} from 'lucide-react'
 import RememberedWishes from '@/components/success-wishes/RememberedWishes'
 import ReceiverAccount from '@/components/success-wishes/ReceiverAccount'
 import {useReceiverTheme} from '@/components/success-wishes/ReceiverShell'
@@ -28,6 +28,7 @@ export default function MyWishes() {
   const [opening, setOpening] = useState<string|null>(null)
   const [filter, setFilter] = useState<'all'|'unopened'>('all')
   const [query, setQuery] = useState('')
+  const [view, setView] = useState<'tiles'|'stack'>('tiles')
   const generation = useRef({value:0})
   const openingLock = useRef(false)
   const sessionGeneration = useRef({value:0})
@@ -145,7 +146,8 @@ export default function MyWishes() {
         </div>
         <label className={styles.search}><Search size={17} aria-hidden="true"/><input aria-label="Search wishes" placeholder="Find a wish" value={query} onChange={event=>setQuery(event.target.value)}/></label>
       </div>}
-      {cards.length>0 ? <section className={styles.grid} aria-label="Your wishes">{cards.map((card,index)=>{
+      {cards.length>0 && <div className={styles.viewSwitch} role="group" aria-label="Card display style"><button type="button" aria-pressed={view==='tiles'} onClick={()=>setView('tiles')}><Grid2X2 size={16} aria-hidden="true"/> Tiles</button><button type="button" aria-pressed={view==='stack'} onClick={()=>setView('stack')}><Layers3 size={16} aria-hidden="true"/> Stack</button></div>}
+      {cards.length>0 ? <section className={view==='stack'?styles.stack:styles.grid} aria-label="Your wishes">{cards.map((card,index)=>{
         const design=templates.find(item=>item.id===card.theme)||templates[0]
         const date=card.createdAt&&Number.isFinite(Date.parse(card.createdAt))?new Date(card.createdAt).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'}):''
         const selected=opening===card.source+card.id
