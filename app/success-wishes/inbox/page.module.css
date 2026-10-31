@@ -106,3 +106,21 @@
 .stack>*:focus-visible{z-index:3}
 @media(min-width:768px){.stack>*{width:min(100%,430px)}}
 @media(prefers-reduced-motion:reduce){.stack>*{transition:none}}
+
+/* Midnight Celebration: short, quiet balloon ascent and two golden firework blooms. */
+.celebration{isolation:isolate;background:#171d2b;border-color:#a98b50}
+.celebration>span:not(.partyEffects){position:relative;z-index:2}
+.partyEffects{position:absolute;inset:0;z-index:1;overflow:hidden;pointer-events:none}
+.partyEffects i{position:absolute;bottom:-25px;left:var(--left);width:14px;height:19px;border-radius:50% 50% 46% 46%;background:var(--balloon);opacity:0;box-shadow:inset -3px -3px 4px #0002;animation:balloonRise 2.8s ease-out both;animation-delay:var(--delay)}
+.partyEffects i::after{content:"";position:absolute;top:100%;left:50%;width:1px;height:17px;background:#f2dcb477}
+.partyEffects i:nth-child(1){--left:8%;--balloon:#d7b96c;--delay:0s}
+.partyEffects i:nth-child(2){--left:22%;--balloon:#f3d6a8;--delay:.35s}
+.partyEffects i:nth-child(3){--left:44%;--balloon:#cda1a8;--delay:.15s}
+.partyEffects i:nth-child(4){--left:65%;--balloon:#d6b86b;--delay:.55s}
+.partyEffects i:nth-child(5){--left:84%;--balloon:#c7b6d5;--delay:.25s}
+.partyEffects i:nth-child(6){--left:94%;--balloon:#f3d6a8;--delay:.65s}
+.partyEffects b{position:absolute;top:22%;left:76%;width:4px;height:4px;border-radius:50%;opacity:0;background:#ffe3a0;box-shadow:0 -14px #e6c579,10px -10px #e6c579,14px 0 #ffe3a0,10px 10px #e6c579,0 14px #ffe3a0,-10px 10px #e6c579,-14px 0 #ffe3a0,-10px -10px #e6c579;animation:fireworkBloom 1s ease-out .55s both}
+.partyEffects b:last-child{top:65%;left:37%;animation-delay:1.2s;transform-origin:center}
+@keyframes balloonRise{0%{opacity:0;transform:translateY(0)}18%{opacity:.85}72%{opacity:.8}100%{opacity:0;transform:translateY(-135px)}}
+@keyframes fireworkBloom{0%{opacity:0;scale:.15}30%{opacity:.9}100%{opacity:0;scale:1.65}}
+@media(prefers-reduced-motion:reduce){.partyEffects{display:none}}
