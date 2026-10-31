@@ -133,6 +133,17 @@
         "Rate limited",
         "SUPABASE_SERVICE_ROLE_KEY"
       ]
+    },
+    "app/api/hq/support/pin-recovery/route.ts": {
+      "authority": "verified_active_hq_founder_or_support_manage_with_independent_recipient_evidence",
+      "requiredEvidence": [
+        "auth.getUser(token)",
+        "hq_human_members",
+        "support.manage",
+        "confirmedVerified",
+        "Not authorized",
+        "recoveryHash(capability)"
+      ]
     }
   }
 }
