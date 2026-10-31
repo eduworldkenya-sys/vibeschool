@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {useRouter} from 'next/navigation'
-import {Gift, Heart, Mail, Search, Sparkles} from 'lucide-react'
+import {Gift, Heart, Mail, Search} from 'lucide-react'
 import RememberedWishes from '@/components/success-wishes/RememberedWishes'
 import ReceiverAccount from '@/components/success-wishes/ReceiverAccount'
 import {useReceiverTheme} from '@/components/success-wishes/ReceiverShell'
@@ -112,7 +112,7 @@ export default function MyWishes() {
 
   return <main className={styles.page}>
     <header className={styles.header}>
-      <div><p className={styles.eyebrow}>A LITTLE JOY, JUST FOR YOU</p><h1>My wishes</h1></div>
+      <div><p className={styles.eyebrow}>A COLLECTION OF KIND WORDS</p><h1>My wishes</h1></div>
     </header>
     {error && <div className={styles.error} role="alert"><p>{error}</p><button type="button" onClick={() => {openingLock.current=false; setOpening(null); void load()}}>Try again</button></div>}
     {busy && !data && <div className={styles.loading} role="status"><span className={styles.loadingIcon}><Mail size={23}/></span>Finding your wishes…</div>}
@@ -134,10 +134,10 @@ export default function MyWishes() {
     {data && <>
       <section className={styles.welcome} aria-label="Your collection">
         <span className={styles.welcomeIcon} aria-hidden="true"><Heart size={21}/></span>
-        <div><h2>For {data.recipient.name}</h2><p>{data.cards.length ? 'Someone is cheering you on.' : 'A little encouragement belongs here.'}</p></div>
+        <div><h2>For {data.recipient.name}</h2><p>{data.cards.length ? 'These wishes were made for you.' : 'A little encouragement belongs here.'}</p></div>
         <span className={styles.waiting}>{unopened ? String(unopened)+' surprises' : String(data.cards.length)+' saved'}</span>
       </section>
-      {unopened>0 && <div className={styles.celebration} role="status"><span className={styles.celebrationIcon}><Gift size={22}/></span><span><strong>{unopened===1?'A surprise is waiting for you':`${unopened} surprises are waiting for you`}</strong><small>Tap a sealed wish to discover your message.</small></span></div>}
+      {unopened>0 && <div className={styles.celebration} role="status"><span className={styles.celebrationIcon}><Gift size={22}/></span><span><strong>{unopened===1?'A surprise is waiting for you':`${unopened} surprises are waiting for you`}</strong><small>A personal message is waiting inside.</small></span></div>}
       {data.cards.length>1 && <div className={styles.toolbar}>
         <div className={styles.filters} role="group" aria-label="Filter wishes">
           <button type="button" aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All <span>{data.cards.length}</span></button>
@@ -151,7 +151,7 @@ export default function MyWishes() {
         const selected=opening===card.source+card.id
         return <WishTile key={card.source+card.id} recipient={data.recipient.name} theme={card.theme} sender={card.sender} opened={card.opened} date={date} busy={selected} disabled={opening!==null} ariaLabel={card.opened?'Read wish from '+(card.sender||'Someone special'):'Open wish '+String(index+1)+', '+design.name} onOpen={()=>void openCard(card)}/>
       })}</section> : <section className={styles.empty}>
-        <Sparkles size={28} aria-hidden="true"/>
+        <Heart size={28} aria-hidden="true"/>
         <h2>{search?'No matching wishes':filter==='unopened'&&data.cards.length?'All wishes opened':'Your first wish awaits'}</h2>
         <p>{search?'Try another name or card design.':data.cards.length?'Read your favourite messages again.':'When a Success Card is sent to your collection, it will appear here.'}</p>
         {data.cards.length>0?<button type="button" onClick={()=>{setQuery('');setFilter('all')}}>Show all wishes</button>:<Link href="/success-wishes/request">Request a wish</Link>}
