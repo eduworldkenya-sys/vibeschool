@@ -753,3 +753,9 @@
  .receiver-theme .receiver-account-hub .account-summary {padding:16px;}
  .receiver-theme .receiver-account-hub .account-link {min-height:62px;}
 }
+
+/* The gift reader has its own Back to My wishes action; keep the book unobstructed. */
+@media(max-width:767px){
+ .receiver-reading-focus .receiver-bottom{display:none}
+ .receiver-reading-focus .receiver-app{padding-bottom:0}
+}
