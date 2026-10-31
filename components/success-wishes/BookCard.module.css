@@ -38,4 +38,5 @@
 @media(prefers-reduced-motion:reduce){.cover,.envelope,.spread,.spine,.envelope::after{transition:none!important;animation:none!important}.preview[data-book-phase=opened] .page>*{animation:none}}
 
 /* Leave the receiver navigation clear while keeping both pages in view. */
-.preview[data-receiver-view=true] .stage{height:clamp(300px,calc(100svh - 230px),440px)}
+.preview[data-receiver-view=true] .stage{height:clamp(380px,calc(100svh - 220px),510px)}
+@media(max-width:560px){.preview[data-receiver-view=true] .stage{height:clamp(380px,calc(100svh - 185px),485px)}}
