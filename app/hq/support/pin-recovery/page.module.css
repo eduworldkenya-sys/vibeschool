@@ -1,0 +1,47 @@
+.page{box-sizing:border-box;max-width:740px;width:100%;margin:0 auto;padding:22px 18px calc(110px + env(safe-area-inset-bottom));color:#e6edf7;font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5}
+.header{margin-bottom:24px}
+.eyebrow{margin:0 0 5px;color:#90b7d6;letter-spacing:.12em;font-size:10px;font-weight:700}
+.header h1{font-size:24px;font-weight:700;line-height:1.25;margin:0 0 8px}
+.header p:last-child{color:#b9c8d8;font-size:13px;margin:0;max-width:550px}
+.listHeader{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 12px}
+.listHeader h2,.reviewHeader h2{font-size:17px;margin:0;font-weight:650}
+.refresh{display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:8px 13px;background:#172b41;border:1px solid #3b526c;border-radius:9px;color:#e6edf7;cursor:pointer;font:600 12px Inter,system-ui,sans-serif}
+.refresh:disabled{opacity:.6;cursor:wait}
+.requestList{display:grid;gap:9px}
+.request{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:72px;width:100%;padding:13px 15px;background:#111d2d;border:1px solid #33485c;border-radius:12px;color:#e6edf7;text-align:left;cursor:pointer}
+.request[aria-pressed=true]{background:#17334b;border-color:#80a8c9}
+.request span{display:grid;gap:3px;min-width:0}
+.request strong{font-size:14px;overflow-wrap:anywhere}
+.request small{font-size:11px;color:#aebfd1;line-height:1.4}
+.request svg{flex-shrink:0;color:#9cabc1}
+.empty{padding:20px 16px;border:1px solid #33485c;border-radius:12px;color:#aebfd1}
+.review{margin-top:22px;padding:19px;border:1px solid #34516c;border-radius:14px;background:#101d2c}
+.reviewHeader{display:flex;justify-content:space-between;gap:14px;align-items:center;margin-bottom:10px}
+.reviewHeader span{font-size:11px;color:#aebfd1}
+.helper{margin:0 0 18px;font-size:12px;line-height:1.55;color:#bdcbdd}
+.options{display:grid;gap:9px;border:0;margin:0;padding:0}
+.options legend{font-size:13px;font-weight:600;margin-bottom:10px}
+.option{display:flex;gap:11px;padding:13px;border:1px solid #3c5065;border-radius:10px;cursor:pointer;background:#14263a}
+.option:has(input:checked){border-color:#9abbda;background:#1a3854}
+.option input{width:18px;height:18px;margin:2px 0 0;flex-shrink:0;accent-color:#e2c572}
+.option span{display:grid;gap:3px}
+.option strong{font-size:13px}
+.option small{font-size:11px;color:#b6c5d6;line-height:1.4}
+.verify{display:grid;gap:11px;margin-top:18px}
+.fieldLabel{font-size:13px;font-weight:600}
+.verify textarea,.result textarea{box-sizing:border-box;width:100%;min-width:0;resize:vertical;padding:11px 12px;border:1px solid #5b7089;border-radius:10px;background:#0b1827;color:#edf3fb;font:13px/1.55 Inter,system-ui,sans-serif}
+.confirm{display:flex;align-items:start;gap:11px;font-size:12px;line-height:1.55;color:#cfdae8;cursor:pointer}
+.confirm input{flex-shrink:0;width:18px;height:18px;accent-color:#e2c572;margin:2px 0 0}
+.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:20px}
+.actions button{min-height:44px;padding:10px 15px;border-radius:10px;font:600 13px/1.3 Inter,system-ui,sans-serif;cursor:pointer}
+.approve{display:inline-flex;align-items:center;gap:8px;background:#e4c87d;border:1px solid #e4c87d;color:#192331}
+.approve:disabled{opacity:.4;cursor:not-allowed}
+.reject{background:transparent;border:1px solid #576d83;color:#d6dfea}
+.reject:disabled{opacity:.5;cursor:wait}
+.error,.warning{border:1px solid #965b5b;background:#381c2499;color:#ffd8d8;border-radius:10px;padding:13px;font-size:12px}
+.result{margin:0 0 20px;border:1px solid #6c936c;border-radius:12px;background:#102a23;padding:16px}
+.resultHead{display:flex;align-items:center;gap:9px;color:#d1f6d6}
+.result p{font-size:12px;line-height:1.55;color:#c8e2d3}
+.copy{display:inline-flex;gap:8px;align-items:center;min-height:44px;margin-top:10px;padding:10px 13px;border-radius:9px;border:1px solid #7b9f8b;background:#234935;color:#f5fff7;font-size:12px;font-weight:650;cursor:pointer}
+.page :focus-visible{outline:2px solid #e4c87d;outline-offset:3px}
+@media(max-width:420px){.page{padding:17px 14px calc(112px + env(safe-area-inset-bottom))}.review{padding:15px}.header h1{font-size:22px}.actions button{width:100%;justify-content:center}}
