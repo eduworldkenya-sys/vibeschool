@@ -306,6 +306,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     const longCandidate = 'C'.repeat(48), longSender = 'S'.repeat(48), longSchool = 'N'.repeat(80)
     const longWish = Array(7).fill('a'.repeat(30)).join(' ')
     await page.getByRole('button', { name: 'Choose Bright Star card' }).click()
+    await page.waitForFunction(() => document.querySelector('button[aria-label="Choose Bright Star card"]')?.getAttribute('aria-pressed') === 'true')
     await editField(page, candidateInput, longCandidate)
     assert.equal(await candidateInput.isVisible(),true,'Active candidate stays expanded while typing')
     await expandField(page,'Your name')
