@@ -493,17 +493,13 @@
   .receiver-bottom [aria-current="page"] {
     color: #d4af37;
   }
-  .receiver-bottom .receiver-request {
-    margin-top: 0;
-    color: #d4af37;
-    font-weight: 700;
-  }
+  .receiver-bottom .receiver-request { margin-top:0; }
   .receiver-request i {
     display: grid;
     place-items: center;
     padding: 0;
     background: transparent;
-    color: #0a0d14;
+    color: inherit;
     border-radius: 50%;
     box-shadow: none;
   }
@@ -643,116 +639,6 @@
  .receiver-inbox-fit .receiver-bottom{min-height:64px}
 }
 
-
-/* Receiver account hub: intentional compact rhythm across Android and desktop. */
-.receiver-theme .receiver-account-hub {
-  width:100%;
-  max-width:680px;
-  margin-inline:auto;
-  padding:28px 22px 128px;
-  font-size:14px;
-  line-height:1.5;
-}
-.receiver-theme .receiver-account-hub .account-heading {
-  display:flex;
-  align-items:center;
-  gap:12px;
-  margin:0 0 24px;
-}
-.receiver-theme .receiver-account-hub .account-heading p {
-  margin:0 0 3px;
-  font-size:10px;
-  line-height:1.3;
-  letter-spacing:.12em;
-}
-.receiver-theme .receiver-account-hub .account-heading h1 {
-  margin:0;
-  font-size:clamp(25px, 5vw, 31px);
-  line-height:1.15;
-  font-weight:650;
-}
-.receiver-theme .receiver-account-hub .account-summary {
-  border:1px solid #34425a;
-  border-radius:16px;
-  padding:18px;
-  background:#111827;
-}
-.receiver-theme .receiver-account-hub .account-summary h2 {
-  margin:5px 0 8px;
-  font-size:17px;
-  line-height:1.3;
-}
-.receiver-theme .receiver-account-hub .account-summary p {
-  font-size:13px;
-  line-height:1.55;
-}
-.receiver-theme .receiver-account-hub .account-summary a {
-  min-height:44px;
-  font-size:13px;
-}
-.receiver-theme .receiver-account-hub .account-section-heading {
-  margin:25px 0 12px;
-  font-size:19px;
-  line-height:1.3;
-}
-.receiver-theme .receiver-account-hub .account-switch,
-.receiver-theme .receiver-account-hub .account-link {
-  display:flex;
-  align-items:center;
-  gap:14px;
-  min-width:0;
-  min-height:65px;
-  padding:13px 16px;
-  font-size:14px;
-  line-height:1.35;
-}
-.receiver-theme .receiver-account-hub .account-switch {
-  border:1px solid #34425a;
-  border-radius:14px;
-  background:#111827;
-  margin-bottom:10px;
-}
-.receiver-theme .receiver-account-hub .account-links {
-  border:1px solid #34425a;
-  border-radius:14px;
-  overflow:hidden;
-  background:#111827;
-}
-.receiver-theme .receiver-account-hub .account-link {
-  border-bottom:1px solid #263245;
-}
-.receiver-theme .receiver-account-hub .account-link:last-child {
-  border-bottom:0;
-}
-.receiver-theme .receiver-account-hub .account-switch strong,
-.receiver-theme .receiver-account-hub .account-link strong {
-  font-size:14px;
-  font-weight:650;
-}
-.receiver-theme .receiver-account-hub .account-switch span span,
-.receiver-theme .receiver-account-hub .account-link span span {
-  font-size:12px;
-  line-height:1.4;
-  overflow-wrap:anywhere;
-}
-.receiver-theme .receiver-account-hub .account-switch>span,
-.receiver-theme .receiver-account-hub .account-link>span {
-  min-width:0;
-}
-.receiver-theme .receiver-account-hub .account-footnote {
-  margin:16px 0 0;
-  font-size:12px;
-  line-height:1.5;
-}
-@media(max-width:767px) {
- .receiver-theme .receiver-content .receiver-account-hub {
-   padding:24px 18px calc(128px + env(safe-area-inset-bottom));
- }
- .receiver-theme .receiver-account-hub .account-heading {margin-bottom:19px;}
- .receiver-theme .receiver-account-hub .account-heading h1 {font-size:27px;}
- .receiver-theme .receiver-account-hub .account-summary {padding:16px;}
- .receiver-theme .receiver-account-hub .account-link {min-height:62px;}
-}
 
 /* The gift reader has its own Back to My wishes action; keep the book unobstructed. */
 @media(max-width:767px){

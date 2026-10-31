@@ -24,7 +24,7 @@ function mocks(page,state){page.route('**/api/success-wishes/**',async route=>{
   else if(method==='GET'){if(state.loadPause)await state.loadPause;p={recipient:{id:ID,name:state.name||'Charles',school:'Example school'},cards:[card,{...card,id:'22222222-2222-4222-8222-222222222222',sender:'Aunt Jane',opened:true,source:state.legacy?'legacy':'paid'},...Array.from({length:3},(_,i)=>({...card,id:'33333333-3333-4333-8333-'+String(i+1).padStart(12,'0'),sender:'Family '+(i+1),opened:true}))].slice(0,state.cardCount??2)}}
   else{if(state.initialPause)await state.initialPause;if(b.reveal&&state.revealPause)await state.revealPause;if(b.reveal)state.opened=true;p={card:{...card,...(b.reveal?{sender:'Mum',message:MESSAGE,opened:true}:{})}}}
  }else if(u.pathname.endsWith('/gift')){if(method==='PUT')state.opened=true;p={card:{...card,...(method==='PUT'?{sender:'Mum',message:MESSAGE,opened:true}:{})}}}
- else if(u.pathname.endsWith('/remembered'))p={cards:[]}
+ else if(u.pathname.endsWith('/remembered'))p={cards:Array.from({length:state.rememberedCount||0},(_,i)=>({id:'55555555-5555-4555-8555-'+String(i+1).padStart(12,'0'),recipientId:'66666666-6666-4666-8666-666666666666',candidate:'Saved recipient',theme:'heritage',sender:'Family',opened:true}))}
  else if(u.pathname.endsWith('/request')){if(!state.login){status=401;p={error:'Unlock your wishes.'}}else p={id:ID,phone:'+254733000222',url:ROOT+'/success-wishes/invite#token='+TOKEN,expiresInDays:7}}
  else if(u.pathname.endsWith('/inbox')&&method==='DELETE'){state.login=false;p={ok:true}}
  else if(u.pathname.endsWith('/inbox')&&method==='POST'){if(state.openPause)await state.openPause;p={url:ROOT+'/success-wishes/gift?source=paid&card='+ID}}
@@ -65,6 +65,53 @@ async function run(){await ready();browser=await chromium.launch({headless:true,
  await emptyPage.getByRole('button',{name:'I have an inbox'}).click()
  await emptyPage.getByLabel('Your inbox PIN').waitFor()
  await noOverflow(emptyPage,'Signed out empty inbox');await empty.close()
+
+ // Account is a compact gift entry, never a mandatory PIN gate; privacy actions remain secondary.
+ for(const width of [320,360,390,412,768,1280]){
+  for(const signedIn of [false,true]){
+   const count=width===320?0:width===390?1:5
+   const c=await browser.newContext({viewport:{width,height:720},reducedMotion:'reduce'})
+   const p=await c.newPage(),state={login:signedIn,opened:false,theme:'heritage',cardCount:count,rememberedCount:count}
+   const errors=[];p.on('pageerror',e=>errors.push(e.message));mocks(p,state)
+   await p.goto(ROOT+'/success-wishes/account',{waitUntil:'domcontentloaded'})
+   await p.getByRole('heading',{name:'My account',exact:true}).waitFor()
+   await p.getByRole('link',{name:'View my gifts',exact:true}).waitFor()
+   await p.getByText(count===0?'Your collection is ready':count===1?'1 saved gift':'5 saved gifts',{exact:true}).waitFor()
+   assert.equal(await p.getByText('No PIN inbox signed in').count(),0,'No vault-like account notice on a gift page')
+   assert.equal(await p.locator('.receiver-bottom .receiver-request[aria-current="page"]').count(),0,'Request is not highlighted on My account')
+   assert.equal(await p.getByText('For Charles',{exact:true}).count(),signedIn?1:0,'Learner identity requires an authenticated receiver session')
+   assert.equal(await p.getByText('+254733000111',{exact:true}).count(),0,'Delivery phone is not exposed in account summary')
+   const manage=p.locator('details').filter({has:p.getByText('Account & privacy',{exact:true})})
+   assert.equal(await manage.evaluate(el=>el.open),false,'Secondary controls start collapsed')
+   await manage.locator('summary').click()
+   assert.equal(await p.getByRole('link',{name:'Privacy & safety'}).count(),1)
+   assert.equal(await p.getByRole('link',{name:'Open a PIN inbox'}).count(),signedIn?0:1)
+   assert.equal(await p.getByRole('link',{name:'PIN & recovery'}).count(),signedIn?1:0)
+   assert.equal(await p.getByRole('button',{name:'Switch receiver'}).count(),signedIn?1:0)
+   await noOverflow(p,'Account '+width+' '+(signedIn?'PIN':'guest'))
+   const main=p.locator('main')
+   assert(await main.evaluate(el=>getComputedStyle(el).width!=='0px'),'Account must render at '+width)
+   assert.deepEqual(errors,[],'No account browser errors at '+width)
+   await p.screenshot({path:path.join(screenshots,'account-'+(signedIn?'pin':'guest')+'-'+width+'.png'),fullPage:true})
+   await c.close()
+  }
+ }
+ // Switching a protected receiver needs approval and clears that session.
+ {
+  const c=await browser.newContext({viewport:{width:390,height:720}}),p=await c.newPage()
+  const state={login:true,opened:false,theme:'heritage',cardCount:2};mocks(p,state)
+  await p.goto(ROOT+'/success-wishes/account',{waitUntil:'domcontentloaded'})
+  await p.getByRole('heading',{name:'For Charles'}).waitFor()
+  await p.getByText('Account & privacy').click()
+  p.once('dialog',dialog=>dialog.dismiss())
+  await p.getByRole('button',{name:'Switch receiver'}).click()
+  assert(state.login,'Cancelling switch must retain the session')
+  p.once('dialog',dialog=>dialog.accept())
+  await p.getByRole('button',{name:'Switch receiver'}).click()
+  await p.waitForURL('**/success-wishes/open')
+  assert(!state.login,'Approved switch revokes the current session')
+  await c.close()
+ }
  const ctx=await browser.newContext({viewport:{width:390,height:840}}),a=await ctx.newPage(),b=await ctx.newPage(),state={login:true,opened:false,theme:'heritage'};mocks(a,state);mocks(b,state);await a.goto(ROOT+'/success-wishes/inbox',{waitUntil:'domcontentloaded'});await b.goto(ROOT+'/success-wishes/inbox',{waitUntil:'domcontentloaded'});await a.getByRole('button',{name:'Read wish from Aunt Jane'}).waitFor();await signOut(a);await b.getByRole('heading',{name:'No wishes here yet',exact:true}).waitFor();assert.equal(await b.getByRole('button',{name:'Read wish from Aunt Jane'}).count(),0);await ctx.close()
  // Reopening during a slow DELETE cannot retain private rows after revocation completes.
  for(const storageOnly of [false,true]){
