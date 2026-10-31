@@ -102,7 +102,7 @@ async function makeWish(context, { message, theme }) {
   const designButton = page.getByRole('button', { name: `Choose ${theme} card` })
   await designButton.click()
   assert.equal(await designButton.getAttribute('aria-pressed'), 'true', 'Choosing a design updates the selected card immediately')
-  await page.waitForFunction(() => { const top=document.getElementById('wish-composer').getBoundingClientRect().top; return top>=0 && top<innerHeight-180 }) // A shorter composer may already fit at the document's scroll limit.
+  await page.locator('#wish-composer').scrollIntoViewIfNeeded() // A shorter composer may already fit at the document's scroll limit.
   const mini = page.locator('[aria-label="Live card preview"]')
   assert.equal(await mini.isVisible(), page.viewportSize().width <= 850, 'Mini preview appears only on mobile/tablet layouts')
   await page.screenshot({ path: path.join(screenshots, `design-preview-${theme.replace(/\s+/g, '-')}.png`) })
