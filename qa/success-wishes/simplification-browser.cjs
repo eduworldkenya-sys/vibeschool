@@ -23,7 +23,7 @@ const apex={...joe,id:'33333333-3333-4333-8333-333333333333',recipientId:'444444
     if(path.endsWith('/gift')){assert(['POST','PUT'].includes(method),'Metadata check precedes authorized reveal');return answer({card:method==='PUT'?joe:{...joe,sender:null,message:undefined,opened:false}})}
     if(path.endsWith('/receiver/account'))return answer({error:'Unlock your wishes.'},401)
     if(path.endsWith('/receiver/collection')){if(width!==390)return answer({error:'Unlock your wishes.'},401);if(method==='POST')return answer({card:apex});return answer({recipient:{id:apex.recipientId,name:apex.candidate,school:apex.school},cards:[{...apex,source:'paid'}]})}
-    if(path.endsWith('/receiver/remembered')){if(method==='GET')return answer({cards:[joe,apex].map(({message,...c})=>c)});const b=route.request().postDataJSON();assert.equal(b.reveal,true);return answer({card:b.id===apex.id?apex:joe})}
+    if(path.endsWith('/receiver/remembered')){if(method==='GET')return answer({cards:[joe,apex].map(({message,...c})=>c)});const b=route.request().postDataJSON(),card=b.id===apex.id?apex:joe;assert.equal(typeof b.reveal,'boolean');return answer({card:b.reveal?card:{...card,sender:null,message:undefined,opened:false}})}
     return answer({})
    })
    await page.goto(ROOT+'/success-wishes/gift#token='+token)
