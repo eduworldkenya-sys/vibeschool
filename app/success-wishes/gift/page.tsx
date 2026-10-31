@@ -35,12 +35,12 @@ export default function PrivateGiftPage(){
     const value=new URLSearchParams(window.location.hash.slice(1)).get('token')||''
     secret.current=value
     if(!new URLSearchParams(location.search).get('card')&&!/^[a-f0-9]{64}$/.test(value)){setError('Open the private gift link shared by the sender.');setBusy(false);return}
-    void fetchGift(value,true).then(card=>{if(active&&revision===state.value){setGift(card);setOpened(false)}})
+    void fetchGift(value,false).then(card=>{if(active&&revision===state.value){setGift(card);setOpened(false)}})
       .catch(reason=>{if(active&&revision===state.value)setError(reason instanceof Error?reason.message:'Gift unavailable.')})
       .finally(()=>{if(active&&revision===state.value)setBusy(false)})
     const clear=()=>{if(!secret.current){state.value++;setGift(null);setOpened(false);setBusy(false);setError('Your inbox changed. Open My wishes to continue.')}}
     const stop=watchKeepsakeChange(clear)
-    const verify=()=>{if(document.visibilityState==='visible'&&!secret.current){const current=state.value;void fetchGift('',true).then(card=>{if(active&&current===state.value){setGift(card);setOpened(true)}}).catch(clear)}}
+    const verify=()=>{if(document.visibilityState==='visible'&&!secret.current){const current=state.value;void fetchGift('',false).then(card=>{if(active&&current===state.value){setGift(card);setOpened(true)}}).catch(clear)}}
     window.addEventListener('pagehide',clear);document.addEventListener('visibilitychange',verify)
     return()=>{active=false;state.value++;stop();window.removeEventListener('pagehide',clear);document.removeEventListener('visibilitychange',verify);sound.current?.()}
   },[])
