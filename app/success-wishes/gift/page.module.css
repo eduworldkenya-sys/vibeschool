@@ -29,3 +29,15 @@
 .fullMessage{width:100%;border:1px solid #5d5339;border-radius:12px;background:#f3ead4;color:#453825;text-align:left}
 .fullMessage summary{cursor:pointer;min-height:44px;padding:12px 17px;font:600 13px/1.4 system-ui,sans-serif}
 .fullMessage p{margin:0;border-top:1px solid #c6ad77;padding:16px 18px;font:16px/1.65 Georgia,serif;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* A gentle celebratory arrival around the opened book. */
+.book{position:relative;isolation:isolate;animation:giftArrive .55s ease-out both}
+.book::before{content:'';position:absolute;z-index:-1;inset:8% 5%;border-radius:50%;pointer-events:none;background:transparent;animation:none}
+@keyframes giftArrive{from{opacity:.65;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes giftGlow{0%{opacity:0;transform:scale(.86)}45%{opacity:1}100%{opacity:.55;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.book,.book::before{animation:none}}
+
+/* A quiet paper-like reveal instead of animated particles. */
+.bookOpened{position:relative;isolation:isolate;min-width:0;width:100%;animation:keepsakeReveal 420ms cubic-bezier(.2,.7,.2,1) both}
+@keyframes keepsakeReveal{from{opacity:.8;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.bookOpened{animation:none}}

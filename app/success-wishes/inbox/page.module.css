@@ -49,3 +49,27 @@
  .empty{padding:19px 17px;margin-top:15px}
 }
 @media(max-width:359px){.welcomeIcon{display:none}.welcome h2{font-size:18px}.waiting{font-size:10px}}
+
+/* Gift-first collection: delight without continuous motion or layout shifts. */
+.celebration{position:relative;display:flex;align-items:center;gap:13px;margin:0 0 18px;padding:15px 16px;border:1px solid #a88b4b75;border-radius:16px;background:#1b2130;color:#f5e6bc;overflow:hidden}
+.celebrationIcon{display:grid;place-items:center;width:44px;height:44px;flex-shrink:0;border-radius:14px;background:#e3c67e20;color:#f0d68c;animation:giftWelcome 380ms ease-out both}
+.celebration>span:nth-child(2){display:grid;gap:3px;flex:1;min-width:0}
+.celebration strong{font:650 14px/1.4 system-ui,sans-serif}
+.celebration small{font:12px/1.4 system-ui,sans-serif;color:#c9c5cb}
+@keyframes giftWelcome{from{opacity:0;transform:translateY(8px) scale(.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:767px){
+ .page{padding-top:17px}
+ .header{margin-bottom:14px}
+ .header h1{font-size:30px}
+ .welcome{margin-bottom:14px}
+ .celebration{padding:12px;gap:10px;margin-bottom:15px}
+ .celebrationIcon{width:39px;height:39px}
+ .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:13px}
+ .filters{flex:1;justify-content:space-around}
+ .filters button{padding:7px 9px;min-height:38px}
+ .search{width:100%;min-height:40px}
+ .grid,.grid:has(> :only-child){grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+ .grid:has(> :only-child){grid-template-columns:minmax(0,210px)}
+}
+@media(max-width:359px){.grid{gap:8px}
+@media(prefers-reduced-motion:reduce){.titleSparkle,.celebrationIcon,

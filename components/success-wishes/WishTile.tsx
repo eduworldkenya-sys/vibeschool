@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import type {CSSProperties, ReactNode} from 'react'
-import {ArrowRight, Check, Heart} from 'lucide-react'
+import {ArrowRight, Check, Gift, Heart} from 'lucide-react'
 import {palette, templates, type Template} from './card-themes'
 import styles from './WishTile.module.css'
 
@@ -28,15 +28,15 @@ export default function WishTile({recipient,theme,sender,opened,date,ariaLabel,b
    <span className={styles.ornament}>{design.id==='botanical'?'✿':design.id==='nightfall'?'✦':design.id==='sunrise'?'☀':'✧'}</span>
    <span className={styles.headline}>{design.headline}</span>
    <span className={styles.recipient}>For {recipient}</span>
-   <span className={styles.seal}>{opened?<Check size={15}/>:<Heart size={15}/>}</span>
+   <span className={styles.seal}>{opened?<Check size={15}/>:<Gift size={15}/>}</span>
   </span>
   <span className={styles.body}>
-   <span className={styles.meta}><span className={opened?styles.opened:styles.unopened}>{opened?'Opened':'Unopened'}</span>{date&&<time>{date}</time>}</span>
+   <span className={styles.meta}><span className={opened?styles.opened:styles.unopened}>{opened?'Opened':'A surprise'}</span>{date&&<time>{date}</time>}</span>
    <strong>{opened?sender||'Someone special':'A wish for you'}</strong>
-   <span className={styles.action}>{busy?'Opening…':opened?'Read again':'Open your wish'}<ArrowRight size={17} aria-hidden="true"/></span>
+   <span className={styles.action}>{busy?'Opening…':opened?'Read again':'Unwrap wish'}<ArrowRight size={17} aria-hidden="true"/></span>
   </span>
  </>
- const common={className:styles.tile,'aria-label':ariaLabel,'aria-busy':busy} as const
+ const common={className:opened?styles.tile:styles.tile+' '+styles.sealed,'aria-label':ariaLabel,'aria-busy':busy} as const
  if(href) return <Link href={href} {...common}>{inner}</Link>
  return <button type="button" {...common} disabled={disabled||busy} onClick={onOpen}>{inner}</button>
 }
