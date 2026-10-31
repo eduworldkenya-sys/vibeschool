@@ -275,6 +275,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
     assert.equal(response.status(), 200)
     await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
+    await page.locator('#wish-composer[data-draft-hydrated="true"]').waitFor()
     const close=page.getByRole('button',{name:'Close offer details',exact:true});if(await close.isVisible().catch(()=>false))await close.click()
     const dismiss=page.getByRole('button',{name:'Dismiss Success Cards advert',exact:true});if(await dismiss.isVisible().catch(()=>false))await dismiss.click()
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
