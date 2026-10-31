@@ -1,4 +1,5 @@
 import { hqSupabase } from "@/lib/hq/supabase"
+import { WORKER_IDENTITIES, WORKER_KEY_ALIASES } from "@/lib/hq/workforceIdentity"
 
 export type HQSearchResultType = "page" | "work_item" | "decision" | "artifact" | "notification" | "incident" | "worker" | "workforce_job" | "school" | "publication" | "curriculum_outcome"
 export type HQSearchResult = { result_type: HQSearchResultType; result_id: string; title: string; subtitle: string | null; status: string | null; route: string; updated_at: string | null; rank: number }
@@ -27,7 +28,7 @@ export const hqSearchPages = [
 ] as const
 
 export function searchHQPages(query: string): HQSearchResult[] {
- const terms=query.trim().toLowerCase().split(/\\s+/).filter(Boolean)
+ const terms=query.trim().toLowerCase().split(/\s+/).filter(Boolean)
  if (!terms.length) return []
  return hqSearchPages.filter(page=>terms.every(term=>`${page.title} ${page.keywords}`.toLowerCase().includes(term)))
   .map((page,index)=>({result_type:"page",result_id:page.route,title:page.title,subtitle:"HQ destination",status:null,route:page.route,updated_at:null,rank:index}))
@@ -39,4 +40,29 @@ export async function searchHQ(query: string, limit = 40): Promise<HQSearchResul
   const { data, error } = await hqSupabase.rpc("hq_global_search", { p_query: normalized, p_limit: Math.max(1, Math.min(limit, 80)) })
   if (error) throw error
   return (data ?? []) as HQSearchResult[]
+}
+
+/** Named workforce identities are the same presentation catalogue used by HQ Workforce.
+ * They are not independent worker accounts; each links to its governed worker key. */
+export function searchHQWorkforceNames(query: string): HQSearchResult[] {
+  const terms = query.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
+  if (!terms.length) return []
+  return Object.values(WORKER_IDENTITIES)
+    .filter(identity => terms.every(term =>
+      [identity.name, identity.role, identity.purpose, identity.key].join(" ").toLocaleLowerCase().includes(term)))
+    .map((identity, index) => {
+      const technicalKeys = Object.entries(WORKER_KEY_ALIASES)
+        .filter(([, namedKey]) => namedKey === identity.key)
+        .map(([key]) => key)
+      return {
+        result_type: "worker" as const,
+        result_id: "named:" + identity.key,
+        title: identity.name,
+        subtitle: identity.role + " · " + [identity.key, ...technicalKeys].join(", "),
+        status: null,
+        route: "/hq/workforce",
+        updated_at: null,
+        rank: index,
+      }
+    })
 }
