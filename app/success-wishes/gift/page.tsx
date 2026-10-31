@@ -11,7 +11,7 @@ import type { Template } from '@/components/success-wishes/SuccessCardStudio'
 import GiftShareActions from '@/components/success-wishes/GiftShareActions'
 import DownloadSuccessCard from '@/components/success-wishes/DownloadSuccessCard'
 
-type Gift = {id:string;theme:Template;candidate:string;school:string;examYear:string;sender:string|null;message?:string;remembered?:boolean}
+type Gift = {id:string;source?:string;theme:Template;candidate:string;school:string;examYear:string;sender:string|null;message?:string;remembered?:boolean}
 async function fetchGift(token:string,reveal=false):Promise<Gift> {
   const query=new URLSearchParams(window.location.search),id=query.get('card'),source=query.get('source')
   const response=await fetch(id?(source==='remembered'?'/api/success-wishes/receiver/remembered':'/api/success-wishes/receiver/collection'):'/api/success-wishes/gift',{method:id?'POST':reveal?'PUT':'POST',
@@ -70,8 +70,9 @@ export default function PrivateGiftPage(){
           soundEnabled={soundEnabled} onOpen={play} beforeOpen={reveal} onOpenedChange={setOpened}/>
       </section>}
       {gift&&<div className={styles.after}>
-        <p className={styles.note}>{opened?(gift.remembered===false?'Keep the private gift link to read again.':'Your wish is saved on this device.'):'You can open the book again whenever you like.'}</p>
+        <p className={styles.note}>{opened?(gift.remembered===false?'Keep the private gift link to read again.':gift.source==='remembered'||gift.remembered===true?'Your wish is saved on this device.':'Your wish remains in your private inbox.'):'You can open the book again whenever you like.'}</p>
         <Link className={styles.return} href="/success-wishes/inbox">Back to My wishes</Link>
+        {opened&&gift.message&&gift.message.length>140&&<details className={styles.fullMessage}><summary>Read the full message</summary><p>{gift.message}</p></details>}
         {opened&&<details className={styles.more}>
           <summary>Save, share or send a wish</summary>
           <div className={styles.moreBody}>
