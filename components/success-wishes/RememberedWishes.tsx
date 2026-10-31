@@ -1,24 +1,52 @@
 'use client'
-import Link from 'next/link'
 import {useCallback,useEffect,useRef,useState} from 'react'
 import {watchKeepsakeChange} from '@/lib/success-wishes/receiver-pin-browser'
 import type {RememberedGift} from '@/lib/success-wishes/remembered-gifts'
-import {palette,templates,type Template} from './card-themes'
-/** These tiles describe gifts already opened on this browser, never a phone-number directory. */
+import WishTile from './WishTile'
+import styles from './RememberedWishes.module.css'
+
+/** Read only gifts previously opened on this browser; a shared phone never enumerates accounts. */
 export default function RememberedWishes({onLoaded,excludeReceiverId}:{onLoaded:(count:number)=>void;excludeReceiverId?:string}){
- const [cards,setCards]=useState<RememberedGift[]>([]),[error,setError]=useState('')
+ const [cards,setCards]=useState<RememberedGift[]>([])
+ const [error,setError]=useState('')
  const generation=useRef(0)
- const load=useCallback(async()=>{const revision=++generation.current;try{const r=await fetch('/api/success-wishes/receiver/remembered',{cache:'no-store'});const p=await r.json();if(revision!==generation.current)return;if(!r.ok)throw Error(p.error);setCards(p.cards);setError('');onLoaded(p.cards.length)}catch{if(revision===generation.current){setError('Reconnect to load your saved gifts.');onLoaded(0)}}},[onLoaded])
- useEffect(()=>{void load();const clear=()=>{generation.current++;setCards([]);onLoaded(0)};const stop=watchKeepsakeChange(clear);const visible=()=>{if(document.visibilityState==='visible')void load()};document.addEventListener('visibilitychange',visible);window.addEventListener('pagehide',clear);return()=>{generation.current++;stop();document.removeEventListener('visibilitychange',visible);window.removeEventListener('pagehide',clear)}},[load,onLoaded])
- const visible=cards.filter(c=>!excludeReceiverId||c.collectionId!==excludeReceiverId&&c.recipientId!==excludeReceiverId)
+ const load=useCallback(async()=>{
+  const revision=++generation.current
+  try{
+   const r=await fetch('/api/success-wishes/receiver/remembered',{cache:'no-store'})
+   const p=await r.json()
+   if(revision!==generation.current)return
+   if(!r.ok)throw Error(p.error||'Saved wishes unavailable')
+   const gifts:Array<RememberedGift>=Array.isArray(p.cards)?p.cards:[]
+   setCards(gifts);setError('')
+   onLoaded(gifts.filter(c=>!excludeReceiverId||(c.collectionId!==excludeReceiverId&&c.recipientId!==excludeReceiverId)).length)
+  }catch{
+   if(revision===generation.current){setCards([]);setError('Could not load saved wishes.');onLoaded(0)}
+  }
+ },[onLoaded,excludeReceiverId])
+ useEffect(()=>{
+  void load()
+  const clear=()=>{generation.current++;setCards([]);onLoaded(0)}
+  const stop=watchKeepsakeChange(clear)
+  const visible=()=>{if(document.visibilityState==='visible')void load()}
+  document.addEventListener('visibilitychange',visible)
+  window.addEventListener('pagehide',clear)
+  return()=>{generation.current++;stop();document.removeEventListener('visibilitychange',visible);window.removeEventListener('pagehide',clear)}
+ },[load,onLoaded])
+ const visible=cards.filter(c=>!excludeReceiverId||(c.collectionId!==excludeReceiverId&&c.recipientId!==excludeReceiverId))
  const groups=Array.from(new Set(visible.map(c=>c.recipientId)))
- if(error)return <p role="alert">{error} <button onClick={()=>void load()}>Try again</button></p>
+ if(error)return <p role="alert" className={styles.error}>{error} <button type="button" onClick={()=>void load()}>Try again</button></p>
  if(!visible.length)return null
- return <section aria-label="Saved gift collections" style={{display:'grid',gap:16,marginBottom:16}}>
-  <p style={{margin:0,color:'#c3c7d1'}}>Special wishes, always here.</p>
-  {groups.map(id=>{const gifts=visible.filter(c=>c.recipientId===id);return <section key={id} aria-label={gifts[0].candidate+' collection'} style={{display:'grid',gap:10}}>
-   <h2 style={{fontSize:20,margin:'4px 0'}}>{gifts[0].candidate}</h2>
-   <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,150px),1fr))',gap:12}}>{gifts.map(c=>{const theme=palette[c.theme as Template]||palette.heritage;const design=templates.find(t=>t.id===c.theme)||templates[0];return <Link key={c.id} href={'/success-wishes/gift?source=remembered&card='+c.id} style={{display:'grid',gap:12,minHeight:160,padding:18,border:'1px solid '+theme.accent,borderRadius:12,background:theme.top,color:theme.ink,textDecoration:'none'}}><strong>{design.headline}</strong><span>{c.sender?`From ${c.sender}`:'A wish for you'}</span><span>Read your wish →</span></Link>})}</div>
-  </section>})}
+ return <section className={styles.collections} aria-label="Saved gift collections">
+  <p className={styles.intro}>Saved on this device</p>
+  {groups.map(id=>{
+   const gifts=visible.filter(c=>c.recipientId===id)
+   return <section className={styles.group} key={id} aria-label={gifts[0].candidate+' collection'}>
+    <h2>For {gifts[0].candidate}</h2>
+    <div className={styles.grid}>
+     {gifts.map(c=><WishTile key={c.id} recipient={c.candidate} theme={c.theme} sender={c.sender} opened={c.opened} ariaLabel={c.sender?'Read wish from '+c.sender:'Open wish for '+c.candidate} href={'/success-wishes/gift?source=remembered&card='+encodeURIComponent(c.id)}/>)}
+    </div>
+   </section>
+  })}
  </section>
 }

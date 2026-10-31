@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createHmac } from 'node:crypto'
 import { revocationDatabase } from '@/lib/success-wishes/server'
+import { hashSecret } from '@/lib/success-wishes/security'
 
 export const dynamic = 'force-dynamic'
 const noStore = { 'Cache-Control': 'private, no-store' }
@@ -20,6 +21,13 @@ export async function POST(req: NextRequest) {
     const eventType = ['card_selected','checkout_opened','form_started'].includes(body?.eventType) && path === '/success-wishes' ? body.eventType : 'page_view'
     const eventLabel = eventType === 'card_selected' && typeof body?.label === 'string' && /^[a-z0-9_-]{1,40}$/i.test(body.label) ? body.label : null
     const client = db()
+    // Bound anonymous event ingestion by network, not user-supplied visitor IDs.
+    const network = (req.headers.get('x-real-ip') || req.headers.get('x-forwarded-for')?.split(',')[0] || 'unknown').slice(0,100)
+    const { data: allowed, error: rateError } = await client.rpc('success_wishes_take_attempt', {
+      p_key_hash: hashSecret('hq-visitors:rate:' + network), p_limit: 600, p_window_seconds: 60
+    })
+    if (rateError) return respond({ error: 'Visitor rate limit unavailable' }, 503)
+    if (allowed !== true) return respond({ error: 'Rate limited' }, 429)
     const visitor_hash = createHmac('sha256', process.env.SUPABASE_SERVICE_ROLE_KEY!).update('traffic-visitor:' + body.visitor).digest('hex')
     const device = /mobile|android|iphone/i.test(req.headers.get('user-agent') || '') ? 'Mobile' : /ipad|tablet/i.test(req.headers.get('user-agent') || '') ? 'Tablet' : 'Desktop'
     const referrer = typeof body?.referrer === 'string' && /^[a-z0-9.-]{1,100}$/i.test(body.referrer) ? body.referrer : 'Direct'

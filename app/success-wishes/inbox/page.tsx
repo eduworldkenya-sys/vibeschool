@@ -1,14 +1,15 @@
 'use client'
 
 import Link from 'next/link'
-import {useCallback, useEffect, useRef, useState, type CSSProperties} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {useRouter} from 'next/navigation'
-import {ArrowRight, Check, Heart, Mail, Search, Sparkles} from 'lucide-react'
+import {Heart, Mail, Search, Sparkles} from 'lucide-react'
 import RememberedWishes from '@/components/success-wishes/RememberedWishes'
 import ReceiverAccount from '@/components/success-wishes/ReceiverAccount'
 import {useReceiverTheme} from '@/components/success-wishes/ReceiverShell'
-import {palette, templates} from '@/components/success-wishes/card-themes'
-import {broadcastKeepsakeChange, watchKeepsakeChange, rememberInbox} from '@/lib/success-wishes/receiver-pin-browser'
+import {templates} from '@/components/success-wishes/card-themes'
+import WishTile from '@/components/success-wishes/WishTile'
+import {watchKeepsakeChange, rememberInbox} from '@/lib/success-wishes/receiver-pin-browser'
 import styles from './page.module.css'
 
 type Card = {id:string; source:'paid'|'free'|'group'|'legacy'; sender:string|null; opened:boolean; theme?:string; createdAt?:string}
@@ -24,7 +25,6 @@ export default function MyWishes() {
   const giftsLoaded=useCallback((count:number)=>setRemembered(count),[])
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(true)
-  const [locking, setLocking] = useState(false)
   const [opening, setOpening] = useState<string|null>(null)
   const [filter, setFilter] = useState<'all'|'unopened'>('all')
   const [query, setQuery] = useState('')
@@ -80,7 +80,7 @@ export default function MyWishes() {
   }, [load])
 
   async function openCard(card:Card) {
-    if (openingLock.current || locking) return
+    if (openingLock.current) return
     openingLock.current = true
     setOpening(card.source + card.id)
     setError('')
@@ -103,26 +103,6 @@ export default function MyWishes() {
     }
   }
 
-  async function lock() {
-    if (locking) return
-    setLocking(true)
-    sessionGeneration.current.value++
-    openingLock.current=false; setOpening(null)
-    generation.current.value++
-    setData(null); setLogin(true); setQuery(''); setFilter('all')
-    broadcastKeepsakeChange()
-    try {
-      const response = await fetch('/api/success-wishes/receiver/account', {method:'DELETE', headers:{'Content-Type':'application/json'}, body:'{}'})
-      if (!response.ok) throw Error()
-    } catch {setError('Could not confirm the lock. Reconnect and try again.')}
-    finally {
-      generation.current.value++
-      sessionGeneration.current.value++
-      openingLock.current=false; setOpening(null)
-      setData(null); setLogin(true); broadcastKeepsakeChange(); setLocking(false)
-    }
-  }
-
   const search = query.trim().toLowerCase()
   const cards = data?.cards.filter(card => {
     const design = templates.find(item => item.id === card.theme)
@@ -133,47 +113,49 @@ export default function MyWishes() {
   return <main className={styles.page}>
     <header className={styles.header}>
       <div><p className={styles.eyebrow}>MADE FOR YOU</p><h1>My wishes</h1></div>
-
     </header>
-    {error && <div className={styles.error} role="alert"><p>{error}</p><button onClick={() => {openingLock.current=false; setOpening(null); void load()}}>Try again</button></div>}
-    {busy && !data && <div className={styles.loading} role="status"><span className={styles.loadingIcon}><Mail size={24}/></span>Opening your wishes…</div>}
+    {error && <div className={styles.error} role="alert"><p>{error}</p><button type="button" onClick={() => {openingLock.current=false; setOpening(null); void load()}}>Try again</button></div>}
+    {busy && !data && <div className={styles.loading} role="status"><span className={styles.loadingIcon}><Mail size={23}/></span>Finding your wishes…</div>}
     <RememberedWishes onLoaded={giftsLoaded} excludeReceiverId={data?.recipient.id}/>
-    {login && !busy && remembered!==null && (remembered===0||showAccount) && <ReceiverAccount onReady={() => void load()}/>}
-    {login && !busy && !!remembered && !showAccount && <button type="button" onClick={()=>setShowAccount(true)}>Use PIN or recovery link</button>}
+    {login && !busy && remembered===null && <p role="status" className={styles.helper}>Checking saved wishes on this device…</p>}
+    {login && !busy && remembered===0 && !showAccount && <section className={styles.empty} aria-label="Empty inbox">
+      <Mail size={28} aria-hidden="true"/>
+      <h2>No wishes here yet</h2>
+      <p>Received a private Success Card link? Open it from the sender's message. You can read your gift without signing up.</p>
+      <div className={styles.emptyActions}>
+        <Link href="/success-wishes/request">Request a wish</Link>
+        <button type="button" onClick={() => setShowAccount(true)}>I have an inbox</button>
+      </div>
+    </section>}
+    {login && !busy && remembered!==null && showAccount && <ReceiverAccount onReady={() => void load()}/>}
+    {login && !busy && remembered!==null && remembered>0 && !showAccount && <div className={styles.pinEntry}>
+      <button type="button" onClick={()=>setShowAccount(true)}>Open PIN-protected inbox</button>
+    </div>}
     {data && <>
       <section className={styles.welcome} aria-label="Your collection">
-        <span className={styles.welcomeIcon} aria-hidden="true"><Heart size={22}/></span>
+        <span className={styles.welcomeIcon} aria-hidden="true"><Heart size={21}/></span>
         <div><h2>For {data.recipient.name}</h2><p>{data.cards.length ? 'Someone is cheering you on.' : 'A little encouragement belongs here.'}</p></div>
-        <span className={styles.waiting}>{unopened ? `${unopened} waiting` : `${data.cards.length} saved`}</span>
+        <span className={styles.waiting}>{unopened ? String(unopened)+' waiting' : String(data.cards.length)+' saved'}</span>
       </section>
-      {data.cards.length > 0 && <div className={styles.toolbar}>
+      {data.cards.length>1 && <div className={styles.toolbar}>
         <div className={styles.filters} role="group" aria-label="Filter wishes">
-          <button aria-pressed={filter==='all'} onClick={() => setFilter('all')}>All <span>{data.cards.length}</span></button>
-          <button aria-pressed={filter==='unopened'} onClick={() => setFilter('unopened')}>Unopened <span>{unopened}</span></button>
+          <button type="button" aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>All <span>{data.cards.length}</span></button>
+          <button type="button" aria-pressed={filter==='unopened'} onClick={()=>setFilter('unopened')}>Unopened <span>{unopened}</span></button>
         </div>
-        <label className={styles.search}><Search size={17} aria-hidden="true"/><input aria-label="Search wishes" placeholder="Find a wish" value={query} onChange={event => setQuery(event.target.value)}/></label>
+        <label className={styles.search}><Search size={17} aria-hidden="true"/><input aria-label="Search wishes" placeholder="Find a wish" value={query} onChange={event=>setQuery(event.target.value)}/></label>
       </div>}
-      {cards.length > 0 ? <section className={styles.grid} aria-label="Your wishes">{cards.map((card, index) => {
-        const design = templates.find(item => item.id === card.theme) || templates[0]
-        const colors = palette[design.id]
-        const selected = opening === card.source + card.id
-        const date = card.createdAt && Number.isFinite(Date.parse(card.createdAt)) ? new Date(card.createdAt).toLocaleDateString('en-KE', {day:'numeric', month:'short', year:'numeric'}) : ''
-        return <button key={card.source+card.id} className={styles.card} data-theme={design.id} disabled={opening!==null || locking} aria-busy={selected} aria-label={card.opened ? `Read wish from ${card.sender || 'Someone special'}` : `Open wish ${index+1}, ${design.name}`} onClick={() => void openCard(card)}>
-          <span className={styles.cover} aria-hidden="true" style={{'--cover-top':colors.top, '--cover-bottom':colors.bottom, '--cover-ink':colors.ink, '--cover-accent':colors.accent} as CSSProperties}>
-            <span className={styles.coverFrame}/><span className={styles.coverBrand}>SUCCESS WISHES</span>
-            <span className={styles.coverOrnament}>{design.id==='botanical' ? '✿' : design.id==='nightfall' ? '✦' : design.id==='sunrise' ? '☀' : '✧'}</span>
-            <span className={styles.coverTitle}>{design.headline}</span>
-            <span className={styles.coverName}>For {data.recipient.name}</span>
-            <span className={styles.seal}>{card.opened ? <Check size={17}/> : <Heart size={17}/>}</span>
-          </span>
-          <span className={styles.cardBody}>
-            <span className={styles.cardMeta}><span className={card.opened ? styles.opened : styles.unopened}>{!card.opened && <span className={styles.dot}/>} {card.opened ? 'Opened' : 'Unopened'}</span>{date && <span>{date}</span>}</span>
-            <strong>{card.opened ? card.sender || 'Someone special' : 'A wish for you'}</strong>
-            <span className={styles.cardAction}>{selected ? 'Opening…' : card.opened ? 'Read again' : 'Open your wish'}<ArrowRight size={17}/></span>
-          </span>
-        </button>
-      })}</section> : <section className={styles.empty}><Sparkles size={32} aria-hidden="true"/><h2>{search ? 'No matching wishes' : filter==='unopened' && data.cards.length ? 'All wishes opened' : 'Your first wish awaits'}</h2><p>{search ? 'Try another name or card design.' : data.cards.length ? 'Read your favourite messages again.' : 'Your success cards will appear here when they are delivered to your collection.'}</p>{data.cards.length > 0 && <button onClick={() => {setQuery('');setFilter('all')}}>Show all wishes</button>}</section>}
-      {data.legacy && <ReceiverAccount initialMode="create" candidate={data.recipient.name} onReady={() => void load()}/>}
+      {cards.length>0 ? <section className={styles.grid} aria-label="Your wishes">{cards.map((card,index)=>{
+        const design=templates.find(item=>item.id===card.theme)||templates[0]
+        const date=card.createdAt&&Number.isFinite(Date.parse(card.createdAt))?new Date(card.createdAt).toLocaleDateString('en-KE',{day:'numeric',month:'short',year:'numeric'}):''
+        const selected=opening===card.source+card.id
+        return <WishTile key={card.source+card.id} recipient={data.recipient.name} theme={card.theme} sender={card.sender} opened={card.opened} date={date} busy={selected} disabled={opening!==null} ariaLabel={card.opened?'Read wish from '+(card.sender||'Someone special'):'Open wish '+String(index+1)+', '+design.name} onOpen={()=>void openCard(card)}/>
+      })}</section> : <section className={styles.empty}>
+        <Sparkles size={28} aria-hidden="true"/>
+        <h2>{search?'No matching wishes':filter==='unopened'&&data.cards.length?'All wishes opened':'Your first wish awaits'}</h2>
+        <p>{search?'Try another name or card design.':data.cards.length?'Read your favourite messages again.':'When a Success Card is sent to your collection, it will appear here.'}</p>
+        {data.cards.length>0?<button type="button" onClick={()=>{setQuery('');setFilter('all')}}>Show all wishes</button>:<Link href="/success-wishes/request">Request a wish</Link>}
+      </section>}
+      {data.legacy && <ReceiverAccount initialMode="create" candidate={data.recipient.name} onReady={()=>void load()}/>}
     </>}
   </main>
 }

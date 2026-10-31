@@ -140,7 +140,7 @@ export default function ReceiverShell({
   );
   return (
     <ReceiverContext.Provider value={value}>
-      <div className={receiver ? (["/success-wishes/invitation", "/success-wishes/gift"].includes(pathname) ? "receiver-theme receiver-gift-focus" : pathname === "/success-wishes/inbox" ? "receiver-theme receiver-inbox-fit" : "receiver-theme") : "receiver-site"}>
+      <div className={receiver ? (["/success-wishes/invitation", "/success-wishes/gift"].includes(pathname) ? pathname === "/success-wishes/gift" ? "receiver-theme receiver-gift-focus receiver-reading-focus" : "receiver-theme receiver-gift-focus" : pathname === "/success-wishes/inbox" ? "receiver-theme receiver-inbox-fit" : "receiver-theme") : "receiver-site"}>
         {!receiver ? children : (
           <>
             <header className="receiver-mobile-header">

@@ -13,12 +13,15 @@ export async function GET() {
     && process.env.SUCCESS_WISHES_MEDIA_CERTIFIED === 'true'
     && successWishesMediaReady() && trustedAudioProbeReady()
   let paymentsEnabled = false, groupPaymentsEnabled = false
-  if(enabled()){
+  if(serviceReady){
     const {data,error}=await database().from('mpesa_runtime_control').select('initiation_enabled,success_wishes_enabled,success_wishes_group_enabled').eq('singleton',true).maybeSingle()
     paymentsEnabled=!error&&data?.initiation_enabled===true&&data?.success_wishes_enabled===true
     groupPaymentsEnabled=paymentsEnabled&&data?.success_wishes_group_enabled===true
   }
-  const {data:pilot}=await database().from('success_wishes_pilot_control').select('free_text_enabled').eq('singleton',true).maybeSingle()
-  const freeTrialEnabled=serviceReady&&pilot?.free_text_enabled===true
+  let freeTrialEnabled=false
+  if(serviceReady){
+    const {data:pilot,error}=await database().from('success_wishes_pilot_control').select('free_text_enabled').eq('singleton',true).maybeSingle()
+    freeTrialEnabled=!error&&pilot?.free_text_enabled===true
+  }
   return reply({ freeTrialEnabled, enabled: serviceReady, mediaEnabled: mediaReady, paymentsEnabled, groupPaymentsEnabled, maxSeconds: 60, maxBytes: 25 * 1024 * 1024 })
 }

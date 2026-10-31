@@ -22,6 +22,7 @@ export default function ReceiverAccountHub(){
  const [switching,setSwitching]=useState(false)
  async function switchReceiver(){
   if(switching)return
+  if(!window.confirm('Switching receivers signs out this device and clears saved gift access here. Keep your private gift links before continuing. Switch receiver?'))return
   setSwitching(true);setError('')
   try{
    const r=await fetch('/api/success-wishes/receiver/account',{method:'DELETE',cache:'no-store'})
@@ -67,7 +68,7 @@ export default function ReceiverAccountHub(){
     </>}
    </section>
    <h2 className="account-section-heading mb-3 mt-8 text-xl font-semibold">Account & access</h2>
-   <button type="button" disabled={switching} onClick={()=>void switchReceiver()} className="account-switch mb-3 flex min-h-16 w-full items-center gap-4 rounded-xl border border-slate-700 bg-slate-900/60 px-4 text-left hover:bg-slate-800 disabled:opacity-60"><Users size={20} className="text-amber-200"/><span className="flex-1"><strong className="block text-sm">Switch receiver</strong><span className="block text-xs text-slate-400">Lock this session, then unlock another learner</span></span><ArrowRight size={17}/></button>
+   <button type="button" disabled={switching} onClick={()=>void switchReceiver()} className="account-switch mb-3 flex min-h-16 w-full items-center gap-4 rounded-xl border border-slate-700 bg-slate-900/60 px-4 text-left hover:bg-slate-800 disabled:opacity-60"><Users size={20} className="text-amber-200"/><span className="flex-1"><strong className="block text-sm">Switch receiver</strong><span className="block text-xs text-slate-400">Sign out of this device, then unlock another learner</span></span><ArrowRight size={17}/></button>
    <nav aria-label="Account management" className="account-links overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/60">
     {actions.map(({href,label,description,icon:Icon})=><Link key={href} href={href} className="account-link flex min-h-20 items-center gap-4 border-b border-slate-700/70 px-4 py-3 transition-colors hover:bg-slate-800 focus-visible:bg-slate-800 last:border-0"><Icon className="shrink-0 text-amber-200" size={20}/><span className="flex-1"><strong className="block text-sm">{label}</strong><span className="mt-1 block text-xs leading-5 text-slate-400">{description}</span></span><ArrowRight size={17} className="shrink-0 text-slate-400"/></Link>)}
    </nav>

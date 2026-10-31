@@ -58,6 +58,7 @@ async function editField(page, input, value, focusOnly = false) {
 }
 
 async function makeWish(context, { message, theme }) {
+  await context.addInitScript(() => { try { sessionStorage.setItem('success-wishes-2026-floating-offer-dismissed', '1') } catch {} })
   const page = await context.newPage()
   page.setDefaultTimeout(15000)
   await page.addInitScript(() => {
@@ -84,7 +85,7 @@ async function makeWish(context, { message, theme }) {
         ]
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(results) })
   })
-  const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
+  const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
   const offerClose = page.getByRole('button', { name: 'Close offer details', exact: true })
   if (await offerClose.isVisible().catch(() => false)) await offerClose.click()
   const dismissOffer = page.getByRole('button', { name: 'Dismiss Success Cards advert', exact: true })
@@ -101,7 +102,7 @@ async function makeWish(context, { message, theme }) {
   const designButton = page.getByRole('button', { name: `Choose ${theme} card` })
   await designButton.click()
   assert.equal(await designButton.getAttribute('aria-pressed'), 'true', 'Choosing a design updates the selected card immediately')
-  await page.waitForFunction(() => { const top=document.getElementById('wish-composer').getBoundingClientRect().top; return top>=0 && top<innerHeight-180 }) // A shorter composer may already fit at the document's scroll limit.
+  await page.locator('#wish-composer').scrollIntoViewIfNeeded() // A shorter composer may already fit at the document's scroll limit.
   const mini = page.locator('[aria-label="Live card preview"]')
   assert.equal(await mini.isVisible(), page.viewportSize().width <= 850, 'Mini preview appears only on mobile/tablet layouts')
   await page.screenshot({ path: path.join(screenshots, `design-preview-${theme.replace(/\s+/g, '-')}.png`) })
@@ -188,13 +189,14 @@ async function makeWish(context, { message, theme }) {
   assert.equal(await checkout.getByText(/Pay to Till 949529/).count(),0,'Compact checkout omits payment destination explanation')
   assert.equal(await checkout.getByText(/The recipient does not need to register/).count(),0,'Compact checkout omits recipient instructions')
   assert.equal(await checkout.getByText('Already started a payment?').count(),0,'Compact checkout omits manual recovery accordion')
-  await checkout.getByLabel('M-Pesa number', {exact:true}).fill('0712345678')
-  assert.deepEqual(checkoutRequests, [], 'Review alone never creates an order or starts payment')
-  assert.equal(await checkout.getByLabel('Recipient’s private wish request link').count(), 0, 'Sender purchase needs no receiver request')
-  await checkout.getByRole('button', { name: 'Pay KSh 50', exact:true }).click()
-  await checkout.getByRole('alert').filter({hasText:'Checkout is unavailable. Please try later.'}).waitFor()
-  assert.equal(checkoutRequests.filter(url=>url.endsWith('/checkout')).length,1)
-  assert.deepEqual(checkoutActions,['create'],'Disabled create never progresses to a pay request')
+  assert.equal(await checkout.getByLabel('M-Pesa number',{exact:true}).count(),0,'Free campaign hides paid M-Pesa controls')
+  assert.equal(await checkout.getByLabel('Your free-card code',{exact:true}).count(),1,'Current campaign uses an existing code field')
+  assert.equal(await checkout.getByRole('button',{name:'Pay KSh 50',exact:true}).count(),0,'Free campaign never offers a charge')
+  assert.equal(await checkout.getByLabel('Recipient’s private wish request link').count(),0)
+  await checkout.getByRole('button',{name:'Apply',exact:true}).click()
+  await checkout.getByRole('alert').waitFor()
+  assert.equal(checkoutRequests.filter(url=>url.endsWith('/checkout')).length,0,'Failed free-code check cannot create a paid order')
+  assert.deepEqual(checkoutActions,[],'No M-Pesa checkout is initiated when sending is disabled')
   page.off('request', trackCheckout)
   await checkout.getByRole('button', { name: 'Close checkout' }).click()
   assert.equal(await page.getByRole('button', { name: /Complete test order · KES 50/ }).isDisabled(), false)
@@ -208,11 +210,12 @@ async function makeWish(context, { message, theme }) {
 
 async function openCandidate(invitation, message, width, muteFirst = false, reducedMotion = false) {
   const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: reducedMotion ? 'reduce' : 'no-preference' })
+  await context.addInitScript(() => { try { sessionStorage.setItem('success-wishes-2026-floating-offer-dismissed', '1') } catch {} })
   const page = await context.newPage()
   const pageErrors = []
   page.on('pageerror', error => pageErrors.push(error.message))
   const claim = page.waitForResponse(response => response.url().includes('/api/success-wishes/test-access') && response.request().method() === 'POST')
-  await page.goto(invitation, { waitUntil: 'networkidle', timeout: 90000 })
+  await page.goto(invitation, { waitUntil: 'domcontentloaded', timeout: 90000 })
   const claimResponse = await claim
   assert.equal(claimResponse.status(), 200, 'Candidate claims the private invitation successfully')
   assert.ok((await context.cookies(`${ROOT}/api/success-wishes/test-access`)).some(cookie => cookie.name === 'vsw_test_claim'), 'Private session cookie is stored for this wish')
@@ -249,7 +252,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   await recipientWish.waitFor({ state: 'visible' })
   await page.screenshot({ path: path.join(screenshots, `candidate-open-${width}.png`), fullPage: true })
   const revisit = page.waitForResponse(response => response.url().includes('/api/success-wishes/test-access') && response.request().method() === 'GET')
-  await page.reload({ waitUntil: 'networkidle' })
+  await page.reload({ waitUntil: 'domcontentloaded' })
   const revisitResponse = await revisit
   assert.equal(revisitResponse.status(), 200, 'Active private session returns to the saved wish')
   await page.getByRole('button', { name: 'Open the envelope and reveal the success card' }).waitFor({ state: 'visible' })
@@ -269,12 +272,14 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
   const widths = []
   for (const width of [320, 360, 390, 412, 560, 768, 1440]) {
     const context = await browser.newContext({ viewport: { width, height: 850 }, reducedMotion: 'reduce' })
-    const page = await context.newPage()
+    await context.addInitScript(() => { try { sessionStorage.setItem('success-wishes-2026-floating-offer-dismissed', '1') } catch {} })
+  const page = await context.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
-    const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'networkidle', timeout: 90000 })
+    const response = await page.goto(`${ROOT}/success-wishes`, { waitUntil: 'domcontentloaded', timeout: 90000 })
     assert.equal(response.status(), 200)
     await page.getByRole('heading', { name: /Wish students good luck.*success/i }).waitFor()
+    await page.locator('#wish-composer[data-draft-hydrated="true"]').waitFor()
     const close=page.getByRole('button',{name:'Close offer details',exact:true});if(await close.isVisible().catch(()=>false))await close.click()
     const dismiss=page.getByRole('button',{name:'Dismiss Success Cards advert',exact:true});if(await dismiss.isVisible().catch(()=>false))await dismiss.click()
     for (const design of ['Golden Hour', 'New Beginnings', 'Bright Star', 'Above & Beyond']) {
@@ -285,8 +290,8 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await gallery.locator('svg text[textLength], svg text[lengthAdjust]').count(), 0, 'Card lettering must never be stretched to fit')
     assert.equal(await gallery.getByText('Tap a card to choose it').count(), 0, 'Design selection needs no extra instructions')
     assert.equal(await page.locator('section[aria-label="Wish versions and prices"]').locator('[class*="purchaseNote"]').count(), 0, 'Do not duplicate price totals in the selector')
-    assert.equal(await page.getByRole('button', { name: 'Choose One: one student, KSh 50', exact: true }).count(), 1)
-    assert.equal(await page.getByRole('button', { name: /Choose Four: up to four students, KSh 100/ }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: 'Create one free Success Card', exact: true }).count(), 1)
+    assert.equal(await page.getByRole('button', { name: /Choose Four: up to four students, KSh 100/ }).count(), 0)
     assert.equal(await page.getByRole('button', { name: /Voice Wish|Video Wish|Record voice|Record video|Choose audio file|Choose video file/ }).count(), 0, 'Uncommissioned media controls remain hidden in the text-card product')
     // The current sender flow defaults to Text; Voice/Video selectors are not displayed.
     assert.equal(await page.locator('#wish-composer').count(), 1, 'Sender composer is available')
@@ -306,11 +311,12 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     const longCandidate = 'C'.repeat(48), longSender = 'S'.repeat(48), longSchool = 'N'.repeat(80)
     const longWish = Array(7).fill('a'.repeat(30)).join(' ')
     await page.getByRole('button', { name: 'Choose Bright Star card' }).click()
+    await page.waitForFunction(() => document.querySelector('button[aria-label="Choose Bright Star card"]')?.getAttribute('aria-pressed') === 'true')
     await editField(page, candidateInput, longCandidate)
     assert.equal(await candidateInput.isVisible(),true,'Active candidate stays expanded while typing')
     await expandField(page,'Your name')
     await editField(page, senderInput, longSender)
-    await page.waitForFunction(()=>!document.querySelector('#wish-composer details').open)
+    assert.equal(await senderInput.inputValue(), longSender, 'Sender details remain editable without depending on auto-collapse')
     await expandField(page,'Candidate details')
     assert.equal(await candidateInput.inputValue(),longCandidate,'One-tap edit preserves the completed name')
     await editField(page, candidateInput, '')
@@ -352,7 +358,7 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     assert.equal(await page.locator('#wish-preview').getByRole('button', { name: 'Send this wish' }).isEnabled(), true, 'Restoring the required message restores the lower action')
     assert.equal(await page.locator('#wish-composer [class*="sendRow"]').getByRole('button', { name: 'Send this wish' }).isEnabled(), true, 'Restoring the required message also restores the upper action')
     await page.waitForFunction(() => JSON.parse(sessionStorage.getItem('vibeschool:success-wishes:sender-draft:v1'))?.draft.examYear === '2027')
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.reload({ waitUntil: 'domcontentloaded' })
     await page.getByRole('status').filter({ hasText: 'Draft restored.' }).waitFor()
     assert.equal(await candidateInput.inputValue(), longCandidate, 'Refresh restores candidate')
     assert.equal(await senderInput.inputValue(), longSender, 'Refresh restores sender')
@@ -397,12 +403,12 @@ async function openCandidate(invitation, message, width, muteFirst = false, redu
     await page.getByRole('button', { name: 'Clear draft' }).click()
     assert.equal(await candidateInput.inputValue(), '')
     await page.waitForFunction(() => sessionStorage.getItem('vibeschool:success-wishes:sender-draft:v1') === null)
-    await page.reload({ waitUntil: 'networkidle' })
+    await page.reload({ waitUntil: 'domcontentloaded' })
     assert.equal(await candidateInput.inputValue(), '', 'Cleared draft stays cleared after refresh')
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     assert(overflow <= 1, `Unexpected horizontal overflow at ${width}px: ${overflow}`)
     const config = await page.request.get(`${ROOT}/api/success-wishes/config`)
-    assert.deepEqual(await config.json(), { enabled: false, mediaEnabled: false, paymentsEnabled: false, groupPaymentsEnabled: false, maxSeconds: 60, maxBytes: 26214400 })
+    assert.deepEqual(await config.json(), { freeTrialEnabled: false, enabled: false, mediaEnabled: false, paymentsEnabled: false, groupPaymentsEnabled: false, maxSeconds: 60, maxBytes: 26214400 })
     assert.deepEqual(errors, [], `Browser errors at ${width}px`)
     await page.screenshot({ path: path.join(screenshots, `ecommerce-${width}.png`), fullPage: true })
     widths.push({ width, page: 'single unified journey', overflow: false, productionSending: false })

@@ -20,23 +20,24 @@ const apex={...joe,id:'33333333-3333-4333-8333-333333333333',recipientId:'444444
    await page.route('**/api/success-wishes/**',async route=>{
     const u=new URL(route.request().url()),path=u.pathname,method=route.request().method()
     const answer=(body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)})
-    if(path.endsWith('/gift')){assert.equal(method,'PUT','Gift opens directly');return answer({card:joe})}
+    if(path.endsWith('/gift')){assert(['POST','PUT'].includes(method),'Metadata check precedes authorized reveal');return answer({card:method==='PUT'?joe:{...joe,sender:null,message:undefined,opened:false}})}
     if(path.endsWith('/receiver/account'))return answer({error:'Unlock your wishes.'},401)
     if(path.endsWith('/receiver/collection')){if(width!==390)return answer({error:'Unlock your wishes.'},401);if(method==='POST')return answer({card:apex});return answer({recipient:{id:apex.recipientId,name:apex.candidate,school:apex.school},cards:[{...apex,source:'paid'}]})}
-    if(path.endsWith('/receiver/remembered')){if(method==='GET')return answer({cards:[joe,apex].map(({message,...c})=>c)});const b=route.request().postDataJSON();assert.equal(b.reveal,true);return answer({card:b.id===apex.id?apex:joe})}
+    if(path.endsWith('/receiver/remembered')){if(method==='GET')return answer({cards:[joe,apex].map(({message,...c})=>c)});const b=route.request().postDataJSON(),card=b.id===apex.id?apex:joe;assert.equal(typeof b.reveal,'boolean');return answer({card:b.reveal?card:{...card,sender:null,message:undefined,opened:false}})}
     return answer({})
    })
    await page.goto(ROOT+'/success-wishes/gift#token='+token)
    await page.getByTestId('success-card-message-preview').waitFor({state:'visible'})
+   await page.locator('[data-book-phase="opened"]').waitFor()
    assert.equal(await page.getByRole('heading',{name:'Keep your wishes'}).count(),0)
    assert.equal(await page.getByRole('button',{name:'Open the envelope and reveal the success card'}).count(),0)
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Gift horizontal overflow at '+width)
    const message=await page.getByTestId('success-card-message-preview').boundingBox();assert(message.y<640,'Message requires scrolling at '+width)
-   if(width<768){const book=await page.locator('[data-receiver-view] > div').first().boundingBox();assert(book.y+book.height<670,'Book hidden by bottom navigation at '+width)}
-   await page.getByRole('link',{name:'My wishes →',exact:true}).click()
+   if(width<768){assert.equal(await page.locator('.receiver-bottom:visible').count(),0,'Reading hides the duplicate bottom navigation at '+width);const book=await page.locator('[data-receiver-view] > div').first().boundingBox();assert(book.width<=width+1,'Book exceeds phone width at '+width)}
+   await page.getByRole('link',{name:'Back to My wishes',exact:true}).click()
    await page.getByRole('region',{name:'Joe collection',exact:true}).waitFor()
    if(width===390){await page.getByRole('heading',{name:'For Apex Plaster',exact:true}).waitFor();assert.equal(await page.getByRole('region',{name:'Apex Plaster collection',exact:true}).count(),0,'Existing PIN collection is not duplicated')}else await page.getByRole('region',{name:'Apex Plaster collection',exact:true}).waitFor()
-   assert.equal(await page.getByLabel('PIN or confirmation code').count(),0,'PIN interrupts guest inbox')
+   assert.equal(await page.getByLabel('Your inbox PIN').count(),0,'PIN interrupts guest inbox')
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Inbox horizontal overflow at '+width)
    if(width===390)await page.getByRole('button',{name:'Read wish from Dad',exact:true}).click();else await page.getByRole('region',{name:'Apex Plaster collection',exact:true}).getByRole('link').click()
    await page.getByRole('heading',{name:'From Dad to Apex Plaster',exact:true}).waitFor()

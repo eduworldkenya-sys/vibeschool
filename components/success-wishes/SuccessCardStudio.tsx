@@ -368,7 +368,7 @@ export default function SuccessCardStudio({ initialDraft, testMode = false }: { 
         }}
         onChooseFour={() => window.dispatchEvent(new Event('success-wishes:open-group'))}
       />
-      <section className={styles.composer} id="wish-composer" aria-labelledby="personalise-card">
+      <section className={styles.composer} id="wish-composer" aria-labelledby="personalise-card" data-draft-hydrated={draftStatus.hydrated ? "true" : "false"}>
         <div className={styles.mobilePreview} aria-label="Live card preview">
           <CardArt template={theme} values={values} preview/>
           <div><span>LIVE PREVIEW</span><strong>{candidate.trim() || 'Your candidate'}</strong>{message.trim() && <p>{message.trim()}</p>}</div>
