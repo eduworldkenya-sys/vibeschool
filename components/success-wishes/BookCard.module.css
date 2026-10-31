@@ -40,3 +40,11 @@
 /* Leave the receiver navigation clear while keeping both pages in view. */
 .preview[data-receiver-view=true] .stage{height:clamp(380px,calc(100svh - 220px),510px)}
 @media(max-width:560px){.preview[data-receiver-view=true] .stage{height:clamp(380px,calc(100svh - 185px),485px)}}
+
+/* Twelve restrained gold paper flecks, once on the first successful receiver reveal. */
+.celebration{position:absolute;inset:0;z-index:15;pointer-events:none;overflow:hidden}
+.celebration span{position:absolute;top:8%;left:calc(9% + var(--piece-index)*7%);width:5px;height:9px;border-radius:1px;background:#d9b65e;opacity:0;transform:rotate(18deg);animation:paperFleck 1.35s cubic-bezier(.22,.61,.36,1) both;animation-delay:calc(var(--piece-index)*45ms)}
+.celebration span:nth-child(3n){background:#f0dfad;width:4px;height:7px}
+.celebration span:nth-child(4n){background:#b88c48;width:6px;height:6px}
+@keyframes paperFleck{0%{opacity:0;transform:translateY(-8px) rotate(-25deg)}18%{opacity:.95}75%{opacity:.85}100%{opacity:0;transform:translateY(145px) translateX(22px) rotate(115deg)}}
+@media(prefers-reduced-motion:reduce){.celebration{display:none}}
