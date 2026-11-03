@@ -7,7 +7,7 @@ import SchedulePicker from '@/components/vibetutor/SchedulePicker'
 import { AREAS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
 
 const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(x => x !== value) : [...list, value]
-const validKenyanPhone = (value: string) => /^(?:0|254|\\+254)(?:7|1)\\d{8}$/.test(value.replace(/[\\s-]/g, ''))
+const validKenyanPhone = (value: string) => /^(0|254|[+]254)(7|1)[0-9]{8}$/.test(value.replace(/[ -]/g, ''))
 
 export default function BecomeTutor() {
   const [name, setName] = useState('')
@@ -28,7 +28,7 @@ export default function BecomeTutor() {
     setSubjects(current => current.filter(subject => allowed.has(subject)))
   }
   const updatePhone = (value: string) => {
-    const cleaned = value.replace(/[^0-9+\\s-]/g, '').slice(0, 16)
+    const cleaned = value.replace(/[^0-9+ -]/g, '').slice(0, 16)
     setPhone(cleaned)
   }
 
