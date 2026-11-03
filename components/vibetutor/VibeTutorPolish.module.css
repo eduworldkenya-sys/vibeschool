@@ -11,3 +11,17 @@
 .wizardActions button{min-width:112px}
 .prefillNote{margin:0;padding:9px 11px;border-radius:8px;background:#f3e8e8;color:#762d3b;font-size:12px;line-height:1.45}
 @media(max-width:480px){.wizardActions button{flex:1}}
+
+
+:global(html[data-vt-theme='dark']) .wizardTrack { background: #514747; }
+:global(html[data-vt-theme='dark']) .wizardMeta strong { color: #f2eee9; }
+:global(html[data-vt-theme='dark']) .wizardStep,
+:global(html[data-vt-theme='dark']) .wizardStepOn,
+:global(html[data-vt-theme='dark']) .wizardStepDone { color: #fff; }
+:global(html[data-vt-theme='dark']) .wizardStep { background: #2b2727; border-color: #514747; color: #b8b0aa; }
+:global(html[data-vt-theme='dark']) .wizardStepOn,
+:global(html[data-vt-theme='dark']) .wizardStepDone { background: #8e4653; border-color: #c77b88; color: #fff; }
+:global(html[data-vt-theme='dark']) .prefillNote { background: #493137; color: #f0c5cc; }
+:global(html[data-vt-theme='dark']) .photoFallback { background: #493137; color: #f0c5cc; border-color: #665056; }
+:global(html[data-vt-theme='dark']) .progressTrack { stroke: #514747; }
+:global(html[data-vt-theme='dark']) .progressValue { stroke: #c77b88; }
