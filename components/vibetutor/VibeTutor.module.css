@@ -358,3 +358,21 @@
   .controls { grid-template-columns: 1fr; }
   .controls > .segment { grid-column: auto; }
 }
+
+
+/* Interactive example cards and details. */
+.cardAction { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border: 1px solid #d8ddcc; border-radius: 9px; padding: 11px 14px; background: #edf0e6; color: #414b30; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.cardAction:hover { background: #e3e8d8; border-color: #c7d0b7; }
+.modalBackdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 18px; background: rgba(26,27,23,.48); }
+.detailModal { position: relative; width: min(100%, 520px); max-height: min(86vh, 760px); overflow-y: auto; display: grid; gap: 14px; padding: 26px; border-radius: 18px; background: #fff; color: #24251f; box-shadow: 0 24px 80px rgba(0,0,0,.22); }
+.modalClose { position: absolute; top: 12px; right: 14px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: #f4f2ec; color: #34362e; font-size: 25px; line-height: 1; cursor: pointer; }
+.modalTitle { margin: 0; padding-right: 34px; font-family: var(--font-display), 'Manrope', Arial, sans-serif; font-size: 25px; line-height: 1.2; }
+.modalText { margin: 0; color: #55574e; font-size: 15px; line-height: 1.6; }
+.modalPrice { margin: 0; font-size: 18px; font-weight: 750; }
+.modalSignIn { display: block; text-align: center; padding: 13px 16px; border-radius: 9px; background: #596343; color: white; font-size: 14px; font-weight: 650; text-decoration: none; }
+.modalSignIn:hover { background: #465034; }
+.reviewSummary { margin: 8px 0 12px; padding: 10px; border-radius: 8px; background: #f4f2ec; color: #45483b; font-size: 13px; line-height: 1.5; }
+.inlineAction { display: inline-flex; margin-top: 4px; color: #465034; font-weight: 700; text-decoration: underline; }
+@media (max-width: 520px) {
+  .detailModal { padding: 22px 18px; border-radius: 16px; }
+}
