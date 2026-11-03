@@ -28,6 +28,7 @@ export default function Nav() {
               </Link>
             ))}
           </nav>
+          <Link href="/login" className={styles.navLink}>Sign in</Link>
         </div>
       </header>
       <nav className={styles.tabbar} aria-label="Mobile">
