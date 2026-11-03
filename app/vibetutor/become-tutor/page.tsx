@@ -9,8 +9,8 @@ import { AREAS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetu
 import { getSupabaseClient } from '@/lib/supabase'
 
 const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(x => x !== value) : [...list, value]
-const normalizedPhone = (value: string) => { const digits = value.replace(/\\D/g, ''); return digits.length === 10 && digits.startsWith('0') ? '+254' + digits.slice(1) : digits.length === 12 && digits.startsWith('254') ? '+' + digits : value.trim() }
-const validKenyanPhone = (value: string) => /^(?:0[71][0-9]{8}|254[71][0-9]{8}|\\+254[71][0-9]{8})$/.test(value.replace(/[\\s-]/g, ''))
+const normalizedPhone = (value: string) => { const digits = value.replace(/\D/g, ''); return digits.length === 10 && digits.startsWith('0') ? '+254' + digits.slice(1) : digits.length === 12 && digits.startsWith('254') ? '+' + digits : value.trim() }
+const validKenyanPhone = (value: string) => /^(?:0[71][0-9]{8}|254[71][0-9]{8}|\+254[71][0-9]{8})$/.test(value.replace(/[\s-]/g, ''))
 const steps = ['Teaching', 'Lessons', 'Availability', 'Profile']
 
 export default function BecomeTutor() {
