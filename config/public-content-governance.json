@@ -22,8 +22,8 @@
     {
       "route": "/sandbox",
       "owner": "Product",
-      "review_by": "2026-10-31",
-      "basis": "Safe client-only demonstration of connected Plan \u2192 Teach \u2192 Evidence \u2192 Assess \u2192 Understand \u2192 Next Action product logic; no production learner data or fabricated outcome claims"
+      "review_by": "2026-12-03",
+      "basis": "Safe client-only demonstration of connected Plan → Teach → Evidence → Assess → Understand → Next Action product logic; no production learner data or fabricated outcome claims"
     },
     {
       "route": "/evidence",
@@ -42,13 +42,13 @@
     {
       "route": "/contact",
       "owner": "Operations",
-      "review_by": "2026-10-31",
+      "review_by": "2026-12-03",
       "basis": "Canonical support channels and enquiry routing"
     },
     {
       "route": "/careers",
       "owner": "People",
-      "review_by": "2026-10-31",
+      "review_by": "2026-12-03",
       "basis": "Talent-interest status and genuine vacancies only"
     },
     {
@@ -60,25 +60,25 @@
     {
       "route": "/trust",
       "owner": "Trust",
-      "review_by": "2026-10-31",
+      "review_by": "2026-12-03",
       "basis": "Plain-language trust principles"
     },
     {
       "route": "/trust/child-safety",
       "owner": "Trust",
-      "review_by": "2026-10-31",
+      "review_by": "2026-12-03",
       "basis": "Safeguarding and learner authority principles"
     },
     {
       "route": "/trust/security",
       "owner": "Security",
-      "review_by": "2026-10-31",
+      "review_by": "2026-12-03",
       "basis": "Security and data-governance architecture"
     },
     {
       "route": "/trust/responsible-ai",
       "owner": "Trust",
-      "review_by": "2026-10-31",
+      "review_by": "2026-12-03",
       "basis": "AI and automation responsibility principles"
     },
     {
@@ -108,7 +108,7 @@
     {
       "route": "/pathways",
       "owner": "Pathways",
-      "review_by": "2026-10-31",
+      "review_by": "2026-12-03",
       "basis": "Current public Pathways product and guidance boundaries"
     },
     {
