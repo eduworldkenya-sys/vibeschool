@@ -486,3 +486,75 @@
 @media (max-width: 719px) {
   .moreFiltersBody .chipRow { flex-wrap: nowrap; overflow-x: auto; padding: 2px 1px 8px; }
 }
+
+
+/* Theme preference control */
+.navActions { display: flex; align-items: center; margin-left: auto; }
+.themeControl { display: inline-flex; align-items: center; gap: 7px; color: var(--vt-muted); font-size: 12px; }
+.themeSelect { appearance: auto; font: inherit; font-size: 12px; color: var(--vt-ink); background: var(--vt-surface); border: 1px solid var(--vt-line); border-radius: 8px; padding: 7px 9px; min-height: 34px; }
+.themeSelect:focus-visible { outline: 2px solid var(--vt-accent); outline-offset: 2px; }
+
+/* Dark theme: retain the same VibeTutor brand accent and component hierarchy. */
+:global(html[data-vt-theme='dark']) .shell {
+  --vt-ink: #f2eee9;
+  --vt-muted: #b8b0aa;
+  --vt-line: #403a39;
+  --vt-bg: #201d1d;
+  --vt-surface: #2b2727;
+  --vt-accent: #c77b88;
+  --vt-accent-soft: #493137;
+  --vt-amber: #d0a76d;
+  background: #201d1d;
+  color: #f2eee9;
+}
+:global(html[data-vt-theme='dark']) .page { background: var(--vt-bg); color: var(--vt-ink); }
+:global(html[data-vt-theme='dark']) .topbar { background: rgba(32,29,29,.97); border-bottom-color: var(--vt-line); }
+:global(html[data-vt-theme='dark']) .brand,
+:global(html[data-vt-theme='dark']) .navLink { color: var(--vt-ink); }
+:global(html[data-vt-theme='dark']) .navLinkOn { background: #493137; color: #f0c5cc; }
+:global(html[data-vt-theme='dark']) .navLink:hover { background: #393131; }
+:global(html[data-vt-theme='dark']) .filterBar,
+:global(html[data-vt-theme='dark']) .card,
+:global(html[data-vt-theme='dark']) .step,
+:global(html[data-vt-theme='dark']) .pathCard,
+:global(html[data-vt-theme='dark']) .stepCard,
+:global(html[data-vt-theme='dark']) .infoBlock,
+:global(html[data-vt-theme='dark']) .detailModal { background: var(--vt-surface); color: var(--vt-ink); border-color: var(--vt-line); }
+:global(html[data-vt-theme='dark']) .search,
+:global(html[data-vt-theme='dark']) .select,
+:global(html[data-vt-theme='dark']) .input,
+:global(html[data-vt-theme='dark']) .themeSelect { background: #211e1e; color: var(--vt-ink); border-color: var(--vt-line); }
+:global(html[data-vt-theme='dark']) .label,
+:global(html[data-vt-theme='dark']) .checkRow,
+:global(html[data-vt-theme='dark']) .subLabel,
+:global(html[data-vt-theme='dark']) .infoText,
+:global(html[data-vt-theme='dark']) .infoList,
+:global(html[data-vt-theme='dark']) .tag { color: #e4deda; }
+:global(html[data-vt-theme='dark']) .tag,
+:global(html[data-vt-theme='dark']) .summaryLine,
+:global(html[data-vt-theme='dark']) .reviewSummary,
+:global(html[data-vt-theme='dark']) .modalClose { background: #393232; border-color: var(--vt-line); color: #e4deda; }
+:global(html[data-vt-theme='dark']) .chip,
+:global(html[data-vt-theme='dark']) .dayBtn,
+:global(html[data-vt-theme='dark']) .partTile,
+:global(html[data-vt-theme='dark']) .btnSecondary { background: #2b2727; color: var(--vt-ink); border-color: var(--vt-line); }
+:global(html[data-vt-theme='dark']) .chipOn,
+:global(html[data-vt-theme='dark']) .dayOn { background: #762d3b; color: #fff; border-color: #762d3b; }
+:global(html[data-vt-theme='dark']) .partOn { background: #493137; border-color: #c77b88; }
+:global(html[data-vt-theme='dark']) .partState { background: #211e1e; color: #e4deda; border-color: var(--vt-line); }
+:global(html[data-vt-theme='dark']) .footer { background: #171515; border-color: #403a39; color: #f2eee9; }
+:global(html[data-vt-theme='dark']) .footerBrand p,
+:global(html[data-vt-theme='dark']) .footerNote,
+:global(html[data-vt-theme='dark']) .footerBottom { color: #b8b0aa; }
+:global(html[data-vt-theme='dark']) .footerLinks a { color: #f2eee9; }
+:global(html[data-vt-theme='dark']) .footerBottom { border-color: #403a39; }
+:global(html[data-vt-theme='dark']) .modalText { color: #d1c8c3; }
+:global(html[data-vt-theme='dark']) .progressTrack { background: #514747; }
+:global(html[data-vt-theme='dark']) .wizardStep { background: #2b2727; border-color: var(--vt-line); color: var(--vt-muted); }
+:global(html[data-vt-theme='dark']) .wizardStepOn { background: #762d3b; border-color: #762d3b; color: white; }
+@media (max-width: 720px) {
+  .navActions { margin-left: auto; }
+  .themeLabel { display: none; }
+  .themeSelect { padding: 6px 7px; min-height: 32px; }
+  :global(html[data-vt-theme='dark']) .tabbar { background: rgba(43,39,39,.98); border-top-color: var(--vt-line); }
+}
