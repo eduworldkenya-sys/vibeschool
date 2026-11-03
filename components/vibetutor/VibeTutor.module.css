@@ -597,3 +597,40 @@
     overflow: visible;
   }
 }
+
+
+/* Dark theme contrast coverage for secondary copy and interactive states. */
+:global(html[data-vt-theme='dark']) .label,
+:global(html[data-vt-theme='dark']) .checkRow,
+:global(html[data-vt-theme='dark']) .subLabel,
+:global(html[data-vt-theme='dark']) .infoText,
+:global(html[data-vt-theme='dark']) .infoList,
+:global(html[data-vt-theme='dark']) .dayBtn,
+:global(html[data-vt-theme='dark']) .tag,
+:global(html[data-vt-theme='dark']) .partLabel,
+:global(html[data-vt-theme='dark']) .cardTitle,
+:global(html[data-vt-theme='dark']) .stepTitle,
+:global(html[data-vt-theme='dark']) .sectionTitle,
+:global(html[data-vt-theme='dark']) .pathTitle,
+:global(html[data-vt-theme='dark']) .count,
+:global(html[data-vt-theme='dark']) .price,
+:global(html[data-vt-theme='dark']) .summaryLine strong { color: var(--vt-ink); }
+:global(html[data-vt-theme='dark']) .muted,
+:global(html[data-vt-theme='dark']) .hint,
+:global(html[data-vt-theme='dark']) .meta,
+:global(html[data-vt-theme='dark']) .empty,
+:global(html[data-vt-theme='dark']) .priceUnit,
+:global(html[data-vt-theme='dark']) .modeText,
+:global(html[data-vt-theme='dark']) .partHours,
+:global(html[data-vt-theme='dark']) .summary,
+:global(html[data-vt-theme='dark']) .wizardMeta { color: var(--vt-muted); }
+:global(html[data-vt-theme='dark']) .stepNum { background: var(--vt-accent); color: #201d1d; }
+:global(html[data-vt-theme='dark']) .partState { color: var(--vt-ink); }
+:global(html[data-vt-theme='dark']) .partTile:hover,
+:global(html[data-vt-theme='dark']) .search:focus,
+:global(html[data-vt-theme='dark']) .input:focus { background: #393232; color: var(--vt-ink); }
+:global(html[data-vt-theme='dark']) .search::placeholder,
+:global(html[data-vt-theme='dark']) .input::placeholder { color: #a99f99; opacity: 1; }
+:global(html[data-vt-theme='dark']) select option { background: #2b2727; color: #f2eee9; }
+:global(html[data-vt-theme='dark']) .btnDisabled { color: var(--vt-muted); border-color: var(--vt-line); }
+:global(html[data-vt-theme='dark']) .success { color: #f0c5cc; background: #493137; }
