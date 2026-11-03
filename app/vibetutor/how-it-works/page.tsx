@@ -73,7 +73,7 @@ export default function HowItWorks() {
         </p>
       </section>
 
-      <p className={styles.notice}>Demo data only. Nothing you enter here is saved yet.</p>
+      <p className={styles.notice}>Illustrative listings only. Nothing entered in these forms is saved yet.</p>
     </article>
   )
 }
