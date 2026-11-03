@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Nav from '@/components/vibetutor/Nav'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 
 export const metadata: Metadata = {
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 }
 
 export default function VibeTutorLayout({ children }: { children: React.ReactNode }) {
-  return <main className={styles.wrap}>{children}</main>
+  return (
+    <div className={styles.shell}>
+      <Nav />
+      <main className={styles.page}>{children}</main>
+    </div>
+  )
 }

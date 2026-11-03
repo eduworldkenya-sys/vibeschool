@@ -1,68 +1,96 @@
 'use client'
 
-import Link from 'next/link'
 import { useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
-import { AREAS, LEVELS, SUBJECTS, type Mode } from '@/components/vibetutor/data'
+import { FormStep, Field, Segmented, ToggleChips } from '@/components/vibetutor/Form'
+import { AREAS, HOLIDAY_DAYS, LEVELS, SUBJECTS, type Mode } from '@/components/vibetutor/data'
+
+const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter(x => x !== v) : [...list, v])
 
 export default function BecomeTutor() {
   const [name, setName] = useState('')
   const [subjects, setSubjects] = useState<string[]>([])
   const [levels, setLevels] = useState<string[]>([])
+  const [mode, setMode] = useState<Mode>('either')
   const [area, setArea] = useState('')
-  const [mode, setMode] = useState<Mode | ''>('')
   const [rate, setRate] = useState('')
+  const [days, setDays] = useState<string[]>([])
+  const [phone, setPhone] = useState('')
+  const [consent, setConsent] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const valid = name.trim() && subjects.length && levels.length && area && mode && Number(rate) > 0
 
-  const toggle = (list: string[], set: (v: string[]) => void, v: string) =>
-    set(list.includes(v) ? list.filter(x => x !== v) : [...list, v])
+  const ready = name.trim() && subjects.length && levels.length && area && Number(rate) > 0 && phone.trim() && consent
 
   return (
-    <>
-      <Link href="/vibetutor" className={styles.back}>← VibeTutor</Link>
-      <h1 className={styles.title}>Register as a tutor</h1>
-      <div className={styles.notice}>Preview only. Registrations are not saved yet.</div>
-      <form className={styles.filters} style={{ gridTemplateColumns: '1fr' }} onSubmit={e => { e.preventDefault(); if (valid) setSubmitted(true) }}>
-        <label className={styles.field}>Display name
-          <input className={styles.input} value={name} onChange={e => setName(e.target.value)} maxLength={60} />
-        </label>
-        <fieldset className={styles.field} style={{ border: 0, padding: 0 }}>
-          <legend>Subjects you teach</legend>
-          {SUBJECTS.map(s => (
-            <label key={s} style={{ display: 'inline-flex', gap: 6, marginRight: 12, marginBottom: 6 }}>
-              <input type="checkbox" checked={subjects.includes(s)} onChange={() => toggle(subjects, setSubjects, s)} />{s}
-            </label>
-          ))}
-        </fieldset>
-        <fieldset className={styles.field} style={{ border: 0, padding: 0 }}>
-          <legend>Levels you teach</legend>
-          {LEVELS.map(s => (
-            <label key={s} style={{ display: 'inline-flex', gap: 6, marginRight: 12, marginBottom: 6 }}>
-              <input type="checkbox" checked={levels.includes(s)} onChange={() => toggle(levels, setLevels, s)} />{s}
-            </label>
-          ))}
-        </fieldset>
-        <label className={styles.field}>Area
-          <select className={styles.select} value={area} onChange={e => setArea(e.target.value)} required>
-            <option value="">Choose an area</option>
-            {AREAS.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label className={styles.field}>Teaching mode
-          <select className={styles.select} value={mode} onChange={e => setMode(e.target.value as Mode | '')} required>
-            <option value="">Choose a mode</option>
-            <option value="online">Online</option>
-            <option value="physical">In person</option>
-            <option value="either">Online or in person</option>
-          </select>
-        </label>
-        <label className={styles.field}>Rate per hour (KSh)
-          <input className={styles.input} inputMode="numeric" value={rate} onChange={e => setRate(e.target.value.replace(/\D/g, ''))} />
-        </label>
-        <button type="submit" className={styles.button} disabled={!valid}>Preview registration</button>
-        {submitted && <p className={styles.meta}>Preview complete for {name}. Saving will be enabled in the backend phase.</p>}
+    <div className={styles.formWrap}>
+      <header className={styles.formHead}>
+        <h1 className={styles.formTitle}>Teach on VibeTutor</h1>
+        <p className={styles.muted}>Create a profile so learners can find you this holiday.</p>
+      </header>
+
+      <p className={styles.notice}>Preview only. Profiles are not saved or published yet.</p>
+
+      <form
+        className={styles.form}
+        onSubmit={e => { e.preventDefault(); if (ready) setSubmitted(true) }}
+      >
+        <FormStep n={1} title="About you">
+          <Field label="Display name" required>
+            <input className={styles.input} value={name} onChange={e => setName(e.target.value)} maxLength={60} />
+          </Field>
+          <Field label="Area" required>
+            <select className={styles.input} value={area} onChange={e => setArea(e.target.value)}>
+              <option value="">Choose an area</option>
+              {AREAS.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </Field>
+        </FormStep>
+
+        <FormStep n={2} title="What you teach" hint="Pick everything you cover.">
+          <Field label="Subjects" required>
+            <ToggleChips label="Subjects" options={SUBJECTS} selected={subjects} onToggle={v => setSubjects(toggle(subjects, v))} />
+          </Field>
+          <Field label="Levels" required>
+            <ToggleChips label="Levels" options={LEVELS} selected={levels} onToggle={v => setLevels(toggle(levels, v))} />
+          </Field>
+        </FormStep>
+
+        <FormStep n={3} title="How you teach">
+          <Field label="Format">
+            <Segmented<Mode>
+              label="Format"
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: 'online', label: 'Online' },
+                { value: 'physical', label: 'In person' },
+                { value: 'either', label: 'Either' },
+              ]}
+            />
+          </Field>
+          <Field label="Rate per hour (KSh)" required>
+            <input className={styles.input} inputMode="numeric" value={rate} onChange={e => setRate(e.target.value.replace(/\D/g, ''))} />
+          </Field>
+          <Field label="Holiday days available">
+            <ToggleChips label="Holiday days" options={HOLIDAY_DAYS} selected={days} onToggle={v => setDays(toggle(days, v))} />
+          </Field>
+        </FormStep>
+
+        <FormStep n={4} title="Contact and consent">
+          <Field label="Phone number" required hint="Kept private. Only shared after you agree to a booking.">
+            <input className={styles.input} type="tel" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} />
+          </Field>
+          <label className={styles.checkRow}>
+            <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} />
+            <span>I agree to be listed publicly on VibeTutor. My phone number stays private.</span>
+          </label>
+        </FormStep>
+
+        <div className={styles.submitBar}>
+          <button type="submit" className={styles.btnSubmit} disabled={!ready}>Preview profile</button>
+          {submitted && <p className={styles.success}>Preview complete for {name.trim()}. Publishing will be enabled in the next phase.</p>}
+        </div>
       </form>
-    </>
+    </div>
   )
 }
