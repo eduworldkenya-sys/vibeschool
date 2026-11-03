@@ -1,16 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
+import FilterBar from '@/components/vibetutor/FilterBar'
+import BackToTop from '@/components/vibetutor/BackToTop'
 import { AREAS, LEVELS, SAMPLE_TUTORS, SUBJECTS, modeLabel, type Mode } from '@/components/vibetutor/data'
 
 export default function FindTutor() {
+  const [q, setQ] = useState('')
   const [subject, setSubject] = useState('')
   const [level, setLevel] = useState('')
   const [area, setArea] = useState('')
   const [mode, setMode] = useState<Mode | ''>('')
-  const [q, setQ] = useState('')
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase()
@@ -23,42 +25,28 @@ export default function FindTutor() {
     )
   }, [q, subject, level, area, mode])
 
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    setBusy(true)
+    const t = setTimeout(() => setBusy(false), 400)
+    return () => clearTimeout(t)
+  }, [q, subject, level, area, mode])
+
+  const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode('') }
+
   return (
     <>
       <Link href="/vibetutor" className={styles.back}>← VibeTutor</Link>
       <h1 className={styles.title}>Find a tutor</h1>
-      <div className={styles.notice}>Sample tutors only. Contact details are not shown in this preview.</div>
-      <label className={styles.field} style={{ marginTop: 16 }}>Search by name, subject or area
-        <input className={styles.input} type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="e.g. Physics, Nakuru" />
-      </label>
-      <div className={styles.filters}>
-        <label className={styles.field}>Subject
-          <select className={styles.select} value={subject} onChange={e => setSubject(e.target.value)}>
-            <option value="">Any subject</option>
-            {SUBJECTS.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label className={styles.field}>Level
-          <select className={styles.select} value={level} onChange={e => setLevel(e.target.value)}>
-            <option value="">Any level</option>
-            {LEVELS.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label className={styles.field}>Area
-          <select className={styles.select} value={area} onChange={e => setArea(e.target.value)}>
-            <option value="">Any area</option>
-            {AREAS.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label className={styles.field}>Mode
-          <select className={styles.select} value={mode} onChange={e => setMode(e.target.value as Mode | '')}>
-            <option value="">Online or in person</option>
-            <option value="online">Online</option>
-            <option value="physical">In person</option>
-          </select>
-        </label>
-      </div>
-      <div className={styles.list} aria-live="polite">
+      <FilterBar
+        q={q} onQ={setQ} placeholder="Search tutors by name, subject or area"
+        subjects={SUBJECTS} subject={subject} onSubject={setSubject}
+        levels={LEVELS} level={level} onLevel={setLevel}
+        areas={AREAS} area={area} onArea={setArea}
+        mode={mode} onMode={setMode}
+        resultCount={results.length} noun="tutor" onClear={clear} busy={busy}
+      />
+      <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
         {results.length === 0 && <p className={styles.empty}>No sample tutors match these filters.</p>}
         {results.map(t => (
           <article key={t.id} className={styles.item}>
@@ -71,6 +59,8 @@ export default function FindTutor() {
           </article>
         ))}
       </div>
+      <p className={styles.notice}>Sample tutors only. Contact details are not shown in this preview.</p>
+      <BackToTop />
     </>
   )
 }
