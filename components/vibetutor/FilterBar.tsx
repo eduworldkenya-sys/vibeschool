@@ -5,6 +5,8 @@ import Icon from './Icon'
 import { modeLabel, type Mode } from './data'
 
 type Props = {
+  view: 'tutors' | 'students'
+  onView: (v: 'tutors' | 'students') => void
   q: string
   onQ: (v: string) => void
   placeholder: string
@@ -36,6 +38,10 @@ export default function FilterBar(p: Props) {
 
   return (
     <section className={styles.filterBar} aria-label="Filters">
+      <div className={styles.segment} role="group" aria-label="I am looking for" style={{ justifySelf: 'start' }}>
+        <button type="button" className={`${styles.segmentBtn} ${p.view === 'tutors' ? styles.segmentOn : ''}`} aria-pressed={p.view === 'tutors'} onClick={() => p.onView('tutors')}>Find a tutor</button>
+        <button type="button" className={`${styles.segmentBtn} ${p.view === 'students' ? styles.segmentOn : ''}`} aria-pressed={p.view === 'students'} onClick={() => p.onView('students')}>Find learners</button>
+      </div>
       <label className={styles.searchWrap}>
         <Icon name="search" size={18} className={styles.searchIcon} />
         <input

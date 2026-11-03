@@ -6,8 +6,7 @@ import styles from './VibeTutor.module.css'
 import Icon, { type IconName } from './Icon'
 
 const TABS: { href: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
-  { href: '/vibetutor', label: 'Home', icon: 'home', match: p => p === '/vibetutor' },
-  { href: '/vibetutor/browse', label: 'Browse', icon: 'search', match: p => p.startsWith('/vibetutor/browse') || p.startsWith('/vibetutor/find-') },
+  { href: '/vibetutor', label: 'Find', icon: 'search', match: p => p === '/vibetutor' || p.startsWith('/vibetutor/browse') || p.startsWith('/vibetutor/find-') },
   { href: '/vibetutor/post-request', label: 'Post request', icon: 'plus', match: p => p.startsWith('/vibetutor/post-request') },
   { href: '/vibetutor/become-tutor', label: 'Teach', icon: 'users', match: p => p.startsWith('/vibetutor/become-tutor') },
 ]

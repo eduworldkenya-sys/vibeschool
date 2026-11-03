@@ -51,19 +51,13 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
 
   return (
     <>
-      <div className={styles.pageHead}>
-        <h1 className={styles.pageTitle}>Browse</h1>
-        <div className={styles.segment} role="group" aria-label="Browse">
-          <button type="button" className={`${styles.segmentBtn} ${view === 'tutors' ? styles.segmentOn : ''}`} aria-pressed={view === 'tutors'} onClick={() => setView('tutors')}>Tutors</button>
-          <button type="button" className={`${styles.segmentBtn} ${view === 'students' ? styles.segmentOn : ''}`} aria-pressed={view === 'students'} onClick={() => setView('students')}>Learners</button>
-        </div>
-      </div>
-
+      <h1 className={styles.pageTitle}>Find holiday tuition</h1>
       <p className={styles.notice}>
         Demo data. These listings are fictional and only show how the page works.
       </p>
 
       <FilterBar
+        view={view} onView={setView}
         q={q} onQ={setQ}
         placeholder={view === 'tutors' ? 'Search tutors by name, subject or area' : 'Search requests by subject, level or area'}
         subjects={SUBJECTS} subject={subject} onSubject={setSubject}
