@@ -18,7 +18,6 @@ export default function PostRequest() {
   const [parts, setParts] = useState<DayPart[]>([])
   const [budget, setBudget] = useState('')
   const [phone, setPhone] = useState('')
-  const [submitted, setSubmitted] = useState(false)
 
   const ready = learner.trim() && subjects.length > 0 && level && area && days.length > 0 && parts.length > 0 && phone.trim()
 
@@ -31,7 +30,7 @@ export default function PostRequest() {
 
       <p className={styles.notice}>Preview only. Requests are not saved or shared yet.</p>
 
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (ready) setSubmitted(true) }}>
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (ready) window.location.assign('/login') }}>
         <FormStep n={1} title="The learner">
           <Field label="Name or nickname" required hint="Shared with tutors only after a request is verified.">
             <input className={styles.input} value={learner} onChange={e => setLearner(e.target.value)} maxLength={60} />
@@ -82,8 +81,7 @@ export default function PostRequest() {
         </FormStep>
 
         <div className={styles.submitBar}>
-          <button type="submit" className={styles.btnSubmit} disabled={!ready}>Preview request</button>
-          {submitted && <p className={styles.success}>Preview complete for {learner.trim() || 'this learner'}: {subjects.join(', ')}, {level}, {area}. Saving will be enabled in the next phase.</p>}
+          <button type="submit" className={styles.btnSubmit} disabled={!ready}>Continue with VibeSchool</button>
         </div>
       </form>
     </div>
