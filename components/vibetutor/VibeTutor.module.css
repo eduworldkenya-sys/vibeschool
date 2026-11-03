@@ -558,3 +558,42 @@
   .themeSelect { padding: 6px 7px; min-height: 32px; }
   :global(html[data-vt-theme='dark']) .tabbar { background: rgba(43,39,39,.98); border-top-color: var(--vt-line); }
 }
+
+/* Progressive filters: prevent controls from overflowing or colliding as they appear. */
+.filterBar > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.controls {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  align-items: start;
+}
+.controls > *,
+.filterField {
+  min-width: 0;
+  max-width: 100%;
+}
+.controls .segment {
+  display: flex;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+}
+.filterField .chipRow {
+  flex-wrap: wrap;
+  overflow: visible;
+  min-width: 0;
+}
+@media (max-width: 719px) {
+  .controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .controls .segment {
+    width: fit-content;
+    max-width: 100%;
+  }
+  .filterField .chipRow {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+}
