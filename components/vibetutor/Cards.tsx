@@ -26,7 +26,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
           <span className={styles.modeText}>{modeLabel(t.mode)}</span>
         </div>
         <p className={styles.holiday}>{t.holidayAvailable ? 'Available this holiday' : 'Holiday availability not set'} · {summarizeDays(t.days)}</p>
-        <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View tutor <Icon name="arrow-right" size={15} /></button>
+        <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View tutor <Icon name="arrow" size={15} /></button>
       </article>
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
         <section className={styles.detailModal} role="dialog" aria-modal="true" aria-labelledby={`tutor-${t.id}`}>
@@ -66,7 +66,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
           <p className={styles.price}>Up to KSh {r.budgetKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
           <span className={styles.modeText}>{r.postedDaysAgo === 1 ? 'Posted yesterday' : `Posted ${r.postedDaysAgo} days ago`}</span>
         </div>
-        <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View request <Icon name="arrow-right" size={15} /></button>
+        <button type="button" className={styles.cardAction} onClick={() => setOpen(true)}>View request <Icon name="arrow" size={15} /></button>
       </article>
       {open && <div className={styles.modalBackdrop} role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}>
         <section className={styles.detailModal} role="dialog" aria-modal="true" aria-labelledby={`request-${r.id}`}>
