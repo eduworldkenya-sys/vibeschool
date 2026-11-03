@@ -1,12 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
-import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
-import { AREAS, DEMO_REQUESTS, DEMO_TUTORS, LEVELS, SUBJECTS, type Mode } from '@/components/vibetutor/data'
+import { AREAS, LEVELS, SUBJECTS, type Mode } from '@/components/vibetutor/data'
 
 type View = 'tutors' | 'students'
 
@@ -17,45 +15,19 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const [level, setLevel] = useState('')
   const [area, setArea] = useState('')
   const [mode, setMode] = useState<Mode | ''>('')
-
-  const tutors = useMemo(() => {
-    const term = q.trim().toLowerCase()
-    return DEMO_TUTORS.filter(t =>
-      (!subject || t.subjects.includes(subject)) &&
-      (!level || t.levels.includes(level)) &&
-      (!area || t.area === area) &&
-      (!mode || t.mode === mode || t.mode === 'either') &&
-      (!term || [t.name, t.area, ...t.subjects, ...t.levels].some(v => v.toLowerCase().includes(term)))
-    )
-  }, [q, subject, level, area, mode])
-
-  const requests = useMemo(() => {
-    const term = q.trim().toLowerCase()
-    return DEMO_REQUESTS.filter(r =>
-      (!subject || r.subjects.includes(subject)) &&
-      (!level || r.level === level) &&
-      (!area || r.area === area) &&
-      (!mode || r.mode === mode) &&
-      (!term || [...r.subjects, r.level, r.area].some(v => v.toLowerCase().includes(term)))
-    )
-  }, [q, subject, level, area, mode])
-
   const [busy, setBusy] = useState(false)
+
   useEffect(() => {
     setBusy(true)
-    const t = setTimeout(() => setBusy(false), 400)
+    const t = setTimeout(() => setBusy(false), 250)
     return () => clearTimeout(t)
   }, [q, subject, level, area, mode, view])
 
   const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode('') }
-  const count = view === 'tutors' ? tutors.length : requests.length
 
   return (
     <>
       <h1 className={styles.pageTitle}>Find holiday tuition</h1>
-      <p className={styles.notice}>
-        Example listings. These profiles are illustrative, not real available tutors or requests. <Link href="/vibetutor/how-it-works" className={styles.clear}>How it works</Link>
-      </p>
 
       <FilterBar
         view={view} onView={setView}
@@ -65,14 +37,16 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
         levels={LEVELS} level={level} onLevel={setLevel}
         areas={AREAS} area={area} onArea={setArea}
         mode={mode} onMode={setMode}
-        resultCount={count} noun={view === 'tutors' ? 'tutor' : 'request'} onClear={clear} busy={busy}
+        resultCount={0} noun={view === 'tutors' ? 'tutor' : 'request'} onClear={clear} busy={busy}
       />
 
       <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
-        {view === 'tutors' && tutors.length === 0 && <p className={styles.empty}>No example tutors match these filters.</p>}
-        {view === 'students' && requests.length === 0 && <p className={styles.empty}>No example requests match these filters.</p>}
-        {view === 'tutors' && tutors.map(t => <TutorCard key={t.id} t={t} />)}
-        {view === 'students' && requests.map(r => <RequestCard key={r.id} r={r} />)}
+        <div className={styles.empty}>
+          <strong>{view === 'tutors' ? 'No tutors listed yet' : 'No tuition requests listed yet'}</strong>
+          <p>{view === 'tutors'
+            ? 'Tutor profiles will appear here when tutors join VibeTutor.'
+            : 'Tuition requests will appear here when learners post them.'}</p>
+        </div>
       </div>
       <BackToTop />
     </>
