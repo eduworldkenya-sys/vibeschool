@@ -21,7 +21,7 @@
   .navLinks { display: none; }
   .topbarInner { padding: 0 16px; }
   .page { padding: 20px 16px 104px; }
-  .tabbar { display: grid; grid-template-columns: repeat(4, 1fr); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--vt-surface); border-top: 1px solid var(--vt-line); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
+  .tabbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--vt-surface); border-top: 1px solid var(--vt-line); padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); }
   .tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--vt-muted); text-decoration: none; padding: 6px 0; border-radius: 10px; }
   .tabOn { color: var(--vt-accent); font-weight: 600; }
 }
@@ -323,4 +323,56 @@
   .tabbar { background: rgba(255,255,255,.97); border-top-color: #e8e7df; }
   .page { padding-left: 16px; padding-right: 16px; }
   .card { border-radius: 18px; }
+}
+
+/* Compact weekly availability: no time-of-day grid. */
+.dayRow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.dayBtn { min-height: 42px; padding: 8px 2px; }
+@media (max-width: 420px) {
+  .dayRow { gap: 4px; }
+  .dayBtn { font-size: 12px; min-height: 40px; }
+}
+
+
+/* Marketplace refinement: compact filters, readable results and footer. */
+.controls { grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) auto; align-items: center; }
+.filterBar { gap: 12px; padding: 16px; }
+.list { align-items: stretch; }
+@media (max-width: 719px) {
+  .list { display: grid; grid-template-columns: 1fr; overflow: visible; }
+  .list > .card { width: 100%; min-width: 0; }
+  .controls { grid-template-columns: 1fr 1fr; }
+  .controls > .segment { grid-column: 1 / -1; width: fit-content; }
+}
+.footer { background: #eeece4; border-top: 1px solid #e3e0d6; color: #34362e; }
+.footerInner { max-width: 1120px; margin: 0 auto; padding: 30px 20px 18px; display: grid; gap: 18px; }
+.footerBrand strong { font-family: var(--font-display), 'Manrope', Arial, sans-serif; font-size: 18px; }
+.footerBrand p, .footerNote { margin: 5px 0 0; color: #707267; font-size: 13px; line-height: 1.5; }
+.footerLinks { display: flex; flex-wrap: wrap; gap: 12px 22px; }
+.footerLinks a { color: #45483b; text-decoration: none; font-size: 13px; font-weight: 600; }
+.footerLinks a:hover { text-decoration: underline; }
+.footerNote { max-width: 680px; }
+.footerBottom { border-top: 1px solid #dedbd1; padding-top: 14px; color: #77796f; font-size: 12px; }
+@media (max-width: 720px) {
+  .footerInner { padding: 24px 16px 18px; }
+  .controls { grid-template-columns: 1fr; }
+  .controls > .segment { grid-column: auto; }
+}
+
+
+/* Interactive example cards and details. */
+.cardAction { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border: 1px solid #d8ddcc; border-radius: 9px; padding: 11px 14px; background: #edf0e6; color: #414b30; font: inherit; font-size: 14px; font-weight: 650; cursor: pointer; }
+.cardAction:hover { background: #e3e8d8; border-color: #c7d0b7; }
+.modalBackdrop { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 18px; background: rgba(26,27,23,.48); }
+.detailModal { position: relative; width: min(100%, 520px); max-height: min(86vh, 760px); overflow-y: auto; display: grid; gap: 14px; padding: 26px; border-radius: 18px; background: #fff; color: #24251f; box-shadow: 0 24px 80px rgba(0,0,0,.22); }
+.modalClose { position: absolute; top: 12px; right: 14px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: #f4f2ec; color: #34362e; font-size: 25px; line-height: 1; cursor: pointer; }
+.modalTitle { margin: 0; padding-right: 34px; font-family: var(--font-display), 'Manrope', Arial, sans-serif; font-size: 25px; line-height: 1.2; }
+.modalText { margin: 0; color: #55574e; font-size: 15px; line-height: 1.6; }
+.modalPrice { margin: 0; font-size: 18px; font-weight: 750; }
+.modalSignIn { display: block; text-align: center; padding: 13px 16px; border-radius: 9px; background: #596343; color: white; font-size: 14px; font-weight: 650; text-decoration: none; }
+.modalSignIn:hover { background: #465034; }
+.reviewSummary { margin: 8px 0 12px; padding: 10px; border-radius: 8px; background: #f4f2ec; color: #45483b; font-size: 13px; line-height: 1.5; }
+.inlineAction { display: inline-flex; margin-top: 4px; color: #465034; font-weight: 700; text-decoration: underline; }
+@media (max-width: 520px) {
+  .detailModal { padding: 22px 18px; border-radius: 16px; }
 }

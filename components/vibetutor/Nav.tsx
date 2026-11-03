@@ -7,9 +7,10 @@ import styles from './VibeTutor.module.css'
 import Icon, { type IconName } from './Icon'
 
 const TABS: { href: string; label: string; icon: IconName; match: (p: string) => boolean }[] = [
-  { href: '/vibetutor', label: 'Search', icon: 'search', match: p => p === '/vibetutor' || p.startsWith('/vibetutor/browse') || p.startsWith('/vibetutor/find-') },
-  { href: '/vibetutor/post-request', label: 'Learn', icon: 'plus', match: p => p.startsWith('/vibetutor/post-request') },
+  { href: '/vibetutor', label: 'Discover', icon: 'search', match: p => p === '/vibetutor' || p.startsWith('/vibetutor/browse') || p.startsWith('/vibetutor/find-') },
+  { href: '/vibetutor/post-request', label: 'Learn', icon: 'book', match: p => p.startsWith('/vibetutor/post-request') },
   { href: '/vibetutor/become-tutor', label: 'Teach', icon: 'users', match: p => p.startsWith('/vibetutor/become-tutor') },
+  { href: '/login', label: 'Account', icon: 'user', match: p => p === '/login' || p.startsWith('/signup') || p.startsWith('/account') },
 ]
 
 export default function Nav() {
@@ -30,7 +31,6 @@ export default function Nav() {
               </Link>
             ))}
           </nav>
-          <Link href="/login" className={styles.navLink}>Sign in</Link>
         </div>
       </header>
       <nav className={styles.tabbar} aria-label="Mobile">
