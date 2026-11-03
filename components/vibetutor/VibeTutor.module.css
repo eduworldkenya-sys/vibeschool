@@ -634,3 +634,29 @@
 :global(html[data-vt-theme='dark']) .shell select option { background: #2b2727; color: #f2eee9; }
 :global(html[data-vt-theme='dark']) .btnDisabled { color: var(--vt-muted); border-color: var(--vt-line); }
 :global(html[data-vt-theme='dark']) .success { color: #f0c5cc; background: #493137; }
+
+
+/* Compact secondary filters: keep class, subject and results prominent. */
+.compactFilterRow { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+.compactFilterButton {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 36px;
+  padding: 7px 11px; border: 1px solid var(--vt-line); border-radius: 8px;
+  background: var(--vt-surface); color: var(--vt-ink); font: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.compactFilterButton:hover { border-color: var(--vt-accent); }
+.compactFilterCount {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
+  background: var(--vt-accent); color: #fff; font-size: 11px;
+}
+.secondaryFilters {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px;
+  padding: 14px; border: 1px solid var(--vt-line); border-radius: 10px;
+  background: var(--vt-bg);
+}
+.secondaryFilters .filterField { min-width: 0; }
+@media (min-width: 720px) {
+  .secondaryFilters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .secondaryFilters .filterField:last-child { grid-column: 1 / -1; }
+}
