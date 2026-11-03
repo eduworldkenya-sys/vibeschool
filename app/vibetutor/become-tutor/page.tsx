@@ -29,7 +29,6 @@ export default function BecomeTutor() {
         <p className={styles.muted}>Create a profile so learners can find you this holiday.</p>
       </header>
 
-      <p className={styles.notice}>Preview only. Profiles are not saved or published yet.</p>
 
       <form
         className={styles.form}

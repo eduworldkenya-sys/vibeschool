@@ -1,7 +1,6 @@
 'use client'
 
 import styles from './VibeTutor.module.css'
-import Icon from './Icon'
 import { DAYPARTS, DAYS, summarizeDays, summarizeParts, type DayPart } from './data'
 
 type Props = {
@@ -46,10 +45,11 @@ export default function SchedulePicker({ days, onDays, parts, onParts }: Props) 
                 aria-pressed={on}
                 onClick={() => onParts(toggle(parts, p.id))}
               >
-                <span className={styles.partIcon}><Icon name={p.icon} size={20} /></span>
-                <span className={styles.partLabel}>{p.label}</span>
-                <span className={styles.partHours}>{p.hours}</span>
-                {on && <span className={styles.partCheck} aria-hidden="true"><Icon name="check" size={14} /></span>}
+                <span className={styles.partCopy}>
+                  <span className={styles.partLabel}>{p.label}</span>
+                  <span className={styles.partHours}>{p.hours}</span>
+                </span>
+                <span className={styles.partState} aria-hidden="true">{on ? "Selected" : "Select"}</span>
               </button>
             )
           })}
