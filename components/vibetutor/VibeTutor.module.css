@@ -391,3 +391,86 @@
   .subjectHeading { align-items: flex-start; }
   .chipRow { flex-wrap: nowrap; overflow-x: auto; padding: 2px 1px 8px; }
 }
+
+
+/* VibeTutor brand refresh: burgundy, warm ivory, charcoal and restrained brass. */
+.shell {
+  --vt-ink: #292727;
+  --vt-muted: #716b68;
+  --vt-line: #e7dfdc;
+  --vt-bg: #f5f0e8;
+  --vt-surface: #fffdf9;
+  --vt-accent: #762d3b;
+  --vt-accent-soft: #f3e8e8;
+  --vt-amber: #9a7442;
+  --vt-radius: 14px;
+  background: #f5f0e8;
+  color: #292727;
+}
+.page { background: #f5f0e8; color: #292727; }
+.topbar { background: rgba(250,247,241,.97); border-bottom-color: #e7dfdc; }
+.brand { color: #292727; }
+.brandMark { background: #762d3b; }
+.navLink { color: #716b68; }
+.navLinkOn { background: #f0e3e3; color: #762d3b; }
+.navLink:hover { background: #f0e8e2; color: #292727; }
+.tabOn { color: #762d3b; }
+.eyebrow { color: #762d3b; }
+.btnPrimary, .btnSubmit, .modalSignIn { background: #762d3b; }
+.btnPrimary:hover, .btnSubmit:hover:not(:disabled), .modalSignIn:hover { background: #612431; }
+.chipOn, .dayOn, .stepNum, .progressBar { background: #762d3b; }
+.chipOn, .dayOn { border-color: #762d3b; }
+.segmentOn { color: #762d3b; }
+.search:focus, .input:focus { border-color: #9a5964; box-shadow: 0 0 0 3px rgba(118,45,59,.12); }
+.filterTag { border-color: #e5cfd1; background: #f3e8e8; color: #762d3b; }
+.partOn { border-color: #762d3b; background: #f3e8e8; box-shadow: inset 0 0 0 1px #762d3b; }
+.partOn .partState { color: #762d3b; border-color: #e5cfd1; }
+.avatar { background: #f3e8e8; color: #762d3b; }
+.cardAction { border-color: #e5cfd1; background: #f3e8e8; color: #762d3b; }
+.cardAction:hover { background: #ead9da; border-color: #d8b9bd; }
+.modalSignIn { color: #fff; }
+.partTile:hover { border-color: #c9aeb1; background: #fffaf7; }
+.partState { color: #716b68; }
+.tag { background: #f5f0e8; border-color: #e7dfdc; color: #514946; }
+.demo { color: #8a6335; background: #f5eddf; }
+.star { color: #9a7442; }
+.footer { background: #292727; border-top-color: #292727; color: #f5f0e8; }
+.footerBrand p, .footerNote, .footerBottom { color: #c9beb8; }
+.footerLinks a { color: #f5f0e8; }
+.footerBottom { border-top-color: #514744; }
+.detailModal { color: #292727; }
+.modalClose { background: #f5f0e8; color: #514946; }
+.reviewSummary { background: #f5f0e8; color: #514946; }
+@media (max-width: 720px) {
+  .tabbar { background: rgba(255,253,249,.98); border-top-color: #e7dfdc; }
+}
+
+/* Compact spacing pass: preserve fields and flow, remove excess vertical bulk. */
+.page { padding-top: 22px; }
+.formWrap { max-width: 560px; }
+.formHead { margin-bottom: 14px; }
+.form { gap: 10px; }
+.step { padding: 14px; border-radius: 12px; }
+.stepHead { gap: 10px; margin-bottom: 10px; }
+.stepBody { gap: 10px; }
+.field { gap: 4px; }
+.input, .select { min-height: 42px; padding: 9px 11px; font-size: 14px; }
+.search { min-height: 42px; padding-top: 9px; padding-bottom: 9px; font-size: 14px; }
+.btn, .btnSubmit { min-height: 42px; padding: 10px 16px; font-size: 14px; }
+.filterBar { padding: 12px; gap: 10px; }
+.controls { gap: 8px; }
+.chipRow, .chipRowWrap { gap: 6px; }
+.chip { padding: 6px 10px; font-size: 12px; }
+.card { padding: 16px; gap: 10px; }
+.list { gap: 10px; margin-top: 12px; }
+.section { margin-top: 32px; }
+.sectionTitle { margin-bottom: 12px; }
+.infoBlock { padding: 16px; margin-bottom: 10px; }
+.schedule { gap: 12px; }
+@media (max-width: 720px) {
+  .page { padding: 16px 14px 96px; }
+  .step { padding: 13px; }
+  .filterBar { padding: 11px; }
+  .form { gap: 9px; }
+  .card { padding: 14px; }
+}
