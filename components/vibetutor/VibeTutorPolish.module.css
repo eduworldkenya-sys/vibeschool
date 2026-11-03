@@ -6,7 +6,7 @@
 .wizardMeta strong{color:#292727;font-weight:700}
 .wizardSteps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .wizardStep,.wizardStepOn{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;border:1px solid #e7dfdc;color:#716b68;background:#fffdf9}
-.wizardStepOn{background:#762d3b;color:white;border-color:#762d3b}
+.wizardStepOn{background:#762d3b;color:white;border-color:#762d3b}.wizardStepDone{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:800;border:1px solid #762d3b;color:#fff;background:#762d3b;transition:background .12s ease,color .12s ease}
 .wizardActions{display:flex;gap:10px;justify-content:flex-end;margin-top:8px}
 .wizardActions button{min-width:112px}
 .prefillNote{margin:0;padding:9px 11px;border-radius:8px;background:#f3e8e8;color:#762d3b;font-size:12px;line-height:1.45}
