@@ -21,19 +21,21 @@ export default function Nav() {
 
   useEffect(() => {
     const saved = window.localStorage.getItem('vibetutor-theme')
-    const preference = saved === 'light' || saved === 'dark' ? saved : 'system'
-    setTheme(preference)
+    if (saved === 'light' || saved === 'dark' || saved === 'system') setTheme(saved)
+  }, [])
 
+  useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
     const apply = () => {
-      const resolved = preference === 'system' ? (media.matches ? 'dark' : 'light') : preference
+      const resolved = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme
       document.documentElement.dataset.vtTheme = resolved
       document.documentElement.style.colorScheme = resolved
     }
     apply()
+    if (theme !== 'system') return
     media.addEventListener('change', apply)
     return () => media.removeEventListener('change', apply)
-  }, [])
+  }, [theme])
 
   function changeTheme(value: 'light' | 'dark' | 'system') {
     setTheme(value)
