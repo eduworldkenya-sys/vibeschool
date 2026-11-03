@@ -28,7 +28,6 @@ export default function PostRequest() {
         <p className={styles.muted}>Tell tutors what you need. It takes about two minutes and there is no fee.</p>
       </header>
 
-      <p className={styles.notice}>Preview only. Requests are not saved or shared yet.</p>
 
       <form className={styles.form} onSubmit={e => { e.preventDefault(); if (ready) window.location.assign('/login') }}>
         <FormStep n={1} title="The learner">
