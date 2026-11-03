@@ -23,6 +23,12 @@
 .segmentOn { background: #fff; color: #1a1a1a; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); font-weight: 600; }
 .dropdown { font: inherit; font-size: 14px; padding: 9px 12px; border: 1px solid #dcdcd6; border-radius: 10px; background: #fff; color: #1a1a1a; width: 100%; box-sizing: border-box; }
 .summary { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: #555; }
+.progressTrack { height: 3px; border-radius: 999px; background: #ececE6; overflow: hidden; }
+.progressBar { height: 100%; width: 40%; border-radius: 999px; background: #1a5c2e; animation: vtSlide 0.9s ease-in-out infinite; }
+@keyframes vtSlide { 0% { transform: translateX(-100%); } 100% { transform: translateX(260%); } }
+.dim { opacity: .45; transition: opacity .2s ease; }
+.list { transition: opacity .2s ease; }
+@media (prefers-reduced-motion: reduce) { .progressBar { animation: none; width: 100%; opacity: .6; } }
 .clear { font: inherit; font-size: 13px; background: none; border: 0; color: #1a5c2e; cursor: pointer; text-decoration: underline; padding: 0; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #444; }
 .input, .select, .textarea { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid #cfcfcf; border-radius: 8px; background: #fff; color: #1a1a1a; width: 100%; box-sizing: border-box; }

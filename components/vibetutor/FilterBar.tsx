@@ -21,6 +21,7 @@ type Props = {
   resultCount: number
   noun: string
   onClear: () => void
+  busy: boolean
 }
 
 const MODES: { value: Mode | ''; label: string }[] = [
@@ -67,8 +68,11 @@ export default function FilterBar(p: Props) {
       </div>
 
       <div className={styles.summary} aria-live="polite">
-        <span>{p.resultCount} {p.noun}{p.resultCount === 1 ? '' : 's'}</span>
+        <span>{p.busy ? 'Updating results…' : `${p.resultCount} ${p.noun}${p.resultCount === 1 ? '' : 's'}`}</span>
         {active && <button type="button" className={styles.clear} onClick={p.onClear}>Clear filters</button>}
+      </div>
+      <div className={styles.progressTrack} aria-hidden="true">
+        {p.busy && <div className={styles.progressBar} />}
       </div>
     </section>
   )

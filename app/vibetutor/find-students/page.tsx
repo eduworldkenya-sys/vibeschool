@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar from '@/components/vibetutor/FilterBar'
 import { AREAS, LEVELS, SAMPLE_REQUESTS, SUBJECTS, modeLabel, type Mode } from '@/components/vibetutor/data'
@@ -24,6 +24,13 @@ export default function FindStudents() {
     )
   }, [q, subject, level, area, mode])
 
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    setBusy(true)
+    const t = setTimeout(() => setBusy(false), 400)
+    return () => clearTimeout(t)
+  }, [q, subject, level, area, mode])
+
   const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode('') }
 
   return (
@@ -36,9 +43,9 @@ export default function FindStudents() {
         levels={LEVELS} level={level} onLevel={setLevel}
         areas={AREAS} area={area} onArea={setArea}
         mode={mode} onMode={setMode}
-        resultCount={results.length} noun="request" onClear={clear}
+        resultCount={results.length} noun="request" onClear={clear} busy={busy}
       />
-      <div className={styles.list} aria-live="polite">
+      <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
         {results.length === 0 && <p className={styles.empty}>No sample requests match these filters.</p>}
         {results.map(r => (
           <article key={r.id} className={styles.item}>
