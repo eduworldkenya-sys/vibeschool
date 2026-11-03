@@ -26,25 +26,35 @@ export default function Nav() {
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const previousHtmlBackground = document.documentElement.style.backgroundColor
+    const previousBodyBackground = document.body.style.backgroundColor
+
     const apply = () => {
       const resolved = theme === 'system' ? (media.matches ? 'dark' : 'light') : theme
+      const canvas = resolved === 'dark' ? '#201d1d' : '#f5f0e8'
       document.documentElement.dataset.vtTheme = resolved
       document.documentElement.style.colorScheme = resolved
+      // Keep the document canvas in sync with the VibeTutor shell so the
+      // global VibeSchool page background cannot show through at the edges.
+      document.documentElement.style.backgroundColor = canvas
+      document.body.style.backgroundColor = canvas
     }
+
     apply()
-    if (theme !== 'system') return
-    media.addEventListener('change', apply)
-    return () => media.removeEventListener('change', apply)
+    if (theme === 'system') media.addEventListener('change', apply)
+
+    return () => {
+      if (theme === 'system') media.removeEventListener('change', apply)
+      delete document.documentElement.dataset.vtTheme
+      document.documentElement.style.colorScheme = ''
+      document.documentElement.style.backgroundColor = previousHtmlBackground
+      document.body.style.backgroundColor = previousBodyBackground
+    }
   }, [theme])
 
   function changeTheme(value: 'light' | 'dark' | 'system') {
     setTheme(value)
     window.localStorage.setItem('vibetutor-theme', value)
-    const resolved = value === 'system'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      : value
-    document.documentElement.dataset.vtTheme = resolved
-    document.documentElement.style.colorScheme = resolved
   }
 
   return (
