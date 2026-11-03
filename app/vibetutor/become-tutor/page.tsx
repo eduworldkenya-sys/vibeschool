@@ -51,15 +51,20 @@ export default function BecomeTutor() {
     : step === 2 ? days.length > 0
     : !!name.trim() && validKenyanPhone(phone) && consent
 
+
+
+  useEffect(() => {
+    if (step < 3 && validStep) setStep(current => current === step ? current + 1 : current)
+  }, [step, validStep])
+
   return (
     <div className={styles.formWrap}>
       <header className={styles.formHead}>
         <h1 className={styles.formTitle}>Teach on VibeTutor</h1>
         <p className={styles.muted}>Set up your tutor profile in four short steps.</p>
         <div className={polish.wizardProgress} aria-label={`Step ${step + 1} of 4`}>
-          <div className={polish.wizardTrack}><span style={{ width: `${((step + 1) / 4) * 100}%` }} /></div>
           <div className={polish.wizardMeta}><strong>{steps[step]}</strong><span>Step {step + 1} of 4</span></div>
-          <div className={polish.wizardSteps}>{steps.map((label, index) => <span key={label} className={index <= step ? polish.wizardStepOn : polish.wizardStep}>{index + 1}</span>)}</div>
+          <div className={polish.wizardSteps}>{steps.map((label, index) => <span key={label} aria-label={label} className={index < step ? polish.wizardStepDone : index === step ? polish.wizardStepOn : polish.wizardStep}>{index < step ? '✓' : index + 1}</span>)}</div>
         </div>
       </header>
       <form className={styles.form} onSubmit={e => { e.preventDefault(); if (step < 3 && validStep) setStep(step + 1); else if (step === 3 && validStep) window.location.assign('/login?next=%2Fvibetutor%2Fbecome-tutor') }}>
@@ -82,7 +87,7 @@ export default function BecomeTutor() {
         </>}
         <div className={polish.wizardActions}>
           {step > 0 && <button type="button" className={styles.btnSecondary} onClick={() => setStep(step - 1)}>Back</button>}
-          <button type="submit" className={styles.btnSubmit} disabled={!validStep}>{step === 3 ? 'Continue to sign in' : 'Continue'}</button>
+          {step === 3 && <button type="submit" className={styles.btnSubmit} disabled={!validStep}>Create tutor profile</button>}
         </div>
       </form>
     </div>
