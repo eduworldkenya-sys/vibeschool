@@ -12,10 +12,11 @@ type Props = {
   levels: FilterOption[]; level: string; onLevel: (v: string) => void
   areas: FilterOption[]; area: string; onArea: (v: string) => void
   modes: FilterOption[]; mode: Mode | ''; onMode: (v: Mode | '') => void
+  priceRange: string; onPriceRange: (v: string) => void
   resultCount: number; noun: string; onClear: () => void; busy: boolean
 }
 export default function FilterBar(p: Props) {
-  const active = !!(p.q || p.subject || p.level || p.area || p.mode)
+  const active = !!(p.q || p.subject || p.level || p.area || p.mode || p.priceRange)
   return (
     <section className={styles.filterBar} aria-label="Search and filters">
       <div className={styles.segment} role="group" aria-label="I am looking for" style={{ justifySelf: 'start' }}>
@@ -64,6 +65,22 @@ export default function FilterBar(p: Props) {
           : <p className={styles.hint}>Select a level first. Only matching subjects will then appear.</p>}
       </div>
 
+      <details className={styles.moreFilters}>
+        <summary className={styles.moreFiltersSummary}>More filters{p.priceRange ? <span className={styles.optionCount}> · Price selected</span> : null}</summary>
+        <div className={styles.moreFiltersBody}>
+          <span className={styles.subLabel}>Price per hour</span>
+          <div className={styles.chipRow} role="group" aria-label="Price range">
+            {[
+              { value: '', label: 'Any price' },
+              { value: 'under500', label: 'Under KSh 500' },
+              { value: '500to1000', label: 'KSh 500–1,000' },
+              { value: '1000to2000', label: 'KSh 1,000–2,000' },
+              { value: 'over2000', label: 'KSh 2,000+' },
+            ].map(option => <button key={option.value} type="button" className={`${styles.chip} ${p.priceRange === option.value ? styles.chipOn : ''}`} aria-pressed={p.priceRange === option.value} onClick={() => p.onPriceRange(option.value)}>{option.label}</button>)}
+          </div>
+        </div>
+      </details>
+
       <div className={styles.summary} aria-live="polite">
         <span className={styles.count}>{p.busy ? 'Updating…' : `${p.resultCount} ${p.noun}${p.resultCount === 1 ? '' : 's'} found`}</span>
         {active && <button type="button" className={styles.clear} onClick={p.onClear}>Clear all filters</button>}
@@ -74,6 +91,7 @@ export default function FilterBar(p: Props) {
         {p.subject && <button type="button" className={styles.filterTag} onClick={() => p.onSubject('')}>{p.subject} ×</button>}
         {p.area && <button type="button" className={styles.filterTag} onClick={() => p.onArea('')}>{p.area} ×</button>}
         {p.mode && <button type="button" className={styles.filterTag} onClick={() => p.onMode('')}>{modeLabel(p.mode)} ×</button>}
+        {p.priceRange && <button type="button" className={styles.filterTag} onClick={() => p.onPriceRange('')}>{({under500:'Under KSh 500','500to1000':'KSh 500–1,000','1000to2000':'KSh 1,000–2,000',over2000:'KSh 2,000+'} as Record<string,string>)[p.priceRange]} ×</button>}
       </div>}
       <div className={styles.progressTrack} aria-hidden="true">{p.busy && <div className={styles.progressBar} />}</div>
     </section>

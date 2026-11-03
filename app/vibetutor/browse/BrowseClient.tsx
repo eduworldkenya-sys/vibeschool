@@ -8,7 +8,15 @@ import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
 import { DEMO_REQUESTS, DEMO_TUTORS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
 
 type View = 'tutors' | 'students'
-type Filters = { q: string; subject: string; level: string; area: string; mode: Mode | '' }
+type Filters = { q: string; subject: string; level: string; area: string; mode: Mode | ''; priceRange: string }
+
+function matchesPrice(price: number, range: string) {
+  if (range === 'under500') return price < 500
+  if (range === '500to1000') return price >= 500 && price <= 1000
+  if (range === '1000to2000') return price > 1000 && price <= 2000
+  if (range === 'over2000') return price > 2000
+  return true
+}
 
 function matchesText(values: string[], q: string) {
   const term = q.trim().toLowerCase()
@@ -22,14 +30,16 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const [level, setLevel] = useState('')
   const [area, setArea] = useState('')
   const [mode, setMode] = useState<Mode | ''>('')
+  const [priceRange, setPriceRange] = useState('')
   const [busy, setBusy] = useState(false)
-  const filters: Filters = { q, subject, level, area, mode }
+  const filters: Filters = { q, subject, level, area, mode, priceRange }
 
   const tutorsFor = (f: Filters) => DEMO_TUTORS.filter(t =>
     (!f.level || t.levels.includes(f.level)) &&
     (!f.subject || t.subjects.includes(f.subject)) &&
     (!f.area || t.area === f.area) &&
     (!f.mode || t.mode === f.mode || t.mode === 'either') &&
+    matchesPrice(t.rateKes, f.priceRange) &&
     matchesText([t.name, t.area, ...t.subjects, ...t.levels], f.q)
   )
   const requestsFor = (f: Filters) => DEMO_REQUESTS.filter(r =>
@@ -37,10 +47,11 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     (!f.subject || r.subjects.includes(f.subject)) &&
     (!f.area || r.area === f.area) &&
     (!f.mode || r.mode === f.mode || r.mode === 'either') &&
+    matchesPrice(r.budgetKes, f.priceRange) &&
     matchesText([r.learnerLabel, r.area, r.level, ...r.subjects], f.q)
   )
 
-  const tutors = useMemo(() => tutorsFor(filters), [q, subject, level, area, mode])
+  const tutors = useMemo(() => tutorsFor(filters), [q, subject, level, area, mode, priceRange])
   const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
 
@@ -74,15 +85,15 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     setBusy(true)
     const timer = setTimeout(() => setBusy(false), 180)
     return () => clearTimeout(timer)
-  }, [q, subject, level, area, mode, view])
+  }, [q, subject, level, area, mode, priceRange, view])
 
-  const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode('') }
+  const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode(''); setPriceRange('') }
   const changeView = (next: View) => { setView(next); clear() }
 
   return (
     <>
       <h1 className={styles.pageTitle}>Find holiday tuition</h1>
-      <FilterBar view={view} onView={changeView} q={q} onQ={setQ}
+      <FilterBar priceRange={priceRange} onPriceRange={setPriceRange} view={view} onView={changeView} q={q} onQ={setQ}
         placeholder={view === 'tutors' ? 'Search tutors by name, subject or area' : 'Search requests by subject, level or area'}
         subjects={subjectOptions} subject={subject} onSubject={setSubject}
         levels={levelOptions} level={level} onLevel={value => { setLevel(value); setSubject('') }}

@@ -1,15 +1,20 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import polish from '@/components/vibetutor/VibeTutorPolish.module.css'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import { Field, Segmented, ToggleChips } from '@/components/vibetutor/Form'
 import SchedulePicker from '@/components/vibetutor/SchedulePicker'
 import { AREAS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
+import { getSupabaseClient } from '@/lib/supabase'
 
 const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(x => x !== value) : [...list, value]
-const validKenyanPhone = (value: string) => /^(0|254|[+]254)(7|1)[0-9]{8}$/.test(value.replace(/[ -]/g, ''))
+const normalizedPhone = (value: string) => { const digits = value.replace(/\D/g, ''); return digits.length === 10 && digits.startsWith('0') ? '+254' + digits.slice(1) : digits.length === 12 && digits.startsWith('254') ? '+' + digits : value.trim() }
+const validKenyanPhone = (value: string) => /^(?:0[71][0-9]{8}|254[71][0-9]{8}|\+254[71][0-9]{8})$/.test(value.replace(/[\s-]/g, ''))
+const steps = ['Learner', 'Lessons', 'Schedule', 'Contact']
 
 export default function PostRequest() {
+  const [step, setStep] = useState(0)
   const [learner, setLearner] = useState('')
   const [subjects, setSubjects] = useState<string[]>([])
   const [level, setLevel] = useState('')
@@ -18,58 +23,56 @@ export default function PostRequest() {
   const [days, setDays] = useState<string[]>([])
   const [budget, setBudget] = useState('')
   const [phone, setPhone] = useState('')
-  const [submitted, setSubmitted] = useState(false)
+  const [signedIn, setSignedIn] = useState(false)
   const availableSubjects = useMemo(() => SUBJECTS_BY_LEVEL[level] || [], [level])
-  const ready = Boolean(learner.trim() && subjects.length && level && area && days.length && validKenyanPhone(phone))
+
+  useEffect(() => {
+    let active = true
+    getSupabaseClient().auth.getUser().then(({ data }) => {
+      if (!active || !data.user) return
+      const metadata = data.user.user_metadata || {}
+      setSignedIn(true)
+      setPhone(current => current || String(metadata.phone || data.user?.phone || ''))
+      setLearner(current => current || String(metadata.child_name || metadata.learner_name || ''))
+    }).catch(() => undefined)
+    return () => { active = false }
+  }, [])
+
+  const validStep = step === 0 ? !!level && subjects.length > 0
+    : step === 1 ? !!area
+    : step === 2 ? days.length > 0
+    : validKenyanPhone(phone)
 
   return (
     <div className={styles.formWrap}>
       <header className={styles.formHead}>
         <h1 className={styles.formTitle}>Request a tutor</h1>
-        <p className={styles.muted}>Find tuition for your learner.</p>
+        <p className={styles.muted}>Tell us what your learner needs in four short steps.</p>
+        <div className={polish.wizardProgress} aria-label={`Step ${step + 1} of 4`}>
+          <div className={polish.wizardTrack}><span style={{ width: `${((step + 1) / 4) * 100}%` }} /></div>
+          <div className={polish.wizardMeta}><strong>{steps[step]}</strong><span>Step {step + 1} of 4</span></div>
+          <div className={polish.wizardSteps}>{steps.map((label, index) => <span key={label} className={index <= step ? polish.wizardStepOn : polish.wizardStep}>{index + 1}</span>)}</div>
+        </div>
       </header>
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (ready) setSubmitted(true) }}>
-        <Field label="Student name" required>
-          <input className={styles.input} value={learner} onChange={e => { setLearner(e.target.value); setSubmitted(false) }} maxLength={60} />
-        </Field>
-        <Field label="Level" required>
-          <select className={styles.input} value={level} onChange={e => { setLevel(e.target.value); setSubjects([]); setSubmitted(false) }}>
-            <option value="">Choose level</option>
-            {LEVELS.map(item => <option key={item}>{item}</option>)}
-          </select>
-        </Field>
-        <Field label="Subjects" required>
-          {level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setSubjects(toggle(subjects, value)); setSubmitted(false) }} />}
-        </Field>
-        <Field label="Teaching format">
-          <Segmented<Mode> label="Teaching format" value={mode} onChange={setMode} options={[
-            { value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' },
-          ]} />
-        </Field>
-        <Field label="Area" required>
-          <select className={styles.input} value={area} onChange={e => { setArea(e.target.value); setSubmitted(false) }}>
-            <option value="">Choose area</option>
-            {AREAS.map(item => <option key={item}>{item}</option>)}
-          </select>
-        </Field>
-        <Field label="Days available" required>
-          <SchedulePicker days={days} onDays={value => { setDays(value); setSubmitted(false) }} />
-        </Field>
-        <Field label="Budget per hour (KSh)">
-          <input className={styles.input} inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Optional" />
-        </Field>
-        <Field label="Parent or guardian phone" required>
-          <input className={styles.input} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => { setPhone(e.target.value.replace(/[^0-9+ -]/g, '').slice(0, 16)); setSubmitted(false) }} placeholder="07XX XXX XXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />
-          {phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}
-        </Field>
-        <div className={styles.submitBar}>
-          <button type="submit" className={styles.btnSubmit} disabled={!ready}>Review request</button>
-          {submitted && <div className={styles.success} role="status">
-            <strong>Request preview</strong>
-            <p>This preview does not publish or save a request.</p>
-            <div className={styles.reviewSummary}>{learner} · {level} · {subjects.join(', ')} · {area} · {days.join(', ')} · {mode} · {budget ? `KSh ${budget}/hr` : 'Budget not set'}</div>
-            <a className={styles.inlineAction} href="/login">Continue to sign in</a>
-          </div>}
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (step < 3 && validStep) setStep(step + 1); else if (step === 3 && validStep) window.location.assign('/login?next=%2Fvibetutor%2Fpost-request') }}>
+        {step === 0 && <>
+          <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Subjects" required>{level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => setSubjects(toggle(subjects, value))} />}</Field>
+        </>}
+        {step === 1 && <>
+          <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={setMode} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
+          <Field label="Area" required><select className={styles.input} value={area} onChange={e => setArea(e.target.value)}><option value="">Choose area</option>{AREAS.map(item => <option key={item}>{item}</option>)}</select></Field>
+          <Field label="Budget per hour (KSh)"><input className={styles.input} inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Optional" /></Field>
+        </>}
+        {step === 2 && <Field label="Days available" required><SchedulePicker days={days} onDays={setDays} /></Field>}
+        {step === 3 && <>
+          {signedIn && <p className={polish.prefillNote}>Account contact details prefilled where available. You can edit them.</p>}
+          <Field label="Student name" hint="Optional if you prefer not to share it yet."><input className={styles.input} value={learner} onChange={e => setLearner(e.target.value)} maxLength={60} autoComplete="off" /></Field>
+          <Field label="Parent or guardian phone" required><input className={styles.input} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => setPhone(e.target.value.replace(/[^0-9+ -]/g, '').slice(0, 16))} onBlur={() => setPhone(current => normalizedPhone(current))} placeholder="07XX XXX XXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
+        </>}
+        <div className={polish.wizardActions}>
+          {step > 0 && <button type="button" className={styles.btnSecondary} onClick={() => setStep(step - 1)}>Back</button>}
+          <button type="submit" className={styles.btnSubmit} disabled={!validStep}>{step === 3 ? 'Continue to sign in' : 'Continue'}</button>
         </div>
       </form>
     </div>

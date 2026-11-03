@@ -474,3 +474,15 @@
   .form { gap: 9px; }
   .card { padding: 14px; }
 }
+
+
+/* Progressive price filter: secondary options stay collapsed until requested. */
+.moreFilters { border-top: 1px solid var(--vt-line); padding-top: 10px; }
+.moreFiltersSummary { width: fit-content; cursor: pointer; color: var(--vt-ink); font-size: 13px; font-weight: 650; list-style-position: inside; }
+.moreFiltersSummary::marker { color: var(--vt-accent); }
+.moreFiltersBody { display: grid; gap: 8px; padding-top: 12px; }
+.moreFiltersBody .subLabel { margin: 0; }
+.moreFiltersBody .chipRow { display: flex; flex-wrap: wrap; gap: 7px; }
+@media (max-width: 719px) {
+  .moreFiltersBody .chipRow { flex-wrap: nowrap; overflow-x: auto; padding: 2px 1px 8px; }
+}
