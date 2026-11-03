@@ -41,7 +41,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
           <h3 className={styles.cardTitle}>{r.subjects.join(', ')}</h3>
           <p className={styles.muted}>{r.level} · {r.learnerLabel}</p>
         </div>
-        <span className={styles.demo}>Demo</span>
+        <span className={styles.demo}>Example</span>
       </div>
       <div className={styles.tags}>
         <span className={styles.tag}><Icon name="pin" size={13} /> {r.area}</span>
