@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar from '@/components/vibetutor/FilterBar'
+import BackToTop from '@/components/vibetutor/BackToTop'
 import { AREAS, LEVELS, SAMPLE_REQUESTS, SUBJECTS, modeLabel, type Mode } from '@/components/vibetutor/data'
 
 export default function FindStudents() {
@@ -59,6 +60,7 @@ export default function FindStudents() {
         ))}
       </div>
       <p className={styles.notice}>Sample requests only. Learner details are shown only after a request is verified.</p>
+      <BackToTop />
     </>
   )
 }

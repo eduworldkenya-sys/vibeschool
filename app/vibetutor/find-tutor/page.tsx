@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar from '@/components/vibetutor/FilterBar'
+import BackToTop from '@/components/vibetutor/BackToTop'
 import { AREAS, LEVELS, SAMPLE_TUTORS, SUBJECTS, modeLabel, type Mode } from '@/components/vibetutor/data'
 
 export default function FindTutor() {
@@ -59,6 +60,7 @@ export default function FindTutor() {
         ))}
       </div>
       <p className={styles.notice}>Sample tutors only. Contact details are not shown in this preview.</p>
+      <BackToTop />
     </>
   )
 }
