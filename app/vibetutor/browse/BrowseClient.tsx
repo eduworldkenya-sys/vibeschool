@@ -65,7 +65,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     return count ? [{ value, label: value, count }] : []
   })
   const modeOptions: FilterOption[] = (['online', 'physical'] as const).flatMap(value => {
-    const f = { ...filters, mode: '' }
+    const f: Filters = { ...filters, mode: '' }
     const count = view === 'tutors' ? tutorsFor(f).filter(t => t.mode === value || t.mode === 'either').length : requestsFor(f).filter(r => r.mode === value || r.mode === 'either').length
     return count ? [{ value, label: value === 'online' ? 'Online' : 'In person', count }] : []
   })
