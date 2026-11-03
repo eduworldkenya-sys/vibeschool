@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './VibeTutor.module.css'
@@ -18,7 +19,8 @@ export default function Nav() {
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
           <Link href="/vibetutor" className={styles.brand} aria-label="VibeTutor home">
-            <span className={styles.brandMark} aria-hidden="true">V</span>
+            <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={124} height={32} priority className={styles.brandLogo} />
+            <span className={styles.brandDivider} aria-hidden="true" />
             <span>VibeTutor</span>
           </Link>
           <nav className={styles.navLinks} aria-label="Main">
