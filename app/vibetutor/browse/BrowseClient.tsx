@@ -31,11 +31,11 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const requests = useMemo(() => {
     const term = q.trim().toLowerCase()
     return DEMO_REQUESTS.filter(r =>
-      (!subject || r.subject === subject) &&
+      (!subject || r.subjects.includes(subject)) &&
       (!level || r.level === level) &&
       (!area || r.area === area) &&
       (!mode || r.mode === mode) &&
-      (!term || [r.subject, r.level, r.area].some(v => v.toLowerCase().includes(term)))
+      (!term || [...r.subjects, r.level, r.area].some(v => v.toLowerCase().includes(term)))
     )
   }, [q, subject, level, area, mode])
 

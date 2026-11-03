@@ -1,6 +1,6 @@
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
-import { modeLabel, type DemoRequest, type DemoTutor } from './data'
+import { modeLabel, summarizeDays, summarizeParts, type DemoRequest, type DemoTutor } from './data'
 
 export function TutorCard({ t }: { t: DemoTutor }) {
   return (
@@ -37,7 +37,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
     <article className={styles.card}>
       <div className={styles.cardHead}>
         <div className={styles.cardTitleWrap}>
-          <h3 className={styles.cardTitle}>{r.subject}</h3>
+          <h3 className={styles.cardTitle}>{r.subjects.join(', ')}</h3>
           <p className={styles.muted}>{r.level} · {r.learnerLabel}</p>
         </div>
         <span className={styles.demo}>Demo</span>
@@ -46,7 +46,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
         <span className={styles.tag}><Icon name="pin" size={13} /> {r.area}</span>
         <span className={styles.tag}>{modeLabel(r.mode)}</span>
       </div>
-      <p className={styles.meta}>{r.schedule}</p>
+      <p className={styles.meta}>{summarizeDays(r.days)} · {summarizeParts(r.dayparts)}</p>
       <div className={styles.cardFoot}>
         <p className={styles.price}>Up to KSh {r.budgetKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
         <span className={styles.modeText}>{r.postedDaysAgo === 1 ? 'Posted yesterday' : `Posted ${r.postedDaysAgo} days ago`}</span>
