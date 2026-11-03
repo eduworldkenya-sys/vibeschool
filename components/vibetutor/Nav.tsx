@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -16,6 +17,34 @@ const TABS: { href: string; label: string; icon: IconName; match: (p: string) =>
 
 export default function Nav() {
   const path = usePathname() ?? ''
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system')
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem('vibetutor-theme')
+    const preference = saved === 'light' || saved === 'dark' ? saved : 'system'
+    setTheme(preference)
+
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => {
+      const resolved = preference === 'system' ? (media.matches ? 'dark' : 'light') : preference
+      document.documentElement.dataset.vtTheme = resolved
+      document.documentElement.style.colorScheme = resolved
+    }
+    apply()
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [])
+
+  function changeTheme(value: 'light' | 'dark' | 'system') {
+    setTheme(value)
+    window.localStorage.setItem('vibetutor-theme', value)
+    const resolved = value === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : value
+    document.documentElement.dataset.vtTheme = resolved
+    document.documentElement.style.colorScheme = resolved
+  }
+
   return (
     <>
       <header className={styles.topbar}>
@@ -25,6 +54,21 @@ export default function Nav() {
             <span className={styles.brandDivider} aria-hidden="true" />
             <span>VibeTutor</span>
           </Link>
+          <div className={styles.navActions}>
+            <label className={styles.themeControl}>
+              <span className={styles.themeLabel}>Theme</span>
+              <select
+                className={styles.themeSelect}
+                aria-label="Choose VibeTutor theme"
+                value={theme}
+                onChange={event => changeTheme(event.target.value as 'light' | 'dark' | 'system')}
+              >
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+                <option value="system">System</option>
+              </select>
+            </label>
+          </div>
           <nav className={styles.navLinks} aria-label="Main">
             {TABS.map(t => (
               <Link key={t.href} href={t.href} className={`${styles.navLink} ${t.match(path) ? styles.navLinkOn : ''}`} aria-current={t.match(path) ? 'page' : undefined}>
