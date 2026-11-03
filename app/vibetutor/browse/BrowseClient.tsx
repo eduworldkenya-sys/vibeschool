@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
@@ -31,11 +32,11 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const requests = useMemo(() => {
     const term = q.trim().toLowerCase()
     return DEMO_REQUESTS.filter(r =>
-      (!subject || r.subject === subject) &&
+      (!subject || r.subjects.includes(subject)) &&
       (!level || r.level === level) &&
       (!area || r.area === area) &&
       (!mode || r.mode === mode) &&
-      (!term || [r.subject, r.level, r.area].some(v => v.toLowerCase().includes(term)))
+      (!term || [...r.subjects, r.level, r.area].some(v => v.toLowerCase().includes(term)))
     )
   }, [q, subject, level, area, mode])
 
@@ -53,7 +54,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     <>
       <h1 className={styles.pageTitle}>Find holiday tuition</h1>
       <p className={styles.notice}>
-        Demo data. These listings are fictional and only show how the page works.
+        Example listings. These profiles are illustrative, not real available tutors or requests. <Link href="/vibetutor/how-it-works" className={styles.clear}>How it works</Link>
       </p>
 
       <FilterBar
@@ -68,8 +69,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
       />
 
       <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
-        {view === 'tutors' && tutors.length === 0 && <p className={styles.empty}>No demo tutors match these filters.</p>}
-        {view === 'students' && requests.length === 0 && <p className={styles.empty}>No demo requests match these filters.</p>}
+        {view === 'tutors' && tutors.length === 0 && <p className={styles.empty}>No example tutors match these filters.</p>}
+        {view === 'students' && requests.length === 0 && <p className={styles.empty}>No example requests match these filters.</p>}
         {view === 'tutors' && tutors.map(t => <TutorCard key={t.id} t={t} />)}
         {view === 'students' && requests.map(r => <RequestCard key={r.id} r={r} />)}
       </div>

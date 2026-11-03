@@ -138,6 +138,36 @@
 .btnSubmit:disabled { background: #c9d6cd; cursor: not-allowed; }
 .success { font-size: 14px; color: var(--vt-accent); background: var(--vt-accent-soft); border-radius: 10px; padding: 12px 14px; margin: 0; line-height: 1.5; }
 
+/* How it works */
+.infoBlock { background: var(--vt-surface); border: 1px solid var(--vt-line); border-radius: var(--vt-radius); padding: 20px; margin-bottom: 14px; }
+.infoBlock .sectionTitle { margin-bottom: 10px; font-size: 17px; }
+.infoText { font-size: 15px; line-height: 1.6; color: #33373d; margin: 0 0 10px; }
+.infoList { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px; line-height: 1.55; color: #33373d; }
+.infoGrid { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .infoGrid { grid-template-columns: 1fr 1fr; } }
+.infoCard { background: var(--vt-bg); border-radius: 12px; padding: 16px; display: grid; gap: 6px; color: var(--vt-accent); }
+.infoCard .cardTitle { color: var(--vt-ink); }
+.lead { font-size: 16px; line-height: 1.55; color: var(--vt-muted); margin: 0; }
+
+/* Schedule picker */
+.schedule { display: grid; gap: 16px; }
+.subLabel { font-size: 13px; font-weight: 600; color: #33373d; margin: 0 0 8px; }
+.dayRow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.dayBtn { font: inherit; font-size: 13px; font-weight: 600; padding: 10px 0; border-radius: 10px; border: 1px solid var(--vt-line); background: var(--vt-surface); color: #33373d; cursor: pointer; min-width: 0; }
+.dayBtn:hover { border-color: #c9ccd1; }
+.dayOn { background: var(--vt-accent); border-color: var(--vt-accent); color: #fff; }
+.partGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.partTile { position: relative; font: inherit; text-align: left; display: grid; gap: 2px; padding: 14px; border-radius: 12px; border: 1px solid var(--vt-line); background: var(--vt-surface); color: var(--vt-ink); cursor: pointer; }
+.partTile:hover { border-color: #c9ccd1; }
+.partOn { border-color: var(--vt-accent); background: var(--vt-accent-soft); box-shadow: inset 0 0 0 1px var(--vt-accent); }
+.partIcon { color: var(--vt-accent); margin-bottom: 6px; display: inline-flex; }
+.partLabel { font-size: 15px; font-weight: 600; }
+.partHours { font-size: 12px; color: var(--vt-muted); }
+.partCheck { position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; border-radius: 50%; background: var(--vt-accent); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+.summaryLine { font-size: 14px; color: var(--vt-muted); margin: 0; padding: 10px 12px; background: var(--vt-bg); border-radius: 10px; }
+.summaryLine strong { color: var(--vt-ink); }
+@media (max-width: 380px) { .dayBtn { font-size: 12px; } }
+
 /* Back to top */
 .toTop { position: fixed; right: 16px; bottom: 20px; font: inherit; font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 999px; border: 0; background: var(--vt-ink); color: #fff; box-shadow: 0 4px 14px rgba(0, 0, 0, .18); cursor: pointer; z-index: 25; }
 @media (max-width: 720px) { .toTop { bottom: 84px; } }

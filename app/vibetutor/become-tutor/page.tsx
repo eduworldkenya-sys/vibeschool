@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import { FormStep, Field, Segmented, ToggleChips } from '@/components/vibetutor/Form'
-import { AREAS, HOLIDAY_DAYS, LEVELS, SUBJECTS, type Mode } from '@/components/vibetutor/data'
+import SchedulePicker from '@/components/vibetutor/SchedulePicker'
+import { AREAS, LEVELS, SUBJECTS, type DayPart, type Mode } from '@/components/vibetutor/data'
 
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter(x => x !== v) : [...list, v])
 
@@ -15,9 +16,9 @@ export default function BecomeTutor() {
   const [area, setArea] = useState('')
   const [rate, setRate] = useState('')
   const [days, setDays] = useState<string[]>([])
+  const [parts, setParts] = useState<DayPart[]>([])
   const [phone, setPhone] = useState('')
   const [consent, setConsent] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
 
   const ready = name.trim() && subjects.length && levels.length && area && Number(rate) > 0 && phone.trim() && consent
 
@@ -32,7 +33,7 @@ export default function BecomeTutor() {
 
       <form
         className={styles.form}
-        onSubmit={e => { e.preventDefault(); if (ready) setSubmitted(true) }}
+        onSubmit={e => { e.preventDefault(); if (ready) window.location.assign('/login') }}
       >
         <FormStep n={1} title="About you">
           <Field label="Display name" required>
@@ -71,12 +72,13 @@ export default function BecomeTutor() {
           <Field label="Rate per hour (KSh)" required>
             <input className={styles.input} inputMode="numeric" value={rate} onChange={e => setRate(e.target.value.replace(/\D/g, ''))} />
           </Field>
-          <Field label="Holiday days available">
-            <ToggleChips label="Holiday days" options={HOLIDAY_DAYS} selected={days} onToggle={v => setDays(toggle(days, v))} />
-          </Field>
         </FormStep>
 
-        <FormStep n={4} title="Contact and consent">
+        <FormStep n={4} title="Holiday availability" hint="When can learners book you?">
+          <SchedulePicker days={days} onDays={setDays} parts={parts} onParts={setParts} />
+        </FormStep>
+
+        <FormStep n={5} title="Contact and consent">
           <Field label="Phone number" required hint="Kept private. Only shared after you agree to a booking.">
             <input className={styles.input} type="tel" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} />
           </Field>
@@ -87,8 +89,7 @@ export default function BecomeTutor() {
         </FormStep>
 
         <div className={styles.submitBar}>
-          <button type="submit" className={styles.btnSubmit} disabled={!ready}>Preview profile</button>
-          {submitted && <p className={styles.success}>Preview complete for {name.trim()}. Publishing will be enabled in the next phase.</p>}
+          <button type="submit" className={styles.btnSubmit} disabled={!ready}>Continue with VibeSchool</button>
         </div>
       </form>
     </div>
