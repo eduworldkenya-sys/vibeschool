@@ -631,6 +631,6 @@
 :global(html[data-vt-theme='dark']) .input:focus { background: #393232; color: var(--vt-ink); }
 :global(html[data-vt-theme='dark']) .search::placeholder,
 :global(html[data-vt-theme='dark']) .input::placeholder { color: #a99f99; opacity: 1; }
-:global(html[data-vt-theme='dark']) select option { background: #2b2727; color: #f2eee9; }
+:global(html[data-vt-theme='dark']) .shell select option { background: #2b2727; color: #f2eee9; }
 :global(html[data-vt-theme='dark']) .btnDisabled { color: var(--vt-muted); border-color: var(--vt-line); }
 :global(html[data-vt-theme='dark']) .success { color: #f0c5cc; background: #493137; }
