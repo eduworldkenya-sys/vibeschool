@@ -324,3 +324,11 @@
   .page { padding-left: 16px; padding-right: 16px; }
   .card { border-radius: 18px; }
 }
+
+/* Compact weekly availability: no time-of-day grid. */
+.dayRow { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.dayBtn { min-height: 42px; padding: 8px 2px; }
+@media (max-width: 420px) {
+  .dayRow { gap: 4px; }
+  .dayBtn { font-size: 12px; min-height: 40px; }
+}
