@@ -10,8 +10,8 @@ export default function SchedulePicker({ days, onDays }: Props) {
   return (
     <div className={styles.schedule}>
       <div>
-        <p className={styles.subLabel}>Days available</p>
-        <div className={styles.dayRow} role="group" aria-label="Days available">
+        <p className={styles.subLabel}>Holiday availability</p>
+        <div className={styles.dayRow} role="group" aria-label="Holiday availability">
           {DAYS.map(day => (
             <button key={day} type="button" className={`${styles.dayBtn} ${days.includes(day) ? styles.dayOn : ''}`} aria-pressed={days.includes(day)} onClick={() => onDays(toggle(days, day))}>
               {day}
