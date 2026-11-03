@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
 import { modeLabel, summarizeDays, summarizeParts, type DemoRequest, type DemoTutor } from './data'
@@ -11,7 +12,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
           <h3 className={styles.cardTitle}>{t.name}</h3>
           <p className={styles.muted}><Icon name="pin" size={14} /> {t.area}</p>
         </div>
-        <span className={styles.demo}>Demo</span>
+        <span className={styles.demo}>Example</span>
       </div>
       <p className={styles.rating}>
         <Icon name="star" size={14} className={styles.star} />
@@ -27,7 +28,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
         <span className={styles.modeText}>{modeLabel(t.mode)}</span>
       </div>
       {t.holidayAvailable && <p className={styles.holiday}>Available this holiday</p>}
-      <button type="button" className={styles.btnDisabled} disabled>Message · coming soon</button>
+      <Link href="/login" className={styles.btnDisabled}>Sign in to contact</Link>
     </article>
   )
 }
@@ -51,7 +52,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
         <p className={styles.price}>Up to KSh {r.budgetKes.toLocaleString('en-KE')}<span className={styles.priceUnit}> / hour</span></p>
         <span className={styles.modeText}>{r.postedDaysAgo === 1 ? 'Posted yesterday' : `Posted ${r.postedDaysAgo} days ago`}</span>
       </div>
-      <button type="button" className={styles.btnDisabled} disabled>Respond · coming soon</button>
+      <Link href="/login" className={styles.btnDisabled}>Sign in to respond</Link>
     </article>
   )
 }
