@@ -91,7 +91,7 @@ export default function FilterBar(p: Props) {
         {p.subject && <button type="button" className={styles.filterTag} onClick={() => p.onSubject('')}>{p.subject} ×</button>}
         {p.area && <button type="button" className={styles.filterTag} onClick={() => p.onArea('')}>{p.area} ×</button>}
         {p.mode && <button type="button" className={styles.filterTag} onClick={() => p.onMode('')}>{modeLabel(p.mode)} ×</button>}
-        {p.priceRange && <button type="button" className={styles.filterTag} onClick={() => p.onPriceRange('')}>{({under500:'Under KSh 500',500to1000:'KSh 500–1,000',1000to2000:'KSh 1,000–2,000',over2000:'KSh 2,000+'} as Record<string,string>)[p.priceRange]} ×</button>}
+        {p.priceRange && <button type="button" className={styles.filterTag} onClick={() => p.onPriceRange('')}>{({under500:'Under KSh 500','500to1000':'KSh 500–1,000','1000to2000':'KSh 1,000–2,000',over2000:'KSh 2,000+'} as Record<string,string>)[p.priceRange]} ×</button>}
       </div>}
       <div className={styles.progressTrack} aria-hidden="true">{p.busy && <div className={styles.progressBar} />}</div>
     </section>
