@@ -3,14 +3,15 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
+import FilterBar from '@/components/vibetutor/FilterBar'
 import { AREAS, LEVELS, SAMPLE_REQUESTS, SUBJECTS, modeLabel, type Mode } from '@/components/vibetutor/data'
 
 export default function FindStudents() {
+  const [q, setQ] = useState('')
   const [subject, setSubject] = useState('')
   const [level, setLevel] = useState('')
   const [area, setArea] = useState('')
   const [mode, setMode] = useState<Mode | ''>('')
-  const [q, setQ] = useState('')
 
   const results = useMemo(() => {
     const term = q.trim().toLowerCase()
@@ -23,41 +24,20 @@ export default function FindStudents() {
     )
   }, [q, subject, level, area, mode])
 
+  const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode('') }
+
   return (
     <>
       <Link href="/vibetutor" className={styles.back}>← VibeTutor</Link>
       <h1 className={styles.title}>Students who need tuition</h1>
-      <div className={styles.notice}>Sample requests only. Learner details are shown only after a request is verified.</div>
-      <label className={styles.field} style={{ marginTop: 16 }}>Search by subject, level or area
-        <input className={styles.input} type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="e.g. English, Kisumu" />
-      </label>
-      <div className={styles.filters}>
-        <label className={styles.field}>Subject
-          <select className={styles.select} value={subject} onChange={e => setSubject(e.target.value)}>
-            <option value="">Any subject</option>
-            {SUBJECTS.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label className={styles.field}>Level
-          <select className={styles.select} value={level} onChange={e => setLevel(e.target.value)}>
-            <option value="">Any level</option>
-            {LEVELS.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label className={styles.field}>Area
-          <select className={styles.select} value={area} onChange={e => setArea(e.target.value)}>
-            <option value="">Any area</option>
-            {AREAS.map(s => <option key={s}>{s}</option>)}
-          </select>
-        </label>
-        <label className={styles.field}>Mode
-          <select className={styles.select} value={mode} onChange={e => setMode(e.target.value as Mode | '')}>
-            <option value="">Any</option>
-            <option value="online">Online</option>
-            <option value="physical">In person</option>
-          </select>
-        </label>
-      </div>
+      <FilterBar
+        q={q} onQ={setQ} placeholder="Search requests by subject, level or area"
+        subjects={SUBJECTS} subject={subject} onSubject={setSubject}
+        levels={LEVELS} level={level} onLevel={setLevel}
+        areas={AREAS} area={area} onArea={setArea}
+        mode={mode} onMode={setMode}
+        resultCount={results.length} noun="request" onClear={clear}
+      />
       <div className={styles.list} aria-live="polite">
         {results.length === 0 && <p className={styles.empty}>No sample requests match these filters.</p>}
         {results.map(r => (
@@ -71,6 +51,7 @@ export default function FindStudents() {
           </article>
         ))}
       </div>
+      <p className={styles.notice}>Sample requests only. Learner details are shown only after a request is verified.</p>
     </>
   )
 }
