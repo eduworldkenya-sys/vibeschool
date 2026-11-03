@@ -1,5 +1,7 @@
 const PATHS = {
   search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zm9 3-4.2-4.2',
+  book: 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21zm0 0V21m0 0a2.5 2.5 0 0 1 2.5-2H20M8 7h8m-8 4h8',
+  user: 'M20 21a8 8 0 0 0-16 0m8-10a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9z',
   home: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',
   users: 'M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20M10 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm7 9v-1.5a3.5 3.5 0 0 0-2.5-3.35M14.5 4.2a3.5 3.5 0 0 1 0 6.6',
   plus: 'M12 5v14M5 12h14',
@@ -18,19 +20,9 @@ export type IconName = keyof typeof PATHS
 export default function Icon({ name, size = 20, className }: { name: IconName; size?: number; className?: string }) {
   const filled = name === 'star'
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      className={className}
-      fill={filled ? 'currentColor' : 'none'}
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      focusable="false"
-    >
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className}
+      fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.8}
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
       <path d={PATHS[name]} />
     </svg>
   )
