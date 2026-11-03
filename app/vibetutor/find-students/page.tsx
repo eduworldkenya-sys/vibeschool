@@ -10,19 +10,27 @@ export default function FindStudents() {
   const [level, setLevel] = useState('')
   const [area, setArea] = useState('')
   const [mode, setMode] = useState<Mode | ''>('')
+  const [q, setQ] = useState('')
 
-  const results = useMemo(() => SAMPLE_REQUESTS.filter(r =>
-    (!subject || r.subject === subject) &&
-    (!level || r.level === level) &&
-    (!area || r.area === area) &&
-    (!mode || r.mode === mode)
-  ), [subject, level, area, mode])
+  const results = useMemo(() => {
+    const term = q.trim().toLowerCase()
+    return SAMPLE_REQUESTS.filter(r =>
+      (!subject || r.subject === subject) &&
+      (!level || r.level === level) &&
+      (!area || r.area === area) &&
+      (!mode || r.mode === mode) &&
+      (!term || [r.subject, r.level, r.area].some(v => v.toLowerCase().includes(term)))
+    )
+  }, [q, subject, level, area, mode])
 
   return (
     <>
       <Link href="/vibetutor" className={styles.back}>← VibeTutor</Link>
       <h1 className={styles.title}>Students who need tuition</h1>
       <div className={styles.notice}>Sample requests only. Learner details are shown only after a request is verified.</div>
+      <label className={styles.field} style={{ marginTop: 16 }}>Search by subject, level or area
+        <input className={styles.input} type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="e.g. English, Kisumu" />
+      </label>
       <div className={styles.filters}>
         <label className={styles.field}>Subject
           <select className={styles.select} value={subject} onChange={e => setSubject(e.target.value)}>

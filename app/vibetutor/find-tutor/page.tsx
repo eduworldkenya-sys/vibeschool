@@ -10,19 +10,27 @@ export default function FindTutor() {
   const [level, setLevel] = useState('')
   const [area, setArea] = useState('')
   const [mode, setMode] = useState<Mode | ''>('')
+  const [q, setQ] = useState('')
 
-  const results = useMemo(() => SAMPLE_TUTORS.filter(t =>
-    (!subject || t.subjects.includes(subject)) &&
-    (!level || t.levels.includes(level)) &&
-    (!area || t.area === area) &&
-    (!mode || t.mode === mode || t.mode === 'either')
-  ), [subject, level, area, mode])
+  const results = useMemo(() => {
+    const term = q.trim().toLowerCase()
+    return SAMPLE_TUTORS.filter(t =>
+      (!subject || t.subjects.includes(subject)) &&
+      (!level || t.levels.includes(level)) &&
+      (!area || t.area === area) &&
+      (!mode || t.mode === mode || t.mode === 'either') &&
+      (!term || [t.name, t.area, ...t.subjects, ...t.levels].some(v => v.toLowerCase().includes(term)))
+    )
+  }, [q, subject, level, area, mode])
 
   return (
     <>
       <Link href="/vibetutor" className={styles.back}>← VibeTutor</Link>
       <h1 className={styles.title}>Find a tutor</h1>
       <div className={styles.notice}>Sample tutors only. Contact details are not shown in this preview.</div>
+      <label className={styles.field} style={{ marginTop: 16 }}>Search by name, subject or area
+        <input className={styles.input} type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="e.g. Physics, Nakuru" />
+      </label>
       <div className={styles.filters}>
         <label className={styles.field}>Subject
           <select className={styles.select} value={subject} onChange={e => setSubject(e.target.value)}>
