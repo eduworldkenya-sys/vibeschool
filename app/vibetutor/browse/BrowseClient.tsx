@@ -2,12 +2,19 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
-import FilterBar from '@/components/vibetutor/FilterBar'
+import FilterBar, { type FilterOption } from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
 import { TutorCard, RequestCard } from '@/components/vibetutor/Cards'
-import { AREAS, DEMO_REQUESTS, DEMO_TUTORS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
+import { DEMO_REQUESTS, DEMO_TUTORS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
 
 type View = 'tutors' | 'students'
+type Filters = { q: string; subject: string; level: string; area: string; mode: Mode | '' }
+
+function matchesText(values: string[], q: string) {
+  const term = q.trim().toLowerCase()
+  return !term || values.some(value => value.toLowerCase().includes(term))
+}
+
 export default function BrowseClient({ initialView }: { initialView: View }) {
   const [view, setView] = useState<View>(initialView)
   const [q, setQ] = useState('')
@@ -16,47 +23,76 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const [area, setArea] = useState('')
   const [mode, setMode] = useState<Mode | ''>('')
   const [busy, setBusy] = useState(false)
-  const subjects = level ? SUBJECTS_BY_LEVEL[level] || [] : []
-  const tutors = useMemo(() => {
-    const term = q.trim().toLowerCase()
-    return DEMO_TUTORS.filter(t =>
-      (!level || t.levels.includes(level)) &&
-      (!subject || t.subjects.includes(subject)) &&
-      (!area || t.area === area) &&
-      (!mode || t.mode === mode || t.mode === 'either') &&
-      (!term || [t.name, t.area, ...t.subjects, ...t.levels].some(value => value.toLowerCase().includes(term)))
-    )
-  }, [q, subject, level, area, mode])
-  const requests = useMemo(() => {
-    const term = q.trim().toLowerCase()
-    return DEMO_REQUESTS.filter(r =>
-      (!level || r.level === level) &&
-      (!subject || r.subjects.includes(subject)) &&
-      (!area || r.area === area) &&
-      (!mode || r.mode === mode || r.mode === 'either') &&
-      (!term || [r.learnerLabel, r.area, r.level, ...r.subjects].some(value => value.toLowerCase().includes(term)))
-    )
-  }, [q, subject, level, area, mode])
+  const filters: Filters = { q, subject, level, area, mode }
+
+  const tutorsFor = (f: Filters) => DEMO_TUTORS.filter(t =>
+    (!f.level || t.levels.includes(f.level)) &&
+    (!f.subject || t.subjects.includes(f.subject)) &&
+    (!f.area || t.area === f.area) &&
+    (!f.mode || t.mode === f.mode || t.mode === 'either') &&
+    matchesText([t.name, t.area, ...t.subjects, ...t.levels], f.q)
+  )
+  const requestsFor = (f: Filters) => DEMO_REQUESTS.filter(r =>
+    (!f.level || r.level === f.level) &&
+    (!f.subject || r.subjects.includes(f.subject)) &&
+    (!f.area || r.area === f.area) &&
+    (!f.mode || r.mode === f.mode || r.mode === 'either') &&
+    matchesText([r.learnerLabel, r.area, r.level, ...r.subjects], f.q)
+  )
+
+  const tutors = useMemo(() => tutorsFor(filters), [q, subject, level, area, mode])
+  const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode])
+  const currentCount = view === 'tutors' ? tutors.length : requests.length
+
+  // Each facet is calculated without its own current selection. This keeps
+  // alternative choices visible while removing choices that cannot match.
+  const levelOptions: FilterOption[] = LEVELS.flatMap(value => {
+    const f = { ...filters, level: '' }
+    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.levels.includes(value)).length : requestsFor(f).filter(r => r.level === value).length
+    return count ? [{ value, label: value, count }] : []
+  })
+  const availableLevels = level ? SUBJECTS_BY_LEVEL[level] || [] : []
+  const subjectOptions: FilterOption[] = availableLevels.flatMap(value => {
+    const f = { ...filters, subject: '' }
+    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.subjects.includes(value)).length : requestsFor(f).filter(r => r.subjects.includes(value)).length
+    return count ? [{ value, label: value, count }] : []
+  })
+  const areaOptions: FilterOption[] = [...new Set([
+    ...DEMO_TUTORS.map(t => t.area), ...DEMO_REQUESTS.map(r => r.area),
+  ])].flatMap(value => {
+    const f = { ...filters, area: '' }
+    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.area === value).length : requestsFor(f).filter(r => r.area === value).length
+    return count ? [{ value, label: value, count }] : []
+  })
+  const modeOptions: FilterOption[] = (['online', 'physical'] as const).flatMap(value => {
+    const f = { ...filters, mode: '' }
+    const count = view === 'tutors' ? tutorsFor(f).filter(t => t.mode === value || t.mode === 'either').length : requestsFor(f).filter(r => r.mode === value || r.mode === 'either').length
+    return count ? [{ value, label: value === 'online' ? 'Online' : 'In person', count }] : []
+  })
+
   useEffect(() => {
     setBusy(true)
-    const timer = setTimeout(() => setBusy(false), 250)
+    const timer = setTimeout(() => setBusy(false), 180)
     return () => clearTimeout(timer)
   }, [q, subject, level, area, mode, view])
+
   const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode('') }
-  const count = view === 'tutors' ? tutors.length : requests.length
+  const changeView = (next: View) => { setView(next); clear() }
+
   return (
     <>
       <h1 className={styles.pageTitle}>Find holiday tuition</h1>
-      <FilterBar view={view} onView={setView} q={q} onQ={setQ}
+      <FilterBar view={view} onView={changeView} q={q} onQ={setQ}
         placeholder={view === 'tutors' ? 'Search tutors by name, subject or area' : 'Search requests by subject, level or area'}
-        subjects={subjects} subject={subject} onSubject={setSubject}
-        levels={LEVELS} level={level} onLevel={setLevel}
-        areas={AREAS} area={area} onArea={setArea}
-        mode={mode} onMode={setMode} resultCount={count} noun={view === 'tutors' ? 'tutor' : 'request'}
+        subjects={subjectOptions} subject={subject} onSubject={setSubject}
+        levels={levelOptions} level={level} onLevel={value => { setLevel(value); setSubject('') }}
+        areas={areaOptions} area={area} onArea={setArea}
+        modes={modeOptions} mode={mode} onMode={setMode}
+        resultCount={currentCount} noun={view === 'tutors' ? 'tutor' : 'request'}
         onClear={clear} busy={busy} />
       <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
-        {view === 'tutors' && tutors.length === 0 && <p className={styles.empty}>No example tutors match these filters.</p>}
-        {view === 'students' && requests.length === 0 && <p className={styles.empty}>No example requests match these filters.</p>}
+        {view === 'tutors' && tutors.length === 0 && <p className={styles.empty}>No example tutors match these filters. Remove a filter to broaden your search.</p>}
+        {view === 'students' && requests.length === 0 && <p className={styles.empty}>No example requests match these filters. Remove a filter to broaden your search.</p>}
         {view === 'tutors' && tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} />)}
         {view === 'students' && requests.map(request => <RequestCard key={request.id} r={request} />)}
       </div>
