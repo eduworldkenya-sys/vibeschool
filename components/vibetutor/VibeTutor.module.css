@@ -1,5 +1,5 @@
 /* VibeTutor design system: one accent, neutral surfaces, 8px rhythm. */
-.shell { --vt-ink: #14161a; --vt-muted: #6a6e76; --vt-line: #e7e8ea; --vt-bg: #f6f7f8; --vt-surface: #ffffff; --vt-accent: #1d5c3b; --vt-accent-soft: #e8f1ec; --vt-amber: #b7791f; --vt-radius: 14px; background: var(--vt-bg); color: var(--vt-ink); min-height: 100vh; font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+.shell { --vt-ink: #171721; --vt-muted: #666675; --vt-line: #e3e3eb; --vt-bg: #f7f7fb; --vt-surface: #ffffff; --vt-accent: #7c3aed; --vt-accent-soft: #f3edff; --vt-amber: #9a6a16; --vt-radius: 14px; background: #f7f7fb; color: #171721; min-height: 100vh; font-family: var(--font-jakarta), 'DM Sans', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .muted { font-size: 14px; color: var(--vt-muted); margin: 0; line-height: 1.5; display: inline-flex; gap: 4px; align-items: center; }
@@ -15,7 +15,7 @@
 .navLinkOn { color: var(--vt-ink); font-weight: 600; background: var(--vt-bg); }
 .tabbar { display: none; }
 
-.page { max-width: 1120px; margin: 0 auto; padding: 32px 20px 96px; min-height: calc(100vh - 60px); background: var(--vt-bg); color: var(--vt-ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; box-sizing: border-box; }
+.page { max-width: 1120px; margin: 0 auto; padding: 32px 20px 96px; min-height: calc(100vh - 60px); background: var(--vt-bg); color: var(--vt-ink); font-family: var(--font-jakarta), 'DM Sans', Arial, sans-serif; box-sizing: border-box; }
 
 @media (max-width: 720px) {
   .navLinks { display: none; }
@@ -175,7 +175,7 @@
 
 /* Professional VibeTutor visual refinement */
 .shell {
-  font-family: Inter, "Aptos", "Segoe UI", Arial, sans-serif;
+  font-family: var(--font-jakarta), 'DM Sans', Arial, sans-serif;
   letter-spacing: -0.008em;
 }
 .page { padding-top: 28px; }
@@ -235,4 +235,35 @@
 }
 @media (max-width: 380px) {
   .partGrid { grid-template-columns: 1fr; }
+}
+
+
+/* Brand-led, editorial finish: use VibeSchool's bundled type and purple identity. */
+.shell { font-family: var(--font-jakarta), 'DM Sans', Arial, sans-serif; }
+.h1, .pageTitle, .formTitle, .sectionTitle, .pathTitle, .cardTitle {
+  font-family: var(--font-display), 'Manrope', Arial, sans-serif;
+  letter-spacing: -.035em;
+}
+.h1 { font-weight: 700; }
+.pageTitle, .formTitle { font-weight: 700; }
+.eyebrow { color: #6d28d9; letter-spacing: .035em; text-transform: uppercase; font-size: 11px; }
+.topbar { background: rgba(247,247,251,.97); border-bottom-color: #e5e5ed; }
+.brand { color: #171721; }
+.navLinkOn { background: #eee8fb; color: #5421a8; }
+.navLink:hover { background: #f0eef6; }
+.btnPrimary, .btnSubmit { background: #6d28d9; }
+.btnPrimary:hover, .btnSubmit:hover:not(:disabled) { background: #5b21b6; }
+.chipOn, .dayOn { background: #6d28d9; border-color: #6d28d9; }
+.segmentOn { color: #5421a8; }
+.search:focus, .input:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
+.filterTag { border-color: #ddd0f8; background: #f3edff; color: #5b21b6; }
+.partOn { border-color: #7c3aed; background: #f7f2ff; box-shadow: inset 0 0 0 1px #7c3aed; }
+.partOn .partState { color: #5b21b6; border-color: #d8c5fa; }
+.partState { text-transform: uppercase; letter-spacing: .035em; }
+.progressBar { background: #7c3aed; }
+.stepNum { background: #6d28d9; }
+.avatar { background: #f3edff; color: #5b21b6; }
+@media (min-width: 900px) {
+  .page { padding-top: 36px; }
+  .hero { padding-top: 36px; }
 }
