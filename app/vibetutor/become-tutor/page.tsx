@@ -60,7 +60,7 @@ export default function BecomeTutor() {
           ]} />
         </Field>
         <Field label="Rate per hour (KSh)" required>
-          <input className={styles.input} inputMode="numeric" value={rate} onChange={e => setRate(e.target.value.replace(/\\D/g, ''))} placeholder="e.g. 500" />
+          <input className={styles.input} inputMode="numeric" value={rate} onChange={e => setRate(e.target.value.replace(/[^0-9]/g, ""))} placeholder="e.g. 500" />
         </Field>
         <Field label="Days available" required>
           <SchedulePicker days={days} onDays={setDays} />
