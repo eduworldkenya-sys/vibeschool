@@ -19,7 +19,6 @@ export default function BecomeTutor() {
   const [parts, setParts] = useState<DayPart[]>([])
   const [phone, setPhone] = useState('')
   const [consent, setConsent] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
 
   const ready = name.trim() && subjects.length && levels.length && area && Number(rate) > 0 && phone.trim() && consent
 
@@ -34,7 +33,7 @@ export default function BecomeTutor() {
 
       <form
         className={styles.form}
-        onSubmit={e => { e.preventDefault(); if (ready) setSubmitted(true) }}
+        onSubmit={e => { e.preventDefault(); if (ready) window.location.assign('/login') }}
       >
         <FormStep n={1} title="About you">
           <Field label="Display name" required>
@@ -90,8 +89,7 @@ export default function BecomeTutor() {
         </FormStep>
 
         <div className={styles.submitBar}>
-          <button type="submit" className={styles.btnSubmit} disabled={!ready}>Preview profile</button>
-          {submitted && <p className={styles.success}>Preview complete for {name.trim()}. Publishing will be enabled in the next phase.</p>}
+          <button type="submit" className={styles.btnSubmit} disabled={!ready}>Continue with VibeSchool</button>
         </div>
       </form>
     </div>
