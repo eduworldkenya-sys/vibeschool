@@ -25,8 +25,8 @@ export default function PostRequest() {
   return (
     <div className={styles.formWrap}>
       <header className={styles.formHead}>
-        <h1 className={styles.formTitle}>Post a tuition request</h1>
-        <p className={styles.muted}>Tell tutors what you need. It takes about two minutes.</p>
+        <h1 className={styles.formTitle}>Request a tutor</h1>
+        <p className={styles.muted}>Tell tutors what you need. It takes about two minutes and there is no fee.</p>
       </header>
 
       <p className={styles.notice}>Preview only. Requests are not saved or shared yet.</p>

@@ -138,6 +138,17 @@
 .btnSubmit:disabled { background: #c9d6cd; cursor: not-allowed; }
 .success { font-size: 14px; color: var(--vt-accent); background: var(--vt-accent-soft); border-radius: 10px; padding: 12px 14px; margin: 0; line-height: 1.5; }
 
+/* How it works */
+.infoBlock { background: var(--vt-surface); border: 1px solid var(--vt-line); border-radius: var(--vt-radius); padding: 20px; margin-bottom: 14px; }
+.infoBlock .sectionTitle { margin-bottom: 10px; font-size: 17px; }
+.infoText { font-size: 15px; line-height: 1.6; color: #33373d; margin: 0 0 10px; }
+.infoList { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 15px; line-height: 1.55; color: #33373d; }
+.infoGrid { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 560px) { .infoGrid { grid-template-columns: 1fr 1fr; } }
+.infoCard { background: var(--vt-bg); border-radius: 12px; padding: 16px; display: grid; gap: 6px; color: var(--vt-accent); }
+.infoCard .cardTitle { color: var(--vt-ink); }
+.lead { font-size: 16px; line-height: 1.55; color: var(--vt-muted); margin: 0; }
+
 /* Schedule picker */
 .schedule { display: grid; gap: 16px; }
 .subLabel { font-size: 13px; font-weight: 600; color: #33373d; margin: 0 0 8px; }

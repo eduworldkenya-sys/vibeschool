@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
@@ -53,7 +54,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     <>
       <h1 className={styles.pageTitle}>Find holiday tuition</h1>
       <p className={styles.notice}>
-        Demo data. These listings are fictional and only show how the page works.
+        Demo data. These listings are fictional and only show how the page works. <Link href="/vibetutor/how-it-works" className={styles.clear}>How it works</Link>
       </p>
 
       <FilterBar
