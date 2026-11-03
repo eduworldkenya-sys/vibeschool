@@ -376,3 +376,18 @@
 @media (max-width: 520px) {
   .detailModal { padding: 22px 18px; border-radius: 16px; }
 }
+
+
+/* Faceted discovery: clear hierarchy and compact live option counts. */
+.filterField { display: grid; gap: 6px; min-width: 0; }
+.subjectHeading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.subjectHeading .subLabel { margin-bottom: 8px; }
+.optionCount { display: inline-block; margin-left: 3px; color: inherit; opacity: .72; font-size: 11px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 4px; }
+@media (max-width: 719px) {
+  .controls { grid-template-columns: minmax(0, 1fr); }
+  .controls > .filterField { min-width: 0; }
+  .controls .segment { width: fit-content; max-width: 100%; flex-wrap: wrap; }
+  .subjectHeading { align-items: flex-start; }
+  .chipRow { flex-wrap: nowrap; overflow-x: auto; padding: 2px 1px 8px; }
+}
