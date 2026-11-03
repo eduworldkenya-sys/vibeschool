@@ -7,7 +7,7 @@ import SchedulePicker from '@/components/vibetutor/SchedulePicker'
 import { AREAS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
 
 const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(x => x !== value) : [...list, value]
-const validKenyanPhone = (value: string) => /^(?:0|254|\\+254)(?:7|1)\\d{8}$/.test(value.replace(/[\\s-]/g, ''))
+const validKenyanPhone = (value: string) => /^(?:0|254|\+254)(?:7|1)\d{8}$/.test(value.replace(/[\s-]/g, ''))
 
 export default function PostRequest() {
   const [learner, setLearner] = useState('')
@@ -60,12 +60,12 @@ export default function PostRequest() {
           </Field>
           <SchedulePicker days={days} onDays={setDays} />
           <Field label="Budget per hour (KSh)" hint="Optional">
-            <input className={styles.input} inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value.replace(/\\D/g, ''))} placeholder="e.g. 500" />
+            <input className={styles.input} inputMode="numeric" value={budget} onChange={e => setBudget(e.target.value.replace(/\D/g, ''))} placeholder="e.g. 500" />
           </Field>
         </FormStep>
         <FormStep n={4} title="Parent or guardian contact">
           <Field label="Phone number" required hint="Use 07…, 01… or +254…">
-            <input className={styles.input} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => { setPhone(e.target.value.replace(/[^0-9+\\s-]/g, '').slice(0,16)); setSubmitted(false) }} placeholder="07XX XXX XXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />
+            <input className={styles.input} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => { setPhone(e.target.value.replace(/[^0-9+\s-]/g, '').slice(0,16)); setSubmitted(false) }} placeholder="07XX XXX XXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />
             {phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}
           </Field>
         </FormStep>
