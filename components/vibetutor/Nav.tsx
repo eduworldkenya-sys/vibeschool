@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import polish from './VibeTutorPolish.module.css'
 import styles from './VibeTutor.module.css'
 import Icon, { type IconName } from './Icon'
 
@@ -33,9 +34,9 @@ export default function Nav() {
           </nav>
         </div>
       </header>
-      <nav className={styles.tabbar} aria-label="Mobile">
+      <nav className={`${styles.tabbar} ${polish.navBar}`} aria-label="Mobile">
         {TABS.map(t => (
-          <Link key={t.href} href={t.href} className={`${styles.tab} ${t.match(path) ? styles.tabOn : ''}`} aria-current={t.match(path) ? 'page' : undefined}>
+          <Link key={t.href} href={t.href} className={`${polish.navItem} ${t.match(path) ? polish.navActive : ''}`} aria-current={t.match(path) ? 'page' : undefined}>
             <Icon name={t.icon} size={22} />
             <span>{t.label}</span>
           </Link>
