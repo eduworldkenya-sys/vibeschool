@@ -29,6 +29,9 @@
 .dim { opacity: .45; transition: opacity .2s ease; }
 .list { transition: opacity .2s ease; }
 @media (prefers-reduced-motion: reduce) { .progressBar { animation: none; width: 100%; opacity: .6; } }
+.tagRow { display: flex; flex-wrap: wrap; gap: 8px; }
+.tag { font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 999px; border: 1px solid #cfe3d4; background: #eef6f0; color: #1a5c2e; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .clear { font: inherit; font-size: 13px; background: none; border: 0; color: #1a5c2e; cursor: pointer; text-decoration: underline; padding: 0; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: #444; }
 .input, .select, .textarea { font: inherit; font-size: 15px; padding: 10px 12px; border: 1px solid #cfcfcf; border-radius: 8px; background: #fff; color: #1a1a1a; width: 100%; box-sizing: border-box; }

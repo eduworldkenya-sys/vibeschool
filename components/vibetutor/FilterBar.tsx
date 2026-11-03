@@ -69,8 +69,17 @@ export default function FilterBar(p: Props) {
 
       <div className={styles.summary} aria-live="polite">
         <span>{p.busy ? 'Updating results…' : `${p.resultCount} ${p.noun}${p.resultCount === 1 ? '' : 's'}`}</span>
-        {active && <button type="button" className={styles.clear} onClick={p.onClear}>Clear filters</button>}
+        {active && <button type="button" className={styles.clear} onClick={p.onClear}>Clear all</button>}
       </div>
+      {active && (
+        <div className={styles.tagRow} aria-label="Active filters">
+          {p.q && <button type="button" className={styles.tag} onClick={() => p.onQ('')}>“{p.q}” <span aria-hidden="true">×</span><span className={styles.sr}>Remove search</span></button>}
+          {p.subject && <button type="button" className={styles.tag} onClick={() => p.onSubject('')}>{p.subject} <span aria-hidden="true">×</span><span className={styles.sr}>Remove subject</span></button>}
+          {p.level && <button type="button" className={styles.tag} onClick={() => p.onLevel('')}>{p.level} <span aria-hidden="true">×</span><span className={styles.sr}>Remove level</span></button>}
+          {p.area && <button type="button" className={styles.tag} onClick={() => p.onArea('')}>{p.area} <span aria-hidden="true">×</span><span className={styles.sr}>Remove area</span></button>}
+          {p.mode && <button type="button" className={styles.tag} onClick={() => p.onMode('')}>{p.mode === 'online' ? 'Online' : 'In person'} <span aria-hidden="true">×</span><span className={styles.sr}>Remove mode</span></button>}
+        </div>
+      )}
       <div className={styles.progressTrack} aria-hidden="true">
         {p.busy && <div className={styles.progressBar} />}
       </div>
