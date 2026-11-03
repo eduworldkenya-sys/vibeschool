@@ -278,3 +278,49 @@
 @media (max-width: 720px) {
   .tabbar { background: #fff; }
 }
+
+
+/* VibeTutor marketplace visual language: warm ivory, olive and quiet surfaces. */
+.shell {
+  --vt-ink: #24251f;
+  --vt-muted: #77796f;
+  --vt-line: #e8e7df;
+  --vt-bg: #f4f2ec;
+  --vt-surface: #ffffff;
+  --vt-accent: #596343;
+  --vt-accent-soft: #edf0e6;
+  --vt-amber: #8a7446;
+  --vt-radius: 18px;
+  background: #f4f2ec;
+  color: #24251f;
+}
+.page { background: #f4f2ec; }
+.topbar { background: rgba(248,247,242,.96); border-bottom-color: #e8e7df; }
+.navLinkOn { background: #e9ecdf; color: #414b30; }
+.navLink:hover { background: #eeeee7; }
+.eyebrow { color: #596343; }
+.btnPrimary, .btnSubmit { background: #596343; }
+.btnPrimary:hover, .btnSubmit:hover:not(:disabled) { background: #465034; }
+.chipOn, .dayOn { background: #596343; border-color: #596343; }
+.segmentOn { color: #414b30; }
+.search:focus, .input:focus { border-color: #78845f; box-shadow: 0 0 0 3px rgba(89,99,67,.13); }
+.filterTag { border-color: #d8ddcc; background: #edf0e6; color: #465034; }
+.partOn { border-color: #596343; background: #edf0e6; box-shadow: inset 0 0 0 1px #596343; }
+.partOn .partState { color: #465034; border-color: #d8ddcc; }
+.progressBar, .stepNum { background: #596343; }
+.avatar { background: #edf0e6; color: #465034; }
+.card, .step, .filterBar, .pathCard, .stepCard, .infoBlock {
+  border-color: #e8e7df;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(38,39,31,.045);
+}
+.card { padding: 20px; gap: 14px; }
+.tag { background: #f4f2ec; border-color: #e8e7df; }
+.btnSecondary { border-color: #e8e7df; }
+.tabOn { color: #596343; }
+.partTile { border-radius: 10px; }
+@media (max-width: 720px) {
+  .tabbar { background: rgba(255,255,255,.97); border-top-color: #e8e7df; }
+  .page { padding-left: 16px; padding-right: 16px; }
+  .card { border-radius: 18px; }
+}
