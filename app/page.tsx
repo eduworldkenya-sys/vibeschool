@@ -12,46 +12,97 @@ import SuccessWishesFloatingOffer from '@/components/success-wishes/SuccessWishe
 import { PublicBottomNav } from '@/components/public/PublicBottomNav'
 
 export const metadata: Metadata = {
-  alternates:{canonical:'/'},
-  title:'VibeSchool — One learning system from curriculum to the next step',
-  description:'VibeSchool connects curriculum, teaching, learning evidence, assessment, progress, parents, schools and Senior School Pathways in one Kenyan education system.',
+  alternates: { canonical: '/' },
+  title: 'VibeSchool — Your connected workspace for teaching and learning',
+  description: 'Plan, teach, assess and follow learner progress in one connected workspace built for Kenyan education.',
 }
 
 const schoolDay = [
-  ['07:30', 'Teacher prepares', 'Today’s curriculum position, scheme and lesson context belong to the same planning journey.'],
-  ['08:00', 'The lesson becomes real', 'Teaching activity and attendance can be connected to what was planned instead of living in separate records.'],
-  ['10:15', 'Learners produce evidence', 'Practice, homework and submissions give the school something more useful than a completion count.'],
-  ['13:00', 'The teacher can respond', 'Assessment and evidence can expose where more explanation, practice or intervention may be needed.'],
-  ['16:00', 'Families get the right context', 'Authorised families can understand relevant progress without entering the teacher’s private workspace.'],
-  ['17:00', 'Leadership sees the learning', 'School visibility can connect curriculum, teaching, participation and learner progress rather than ending at administration.'],
+  ['07:30', 'Prepare with context', 'Start from the curriculum, scheme and class context already connected to the lesson.'],
+  ['08:00', 'Teach the planned lesson', 'Carry the learning intention into the real classroom occurrence.'],
+  ['10:15', 'Capture learner evidence', 'Practice, homework and submissions give the teacher something meaningful to review.'],
+  ['13:00', 'Respond to what learners show', 'Use assessment and evidence to identify where explanation, practice or support may be needed.'],
+  ['16:00', 'Share the right progress', 'Authorised families can understand relevant progress without entering the teacher’s private workspace.'],
+  ['17:00', 'Keep the learning story connected', 'School visibility can connect curriculum, teaching, participation and progress.'],
 ]
 
 const trust = [
-  ['Built around Kenyan education', 'VibeSchool is designed for the real relationships between learners, teachers, parents, schools and Kenya’s changing education pathways.'],
-  ['Evidence before claims', 'Educational guidance, verified facts and uncertainty are kept distinct so important decisions are not presented with false certainty.'],
-  ['Privacy follows relationship', 'Learner and school information is intended to follow authorised roles, relationships and purpose rather than a single all-access account.'],
-  ['Humans remain responsible', 'Technology can assist planning, learning and understanding, while consequential educational decisions remain appropriately human-led.'],
+  ['Built around Kenyan education', 'Designed for the real relationships between learners, teachers, parents, schools and Kenya’s changing education pathways.'],
+  ['Evidence before claims', 'Verified facts, educational guidance and uncertainty are kept distinct.'],
+  ['Privacy follows relationship', 'Learner and school information follows authorised roles, relationships and purpose.'],
+  ['Humans remain responsible', 'Technology can assist learning and planning while consequential educational decisions remain appropriately human-led.'],
 ]
 
-export default function HomePage() { return <div className={styles.page} style={{ paddingBottom: 76 }}><PublicHeader/><SuccessWishesFloatingOffer homepage/><main id="main-content">
-<section className={styles.hero}><div className={styles.heroInner}><p className={styles.eyebrow}>VIBESCHOOL · KENYA</p><h1>One learning system. From curriculum to the learner’s next step.</h1><p className={styles.lead}>VibeSchool connects planning, teaching, learning, evidence, assessment, progress, families and future direction — so the education journey works as one continuous system instead of a collection of disconnected tools.</p><div className={styles.actions}><TrackedLink className={styles.primary} href="/global" event="public_home_start_learning">Start learning</TrackedLink><Link className={styles.secondary} href="/sandbox">Use the live sandbox</Link><TrackedLink className={styles.textAction} href="/institutions" event="public_home_institutions">For schools →</TrackedLink></div><div className={styles.heroTrust}><span>Built for Kenya</span><span>CBC / CBE aware</span><span>Explore before login</span><span>Mobile-first</span><span>Role-based privacy</span></div></div></section>
-<section className={styles.wishesPromo} aria-labelledby="wishes-promo-title">
-  <div className={styles.wishesPromoCopy}>
-    <p className={styles.wishesPromoEyebrow}>VIBESCHOOL · SUCCESS WISHES</p>
-    <h2 id="wishes-promo-title">A little encouragement can mean everything.</h2>
-    <p>Choose a digital success card, write your message and send a private wish to someone preparing for exams.</p>
-    <Link href="/success-wishes" className={styles.wishesPromoLink}>Explore Success Wishes <span aria-hidden="true">→</span></Link>
+export default function HomePage() {
+  return <div className={styles.page} style={{ paddingBottom: 76 }}>
+    <PublicHeader />
+    <SuccessWishesFloatingOffer homepage />
+    <main id="main-content">
+      <section className={styles.hero}>
+        <div className={styles.heroInner}>
+          <p className={styles.eyebrow}>VIBESCHOOL · BUILT FOR KENYAN EDUCATION</p>
+          <h1>Teach better. Plan less. Know what comes next.</h1>
+          <p className={styles.lead}>One connected workspace for curriculum planning, teaching, assessment and learner progress — built around the work teachers do every day.</p>
+          <div className={styles.actions}>
+            <TrackedLink className={styles.primary} href="/sandbox" event="public_home_start_learning">Explore the live sandbox</TrackedLink>
+            <Link className={styles.secondary} href="/product">See how VibeSchool works</Link>
+          </div>
+          <div className={styles.heroTrust}>
+            <span>Kenyan curriculum context</span><span>Teacher-first</span><span>Connected learning journey</span><span>Role-based privacy</span>
+          </div>
+          <div className={styles.heroNote}>
+            <span className={styles.heroNoteLabel}>THE TEACHING JOURNEY</span>
+            <strong>Curriculum <i>→</i> Scheme <i>→</i> Lesson <i>→</i> Teach <i>→</i> Evidence <i>→</i> Next action</strong>
+          </div>
+        </div>
+      </section>
+
+      <div id="product-tour"><ProductTour /></div>
+      <RoleJourneySelector />
+      <ConnectedEducationExplorer />
+
+      <section className={styles.demoSection}>
+        <div className={styles.sectionHeading}>
+          <p className={styles.eyebrowDark}>GET TO KNOW VIBESCHOOL</p>
+          <h2>Explore the product. See what it can help you do.</h2>
+          <p>Start with a practical demonstration, explore learning and discover how VibeSchool supports different parts of the education journey.</p>
+        </div>
+        <div className={styles.demoGrid}>
+          <Link href="/sandbox" className={styles.demoCard}><span className={styles.demoLabel}>LIVE SANDBOX</span><h3>Run one lesson from plan to next action.</h3><p>Use safe demo data to plan, teach, capture evidence, assess what the evidence supports and see the next step.</p><strong>Explore the sandbox →</strong></Link>
+          <TrackedLink href="/global" event="public_home_start_learning" className={styles.demoCard}><span className={styles.demoLabel}>LEARNING</span><h3>Learning that continues beyond one resource.</h3><p>Explore curriculum-organised learning and how resources, practice and progress fit into the wider learner journey.</p><strong>Explore learning →</strong></TrackedLink>
+          <TrackedLink href="/pathways" event="public_home_pathways" className={styles.demoCard}><span className={styles.demoLabel}>SENIOR SCHOOL PATHWAYS</span><h3>Make future choices with clearer information.</h3><p>Explore subjects, careers and schools while distinguishing verified information from guidance and uncertainty.</p><strong>Explore Pathways →</strong></TrackedLink>
+        </div>
+      </section>
+
+      <section className={styles.wishesPromo} aria-labelledby="wishes-promo-title">
+        <div className={styles.wishesPromoCopy}>
+          <p className={styles.wishesPromoEyebrow}>VIBESCHOOL · SUCCESS WISHES</p>
+          <h2 id="wishes-promo-title">A little encouragement can mean everything.</h2>
+          <p>Choose a digital success card, write your message and send a private wish to someone preparing for exams.</p>
+          <Link href="/success-wishes" className={styles.wishesPromoLink}>Explore Digital Success Cards <span aria-hidden="true">→</span></Link>
+        </div>
+        <div className={styles.wishesPromoArtwork} aria-hidden="true"><span>WITH LOVE</span><strong>You’ve got this.</strong><small>GOOD LUCK &amp; SUCCESS</small></div>
+      </section>
+
+      <section className={styles.daySection} aria-labelledby="school-day-title">
+        <div className={styles.dayIntro}><p className={styles.eyebrowDark}>A DAY WITH VIBESCHOOL</p><h2>Keep the learning story connected throughout the school day.</h2><p>The value is not a collection of separate modules. It is the continuity from planning to teaching, evidence and support.</p></div>
+        <ol className={styles.dayTimeline}>{schoolDay.map(([time,title,body]) => <li key={time}><time>{time}</time><div><h3>{title}</h3><p>{body}</p></div></li>)}</ol>
+      </section>
+
+      <SchoolReadinessAssessment />
+
+      <section className={styles.trustSection}>
+        <div className={styles.sectionHeading}><p className={styles.eyebrowDark}>TRUST IS PART OF THE PRODUCT</p><h2>Useful enough to rely on. Clear enough to question.</h2><p>Evidence, access, child safety, uncertainty and human responsibility are product requirements — not footer decoration.</p></div>
+        <div className={styles.trustGrid}>{trust.map(([title,body]) => <article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div>
+        <div className={styles.trustLinks}><Link href="/product">Product map</Link><Link href="/trust">Trust Centre</Link><Link href="/about">Mission &amp; how VibeSchool works</Link><Link href="/contact">Contact VibeSchool</Link></div>
+      </section>
+
+      <section className={styles.institutionSection}>
+        <div><p className={styles.eyebrowLight}>FOR SCHOOLS &amp; EDUCATION INSTITUTIONS</p><h2>Run the institution. Understand the learning.</h2></div>
+        <div><p>Connect institutional operations with curriculum, teaching, assessment, learner evidence and family context while preserving role boundaries and accountability.</p><div className={styles.actions}><Link className={styles.primaryLight} href="/institutions">Explore VibeSchool for institutions</Link><TrackedLink className={styles.secondaryLight} href="/contact" event="public_institution_contact">Talk to VibeSchool</TrackedLink></div></div>
+      </section>
+    </main>
+    <PublicFooter />
+    <PublicBottomNav />
   </div>
-  <div className={styles.wishesPromoArtwork} aria-hidden="true">
-    <span>WITH LOVE</span><strong>You've got this.</strong><small>GOOD LUCK & SUCCESS</small>
-  </div>
-</section>
-<div id="product-tour"><ProductTour/></div>
-<RoleJourneySelector/>
-<section className={styles.daySection} aria-labelledby="school-day-title"><div className={styles.dayIntro}><p className={styles.eyebrowDark}>A DAY WITH VIBESCHOOL</p><h2 id="school-day-title">By the end of the school day, everyone should know what matters.</h2><p>Follow the educational signal through one ordinary day. The value is not six separate modules — it is what becomes possible when the same learning story survives from planning to support.</p></div><ol className={styles.dayTimeline}>{schoolDay.map(([time,title,body])=><li key={time}><time>{time}</time><div><h3>{title}</h3><p>{body}</p></div></li>)}</ol></section>
-<ConnectedEducationExplorer/>
-<SchoolReadinessAssessment/>
-<section className={styles.demoSection}><div className={styles.sectionHeading}><p className={styles.eyebrowDark}>EXPLORE VIBESCHOOL</p><h2>See the educational model before deciding whether it belongs in your school or family.</h2><p>Start with the live product sandbox, public learning and Pathways experiences, then inspect how VibeSchool approaches institutions, evidence, privacy and responsibility.</p></div><div className={styles.demoGrid}><Link href="/sandbox" className={styles.demoCard}><span className={styles.demoLabel}>LIVE SANDBOX</span><h3>Run one lesson from plan to next action.</h3><p>Use safe demo data to plan, teach, capture evidence, assess what the evidence supports, understand the gap and see the authorised view for teacher, learner, family and school leader.</p><strong>Use VibeSchool now →</strong></Link><TrackedLink href="/global" event="public_home_start_learning" className={styles.demoCard}><span className={styles.demoLabel}>LEARNING</span><h3>Learning that continues beyond a single resource.</h3><p>Explore curriculum-organised learning and how resources, practice and progress fit into the wider learner journey.</p><strong>Explore learning →</strong></TrackedLink><TrackedLink href="/pathways" event="public_home_pathways" className={styles.demoCard}><span className={styles.demoLabel}>SENIOR SCHOOL PATHWAYS</span><h3>Move from interests to subjects, careers and schools with clearer evidence.</h3><p>Explore pathways and subject choices while seeing where verified information begins, where guidance is used and where uncertainty remains.</p><strong>Explore Pathways →</strong></TrackedLink></div></section>
-<section className={styles.trustSection}><div className={styles.sectionHeading}><p className={styles.eyebrowDark}>TRUST IS PART OF THE PRODUCT</p><h2>Education software should be useful enough to rely on and clear enough to question.</h2><p>VibeSchool treats evidence, access, child safety, uncertainty and human responsibility as product requirements — not footer decoration.</p></div><div className={styles.trustGrid}>{trust.map(([title,body])=><article key={title}><h3>{title}</h3><p>{body}</p></article>)}</div><div className={styles.trustLinks}><Link href="/product">Product map</Link><Link href="/trust">Trust Centre</Link><Link href="/about">Mission & how VibeSchool works</Link><Link href="/contact">Contact VibeSchool</Link></div></section>
-<section className={styles.institutionSection}><div><p className={styles.eyebrowLight}>FOR SCHOOLS & EDUCATION INSTITUTIONS</p><h2>Run the institution. Understand the learning.</h2></div><div><p>School software should do more than digitise administration. VibeSchool is designed to connect institutional operations with curriculum, teaching, assessment, learner evidence, family context and future direction while preserving role boundaries and accountability.</p><div className={styles.actions}><Link className={styles.primaryLight} href="/institutions">Explore VibeSchool for institutions</Link><TrackedLink className={styles.secondaryLight} href="/contact" event="public_institution_contact">Talk to VibeSchool</TrackedLink></div></div></section>
-</main><PublicFooter/><PublicBottomNav/></div> }
+}
