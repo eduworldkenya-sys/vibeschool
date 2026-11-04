@@ -675,3 +675,42 @@
 
 .formActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .formActions .btnSubmit { flex: 1 1 220px; }
+
+/* Header contrast: use the existing light wordmark on dark surfaces and
+   explicitly define readable theme-control colours in both modes. */
+.themeLabel { color: var(--vt-muted); }
+.themeSelect { color: var(--vt-ink); background: var(--vt-surface); border-color: var(--vt-line); }
+.themeSelect option { color: var(--vt-ink); background: var(--vt-surface); }
+:global(html[data-vt-theme='dark']) .themeLabel { color: #d1c8c3; }
+:global(html[data-vt-theme='dark']) .themeSelect {
+  color: #f8fafc;
+  background: #393232;
+  border-color: #71615f;
+}
+:global(html[data-vt-theme='dark']) .themeSelect option {
+  color: #f8fafc;
+  background: #2b2727;
+}
+:global(html[data-vt-theme='dark']) .brand { color: #f2eee9; }
+
+
+/* Header contrast correction: keep the VibeSchool wordmark asset unchanged. */
+:global(html[data-vt-theme='dark']) .topbar .brand {
+  color: #f7f2ed;
+}
+:global(html[data-vt-theme='dark']) .topbar .themeControl {
+  color: #d6ccc6;
+}
+:global(html[data-vt-theme='dark']) .topbar .themeSelect {
+  background: #393232;
+  color: #fffaf6;
+  border-color: #756565;
+}
+:global(html[data-vt-theme='dark']) .topbar .themeSelect:hover {
+  background: #453a3a;
+  border-color: #c77b88;
+}
+:global(html[data-vt-theme='dark']) .topbar .themeSelect:focus-visible {
+  outline: 2px solid #e6a4b0;
+  outline-offset: 2px;
+}
