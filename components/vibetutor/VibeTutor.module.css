@@ -675,3 +675,20 @@
 
 .formActions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .formActions .btnSubmit { flex: 1 1 220px; }
+
+/* Header contrast: use the existing light wordmark on dark surfaces and
+   explicitly define readable theme-control colours in both modes. */
+.themeLabel { color: var(--vt-muted); }
+.themeSelect { color: var(--vt-ink); background: var(--vt-surface); border-color: var(--vt-line); }
+.themeSelect option { color: var(--vt-ink); background: var(--vt-surface); }
+:global(html[data-vt-theme='dark']) .themeLabel { color: #d1c8c3; }
+:global(html[data-vt-theme='dark']) .themeSelect {
+  color: #f8fafc;
+  background: #393232;
+  border-color: #71615f;
+}
+:global(html[data-vt-theme='dark']) .themeSelect option {
+  color: #f8fafc;
+  background: #2b2727;
+}
+:global(html[data-vt-theme='dark']) .brand { color: #f2eee9; }
