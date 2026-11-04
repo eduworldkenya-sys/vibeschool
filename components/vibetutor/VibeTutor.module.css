@@ -660,3 +660,14 @@
   .secondaryFilters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .secondaryFilters .filterField:last-child { grid-column: 1 / -1; }
 }
+
+
+/* Stable teaching-mode controls and actionable empty states. */
+.modeChoices { display: flex; flex-wrap: wrap; gap: 4px; width: fit-content; max-width: 100%; padding: 3px; border: 1px solid var(--vt-line); border-radius: 10px; background: var(--vt-bg); }
+.modeChoices .segmentBtn { min-height: 36px; }
+.emptyState { display: grid; justify-items: center; gap: 8px; padding: 24px 12px; text-align: center; }
+.emptyState .empty { padding: 0; margin: 0; font-weight: 650; color: var(--vt-ink); }
+.emptyHint { max-width: 520px; margin: 0; color: var(--vt-muted); font-size: 13px; line-height: 1.5; }
+.emptyActions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
+.emptyAction { border: 1px solid var(--vt-line); border-radius: 999px; background: var(--vt-surface); color: var(--vt-ink); padding: 7px 11px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.emptyAction:hover { border-color: var(--vt-accent); color: var(--vt-accent); }
