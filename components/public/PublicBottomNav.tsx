@@ -4,7 +4,7 @@ const items = [
   { label: 'Home', href: '/', icon: 'home' },
   { label: 'Discover', href: '/global', icon: 'discover' },
   { label: 'Create', href: '/global/signup', icon: 'create' },
-  { label: 'Activity', href: '/global/vibes', icon: 'activity' },
+  { label: 'Activity', href: '/global/activity', icon: 'activity' },
   { label: 'Profile', href: '/global/profile', icon: 'profile' },
 ] as const
 
