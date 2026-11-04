@@ -5,6 +5,9 @@
 
 begin;
 
+-- authorization-test: public.vibetutor_tutors owner-only read/write; other users see no rows and cannot update; anon has no base-table access; public view excludes phone and paused listings (tested locally against a stand-in schema)
+-- authorization-test: public.vibetutor_requests owner-only read/write; other users and anon see no base rows; open-request view excludes phone (tested locally against a stand-in schema)
+
 create table if not exists public.vibetutor_tutors (
   profile_id uuid primary key references public.profiles(id) on delete cascade,
   display_name text not null check (length(trim(display_name)) > 0),
