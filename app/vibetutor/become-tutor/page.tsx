@@ -33,6 +33,7 @@ export default function BecomeTutor() {
   const [ready, setReady] = useState(false)
   const [touched, setTouched] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const availableSubjects = useMemo(() => [...new Set(levels.flatMap(level => SUBJECTS_BY_LEVEL[level] || []))], [levels])
 
   useEffect(() => {
@@ -82,7 +83,7 @@ export default function BecomeTutor() {
           <div className={polish.wizardMeta}><strong>Progress</strong><span>{completion.filter(Boolean).length} of 3 complete</span></div>
           <div className={polish.wizardSteps}>{["Teaching","Tuition details","Availability"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
         </div>}
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm) return; if (!signedIn) { saveDraft<TutorDraft>(DRAFT_KEY, { name, levels, subjects, mode, area, rate, days, phone }); window.location.assign('/login?next=%2Fvibetutor%2Fbecome-tutor'); return } setSubmitError(''); saveTutorListing({ name, levels, subjects, mode, area, rate, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/browse') } else setSubmitError(result.error) }) }}>
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting) return; if (!signedIn) { saveDraft<TutorDraft>(DRAFT_KEY, { name, levels, subjects, mode, area, rate, days, phone }); window.location.assign('/login?redirect=%2Fvibetutor%2Fbecome-tutor'); return } setSubmitError(''); setSubmitting(true); saveTutorListing({ name, levels, subjects, mode, area, rate, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/browse') } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not save your tutor profile. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
         <Field label="Levels you teach" required><ToggleChips label="Levels" options={LEVELS} selected={levels} onToggle={value => updateLevels(toggle(levels, value))} /></Field>
         <Field label="Subjects" required>{levels.length > 0 && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
         <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={value => { setTouched(true); setMode(value) }} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
@@ -94,7 +95,7 @@ export default function BecomeTutor() {
         <Field label="Phone number" required><input className={styles.input} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => updatePhone(e.target.value)} onBlur={() => setPhone(current => normalizedPhone(current))} placeholder="07XX XXX XXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
         <Field label="Profile photo" hint="Optional · A clear photo helps learners recognise you."><div className={polish.photoField}><div className={polish.photoControl}>{photo ? <img src={photo} alt="Profile photo preview" className={polish.photoPreview}/> : <span className={`${polish.photoPreview} ${polish.photoFallback}`} aria-hidden="true">{name.trim().slice(0,1).toUpperCase() || 'T'}</span>}<input className={polish.photoInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={e => { const file=e.target.files?.[0]; if(file && file.size <= 5*1024*1024) setPhoto(URL.createObjectURL(file)); else if(file) e.currentTarget.value='' }}/></div></div></Field>
         <label className={styles.checkRow}><input type="checkbox" checked={consent} onChange={e => { setTouched(true); setConsent(e.target.checked) }} /><span>I agree to be listed on VibeTutor. My phone number stays private.</span></label>
-        <div className={styles.formActions}><button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button><button type="submit" className={styles.btnSubmit} disabled={!validForm}>Create tutor profile</button></div>
+        <div className={styles.formActions}><button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button><button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting}>{submitting ? 'Publishing…' : 'Create tutor profile'}</button></div>
         {submitError && <p role="alert" className={styles.hint}>{submitError}</p>}
       </form>
     </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import styles from './login.module.css'
+import { safeInternalPath } from '@/lib/auth-routing'
 
 const ROLES = [
   { href: '/login/teacher', title: 'Teacher', body: 'Teaching workspace, classes, lessons and school tools.' },
@@ -7,7 +8,8 @@ const ROLES = [
   { href: '/login/student', title: 'Learner', body: 'Learning, assignments, revision and your VibeSchool journey.' },
 ] as const
 
-export default function LoginPage() {
+export default function LoginPage({ searchParams }: { searchParams: { redirect?: string; next?: string } }) {
+  const redirect = safeInternalPath(searchParams.redirect ?? searchParams.next)
   return (
     <main className={styles.shell}>
       <section className={styles.panel} aria-labelledby="login-title">
@@ -20,7 +22,7 @@ export default function LoginPage() {
 
         <div className={styles.roles} aria-label="Choose account type">
           {ROLES.map((role) => (
-            <Link key={role.href} href={role.href} className={styles.role}>
+            <Link key={role.href} href={redirect ? `${role.href}?redirect=${encodeURIComponent(redirect)}` : role.href} className={styles.role}>
               <strong>{role.title}</strong>
               <span>{role.body}</span>
               <b aria-hidden="true">→</b>
