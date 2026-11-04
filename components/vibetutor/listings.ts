@@ -26,15 +26,15 @@ export type LiveListings = {
 
 export async function fetchLiveListings(): Promise<LiveListings> {
   const client = getSupabaseClient()
-  const [tutorsRes, userRes] = await Promise.all([
+  const [tutorsRes, sessionRes] = await Promise.all([
     client.from('vibetutor_public_tutors').select('*').order('created_at', { ascending: false }),
-    client.auth.getUser(),
+    client.auth.getSession(),
   ])
 
   if (tutorsRes.error) throw new Error('Tutor listings could not be loaded.')
-  if (userRes.error) throw new Error('Your sign-in status could not be checked.')
+  if (sessionRes.error) throw new Error('Your sign-in status could not be checked.')
 
-  const signedIn = !!userRes.data.user
+  const signedIn = !!sessionRes.data.session
   let requestRows: RequestRow[] = []
 
   // The open-requests view is intentionally restricted to authenticated users.
