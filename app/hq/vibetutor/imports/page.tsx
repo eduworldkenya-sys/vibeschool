@@ -33,8 +33,9 @@ function csvRows(text: string): Record<string,string>[] {
   return lines.slice(1).map(values=>Object.fromEntries(keys.map((key,i)=>[key,values[i]||""])))
 }
 function payload(row: Record<string,string>) {
-  const name=(row.full_name||"").trim(), source=(row.source_name||"").trim()
-  if(name.length<2 || !source) throw new Error("Every row needs a full name and source name.")
+  const name=(row.full_name||"").trim(), source=(row.source_name||"").trim(), county=(row.county||"").trim()
+  if(name.length<2 || !county || !source) throw new Error("Every record needs a full name, county and source name.")
+  if(!KENYAN_COUNTIES.includes(county)) throw new Error("Use a valid Kenyan county for: "+name+".")
   const mode=["online","physical","either"].includes(row.teaching_mode) ? row.teaching_mode : "either"
   const years=row.experience_years?.trim() ? Number(row.experience_years) : null
   const rate=row.rate_kes?.trim() ? Number(row.rate_kes) : null
