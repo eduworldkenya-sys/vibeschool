@@ -66,6 +66,11 @@ export default function FilterBar(p: Props) {
   const chooseCounty = (value: string) => {
     setCounty(value); setSubCounty(''); setWard(''); p.onArea(value)
   }
+  useEffect(() => {
+    setCounty(p.area)
+    if (!p.area) { setSubCounty(''); setWard('') }
+  }, [p.area])
+
   const active = !!(p.q || p.subject || p.level || p.area || p.mode || p.priceRange)
   const secondaryCount = Number(!!p.area) + Number(!!p.priceRange)
   return (
