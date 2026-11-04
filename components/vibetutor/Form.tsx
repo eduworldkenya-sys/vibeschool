@@ -16,7 +16,23 @@ export function FormStep({ n, title, hint, children }: { n: number; title: strin
   )
 }
 
-export function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: ReactNode }) {
+// `group` is for fields that hold several buttons (chips, day buttons, segmented
+// control). A <label> around those makes a tap on the label text press the first
+// button, so they get a plain wrapper instead. The inner control carries its own
+// aria-label.
+export function Field({ label, required, hint, group, children }: { label: string; required?: boolean; hint?: string; group?: boolean; children: ReactNode }) {
+  if (group) {
+    return (
+      <div className={styles.field}>
+        <span className={styles.label}>
+          {label}
+          {required && <span className={styles.req} aria-hidden="true"> *</span>}
+        </span>
+        {children}
+        {hint && <span className={styles.hint}>{hint}</span>}
+      </div>
+    )
+  }
   return (
     <label className={styles.field}>
       <span className={styles.label}>

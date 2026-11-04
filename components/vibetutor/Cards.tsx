@@ -5,6 +5,7 @@ import Link from 'next/link'
 import styles from './VibeTutor.module.css'
 import Icon from './Icon'
 import { modeLabel, summarizeDays, summarizeParts, type DemoRequest, type DemoTutor } from './data'
+import { loginHref } from './handoff'
 
 export function TutorCard({ t }: { t: DemoTutor }) {
   const [open, setOpen] = useState(false)
@@ -41,7 +42,7 @@ export function TutorCard({ t }: { t: DemoTutor }) {
           <p className={styles.meta}><strong>Availability:</strong> {summarizeDays(t.days)}</p>
           <p className={styles.modalPrice}>KSh {t.rateKes.toLocaleString('en-KE')} / hour</p>
           <p className={styles.hint}>Sample profile only. Sign in before contacting a tutor and agree on the first lesson together.</p>
-          <Link href="/login" className={styles.modalSignIn}>Sign in to contact</Link>
+          <Link href={loginHref('parent', '/vibetutor')} className={styles.modalSignIn}>Sign in to contact</Link>
         </section>
       </div>}
     </>
@@ -81,7 +82,7 @@ export function RequestCard({ r }: { r: DemoRequest }) {
           <p className={styles.meta}><strong>Preferred time:</strong> {summarizeParts(r.dayparts)}</p>
           <p className={styles.modalPrice}>Budget up to KSh {r.budgetKes.toLocaleString('en-KE')} / hour</p>
           <p className={styles.hint}>Sample request only. Parent or guardian oversight is required for learners under 18.</p>
-          <Link href="/login" className={styles.modalSignIn}>Sign in to respond</Link>
+          <Link href={loginHref('teacher', '/vibetutor/browse?view=students')} className={styles.modalSignIn}>Sign in to respond</Link>
         </section>
       </div>}
     </>

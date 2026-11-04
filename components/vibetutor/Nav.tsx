@@ -62,7 +62,9 @@ export default function Nav() {
       <header className={styles.topbar}>
         <div className={styles.topbarInner}>
           <Link href="/vibetutor" className={styles.brand} aria-label="VibeTutor home">
-            <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={124} height={32} priority className={styles.brandLogo} />
+            {/* The light wordmark has dark "Vibe" text, so it vanishes on the dark topbar. CSS shows the matching one. */}
+            <Image src="/brand/vibeschool-wordmark.svg" alt="VibeSchool" width={124} height={32} priority className={`${styles.brandLogo} ${styles.brandLogoLight}`} />
+            <Image src="/brand/vibeschool-wordmark-dark.svg" alt="VibeSchool" width={124} height={32} priority className={`${styles.brandLogo} ${styles.brandLogoDark}`} />
             <span className={styles.brandDivider} aria-hidden="true" />
             <span>VibeTutor</span>
           </Link>

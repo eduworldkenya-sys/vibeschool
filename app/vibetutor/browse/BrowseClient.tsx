@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import styles from '@/components/vibetutor/VibeTutor.module.css'
 import FilterBar, { type FilterOption } from '@/components/vibetutor/FilterBar'
 import BackToTop from '@/components/vibetutor/BackToTop'
@@ -31,7 +31,6 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   const [area, setArea] = useState('')
   const [mode, setMode] = useState<Mode | ''>('')
   const [priceRange, setPriceRange] = useState('')
-  const [busy, setBusy] = useState(false)
   const filters: Filters = { q, subject, level, area, mode, priceRange }
 
   const tutorsFor = (f: Filters) => DEMO_TUTORS.filter(t =>
@@ -52,7 +51,7 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
   )
 
   const tutors = useMemo(() => tutorsFor(filters), [q, subject, level, area, mode, priceRange])
-  const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode])
+  const requests = useMemo(() => requestsFor(filters), [q, subject, level, area, mode, priceRange])
   const currentCount = view === 'tutors' ? tutors.length : requests.length
 
   // Each facet is calculated without its own current selection. This keeps
@@ -81,12 +80,6 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
     return count ? [{ value, label: value === 'online' ? 'Online' : 'In person', count }] : []
   })
 
-  useEffect(() => {
-    setBusy(true)
-    const timer = setTimeout(() => setBusy(false), 180)
-    return () => clearTimeout(timer)
-  }, [q, subject, level, area, mode, priceRange, view])
-
   const clear = () => { setQ(''); setSubject(''); setLevel(''); setArea(''); setMode(''); setPriceRange('') }
   const changeView = (next: View) => { setView(next); clear() }
 
@@ -100,8 +93,8 @@ export default function BrowseClient({ initialView }: { initialView: View }) {
         areas={areaOptions} area={area} onArea={setArea}
         modes={modeOptions} mode={mode} onMode={setMode}
         resultCount={currentCount} noun={view === 'tutors' ? 'tutor' : 'request'}
-        onClear={clear} busy={busy} />
-      <div className={`${styles.list} ${busy ? styles.dim : ''}`} aria-live="polite">
+        onClear={clear} />
+      <div className={styles.list}>
         {view === 'tutors' && tutors.length === 0 && <p className={styles.empty}>No example tutors match these filters. Remove a filter to broaden your search.</p>}
         {view === 'students' && requests.length === 0 && <p className={styles.empty}>No example requests match these filters. Remove a filter to broaden your search.</p>}
         {view === 'tutors' && tutors.map(tutor => <TutorCard key={tutor.id} t={tutor} />)}

@@ -634,3 +634,12 @@
 :global(html[data-vt-theme='dark']) .shell select option { background: #2b2727; color: #f2eee9; }
 :global(html[data-vt-theme='dark']) .btnDisabled { color: var(--vt-muted); border-color: var(--vt-line); }
 :global(html[data-vt-theme='dark']) .success { color: #f0c5cc; background: #493137; }
+
+/* Dark-mode readability fixes */
+.brandLogoDark { display: none; }
+:global(html[data-vt-theme='dark']) .brandLogoLight { display: none; }
+:global(html[data-vt-theme='dark']) .brandLogoDark { display: block; }
+:global(html[data-vt-theme='dark']) .eyebrow { color: var(--vt-accent); }
+:global(html[data-vt-theme='dark']) .req { color: #f19ca6; }
+:global(html[data-vt-theme='dark']) .toTop { background: var(--vt-accent); color: #201d1d; }
+:global(html[data-vt-theme='dark']) .btnSubmit:disabled { background: #3a3333; color: #b8b0aa; }

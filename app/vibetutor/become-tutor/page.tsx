@@ -7,7 +7,9 @@ import { Field, Segmented, ToggleChips } from '@/components/vibetutor/Form'
 import SchedulePicker from '@/components/vibetutor/SchedulePicker'
 import { AREAS, LEVELS, SUBJECTS_BY_LEVEL, type Mode } from '@/components/vibetutor/data'
 import { getSupabaseClient } from '@/lib/supabase'
+import { asString, asStrings, loginHref, saveDraft, takeDraft } from '@/components/vibetutor/handoff'
 
+const DRAFT_KEY = 'vibetutor:become-tutor'
 const toggle = (list: string[], value: string) => list.includes(value) ? list.filter(x => x !== value) : [...list, value]
 const normalizedPhone = (value: string) => { const digits = value.replace(/\D/g, ''); return digits.length === 10 && digits.startsWith('0') ? '+254' + digits.slice(1) : digits.length === 12 && digits.startsWith('254') ? '+' + digits : value.trim() }
 const validKenyanPhone = (value: string) => /^(?:0[71][0-9]{8}|254[71][0-9]{8}|\+254[71][0-9]{8})$/.test(value.replace(/[\s-]/g, ''))
@@ -24,7 +26,25 @@ export default function BecomeTutor() {
   const [consent, setConsent] = useState(false)
   const [photo, setPhoto] = useState('')
   const [signedIn, setSignedIn] = useState(false)
+  // The progress tracker stays hidden until the person actually starts filling the form.
+  const [touched, setTouched] = useState(false)
   const availableSubjects = useMemo(() => [...new Set(levels.flatMap(level => SUBJECTS_BY_LEVEL[level] || []))], [levels])
+
+  useEffect(() => {
+    const draft = takeDraft(DRAFT_KEY)
+    if (!draft) return
+    const nextLevels = asStrings(draft.levels).filter(level => LEVELS.includes(level))
+    const allowed = new Set(nextLevels.flatMap(level => SUBJECTS_BY_LEVEL[level] || []))
+    setLevels(nextLevels)
+    setSubjects(asStrings(draft.subjects).filter(subject => allowed.has(subject)))
+    setMode(draft.mode === 'online' || draft.mode === 'physical' ? draft.mode : 'either')
+    setArea(AREAS.includes(asString(draft.area)) ? asString(draft.area) : '')
+    setRate(asString(draft.rate).replace(/[^0-9]/g, ''))
+    setDays(asStrings(draft.days))
+    setName(asString(draft.name).slice(0, 60))
+    setPhone(asString(draft.phone).replace(/[^0-9+ -]/g, '').slice(0, 16))
+    setTouched(true)
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -51,18 +71,23 @@ export default function BecomeTutor() {
       <header className={styles.formHead}>
         <h1 className={styles.formTitle}>Teach on VibeTutor</h1>
         <p className={styles.muted}>Complete your tutor profile in one form.</p>
-        <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
+        {touched && <div className={polish.wizardProgress} aria-label={`${completion.filter(Boolean).length} of 4 sections complete`}>
           <div className={polish.wizardMeta}><strong>Your profile</strong><span>{completion.filter(Boolean).length} of 4 complete</span></div>
           <div className={polish.wizardSteps}>{["Teaching","Lessons","Availability","Profile"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
-        </div>
+        </div>}
       </header>
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (validForm) window.location.assign('/login?next=%2Fvibetutor%2Fbecome-tutor') }}>
-        <Field label="Levels you teach" required><ToggleChips label="Levels" options={LEVELS} selected={levels} onToggle={value => updateLevels(toggle(levels, value))} /></Field>
-        <Field label="Subjects" required>{levels.length > 0 && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => setSubjects(toggle(subjects, value))} />}</Field>
-        <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={setMode} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
+      <form className={styles.form} onChange={() => setTouched(true)} onClick={e => { if ((e.target as HTMLElement).closest('button:not([type="submit"])')) setTouched(true) }} onSubmit={e => {
+        e.preventDefault()
+        if (!validForm) return
+        saveDraft(DRAFT_KEY, { name, levels, subjects, mode, area, rate, days, phone })
+        window.location.assign(loginHref('teacher', '/vibetutor/become-tutor'))
+      }}>
+        <Field label="Levels you teach" required group><ToggleChips label="Levels" options={LEVELS} selected={levels} onToggle={value => updateLevels(toggle(levels, value))} /></Field>
+        <Field label="Subjects" required group>{levels.length > 0 && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => setSubjects(toggle(subjects, value))} />}</Field>
+        <Field label="Teaching format" group><Segmented<Mode> label="Teaching format" value={mode} onChange={setMode} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
         <Field label="Area" required><select className={styles.input} value={area} onChange={e => setArea(e.target.value)}><option value="">Choose area</option>{AREAS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Rate per hour (KSh)" required><input className={styles.input} inputMode="numeric" value={rate} onChange={e => setRate(e.target.value.replace(/[^0-9]/g, ''))} placeholder="e.g. 500" /></Field>
-        <Field label="Days available" required><SchedulePicker days={days} onDays={setDays} /></Field>
+        <Field label="Days available" required group><SchedulePicker days={days} onDays={setDays} /></Field>
         {signedIn && <p className={polish.prefillNote}>Account details prefilled where available. You can edit them.</p>}
         <Field label="Name" required><input className={styles.input} value={name} onChange={e => setName(e.target.value)} maxLength={60} autoComplete="name" /></Field>
         <Field label="Phone number" required><input className={styles.input} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => updatePhone(e.target.value)} onBlur={() => setPhone(current => normalizedPhone(current))} placeholder="07XX XXX XXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
