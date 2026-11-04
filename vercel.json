@@ -8,6 +8,7 @@
   "git": {
     "deploymentEnabled": {
       "main": true,
+      "chore/preview-workflow-20261020": true,
       "*": false,
       "**": false
     }
