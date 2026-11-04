@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useStudent } from "@/lib/student-context";
 import Skel from "@/components/student/Skel";
+import { getHomeworkPhotoViewUrl } from "@/lib/homework/photoAccess";
 import type { Homework, HomeworkAnswer, HomeworkQuestion } from "@/lib/types";
 import {
   saveStudentHomeworkDraft,
@@ -20,6 +21,7 @@ interface SubmissionRow {
   photo_url: string | null;
   mark: number | null;
   feedback: string | null;
+  feedback_released_at: string | null;
   submitted_at: string | null;
   received_at: string | null;
   revision_number: number;
@@ -34,8 +36,8 @@ function daysUntil(d: string): number {
   return Math.round((due.getTime() - today.getTime()) / 86400000);
 }
 
-function dueBadge(d: string, status?: SubmissionStatus) {
-  if (status === "marked") return { label: "Marked", bg: "#d1fae5", color: "#065f46" };
+function dueBadge(d: string, status?: SubmissionStatus, released = false) {
+  if (status === "marked") return released ? { label: "Marked", bg: "#d1fae5", color: "#065f46" } : { label: "Under review", bg: "#dbeafe", color: "#1e40af" };
   if (status === "under_review") return { label: "Under review", bg: "#dbeafe", color: "#1e40af" };
   if (status === "received" || status === "submitted") return { label: "Received", bg: "#d1fae5", color: "#065f46" };
   if (status === "returned") return { label: "Correction needed", bg: "#fef3c7", color: "#92400e" };
@@ -60,7 +62,7 @@ function formatReceipt(value: string | null): string {
 export default function HomeworkDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { identity, loading: identityLoading } = useStudent();
+  const { identity, loading: identityLoading, error: identityError, retry: retryIdentity } = useStudent();
 
   const [homework, setHomework] = useState<Homework | null>(null);
   const [teacher, setTeacher] = useState("Teacher");
@@ -70,57 +72,126 @@ export default function HomeworkDetailPage() {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [photoReference, setPhotoReference] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<"idle" | "draft" | "submit" | "upload">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (identityLoading || !identity || !id) return;
+    let cancelled = false;
+    // Never let a prior learner or route's work survive an identity change.
+    setHomework(null);
+    setSubmission(null);
+    setQuestions([]);
+    setAnswers([]);
+    setDraft({});
+    setPhotoFile(null);
+    setPhotoReference(null);
+    setPhotoPreview(null);
+    setError(null);
+    setLoadError(null);
+    setLoading(true);
+
+    if (identityLoading) return () => { cancelled = true; };
+    if (!identity || !id) {
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+    if (!identity.classId || !identity.schoolId) {
+      setLoadError("Your current class is unavailable. Ask the school to confirm your enrollment.");
+      setLoading(false);
+      return () => { cancelled = true; };
+    }
+    const studentId = identity.studentId;
+    const classId = identity.classId;
+    const schoolId = identity.schoolId;
 
     async function load() {
-      setLoading(true);
-      const { data: raw } = await supabase.from("homework").select("*").eq("id", id).maybeSingle();
-      if (!raw) {
-        setLoading(false);
-        return;
-      }
+      try {
+        const { data: raw, error: homeworkError } = await supabase
+          .from("homework")
+          .select("*")
+          .eq("id", id)
+          .eq("class_id", classId)
+          .eq("school_id", schoolId)
+          .maybeSingle();
+        if (cancelled) return;
+        if (homeworkError) throw new Error("Could not load homework. Check your connection.");
+        if (!raw) { setLoading(false); return; }
+        const hw = raw as Homework;
 
-      const hw = raw as Homework;
-      setHomework(hw);
+        if (hw.target_group_id) {
+          const { data: groupMember, error: groupError } = await supabase
+            .from("class_group_members")
+            .select("group_id")
+            .eq("student_id", studentId)
+            .eq("group_id", hw.target_group_id)
+            .maybeSingle();
+          if (cancelled) return;
+          if (groupError) throw new Error("Could not verify this assignment's group access.");
+          if (!groupMember) { setLoading(false); return; }
+        }
 
-      const [teacherRes, questionRes, submissionRes] = await Promise.all([
-        supabase.from("profiles").select("full_name").eq("id", hw.teacher_id).maybeSingle(),
-        // Never fetch model_answer into the learner browser.
-        supabase.from("homework_questions").select("id,homework_id,question,order_num").eq("homework_id", hw.id).order("order_num"),
-        supabase.from("homework_submissions").select("id,status,photo_url,mark,feedback,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", identity!.studentId).maybeSingle(),
-      ]);
+        const [teacherRes, questionRes, submissionRes] = await Promise.all([
+          supabase.from("profiles").select("full_name").eq("id", hw.teacher_id).maybeSingle(),
+          supabase.from("homework_questions").select("id,homework_id,question,order_num").eq("homework_id", hw.id).order("order_num"),
+          supabase.from("homework_submissions").select("id,status,photo_url,mark,feedback,feedback_released_at,submitted_at,received_at,revision_number,returned_reason").eq("homework_id", hw.id).eq("student_id", studentId).maybeSingle(),
+        ]);
+        if (cancelled) return;
+        if (teacherRes.error || questionRes.error || submissionRes.error) {
+          throw new Error("Could not load the homework details or submission. Please retry.");
+        }
 
-      setTeacher(teacherRes.data?.full_name ?? "Teacher");
-      setQuestions((questionRes.data as HomeworkQuestion[]) ?? []);
+        const sub = submissionRes.data as SubmissionRow | null;
+        let photoViewUrl: string | null = null;
+        if (sub?.photo_url) {
+          try { photoViewUrl = await getHomeworkPhotoViewUrl(sub.photo_url); }
+          catch {
+            if (!cancelled) setError("Could not open your homework photo. Refresh to retry.");
+          }
+        }
+        if (cancelled) return;
 
-      const sub = submissionRes.data as SubmissionRow | null;
-      setSubmission(sub);
-      if (sub?.photo_url) setPhotoPreview(sub.photo_url);
+        let loadedAnswers: HomeworkAnswer[] = [];
+        if (sub) {
+          const { data, error: answerError } = await supabase
+            .from("homework_answers")
+            .select("id,submission_id,question_id,answer_text,created_at")
+            .eq("submission_id", sub.id);
+          if (cancelled) return;
+          if (answerError) throw new Error("Could not load your saved answers. Please retry.");
+          loadedAnswers = (data as HomeworkAnswer[]) ?? [];
+        }
 
-      if (sub) {
-        const { data } = await supabase.from("homework_answers").select("id,submission_id,question_id,answer_text,created_at").eq("submission_id", sub.id);
-        const loadedAnswers = (data as HomeworkAnswer[]) ?? [];
+        if (cancelled) return;
+        setHomework(hw);
+        setTeacher(teacherRes.data?.full_name ?? "Teacher");
+        setQuestions((questionRes.data as HomeworkQuestion[]) ?? []);
+        setSubmission(sub);
+        setPhotoReference(sub?.photo_url ?? null);
+        setPhotoPreview(photoViewUrl);
         setAnswers(loadedAnswers);
         setDraft(Object.fromEntries(loadedAnswers.map(answer => [answer.question_id, answer.answer_text ?? ""])));
+        setLoading(false);
+      } catch (cause) {
+        if (cancelled) return;
+        setLoadError(cause instanceof Error ? cause.message : "Could not load homework. Please retry.");
+        setLoading(false);
       }
-
-      setLoading(false);
     }
 
     void load();
-  }, [id, identity, identityLoading]);
+    return () => { cancelled = true; };
+  }, [id, identity?.studentId, identity?.classId, identity?.schoolId, identityLoading]);
 
-  const locked = submission?.status === "marked" || submission?.status === "under_review";
+  const locked = submission != null && ["submitted", "received", "under_review", "marked"].includes(submission.status);
   const editable = !locked;
   const finalSubmitted = submission != null && ["submitted", "received", "under_review", "marked"].includes(submission.status);
-  const badge = homework ? dueBadge(homework.due_date, submission?.status) : null;
+  const released = Boolean(submission?.feedback_released_at);
+  const badge = homework ? dueBadge(homework.due_date, submission?.status, released) : null;
 
   function answerPayload() {
     return questions.map(question => ({
@@ -134,7 +205,7 @@ export default function HomeworkDetailPage() {
       setError("Please answer every question before submitting.");
       return false;
     }
-    if (questions.length === 0 && !photoFile && !photoPreview) {
+    if (questions.length === 0 && !photoFile && !photoReference) {
       setError("Please add a clear photo of your completed work.");
       return false;
     }
@@ -142,16 +213,15 @@ export default function HomeworkDetailPage() {
   }
 
   async function uploadPhoto(): Promise<string | null> {
-    if (!photoFile || !identity) return photoPreview;
+    if (!photoFile || !identity) return photoReference;
     setSaving("upload");
-    const extension = photoFile.name.split(".").pop() ?? "jpg";
-    const contentType = photoFile.type && photoFile.type.startsWith("image/") ? photoFile.type : `image/${extension === "jpg" ? "jpeg" : extension}`;
+    const formats: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/heic": "heic" };
+    const extension = formats[photoFile.type];
+    if (!extension || photoFile.size > 8 * 1024 * 1024) throw new Error("Choose a JPG, PNG, WebP or HEIC photo under 8 MB.");
     const path = `${identity.studentId}/${id}-${Date.now()}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from("homework-photos").upload(path, photoFile, { upsert: true, contentType });
+    const { error: uploadError } = await supabase.storage.from("homework-photos").upload(path, photoFile, { contentType: photoFile.type, upsert: false });
     if (uploadError) throw new Error("Photo upload failed. Please try again.");
-    const { data, error: signError } = await supabase.storage.from("homework-photos").createSignedUrl(path, 60 * 60 * 24 * 365);
-    if (signError || !data) throw new Error("Photo upload failed. Please try again.");
-    return data.signedUrl;
+    return path;
   }
 
   async function saveDraft() {
@@ -164,18 +234,23 @@ export default function HomeworkDetailPage() {
       const result = await saveStudentHomeworkDraft({ homeworkId: homework.id, answers: answerPayload(), photoUrl });
       setSubmission(previous => ({
         id: result.submissionId,
-        status: "draft",
+        status: result.status === "returned" ? "returned" : "draft",
         photo_url: photoUrl ?? previous?.photo_url ?? null,
         mark: previous?.mark ?? null,
         feedback: previous?.feedback ?? null,
+        feedback_released_at: previous?.feedback_released_at ?? null,
         submitted_at: previous?.submitted_at ?? null,
         received_at: previous?.received_at ?? null,
         revision_number: result.revisionNumber,
         returned_reason: previous?.returned_reason ?? null,
       }));
-      setPhotoPreview(photoUrl);
+      setPhotoReference(photoUrl);
+      if (photoUrl) {
+        try { setPhotoPreview(await getHomeworkPhotoViewUrl(photoUrl)); }
+        catch { setPhotoPreview(null); }
+      }
       setPhotoFile(null);
-      setMessage("Draft saved. You can continue later.");
+      setMessage(result.status === "returned" ? "Corrections saved. Resubmit when ready." : "Draft saved. You can continue later.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save draft.");
     } finally {
@@ -197,6 +272,7 @@ export default function HomeworkDetailPage() {
         photo_url: photoUrl ?? previous?.photo_url ?? null,
         mark: previous?.mark ?? null,
         feedback: previous?.feedback ?? null,
+        feedback_released_at: previous?.feedback_released_at ?? null,
         submitted_at: result.submittedAt ?? null,
         received_at: result.receivedAt ?? null,
         revision_number: result.revisionNumber,
@@ -209,7 +285,11 @@ export default function HomeworkDetailPage() {
         answer_text: answer.answerText,
         created_at: result.receivedAt ?? "",
       })));
-      setPhotoPreview(photoUrl);
+      setPhotoReference(photoUrl);
+      if (photoUrl) {
+        try { setPhotoPreview(await getHomeworkPhotoViewUrl(photoUrl)); }
+        catch { setPhotoPreview(null); }
+      }
       setPhotoFile(null);
       setMessage("Submitted successfully. Vibeschool has received your work.");
     } catch (cause) {
@@ -220,7 +300,9 @@ export default function HomeworkDetailPage() {
   }
 
   if (identityLoading || loading) return <div style={{ display: "flex", flexDirection: "column", gap: 12 }}><Skel h={28} radius={8} /><Skel h={120} radius={14} /><Skel h={180} radius={14} /></div>;
-  if (!homework || !badge) return <div style={{ padding: 32, textAlign: "center", color: "var(--vs-muted)" }}>Homework not found</div>;
+  if (identityError) return <div role="alert" style={{ padding: 20 }}><p>{identityError}</p><button type="button" onClick={retryIdentity}>Try again</button></div>;
+  if (loadError) return <div role="alert" style={{ padding: 20 }}><p>{loadError}</p><button type="button" onClick={() => window.location.reload()}>Retry</button></div>;
+  if (!homework || !badge) return <div style={{ padding: 32, textAlign: "center", color: "var(--vs-muted)" }}>Homework not found or learner access unavailable.</div>;
 
   return (
     <div style={{ paddingBottom: 90 }}>
@@ -238,16 +320,16 @@ export default function HomeworkDetailPage() {
 
       {submission && finalSubmitted && (
         <section style={{ background: submission.status === "marked" ? "var(--vs-accent-soft)" : "#d1fae5", borderRadius: 14, padding: 16, marginBottom: 14 }}>
-          <strong>{submission.status === "marked" ? "Marked" : submission.status === "under_review" ? "Teacher is reviewing" : "Received by Vibeschool"}</strong>
+          <strong>{submission.status === "marked" && released ? "Marked" : submission.status === "under_review" || submission.status === "marked" ? "Teacher is reviewing" : "Received by VibeSchool"}</strong>
           <div style={{ fontSize: 12, marginTop: 6 }}>Submitted: {formatReceipt(submission.submitted_at)}</div>
           <div style={{ fontSize: 12, marginTop: 2 }}>Server receipt: {formatReceipt(submission.received_at)}</div>
           <div style={{ fontSize: 12, marginTop: 2 }}>Revision: {submission.revision_number}</div>
-          {submission.mark != null && <div style={{ fontSize: 20, fontWeight: 900, marginTop: 10 }}>{submission.mark} marks</div>}
-          {submission.feedback && <p style={{ marginBottom: 0 }}>{submission.feedback}</p>}
+          {released && submission.mark != null && <div style={{ fontSize: 20, fontWeight: 900, marginTop: 10 }}>{submission.mark} marks</div>}
+          {released && submission.feedback && <p style={{ marginBottom: 0 }}>{submission.feedback}</p>}
         </section>
       )}
 
-      {submission?.status === "returned" && <section style={{ background: "#fef3c7", borderRadius: 14, padding: 16, marginBottom: 14 }}><strong>Returned for correction</strong><p>{submission.returned_reason || "Please review your work, make corrections and submit again."}</p></section>}
+      {submission?.returned_reason && ["returned", "draft"].includes(submission.status) && <section style={{ background: "#fef3c7", borderRadius: 14, padding: 16, marginBottom: 14 }}><strong>Returned for correction</strong><p>{submission.returned_reason || "Please review your work, make corrections and submit again."}</p></section>}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
         {questions.map((question, index) => (

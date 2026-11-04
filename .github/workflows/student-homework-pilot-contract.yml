@@ -1,0 +1,25 @@
+name: Student Homework Pilot Contract
+on:
+  pull_request:
+    paths:
+      - 'app/student/homework/**'
+      - 'app/teacher/classhub/**/homework/**'
+      - 'lib/homework/**'
+      - 'lib/student-cache.ts'
+      - 'scripts/test-student-homework-pilot.mjs'
+      - 'supabase/migrations/*student_pilot_enrollment*'
+      - '.github/workflows/student-homework-pilot-contract.yml'
+  workflow_dispatch:
+
+jobs:
+  homework-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: npm run test:student-homework-pilot

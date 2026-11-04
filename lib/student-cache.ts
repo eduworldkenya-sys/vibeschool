@@ -50,9 +50,16 @@ export function clearCache(page: CacheKey, studentId: string): void {
 
 export function clearAllStudentCache(studentId: string): void {
   try {
-    const keys = Object.keys(STUDENT_CACHE_TTL) as CacheKey[]
-    keys.forEach(page => {
-      localStorage.removeItem(studentCacheKey(page, studentId))
+    const pages = Object.keys(STUDENT_CACHE_TTL) as CacheKey[]
+    pages.forEach(page => {
+      const prefix = studentCacheKey(page, studentId).replace(/_v1$/, '')
+      // Includes class/school-scoped homework cache entries, not just legacy keys.
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i)
+        if (key && (key === prefix + '_v1' || key.startsWith(prefix + ':'))) {
+          localStorage.removeItem(key)
+        }
+      }
     })
   } catch {}
 }

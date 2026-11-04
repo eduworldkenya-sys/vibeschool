@@ -16,7 +16,11 @@ import {
 type Filter = "all" | "pending" | "submitted" | "overdue";
 
 function dueBadge(h: HomeworkFeedItem) {
-  if (h.lifecycle === "marked" || h.lifecycle === "submitted") return { label: "Submitted", bg: "#d1fae5", color: "#065f46" };
+  if (h.lifecycle === "marked") return { label: "Marked", bg: "#d1fae5", color: "#065f46" };
+  if (h.lifecycle === "submitted") return { label: "Received", bg: "#d1fae5", color: "#065f46" };
+  if (h.lifecycle === "under_review") return { label: "Under review", bg: "#dbeafe", color: "#1e40af" };
+  if (h.lifecycle === "returned") return { label: "Correction needed", bg: "#fef3c7", color: "#92400e" };
+  if (h.lifecycle === "draft") return { label: "Draft", bg: "#f3f4f6", color: "#4b5563" };
   if (h.lifecycle === "stale")        return { label: "Archived",     bg: "#f3f4f6", color: "#6b7280" };
   if (h.lifecycle === "overdue")      return { label: "Overdue",      bg: "#fee2e2", color: "#991b1b" };
   if (h.lifecycle === "due_today")    return { label: "Due Today",    bg: "#fef3c7", color: "#92400e" };
@@ -26,21 +30,17 @@ function dueBadge(h: HomeworkFeedItem) {
 }
 
 const SECTION: Record<LifecycleStatus, { score: number; label: string }> = {
-  overdue:      { score: 0, label: "⚠️ Overdue" },
-  due_today:    { score: 1, label: "🔥 Due Today" },
-  due_tomorrow: { score: 2, label: "⏰ Due Tomorrow" },
-  upcoming:     { score: 3, label: "📅 Upcoming" },
-  submitted:    { score: 4, label: "✅ Done" },
-  marked:       { score: 4, label: "✅ Done" },
-  stale:        { score: 5, label: "🗄️ Archived (14+ days overdue)" },
+  returned:     { score: 0, label: "Corrections needed" },
+  overdue:      { score: 1, label: "⚠️ Overdue" },
+  due_today:    { score: 2, label: "🔥 Due Today" },
+  due_tomorrow: { score: 3, label: "⏰ Due Tomorrow" },
+  draft:        { score: 4, label: "Drafts" },
+  upcoming:     { score: 5, label: "📅 Upcoming" },
+  submitted:    { score: 6, label: "Received" },
+  under_review: { score: 6, label: "Under review" },
+  marked:       { score: 7, label: "Marked" },
+  stale:        { score: 8, label: "🗄️ Archived (14+ days overdue)" },
 };
-
-function autoBandLabel(mark: number): string {
-  if (mark >= 80) return "Excellent";
-  if (mark >= 60) return "Good";
-  if (mark >= 40) return "Fair";
-  return "Needs Improvement";
-}
 
 function IconWork() {
   return (
@@ -144,6 +144,13 @@ export default function HomeworkListPage() {
         </div>
       </div>
 
+      {feed.error && (
+        <div role="alert" style={{ padding: 12, border: "1px solid #fca5a5", borderRadius: 12, marginBottom: 14, color: "#991b1b", background: "#fff1f2", display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+          <span>{feed.error}</span>
+          <button type="button" onClick={feed.retry} style={{ minHeight: 44, borderRadius: 8, padding: "8px 12px", border: "1px solid #fca5a5", background: "#fff" }}>Retry</button>
+        </div>
+      )}
+
       {/* Filter tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, overflowX: "auto", paddingBottom: 2 }}>
         {FILTERS.map(f => (
@@ -224,7 +231,7 @@ export default function HomeworkListPage() {
                     )}
                     {h.status === "marked" && h.mark !== null && (
                       <div style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 10px", background: "#d1fae5", borderRadius: 20, fontSize: 11, fontWeight: 700, color: "#065f46" }}>
-                        <IconCheck /> {h.mark} marks · {autoBandLabel(h.mark)}
+                        <IconCheck /> {h.mark} marks
                       </div>
                     )}
                     <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
