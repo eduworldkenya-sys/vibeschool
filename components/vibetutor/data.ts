@@ -20,7 +20,9 @@ export const SUBJECTS_BY_LEVEL: Record<string, string[]> = {
   University: ['Mathematics', 'Statistics', 'Computer Science', 'Economics', 'Accounting', 'Engineering', 'Biology', 'Chemistry', 'Physics', 'English']
 }
 export const SUBJECTS = [...new Set(Object.values(SUBJECTS_BY_LEVEL).flat())]
-export const AREAS = ['Nairobi', 'Nakuru', 'Kisumu', 'Mombasa', 'Eldoret', 'Online (anywhere)']
+// Kenya's 47 counties, the same list used in school settings.
+export const COUNTIES = ['Baringo','Bomet','Bungoma','Busia','Elgeyo Marakwet','Embu','Garissa','Homa Bay','Isiolo','Kajiado','Kakamega','Kericho','Kiambu','Kilifi','Kirinyaga','Kisii','Kisumu','Kitui','Kwale','Laikipia','Lamu','Machakos','Makueni','Mandera','Marsabit','Meru','Migori','Mombasa','Murang\'a','Nairobi','Nakuru','Nandi','Narok','Nyamira','Nyandarua','Nyeri','Samburu','Siaya','Taita Taveta','Tana River','Tharaka Nithi','Trans Nzoia','Turkana','Uasin Gishu','Vihiga','Wajir','West Pokot']
+export const AREAS = COUNTIES
 export const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const
 export const DAYPARTS: { id: DayPart; label: string; hours: string; icon: 'sunrise' | 'sun' | 'sunset' | 'moon' }[] = [
   { id: 'morning', label: 'Morning', hours: '6am – 12pm', icon: 'sunrise' },
