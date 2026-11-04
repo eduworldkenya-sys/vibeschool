@@ -1,5 +1,8 @@
 begin;
 
+-- access: owner-only public.vibetutor_imports
+-- authorization-test: public.vibetutor_imports HQ platform owners can read/write; other authenticated users and anon are denied; imported tutor contact details never enter public discovery views
+
 create table if not exists public.vibetutor_imports (
   id uuid primary key default gen_random_uuid(),
   full_name text not null check (length(trim(full_name)) between 2 and 120),
