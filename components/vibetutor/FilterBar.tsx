@@ -56,15 +56,15 @@ export default function FilterBar(p: Props) {
           <button type="button" className={`${styles.segmentBtn} ${p.mode === 'physical' ? styles.segmentOn : ''}`} aria-pressed={p.mode === 'physical'} onClick={() => p.onMode('physical')}>In person</button>
         </div>
       </div>
-      <div className={styles.compactFilterRow}>
+      {active && <div className={styles.compactFilterRow}>
         <button type="button" className={styles.compactFilterButton} aria-expanded={filtersOpen} aria-controls="vibetutor-secondary-filters" onClick={() => setFiltersOpen(open => !open)}>
           <span>More filters</span>
           {secondaryCount > 0 && <span className={styles.compactFilterCount}>{secondaryCount}</span>}
           <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
         </button>
         {secondaryCount > 0 && <span className={styles.hint}>{secondaryCount} applied</span>}
-      </div>
-      {filtersOpen && <div id="vibetutor-secondary-filters" className={styles.secondaryFilters}>
+      </div>}
+      {active && filtersOpen && <div id="vibetutor-secondary-filters" className={styles.secondaryFilters}>
         <label className={styles.filterField}>
           <span className={styles.subLabel}>Location</span>
           <select className={styles.select} value={p.area} onChange={e => p.onArea(e.target.value)} aria-label="Location">
