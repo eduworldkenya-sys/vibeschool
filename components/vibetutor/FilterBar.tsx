@@ -58,7 +58,7 @@ export default function FilterBar(p: Props) {
       </div>
       {active && <div className={styles.compactFilterRow}>
         <button type="button" className={styles.compactFilterButton} aria-expanded={filtersOpen} aria-controls="vibetutor-secondary-filters" onClick={() => setFiltersOpen(open => !open)}>
-          <span>More filters</span>
+          <span>Filters</span>
           {secondaryCount > 0 && <span className={styles.compactFilterCount}>{secondaryCount}</span>}
           <span aria-hidden="true">{filtersOpen ? "−" : "+"}</span>
         </button>
