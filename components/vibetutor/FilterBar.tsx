@@ -15,6 +15,14 @@ type Props = {
   priceRange: string; onPriceRange: (v: string) => void
   resultCount: number; noun: string; onClear: () => void; busy: boolean
 }
+
+const PRICE_OPTIONS = [
+  { value: 'under500', label: 'Under KSh 500' },
+  { value: '500to1000', label: 'KSh 500–1,000' },
+  { value: '1000to2000', label: 'KSh 1,000–2,000' },
+  { value: 'over2000', label: 'KSh 2,000+' },
+]
+
 export default function FilterBar(p: Props) {
   const active = !!(p.q || p.subject || p.level || p.area || p.mode || p.priceRange)
   return (
@@ -28,58 +36,45 @@ export default function FilterBar(p: Props) {
         <input className={styles.search} type="search" value={p.q} onChange={e => p.onQ(e.target.value)} placeholder={p.placeholder} aria-label={p.placeholder} />
       </label>
 
-      <div className={styles.controls}>
-        <label className={styles.filterField}>
-          <span className={styles.subLabel}>Level</span>
-          <select className={styles.select} value={p.level} onChange={e => p.onLevel(e.target.value)} aria-label="Choose level first">
-            <option value="">All levels</option>
-            {p.levels.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
-          </select>
-        </label>
-        <label className={styles.filterField}>
-          <span className={styles.subLabel}>Location</span>
-          <select className={styles.select} value={p.area} onChange={e => p.onArea(e.target.value)} aria-label="Location">
-            <option value="">All locations</option>
-            {p.areas.map(item => <option key={item.value} value={item.value}>{item.label} ({item.count})</option>)}
-          </select>
-        </label>
-        <div className={styles.filterField}>
-          <span className={styles.subLabel}>Teaching mode</span>
-          <div className={styles.segment} role="group" aria-label="Teaching format">
-            <button type="button" className={`${styles.segmentBtn} ${p.mode === '' ? styles.segmentOn : ''}`} aria-pressed={p.mode === ''} onClick={() => p.onMode('')}>Any</button>
-            {p.modes.map(item => <button key={item.value} type="button" className={`${styles.segmentBtn} ${p.mode === item.value ? styles.segmentOn : ''}`} aria-pressed={p.mode === item.value} onClick={() => p.onMode(item.value as Mode)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
-          </div>
+      <div className={styles.filterField}>
+        <span className={styles.subLabel}>Level</span>
+        <div className={styles.chipRow} role="group" aria-label="Level">
+          <button type="button" className={`${styles.chip} ${p.level === '' ? styles.chipOn : ''}`} aria-pressed={p.level === ''} onClick={() => { p.onLevel(''); p.onSubject('') }}>All levels</button>
+          {p.levels.map(item => <button key={item.value} type="button" className={`${styles.chip} ${p.level === item.value ? styles.chipOn : ''}`} aria-pressed={p.level === item.value} onClick={() => { p.onLevel(item.value); p.onSubject('') }}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
         </div>
       </div>
 
-      <div>
-        <div className={styles.subjectHeading}>
-          <p className={styles.subLabel}>Subject {p.level ? `· ${p.level}` : '· Choose a level to see relevant subjects'}</p>
-          {p.level && <span className={styles.hint}>{p.subjects.reduce((sum, item) => sum + item.count, 0)} matching subject options</span>}
+      <div className={styles.filterField}>
+        <span className={styles.subLabel}>Location</span>
+        <div className={styles.chipRow} role="group" aria-label="Location">
+          <button type="button" className={`${styles.chip} ${p.area === '' ? styles.chipOn : ''}`} aria-pressed={p.area === ''} onClick={() => p.onArea('')}>All locations</button>
+          {p.areas.map(item => <button key={item.value} type="button" className={`${styles.chip} ${p.area === item.value ? styles.chipOn : ''}`} aria-pressed={p.area === item.value} onClick={() => p.onArea(item.value)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
         </div>
-        {p.level
-          ? <div className={styles.chipRow} role="group" aria-label="Available subjects">
-              <button type="button" className={`${styles.chip} ${p.subject === '' ? styles.chipOn : ''}`} aria-pressed={p.subject === ''} onClick={() => p.onSubject('')}>All subjects</button>
-              {p.subjects.map(item => <button key={item.value} type="button" className={`${styles.chip} ${p.subject === item.value ? styles.chipOn : ''}`} aria-pressed={p.subject === item.value} onClick={() => p.onSubject(item.value)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
-            </div>
-          : <p className={styles.hint}>Select a level first. Only matching subjects will then appear.</p>}
       </div>
 
-      <details className={styles.moreFilters}>
-        <summary className={styles.moreFiltersSummary}>More filters{p.priceRange ? <span className={styles.optionCount}> · Price selected</span> : null}</summary>
-        <div className={styles.moreFiltersBody}>
-          <span className={styles.subLabel}>Price per hour</span>
-          <div className={styles.chipRow} role="group" aria-label="Price range">
-            {[
-              { value: '', label: 'Any price' },
-              { value: 'under500', label: 'Under KSh 500' },
-              { value: '500to1000', label: 'KSh 500–1,000' },
-              { value: '1000to2000', label: 'KSh 1,000–2,000' },
-              { value: 'over2000', label: 'KSh 2,000+' },
-            ].map(option => <button key={option.value} type="button" className={`${styles.chip} ${p.priceRange === option.value ? styles.chipOn : ''}`} aria-pressed={p.priceRange === option.value} onClick={() => p.onPriceRange(option.value)}>{option.label}</button>)}
-          </div>
+      <div className={styles.filterField}>
+        <span className={styles.subLabel}>Teaching mode</span>
+        <div className={styles.chipRow} role="group" aria-label="Teaching mode">
+          <button type="button" className={`${styles.chip} ${p.mode === '' ? styles.chipOn : ''}`} aria-pressed={p.mode === ''} onClick={() => p.onMode('')}>Any mode</button>
+          {p.modes.map(item => <button key={item.value} type="button" className={`${styles.chip} ${p.mode === item.value ? styles.chipOn : ''}`} aria-pressed={p.mode === item.value} onClick={() => p.onMode(item.value as Mode)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
         </div>
-      </details>
+      </div>
+
+      <div className={styles.filterField}>
+        <span className={styles.subLabel}>Price per hour</span>
+        <div className={styles.chipRow} role="group" aria-label="Price range">
+          <button type="button" className={`${styles.chip} ${p.priceRange === '' ? styles.chipOn : ''}`} aria-pressed={p.priceRange === ''} onClick={() => p.onPriceRange('')}>Any price</button>
+          {PRICE_OPTIONS.map(option => <button key={option.value} type="button" className={`${styles.chip} ${p.priceRange === option.value ? styles.chipOn : ''}`} aria-pressed={p.priceRange === option.value} onClick={() => p.onPriceRange(option.value)}>{option.label}</button>)}
+        </div>
+      </div>
+
+      {p.level && <div className={styles.filterField}>
+        <span className={styles.subLabel}>Subject</span>
+        <div className={styles.chipRow} role="group" aria-label="Subject">
+          <button type="button" className={`${styles.chip} ${p.subject === '' ? styles.chipOn : ''}`} aria-pressed={p.subject === ''} onClick={() => p.onSubject('')}>All subjects</button>
+          {p.subjects.map(item => <button key={item.value} type="button" className={`${styles.chip} ${p.subject === item.value ? styles.chipOn : ''}`} aria-pressed={p.subject === item.value} onClick={() => p.onSubject(item.value)}>{item.label} <span className={styles.optionCount}>{item.count}</span></button>)}
+        </div>
+      </div>}
 
       <div className={styles.summary} aria-live="polite">
         <span className={styles.count}>{p.busy ? 'Updating…' : `${p.resultCount} ${p.noun}${p.resultCount === 1 ? '' : 's'} found`}</span>
@@ -91,7 +86,7 @@ export default function FilterBar(p: Props) {
         {p.subject && <button type="button" className={styles.filterTag} onClick={() => p.onSubject('')}>{p.subject} ×</button>}
         {p.area && <button type="button" className={styles.filterTag} onClick={() => p.onArea('')}>{p.area} ×</button>}
         {p.mode && <button type="button" className={styles.filterTag} onClick={() => p.onMode('')}>{modeLabel(p.mode)} ×</button>}
-        {p.priceRange && <button type="button" className={styles.filterTag} onClick={() => p.onPriceRange('')}>{({under500:'Under KSh 500','500to1000':'KSh 500–1,000','1000to2000':'KSh 1,000–2,000',over2000:'KSh 2,000+'} as Record<string,string>)[p.priceRange]} ×</button>}
+        {p.priceRange && <button type="button" className={styles.filterTag} onClick={() => p.onPriceRange('')}>{PRICE_OPTIONS.find(o => o.value === p.priceRange)?.label ?? p.priceRange} ×</button>}
       </div>}
       <div className={styles.progressTrack} aria-hidden="true">{p.busy && <div className={styles.progressBar} />}</div>
     </section>
