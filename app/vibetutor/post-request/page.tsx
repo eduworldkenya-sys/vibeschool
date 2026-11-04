@@ -28,6 +28,8 @@ export default function PostRequest() {
   const [budget, setBudget] = useState('')
   const [phone, setPhone] = useState('')
   const [signedIn, setSignedIn] = useState(false)
+  const [authStatus, setAuthStatus] = useState<'checking' | 'signed-in' | 'signed-out' | 'error'>('checking')
+  const [authRetryKey, setAuthRetryKey] = useState(0)
   const [submitError, setSubmitError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [ready, setReady] = useState(false)
@@ -51,15 +53,24 @@ export default function PostRequest() {
 
   useEffect(() => {
     let active = true
-    getSupabaseClient().auth.getUser().then(({ data }) => {
-      if (!active || !data.user) return
-      const metadata = data.user.user_metadata || {}
-      setSignedIn(true)
-      setPhone(current => current || String(metadata.phone || data.user?.phone || ''))
-      setLearner(current => current || String(metadata.child_name || metadata.learner_name || ''))
-    }).catch(() => undefined)
+    const checkSignIn = async () => {
+      try {
+        const { data, error } = await getSupabaseClient().auth.getUser()
+        if (!active) return
+        if (error) { setAuthStatus('error'); return }
+        if (!data.user) { setSignedIn(false); setAuthStatus('signed-out'); return }
+        const metadata = data.user.user_metadata || {}
+        setSignedIn(true)
+        setAuthStatus('signed-in')
+        setPhone(current => current || String(metadata.phone || data.user?.phone || ''))
+        setLearner(current => current || String(metadata.child_name || metadata.learner_name || ''))
+      } catch {
+        if (active) setAuthStatus('error')
+      }
+    }
+    void checkSignIn()
     return () => { active = false }
-  }, [])
+  }, [authRetryKey])
 
   const clearForm = () => { setLearner(''); setSubjects([]); setLevel(''); setMode('either'); setArea(''); setDays([]); setBudget(''); setPhone(''); setTouched(false); clearDraft(DRAFT_KEY) }
   const completion = [!!level && subjects.length > 0, !!area, days.length > 0]
@@ -74,7 +85,7 @@ export default function PostRequest() {
           <div className={polish.wizardMeta}><strong>Progress</strong><span>{completion.filter(Boolean).length} of 3 complete</span></div>
           <div className={polish.wizardSteps}>{["Learning needs","Tuition details","Availability"].map((label,index)=><span key={label} title={label} aria-label={`${label} ${completion[index]?'complete':'incomplete'}`} className={completion[index]?polish.wizardStepDone:polish.wizardStep}>{completion[index]?'✓':index+1}</span>)}</div>
         </div>}
-      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting) return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/browse') } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
+      <form className={styles.form} onSubmit={e => { e.preventDefault(); if (!validForm || submitting || authStatus === 'checking' || authStatus === 'error') return; if (!signedIn) { saveDraft<RequestDraft>(DRAFT_KEY, { learner, subjects, level, mode, area, days, budget, phone }); window.location.assign('/login?redirect=%2Fvibetutor%2Fpost-request'); return } setSubmitError(''); setSubmitting(true); saveLearnerRequest({ learner, levels: level ? [level] : [], subjects, mode, area, budget, days, phone }).then(result => { if (result.ok) { clearDraft(DRAFT_KEY); window.location.assign('/vibetutor/browse') } else setSubmitError(result.error) }).catch(() => setSubmitError('We could not post your tutor request. Check your connection and try again.')).finally(() => setSubmitting(false)) }}>
         <Field label="Level" required><select className={styles.input} value={level} onChange={e => { setTouched(true); setLevel(e.target.value); setSubjects([]) }}><option value="">Choose level</option>{LEVELS.map(item => <option key={item}>{item}</option>)}</select></Field>
         <Field label="Subjects" required>{level && <ToggleChips label="Subjects" options={availableSubjects} selected={subjects} onToggle={value => { setTouched(true); setSubjects(toggle(subjects, value)) }} />}</Field>
         <Field label="Teaching format"><Segmented<Mode> label="Teaching format" value={mode} onChange={value => { setTouched(true); setMode(value) }} options={[{ value: 'online', label: 'Online' }, { value: 'physical', label: 'In person' }, { value: 'either', label: 'Either' }]} /></Field>
@@ -84,7 +95,8 @@ export default function PostRequest() {
         {signedIn && <p className={polish.prefillNote}>Account contact details prefilled where available. You can edit them.</p>}
         <Field label="Student name" hint="Optional if you prefer not to share it yet."><input className={styles.input} value={learner} onChange={e => { setTouched(true); setLearner(e.target.value) }} maxLength={60} autoComplete="off" /></Field>
         <Field label="Parent or guardian phone" required><input className={styles.input} type="tel" inputMode="tel" autoComplete="tel" value={phone} onChange={e => { setTouched(true); setPhone(e.target.value.replace(/[^0-9+ -]/g, '').slice(0, 16)) }} onBlur={() => setPhone(current => normalizedPhone(current))} placeholder="07XX XXX XXX" aria-invalid={phone.length > 0 && !validKenyanPhone(phone)} />{phone.length > 0 && !validKenyanPhone(phone) && <span className={styles.hint}>Enter a valid Kenyan mobile number.</span>}</Field>
-        <div className={styles.formActions}><button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button><button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting}>{submitting ? 'Posting…' : 'Find a tutor'}</button></div>
+        <div className={styles.formActions}><button type="button" className={styles.btnSecondary} onClick={clearForm}>Clear form</button><button type="submit" className={styles.btnSubmit} disabled={!validForm || submitting || authStatus === 'checking' || authStatus === 'error'}>{submitting ? 'Posting…' : 'Find a tutor'}</button></div>
+        {authStatus === 'error' && <p role="alert" className={styles.hint}>We could not verify your sign-in. Check your connection and retry before posting. <button type="button" className={styles.btnSecondary} onClick={() => { setAuthStatus('checking'); setAuthRetryKey(value => value + 1) }}>Retry sign-in check</button></p>}
         {submitError && <p role="alert" className={styles.hint}>{submitError}</p>}
       </form>
     </div>
